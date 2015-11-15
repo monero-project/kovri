@@ -8,7 +8,7 @@ Documentation for config files, command line options, build instructions and mor
 Downloads
 ------------
 
-Official binary releases could be found at:
+Upstream binary releases can be found at:
 http://download.i2p.io/purplei2p/i2pd/releases/
 
 

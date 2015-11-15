@@ -1,0 +1,22 @@
+language: cpp
+
+compiler:
+    - gcc
+    - clang
+
+addons:
+    apt:
+        packages:
+            - cmake
+            - libboost-dev
+            - libboost-filesystem-dev
+            - libboost-program-options-dev
+            - libboost-regex-dev
+            - libcrypto++-dev
+            - libboost-date-time-dev
+
+script: cd i2pd/build && cmake ../ && make
+
+notifications:
+    email:
+        - anonimal@i2pmail.org

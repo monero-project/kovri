@@ -15,7 +15,7 @@ addons:
             - libcrypto++-dev
             - libboost-date-time-dev
 
-script: cd i2pd/build && cmake ../ && make
+script: cd anonimal/i2pd/build && cmake ../ && make
 
 notifications:
     email:

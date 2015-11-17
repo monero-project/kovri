@@ -9,11 +9,11 @@ On Arch Linux
 
 Then, build:
 
-$ cd i2pd/build && cmake ../ && make
+$ cd kovri/build && cmake ../ && make
 
 Then, run it:
 
-$ ./i2pd
+$ ./kovri
 
 The client should now reseed by itself.
 
@@ -25,16 +25,16 @@ Installing the webui
 ====================
 
 If you build from source the webui files will automatically be copied to your
- i2pd data path.
+ kovri data path.
 In some cases (such as when using binaries), you may have to manually install the
  webui.
 For this, run:
 
-$ ./i2pd --install=/path/to/webui
+$ ./kovri --install=/path/to/webui
 
 Or, if the current directory contains a folder named "webui":
 
-$ ./i2pd --install
+$ ./kovri --install
 
 Building Unit Tests
 ===================
@@ -58,4 +58,4 @@ Available cmake options:
 * WITH_TESTS -- build tests (ON/OFF)
 * WITH_BENCHMARK -- build bechmarking code (ON/OFF)
 * WITH_OPTIMIZE -- enable optimization flags (ON/OFF) (not for MSVC)
-* I2PD_DATA_DIR -- directory where i2pd will store data
+* KOVRI_DATA_DIR -- directory where kovri will store data

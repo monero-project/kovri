@@ -1,5 +1,5 @@
 cmake_minimum_required ( VERSION 2.8.12 )
-project ( "i2pd" )
+project ( "kovri" )
 
 # configurale options
 option(WITH_AESNI     "Use AES-NI instructions set" OFF)
@@ -11,7 +11,7 @@ option(WITH_UPNP      "Include support for UPnP client" OFF)
 option(WITH_TESTS     "Build unit tests" OFF)
 option(WITH_BENCHMARK "Build benchmarking code" OFF)
 option(WITH_OPTIMIZE  "Optimization flags" OFF)
-option(I2PD_DATA_PATH "The path to the i2pd data folder")
+option(KOVRI_DATA_PATH "The path to the kovri data folder")
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/build/cmake_modules")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -145,16 +145,16 @@ include_directories(
     "core/"
 )
 
-if(I2PD_DATA_PATH)
-    set(I2PD_DATA_DIR ${I2PD_DATA_PATH})
+if(KOVRI_DATA_PATH)
+    set(KOVRI_DATA_DIR ${KOVRI_DATA_PATH})
     # Using custom path, make sure the code knows about this
-    add_definitions(-DI2PD_CUSTOM_DATA_PATH="${I2PD_DATA_PATH}")
+    add_definitions(-DKOVRI_CUSTOM_DATA_PATH="${KOVRI_DATA_PATH}")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    set(I2PD_DATA_DIR "$ENV{APPDATA}\\i2pd")
+    set(KOVRI_DATA_DIR "$ENV{APPDATA}\\kovri")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    set(I2PD_DATA_DIR "$ENV{HOME}/Library/Application Support/i2pd")
+    set(KOVRI_DATA_DIR "$ENV{HOME}/Library/Application Support/kovri")
 else()
-    set(I2PD_DATA_DIR "$ENV{HOME}/.i2pd")
+    set(KOVRI_DATA_DIR "$ENV{HOME}/.kovri")
 endif()
 
 # Show summary
@@ -164,7 +164,7 @@ message(STATUS "Compiler vendor    : ${CMAKE_CXX_COMPILER_ID}")
 message(STATUS "Compiler version   : ${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "Compiler path      : ${CMAKE_CXX_COMPILER}")
 message(STATUS "Install prefix:    : ${CMAKE_INSTALL_PREFIX}")
-message(STATUS "I2PD data directory: ${I2PD_DATA_DIR}")
+message(STATUS "Kovri data directory: ${KOVRI_DATA_DIR}")
 message(STATUS "Options:")
 message(STATUS "  AESNI            : ${WITH_AESNI}")
 message(STATUS "  HARDENING        : ${WITH_HARDENING}")
@@ -190,6 +190,6 @@ add_subdirectory(tests)
 add_subdirectory(benchmark)
 
 if(WITH_BINARY)
-    file(MAKE_DIRECTORY "${I2PD_DATA_DIR}/webui")
-    file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/webui" DESTINATION "${I2PD_DATA_DIR}")
+    file(MAKE_DIRECTORY "${KOVRI_DATA_DIR}/webui")
+    file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/webui" DESTINATION "${KOVRI_DATA_DIR}")
 endif()

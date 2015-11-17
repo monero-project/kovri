@@ -5,8 +5,9 @@ The Kovri I2P router, written in C++.
 
 Disclaimer
 ----------
-Under heavy overhaul and development! Use at your own risk!
-All contributors are welcomed and appreciated!
+- Under heavy overhaul and development!
+- Use at your own risk!
+- All contributors are welcomed and appreciated!
 
 Builds on
 ---------

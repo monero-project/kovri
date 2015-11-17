@@ -4,7 +4,7 @@ Config files
 INI-like, syntax is the following : <key> = <value>.
 All command-line parameters are allowed as keys, for example:
 
-i2p.conf:
+kovri.conf:
 
 	log = 1
 	v6 = 0

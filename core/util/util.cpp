@@ -136,7 +136,7 @@ namespace config {
 
 namespace filesystem
 {
-    std::string appName("i2pd");
+    std::string appName("kovri");
 
     void SetAppName(const std::string& name)
     {
@@ -186,7 +186,7 @@ namespace filesystem
 
     boost::filesystem::path GetConfigFile()
     {
-        boost::filesystem::path pathConfigFile(i2p::util::config::GetArg("-conf", "i2p.conf"));
+        boost::filesystem::path pathConfigFile(i2p::util::config::GetArg("-conf", "kovri.conf"));
         if(!pathConfigFile.is_complete())
             pathConfigFile = GetDataDir() / pathConfigFile;
         return pathConfigFile;
@@ -208,12 +208,12 @@ namespace filesystem
     boost::filesystem::path GetDefaultDataDir()
     {
         // Custom path, or default path:
-        // Windows < Vista: C:\Documents and Settings\Username\Application Data\i2pd
-        // Windows >= Vista: C:\Users\Username\AppData\Roaming\i2pd
-        // Mac: ~/Library/Application Support/i2pd
-        // Unix: ~/.i2pd
-#ifdef I2PD_CUSTOM_DATA_PATH
-        return boost::filesystem::path(std::string(I2PD_CUSTOM_DATA_PATH));
+        // Windows < Vista: C:\Documents and Settings\Username\Application Data\kovri
+        // Windows >= Vista: C:\Users\Username\AppData\Roaming\kovri
+        // Mac: ~/Library/Application Support/kovri
+        // Unix: ~/.kovri
+#ifdef KOVRI_CUSTOM_DATA_PATH
+        return boost::filesystem::path(std::string(KOVRI_CUSTOM_DATA_PATH));
 #else
 #ifdef _WIN32
         // Windows
@@ -245,14 +245,14 @@ namespace filesystem
     {
         boost::filesystem::ifstream streamConfig(GetConfigFile());
         if(!streamConfig.good())
-            return; // No i2pd.conf file is OK
+            return; // No kovri.conf file is OK
 
         std::set<std::string> setOptions;
         setOptions.insert("*");
 
         for(boost::program_options::detail::config_file_iterator it(streamConfig, setOptions), end;
           it != end; ++it) {
-            // Don't overwrite existing settings so command line settings override i2pd.conf
+            // Don't overwrite existing settings so command line settings override kovri.conf
             std::string strKey = std::string("-") + it->string_key;
             if(mapSettingsRet.count(strKey) == 0) {
                 mapSettingsRet[strKey] = it->value[0];
@@ -284,7 +284,7 @@ namespace filesystem
         try {
             CopyDir(source, destination);
         } catch(...) {
-            throw std::runtime_error("Could not copy webui folder to i2pd folder.");
+            throw std::runtime_error("Could not copy webui folder to kovri folder.");
         }
     }
     

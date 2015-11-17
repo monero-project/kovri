@@ -53,7 +53,7 @@ namespace i2p
             i2p::util::config::OptionParser(argc, argv);
             i2p::context.Init ();
 
-            LogPrint("\n\n\n\ni2pd starting\n");
+            LogPrint("\n\n\n\nkovri starting\n");
             LogPrint("Version ", VERSION);
             LogPrint("data directory: ", i2p::util::filesystem::GetDataDir().string());
             i2p::util::filesystem::ReadConfigFile(
@@ -109,9 +109,9 @@ namespace i2p
                 {
                     std::string logfile_path = IsService () ? "/var/log" : i2p::util::filesystem::GetDataDir().string();
 #ifndef _WIN32
-                    logfile_path.append("/i2pd.log");
+                    logfile_path.append("/kovri.log");
 #else
-                    logfile_path.append("\\i2pd.log");
+                    logfile_path.append("\\kovri.log");
 #endif
                     StartLog (logfile_path);
                 }

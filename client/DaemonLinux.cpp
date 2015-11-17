@@ -76,7 +76,7 @@ namespace i2p
 
             // Pidfile
             pidfile = IsService () ? "/var/run" : i2p::util::filesystem::GetDataDir().string();
-            pidfile.append("/i2pd.pid");
+            pidfile.append("/kovri.pid");
             pidFilehandle = open(pidfile.c_str(), O_RDWR | O_CREAT, 0600);
             if (pidFilehandle == -1)
             {

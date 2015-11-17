@@ -19,7 +19,7 @@ if(WITH_TESTS)
     )
 
     enable_testing()
-    add_test(i2pdTest ${TESTS_NAME})
+    add_test(kovriTest ${TESTS_NAME})
     install(TARGETS
         ${TESTS_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     )

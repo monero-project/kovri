@@ -10,7 +10,7 @@ Basic
 System
 * --log=                - Enable or disable logging to file. 1 for yes, 0 for no.
 * --daemon=             - Enable or disable daemon mode. 1 for yes, 0 for no.
-* --service=            - 1 if using system folders (/var/run/i2pd.pid, /var/log/i2pd.log, /var/lib/i2pd).
+* --service=            - 1 if using system folders (/var/run/kovri.pid, /var/log/kovri.log, /var/lib/kovri).
 
 Network
 * --v6=                 - 1 to enable IPv6. Default: disabled.
@@ -48,8 +48,8 @@ I2CP
 * --i2pcontrolpassword= - I2P control service password. Default: "itoopie" (without quotations).
 
 Config
-* --tunnelscfg=         - Tunnels Config file. Default: ~/.i2pd/tunnels.cfg -or- /var/lib/i2pd/tunnels.cfg
-* --conf=               - Config file. Default: ~/.i2pd/i2p.conf -or- /var/lib/i2pd/i2p.conf
+* --tunnelscfg=         - Tunnels Config file. Default: ~/.kovri/tunnels.cfg -or- /var/lib/kovri/tunnels.cfg
+* --conf=               - Config file. Default: ~/.kovri/kovri.conf -or- /var/lib/kovri/kovri.conf
                           This parameter will be silently ignored if the specified config file does not exist.
                           Options specified on the command line take precedence over those in the config file.
 * --install=            - Installs the WebUI (see doc/BUILDING.md for details).

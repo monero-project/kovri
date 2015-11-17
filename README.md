@@ -11,7 +11,7 @@ Disclaimer
 
 Builds on
 ---------
-- Linux x64/ARM
+- Linux x64
 - FreeBSD
 - MacOS X
 - Windows

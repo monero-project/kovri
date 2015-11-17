@@ -1,8 +1,8 @@
-# i2pd
+# kovri
 router.info
 router.keys
-i2p
-libi2pd.so
+kovri
+libkovri.so
 netDb
 tunnels.cfg
 tests/tests
@@ -14,9 +14,9 @@ build/tests
 build/client
 build/core
 build/benchmark
-build/i2pd
-build/i2pd-tests
-build/i2pd-benchmark
+build/kovri
+build/kovri-tests
+build/kovri-benchmark
 *.cmake
 *.a
 *.o

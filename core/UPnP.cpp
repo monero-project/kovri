@@ -177,7 +177,7 @@ namespace transport
                 strType = "UDP";
         }
         int r;
-        std::string strDesc = "I2Pd";
+        std::string strDesc = "kovri";
         try {
             for (;;) {
 #ifndef UPNPDISCOVER_SUCCESS

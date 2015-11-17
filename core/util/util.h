@@ -57,12 +57,12 @@ namespace util
         std::string GetAppName();
 
         /**
-         * @return the path of the i2pd directory
+         * @return the path of the kovri directory
          */
         const boost::filesystem::path& GetDataDir();
 
         /**
-         * @return the full path of a file within the i2pd directory
+         * @return the full path of a file within the kovri directory
          */
         std::string GetFullPath(const std::string& filename);
 
@@ -77,7 +77,7 @@ namespace util
         boost::filesystem::path GetTunnelsConfigFile();
 
         /**
-         * @return the default directory for i2pd data
+         * @return the default directory for kovri data
          */
         boost::filesystem::path GetDefaultDataDir();
 

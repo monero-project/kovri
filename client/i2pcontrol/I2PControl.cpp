@@ -363,7 +363,7 @@ void I2PControlSession::handleUptime(Response& response)
 
 void I2PControlSession::handleVersion(Response& response)
 {
-    response.setParam(constants::ROUTER_INFO_VERSION, VERSION);    
+    response.setParam(constants::ROUTER_INFO_VERSION, KOVRI_VERSION);
 }
 
 void I2PControlSession::handleStatus(Response& response)

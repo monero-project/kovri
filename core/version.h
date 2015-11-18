@@ -3,7 +3,7 @@
 
 // Used purely for aesthetics
 #define CODENAME "Kovri"
-#define VERSION "0.1.0"
+#define KOVRI_VERSION "0.1.0"
 
 // Used by the router
 // See I2NP spec http://i2p-projekt.i2p/en/docs/spec/i2np

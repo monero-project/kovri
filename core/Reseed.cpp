@@ -26,25 +26,27 @@ namespace i2p
 namespace data
 {
 
+    // We no longer use HTTP for reseed but cannot guarantee
+    // sustained functionality by simply commenting out the host.
+    // See #19.
     static std::vector<std::string> httpReseedHostList = {
-                "http://netdb.i2p2.no/",            // only SU3 (v2) support
-                "http://i2p-netdb.innovatio.no/",
                 "http://193.150.121.66/netDb/"
-            };
+    };
 
     static std::vector<std::string> httpsReseedHostList = {
-                // "https://193.150.121.66/netDb/",  // unstable
-                // "https://i2p-netdb.innovatio.no/",// Vuln to POODLE
-                "https://netdb.i2p2.no/",            // Only SU3 (v2) support
-                "https://reseed.i2p-projekt.de/",    // Only HTTPS
-                //"https://cowpuncher.drollette.com/netdb/",  // returns error
-                "https://netdb.rows.io:444/",
-                "https://uk.reseed.i2p2.no:444/"
-                // following hosts are fine but don't support AES256 
-                /*"https://i2p.mooo.com/netDb/",
-                "https://link.mx24.eu/",             // Only HTTPS and SU3 (v2) support
-                "https://i2pseed.zarrenspry.info/",  // Only HTTPS and SU3 (v2) support
-                "https://ieb9oopo.mooo.com/"         // Only HTTPS and SU3 (v2) support*/
+                "https://netdb.i2p2.no/",
+                "https://reseed.i2p-projekt.de/",
+                "https://reseed.i2p.vzaws.com:8443/",
+                "https://uk.reseed.i2p2.no:444/",
+
+                // The following will not work with our current SSL implementation
+                //"https://193.150.121.66/netDb/",
+                //"https://i2p.mooo.com/netDb/",
+                //"https://i2pseed.zarrenspry.info/",
+                //"https://ieb9oopo.mooo.com/",
+                //"https://link.mx24.eu/",
+                //"https://us.reseed.i2p2.no:444/",
+                //"https://user.mx24.eu/"
             };
     
     Reseeder::Reseeder()

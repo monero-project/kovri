@@ -121,11 +121,9 @@ namespace data
 
     int Reseeder::ReseedNowSU3 ()
     {
-        CryptoPP::AutoSeededRandomPool rnd;
-        auto ind = rnd.GenerateWord32 (0, httpReseedHostList.size() - 1 +  httpsReseedHostList.size () - 1);
-        std::string reseedHost = (ind < httpReseedHostList.size()) ? httpReseedHostList[ind] : 
-            httpsReseedHostList[ind - httpReseedHostList.size()]; 
-        return ReseedFromSU3 (reseedHost, ind >= httpReseedHostList.size());
+        auto ind = rand () % httpsReseedHostList.size ();
+        std::string& reseedHost = httpsReseedHostList[ind];
+        return ReseedFromSU3 (reseedHost, true);
     }
 
     int Reseeder::ReseedFromSU3 (const std::string& host, bool https)

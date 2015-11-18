@@ -7,6 +7,6 @@
 
 // Used by the router
 // See I2NP spec http://i2p-projekt.i2p/en/docs/spec/i2np
-#define I2P_VERSION "0.9.20"
+#define I2P_VERSION "0.9.22"
 
 #endif

@@ -13,21 +13,114 @@
 namespace i2p
 {
 namespace transport
-{
-#pragma pack(1)
-    // Warning: do not change the order of these variables
-    // (or fix the unsafe casts in SSU.h)
-    struct SSUHeader
+{    
+    const size_t SSU_HEADER_SIZE_MIN = 37;
+    enum PayloadType
     {
-        uint8_t mac[16];
-        uint8_t iv[16];
-        uint8_t flag;
-        uint32_t time;  
-
-        uint8_t GetPayloadType () const { return flag >> 4; };
+        ePayloadTypeSessionRequest = 0,
+        ePayloadTypeSessionCreated,
+        ePayloadTypeSessionConfirmed,
+        ePayloadTypeRelayRequest,
+        ePayloadTypeRelayResponse,
+        ePayloadTypeRelayIntro,
+        ePayloadTypeData,
+        ePayloadTypePeerTest,
+        ePayloadTypeSessionDestroyed
     };
-#pragma pack()
 
+    /**
+       SSU Header extended options
+     */
+    struct SSUExtendedOptions
+    {
+        uint8_t * dataptr;
+        size_t datalen;
+    };
+
+    struct SSUSessionPacket
+    {
+        uint8_t * dataptr; // pointer to beginning of packet header
+        size_t datalen; // how big is the total packet including header
+        size_t headerlen; // how big is the header
+        uint8_t * bodyptr; // pointer to begining of packet body
+        size_t bodylen; // how big the packet body is
+
+        SSUSessionPacket() : dataptr(nullptr), datalen(0), headerlen(0), bodyptr(nullptr), bodylen(0) {}
+        SSUSessionPacket(uint8_t * buf, size_t len) : dataptr(buf),
+                                                      datalen(len),
+                                                      headerlen(SSU_HEADER_SIZE_MIN),
+                                                      bodyptr(buf+SSU_HEADER_SIZE_MIN),
+                                                      bodylen(len-SSU_HEADER_SIZE_MIN)
+        {
+        }
+        
+        /**
+           How many bytes long is the header
+           Includes Extended options
+           @return n bytes denoting size of header
+         */
+        size_t ComputeHeaderSize() const;
+
+        /**
+           Do we have extended options?
+           @return true if we have extended options
+         */
+        bool HasExtendedOptions() const;
+
+        /**
+           Extract the extended options from the SSUHeader
+           @return true if successful otherwise false
+         */
+        bool ExtractExtendedOptions(SSUExtendedOptions & opts) const;
+        
+        /**
+           obtain the SSU payload type
+           @return what type of ssu packet are we?
+         */
+        uint8_t GetPayloadType() const;
+
+        /**
+           @return true if the rekey flag is set
+         */
+        bool Rekey() const;
+        
+        /**
+           
+         */
+        uint8_t Flag() const;
+
+        void PutFlag(uint8_t f) const;
+        
+        /**
+           packet timestamp
+           @return a four byte sending timestamp (seconds since the unix epoch). 
+         */
+        uint32_t Time() const;
+
+        void PutTime(uint32_t t) const;
+        
+        /**
+           get pointer to MAC
+         */
+        uint8_t * MAC() const;
+        
+        /**
+           get pointer to begining of encrypted section
+         */
+        uint8_t * Encrypted() const;
+        /**
+           get pointer to IV
+         */
+        uint8_t * IV() const;
+
+        /**
+           parse ssu header
+           @return true if valid header format otherwise false
+         */
+        bool ParseHeader();
+        
+    };
+    
     const int SSU_CONNECT_TIMEOUT = 5; // 5 seconds
     const int SSU_TERMINATION_TIMEOUT = 330; // 5.5 minutes
 
@@ -41,7 +134,7 @@ namespace transport
     const uint8_t PAYLOAD_TYPE_DATA = 6;
     const uint8_t PAYLOAD_TYPE_PEER_TEST = 7;
     const uint8_t PAYLOAD_TYPE_SESSION_DESTROYED = 8;
-
+    
     enum SessionState
     {
         eSessionStateUnknown,   
@@ -95,27 +188,27 @@ namespace transport
 
             boost::asio::io_service& GetService ();
             void CreateAESandMacKey (const uint8_t * pubKey); 
-
+          
             void PostI2NPMessages (std::vector<std::shared_ptr<I2NPMessage> > msgs);
-            void ProcessMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint); // call for established session
-            void ProcessSessionRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
+            void ProcessDecryptedMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint); // call for established session
+            void ProcessSessionRequest (SSUSessionPacket & pkt , const boost::asio::ip::udp::endpoint& senderEndpoint);
             void SendSessionRequest ();
             void SendRelayRequest (uint32_t iTag, const uint8_t * iKey);
-            void ProcessSessionCreated (uint8_t * buf, size_t len);
+            void ProcessSessionCreated (SSUSessionPacket & pkt);
             void SendSessionCreated (const uint8_t * x);
-            void ProcessSessionConfirmed (uint8_t * buf, size_t len);
+            void ProcessSessionConfirmed (SSUSessionPacket & pkt);
             void SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress, size_t ourAddressLen);
-            void ProcessRelayRequest (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& from);
+            void ProcessRelayRequest (SSUSessionPacket & pkt, const boost::asio::ip::udp::endpoint& from);
             void SendRelayResponse (uint32_t nonce, const boost::asio::ip::udp::endpoint& from,
                 const uint8_t * introKey, const boost::asio::ip::udp::endpoint& to);
             void SendRelayIntro (SSUSession * session, const boost::asio::ip::udp::endpoint& from);
-            void ProcessRelayResponse (uint8_t * buf, size_t len);
-            void ProcessRelayIntro (uint8_t * buf, size_t len);
+            void ProcessRelayResponse (SSUSessionPacket & pkt);
+            void ProcessRelayIntro (SSUSessionPacket & pkt);
             void Established ();
             void Failed ();
             void ScheduleConnectTimer ();
             void HandleConnectTimer (const boost::system::error_code& ecode);
-            void ProcessPeerTest (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint);
+            void ProcessPeerTest (SSUSessionPacket & pkt, const boost::asio::ip::udp::endpoint& senderEndpoint);
             void SendPeerTest (uint32_t nonce, uint32_t address, uint16_t port, const uint8_t * introKey, bool toAddress = true, bool sendAddress = true); 
             void ProcessData (uint8_t * buf, size_t len);       
             void SendSesionDestroyed ();
@@ -148,6 +241,7 @@ namespace transport
             i2p::crypto::MACKey m_MacKey;
             uint32_t m_CreationTime; // seconds since epoch
             SSUData m_Data;
+            std::unique_ptr<SignedData> m_SessionConfirmData;
             bool m_IsDataReceived;
     };
 

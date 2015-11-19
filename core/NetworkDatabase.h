@@ -35,7 +35,7 @@ namespace data
             NetDb ();
             ~NetDb ();
 
-            void Start ();
+            bool Start ();
             void Stop ();
             
             void AddRouterInfo (const uint8_t * buf, int len);
@@ -63,8 +63,7 @@ namespace data
 
             void PostI2NPMsg (std::shared_ptr<const I2NPMessage> msg);
 
-            void Reseed ();
-
+            bool Reseed ();
             // for web interface
             int GetNumRouters () const { return m_RouterInfos.size (); };
             int GetNumFloodfills () const { return m_Floodfills.size (); };

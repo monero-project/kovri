@@ -30,33 +30,30 @@ namespace data
     
     NetDb::~NetDb ()
     {
-        Stop ();    
-        delete m_Reseeder;
+        Stop ();
+        if (m_Reseeder)
+        {
+            delete m_Reseeder;
+            m_Reseeder = nullptr;
+        }
     }   
 
-    void NetDb::Start ()
+    bool NetDb::Start ()
     {   
         Load ();
         if (m_RouterInfos.size () < 25) // reseed if # of router less than 50
-        {   
+        {
             // try SU3 first
-            Reseed ();
-
-            // deprecated
-            if (m_Reseeder)
+            if(!Reseed ())
             {
-                // if still not enough download .dat files
-                int reseedRetries = 0;
-                while (m_RouterInfos.size () < 25 && reseedRetries < 5)
-                {
-                    m_Reseeder->reseedNow();
-                    reseedRetries++;
-                    Load ();
-                }
+                // reseed failed
+                LogPrint(eLogError, "Reseed failed");
+                return false;
             }
         }   
         m_IsRunning = true;
         m_Thread = new std::thread (std::bind (&NetDb::Run, this));
+        return true;
     }
     
     void NetDb::Stop ()
@@ -74,7 +71,7 @@ namespace data
                 m_Queue.WakeUp ();
                 m_Thread->join (); 
                 delete m_Thread;
-                m_Thread = 0;
+                m_Thread = nullptr;
             }
             m_LeaseSets.clear();
             m_Requests.Stop ();
@@ -143,8 +140,11 @@ namespace data
                 {   
                     auto numRouters = m_RouterInfos.size ();
                     if (numRouters < 2500 || ts - lastExploratory >= 90)
-                    {   
-                        numRouters = 800/numRouters;
+                    {
+                        if (numRouters > 0)
+                        {
+                            numRouters = 800/numRouters;
+                        }
                         if (numRouters < 1) numRouters = 1;
                         if (numRouters > 9) numRouters = 9; 
                         m_Requests.ManageRequests ();                   
@@ -277,18 +277,28 @@ namespace data
         return true;
     }
 
-    void NetDb::Reseed ()
+    bool NetDb::Reseed ()
     {
-        if (!m_Reseeder)
+        if (m_Reseeder == nullptr)
         {       
             m_Reseeder = new Reseeder ();
-            m_Reseeder->LoadCertificates (); // we need certificates for SU3 verification
+            if(!m_Reseeder->LoadCertificates ())
+            {
+                delete m_Reseeder;
+                m_Reseeder = nullptr;
+                LogPrint(eLogError, "Failed to load reseed certificates");
+                return false;
+            }
         }
         int reseedRetries = 0;  
-        while (reseedRetries < 10 && !m_Reseeder->ReseedNowSU3 ())
-            reseedRetries++;
+        while (reseedRetries < 10)
+        {
+            int result = m_Reseeder->ReseedNowSU3 ();
+            if (result <= 0) reseedRetries++;
+        }
         if (reseedRetries >= 10)
             LogPrint (eLogWarning, "Failed to reseed after 10 attempts");
+        return reseedRetries < 10;
     }
 
     void NetDb::Load ()

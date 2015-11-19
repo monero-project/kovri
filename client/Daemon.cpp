@@ -125,8 +125,15 @@ namespace i2p
                    i2p::util::config::GetArg("-httpport", 7070));
                 d.httpServer->Start();
                 LogPrint("HTTP Server started");
-                i2p::data::netdb.Start();
-                LogPrint("NetDB started");
+                if(i2p::data::netdb.Start())
+                {
+                    LogPrint("NetDB started");
+                }
+                else
+                {
+                    LogPrint("NetDB failed to start");
+                    return false;
+                }
                 i2p::transport::transports.Start();
                 LogPrint("Transports started");
                 i2p::tunnel::tunnels.Start();

@@ -27,11 +27,11 @@ namespace data
             bool reseedNow(); // deprecated 
             int ReseedNowSU3 ();
 
-            void LoadCertificates ();
+            bool LoadCertificates ();
             
         private:
 
-            void LoadCertificate (const std::string& filename);
+            bool LoadCertificate (const std::string& filename);
             std::string LoadCertificate (CryptoPP::ByteQueue& queue); // returns issuer's name
             
             int ReseedFromSU3 (const std::string& host, bool https = false);

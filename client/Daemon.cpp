@@ -54,7 +54,7 @@ namespace i2p
             i2p::context.Init ();
 
             LogPrint("\n\n\n\nkovri starting\n");
-            LogPrint("Version ", VERSION);
+            LogPrint("Version ", KOVRI_VERSION);
             LogPrint("data directory: ", i2p::util::filesystem::GetDataDir().string());
             i2p::util::filesystem::ReadConfigFile(
                 i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs
@@ -118,20 +118,25 @@ namespace i2p
                 else
                     StartLog (""); // write to stdout
             }
-            d.httpServer = new i2p::util::HTTPServer(
-                i2p::util::config::GetArg("-httpaddress", "127.0.0.1"),
-                i2p::util::config::GetArg("-httpport", 7070)
-            );
-            d.httpServer->Start();
-            LogPrint("HTTP Server started");
-            i2p::data::netdb.Start();
-            LogPrint("NetDB started");
-            i2p::transport::transports.Start();
-            LogPrint("Transports started");
-            i2p::tunnel::tunnels.Start();
-            LogPrint("Tunnels started");
-            i2p::client::context.Start ();
-            LogPrint("Client started");
+            
+            try {
+                d.httpServer = new i2p::util::HTTPServer(
+                   i2p::util::config::GetArg("-httpaddress", "127.0.0.1"),
+                   i2p::util::config::GetArg("-httpport", 7070));
+                d.httpServer->Start();
+                LogPrint("HTTP Server started");
+                i2p::data::netdb.Start();
+                LogPrint("NetDB started");
+                i2p::transport::transports.Start();
+                LogPrint("Transports started");
+                i2p::tunnel::tunnels.Start();
+                LogPrint("Tunnels started");
+                i2p::client::context.Start ();
+                LogPrint("Client started");
+            } catch (std::runtime_error & e) {
+                LogPrint(eLogError, e.what());
+                return false;
+            }
             return true;
         }
 

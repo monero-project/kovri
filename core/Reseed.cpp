@@ -166,7 +166,7 @@ namespace data
         if (strcmp (magicNumber, SU3_MAGIC_NUMBER))
         {
             LogPrint (eLogError, "Unexpected SU3 magic number");    
-            return 0;
+            throw std::runtime_error("Bad SU3 File");
         }           
         s.seekg (1, std::ios::cur); // su3 file format version
         SigningKeyType signatureType;
@@ -190,15 +190,15 @@ namespace data
         if (fileType != 0x00) //  zip file
         {
             LogPrint (eLogError, "Can't handle file type ", (int)fileType); 
-            return 0;
+            throw std::runtime_error("Bad SU3 File");
         }
         s.seekg (1, std::ios::cur); // unused
         uint8_t contentType;
         s.read ((char *)&contentType, 1);  // content type  
         if (contentType != 0x03) // reseed data
         {
-            LogPrint (eLogError, "Unexpected content type ", (int)contentType); 
-            return 0;
+            LogPrint (eLogError, "Unexpected content type ", (int)contentType);
+            throw std::runtime_error("Bad SU3 File");
         }
         s.seekg (12, std::ios::cur); // unused
 
@@ -224,18 +224,27 @@ namespace data
                 // RSA-raw
                 i2p::crypto::RSASHA5124096RawVerifier verifier(it->second);
                 verifier.Update (tbs, tbsLen);
-                if (!verifier.Verify (signature))
-                    LogPrint (eLogWarning, "SU3 signature verification failed");
+                bool good = verifier.Verify (signature);
                 delete[] signature;
                 delete[] tbs;
                 s.seekg (pos, std::ios::beg);
+                if (! good )
+                {
+                    LogPrint(eLogError, "SU3 Signature failed");
+                    throw std::runtime_error("SU3 Signature Failed");
+                }
             }
             else
-                LogPrint (eLogWarning, "Signature type ", signatureType, " is not supported");
+            {                
+                LogPrint (eLogError, "Signature type ", signatureType, " is not supported");
+                throw std::runtime_error("Reseed Signature not supported");
+            }
         }
         else
-            LogPrint (eLogWarning, "Certificate for ", signerID, " not loaded");
-        
+        {
+            LogPrint (eLogError, "Certificate for ", signerID, " not loaded");
+            throw std::runtime_error("Invalid Reseed Signer");
+        }        
         // handle content
         int numFiles = 0;
         size_t contentPos = s.tellg ();
@@ -278,7 +287,7 @@ namespace data
                     if (!FindZipDataDescriptor (s))
                     {
                         LogPrint (eLogError, "SU3 archive data descriptor not found");
-                        return numFiles;
+                        throw std::runtime_error("SU3 archive data descriptor not found");
                     }                               
     
                     s.read ((char *)crc32, 4);  
@@ -309,17 +318,24 @@ namespace data
                     {
                         uint8_t * uncompressed = new uint8_t[uncompressedSize]; 
                         decompressor.Get (uncompressed, uncompressedSize);  
-                        if (CryptoPP::CRC32().VerifyDigest (crc32, uncompressed, uncompressedSize))
-                        {
+                        bool good = CryptoPP::CRC32().VerifyDigest (crc32, uncompressed, uncompressedSize);
+                        if(good)
+                        { 
                             i2p::data::netdb.AddRouterInfo (uncompressed, uncompressedSize);
                             numFiles++;
                         }
-                        else
-                            LogPrint (eLogError, "CRC32 verification failed");
                         delete[] uncompressed;
+                        if (!good)
+                        {
+                            LogPrint(eLogError, "CRC32 Failed");
+                            throw std::runtime_error("CRC32 checkfailed in reseed");
+                        }
                     }
                     else
+                    {
                         LogPrint (eLogError, "Actual uncompressed size ", decompressor.MaxRetrievable (), " exceed ", uncompressedSize, " from header");
+                        return -1;
+                    }
                 }   
                 else // no compression
                 {
@@ -333,7 +349,10 @@ namespace data
             else
             {
                 if (signature != ZIP_CENTRAL_DIRECTORY_HEADER_SIGNATURE)
+                {
                     LogPrint (eLogWarning, "Missing zip central directory header");
+                    return -1;
+                }
                 break; // no more files
             }
             size_t end = s.tellg ();
@@ -382,7 +401,8 @@ namespace data
             if (pos1 == std::string::npos || pos2 == std::string::npos)
             {
                 LogPrint (eLogError, "Malformed certificate file");
-                return;
+                // die hard if this happens
+                throw std::runtime_error("malformed certificate file "+filename);
             }   
             pos1 += strlen (CERTIFICATE_HEADER);
             pos2 -= pos1;
@@ -397,7 +417,11 @@ namespace data
             LoadCertificate (queue);
         }
         else
+        {
             LogPrint (eLogError, "Can't open certificate file ", filename);
+            // we need to die hard if this happens
+            throw std::runtime_error("cannot find certificate file "+filename);
+        }
     }
 
     std::string Reseeder::LoadCertificate (CryptoPP::ByteQueue& queue)
@@ -459,7 +483,9 @@ namespace data
                 m_SigningKeys[name] = value;
             }       
             else
-                LogPrint (eLogWarning, "Unknown issuer. Skipped");
+            {
+                LogPrint (eLogError, "Unknown issuer. Skipped");
+            }
         }   
         publicKey.SkipAll();
         
@@ -474,7 +500,9 @@ namespace data
         
         if (!boost::filesystem::exists (reseedDir))
         {
-            LogPrint (eLogWarning, "Reseed certificates not loaded. ", reseedDir, " doesn't exist");
+            LogPrint (eLogError, "Reseed certificates ", reseedDir, " doesn't exist");
+            // we need to die hard if this happens
+            throw std::runtime_error("failed to load reseed certificates");
             return;
         }
 

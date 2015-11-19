@@ -247,13 +247,21 @@ namespace transport
                 }   
                 else
                 {
+                    auto i2np_type = msg->GetTypeID();
                     // we expect DeliveryStatus
-                    if (msg->GetTypeID () == eI2NPDeliveryStatus)
+                    if (i2np_type == eI2NPDeliveryStatus)
                     {
                         LogPrint ("SSU session established");
                         m_Session.Established ();
-                    }   
-                    else
+                    }
+                    else if (i2np_type == eI2NPDatabaseStore)
+                    {
+                        // we got a database store message
+                        LogPrint("Got DSM From SSU");
+                        m_ReceivedMessages.insert (msgID);
+                        m_Handler.PutNextMessage (msg);
+                    }
+                    else 
                         LogPrint (eLogError, "SSU unexpected message ", (int)msg->GetTypeID ());
                 }   
             }   
@@ -282,7 +290,7 @@ namespace transport
         {
             uint8_t extendedDataSize = *buf;
             buf++; // size
-            LogPrint (eLogDebug, "SSU extended data of ", extendedDataSize, " bytes presented");
+            LogPrint (eLogDebug, "SSU extended data of ", (int) extendedDataSize, " bytes presented");
             buf += extendedDataSize;
         }
         // process data
@@ -308,7 +316,7 @@ namespace transport
             sentMessage->numResends = 0;
         }   
         auto& fragments = sentMessage->fragments;
-        size_t payloadSize = m_PacketSize - sizeof (SSUHeader) - 9; // 9  =  flag + #frg(1) + messageID(4) + frag info (3) 
+        size_t payloadSize = m_PacketSize - SSU_HEADER_SIZE_MIN - 9; // 9  =  flag + #frg(1) + messageID(4) + frag info (3) 
         size_t len = msg->GetLength ();
         uint8_t * msgBuf = msg->GetSSUHeader ();
 
@@ -318,7 +326,7 @@ namespace transport
             Fragment * fragment = new Fragment;
             fragment->fragmentNum = fragmentNum;
             uint8_t * buf = fragment->buf;
-            uint8_t * payload = buf + sizeof (SSUHeader);
+            uint8_t * payload = buf + SSU_HEADER_SIZE_MIN;
             *payload = DATA_FLAG_WANT_REPLY; // for compatibility
             payload++;
             *payload = 1; // always 1 message fragment per message
@@ -367,7 +375,7 @@ namespace transport
     void SSUData::SendMsgAck (uint32_t msgID)
     {
         uint8_t buf[48 + 18]; // actual length is 44 = 37 + 7 but pad it to multiple of 16
-        uint8_t * payload = buf + sizeof (SSUHeader);
+        uint8_t * payload = buf + SSU_HEADER_SIZE_MIN;
         *payload = DATA_FLAG_EXPLICIT_ACKS_INCLUDED; // flag
         payload++;
         *payload = 1; // number of ACKs
@@ -389,7 +397,7 @@ namespace transport
             return;
         }
         uint8_t buf[64 + 18];
-        uint8_t * payload = buf + sizeof (SSUHeader);
+        uint8_t * payload = buf + SSU_HEADER_SIZE_MIN;
         *payload = DATA_FLAG_ACK_BITFIELDS_INCLUDED; // flag
         payload++;  
         *payload = 1; // number of ACK bitfields

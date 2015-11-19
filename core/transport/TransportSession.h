@@ -24,6 +24,11 @@ namespace transport
         public:
 
             SignedData () {};
+            SignedData (const SignedData &data)
+            {
+                m_Stream << data.m_Stream.rdbuf();
+            }
+                        
             void Insert (const uint8_t * buf, size_t len) 
             { 
                 m_Stream.write ((char *)buf, len); 
@@ -55,8 +60,8 @@ namespace transport
         public:
 
             TransportSession (std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter): 
-                m_RemoteRouter (in_RemoteRouter), m_DHKeysPair (nullptr), 
-                m_NumSentBytes (0), m_NumReceivedBytes (0)
+                 m_RemoteRouter (in_RemoteRouter), m_DHKeysPair (nullptr),
+                 m_NumSentBytes (0), m_NumReceivedBytes (0), m_IsOutbound(in_RemoteRouter)
             {
                 if (m_RemoteRouter)
                     m_RemoteIdentity = m_RemoteRouter->GetRouterIdentity ();
@@ -70,6 +75,7 @@ namespace transport
 
             size_t GetNumSentBytes () const { return m_NumSentBytes; };
             size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
+            bool IsOutbound() const { return m_IsOutbound; };
             
             virtual void SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs) = 0;
             
@@ -79,6 +85,7 @@ namespace transport
             i2p::data::IdentityEx m_RemoteIdentity; 
             DHKeysPair * m_DHKeysPair; // X - for client and Y - for server
             size_t m_NumSentBytes, m_NumReceivedBytes;
+            bool m_IsOutbound;
     };  
 }
 }

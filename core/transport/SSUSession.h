@@ -85,10 +85,13 @@ namespace transport
         bool Rekey() const;
         
         /**
-           
+           used for rekey and extended options
          */
         uint8_t Flag() const;
 
+        /**
+           set flag byte
+         */
         void PutFlag(uint8_t f) const;
         
         /**
@@ -97,6 +100,9 @@ namespace transport
          */
         uint32_t Time() const;
 
+        /**
+           put timestamp into packet header
+         */
         void PutTime(uint32_t t) const;
         
         /**

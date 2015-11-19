@@ -129,14 +129,20 @@ namespace client
         
     void ClientContext::Stop ()
     {
-        m_HttpProxy->Stop();
-        delete m_HttpProxy;
-        m_HttpProxy = nullptr;
-        LogPrint("HTTP Proxy stopped");
-        m_SocksProxy->Stop();
-        delete m_SocksProxy;
-        m_SocksProxy = nullptr;
-        LogPrint("SOCKS Proxy stopped");
+        if (m_HttpProxy)
+        {
+            m_HttpProxy->Stop();
+            delete m_HttpProxy;
+            m_HttpProxy = nullptr;
+            LogPrint("HTTP Proxy stopped");
+        }
+        if (m_SocksProxy)
+        {
+            m_SocksProxy->Stop();
+            delete m_SocksProxy;
+            m_SocksProxy = nullptr;
+            LogPrint("SOCKS Proxy stopped");
+        }
         for (auto& it: m_ClientTunnels)
         {
             it.second->Stop ();
@@ -169,8 +175,8 @@ namespace client
             delete m_I2PControlService; 
             m_I2PControlService = nullptr;
             LogPrint("I2PControl stopped"); 
-        }   
-        m_AddressBook.Stop ();      
+        }
+        m_AddressBook.Stop ();    
         for (auto it: m_Destinations)
             it.second->Stop ();
         m_Destinations.clear ();

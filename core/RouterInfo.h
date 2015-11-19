@@ -23,6 +23,8 @@ namespace data
     const char CAPS_FLAG_HIGH_BANDWIDTH1 = 'M'; 
     const char CAPS_FLAG_HIGH_BANDWIDTH2 = 'N';
     const char CAPS_FLAG_HIGH_BANDWIDTH3 = 'O';
+    const char CAPS_FLAG_HIGH_BANDWIDTH4 = 'P';
+    const char CAPS_FLAG_UNLIMITED_BANDWIDTH = 'X';
 
     const char CAPS_FLAG_SSU_TESTING = 'B';
     const char CAPS_FLAG_SSU_INTRODUCER = 'C';
@@ -43,12 +45,13 @@ namespace data
             enum Caps
             {
                 eFloodfill = 0x01,
-                eHighBandwidth = 0x02,
-                eReachable = 0x04,
-                eSSUTesting = 0x08,
-                eSSUIntroducer = 0x10,
-                eHidden = 0x20,
-                eUnreachable = 0x40
+                eUnlimitedBandwidth = 0x02,
+                eHighBandwidth = 0x04,
+                eReachable = 0x08,
+                eSSUTesting = 0x10,
+                eSSUIntroducer = 0x20,
+                eHidden = 0x40,
+                eUnreachable = 0x80
             };
 
             enum TransportStyle

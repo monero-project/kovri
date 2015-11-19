@@ -247,9 +247,12 @@ namespace data
                 case CAPS_FLAG_FLOODFILL:
                     m_Caps |= Caps::eFloodfill;
                 break;
+                case CAPS_FLAG_UNLIMITED_BANDWIDTH:
+                    m_Caps |= Caps::eUnlimitedBandwidth;
                 case CAPS_FLAG_HIGH_BANDWIDTH1:
                 case CAPS_FLAG_HIGH_BANDWIDTH2:
                 case CAPS_FLAG_HIGH_BANDWIDTH3:
+                case CAPS_FLAG_HIGH_BANDWIDTH4:
                     m_Caps |= Caps::eHighBandwidth;
                 break;
                 case CAPS_FLAG_HIDDEN:
@@ -278,7 +281,7 @@ namespace data
         std::string caps;
         if (m_Caps & eFloodfill) 
         {
-            caps += CAPS_FLAG_HIGH_BANDWIDTH3; // highest bandwidth
+            caps += CAPS_FLAG_HIGH_BANDWIDTH4; // highest bandwidth
             caps += CAPS_FLAG_FLOODFILL; // floodfill  
         }   
         else

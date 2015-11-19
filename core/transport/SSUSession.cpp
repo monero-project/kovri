@@ -13,6 +13,113 @@ namespace i2p
 {
 namespace transport
 {
+
+    constexpr size_t SSU_KEYING_MATERIAL_SIZE = 64;
+    
+    const uint8_t SSU_FLAG_REKEY = 0x08;
+    const uint8_t SSU_FLAG_EXTENDED_OPTIONS = 0x04;
+    
+    size_t SSUSessionPacket::ComputeHeaderSize() const
+    {
+        size_t hdr_size = SSU_HEADER_SIZE_MIN;
+        // the index at which the extended options are located at
+        size_t opts_idx = SSU_HEADER_SIZE_MIN;
+        if (Rekey())
+        {
+            LogPrint(eLogDebug, "SSU Packet has rekey data");
+            // the header has rekey data
+            // add that to the extended options offset and header size
+            opts_idx += SSU_KEYING_MATERIAL_SIZE;
+            hdr_size += SSU_KEYING_MATERIAL_SIZE;
+        }
+        if (HasExtendedOptions())
+        {
+            LogPrint(eLogDebug, "SSU Packet has extended options");
+            // the header has extended options
+            if ( opts_idx < datalen )
+            {
+                // the size of the header includes the size of the extended options +1 byte holding the size
+                hdr_size += dataptr[opts_idx] + 1;
+            }
+        }
+        return hdr_size;
+    }
+
+    bool SSUSessionPacket::Rekey() const
+    {
+        return Flag() & SSU_FLAG_REKEY;
+    }
+    
+    bool SSUSessionPacket::HasExtendedOptions() const
+    {
+        return Flag() & SSU_FLAG_EXTENDED_OPTIONS;
+    }
+
+    bool SSUSessionPacket::ExtractExtendedOptions(SSUExtendedOptions & opts) const
+    {
+        size_t opts_idx = SSU_HEADER_SIZE_MIN;
+        if (Rekey()) opts_idx += SSU_KEYING_MATERIAL_SIZE;
+        if (opts_idx + 1 >= datalen)
+        {
+            // options are bigger than the ssu header? yuck, let's not set anything and return false
+            return false;
+        }
+        opts.datalen = dataptr[opts_idx];
+        opts.dataptr = dataptr + opts_idx + 1;
+        return true;
+    }
+
+    uint8_t SSUSessionPacket::GetPayloadType() const
+    {
+        return Flag() >> 4;
+    }
+
+    uint8_t * SSUSessionPacket::MAC() const
+    {
+        return dataptr;
+    }
+
+    uint8_t * SSUSessionPacket::IV() const
+    {
+        return dataptr + size_t(16);
+    }
+    
+    uint8_t SSUSessionPacket::Flag() const
+    {
+        return dataptr[32];
+    }
+
+    void SSUSessionPacket::PutFlag(uint8_t f) const
+    {
+        dataptr[32] = f;
+    }
+    
+    uint32_t SSUSessionPacket::Time() const
+    {
+        return bufbe32toh(&dataptr[33]);
+    }
+
+    void SSUSessionPacket::PutTime(uint32_t t) const
+    {
+        return htobe32buf(&dataptr[33], t);
+    }
+
+    uint8_t * SSUSessionPacket::Encrypted() const
+    {
+        return dataptr + size_t(32);
+    }
+    
+    bool SSUSessionPacket::ParseHeader()
+    {
+        
+        headerlen = ComputeHeaderSize();
+        if (!headerlen) return false;  // failed to parse header size
+        
+        bodyptr = dataptr + headerlen;
+        bodylen = datalen - headerlen;
+        return true;
+    }
+    
     SSUSession::SSUSession (SSUServer& server, boost::asio::ip::udp::endpoint& remoteEndpoint,
         std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest ): TransportSession (router), 
         m_Server (server), m_RemoteEndpoint (remoteEndpoint), m_Timer (GetService ()), 
@@ -92,14 +199,24 @@ namespace transport
             if (m_State == eSessionStateEstablished)
                 ScheduleTermination ();     
             
-            if (m_IsSessionKey && Validate (buf, len, m_MacKey)) // try session key first
-                DecryptSessionKey (buf, len);   
+            if (m_IsSessionKey)
+            {
+                if(Validate (buf, len, m_MacKey)) // try session key first
+                {
+                    DecryptSessionKey (buf, len);
+                }
+            }
             else 
             {
                 // try intro key depending on side
                 auto introKey = GetIntroKey ();
-                if (introKey && Validate (buf, len, introKey))
-                    Decrypt (buf, len, introKey);
+                if (introKey)
+                {
+                    if( Validate (buf, len, introKey))
+                    {
+                        Decrypt (buf, len, introKey);
+                    }
+                }
                 else
                 {    
                     // try own intro key
@@ -110,7 +227,9 @@ namespace transport
                         return;
                     }   
                     if (Validate (buf, len, address->key))
+                    {
                         Decrypt (buf, len, address->key);
+                    }
                     else
                     {
                         LogPrint (eLogError, "MAC verification failed ", len, " bytes from ", senderEndpoint);
@@ -120,33 +239,40 @@ namespace transport
                 }   
             }   
             // successfully decrypted
-            ProcessMessage (buf, len, senderEndpoint);
+            ProcessDecryptedMessage (buf, len, senderEndpoint);
         }   
     }
 
-    void SSUSession::ProcessMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
+    void SSUSession::ProcessDecryptedMessage (uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
     {
         len -= (len & 0x0F); // %16, delete extra padding
-        if (len <= sizeof (SSUHeader)) return; // drop empty message
-        //TODO: since we are accessing a uint8_t this is unlikely to crash due to alignment but should be improved
-        SSUHeader * header = (SSUHeader *)buf;
-        switch (header->GetPayloadType ())
+        if (len <= SSU_HEADER_SIZE_MIN) return; // too small
+        
+        SSUSessionPacket pkt(buf, len);
+        if (!pkt.ParseHeader())
+        {
+            // invalid ssu header
+            LogPrint(eLogError, "Invalid SSU session packet header from ", senderEndpoint);
+            return;
+        }
+        auto payload_type = pkt.GetPayloadType();
+        switch (payload_type)
         {
             case PAYLOAD_TYPE_DATA:
-                ProcessData (buf + sizeof (SSUHeader), len - sizeof (SSUHeader));
+                ProcessData (pkt);
             break;
             case PAYLOAD_TYPE_SESSION_REQUEST:
-                ProcessSessionRequest (buf, len, senderEndpoint);               
+                ProcessSessionRequest (pkt, senderEndpoint);               
             break;
             case PAYLOAD_TYPE_SESSION_CREATED:
-                ProcessSessionCreated (buf, len);
+                ProcessSessionCreated (pkt);
             break;
             case PAYLOAD_TYPE_SESSION_CONFIRMED:
-                ProcessSessionConfirmed (buf, len);
+                ProcessSessionConfirmed (pkt);
             break;  
             case PAYLOAD_TYPE_PEER_TEST:
                 LogPrint (eLogDebug, "SSU peer test received");
-                ProcessPeerTest (buf + sizeof (SSUHeader), len - sizeof (SSUHeader), senderEndpoint);
+                ProcessPeerTest (pkt, senderEndpoint);
             break;
             case PAYLOAD_TYPE_SESSION_DESTROYED:
             {
@@ -155,34 +281,39 @@ namespace transport
                 break;
             }   
             case PAYLOAD_TYPE_RELAY_RESPONSE:
-                ProcessRelayResponse (buf, len);
+                ProcessRelayResponse (pkt);
                 if (m_State != eSessionStateEstablished)
                     m_Server.DeleteSession (shared_from_this ());
             break;
             case PAYLOAD_TYPE_RELAY_REQUEST:
                 LogPrint (eLogDebug, "SSU relay request received");
-                ProcessRelayRequest (buf + sizeof (SSUHeader), len - sizeof (SSUHeader), senderEndpoint);
+                ProcessRelayRequest (pkt, senderEndpoint);
             break;
             case PAYLOAD_TYPE_RELAY_INTRO:
                 LogPrint (eLogDebug, "SSU relay intro received");
-                ProcessRelayIntro (buf + sizeof (SSUHeader), len - sizeof (SSUHeader));
+                ProcessRelayIntro (pkt);
             break;
             default:
-                LogPrint (eLogWarning, "Unexpected SSU payload type ", (int)header->GetPayloadType ());
+                LogPrint (eLogWarning, "Unexpected SSU payload type ",(int) payload_type);
         }
     }
 
-    void SSUSession::ProcessSessionRequest (uint8_t * buf, size_t, const boost::asio::ip::udp::endpoint& senderEndpoint)
+    void SSUSession::ProcessSessionRequest (SSUSessionPacket & pkt, const boost::asio::ip::udp::endpoint& senderEndpoint)
     {
+        if (IsOutbound())
+        {
+            // cannot handle session request if we are outbound
+            return;
+        }
         LogPrint (eLogDebug, "Session request received");   
         m_RemoteEndpoint = senderEndpoint;
         if (!m_DHKeysPair)
             m_DHKeysPair = transports.GetNextDHKeysPair ();
-        CreateAESandMacKey (buf + sizeof (SSUHeader));
-        SendSessionCreated (buf + sizeof (SSUHeader));
+        CreateAESandMacKey (pkt.bodyptr);
+        SendSessionCreated (pkt.bodyptr);
     }
 
-    void SSUSession::ProcessSessionCreated (uint8_t * buf, size_t)
+    void SSUSession::ProcessSessionCreated (SSUSessionPacket & pkt)
     {
         if (!m_RemoteRouter || !m_DHKeysPair)
         {
@@ -193,7 +324,7 @@ namespace transport
         LogPrint (eLogDebug, "Session created received");   
         m_Timer.cancel (); // connect timer
         SignedData s; // x,y, our IP, our port, remote IP, remote port, relayTag, signed on time 
-        uint8_t * payload = buf + sizeof (SSUHeader);   
+        uint8_t * payload = pkt.bodyptr;
         uint8_t * y = payload;
         CreateAESandMacKey (y);
         s.Insert (m_DHKeysPair->publicKey, 256); // x
@@ -235,35 +366,51 @@ namespace transport
         size_t signatureLen = m_RemoteIdentity.GetSignatureLen ();
         size_t paddingSize = signatureLen & 0x0F; // %16
         if (paddingSize > 0) signatureLen += (16 - paddingSize);
-        //TODO: since we are accessing a uint8_t this is unlikely to crash due to alignment but should be improved
-        m_SessionKeyDecryption.SetIV (((SSUHeader *)buf)->iv);
+        m_SessionKeyDecryption.SetIV (pkt.IV());
         m_SessionKeyDecryption.Decrypt (payload, signatureLen, payload);
         // verify
-        if (!s.Verify (m_RemoteIdentity, payload))
-            LogPrint (eLogError, "SSU signature verification failed");
-        m_RemoteIdentity.DropVerifier ();   
-        
-        SendSessionConfirmed (y, ourAddress, addressSize + 2);
+        if (s.Verify (m_RemoteIdentity, payload))
+        {
+            // all good
+            SendSessionConfirmed (y, ourAddress, addressSize + 2);
+        } else
+        {   // invalid signature
+            LogPrint (eLogError, "SSU signature verification failed in session created");
+        }
     }   
 
-    void SSUSession::ProcessSessionConfirmed (uint8_t * buf, size_t)
+    void SSUSession::ProcessSessionConfirmed (SSUSessionPacket & pkt)
     {
-        LogPrint (eLogDebug, "Session confirmed received"); 
-        uint8_t * payload = buf + sizeof (SSUHeader);
+        if ( m_SessionConfirmData == nullptr)
+        {
+            // no session confirm data wtf?
+            LogPrint(eLogError, "SSU Unsolicited Session Confirm");
+            return;
+        }
+        LogPrint (eLogDebug, "Session confirmed received");
+        uint8_t * buf = pkt.dataptr;
+        uint8_t * payload = pkt.bodyptr;
         payload++; // identity fragment info
         uint16_t identitySize = bufbe16toh (payload);   
         payload += 2; // size of identity fragment
         m_RemoteIdentity.FromBuffer (payload, identitySize);
         m_Data.UpdatePacketSize (m_RemoteIdentity.GetIdentHash ());
-        payload += identitySize; // identity    
+        payload += identitySize; // identity
+        m_SessionConfirmData->Insert(payload, 4); // signature time
         payload += 4; // signed-on time
         size_t paddingSize = (payload - buf) + m_RemoteIdentity.GetSignatureLen ();
         paddingSize &= 0x0F;  // %16
         if (paddingSize > 0) paddingSize = 16 - paddingSize;
         payload += paddingSize;
-        // TODO: verify signature (need data from session request), payload points to signature
-        m_Data.Send (CreateDeliveryStatusMsg (0));
-        Established ();
+
+        if (m_SessionConfirmData->Verify(m_RemoteIdentity, payload))
+        {
+            // verified
+            Established ();
+            return;
+        }
+        // bad state or verification failed
+        LogPrint(eLogError, "SSU Session Confirm Failed");
     }
 
     void SSUSession::SendSessionRequest ()
@@ -276,7 +423,7 @@ namespace transport
         }
     
         uint8_t buf[320 + 18] = {}; // 304 bytes for ipv4, 320 for ipv6, all set to 0
-        uint8_t * payload = buf + sizeof (SSUHeader);
+        uint8_t * payload = buf + SSU_HEADER_SIZE_MIN;
         memcpy (payload, m_DHKeysPair->publicKey, 256); // x
         bool isV4 = m_RemoteEndpoint.address ().is_v4 ();
         if (isV4)
@@ -307,7 +454,7 @@ namespace transport
         }
     
         uint8_t buf[96 + 18] = {}; 
-        uint8_t * payload = buf + sizeof (SSUHeader);
+        uint8_t * payload = buf + SSU_HEADER_SIZE_MIN;
         htobe32buf (payload, iTag);
         payload += 4;
         *payload = 0; // no address
@@ -345,7 +492,7 @@ namespace transport
         s.Insert (x, 256); // x
 
         uint8_t buf[384 + 18] = {};
-        uint8_t * payload = buf + sizeof (SSUHeader);
+        uint8_t * payload = buf + SSU_HEADER_SIZE_MIN;
         memcpy (payload, m_DHKeysPair->publicKey, 256);
         s.Insert (payload, 256); // y
         payload += 256;
@@ -386,7 +533,10 @@ namespace transport
         payload += 4; // relay tag 
         htobe32buf (payload, i2p::util::GetSecondsSinceEpoch ()); // signed on time
         payload += 4;
-        s.Insert (payload - 8, 8); // relayTag and signed on time 
+        s.Insert (payload - 8, 4); // put relayTag 
+        // store for session confirmation 
+        m_SessionConfirmData = std::unique_ptr<SignedData>(new SignedData(s));
+        s.Insert (payload - 4, 4); // put timestamp
         s.Sign (i2p::context.GetPrivateKeys (), payload); // DSA signature
         // TODO: fill padding with random data  
 
@@ -402,14 +552,15 @@ namespace transport
         size_t msgLen = payload - buf;
         
         // encrypt message with intro key
-        FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_CREATED, buf, msgLen, introKey, iv, introKey);   
+        FillHeaderAndEncrypt (PAYLOAD_TYPE_SESSION_CREATED, buf, msgLen, introKey, iv, introKey);
+        // send it
         Send (buf, msgLen);
     }
 
     void SSUSession::SendSessionConfirmed (const uint8_t * y, const uint8_t * ourAddress, size_t ourAddressLen)
     {
         uint8_t buf[512 + 18] = {};
-        uint8_t * payload = buf + sizeof (SSUHeader);
+        uint8_t * payload = buf + SSU_HEADER_SIZE_MIN;
         *payload = 1; // 1 fragment
         payload++; // info
         size_t identLen = i2p::context.GetIdentity ().GetFullLen (); // 387+ bytes
@@ -450,8 +601,9 @@ namespace transport
         Send (buf, msgLen);
     }
 
-    void SSUSession::ProcessRelayRequest (uint8_t * buf, size_t, const boost::asio::ip::udp::endpoint& from)
+    void SSUSession::ProcessRelayRequest (SSUSessionPacket & pkt, const boost::asio::ip::udp::endpoint& from)
     {
+        uint8_t * buf = pkt.bodyptr;
         uint32_t relayTag = bufbe32toh (buf);
         auto session = m_Server.FindRelaySession (relayTag);
         if (session)
@@ -476,7 +628,7 @@ namespace transport
         const uint8_t * introKey, const boost::asio::ip::udp::endpoint& to)
     {
         uint8_t buf[80 + 18] = {}; // 64 Alice's ipv4 and 80 Alice's ipv6
-        uint8_t * payload = buf + sizeof (SSUHeader);
+        uint8_t * payload = buf + SSU_HEADER_SIZE_MIN;
         // Charlie's address always v4
         if (!to.address ().is_v4 ())
         {
@@ -537,7 +689,7 @@ namespace transport
             return;
         }   
         uint8_t buf[48 + 18] = {};
-        uint8_t * payload = buf + sizeof (SSUHeader);
+        uint8_t * payload = buf + SSU_HEADER_SIZE_MIN;
         *payload = 4;
         payload++; // size
         htobe32buf (payload, from.address ().to_v4 ().to_ulong ()); // Alice's IP
@@ -553,10 +705,10 @@ namespace transport
         LogPrint (eLogDebug, "SSU relay intro sent");
     }
     
-    void SSUSession::ProcessRelayResponse (uint8_t * buf, size_t)
+    void SSUSession::ProcessRelayResponse (SSUSessionPacket & pkt)
     {
-        LogPrint (eLogDebug, "Relay response received");        
-        uint8_t * payload = buf + sizeof (SSUHeader);
+        LogPrint (eLogDebug, "Relay response received");
+        uint8_t * payload = pkt.bodyptr;
         uint8_t remoteSize = *payload; 
         payload++; // remote size
         //boost::asio::ip::address_v4 remoteIP (bufbe32toh (payload));
@@ -585,8 +737,9 @@ namespace transport
         i2p::context.UpdateAddress (ourIP);
     }
 
-    void SSUSession::ProcessRelayIntro (uint8_t * buf, size_t)
+    void SSUSession::ProcessRelayIntro (SSUSessionPacket & pkt)
     {
+        uint8_t * buf = pkt.bodyptr;
         uint8_t size = *buf;
         if (size == 4)
         {
@@ -598,106 +751,101 @@ namespace transport
             m_Server.Send (buf, 0, boost::asio::ip::udp::endpoint (address, port));
         }
         else
-            LogPrint (eLogWarning, "Address size ", size, " is not supported");     
+            LogPrint (eLogWarning, "Address size ", (int) size, " is not supported");     
     }       
 
     void SSUSession::FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len, 
         const uint8_t * aesKey, const uint8_t * iv, const uint8_t * macKey)
     {   
-        if (len < sizeof (SSUHeader))
+        if (len < SSU_HEADER_SIZE_MIN)
         {
             LogPrint (eLogError, "Unexpected SSU packet length ", len);
             return;
         }
-        //TODO: we are using a dirty solution here but should work for now
-        SSUHeader * header = (SSUHeader *)buf;
-        memcpy (header->iv, iv, 16);
-        header->flag = payloadType << 4; // MSB is 0
-        htobe32buf (&(header->time), i2p::util::GetSecondsSinceEpoch ());
-        uint8_t * encrypted = &header->flag;
+        SSUSessionPacket pkt(buf, len);
+        memcpy (pkt.IV(), iv, 16);
+        pkt.PutFlag(payloadType << 4); // MSB is 0
+        pkt.PutTime(i2p::util::GetSecondsSinceEpoch ());
+        uint8_t * encrypted = pkt.Encrypted();
         uint16_t encryptedLen = len - (encrypted - buf);
         i2p::crypto::CBCEncryption encryption(aesKey, iv);
         encryption.Encrypt (encrypted, encryptedLen, encrypted);
         // assume actual buffer size is 18 (16 + 2) bytes more
         memcpy (buf + len, iv, 16);
         htobe16buf (buf + len + 16, encryptedLen);
-        i2p::crypto::HMACMD5Digest (encrypted, encryptedLen + 18, macKey, header->mac);
+        i2p::crypto::HMACMD5Digest (encrypted, encryptedLen + 18, macKey, pkt.MAC());
     }
 
     void SSUSession::FillHeaderAndEncrypt (uint8_t payloadType, uint8_t * buf, size_t len)
     {
-        if (len < sizeof (SSUHeader))
+        if (len < SSU_HEADER_SIZE_MIN)
         {
             LogPrint (eLogError, "Unexpected SSU packet length ", len);
             return;
         }
-        //TODO: we are using a dirty solution here but should work for now
-        SSUHeader * header = (SSUHeader *)buf;
-        i2p::context.GetRandomNumberGenerator ().GenerateBlock (header->iv, 16); // random iv
-        m_SessionKeyEncryption.SetIV (header->iv);
-        header->flag = payloadType << 4; // MSB is 0
-        htobe32buf (&(header->time), i2p::util::GetSecondsSinceEpoch ());
-        uint8_t * encrypted = &header->flag;
+        SSUSessionPacket pkt(buf, len);
+        i2p::context.GetRandomNumberGenerator ().GenerateBlock (pkt.IV(), 16); // random iv
+        m_SessionKeyEncryption.SetIV (pkt.IV());
+        pkt.PutFlag(payloadType << 4); // MSB is 0
+        pkt.PutTime(i2p::util::GetSecondsSinceEpoch ());
+        uint8_t * encrypted = pkt.Encrypted();
         uint16_t encryptedLen = len - (encrypted - buf);
         m_SessionKeyEncryption.Encrypt (encrypted, encryptedLen, encrypted);
         // assume actual buffer size is 18 (16 + 2) bytes more
-        memcpy (buf + len, header->iv, 16);
+        memcpy (buf + len, pkt.IV(), 16);
         htobe16buf (buf + len + 16, encryptedLen);
-        i2p::crypto::HMACMD5Digest (encrypted, encryptedLen + 18, m_MacKey, header->mac);
+        i2p::crypto::HMACMD5Digest (encrypted, encryptedLen + 18, m_MacKey, pkt.MAC());
     }   
         
     void SSUSession::Decrypt (uint8_t * buf, size_t len, const uint8_t * aesKey)
     {
-        if (len < sizeof (SSUHeader))
+        if (len < SSU_HEADER_SIZE_MIN)
         {
             LogPrint (eLogError, "Unexpected SSU packet length ", len);
             return;
         }
-        //TODO: since we are accessing a uint8_t this is unlikely to crash due to alignment but should be improved
-        SSUHeader * header = (SSUHeader *)buf;
-        uint8_t * encrypted = &header->flag;
+        SSUSessionPacket pkt(buf, len);
+        uint8_t * encrypted = pkt.Encrypted();
         uint16_t encryptedLen = len - (encrypted - buf);    
         i2p::crypto::CBCDecryption decryption;
         decryption.SetKey (aesKey);
-        decryption.SetIV (header->iv);
+        decryption.SetIV (pkt.IV());
         decryption.Decrypt (encrypted, encryptedLen, encrypted);
     }
 
     void SSUSession::DecryptSessionKey (uint8_t * buf, size_t len)
     {
-        if (len < sizeof (SSUHeader))
+        if (len < SSU_HEADER_SIZE_MIN)
         {
             LogPrint (eLogError, "Unexpected SSU packet length ", len);
             return;
         }
-        //TODO: since we are accessing a uint8_t this is unlikely to crash due to alignment but should be improved
-        SSUHeader * header = (SSUHeader *)buf;
-        uint8_t * encrypted = &header->flag;
+        SSUSessionPacket pkt(buf, len);
+        uint8_t * encrypted = pkt.Encrypted();
         uint16_t encryptedLen = len - (encrypted - buf);    
         if (encryptedLen > 0)
         {   
-            m_SessionKeyDecryption.SetIV (header->iv);
+            m_SessionKeyDecryption.SetIV (pkt.IV());
             m_SessionKeyDecryption.Decrypt (encrypted, encryptedLen, encrypted);
         }   
     }   
         
     bool SSUSession::Validate (uint8_t * buf, size_t len, const uint8_t * macKey)
     {
-        if (len < sizeof (SSUHeader))
+        if (len < SSU_HEADER_SIZE_MIN)
         {
             LogPrint (eLogError, "Unexpected SSU packet length ", len);
             return false;
         }
-        //TODO: since we are accessing a uint8_t this is unlikely to crash due to alignment but should be improved
-        SSUHeader * header = (SSUHeader *)buf;
-        uint8_t * encrypted = &header->flag;
+        SSUSessionPacket pkt(buf, len);
+        uint8_t * encrypted = pkt.Encrypted();
         uint16_t encryptedLen = len - (encrypted - buf);
         // assume actual buffer size is 18 (16 + 2) bytes more
-        memcpy (buf + len, header->iv, 16);
+        memcpy (buf + len, pkt.IV(), 16);
         htobe16buf (buf + len + 16, encryptedLen);
         uint8_t digest[16];
         i2p::crypto::HMACMD5Digest (encrypted, encryptedLen + 18, macKey, digest);
-        return !memcmp (header->mac, digest, 16);
+        return !memcmp (pkt.MAC(), digest, 16);
     }
 
     void SSUSession::Connect ()
@@ -713,10 +861,8 @@ namespace transport
 
     void SSUSession::WaitForConnect ()
     {
-        if (!m_RemoteRouter) // incoming session
-            ScheduleConnectTimer ();
-        else
-            LogPrint (eLogError, "SSU wait for connect for outgoing session");  
+        if (IsOutbound()) LogPrint (eLogError, "SSU wait for connect for outgoing session");
+        else ScheduleConnectTimer ();
     }
 
     void SSUSession::ScheduleConnectTimer ()
@@ -774,6 +920,8 @@ namespace transport
 
     void SSUSession::Established ()
     {
+        // clear out session confirmation data
+        m_SessionConfirmData = nullptr;
         m_State = eSessionStateEstablished;
         if (m_DHKeysPair)
         {
@@ -781,6 +929,9 @@ namespace transport
             m_DHKeysPair = nullptr;
         }
         m_Data.Start ();
+        // send delivery status
+        m_Data.Send (CreateDeliveryStatusMsg (0));
+        // send database store 
         m_Data.Send (CreateDatabaseStoreMsg ());
         transports.PeerConnected (shared_from_this ());
         if (m_PeerTest && (m_RemoteRouter && m_RemoteRouter->IsPeerTesting ()))
@@ -793,7 +944,8 @@ namespace transport
         if (m_State != eSessionStateFailed)
         {   
             m_State = eSessionStateFailed;
-            m_Server.DeleteSession (shared_from_this ());  
+            m_Server.DeleteSession (shared_from_this ());
+            
         }   
     }   
 
@@ -827,7 +979,7 @@ namespace transport
             // we are server
             auto address = i2p::context.GetRouterInfo ().GetSSUAddress ();
             return address ? (const uint8_t *)address->key : nullptr;
-        }
+       }
     }   
 
     void SSUSession::SendI2NPMessages (const std::vector<std::shared_ptr<I2NPMessage> >& msgs)
@@ -844,9 +996,9 @@ namespace transport
         }
     }   
 
-    void SSUSession::ProcessData (uint8_t * buf, size_t len)
+    void SSUSession::ProcessData (SSUSessionPacket & pkt)
     {
-        m_Data.ProcessMessage (buf, len);
+        m_Data.ProcessMessage (pkt.bodyptr, pkt.bodylen);
         m_IsDataReceived = true;
     }
 
@@ -859,8 +1011,10 @@ namespace transport
         }       
     }
 
-    void SSUSession::ProcessPeerTest (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& senderEndpoint)
+    void SSUSession::ProcessPeerTest (SSUSessionPacket & pkt, const boost::asio::ip::udp::endpoint& senderEndpoint)
     {
+        uint8_t * buf = pkt.bodyptr;
+        size_t len = pkt.bodylen;
         uint32_t nonce = bufbe32toh (buf); // 4 bytes
         uint8_t size = buf[4];  // 1 byte   
         uint32_t address = (size == 4) ? buf32toh(buf + 5) : 0; // big endian, size bytes
@@ -959,7 +1113,7 @@ namespace transport
     // sendAddress is false if message comes from Alice     
     {
         uint8_t buf[80 + 18] = {};
-        uint8_t * payload = buf + sizeof (SSUHeader);
+        uint8_t * payload = buf + SSU_HEADER_SIZE_MIN;
         htobe32buf (payload, nonce);
         payload += 4; // nonce  
         // address and port
@@ -1031,7 +1185,7 @@ namespace transport
         if (m_State == eSessionStateEstablished)
         {   
             uint8_t buf[48 + 18] = {};
-            uint8_t * payload = buf + sizeof (SSUHeader);
+            uint8_t * payload = buf + SSU_HEADER_SIZE_MIN;
             *payload = 0; // flags
             payload++;
             *payload = 0; // num fragments  
@@ -1065,7 +1219,7 @@ namespace transport
     void SSUSession::Send (uint8_t type, const uint8_t * payload, size_t len)
     {
         uint8_t buf[SSU_MTU_V4 + 18] = {};
-        size_t msgSize = len + sizeof (SSUHeader); 
+        size_t msgSize = len + SSU_HEADER_SIZE_MIN;
         size_t paddingSize = msgSize & 0x0F; // %16
         if (paddingSize > 0) msgSize += (16 - paddingSize);
         if (msgSize > SSU_MTU_V4)
@@ -1073,7 +1227,7 @@ namespace transport
             LogPrint (eLogWarning, "SSU payload size ", msgSize, " exceeds MTU");
             return;
         } 
-        memcpy (buf + sizeof (SSUHeader), payload, len);
+        memcpy (buf + SSU_HEADER_SIZE_MIN, payload, len);
         // encrypt message with session key
         FillHeaderAndEncrypt (type, buf, msgSize);
         Send (buf, msgSize);

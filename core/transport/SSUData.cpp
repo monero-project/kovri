@@ -290,7 +290,7 @@ namespace transport
         {
             uint8_t extendedDataSize = *buf;
             buf++; // size
-            LogPrint (eLogDebug, "SSU extended data of ", extendedDataSize, " bytes presented");
+            LogPrint (eLogDebug, "SSU extended data of ", (int) extendedDataSize, " bytes presented");
             buf += extendedDataSize;
         }
         // process data

@@ -48,9 +48,9 @@ namespace transport
         SSUSessionPacket() : dataptr(nullptr), datalen(0), headerlen(0), bodyptr(nullptr), bodylen(0) {}
         SSUSessionPacket(uint8_t * buf, size_t len) : dataptr(buf),
                                                       datalen(len),
-                                                      headerlen(SSU_HEADER_SIZE_MIN),
-                                                      bodyptr(buf+SSU_HEADER_SIZE_MIN),
-                                                      bodylen(len-SSU_HEADER_SIZE_MIN)
+                                                      headerlen(0),
+                                                      bodyptr(nullptr),
+                                                      bodylen(0)
         {
         }
         
@@ -210,7 +210,7 @@ namespace transport
             void HandleConnectTimer (const boost::system::error_code& ecode);
             void ProcessPeerTest (SSUSessionPacket & pkt, const boost::asio::ip::udp::endpoint& senderEndpoint);
             void SendPeerTest (uint32_t nonce, uint32_t address, uint16_t port, const uint8_t * introKey, bool toAddress = true, bool sendAddress = true); 
-            void ProcessData (uint8_t * buf, size_t len);       
+            void ProcessData (SSUSessionPacket & pkt);       
             void SendSesionDestroyed ();
             void Send (uint8_t type, const uint8_t * payload, size_t len); // with session key
             void Send (const uint8_t * buf, size_t size); 

@@ -219,16 +219,6 @@ namespace filesystem
         return fullPath;
     }       
 
-    boost::filesystem::path GetCertificatesDir()
-    {
-        return GetDataDir () / "certificates";
-    }
-
-    boost::filesystem::path GetWebuiDataDir()
-    {
-        return GetDataDir() / "webui";
-    }
-
     boost::filesystem::path GetConfigFile()
     {
         boost::filesystem::path pathConfigFile(i2p::util::config::GetArg("-conf", "kovri.conf"));
@@ -290,7 +280,7 @@ namespace filesystem
         const boost::filesystem::path source = boost::filesystem::canonical(
             config::GetArg("-webui", "webui"), e
         );
-        const boost::filesystem::path destination = GetWebuiDataDir();
+        const boost::filesystem::path destination = GetDataDir() / "webui";
 
         if(e || !boost::filesystem::is_directory(source))
             throw std::runtime_error("Given directory is invalid or does not exist");

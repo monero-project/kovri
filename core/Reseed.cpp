@@ -497,7 +497,7 @@ namespace data
     
     bool Reseeder::LoadCertificates ()
     {
-        boost::filesystem::path reseedDir = i2p::util::filesystem::GetCertificatesDir() / "reseed";
+        boost::filesystem::path reseedDir = i2p::util::filesystem::GetDataDir() / "certificates/reseed";
         
         if (!boost::filesystem::exists (reseedDir))
         {

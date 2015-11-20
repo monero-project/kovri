@@ -77,16 +77,6 @@ namespace util
          */
         std::string GetFullPath(const std::string& filename);
 
-        /**
-         * @return the path of the certificates directory
-         */
-        boost::filesystem::path GetCertificatesDir();
-
-         /**
-         * @return the default directory for webui data
-         */
-        boost::filesystem::path GetWebuiDataDir();
-
        /**
          * @return the path of the configuration file
          */

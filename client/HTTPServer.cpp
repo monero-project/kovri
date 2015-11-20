@@ -123,7 +123,7 @@ std::string HTTPConnection::GetFileContents(const std::string& filename, bool pr
 
      // Use canonical to avoid .. or . in path
     const boost::filesystem::path address = boost::filesystem::canonical(
-        i2p::util::filesystem::GetWebuiDataDir() / filename, e
+        i2p::util::filesystem::GetDataDir() / "webui" / filename, e
     );
 
     const std::string address_str = address.string();

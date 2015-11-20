@@ -116,7 +116,7 @@ namespace util
         void InstallWebUI();
     }
 
-    /*
+    /**
      * HTTP/S handling
      */
     namespace http
@@ -196,7 +196,7 @@ namespace util
         };
     }
 
-    /*
+    /**
      * MTU related
      */
     namespace net

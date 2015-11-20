@@ -392,7 +392,7 @@ namespace data
             s.seekg (0, std::ios::end);
             size_t len = s.tellg ();
             s.seekg (0, std::ios::beg);
-            char buf[2048];
+            char buf[2080];
             s.read (buf, len);
             std::string cert (buf, len);
             // assume file in pem format

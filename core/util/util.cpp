@@ -299,7 +299,7 @@ namespace filesystem
         try {
             CopyDir(source, destination);
         } catch(...) {
-            throw std::runtime_error("Could not copy webui to ");
+            throw std::runtime_error("Could not copy webui");
         }
     }
 }

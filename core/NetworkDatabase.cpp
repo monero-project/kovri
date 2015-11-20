@@ -295,6 +295,7 @@ namespace data
         {
             int result = m_Reseeder->ReseedNowSU3 ();
             if (result <= 0) reseedRetries++;
+            else break;
         }
         if (reseedRetries >= 10)
             LogPrint (eLogWarning, "Failed to reseed after 10 attempts");

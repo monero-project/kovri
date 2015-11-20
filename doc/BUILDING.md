@@ -30,11 +30,11 @@ In some cases (such as when using binaries), you may have to manually install th
  webui.
 For this, run:
 
-$ ./kovri --install=/path/to/webui
+$ ./kovri --webui=/path/to/webui
 
 Or, if the current directory contains a folder named "webui":
 
-$ ./kovri --install
+$ ./kovri --webui
 
 Building Unit Tests
 ===================

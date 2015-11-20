@@ -53,17 +53,17 @@ namespace i2p
             i2p::util::config::OptionParser(argc, argv);
             i2p::context.Init ();
 
-            LogPrint("\n\n\n\nkovri starting\n");
+            LogPrint("\n\nThe Kovri I2P Router Project\n");
             LogPrint("Version ", KOVRI_VERSION);
             LogPrint("data directory: ", i2p::util::filesystem::GetDataDir().string());
             i2p::util::filesystem::ReadConfigFile(
                 i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs
             );
 
-            if(i2p::util::config::HasArg("-install")) {
+            if(i2p::util::config::HasArg("-webui")) {
                 try {
-                    i2p::util::filesystem::InstallFiles();
-                    LogPrint("Successfully installed all files.");
+                    i2p::util::filesystem::InstallWebUI();
+                    LogPrint("Successfully installed webui.");
                 } catch(const std::runtime_error& e) {
                     LogPrint(eLogError, "Failed to install: ", e.what());
                     return false;

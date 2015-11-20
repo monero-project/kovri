@@ -255,10 +255,10 @@ namespace data
     // TODO: Move to reseed and/or scheduled tasks. (In java version, scheduler fix this as well as sort RIs.)
     bool NetDb::CreateNetDb(boost::filesystem::path directory)
     {
-        LogPrint (directory.string(), " doesn't exist, trying to create it.");
+        LogPrint("Creating ", directory.string());
         if (!boost::filesystem::create_directory (directory))
         {
-            LogPrint("Failed to create directory ", directory.string());
+            LogPrint("Failed to create ", directory.string());
             return false;
         }
 

@@ -392,7 +392,7 @@ namespace data
             s.seekg (0, std::ios::end);
             size_t len = s.tellg ();
             s.seekg (0, std::ios::beg);
-            char buf[2048];
+            char buf[2080];
             s.read (buf, len);
             std::string cert (buf, len);
             // assume file in pem format
@@ -497,11 +497,11 @@ namespace data
     
     bool Reseeder::LoadCertificates ()
     {
-        boost::filesystem::path reseedDir = i2p::util::filesystem::GetCertificatesDir() / "reseed";
+        boost::filesystem::path reseedDir = i2p::util::filesystem::GetDataDir() / "certificates/reseed";
         
         if (!boost::filesystem::exists (reseedDir))
         {
-            LogPrint (eLogError, "Reseed certificates ", reseedDir, " doesn't exist");
+            LogPrint (eLogError, "Reseed certificates ", reseedDir, " don't exist");
             // we need to die hard if this happens
             return false;
         }
@@ -522,7 +522,7 @@ namespace data
 
 /*------------------------------------------------------------------
     TLS has nothing to do with the reseed process (except for HTTPS)
-    Once #244 is resolved, this will all be axed - so moving the
+    Once #19 is resolved, this will all be axed - so moving the
     following to util.cpp is not worth the effort for now.
 /------------------------------------------------------------------*/
 

@@ -16,6 +16,9 @@ namespace i2p
 {
 namespace util
 {
+    /**
+     * Handles arg parsing/processing
+     */
     namespace config
     {
         extern std::map<std::string, std::string> mapArgs;
@@ -44,6 +47,9 @@ namespace util
         bool HasArg(const std::string& strArg);
     }
 
+    /**
+     * Handles app resources/configuration
+     */
     namespace filesystem
     {
         /**
@@ -57,6 +63,11 @@ namespace util
         std::string GetAppName();
 
         /**
+         * @return the default directory for app data
+         */
+        boost::filesystem::path GetDefaultDataDir();
+
+        /**
          * @return the path of the kovri directory
          */
         const boost::filesystem::path& GetDataDir();
@@ -66,7 +77,7 @@ namespace util
          */
         std::string GetFullPath(const std::string& filename);
 
-        /**
+       /**
          * @return the path of the configuration file
          */
         boost::filesystem::path GetConfigFile();
@@ -77,39 +88,27 @@ namespace util
         boost::filesystem::path GetTunnelsConfigFile();
 
         /**
-         * @return the default directory for kovri data
-         */
-        boost::filesystem::path GetDefaultDataDir();
-
-        /**
-         * @return the default directory for webui data
-         */
-        boost::filesystem::path GetWebuiDataDir();
-        
-        /**
          * Read a configuration file and store its contents in the given maps.
          */
         void ReadConfigFile(std::map<std::string, std::string>& mapSettingsRet,
                 std::map<std::string, std::vector<std::string> >& mapMultiSettingsRet);
 
         /**
-         * @return the path of the certificates directory
+         * Copies all files and directories in src to dest.
+         * @warning overrides existing files
          */
-        boost::filesystem::path GetCertificatesDir();
+        void CopyDir(const boost::filesystem::path& src, const boost::filesystem::path& dest);
 
         /**
          * Installs the webui files.
          * @throw std::runtime_error when installation fails
          */
-        void InstallFiles();
-
-        /**
-         * Copies all files and directories in src to dest.
-         * @warning overrides existing files
-         */
-        void CopyDir(const boost::filesystem::path& src, const boost::filesystem::path& dest);
+        void InstallWebUI();
     }
 
+    /**
+     * HTTP/S handling
+     */
     namespace http
     {
         const char ETAG[] = "ETag";
@@ -187,6 +186,9 @@ namespace util
         };
     }
 
+    /**
+     * MTU related
+     */
     namespace net
     {
         /**

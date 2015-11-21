@@ -52,4 +52,4 @@ Config
 * --conf=               - Config file. Default: ~/.kovri/kovri.conf -or- /var/lib/kovri/kovri.conf
                           This parameter will be silently ignored if the specified config file does not exist.
                           Options specified on the command line take precedence over those in the config file.
-* --install=            - Installs the WebUI (see doc/BUILDING.md for details).
+* --webui=		- Installs the WebUI (see doc/BUILDING.md for details).

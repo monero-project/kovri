@@ -107,9 +107,9 @@ void HTTPConnection::Send404Reply()
             "<head><title>Error: 404 - webui not installed</title></head><body>"
                 "<p>It looks like your webui installation is broken.</p>"
                 "<p>Run the following command to (re)install it:</p>"
-                "<pre>./kovri --install=/path/to/webui</pre>"
+                "<pre>./kovri --webui=/path/to/webui</pre>"
                 "<p>Or from a directory containing a folder named webui:</p>"
-                "<pre>./kovri --install</pre>"
+                "<pre>./kovri --webui</pre>"
                 "<p>The webui folder should come with the binaries.</p>"
             "</body></html>"
         );
@@ -123,7 +123,7 @@ std::string HTTPConnection::GetFileContents(const std::string& filename, bool pr
 
      // Use canonical to avoid .. or . in path
     const boost::filesystem::path address = boost::filesystem::canonical(
-        i2p::util::filesystem::GetWebuiDataDir() / filename, e
+        i2p::util::filesystem::GetDataDir() / "webui" / filename, e
     );
 
     const std::string address_str = address.string();

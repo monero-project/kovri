@@ -63,11 +63,11 @@ http://stackoverflow.com/questions/15660203/inet-pton-identifier-not-found */
 namespace i2p {
 namespace util {
 
-// TODO: this will be replaced by a real option parser soon.
 namespace config {
     std::map<std::string, std::string> mapArgs;
     std::map<std::string, std::vector<std::string> > mapMultiArgs;
 
+    // TODO: this will be replaced by a real option parser soon.
     void OptionParser(int argc, const char* const argv[])
     {
         mapArgs.clear();
@@ -148,6 +148,41 @@ namespace filesystem
         return appName;
     }
 
+    boost::filesystem::path GetDefaultDataDir()
+    {
+        // Custom path, or default path:
+        // Windows < Vista: C:\Documents and Settings\Username\Application Data\kovri
+        // Windows >= Vista: C:\Users\Username\AppData\Roaming\kovri
+        // Mac: ~/Library/Application Support/kovri
+        // Unix: ~/.kovri
+#ifdef KOVRI_CUSTOM_DATA_PATH
+        return boost::filesystem::path(std::string(KOVRI_CUSTOM_DATA_PATH));
+#else
+#ifdef _WIN32
+        // Windows
+        char localAppData[MAX_PATH];
+        SHGetFolderPath(NULL, CSIDL_APPDATA, 0, NULL, localAppData);
+        return boost::filesystem::path(std::string(localAppData) + "\\" + appName);
+#else
+        boost::filesystem::path pathRet;
+        char* pszHome = getenv("HOME");
+        if(pszHome == NULL || strlen(pszHome) == 0)
+            pathRet = boost::filesystem::path("/");
+        else
+            pathRet = boost::filesystem::path(pszHome);
+#ifdef __APPLE__
+        // Mac
+        pathRet /= "Library/Application Support";
+        boost::filesystem::create_directory(pathRet);
+        return pathRet / appName;
+#else
+        // Unix
+        return pathRet / (std::string (".") + appName);
+#endif
+#endif
+#endif
+    }
+
     const boost::filesystem::path& GetDataDir()
     {
         static boost::filesystem::path path;
@@ -200,46 +235,6 @@ namespace filesystem
         return pathTunnelsConfigFile;
     }
 
-    boost::filesystem::path GetWebuiDataDir()
-    {
-        return GetDataDir() / "webui";
-    }
-
-    boost::filesystem::path GetDefaultDataDir()
-    {
-        // Custom path, or default path:
-        // Windows < Vista: C:\Documents and Settings\Username\Application Data\kovri
-        // Windows >= Vista: C:\Users\Username\AppData\Roaming\kovri
-        // Mac: ~/Library/Application Support/kovri
-        // Unix: ~/.kovri
-#ifdef KOVRI_CUSTOM_DATA_PATH
-        return boost::filesystem::path(std::string(KOVRI_CUSTOM_DATA_PATH));
-#else
-#ifdef _WIN32
-        // Windows
-        char localAppData[MAX_PATH];
-        SHGetFolderPath(NULL, CSIDL_APPDATA, 0, NULL, localAppData);
-        return boost::filesystem::path(std::string(localAppData) + "\\" + appName);
-#else
-        boost::filesystem::path pathRet;
-        char* pszHome = getenv("HOME");
-        if(pszHome == NULL || strlen(pszHome) == 0)
-            pathRet = boost::filesystem::path("/"); 
-        else
-            pathRet = boost::filesystem::path(pszHome);
-#ifdef __APPLE__
-        // Mac
-        pathRet /= "Library/Application Support";
-        boost::filesystem::create_directory(pathRet);
-        return pathRet / appName;
-#else
-        // Unix
-        return pathRet / (std::string (".") + appName);
-#endif
-#endif
-#endif
-    }
-
     void ReadConfigFile(std::map<std::string, std::string>& mapSettingsRet,
                         std::map<std::string, std::vector<std::string> >& mapMultiSettingsRet)
     {
@@ -261,53 +256,45 @@ namespace filesystem
         }
     }
 
-    boost::filesystem::path GetCertificatesDir()
+    void CopyDir(const boost::filesystem::path& src, const boost::filesystem::path& dest)
     {
-        return GetDataDir () / "certificates";
+        boost::filesystem::create_directory(dest);
+
+        for(boost::filesystem::directory_iterator file(src);
+		file != boost::filesystem::directory_iterator(); ++file) {
+            const boost::filesystem::path current(file->path());
+            if(boost::filesystem::is_directory(current))
+                CopyDir(current, dest / current.filename());
+            else
+                boost::filesystem::copy_file(
+                    current, dest / current.filename(),
+                    boost::filesystem::copy_option::overwrite_if_exists
+                );
+        }
     }
 
-    void InstallFiles()
+    void InstallWebUI()
     {
-        namespace bfs = boost::filesystem;
         boost::system::error_code e;
-        const bfs::path source = bfs::canonical(
-            config::GetArg("-install", "webui"), e
+
+        const boost::filesystem::path source = boost::filesystem::canonical(
+            config::GetArg("-webui", "webui"), e
         );
+        const boost::filesystem::path destination = GetDataDir() / "webui";
 
-        const bfs::path destination = GetWebuiDataDir();
-
-        if(e || !bfs::is_directory(source))
+        if(e || !boost::filesystem::is_directory(source))
             throw std::runtime_error("Given directory is invalid or does not exist");
 
         // TODO: check that destination is not in source
-
         try {
             CopyDir(source, destination);
         } catch(...) {
-            throw std::runtime_error("Could not copy webui folder to kovri folder.");
-        }
-    }
-    
-    void CopyDir(const boost::filesystem::path& src, const boost::filesystem::path& dest)
-    {
-        namespace bfs = boost::filesystem;
-
-        bfs::create_directory(dest);
-        
-        for(bfs::directory_iterator file(src); file != bfs::directory_iterator(); ++file) {
-            const bfs::path current(file->path());
-            if(bfs::is_directory(current))
-                CopyDir(current, dest / current.filename());
-            else
-                bfs::copy_file(
-                    current, dest / current.filename(),
-                    bfs::copy_option::overwrite_if_exists
-                );
+            throw std::runtime_error("Could not copy webui");
         }
     }
 }
 
-namespace http // also provides https
+namespace http
 {
     std::string httpHeader (const std::string& path, const std::string& host, const std::string& version)
     {

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "Daemon.h"
 #include "Reseed.h"
+#include "util/Log.h"
 
 int main(int argc, char* argv[])
 {

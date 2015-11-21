@@ -11,6 +11,7 @@ option(WITH_UPNP      "Include support for UPnP client" OFF)
 option(WITH_TESTS     "Build unit tests" OFF)
 option(WITH_BENCHMARK "Build benchmarking code" OFF)
 option(WITH_OPTIMIZE  "Optimization flags" OFF)
+option(WITH_BOOST_LOG "Use boost::log for logging" ON)
 option(KOVRI_DATA_PATH "The path to the kovri data folder")
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/build/cmake_modules")
@@ -118,13 +119,30 @@ elseif(NOT WIN32)
     # HINT: revert c266cff CMakeLists.txt: compilation speed up
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 else() # Not a static build
-    add_definitions(-DBOOST_ALL_DYN_LINK)
+  add_definitions(-DBOOST_ALL_DYN_LINK)
+  add_definitions(-DBOOST_LOG_DYN_LINK)
 endif()
-
-find_package(
+  
+if(WITH_BOOST_LOG)
+  find_package(
+    Boost COMPONENTS
+    system filesystem regex program_options date_time thread chrono log REQUIRED
+    )
+  if(NOT WITH_STATIC)
+    
+    add_definitions(-DBOOST_ALL_DYN_LINK)
+    add_definitions(-DBOOST_LOG_DYN_LINK)
+  endif()
+else()
+  find_package(
     Boost COMPONENTS
     system filesystem regex program_options date_time thread chrono REQUIRED
-)
+    )
+    if(NOT WITH_STATIC)    
+      add_definitions(-DBOOST_ALL_DYN_LINK)
+    endif()
+endif()
+  
 if(NOT DEFINED Boost_INCLUDE_DIRS)
     message(SEND_ERROR "Boost not found, or version below 1.46. Please download Boost!")
 endif()
@@ -175,6 +193,7 @@ message(STATUS "  UPnP             : ${WITH_UPNP}")
 message(STATUS "  TESTS            : ${WITH_TESTS}")
 message(STATUS "  BENCHMARKING     : ${WITH_BENCHMARK}")
 message(STATUS "  OPTIMIZATION     : ${WITH_OPTIMIZE}")
+message(STATUS "  BOOST LOG        : ${WITH_BOOST_LOG}")
 message(STATUS "---------------------------------------")
 
 # Handle paths nicely

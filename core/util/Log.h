@@ -1,129 +1,161 @@
 #ifndef LOG_H__
 #define LOG_H__
 
-#include <string>
 #include <iostream>
-#include <sstream>
-#include <fstream>
-#include <functional>
-#include <chrono>
-#include "Queue.h"
+#include <string>
+#include <memory>
+#include <vector>
 
-enum LogLevel
+namespace kovri
 {
-	eLogError = 0,
-	eLogWarning,
-	eLogInfo,
-	eLogDebug,
-	eNumLogLevels
-};
-
-class Log;
-struct LogMsg
+namespace log
 {
-	std::stringstream s;
-	Log * log;
-	LogLevel level;
 
-	LogMsg (Log * l = nullptr, LogLevel lv = eLogInfo): log (l), level (lv) {};
+    enum LogLevel
+    {
+        eLogDebug,
+        eLogInfo,
+        eLogWarning,
+        eLogError
+    };
 
-	void Process();
-};
-
-class Log: public i2p::util::MsgQueue<LogMsg>
-{
+    // private implemenation of LogStream
+    class LogStreamImpl;
+    
+    /**
+       Generic Log stream
+    */
+    class LogStream
+    {
     public:
 
-        Log (): m_LogStream (nullptr) { SetOnEmpty (std::bind (&Log::Flush, this)); };
-        ~Log () { delete m_LogStream; };
+        LogStream(LogStreamImpl * impl);
+        ~LogStream();
+        
+        /**
+           attach metadata to the current logger's next entries until flushed
+         */
+        const LogStream & Meta(const std::string & key, std::string value);
+        /**
+           flush this log stream
+         */
+        void Flush();
 
-		void SetLogFile (const std::string& fullFilePath);
-		void SetLogStream (std::ostream * logStream);
-		std::ostream * GetLogStream () const { return m_LogStream; };
-		const std::string& GetTimestamp ();
+        /**
+           operator overload for <<
+         */
+        void operator << (const std::string & str);
 
+        /**
+           check if this stream is enabled
+           return true if it is
+         */
+        bool IsEnabled();
+
+        /**
+           disable logging on this stream
+         */
+        void Disable();
+
+        /**
+           enable logging on this stream
+         */
+        void Enable();
     private:
+        LogStreamImpl * m_Impl;
+    };
 
-        void Flush ();
+    /**
+       Stream for sending events to live UI
+       TODO: implement
+     */
+    class EventStream
+    {
+    public:
+        /**
+           flush events
+         */
+        virtual void Flush() const = 0;
 
-	private:
+        /**
+           operator overload for <<
+           queue an event
+         */
+        virtual void operator << (const std::vector<std::string> & strs) const = 0;
+    };
 
-		std::ostream * m_LogStream;
-		std::string m_Timestamp;
-#if (__GNUC__ == 4) && (__GNUC_MINOR__ <= 6) && !defined(__clang__)
-		std::chrono::monotonic_clock::time_point m_LastTimestampUpdate;
-#else
-		std::chrono::steady_clock::time_point m_LastTimestampUpdate;
-#endif
-};
+    // private implementation of Logger
+    class LoggerImpl;
+    
+    class Logger
+    {
+    public:
 
-extern Log * g_Log;
+        Logger(LoggerImpl * impl);
+        ~Logger();
+        
+        /**
+           get error level log stream
+         */
+        LogStream & Error();
+        /**
+           get warning level log stream
+         */
+        LogStream & Warning();
+        /**
+           get info level log stream
+         */
+        LogStream & Info();
+        /**
+           get debug level log stream
+         */
+        LogStream & Debug();
+        /**
+           get EventStream to send events to UI
+         */
+        EventStream & UI();
 
-inline void StartLog (const std::string& fullFilePath)
-{
-	if (!g_Log)
-	{
-		auto log = new Log ();
-		if (fullFilePath.length () > 0)
-			log->SetLogFile (fullFilePath);
-		g_Log = log;
-	}
+        /**
+           flush pending log events
+         */
+        void Flush();
+    private:
+        LoggerImpl * m_Impl;
+    };
+
+    class LogImpl;
+    
+    class Log
+    {
+    public:
+        Log(LogLevel minLev, std::ostream * out);
+        Log() : Log(eLogWarning, &std::clog) {}
+        
+        /**
+           Get global log engine
+         */
+        static std::shared_ptr<Log> Get();
+        /**
+           get default logger
+         */
+        static std::shared_ptr<Logger> Default();
+        
+        /**
+           create new logger
+         */
+        static std::shared_ptr<Logger> New(const std::string & name, const std::string & channel);
+    private:
+        std::shared_ptr<LogImpl> m_LogImpl;
+        std::shared_ptr<Logger> m_DefaultLogger;
+    };
+}    
 }
 
-inline void StartLog (std::ostream * s)
-{
-	if (!g_Log)
-	{
-		auto log = new Log ();
-		if (s)
-			log->SetLogStream (s);
-		g_Log = log;
-	}
-}
+#include "util/OldLog.h"
 
-inline void StopLog ()
-{
-	if (g_Log)
-	{
-		auto log = g_Log;
-		g_Log = nullptr;
-		log->Stop ();
-		delete log;
-	}
-}
-
-template<typename TValue>
-void LogPrint (std::stringstream& s, TValue arg)
-{
-    s << arg;
-}
-
-template<typename TValue, typename... TArgs>
-void LogPrint (std::stringstream& s, TValue arg, TArgs... args)
-{
-    LogPrint (s, arg);
-    LogPrint (s, args...);
-}
-
-template<typename... TArgs>
-void LogPrint (LogLevel level, TArgs... args)
-{
-	LogMsg * msg = new LogMsg (g_Log, level);
-	LogPrint (msg->s, args...);
-	msg->s << std::endl;
-	if (g_Log)
-		g_Log->Put (msg);
-	else
-	{
-		msg->Process ();
-		delete msg;
-	}
-}
-
-template<typename... TArgs>
-void LogPrint (TArgs... args)
-{
-	LogPrint (eLogInfo, args...);
-}
+#define eLogDebug kovri::log::eLogDebug
+#define eLogInfo kovri::log::eLogInfo
+#define eLogWarning kovri::log::eLogWarning
+#define eLogError kovri::log::eLogError
 
 #endif

@@ -6,6 +6,8 @@
 #else
 #define Daemon i2p::util::DaemonLinux::Instance()
 #endif
+#include "util/Log.h"
+
 
 namespace i2p
 {
@@ -33,6 +35,7 @@ namespace i2p
             // d-pointer for httpServer, httpProxy, etc.
             class Daemon_Singleton_Private;
             Daemon_Singleton_Private &d;
+            std::shared_ptr<kovri::log::Log> log;
         };
 
 #ifdef _WIN32

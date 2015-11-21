@@ -2,7 +2,6 @@
 
 #include "Daemon.h"
 
-#include "util/Log.h"
 #include "version.h"
 #include "transport/Transports.h"
 #include "transport/NTCPSession.h"
@@ -34,7 +33,7 @@ namespace i2p
             i2p::util::HTTPServer *httpServer;
         };
 
-        Daemon_Singleton::Daemon_Singleton() : running(1), d(*new Daemon_Singleton_Private()) {};
+        Daemon_Singleton::Daemon_Singleton() : running(1), d(*new Daemon_Singleton_Private()) , log(kovri::log::Log::Get()) {};
         Daemon_Singleton::~Daemon_Singleton() {
             delete &d;
         };
@@ -72,7 +71,7 @@ namespace i2p
 
             isDaemon = i2p::util::config::GetArg("-daemon", 0);
             isLogging = i2p::util::config::GetArg("-log", 1);
-
+            
             int port = i2p::util::config::GetArg("-port", 0);
             if (port)
                 i2p::context.UpdatePort (port);                 

@@ -22,14 +22,14 @@ namespace log
     
     LogImpl::LogImpl(LogLevel minlev, std::ostream * out)
     {
-        auto core = boost::log::core::get();
+        m_LogCore = boost::log::core::get();
         m_LogBackend = boost::make_shared<backend_t>();
         m_LogBackend->add_stream(boost::shared_ptr<std::ostream> (out, boost::null_deleter()));
         g_LogSink = boost::shared_ptr<sink_t>(new sink_t(m_LogBackend));
         g_LogSink->set_filter(boost::log::expressions::attr<LogLevel>("Severity") >= minlev);
         g_LogSink->set_formatter(&LogImpl::Format);
-        core->add_sink(g_LogSink);
-        core->add_global_attribute("Timestamp", boost::log::attributes::local_clock());
+        m_LogCore->add_sink(g_LogSink);
+        m_LogCore->add_global_attribute("Timestamp", boost::log::attributes::local_clock());
         
     }
 
@@ -191,7 +191,7 @@ namespace log
     std::shared_ptr<Log> Log::Get()
     {
         // make default logger if we don't have a logger
-        if(g_Log == nullptr) g_Log = std::make_shared<Log>(eLogDebug, &std::clog);
+        if(g_Log == nullptr) g_Log = std::make_shared<Log>(eLogWarning, &std::clog);
         return g_Log;
     }
     

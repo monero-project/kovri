@@ -13,10 +13,10 @@ namespace log
 
     enum LogLevel
     {
-        eLogDebug,
-        eLogInfo,
-        eLogWarning,
-        eLogError
+        eLogLevelDebug,
+        eLogLevelInfo,
+        eLogLevelWarning,
+        eLogLevelError
     };
 
     // private implemenation of LogStream
@@ -129,7 +129,7 @@ namespace log
     {
     public:
         Log(LogLevel minLev, std::ostream * out);
-        Log() : Log(eLogWarning, &std::clog) {}
+        Log() : Log(eLogLevelWarning, &std::clog) {}
         
         /**
            Get global log engine
@@ -152,10 +152,5 @@ namespace log
 }
 
 #include "util/OldLog.h"
-
-#define eLogDebug kovri::log::eLogDebug
-#define eLogInfo kovri::log::eLogInfo
-#define eLogWarning kovri::log::eLogWarning
-#define eLogError kovri::log::eLogError
 
 #endif

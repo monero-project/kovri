@@ -1,6 +1,7 @@
 #ifndef BOOST_LOG_H__
 #define BOOST_LOG_H__
 #include "Log.h"
+#include <boost/log/core/core.hpp>
 #include <boost/log/sinks/async_frontend.hpp>
 #include <boost/log/sinks/text_ostream_backend.hpp>
 #include <boost/log/sources/logger.hpp>
@@ -10,7 +11,8 @@ namespace kovri
 {
 namespace log
 {
-
+    typedef boost::log::core_ptr core_ptr;
+    
     typedef boost::log::sinks::text_ostream_backend backend_t;
     typedef boost::shared_ptr<backend_t> backend_ptr;
     
@@ -72,6 +74,7 @@ namespace log
         void Flush();
     private:
         backend_ptr m_LogBackend;
+        core_ptr m_LogCore;
         static void Format(boost::log::record_view const & rec, boost::log::formatting_ostream &s);
     };
 }

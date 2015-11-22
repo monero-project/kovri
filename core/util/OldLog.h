@@ -8,6 +8,12 @@
 #include <sstream>
 #include <iostream>
 
+#define eLogDebug kovri::log::eLogLevelDebug
+#define eLogInfo kovri::log::eLogLevelInfo
+#define eLogWarning kovri::log::eLogLevelWarning
+#define eLogError kovri::log::eLogLevelError
+
+
 void DeprecatedStartLog (const std::string& fullFilePath);
 
 void DeprecatedStartLog (std::ostream * s);
@@ -42,13 +48,13 @@ void DeprecatedLogPrint(kovri::log::LogLevel level, TArgs... args)
         auto log = l->Default();
         switch(level)
         {
-        case kovri::log::eLogDebug:
+        case eLogDebug:
             log->Debug() << ss.str();
             break;
-        case kovri::log::eLogInfo:
+        case eLogInfo:
             log->Info() << ss.str();
             break;
-        case kovri::log::eLogWarning:
+        case eLogWarning:
             log->Warning() << ss.str();
             break;
         default:
@@ -61,7 +67,7 @@ void DeprecatedLogPrint(kovri::log::LogLevel level, TArgs... args)
 template<typename... TArgs>
 void DeprecatedLogPrint (TArgs... args)
 {
-	DeprecatedLogPrint (kovri::log::eLogInfo, args...);
+	DeprecatedLogPrint (eLogInfo, args...);
 
 }
 #define StopLog DeprecatedStopLog

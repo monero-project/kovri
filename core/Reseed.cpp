@@ -495,28 +495,28 @@ namespace data
         return name;
     }   
     
-    bool Reseeder::LoadCertificates ()
+    bool Reseeder::LoadCertificates()
     {
-        boost::filesystem::path reseedDir = i2p::util::filesystem::GetDataDir() / "certificates/reseed";
+        boost::filesystem::path reseedDir = i2p::util::filesystem::GetDataDir() / "certificates" / "reseed";
         
-        if (!boost::filesystem::exists (reseedDir))
+        if (!boost::filesystem::exists(reseedDir))
         {
-            LogPrint (eLogError, "Reseed certificates ", reseedDir, " don't exist");
+            LogPrint(eLogError, "Reseed certificates ", reseedDir, " don't exist");
             // we need to die hard if this happens
             return false;
         }
 
         int numCertificates = 0;
         boost::filesystem::directory_iterator end; // empty
-        for (boost::filesystem::directory_iterator it (reseedDir); it != end; ++it)
+        for (boost::filesystem::directory_iterator it(reseedDir); it != end; ++it)
         {
-            if (boost::filesystem::is_regular_file (it->status()) && it->path ().extension () == ".crt")
+            if (boost::filesystem::is_regular_file(it->status()) && it->path().extension() == ".crt")
             {
-                if(LoadCertificate (it->path ().string ())) numCertificates++;
+                if(LoadCertificate (it->path().string())) numCertificates++;
                 else return false;
             }   
         }   
-        LogPrint (eLogInfo, numCertificates, " certificates loaded");
+        LogPrint(eLogInfo, numCertificates, " certificates loaded");
         return numCertificates > 0;
     }   
 

@@ -2,7 +2,6 @@
 
 #include "Daemon.h"
 
-#include "util/Log.h"
 #include "version.h"
 #include "transport/Transports.h"
 #include "transport/NTCPSession.h"
@@ -34,7 +33,7 @@ namespace i2p
             i2p::util::HTTPServer *httpServer;
         };
 
-        Daemon_Singleton::Daemon_Singleton() : running(1), d(*new Daemon_Singleton_Private()) {};
+        Daemon_Singleton::Daemon_Singleton() : running(1), d(*new Daemon_Singleton_Private()) , log(kovri::log::Log::Get()) {};
         Daemon_Singleton::~Daemon_Singleton() {
             delete &d;
         };
@@ -53,7 +52,7 @@ namespace i2p
             i2p::util::config::OptionParser(argc, argv);
             i2p::context.Init ();
 
-            LogPrint("\n\nThe Kovri I2P Router Project\n");
+            LogPrint("The Kovri I2P Router Project");
             LogPrint("Version ", KOVRI_VERSION);
             LogPrint("data directory: ", i2p::util::filesystem::GetDataDir().string());
             i2p::util::filesystem::ReadConfigFile(

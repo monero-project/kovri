@@ -10,7 +10,7 @@ set(CORE_SRC
     "crypto/EdDSA25519.cpp"
     "util/base64.cpp"
     "util/util.cpp"
-    "util/Log.cpp"
+    "util/OldLog.cpp"
     "util/HTTP.cpp"
     "tunnel/TransitTunnel.cpp"
     "tunnel/Tunnel.cpp"
@@ -87,6 +87,16 @@ set(EDDSA_LIB "ed25519-ref10")
 
 add_subdirectory(crypto/ed25519)
 
+if(WITH_BOOST_LOG)
+  # using boost log backend
+  set(LOG_SRC "util/BoostLog.cpp")
+else()
+  # print log backend
+  set(LOG_SRC "util/PrintLog.cpp")
+endif()
+
+list(APPEND CORE_SRC ${LOG_SRC})
+
 # Library building
 if(WITH_LIBRARY)
     add_library(${CORE_NAME} ${CORE_SRC} ${EDDSA_SRC})
@@ -101,4 +111,3 @@ if(WITH_LIBRARY)
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     )
 endif()
-

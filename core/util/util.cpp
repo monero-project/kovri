@@ -280,7 +280,7 @@ namespace filesystem
         const boost::filesystem::path source = boost::filesystem::canonical(
             config::GetArg("-webui", "webui"), e
         );
-        const boost::filesystem::path destination = GetDataDir() / "webui";
+        const boost::filesystem::path destination = GetDataDir() / "resources" / "webui";
 
         if(e || !boost::filesystem::is_directory(source))
             throw std::runtime_error("Given directory is invalid or does not exist");

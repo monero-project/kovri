@@ -7,7 +7,6 @@
 #include "util/base64.h"
 #include "Identity.h"
 #include "util/Log.h"
-#include "Destination.h"
 #include "ClientContext.h"
 #include "SAM.h"
 

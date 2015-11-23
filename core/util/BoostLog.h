@@ -28,7 +28,6 @@ namespace log
         ~LogStreamImpl() {}
         void MetaImpl(const std::string & key, std::string value);
         void Flush();
-        void AppendStr(const std::string & str);
         bool IsEnabled() { return m_Enable; };
         void Disable() { m_Enable = false; };
         void Enable() { m_Enable = true; };

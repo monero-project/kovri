@@ -221,11 +221,6 @@ namespace stream
             std::mutex m_StreamsMutex;
             std::map<uint32_t, std::shared_ptr<Stream> > m_Streams;
             Acceptor m_Acceptor;
-            
-        public:
-
-            // for HTTP only
-            const decltype(m_Streams)& GetStreams () const { return m_Streams; };
     };      
 
 //-------------------------------------------------

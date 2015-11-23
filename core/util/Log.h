@@ -25,7 +25,7 @@ namespace log
     /**
        Generic Log stream
     */
-    class LogStream
+    class LogStream : public std::ostream
     {
     public:
 
@@ -35,17 +35,12 @@ namespace log
         /**
            attach metadata to the current logger's next entries until flushed
          */
-        const LogStream & Meta(const std::string & key, std::string value);
+        LogStream & Meta(const std::string & key, std::string value);
         /**
            flush this log stream
          */
-        void Flush();
-
-        /**
-           operator overload for <<
-         */
-        void operator << (const std::string & str);
-
+        LogStream & Flush();
+        
         /**
            check if this stream is enabled
            return true if it is
@@ -61,6 +56,7 @@ namespace log
            enable logging on this stream
          */
         void Enable();
+        
     private:
         LogStreamImpl * m_Impl;
     };
@@ -75,13 +71,13 @@ namespace log
         /**
            flush events
          */
-        virtual void Flush() const = 0;
+        virtual EventStream & Flush() const = 0;
 
         /**
            operator overload for <<
            queue an event
          */
-        virtual void operator << (const std::vector<std::string> & strs) const = 0;
+        virtual EventStream & operator << (const std::vector<std::string> & strs) const = 0;
     };
 
     // private implementation of Logger

@@ -53,14 +53,13 @@ namespace log
     }    
 
     LogStreamImpl::LogStreamImpl(log_t & l, LogLevel level) :
-        log(l),
+        m_Log(l),
         m_Level(level),
         m_Enable(true)
 
     {
         //m_Log.add_global_attribute("Logger", m_ParentName);
     }
-
 
     LogStream & Logger::Error()
     {
@@ -94,46 +93,27 @@ namespace log
         delete m_Impl;
     }
     
-    LogStream::LogStream(LogStreamImpl * impl) : m_Impl(impl) {}
+    LogStream::LogStream(LogStreamImpl * impl) : std::ostream(impl->Stream()), m_Impl(impl) {}
     LogStream::~LogStream() { delete m_Impl; }
     
-    const LogStream & LogStream::Meta(const std::string & key, std::string value)
+    LogStream & LogStream::Meta(const std::string & key, std::string value)
     {
         // this doesn't do anything yet
         // m_Impl->MetaImpl(key, value);
         return *this;
     }
 
-    void LogStream::operator << (const std::string & str)
-    {
-        m_Impl->LogStr(m_Impl->log, str);
-
-    }
-    
-    void LogStreamImpl::LogStr (log_t & log, const std::string & str) 
-    {
-        /*
-        auto rec = m_Log.open_record(boost::log::keywords::severity = m_Level);
-        if (rec)
-        {
-            boost::log::record_ostream s(rec);
-            s << str;
-            s.flush();
-            m_Log.push_record(boost::move(rec));
-        }
-        */
-        BOOST_LOG_SEV(log, m_Level) << str;
-        Flush();
-    }
-
     void LogStreamImpl::Flush()
     {
+        BOOST_LOG_SEV(m_Log, m_Level) << &m_str;
         g_LogSink->flush();
+        m_str = std::stringbuf();
     }
 
-    void LogStream::Flush()
+    LogStream & LogStream::Flush()
     {
         m_Impl->Flush();
+        return *this;
     }
 
     bool LogStream::IsEnabled()
@@ -199,6 +179,11 @@ namespace log
     {
         auto log = Log::Get();
         return log->m_DefaultLogger;
+    }
+
+    std::shared_ptr<Logger> Log::New(const std::string & name, const std::string & channel)
+    {
+        return std::make_shared<Logger>(new LoggerImpl(name, channel));
     }
     
 }

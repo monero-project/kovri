@@ -28,20 +28,23 @@ namespace log
         ~LogStreamImpl() {}
         void MetaImpl(const std::string & key, std::string value);
         void Flush();
-        void LogStr (log_t & log, const std::string & str);
+        void AppendStr(const std::string & str);
         bool IsEnabled() { return m_Enable; };
         void Disable() { m_Enable = false; };
         void Enable() { m_Enable = true; };
-        log_t & log;
+        std::streambuf * Stream() { return &m_str; }
     private:
+        log_t & m_Log;
         LogLevel m_Level;
         bool m_Enable;
+        std::stringbuf m_str;
     };
 
     class BoostEventStream : public EventStream
     {
-        virtual void Flush() const {};
-        virtual void operator << (const std::vector<std::string> & strs ) const {};
+    public:
+        virtual EventStream & Flush() const {};
+        virtual EventStream & operator << (const std::vector<std::string> & strs ) const {};
     };
     
     class LoggerImpl
@@ -55,10 +58,10 @@ namespace log
            Construct logger with a name that belongs in 1 log channel
          */
         LoggerImpl(const std::string & name, const std::string & channel);
-        LogStream & Debug() { return m_Debug; } 
-        LogStream & Info() { return m_Info; }
-        LogStream & Warning() { return m_Warn; }
-        LogStream & Error() { return m_Error; }
+        LogStream & Debug() { return m_Debug.Flush(); } 
+        LogStream & Info() { return m_Info.Flush(); }
+        LogStream & Warning() { return m_Warn.Flush(); }
+        LogStream & Error() { return m_Error.Flush(); }
         EventStream & UI() { return m_Events; }
         log_t log;
     private:

@@ -1,7 +1,7 @@
-cmake_minimum_required ( VERSION 2.8.12 )
-project ( "kovri" )
+cmake_minimum_required(VERSION 2.8.12)
+project("kovri")
 
-# configurale options
+# Configurable options
 option(WITH_AESNI     "Use AES-NI instructions set" OFF)
 option(WITH_HARDENING "Use hardening compiler flags" OFF)
 option(WITH_LIBRARY   "Build library" ON)
@@ -23,7 +23,7 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug)
 endif()
 
-# compiler flags customization (by vendor)
+# Compiler flags customization (by vendor)
 if(NOT MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Winvalid-pch")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -pedantic")
@@ -52,7 +52,7 @@ endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     if(WITH_HARDENING)
-        add_definitions( "-D_FORTIFY_SOURCE=2" )
+        add_definitions("-D_FORTIFY_SOURCE=2")
         set(
             CMAKE_CXX_FLAGS
             "${CMAKE_CXX_FLAGS} -Wformat -Wformat-security -Werror=format-security"
@@ -70,7 +70,7 @@ endif()
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
   # "'sleep_for' is not a member of 'std::this_thread'" in gcc 4.7/4.8
   add_definitions( "-D_GLIBCXX_USE_NANOSLEEP=1" )
-endif ()
+endif()
 
 if(WITH_UPNP)
     add_definitions(-DUSE_UPNP)
@@ -92,7 +92,7 @@ endif()
 #  http://stackoverflow.com/a/29871891/673826 use imported Threads::Threads
 #  instead
 set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package (Threads REQUIRED)
+find_package(Threads REQUIRED)
 if(THREADS_HAVE_PTHREAD_ARG) # compile time flag
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 endif()

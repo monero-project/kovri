@@ -46,22 +46,15 @@ void DeprecatedLogPrint(kovri::log::LogLevel level, TArgs... args)
         std::clog << std::endl;
     } else {
         auto log = l->Default();
-        switch(level)
-        {
-        case eLogDebug:
+        if(level == eLogDebug) {
             DeprecatedLog(log->Debug(), args...);
-            break;
-        case eLogInfo:
+        } else if (level == eLogInfo) {
             DeprecatedLog(log->Info(), args...);
-            break;
-        case eLogWarning:
+        } else if(level == eLogWarning) {
             DeprecatedLog(log->Warning(), args...);
-            break;
-        default:
+        } else  {
             DeprecatedLog(log->Error(), args...);
-            break;
         }
-        log->Flush();
     }
 }
 

@@ -41,10 +41,10 @@ namespace log
     }
 
     LoggerImpl::LoggerImpl(const std::string & name, const std::string & channel) : log(boost::log::keywords::channel = channel),
-                                                                                    m_Debug(new LogStreamImpl(log, eLogDebug)),
-                                                                                    m_Info(new LogStreamImpl(log, eLogInfo)),
-                                                                                    m_Warn(new LogStreamImpl(log, eLogWarning)),
-                                                                                    m_Error(new LogStreamImpl(log, eLogError))
+                                                                                    m_Debug(new LogStreamImpl(m_DebugMtx, log, eLogDebug)),
+                                                                                    m_Info(new LogStreamImpl(m_InfoMtx, log, eLogInfo)),
+                                                                                    m_Warn(new LogStreamImpl(m_WarnMtx, log, eLogWarning)),
+                                                                                    m_Error(new LogStreamImpl(m_ErrorMtx, log, eLogError))
     {
     }
     
@@ -52,7 +52,8 @@ namespace log
     {
     }    
 
-    LogStreamImpl::LogStreamImpl(log_t & l, LogLevel level) :
+    LogStreamImpl::LogStreamImpl(std::mutex & mtx, log_t & l, LogLevel level) :
+        m_Access(mtx),
         m_Log(l),
         m_Level(level),
         m_Enable(true)
@@ -103,11 +104,44 @@ namespace log
         return *this;
     }
 
+    LogStream & LoggerImpl::Debug()
+    {
+        // flush any previous entries
+        m_Debug.Flush();
+        // aquire lock
+        m_DebugMtx.lock();
+        return m_Debug;
+    }
+    
+    LogStream & LoggerImpl::Info()
+    {
+        m_Info.Flush();
+        m_InfoMtx.lock();
+        return m_Info;
+    }
+
+    LogStream & LoggerImpl::Warning()
+    {
+        m_Warn.Flush();
+        m_WarnMtx.lock();
+        return m_Warn;
+    }
+
+    LogStream & LoggerImpl::Error()
+    {
+        m_Error.Flush();
+        m_ErrorMtx.lock();
+        return m_Error;
+    }
+
     void LogStreamImpl::Flush()
     {
-        BOOST_LOG_SEV(m_Log, m_Level) << &m_str;
+        BOOST_LOG_SEV(m_Log, m_Level) << &m_Str;
         g_LogSink->flush();
-        m_str = std::stringbuf();
+        m_Str = std::stringbuf();
+        // release any locks held
+        m_Access.try_lock();
+        m_Access.unlock();
     }
 
     LogStream & LogStream::Flush()
@@ -171,7 +205,7 @@ namespace log
     std::shared_ptr<Log> Log::Get()
     {
         // make default logger if we don't have a logger
-        if(g_Log == nullptr) g_Log = std::make_shared<Log>(eLogWarning, &std::clog);
+        if(g_Log == nullptr) g_Log = std::make_shared<Log>(eLogDebug, &std::clog);
         return g_Log;
     }
     

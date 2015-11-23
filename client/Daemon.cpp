@@ -52,7 +52,7 @@ namespace i2p
             i2p::util::config::OptionParser(argc, argv);
             i2p::context.Init ();
 
-            LogPrint("\n\nThe Kovri I2P Router Project\n");
+            LogPrint("The Kovri I2P Router Project");
             LogPrint("Version ", KOVRI_VERSION);
             LogPrint("data directory: ", i2p::util::filesystem::GetDataDir().string());
             i2p::util::filesystem::ReadConfigFile(
@@ -71,7 +71,7 @@ namespace i2p
 
             isDaemon = i2p::util::config::GetArg("-daemon", 0);
             isLogging = i2p::util::config::GetArg("-log", 1);
-            
+
             int port = i2p::util::config::GetArg("-port", 0);
             if (port)
                 i2p::context.UpdatePort (port);                 

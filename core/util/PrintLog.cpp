@@ -7,6 +7,6 @@ namespace kovri
 {
 namespace log
 {
-    
+    /* TODO: implement */
 }
 }

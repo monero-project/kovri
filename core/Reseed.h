@@ -24,7 +24,6 @@ namespace data
         
             Reseeder();
             ~Reseeder();
-            bool reseedNow(); // deprecated 
             int ReseedNowSU3 ();
 
             bool LoadCertificates ();
@@ -34,7 +33,7 @@ namespace data
             bool LoadCertificate (const std::string& filename);
             std::string LoadCertificate (CryptoPP::ByteQueue& queue); // returns issuer's name
             
-            int ReseedFromSU3 (const std::string& host, bool https = false);
+            int ReseedFromSU3 (const std::string& host);
             int ProcessSU3File (const char * filename); 
             int ProcessSU3Stream (std::istream& s); 
 

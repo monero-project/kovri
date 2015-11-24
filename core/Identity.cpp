@@ -156,25 +156,26 @@ namespace data
 
     IdentityEx& IdentityEx::operator=(const IdentityEx& other)
     {
-		if(&other != this) {
-			memcpy (&m_StandardIdentity, &other.m_StandardIdentity, DEFAULT_IDENTITY_SIZE);
-			m_IdentHash = other.m_IdentHash;
+        if(&other != this)
+        {
+            memcpy (&m_StandardIdentity, &other.m_StandardIdentity, DEFAULT_IDENTITY_SIZE);
+            m_IdentHash = other.m_IdentHash;
 
-			delete[] m_ExtendedBuffer;
-			m_ExtendedLen = other.m_ExtendedLen;
-			if (m_ExtendedLen > 0)
-			{
-				m_ExtendedBuffer = new uint8_t[m_ExtendedLen];
-				memcpy (m_ExtendedBuffer, other.m_ExtendedBuffer, m_ExtendedLen);
-			}
-			else
-				m_ExtendedBuffer = nullptr;
+            delete[] m_ExtendedBuffer;
+            m_ExtendedLen = other.m_ExtendedLen;
+            if (m_ExtendedLen > 0)
+            {
+                m_ExtendedBuffer = new uint8_t[m_ExtendedLen];
+                memcpy (m_ExtendedBuffer, other.m_ExtendedBuffer, m_ExtendedLen);
+            }
+            else
+                m_ExtendedBuffer = nullptr;
         
-			delete m_Verifier;
-			m_Verifier = nullptr;
-		}
+            delete m_Verifier;
+            m_Verifier = nullptr;
+        }
 
-		return *this;
+        return *this;
     }   
 
     IdentityEx& IdentityEx::operator=(const Identity& standard)

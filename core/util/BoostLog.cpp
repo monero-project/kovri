@@ -106,31 +106,34 @@ namespace log
 
     LogStream & LoggerImpl::Debug()
     {
+        if(!m_DebugMtx.try_lock())
+            m_DebugMtx.lock();
         // flush any previous entries
         m_Debug.Flush();
-        // aquire lock
-        m_DebugMtx.lock();
         return m_Debug;
     }
     
     LogStream & LoggerImpl::Info()
     {
+        if(!m_InfoMtx.try_lock())
+            m_InfoMtx.lock();
         m_Info.Flush();
-        m_InfoMtx.lock();
         return m_Info;
     }
 
     LogStream & LoggerImpl::Warning()
     {
+        if(!m_WarnMtx.try_lock())
+            m_WarnMtx.lock();
         m_Warn.Flush();
-        m_WarnMtx.lock();
         return m_Warn;
     }
 
     LogStream & LoggerImpl::Error()
     {
+        if(!m_ErrorMtx.try_lock())
+            m_ErrorMtx.lock();
         m_Error.Flush();
-        m_ErrorMtx.lock();
         return m_Error;
     }
 

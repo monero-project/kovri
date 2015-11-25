@@ -47,13 +47,21 @@ void DeprecatedLogPrint(kovri::log::LogLevel level, TArgs... args)
     } else {
         auto log = l->Default();
         if(level == eLogDebug) {
-            DeprecatedLog(log->Debug(), args...);
+            auto & s = log->Debug();
+            DeprecatedLog(s, args...);
+            s << std::flush;
         } else if (level == eLogInfo) {
-            DeprecatedLog(log->Info(), args...);
+            auto & s = log->Info();
+            DeprecatedLog(s, args...);
+            s << std::flush;
         } else if(level == eLogWarning) {
-            DeprecatedLog(log->Warning(), args...);
+            auto & s = log->Warning();
+            DeprecatedLog(s, args...);
+            s << std::flush;
         } else  {
-            DeprecatedLog(log->Error(), args...);
+            auto & s = log->Error();
+            DeprecatedLog(s, args...);
+            s << std::flush;
         }
     }
 }

@@ -21,6 +21,7 @@ namespace log
 
     // private implemenation of LogStream
     class LogStreamImpl;
+
     
     /**
        Generic Log stream

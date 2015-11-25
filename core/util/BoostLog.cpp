@@ -3,7 +3,11 @@
 //
 #include "BoostLog.h"
 #include <memory>
+#if BOOST_VERSION >= 105600
 #include <boost/core/null_deleter.hpp>
+#else
+#include <boost/core/empty_deleter.hpp>
+#endif
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 #include <boost/log/attributes.hpp>
@@ -19,12 +23,18 @@ namespace log
 {
     std::shared_ptr<Log> g_Log = nullptr;
     sink_ptr g_LogSink;
+
+    #if BOOST_VERSION >= 105600
+    typedef boost::null_deleter boost_deleter_t;
+    #else
+    typedef boost::empty_deleter boost_deleter_t;
+    #endif
     
     LogImpl::LogImpl(LogLevel minlev, std::ostream * out)
     {
         m_LogCore = boost::log::core::get();
         m_LogBackend = boost::make_shared<backend_t>();
-        m_LogBackend->add_stream(boost::shared_ptr<std::ostream> (out, boost::null_deleter()));
+        m_LogBackend->add_stream(boost::shared_ptr<std::ostream> (out, boost_deleter_t()));
         g_LogSink = boost::shared_ptr<sink_t>(new sink_t(m_LogBackend));
         g_LogSink->set_filter(boost::log::expressions::attr<LogLevel>("Severity") >= minlev);
         g_LogSink->set_formatter(&LogImpl::Format);
@@ -94,7 +104,7 @@ namespace log
         delete m_Impl;
     }
     
-    LogStream::LogStream(LogStreamImpl * impl) : std::ostream(impl->Stream()), m_Impl(impl) {}
+    LogStream::LogStream(LogStreamImpl * impl) : std::ostream(impl),  m_Impl(impl) {}
     LogStream::~LogStream() { delete m_Impl; }
     
     LogStream & LogStream::Meta(const std::string & key, std::string value)
@@ -106,50 +116,68 @@ namespace log
 
     LogStream & LoggerImpl::Debug()
     {
-        if(!m_DebugMtx.try_lock())
-            m_DebugMtx.lock();
-        // flush any previous entries
-        m_Debug.Flush();
-        return m_Debug;
+        return GetLogger(m_Debug, m_DebugMtx);
     }
     
     LogStream & LoggerImpl::Info()
     {
-        if(!m_InfoMtx.try_lock())
-            m_InfoMtx.lock();
-        m_Info.Flush();
-        return m_Info;
+        return GetLogger(m_Info, m_InfoMtx);
     }
 
     LogStream & LoggerImpl::Warning()
     {
-        if(!m_WarnMtx.try_lock())
-            m_WarnMtx.lock();
-        m_Warn.Flush();
-        return m_Warn;
+        return GetLogger(m_Warn, m_WarnMtx);
     }
 
     LogStream & LoggerImpl::Error()
     {
-        if(!m_ErrorMtx.try_lock())
-            m_ErrorMtx.lock();
-        m_Error.Flush();
-        return m_Error;
+        return GetLogger(m_Error, m_ErrorMtx);
     }
 
+    LogStream & LoggerImpl::GetLogger(LogStream & l, std::mutex & mtx)
+    {
+        mtx.lock();
+        return l;
+    }
+
+    void LogStreamImpl::WaitForReady()
+    {
+        {
+            std::lock_guard<std::mutex> lock(m_Access);
+        }
+    }
+
+    LogStreamImpl::int_type LogStreamImpl::overflow(int_type ch)
+    {
+        return std::streambuf::overflow(ch);
+    }
+
+    int LogStreamImpl::sync()
+    {
+        int ret;
+        ret = m_Str.pubsync();
+        Flush();
+        m_Access.unlock();
+        return ret;
+    }
+
+    // not thread safe
+    std::streamsize LogStreamImpl::xsputn(const LogStreamImpl::char_type * s, std::streamsize count)
+    {
+        return m_Str.sputn(s, count);
+    }
+
+    // not thread safe
     void LogStreamImpl::Flush()
     {
         BOOST_LOG_SEV(m_Log, m_Level) << &m_Str;
-        g_LogSink->flush();
         m_Str = std::stringbuf();
-        // release any locks held
-        m_Access.try_lock();
-        m_Access.unlock();
+        g_LogSink->flush();
     }
 
     LogStream & LogStream::Flush()
     {
-        m_Impl->Flush();
+        g_LogSink->flush();
         return *this;
     }
 

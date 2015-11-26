@@ -23,23 +23,32 @@ namespace log
     
     typedef boost::log::sources::severity_channel_logger_mt<LogLevel, std::string> log_t;
     
-    class LogStreamImpl 
+    class LogStreamImpl : public std::streambuf
     {
     public:
+        using int_type = typename std::streambuf::int_type;
+            
         LogStreamImpl(std::mutex & access, log_t & l, LogLevel levelno);
         ~LogStreamImpl() {}
         void MetaImpl(const std::string & key, std::string value);
-        void Flush();
         bool IsEnabled() { return m_Enable; };
         void Disable() { m_Enable = false; };
         void Enable() { m_Enable = true; };
-        std::stringbuf * Stream() { return &m_Str; }
+        int_type overflow(int_type ch);
+        void WaitForReady();
+        
+    protected:
+        using char_type = typename std::streambuf::char_type;
+        int sync();
+        std::streamsize xsputn( const char_type* s, std::streamsize count );
     private:
+        void Flush();
+
+        std::stringbuf m_Str;
         std::mutex & m_Access;
         log_t & m_Log;
         LogLevel m_Level;
         bool m_Enable;
-        std::stringbuf m_Str;
     };
 
     class BoostEventStream : public EventStream
@@ -67,6 +76,7 @@ namespace log
         EventStream & UI() { return m_Events; }
         log_t log;
     private:
+        LogStream & GetLogger(LogStream & log, std::mutex & mtx);
         std::mutex m_DebugMtx, m_InfoMtx, m_WarnMtx, m_ErrorMtx;
         LogStream m_Debug, m_Info, m_Warn, m_Error;
         BoostEventStream m_Events;
@@ -76,7 +86,7 @@ namespace log
     {
     public:
         LogImpl(LogLevel minLevel, std::ostream * out);
-        LogImpl() : LogImpl(eLogWarning, &std::clog) {}
+        LogImpl() : LogImpl(eLogDebug, &std::clog) {}
         void Flush();
     private:
         backend_ptr m_LogBackend;

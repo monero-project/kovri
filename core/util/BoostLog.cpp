@@ -3,7 +3,11 @@
 //
 #include "BoostLog.h"
 #include <memory>
+#if BOOST_VERSION >= 105600
 #include <boost/core/null_deleter.hpp>
+#else
+#include <boost/core/empty_deleter.hpp>
+#endif
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 #include <boost/log/attributes.hpp>
@@ -19,12 +23,18 @@ namespace log
 {
     std::shared_ptr<Log> g_Log = nullptr;
     sink_ptr g_LogSink;
+
+    #if BOOST_VERSION >= 105600
+    typedef boost::null_deleter boost_deleter_t;
+    #else
+    typedef boost::empty_deleter boost_deleter_t;
+    #endif
     
     LogImpl::LogImpl(LogLevel minlev, std::ostream * out)
     {
         m_LogCore = boost::log::core::get();
         m_LogBackend = boost::make_shared<backend_t>();
-        m_LogBackend->add_stream(boost::shared_ptr<std::ostream> (out, boost::null_deleter()));
+        m_LogBackend->add_stream(boost::shared_ptr<std::ostream> (out, boost_deleter_t()));
         g_LogSink = boost::shared_ptr<sink_t>(new sink_t(m_LogBackend));
         g_LogSink->set_filter(boost::log::expressions::attr<LogLevel>("Severity") >= minlev);
         g_LogSink->set_formatter(&LogImpl::Format);
@@ -46,6 +56,7 @@ namespace log
                                                                                     m_Warn(new LogStreamImpl(m_WarnMtx, log, eLogWarning)),
                                                                                     m_Error(new LogStreamImpl(m_ErrorMtx, log, eLogError))
     {
+        log.add_attribute("LogName", boost::log::attributes::constant< std::string >(name));
     }
     
     LoggerImpl::LoggerImpl() : LoggerImpl("default", "default")
@@ -94,7 +105,7 @@ namespace log
         delete m_Impl;
     }
     
-    LogStream::LogStream(LogStreamImpl * impl) : std::ostream(impl->Stream()), m_Impl(impl) {}
+    LogStream::LogStream(LogStreamImpl * impl) : std::ostream(impl),  m_Impl(impl) {}
     LogStream::~LogStream() { delete m_Impl; }
     
     LogStream & LogStream::Meta(const std::string & key, std::string value)
@@ -106,47 +117,68 @@ namespace log
 
     LogStream & LoggerImpl::Debug()
     {
-        // flush any previous entries
-        m_Debug.Flush();
-        // aquire lock
-        m_DebugMtx.lock();
-        return m_Debug;
+        return GetLogger(m_Debug, m_DebugMtx);
     }
     
     LogStream & LoggerImpl::Info()
     {
-        m_Info.Flush();
-        m_InfoMtx.lock();
-        return m_Info;
+        return GetLogger(m_Info, m_InfoMtx);
     }
 
     LogStream & LoggerImpl::Warning()
     {
-        m_Warn.Flush();
-        m_WarnMtx.lock();
-        return m_Warn;
+        return GetLogger(m_Warn, m_WarnMtx);
     }
 
     LogStream & LoggerImpl::Error()
     {
-        m_Error.Flush();
-        m_ErrorMtx.lock();
-        return m_Error;
+        return GetLogger(m_Error, m_ErrorMtx);
     }
 
+    LogStream & LoggerImpl::GetLogger(LogStream & l, std::mutex & mtx)
+    {
+        mtx.lock();
+        return l;
+    }
+
+    void LogStreamImpl::WaitForReady()
+    {
+        {
+            std::lock_guard<std::mutex> lock(m_Access);
+        }
+    }
+
+    LogStreamImpl::int_type LogStreamImpl::overflow(int_type ch)
+    {
+        return std::streambuf::overflow(ch);
+    }
+
+    int LogStreamImpl::sync()
+    {
+        int ret;
+        ret = m_Str.pubsync();
+        Flush();
+        m_Access.unlock();
+        return ret;
+    }
+
+    // not thread safe
+    std::streamsize LogStreamImpl::xsputn(const LogStreamImpl::char_type * s, std::streamsize count)
+    {
+        return m_Str.sputn(s, count);
+    }
+
+    // not thread safe
     void LogStreamImpl::Flush()
     {
         BOOST_LOG_SEV(m_Log, m_Level) << &m_Str;
-        g_LogSink->flush();
         m_Str = std::stringbuf();
-        // release any locks held
-        m_Access.try_lock();
-        m_Access.unlock();
+        g_LogSink->flush();
     }
 
     LogStream & LogStream::Flush()
     {
-        m_Impl->Flush();
+        g_LogSink->flush();
         return *this;
     }
 
@@ -187,12 +219,13 @@ namespace log
     void LogImpl::Format(boost::log::record_view const & rec, boost::log::formatting_ostream &s)
     {
         //const boost::log::attribute_value_set& attrs = rec.attribute_values();
-        static std::locale loc(std::clog.getloc(), new boost::posix_time::time_facet("%Y:%m:%d:%T.%f"));
+        static std::locale loc(std::clog.getloc(), new boost::posix_time::time_facet("%Y:%m:%d|%T.%f"));
         std::stringstream ss;
         ss.imbue(loc);
         ss << boost::log::extract<boost::posix_time::ptime>("Timestamp", rec) << ' ';
         s << ss.str();
-        s << boost::log::extract<std::string>("Channel", rec) << "::";
+        s << boost::log::extract<std::string>("Channel", rec) << ":";
+        s << boost::log::extract<std::string>("LogName", rec) << "\t\t";
         s << boost::log::extract<LogLevel>("Severity", rec) << "\t\t";
         s << rec[boost::log::expressions::smessage];
     }
@@ -211,13 +244,12 @@ namespace log
     
     std::shared_ptr<Logger> Log::Default()
     {
-        auto log = Log::Get();
-        return log->m_DefaultLogger;
+        return m_DefaultLogger;
     }
 
-    std::shared_ptr<Logger> Log::New(const std::string & name, const std::string & channel)
+    std::unique_ptr<Logger> Log::New(const std::string & name, const std::string & channel)
     {
-        return std::make_shared<Logger>(new LoggerImpl(name, channel));
+        return std::unique_ptr<Logger>(new Logger(new LoggerImpl(name, channel)));
     }
     
 }

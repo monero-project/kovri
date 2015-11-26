@@ -56,6 +56,7 @@ namespace log
                                                                                     m_Warn(new LogStreamImpl(m_WarnMtx, log, eLogWarning)),
                                                                                     m_Error(new LogStreamImpl(m_ErrorMtx, log, eLogError))
     {
+        log.add_attribute("LogName", boost::log::attributes::constant< std::string >(name));
     }
     
     LoggerImpl::LoggerImpl() : LoggerImpl("default", "default")
@@ -218,12 +219,13 @@ namespace log
     void LogImpl::Format(boost::log::record_view const & rec, boost::log::formatting_ostream &s)
     {
         //const boost::log::attribute_value_set& attrs = rec.attribute_values();
-        static std::locale loc(std::clog.getloc(), new boost::posix_time::time_facet("%Y:%m:%d:%T.%f"));
+        static std::locale loc(std::clog.getloc(), new boost::posix_time::time_facet("%Y:%m:%d|%T.%f"));
         std::stringstream ss;
         ss.imbue(loc);
         ss << boost::log::extract<boost::posix_time::ptime>("Timestamp", rec) << ' ';
         s << ss.str();
-        s << boost::log::extract<std::string>("Channel", rec) << "::";
+        s << boost::log::extract<std::string>("Channel", rec) << ":";
+        s << boost::log::extract<std::string>("LogName", rec) << "\t\t";
         s << boost::log::extract<LogLevel>("Severity", rec) << "\t\t";
         s << rec[boost::log::expressions::smessage];
     }
@@ -242,13 +244,12 @@ namespace log
     
     std::shared_ptr<Logger> Log::Default()
     {
-        auto log = Log::Get();
-        return log->m_DefaultLogger;
+        return m_DefaultLogger;
     }
 
-    std::shared_ptr<Logger> Log::New(const std::string & name, const std::string & channel)
+    std::unique_ptr<Logger> Log::New(const std::string & name, const std::string & channel)
     {
-        return std::make_shared<Logger>(new LoggerImpl(name, channel));
+        return std::unique_ptr<Logger>(new Logger(new LoggerImpl(name, channel)));
     }
     
 }

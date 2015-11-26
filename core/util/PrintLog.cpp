@@ -112,14 +112,12 @@ namespace log
     
     std::shared_ptr<Logger> Log::Default()
     {
-        auto log = Log::Get();
-        return log->m_DefaultLogger;
+        return m_DefaultLogger;
     }
 
-    std::shared_ptr<Logger> Log::New(const std::string & name, const std::string & channel)
+    std::unique_ptr<Logger> Log::New(const std::string & name, const std::string & channel)
     {
-        auto log = Log::Get();
-        return std::make_shared<Logger>(new LoggerImpl(log->m_LogImpl->CurrentLevel(), name, log->m_LogImpl->Out()));
+        return std::unique_ptr<Logger>(new Logger(new LoggerImpl(m_LogImpl->CurrentLevel(), name, m_LogImpl->Out())));
     }
     
 }

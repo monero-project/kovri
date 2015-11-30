@@ -13,7 +13,6 @@
 #include <string>
 #include <thread>
 #include <mutex>
-#include <boost/filesystem.hpp>
 #include "util/Queue.h"
 #include "I2NPProtocol.h"
 #include "RouterInfo.h"
@@ -22,6 +21,7 @@
 #include "tunnel/TunnelPool.h"
 #include "Reseed.h"
 #include "NetDbRequests.h"
+#include "util/Filesystem.h"
 
 namespace i2p
 {

@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "aes.h"
+#include "AES.h"
 
 namespace i2p {
 namespace crypto {

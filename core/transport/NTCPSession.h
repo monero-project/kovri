@@ -9,11 +9,11 @@
 #include <boost/asio.hpp>
 #include <cryptopp/modes.h>
 #include <cryptopp/aes.h>
-#include "crypto/aes.h"
+#include "I2NPProtocol.h"
 #include "Identity.h"
 #include "RouterInfo.h"
-#include "I2NPProtocol.h"
 #include "TransportSession.h"
+#include "crypto/AES.h"
 
 namespace i2p
 {

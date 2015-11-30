@@ -152,11 +152,6 @@ void I2PService::OnStart(DWORD dwArgc, PSTR *pszArgv)
 
 	Daemon.start();
 
-	//i2p::util::config::OptionParser(dwArgc, pszArgv);
-	//i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
-	//i2p::context.OverrideNTCPAddress(i2p::util::config::GetCharArg("-host", "127.0.0.1"),
-	//	i2p::util::config::GetArg("-port", 17070));
-
 	_worker = new std::thread(std::bind(&I2PService::WorkerThread, this));
 }
 

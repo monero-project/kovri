@@ -28,7 +28,7 @@ namespace i2p
         eRouterStatusFirewalled = 2
     };  
 
-    class RouterContext: public i2p::garlic::GarlicDestination 
+    class RouterContext : public i2p::garlic::GarlicDestination
     {
         public:
 

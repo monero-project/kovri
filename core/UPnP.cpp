@@ -18,7 +18,6 @@
 #include "RouterContext.h"
 #include "UPnP.h"
 #include "NetworkDatabase.h"
-#include "util/util.h"
 
 #include <miniupnpc/miniupnpc.h>
 #include <miniupnpc/upnpcommands.h>

@@ -9,12 +9,12 @@
 #include <thread>
 #include <mutex>
 #include <boost/asio.hpp>
-#include "crypto/aes.h"
-#include "util/I2PEndian.h"
+#include "I2NPProtocol.h"
 #include "Identity.h"
 #include "RouterInfo.h"
-#include "I2NPProtocol.h"
 #include "SSUSession.h"
+#include "crypto/AES.h"
+#include "util/I2PEndian.h"
 
 namespace i2p
 {

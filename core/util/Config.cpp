@@ -1,0 +1,303 @@
+#include "Config.h"
+#include <cryptopp/osrng.h>
+
+namespace i2p {
+namespace util {
+namespace config {
+
+    using namespace std;
+    namespace bpo = boost::program_options;
+
+    string kovriConfig, tunnelsConfig;
+    bpo::options_description confOpts;
+    bpo::variables_map varMap;
+
+    // TODO: rewrite this parser to include tunnelscfg and respond to SIGHUP
+    void ParseConfigFile(string& conf,
+                        bpo::options_description& opts,
+                        bpo::variables_map& vm)
+    {
+        ifstream ifs(conf.c_str());
+        if (!ifs) {
+            cout << "Could not open " << conf << "!\n";
+        } else {
+            bpo::store(bpo::parse_config_file(ifs, opts), vm);
+            bpo::notify(vm);
+        }
+    }
+
+    bool ParseArgs(int argc, char* argv[])
+    {
+        /**
+        * Random generated port if none is supplied via CLI or config
+        * See Java I2P:
+        * i2p.i2p/router/java/src/net/i2p/router/transport/udp/UDPEndpoint.java
+        */
+        CryptoPP::AutoSeededRandomPool rnd;
+        int port = rnd.GenerateWord32(9111, 30777);
+
+        // Map options values from CLI and config
+        bpo::options_description help("Help options");
+        help.add_options()
+            ("help",
+                "General usage:\n\n"
+
+                "$ ./kovri\n\n"
+
+	        "A random port will be generated with each use.\n"
+	        "You can specify a port with the --port option\n"
+	        "or you can set one in the config file instead.\n\n"
+
+		"Reload configuration file:\n\n"
+
+		"$ pkill -HUP kovri\n\n")
+
+            ("help-with",
+                bpo::value<string>(),
+                    "Help with a specific option.\n\n"
+
+                    "Available options:\n"
+                    "==================\n\n"
+
+                    "all\n\n"
+
+                    "basic | system | network\n"
+                    "proxy | irc    | eepsite\n"
+                    "api   | i2pcs  | config\n\n"
+
+                    "Examples\n"
+                    "========\n\n"
+
+	            "List all options:\n\n"
+                    "$ ./kovri --help-with all\n\n"
+
+	            "List only basic options:\n\n"
+                    "$ ./kovri --help-with basic");
+
+        bpo::options_description basic("\nBasic");
+        basic.add_options()
+            ("host",
+                bpo::value<string>()->default_value("127.0.0.1"),  //TODO tie in external interface IP
+                    "The external IP (deprecated).\n"
+                    "Default: external interface")
+            ("port",
+                bpo::value<int>()->default_value(port),
+                    "Port to listen on.\n"
+                    "Default: random (then saved to router.info)")
+            ("httpport",
+                bpo::value<int>()->default_value(7070),
+                    "The HTTP port to listen on for WebUI.\n")
+            ("httpaddress",
+                bpo::value<string>()->default_value("127.0.0.1"),
+                    "The IP address of the WebUI HTTP server.\n");
+
+        bpo::options_description system("\nSystem");
+        system.add_options()
+            ("log",
+                bpo::value<bool>()->default_value(0),
+                    "Enable or disable logging to file\n"
+                    "1 = enabled, 0 = disabled\n")
+            ("daemon",
+                bpo::value<bool>()->default_value(0),
+                    "Enable or disable daemon mode\n"
+                    "1 = enabled, 0 = disabled\n")
+            // TODO: clarify what --service 'really' does
+            // See DaemonWin32.cpp
+            ("service",
+                bpo::value<bool>()->default_value(0),
+                    "1 if using system folders, e.g.,\n"
+                    "(/var/run/kovri.pid, /var/log/kovri.log, /var/lib/kovri)\n");
+
+        bpo::options_description network("\nNetwork");
+        network.add_options()
+            ("v6",
+                bpo::value<bool>()->default_value(0),
+                    "1 to enable IPv6\n"
+                    "1 = enabled, 0 = disabled\n")
+            ("floodfill",
+                bpo::value<bool>()->default_value(0),
+                    "1 to enable router router as floodfill\n"
+                    "1 = enabled, 0 = disabled\n")
+            ("bandwidth",
+                bpo::value<string>()->default_value("L"),
+                    "L if bandwidth is limited to 32Kbs/sec, O if not\n"
+                    "Always O if floodfill, otherwise L by default\n");
+
+        bpo::options_description proxy("\nProxy");
+        proxy.add_options()
+            ("httpproxyport",
+                bpo::value<int>()->default_value(4446),
+                    "The HTTP Proxy port to listen on\n")
+            ("httpproxyaddress",
+                bpo::value<string>()->default_value("127.0.0.1"),
+                    "The HTTP Proxy address to listen on\n")
+            ("socksproxyport",
+                bpo::value<int>()->default_value(4447),
+                    "The SOCKS Proxy port to listen on\n")
+            ("socksproxyaddress",
+                bpo::value<string>()->default_value("127.0.0.1"),
+                    "The SOCKS Proxy address to listen on\n")
+            ("proxykeys",
+                bpo::value<string>()->default_value(""),
+                    "Optional keys file for proxy's local destination\n");
+
+        bpo::options_description irc("\nIRC");
+        irc.add_options()
+            ("ircport",
+                bpo::value<int>()->default_value(6669),
+                    "The local port of IRC tunnel to listen on\n")
+            ("ircaddress",
+                bpo::value<string>()->default_value("127.0.0.1"),
+                    "The adddress of IRC tunnel to listen on.\n")
+            ("ircdest",
+                bpo::value<string>()->default_value(""),
+                    "I2P destination address of IRC server\n"
+                    "Example: irc.postman.i2p\n")
+            ("irckeys",
+                bpo::value<string>()->default_value(""),
+                    "Optional keys file for tunnel's local destination\n");
+
+        bpo::options_description eepsite("\nEepsite");
+        eepsite.add_options()
+            ("eepport",
+                bpo::value<int>()->default_value(80),
+                    "Forward incoming traffic to this port\n")
+            ("eepaddress",
+                bpo::value<string>()->default_value("127.0.0.1"),
+                    "Forward incoming traffic to this address\n")
+            ("eepkeys",
+                bpo::value<string>()->default_value(""),
+                    "File containing destination keys, ex. privKeys.dat\n"
+                    "The file will be created if it does not exist\n");
+
+        bpo::options_description api("\nAPI");
+        api.add_options()
+            ("samport",
+                bpo::value<int>()->default_value(0),
+                    "Port of SAM bridge (usually 7656)\n"
+                    "Default: SAM is disabled if not specified\n")
+            ("samaddress",
+                bpo::value<string>()->default_value("127.0.0.1"),
+                    "Address of SAM bridge\n"
+                    "Default: 127.0.0.1 (only used if SAM is enabled)\n")
+            ("bobport",
+                bpo::value<int>()->default_value(0),
+                    "Port of BOB command channel (usually 2827)\n"
+                    "BOB is disabled if not specified\n")
+            ("bobaddress",
+                bpo::value<string>()->default_value("127.0.0.1"),
+                    "Address of BOB service\n"
+                    "Default: 127.0.0.1 (only used if BOB is enabled)\n");
+
+        bpo::options_description i2pcs("\nI2P Control Service");
+        i2pcs.add_options()
+            ("i2pcontrolport",
+                bpo::value<int>()->default_value(0),
+                    "Port of I2P control service (usually 7650)\n"
+                    "I2PControl is disabled if not specified\n")
+            ("i2pcontroladdress",
+                bpo::value<string>()->default_value("127.0.0.1"),
+                    "Address of I2P control service\n"
+                    "Default: 127.0.0.1 (only used if I2PControl is enabled)\n")
+            ("i2pcontrolpassword",
+                bpo::value<string>()->default_value("itoopie"),
+                    "I2P control service password\n");
+
+        bpo::options_description config("\nConfiguration");
+        config.add_options()
+            ("config",
+                bpo::value<string>(&kovriConfig)->default_value(
+                    i2p::util::filesystem::GetFullPath("kovri.conf")),
+                    "Options specified on the command line take"
+                    "precedence over those in the config file.\n")
+            ("tunnelscfg",
+                bpo::value<string>(&tunnelsConfig)->default_value(
+                    i2p::util::filesystem::GetFullPath("tunnels.cfg")),
+                    "Tunnels Config file\n");
+
+        // Default visible option
+        bpo::options_description kovri(
+                ":----------------------------------------------------:\n"
+                "|              The Kovri I2P Router Project          |\n"
+                "|                    version " KOVRI_VERSION "                   |\n"
+                ":----------------------------------------------------");
+
+        kovri.add(help);
+
+        // Available config file options
+        bpo::options_description confOpts;
+        confOpts
+            .add(basic)
+            .add(system)
+            .add(network)
+            .add(proxy)
+            .add(irc)
+            .add(eepsite)
+            .add(api)
+            .add(i2pcs)
+            .add(config);
+
+	ParseConfigFile(kovriConfig, confOpts, varMap);
+
+        // Available CLI options
+        bpo::options_description cliOpts;
+        cliOpts
+            .add(help)
+            .add(basic)
+            .add(system)
+            .add(network)
+            .add(proxy)
+            .add(irc)
+            .add(eepsite)
+            .add(api)
+            .add(i2pcs)
+            .add(config);
+
+        // Map and store CLI options
+        bpo::store(bpo::parse_command_line(argc, argv, cliOpts), varMap);
+        bpo::notify(varMap);
+
+        /*
+         * Display --help and --help-with
+         */
+        if (varMap.count("help"))
+        {
+            cout << kovri << endl;;
+            return 1;
+        }
+
+        if (varMap.count("help-with"))
+        {
+            const string& s = varMap["help-with"].as<string>();
+
+            if (s == "all") {
+                cout << confOpts; // We don't need .add(help)
+            } else if (s == "basic") {
+                cout << basic;
+            } else if (s == "system") {
+                cout << system;
+            } else if (s == "network") {
+                cout << network;
+            } else if (s == "proxy") {
+                cout << proxy;
+            } else if (s == "irc") {
+                cout << irc;
+            } else if (s == "eepsite") {
+                cout << eepsite;
+            } else if (s == "i2pcs") {
+                cout << i2pcs;
+            } else if (s == "config") {
+                cout << config;
+            } else {
+                cout << "Unknown option '" << s << "'"
+                     << "\nTry using --help" << endl;
+            }
+            return 1;
+        }
+
+        return 0;
+    }
+
+} // config
+} // util
+} // i2p

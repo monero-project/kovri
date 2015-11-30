@@ -2,7 +2,7 @@
 #define _VERSION_H_
 
 // Used purely for aesthetics
-#define CODENAME "Kovri"
+#define CODENAME "" // If we ever use "codenames" for releases
 #define KOVRI_VERSION "0.1.0"
 
 // Used by the router

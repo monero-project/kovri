@@ -4,7 +4,7 @@
 #include <vector>
 #include <boost/asio.hpp>
 #include <cryptopp/gzip.h>
-#include "util/base64.h"
+#include "util/Base64.h"
 #include "util/Log.h"
 #include "util/Timestamp.h"
 #include "I2NPProtocol.h"
@@ -13,7 +13,6 @@
 #include "RouterContext.h"
 #include "Garlic.h"
 #include "NetworkDatabase.h"
-#include "util/util.h"
 
 using namespace i2p::transport;
 

@@ -7,14 +7,13 @@
 #include <condition_variable>
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
-#include <cryptopp/osrng.h>
-#include "util/base64.h"
-#include "util/util.h"
-#include "Identity.h"
-#include "util/Log.h"
-#include "NetworkDatabase.h"
 #include "AddressBook.h"
 #include "Destination.h"
+#include "Identity.h"
+#include "NetworkDatabase.h"
+#include "util/HTTP.h"
+#include "util/Log.h"
+#include <cryptopp/osrng.h>
 
 namespace i2p
 {
@@ -309,7 +308,7 @@ namespace client
         else
         {
             // if not found download it from http://i2p-projekt.i2p/hosts.txt 
-            LogPrint (eLogInfo, "hosts.txt not found. Try to download it from default subscription...");
+            LogPrint (eLogInfo, "hosts.txt not found. Attempting to download a default subscription...");
             if (!m_IsDownloading)
             {
                 m_IsDownloading = true;

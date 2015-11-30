@@ -1,5 +1,4 @@
 #include <boost/test/unit_test.hpp>
-#include "util/util.h"
 #include "util/HTTP.h"
 
 BOOST_AUTO_TEST_SUITE(UtilityTests)

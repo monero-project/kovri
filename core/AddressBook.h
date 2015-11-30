@@ -8,9 +8,9 @@
 #include <iostream>
 #include <mutex>
 #include <boost/asio.hpp>
-#include "util/base64.h"
-#include "util/util.h"
 #include "Identity.h"
+#include "util/Base64.h"
+#include "util/Filesystem.h"
 #include "util/Log.h"
 
 namespace i2p

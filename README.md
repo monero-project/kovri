@@ -1,4 +1,4 @@
-#Kovri [![Build Status](https://travis-ci.org/anonimal/i2pd.svg?branch=master)](https://travis-ci.org/anonimal/i2pd) [![Coverity Scan Build Status](https://scan.coverity.com/projects/7040/badge.svg)](https://scan.coverity.com/projects/anonimal-i2pd)
+# Kovri
 
 The Kovri I2P router. A fork of orignal's (GitHub) i2pd.
 
@@ -29,4 +29,7 @@ Builds on
 
 Documentation
 -------------
-All documentation is in the ./doc directory.
+Peek inside the docs directory or run the `--help` switch:
+``` console
+$ kovri --help
+```

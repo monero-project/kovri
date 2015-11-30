@@ -1,7 +1,7 @@
 #ifndef TUNNEL_CRYPTO_H__
 #define TUNNEL_CRYPTO_H__
 
-#include "crypto/aes.h"
+#include "crypto/AES.h"
 
 namespace i2p {
 namespace crypto {

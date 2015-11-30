@@ -1,7 +1,7 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
-#include "crypto/aes.h"
+#include "crypto/AES.h"
 #include "crypto/EdDSA25519.h"
 
 using namespace i2p::crypto;

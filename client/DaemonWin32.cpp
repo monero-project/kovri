@@ -1,5 +1,4 @@
 #include "Daemon.h"
-#include "util/util.h"
 #include "util/Log.h"
 
 #ifdef _WIN32
@@ -10,20 +9,20 @@ namespace i2p
 {
     namespace util
     {
-        bool DaemonWin32::init(int argc, char* argv[])
+        bool DaemonWin32::init()
         {
             setlocale(LC_CTYPE, "");
             SetConsoleCP(1251);
             SetConsoleOutputCP(1251);
             setlocale(LC_ALL, "Russian");
 
-            if (!Daemon_Singleton::init(argc, argv)) return false;
+            if (!Daemon_Singleton::init()) return false;
             if (I2PService::isService())
-                isDaemon = 1;
+                m_isDaemon = 1;
             else
-                isDaemon = 0;
+                m_isDaemon = 0;
 
-            std::string serviceControl = i2p::util::config::GetArg("-service", "none");
+            std::string serviceControl = i2p::util::config::varMap["service"].as<std::string>();
             if (serviceControl == "install")
             {
                 InstallService(
@@ -47,7 +46,7 @@ namespace i2p
                 printf(" --service=remove   to remove the service.\n");
             }
             
-            if (isDaemon == 1)
+            if (m_isDaemon == 1)
             {
                 LogPrint("Service session");
                 I2PService service(SERVICE_NAME);

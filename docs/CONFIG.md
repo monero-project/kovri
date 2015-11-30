@@ -1,5 +1,4 @@
-Config files
-=============
+# Config files
 
 INI-like, syntax is the following : <key> = <value>.
 All command-line parameters are allowed as keys, for example:
@@ -8,9 +7,9 @@ kovri.conf:
 
 	log = 1
 	v6 = 0
-	ircdest = irc.postman.i2p
+	ircdest = irc.dg.i2p
 
-tunnels.cfg (filename of this config is subject to change):
+tunnels.cfg:
 
     ; outgoing tunnel sample, to remote service
     ; mandatory parameters:
@@ -23,8 +22,8 @@ tunnels.cfg (filename of this config is subject to change):
     ; * address -- address to listen on, 127.0.0.1 by default
     [IRC]
     type = client
-    port = 6668
-    destination = irc.echelon.i2p
+    port = 6669
+    destination = irc.dg.i2p
     keys = irc-keys.dat
 
     ; incoming tunnel sample, for local service

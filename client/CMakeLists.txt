@@ -5,12 +5,12 @@ set(CLIENT_SRC
   "HTTPProxy.cpp"
   "HTTPServer.cpp"
   "I2PService.cpp"
-  "i2pcontrol/I2PControl.cpp"	
-  "i2pcontrol/I2PControlServer.cpp"	
   "I2PTunnel.cpp"
+  "Kovri.cpp"
   "SAM.cpp"
   "SOCKS.cpp"
-  "i2p.cpp"
+  "i2pcontrol/I2PControl.cpp"
+  "i2pcontrol/I2PControlServer.cpp"
 )
 
 include_directories(".")

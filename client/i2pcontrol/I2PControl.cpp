@@ -11,13 +11,12 @@
 #include <cryptopp/filters.h>
 
 #include <boost/property_tree/json_parser.hpp>
-#include "util/util.h"
 #include "util/Log.h"
 #include "util/Timestamp.h"
 #include "transport/Transports.h"
 #include "tunnel/Tunnel.h"
 #include "NetworkDatabase.h"
-#include "version.h"
+#include "core/Version.h"
 #include "Daemon.h"
 
 namespace i2p {
@@ -483,7 +482,7 @@ void I2PControlSession::handleShutdown(Response& response)
     // 1 second to make sure response has been sent
     shutdownTimer.expires_from_now(boost::posix_time::seconds(1));
     shutdownTimer.async_wait([](const boost::system::error_code&) {
-        Daemon.running = 0; 
+        Daemon.m_isRunning = 0;
     });
 }
 
@@ -495,7 +494,7 @@ void I2PControlSession::handleShutdownGraceful(Response& response)
     response.setParam(constants::ROUTER_MANAGER_SHUTDOWN_GRACEFUL, "");
     shutdownTimer.expires_from_now(boost::posix_time::seconds(timeout + 1));
     shutdownTimer.async_wait([](const boost::system::error_code&) {
-        Daemon.running = 0; 
+        Daemon.m_isRunning = 0;
     });
 }
 

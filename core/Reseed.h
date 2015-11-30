@@ -9,7 +9,7 @@
 #include <cryptopp/rsa.h>
 #include <boost/asio.hpp>
 #include "Identity.h"
-#include "crypto/aes.h"
+#include "crypto/AES.h"
 
 namespace i2p
 {
@@ -24,6 +24,7 @@ namespace data
         
             Reseeder();
             ~Reseeder();
+
             int ReseedNowSU3 ();
 
             bool LoadCertificates ();

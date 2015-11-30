@@ -12,8 +12,6 @@
 
 #include <boost/asio.hpp>
 
-#include "util/util.h"
-
 #define I2P_UPNP_TCP 1
 #define I2P_UPNP_UDP 2
 

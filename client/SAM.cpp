@@ -4,11 +4,11 @@
 #include <stdlib.h>
 #endif
 #include <boost/lexical_cast.hpp>
-#include "util/base64.h"
-#include "Identity.h"
-#include "util/Log.h"
 #include "ClientContext.h"
+#include "Identity.h"
 #include "SAM.h"
+#include "util/Base64.h"
+#include "util/Log.h"
 
 namespace i2p
 {

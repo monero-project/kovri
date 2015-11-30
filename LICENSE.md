@@ -1,4 +1,8 @@
-Copyright (c) 2013-2015, The PurpleI2P Project
+# License
+
+This project is licensed under the BSD 3-clause license.
+
+Copyright (c) 2013-2015, The Kovri I2P Router Project
 
 All rights reserved.
 

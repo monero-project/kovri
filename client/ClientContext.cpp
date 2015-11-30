@@ -2,7 +2,6 @@
 #include <iostream>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
-#include "util/util.h"
 #include "util/Log.h"
 #include "Identity.h"
 #include "ClientContext.h"
@@ -13,11 +12,13 @@ namespace client
 {
     ClientContext context;  
 
-    ClientContext::ClientContext (): m_SharedLocalDestination (nullptr),
-        m_HttpProxy (nullptr), m_SocksProxy (nullptr), m_SamBridge (nullptr), 
-        m_BOBCommandChannel (nullptr), m_I2PControlService (nullptr)
-    {
-    }
+    ClientContext::ClientContext () :
+        m_SharedLocalDestination (nullptr),
+        m_HttpProxy (nullptr),
+        m_SocksProxy (nullptr),
+        m_SamBridge (nullptr),
+        m_BOBCommandChannel (nullptr),
+        m_I2PControlService (nullptr) {}
     
     ClientContext::~ClientContext () 
     {
@@ -39,35 +40,36 @@ namespace client
 
         std::shared_ptr<ClientDestination> localDestination;    
         // proxies  
-        std::string proxyKeys = i2p::util::config::GetArg("-proxykeys", "");
+        std::string proxyKeys = i2p::util::config::varMap["proxykeys"].as<std::string>();
         if (proxyKeys.length () > 0)
-            localDestination = LoadLocalDestination (proxyKeys, false);
+            localDestination = LoadLocalDestination(proxyKeys, false);
         m_HttpProxy = new i2p::proxy::HTTPProxy(
-            i2p::util::config::GetArg("-httpproxyaddress", "127.0.0.1"),
-            i2p::util::config::GetArg("-httpproxyport", 4446),
+	    i2p::util::config::varMap["httpproxyaddress"].as<std::string>(),
+	    i2p::util::config::varMap["httpproxyport"].as<int>(),
             localDestination
         );
         m_HttpProxy->Start();
         LogPrint("HTTP Proxy started");
+
         m_SocksProxy = new i2p::proxy::SOCKSProxy(
-            i2p::util::config::GetArg("-socksproxyaddress", "127.0.0.1"),
-            i2p::util::config::GetArg("-socksproxyport", 4447),
+	    i2p::util::config::varMap["socksproxyaddress"].as<std::string>(),
+	    i2p::util::config::varMap["socksproxyport"].as<int>(),
             localDestination
         );
         m_SocksProxy->Start();
         LogPrint("SOCKS Proxy Started");
     
         // I2P tunnels
-        std::string ircDestination = i2p::util::config::GetArg("-ircdest", "");
+        std::string ircDestination = i2p::util::config::varMap["ircdest"].as<std::string>();
         if (ircDestination.length () > 0) // ircdest is presented
         {
             localDestination = nullptr;
-            std::string ircKeys = i2p::util::config::GetArg("-irckeys", "");    
+            std::string ircKeys = i2p::util::config::varMap["irckeys"].as<std::string>();
             if (ircKeys.length () > 0)
-                localDestination = LoadLocalDestination (ircKeys, false);
-            auto ircPort = i2p::util::config::GetArg("-ircport", 6668);
+                localDestination = LoadLocalDestination(ircKeys, false);
+            auto ircPort = i2p::util::config::varMap["ircport"].as<int>();
             auto ircTunnel = new I2PClientTunnel(
-                ircDestination, i2p::util::config::GetArg("-ircaddress", "127.0.0.1"),
+                ircDestination, i2p::util::config::varMap["ircaddress"].as<std::string>(),
                 ircPort, localDestination
             );
             ircTunnel->Start ();
@@ -77,49 +79,51 @@ namespace client
             ));
             LogPrint("IRC tunnel started");
         }   
-        std::string eepKeys = i2p::util::config::GetArg("-eepkeys", "");
+
+        std::string eepKeys = i2p::util::config::varMap["eepkeys"].as<std::string>();
         if (eepKeys.length () > 0) // eepkeys file is presented
         {
-            localDestination = LoadLocalDestination (eepKeys, true);
-            auto serverTunnel = new I2PServerTunnel (i2p::util::config::GetArg("-eepaddress", "127.0.0.1"),
-                i2p::util::config::GetArg("-eepport", 80), localDestination);
+            localDestination = LoadLocalDestination(eepKeys, true);
+            auto serverTunnel = new I2PServerTunnel(i2p::util::config::varMap["eepaddress"].as<std::string>(),
+                i2p::util::config::varMap["eepport"].as<int>(), localDestination);
             serverTunnel->Start ();
-            m_ServerTunnels.insert (std::make_pair(localDestination->GetIdentHash (), std::unique_ptr<I2PServerTunnel>(serverTunnel)));
+            m_ServerTunnels.insert(std::make_pair(localDestination->GetIdentHash(),
+                std::unique_ptr<I2PServerTunnel>(serverTunnel))
+	    );
             LogPrint("Server tunnel started");
         }
+
         ReadTunnels ();
 
         // SAM
-        int samPort = i2p::util::config::GetArg("-samport", 0);
+        int samPort = i2p::util::config::varMap["samport"].as<int>();
         if (samPort)
         {
             m_SamBridge = new SAMBridge(
-                i2p::util::config::GetArg("-samaddress", "127.0.0.1"), samPort
+                i2p::util::config::varMap["samaddress"].as<std::string>(), samPort
             );
-            m_SamBridge->Start ();
+            m_SamBridge->Start();
             LogPrint("SAM bridge started");
         } 
 
         // BOB
-        int bobPort = i2p::util::config::GetArg("-bobport", 0);
+        int bobPort = i2p::util::config::varMap["bobport"].as<int>();
         if (bobPort)
         {
             m_BOBCommandChannel = new BOBCommandChannel(
-                i2p::util::config::GetArg("-bobaddress", "127.0.0.1"), bobPort
+                i2p::util::config::varMap["bobaddress"].as<std::string>(), bobPort
             );
             m_BOBCommandChannel->Start ();
             LogPrint("BOB command channel started");
         } 
 
         // I2P Control
-        int i2pcontrolPort = i2p::util::config::GetArg("-i2pcontrolport", 0);
+        int i2pcontrolPort = i2p::util::config::varMap["i2pcontrolport"].as<int>();
         if(i2pcontrolPort) {
             m_I2PControlService = new i2pcontrol::I2PControlService(
-                i2p::util::config::GetArg("-i2pcontroladdress", "127.0.0.1"),
+                i2p::util::config::varMap["i2pcontroladdress"].as<std::string>(),
                 i2pcontrolPort,
-                i2p::util::config::GetArg(
-                    "-i2pcontrolpassword", i2pcontrol::constants::DEFAULT_PASSWORD
-                )
+		i2p::util::config::varMap["i2pcontrolpassword"].as<std::string>()
             );
             m_I2PControlService->Start();
             LogPrint("I2PControl started");

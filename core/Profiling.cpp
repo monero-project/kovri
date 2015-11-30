@@ -1,9 +1,8 @@
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
-#include "util/base64.h"
-#include "util/util.h"
 #include "Profiling.h"
+#include "util/Base64.h"
 
 namespace i2p
 {

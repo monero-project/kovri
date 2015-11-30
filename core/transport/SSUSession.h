@@ -4,11 +4,11 @@
 #include <inttypes.h>
 #include <set>
 #include <memory>
-#include "crypto/aes.h"
-#include "crypto/hmac.h"
 #include "I2NPProtocol.h"
-#include "TransportSession.h"
 #include "SSUData.h"
+#include "TransportSession.h"
+#include "crypto/AES.h"
+#include "crypto/HMAC.h"
 
 namespace i2p
 {

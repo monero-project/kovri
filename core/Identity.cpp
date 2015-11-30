@@ -3,12 +3,12 @@
 #include <cryptopp/sha.h>
 #include <cryptopp/osrng.h>
 #include <cryptopp/dsa.h>
-#include "util/base64.h"
-#include "crypto/CryptoConst.h"
-#include "crypto/Signature.h"
-#include "crypto/ElGamal.h"
-#include "RouterContext.h"
 #include "Identity.h"
+#include "RouterContext.h"
+#include "crypto/CryptoConst.h"
+#include "crypto/ElGamal.h"
+#include "crypto/Signature.h"
+#include "util/Base64.h"
 #include "util/I2PEndian.h"
 
 namespace i2p

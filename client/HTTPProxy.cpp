@@ -5,7 +5,7 @@
 #include <string>
 #include <atomic>
 #include "HTTPProxy.h"
-#include "util/util.h"
+#include "util/HTTP.h"
 #include "Identity.h"
 #include "Streaming.h"
 #include "Destination.h"
@@ -41,7 +41,7 @@ namespace proxy
             void HandleJumpServices();
             bool CreateHTTPRequest(uint8_t *http_buff, std::size_t len);
             void SentHTTPFailed(const boost::system::error_code & ecode);
-            void HandleStreamRequestComplete (std::shared_ptr<i2p::stream::Stream> stream);
+            void HandleStreamRequestComplete(std::shared_ptr<i2p::stream::Stream> stream);
 
             uint8_t m_http_buff[http_buffer_size];
             std::shared_ptr<boost::asio::ip::tcp::socket> m_sock;

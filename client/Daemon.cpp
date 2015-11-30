@@ -1,20 +1,17 @@
 #include <thread>
-
-#include "Daemon.h"
-
-#include "version.h"
-#include "transport/Transports.h"
-#include "transport/NTCPSession.h"
-#include "RouterInfo.h"
-#include "RouterContext.h"
-#include "tunnel/Tunnel.h"
-#include "NetworkDatabase.h"
-#include "Garlic.h"
-#include "util/util.h"
-#include "Streaming.h"
-#include "Destination.h"
-#include "HTTPServer.h"
 #include "ClientContext.h"
+#include "Daemon.h"
+#include "Destination.h"
+#include "Garlic.h"
+#include "HTTPServer.h"
+#include "NetworkDatabase.h"
+#include "RouterContext.h"
+#include "RouterInfo.h"
+#include "Streaming.h"
+#include "transport/NTCPSession.h"
+#include "transport/Transports.h"
+#include "tunnel/Tunnel.h"
+#include "Version.h"
 
 namespace i2p
 {
@@ -23,90 +20,70 @@ namespace i2p
         class Daemon_Singleton::Daemon_Singleton_Private
         {
         public:
-            Daemon_Singleton_Private() : httpServer(nullptr)
-            {};
-            ~Daemon_Singleton_Private() 
-            {
-                delete httpServer;
-            };
-
             i2p::util::HTTPServer *httpServer;
+
+            Daemon_Singleton_Private() : httpServer(nullptr) {};
+            ~Daemon_Singleton_Private() { delete httpServer; };
         };
 
-        Daemon_Singleton::Daemon_Singleton() : running(1), d(*new Daemon_Singleton_Private()) , log(kovri::log::Log::Get()) {};
-        Daemon_Singleton::~Daemon_Singleton() {
-            delete &d;
-        };
+        Daemon_Singleton::Daemon_Singleton() :
+		m_isRunning(1),
+		m_dsp(*new Daemon_Singleton_Private()),
+		m_log(kovri::log::Log::Get()) {};
+
+        Daemon_Singleton::~Daemon_Singleton() { delete &m_dsp; };
 
         bool Daemon_Singleton::IsService () const
         {
 #ifndef _WIN32
-            return i2p::util::config::GetArg("-service", 0);
+            return i2p::util::config::varMap["service"].as<bool>();
 #else
             return false;
 #endif
         }
 
-        bool Daemon_Singleton::init(int argc, char* argv[])
+        bool Daemon_Singleton::init()
         {
-            i2p::util::config::OptionParser(argc, argv);
-            i2p::context.Init ();
+            i2p::context.Init();
 
-            LogPrint("The Kovri I2P Router Project");
-            LogPrint("Version ", KOVRI_VERSION);
-            LogPrint("data directory: ", i2p::util::filesystem::GetDataDir().string());
-            i2p::util::filesystem::ReadConfigFile(
-                i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs
+	    m_isDaemon = i2p::util::config::varMap["daemon"].as<bool>();
+	    m_isLogging = i2p::util::config::varMap["log"].as<bool>();
+
+            int port = i2p::util::config::varMap["port"].as<int>();
+            i2p::context.UpdatePort(port);
+
+            i2p::context.UpdateAddress(
+                boost::asio::ip::address::from_string(
+                    i2p::util::config::varMap["host"].as<std::string>()
+                )
             );
 
-            if(i2p::util::config::HasArg("-webui")) {
-                try {
-                    i2p::util::filesystem::InstallWebUI();
-                    LogPrint("Successfully installed webui.");
-                } catch(const std::runtime_error& e) {
-                    LogPrint(eLogError, "Failed to install: ", e.what());
-                    return false;
-                }
-            }
+            i2p::context.SetSupportsV6(i2p::util::config::varMap["v6"].as<bool>());
+            i2p::context.SetFloodfill(i2p::util::config::varMap["floodfill"].as<bool>());
+            auto bandwidth = i2p::util::config::varMap["bandwidth"].as<std::string>();
 
-            isDaemon = i2p::util::config::GetArg("-daemon", 0);
-            isLogging = i2p::util::config::GetArg("-log", 1);
-
-            int port = i2p::util::config::GetArg("-port", 0);
-            if (port)
-                i2p::context.UpdatePort (port);                 
-            const std::string host = i2p::util::config::GetArg("-host", "");
-            // The host option is deprecated, so this was always true.
-            // Because of -Waddress, it's now exposed as the hack it was.
-            if (&host && host[0])
-                i2p::context.UpdateAddress (boost::asio::ip::address::from_string (host));
-
-            i2p::context.SetSupportsV6 (i2p::util::config::GetArg("-v6", 0));
-            i2p::context.SetFloodfill (i2p::util::config::GetArg("-floodfill", 0));
-            auto bandwidth = i2p::util::config::GetArg("-bandwidth", "");
-            if (bandwidth.length () > 0)
+            if(bandwidth.length() > 0)
             {
                 if (bandwidth[0] > 'L')
-                    i2p::context.SetHighBandwidth ();
+                    i2p::context.SetHighBandwidth();
                 else
-                    i2p::context.SetLowBandwidth ();
+                    i2p::context.SetLowBandwidth();
             }   
-
-            LogPrint("CMD parameters:");
-            for (int i = 0; i < argc; ++i)
-                LogPrint(i, "  ", argv[i]);
 
             return true;
         }
             
         bool Daemon_Singleton::start()
         {
-            // initialize log           
-            if (isLogging)
+            LogPrint("The Kovri I2P Router Project");
+            LogPrint("Version ", KOVRI_VERSION);
+            LogPrint("Listening on port ", i2p::util::config::varMap["port"].as<int>());
+
+            if (m_isLogging)
             {
-                if (isDaemon)
+                if (m_isDaemon)
                 {
-                    std::string logfile_path = IsService () ? "/var/log" : i2p::util::filesystem::GetDataDir().string();
+                    std::string logfile_path = IsService() ? "/var/log" : i2p::util::filesystem::GetDataDir().string();
 #ifndef _WIN32
                     logfile_path.append("/kovri.log");
 #else
@@ -119,26 +96,35 @@ namespace i2p
             }
             
             try {
-                d.httpServer = new i2p::util::HTTPServer(
-                   i2p::util::config::GetArg("-httpaddress", "127.0.0.1"),
-                   i2p::util::config::GetArg("-httpport", 7070));
-                d.httpServer->Start();
-                LogPrint("HTTP Server started");
-                if(i2p::data::netdb.Start())
-                {
+                LogPrint("Starting HTTP server...");
+                m_dsp.httpServer = new i2p::util::HTTPServer(
+		    i2p::util::config::varMap["httpaddress"].as<std::string>(),
+		    i2p::util::config::varMap["httpport"].as<int>()
+		);
+                m_dsp.httpServer->Start();
+                LogPrint("HTTP server started");
+
+                LogPrint("Starting NetDB...");
+                if(i2p::data::netdb.Start()) {
                     LogPrint("NetDB started");
                 }
-                else
-                {
+                else {
                     LogPrint("NetDB failed to start");
                     return false;
                 }
+
+                LogPrint("Starting transports...");
                 i2p::transport::transports.Start();
                 LogPrint("Transports started");
+
+                LogPrint("Starting tunnels...");
                 i2p::tunnel::tunnels.Start();
                 LogPrint("Tunnels started");
+
+                LogPrint("Starting client...");
                 i2p::client::context.Start ();
                 LogPrint("Client started");
+
             } catch (std::runtime_error & e) {
                 LogPrint(eLogError, e.what());
                 return false;
@@ -148,21 +134,29 @@ namespace i2p
 
         bool Daemon_Singleton::stop()
         {
-            LogPrint("Shutdown started.");
+            LogPrint("Stopping client...");
             i2p::client::context.Stop();
             LogPrint("Client stopped");
+
+            LogPrint("Stopping tunnels...");
             i2p::tunnel::tunnels.Stop();
             LogPrint("Tunnels stopped");
+
+            LogPrint("Stopping transports...");
             i2p::transport::transports.Stop();
             LogPrint("Transports stopped");
+
+            LogPrint("Stopping NetDB...");
             i2p::data::netdb.Stop();
             LogPrint("NetDB stopped");
-            d.httpServer->Stop();
-            LogPrint("HTTP Server stopped");
+
+            LogPrint("Stopping HTTP server...");
+            m_dsp.httpServer->Stop();
+            LogPrint("HTTP server stopped");
 
             StopLog ();
 
-            delete d.httpServer; d.httpServer = nullptr;
+            delete m_dsp.httpServer; m_dsp.httpServer = nullptr;
 
             return true;
         }

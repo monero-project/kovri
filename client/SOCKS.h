@@ -11,7 +11,7 @@ namespace i2p
 {
 namespace proxy
 {
-    class SOCKSServer: public i2p::client::TCPIPAcceptor
+    class SOCKSServer : public i2p::client::TCPIPAcceptor
     {
         public:
 
@@ -28,6 +28,5 @@ namespace proxy
     typedef SOCKSServer SOCKSProxy;
 }
 }
-
 
 #endif

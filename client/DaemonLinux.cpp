@@ -1,23 +1,20 @@
 #include "Daemon.h"
-
 #ifndef _WIN32
-
 #include <signal.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
-
 #include "util/Log.h"
-#include "util/util.h"
-
+#include "util/Filesystem.h"
+#include "util/Config.h"
 
 void handle_signal(int sig)
 {
     switch (sig)
     {
     case SIGHUP:
-        if (i2p::util::config::GetArg("daemon", 0) == 1)
+        if (Daemon.m_isDaemon == 1)
         {
             static bool first=true;
             if (first)
@@ -26,17 +23,17 @@ void handle_signal(int sig)
                 return;
             }
         }
-        LogPrint("Reloading config.");
-        i2p::util::filesystem::ReadConfigFile(i2p::util::config::mapArgs, i2p::util::config::mapMultiArgs);
+        LogPrint("Reloading config...");
+        // TODO rewrite ParseConfigFile() to respond to SIGHUP
+        LogPrint("Config reloaded");
         break;
     case SIGABRT:
     case SIGTERM:
     case SIGINT:
-        Daemon.running = 0; // Exit loop
+        Daemon.m_isRunning = 0; // Exit loop
         break;
     }
 }
-
 
 namespace i2p
 {
@@ -44,7 +41,7 @@ namespace i2p
     {
         bool DaemonLinux::start()
         {
-            if (isDaemon == 1)
+            if (m_isDaemon == 1)
             {
                 pid_t pid;
                 pid = fork();
@@ -62,7 +59,7 @@ namespace i2p
                     LogPrint("Error, could not create process group.");
                     return false;
                 }
-                std::string d(i2p::util::filesystem::GetDataDir().string ()); // make a copy
+                std::string d(i2p::util::filesystem::GetDataDir().string()); // make a copy
                 chdir(d.c_str());
 
                 // close stdin/stdout/stderr descriptors
@@ -75,22 +72,22 @@ namespace i2p
             }
 
             // Pidfile
-            pidfile = IsService () ? "/var/run" : i2p::util::filesystem::GetDataDir().string();
-            pidfile.append("/kovri.pid");
-            pidFilehandle = open(pidfile.c_str(), O_RDWR | O_CREAT, 0600);
-            if (pidFilehandle == -1)
+            m_pidfile = IsService() ? "/var/run" : i2p::util::filesystem::GetDataDir().string();
+            m_pidfile.append("/kovri.pid");
+            m_pidFilehandle = open(m_pidfile.c_str(), O_RDWR | O_CREAT, 0600);
+            if (m_pidFilehandle == -1)
             {
-                LogPrint("Error, could not create pid file (", pidfile, ")\nIs an instance already running?");
+                LogPrint("Error, could not create pid file (", m_pidfile, ")\nIs an instance already running?");
                 return false;
             }
-            if (lockf(pidFilehandle, F_TLOCK, 0) == -1)
+            if (lockf(m_pidFilehandle, F_TLOCK, 0) == -1)
             {
-                LogPrint("Error, could not lock pid file (", pidfile, ")\nIs an instance already running?");
+                LogPrint("Error, could not lock pid file (", m_pidfile, ")\nIs an instance already running?");
                 return false;
             }
             char pid[10];
             sprintf(pid, "%d\n", getpid());
-            write(pidFilehandle, pid, strlen(pid));
+            write(m_pidFilehandle, pid, strlen(pid));
 
             // Signal handler
             struct sigaction sa;
@@ -107,8 +104,8 @@ namespace i2p
 
         bool DaemonLinux::stop()
         {
-            close(pidFilehandle);
-            unlink(pidfile.c_str());
+            close(m_pidFilehandle);
+            unlink(m_pidfile.c_str());
 
             return Daemon_Singleton::stop();            
         }

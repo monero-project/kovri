@@ -5,8 +5,8 @@
 #include <string.h>
 #include <string>
 #include <memory>
-#include "util/base64.h"
 #include "crypto/ElGamal.h"
+#include "util/Base64.h"
 
 namespace i2p {
 

@@ -4,12 +4,8 @@
 #include <inttypes.h>
 #include <string.h>
 
-namespace i2p
-{
-namespace util
-{
-
-    
+namespace i2p {
+namespace util {
     /*
      * Base64 encodes an array of bytes.
      * @return the number of characters written to the output buffer

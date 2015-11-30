@@ -11,15 +11,14 @@
 #include <cryptopp/zinflate.h>
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
 #include <cryptopp/arc4.h>
-#include "util/I2PEndian.h"
-#include "Reseed.h"
-#include "util/Log.h"
 #include "Identity.h"
+#include "NetworkDatabase.h"
+#include "Reseed.h"
 #include "crypto/CryptoConst.h"
 #include "crypto/Signature.h"
-#include "NetworkDatabase.h"
-#include "util/util.h"
-
+#include "util/HTTP.h"
+#include "util/I2PEndian.h"
+#include "util/Log.h"
 
 namespace i2p
 {

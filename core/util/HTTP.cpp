@@ -5,11 +5,17 @@
 #include <fstream>
 #include <boost/filesystem.hpp>
 #include "Log.h"
+#include "Reseed.h"
+#include <boost/lexical_cast.hpp>
 
 namespace i2p {
 namespace util {
 namespace http {
 
+/**
+ * @class Request
+ * Used by HTTPServer
+ */
 void Request::parseRequestLine(const std::string& line)
 {
     std::stringstream ss(line);
@@ -135,6 +141,10 @@ void Request::update(const std::string& data)
         setIsComplete();
 }
 
+/**
+ * @class Response
+ * Used by HTTPServer
+ */
 Response::Response(int status, const std::string& content)
     : status(status), content(content), headers()
 {
@@ -241,6 +251,190 @@ std::string getMimeType(const std::string& filename)
         return "application/octet-stream";
 }
 
+/**
+ * Used by Reseed
+ */
+std::string httpHeader (const std::string& path, const std::string& host, const std::string& version)
+{
+    std::string header =
+	"GET " + path + " HTTP/" + version + "\r\n" +
+	"Host: " + host + "\r\n" +
+	"Accept: */*\r\n" +
+	"User-Agent: Wget/1.11.4\r\n" +
+	"Connection: close\r\n\r\n";
+    return header;
 }
+
+std::string GetHttpContent (std::istream& response)
+{
+    std::string version, statusMessage;
+    response >> version; // HTTP version
+    int status;
+    response >> status; // status
+    std::getline (response, statusMessage);
+    if(status == 200) // OK
+    {
+	bool isChunked = false;
+        std::string header;
+        while(!response.eof() && header != "\r")
+	{
+            std::getline(response, header);
+            auto colon = header.find (':');
+            if(colon != std::string::npos)
+	    {
+                std::string field = header.substr (0, colon);
+               if(field == TRANSFER_ENCODING)
+                   isChunked = (header.find("chunked", colon + 1) != std::string::npos);
+            }
+        }
+        std::stringstream ss;
+        if(isChunked)
+            MergeChunkedResponse(response, ss);
+        else
+            ss << response.rdbuf();
+
+        return ss.str();
+    } else {
+	LogPrint("HTTP response ", status);
+	return "";
+    }
 }
+
+void MergeChunkedResponse(std::istream& response, std::ostream& merged)
+{
+    while(!response.eof()) {
+	std::string hexLen;
+	int len;
+	std::getline(response, hexLen);
+	std::istringstream iss(hexLen);
+	iss >> std::hex >> len;
+	if(!len)
+	    break;
+        char* buf = new char[len];
+        response.read(buf, len);
+        merged.write(buf, len);
+        delete[] buf;
+        std::getline(response, hexLen); // read \r\n after chunk
+    }
 }
+
+std::string httpsRequest (const std::string& address)
+{
+    url u(address);
+    if (u.m_port == 80) u.m_port = 443;
+	i2p::data::TlsSession session (u.m_host, u.m_port);
+
+    if (session.IsEstablished ())
+    {
+	// send request
+	std::stringstream ss;
+	ss << httpHeader(u.m_path, u.m_host, "1.1");
+	session.Send ((uint8_t *)ss.str ().c_str (), ss.str ().length ());
+
+	// read response
+	std::stringstream rs;
+	while (session.Receive (rs))
+	    ;
+        return GetHttpContent (rs);
+    } else
+	return "";
+}
+
+url::url(const std::string& url)
+{
+    m_portstr = "80";
+    m_port = 80;
+    m_user = "";
+    m_pass = "";
+
+    parse(url);
+}
+
+void url::parse(const std::string& url)
+{
+   using namespace std;
+
+    /**
+    * This is a hack since colons are a part of the URI scheme
+    * and slashes aren't always needed. See RFC 7595.
+    * */
+    const string prot_end("://");
+
+    // Separate scheme from authority
+    string::const_iterator prot_i = search(
+	url.begin(), url.end(), prot_end.begin(), prot_end.end()
+    );
+
+    // Prepare for lowercase result and transform to lowercase
+    m_protocol.reserve(distance(url.begin(), prot_i));
+    transform(
+	url.begin(), prot_i,
+	back_inserter(m_protocol), ptr_fun<int, int>(tolower)
+    );
+
+    // TODO: better error checking and handling
+    if(prot_i == url.end())
+	return;
+
+    // Move onto authority. We assume it's valid and don't bother checking.
+    advance(prot_i, prot_end.length());
+    string::const_iterator path_i = find(prot_i, url.end(), '/');
+
+    // Prepare for lowercase result and transform to lowercase
+    m_host.reserve(distance(prot_i, path_i));
+    transform(
+	prot_i, path_i,
+	back_inserter(m_host), ptr_fun<int, int>(tolower)
+    );
+
+    // Parse user/password, assuming it's valid input
+    auto user_pass_i = find(m_host.begin(), m_host.end(), '@');
+    if(user_pass_i != m_host.end())
+    {
+        string user_pass = string(m_host.begin(), user_pass_i);
+        auto pass_i = find(user_pass.begin(), user_pass.end(), ':');
+	if (pass_i != user_pass.end())
+	{
+	    m_user = string(user_pass.begin(), pass_i);
+            m_pass = string(pass_i + 1, user_pass.end());
+        } else
+            m_user = user_pass;
+
+        m_host.assign(user_pass_i + 1, m_host.end());
+    }
+
+    // Parse port, assuming it's valid input
+    auto port_i = find(m_host.begin(), m_host.end(), ':');
+    if(port_i != m_host.end())
+    {
+	m_portstr = string(port_i + 1, m_host.end());
+        m_host.assign(m_host.begin(), port_i);
+        try {
+            m_port = boost::lexical_cast<decltype(m_port)>(m_portstr);
+        } catch(const exception& e) {
+            m_port = 80;
+        }
+    }
+
+    // Parse query, assuming it's valid input
+    string::const_iterator query_i = find(path_i, url.end(), '?');
+    m_path.assign(path_i, query_i);
+    if(query_i != url.end())
+        ++query_i;
+    m_query.assign(query_i, url.end());
+}
+
+std::string urlDecode(const std::string& data)
+{
+    std::string res(data);
+    for(size_t pos = res.find('%'); pos != std::string::npos; pos = res.find('%', pos + 1))
+    {
+	const char c = strtol(res.substr(pos + 1, 2).c_str(), NULL, 16);
+	res.replace(pos, 3, 1, c);
+    }
+    return res;
+}
+
+} // http
+} // util
+} // i2p

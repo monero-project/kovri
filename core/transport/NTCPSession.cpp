@@ -1,17 +1,17 @@
 #include <string.h>
 #include <stdlib.h>
-#include "util/I2PEndian.h"
 #include <cryptopp/dh.h>
 #include <cryptopp/adler32.h>
-#include "util/base64.h"
-#include "util/Log.h"
-#include "util/Timestamp.h"
-#include "crypto/CryptoConst.h"
 #include "I2NPProtocol.h"
+#include "NTCPSession.h"
+#include "NetworkDatabase.h"
 #include "RouterContext.h"
 #include "Transports.h"
-#include "NetworkDatabase.h"
-#include "NTCPSession.h"
+#include "crypto/CryptoConst.h"
+#include "util/Base64.h"
+#include "util/I2PEndian.h"
+#include "util/Log.h"
+#include "util/Timestamp.h"
 
 using namespace i2p::crypto;
 

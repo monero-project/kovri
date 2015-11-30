@@ -7,20 +7,21 @@
 #include "util/Timestamp.h"
 #include "I2NPProtocol.h"
 #include "NetworkDatabase.h"
-#include "util/util.h"
-#include "version.h"
+#include "util/MTU.h"
+#include "util/Config.h"
+#include "Version.h"
 
 namespace i2p
 {
     RouterContext context;
 
-    RouterContext::RouterContext ():
+    RouterContext::RouterContext():
         m_LastUpdateTime (0), m_AcceptsTunnels (true), m_IsFloodfill (false), 
         m_StartupTime (0), m_Status (eRouterStatusOK )
     {
     }
 
-    void RouterContext::Init ()
+    void RouterContext::Init()
     {
         m_StartupTime = i2p::util::GetSecondsSinceEpoch ();
         if (!Load ())
@@ -28,23 +29,27 @@ namespace i2p
         UpdateRouterInfo ();
     }
 
-    void RouterContext::CreateNewRouter ()
+    void RouterContext::CreateNewRouter()
     {
-        m_Keys = i2p::data::CreateRandomKeys ();
-        SaveKeys ();
-        NewRouterInfo ();
+        m_Keys = i2p::data::CreateRandomKeys();
+        SaveKeys();
+        NewRouterInfo();
     }
 
-    void RouterContext::NewRouterInfo ()
+    void RouterContext::NewRouterInfo()
     {
         i2p::data::RouterInfo routerInfo;
-        routerInfo.SetRouterIdentity (GetIdentity ());
-        int port = i2p::util::config::GetArg("-port", 0);
-        if (!port)
-            port = m_Rnd.GenerateWord32 (9111, 30777); // I2P network ports range
-        routerInfo.AddSSUAddress (i2p::util::config::GetArg("-host", "127.0.0.1"), port, routerInfo.GetIdentHash ());
-        routerInfo.AddNTCPAddress (i2p::util::config::GetArg("-host", "127.0.0.1"), port);
-        routerInfo.SetCaps (i2p::data::RouterInfo::eReachable | 
+        routerInfo.SetRouterIdentity(GetIdentity ());
+        routerInfo.AddSSUAddress(
+		i2p::util::config::varMap["host"].as<std::string>(),
+		i2p::util::config::varMap["port"].as<int>(),
+		routerInfo.GetIdentHash()
+	);
+        routerInfo.AddNTCPAddress(
+		i2p::util::config::varMap["host"].as<std::string>(),
+		i2p::util::config::varMap["port"].as<int>()
+	);
+        routerInfo.SetCaps(i2p::data::RouterInfo::eReachable |
             i2p::data::RouterInfo::eSSUTesting | i2p::data::RouterInfo::eSSUIntroducer); // LR, BC
         routerInfo.SetProperty ("coreVersion", I2P_VERSION);
         routerInfo.SetProperty ("netId", "2");
@@ -57,14 +62,14 @@ namespace i2p
     void RouterContext::UpdateRouterInfo ()
     {
         m_RouterInfo.CreateBuffer (m_Keys);
-        m_RouterInfo.SaveToFile (i2p::util::filesystem::GetFullPath (ROUTER_INFO));
+        m_RouterInfo.SaveToFile (i2p::util::filesystem::GetFullPath(ROUTER_INFO));
         m_LastUpdateTime = i2p::util::GetSecondsSinceEpoch ();
     }   
 
     void RouterContext::UpdatePort (int port)
     {
         bool updated = false;
-        for (auto& address : m_RouterInfo.GetAddresses ())
+        for (auto& address : m_RouterInfo.GetAddresses())
         {
             if (address.port != port)
             {   
@@ -233,7 +238,7 @@ namespace i2p
         {
             // create new address
             m_RouterInfo.AddNTCPAddress (host.to_string ().c_str (), port);
-            auto mtu = i2p::util::net::GetMTU (host);
+            auto mtu = i2p::util::mtu::GetMTU (host);
             if (mtu)
             {   
                 LogPrint ("Our v6 MTU=", mtu);

@@ -4,7 +4,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include "util/Log.h"
 #include "util/Timestamp.h"
-#include "version.h"
+#include "core/Version.h"
 
 namespace i2p {
 namespace client {

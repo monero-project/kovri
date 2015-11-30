@@ -8,7 +8,6 @@
 #endif
 #include "util/Log.h"
 
-
 namespace i2p
 {
     namespace util
@@ -17,25 +16,22 @@ namespace i2p
         class Daemon_Singleton
         {
         public:
-            virtual bool init(int argc, char* argv[]);
+            virtual bool init();
             virtual bool start();
             virtual bool stop();
 
-            int isLogging;
-            int isDaemon;
-            
-            int running;
+            bool m_isDaemon, m_isLogging, m_isRunning;
 
         protected:
             Daemon_Singleton();
             virtual ~Daemon_Singleton();
 
-            bool IsService () const;                
+            bool IsService() const;
 
             // d-pointer for httpServer, httpProxy, etc.
             class Daemon_Singleton_Private;
-            Daemon_Singleton_Private &d;
-            std::shared_ptr<kovri::log::Log> log;
+            Daemon_Singleton_Private &m_dsp;
+            std::shared_ptr<kovri::log::Log> m_log;
         };
 
 #ifdef _WIN32
@@ -48,7 +44,7 @@ namespace i2p
                 return instance;
             }
 
-            virtual bool init(int argc, char* argv[]);
+            virtual bool init();
             virtual bool start();
             virtual bool stop();
         };
@@ -66,9 +62,10 @@ namespace i2p
 
             virtual bool start();
             virtual bool stop();
+
          private:
-                std::string pidfile;
-                int pidFilehandle;
+                std::string m_pidfile;
+                int m_pidFilehandle;
 
         };
 #endif

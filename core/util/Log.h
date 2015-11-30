@@ -21,6 +21,7 @@ namespace log
 
     // private implemenation of LogStream
     class LogStreamImpl;
+
     
     /**
        Generic Log stream
@@ -134,12 +135,12 @@ namespace log
         /**
            get default logger
          */
-        static std::shared_ptr<Logger> Default();
+        std::shared_ptr<Logger> Default();
         
         /**
-           create new logger
+           create a logger given name
          */
-        static std::shared_ptr<Logger> New(const std::string & name, const std::string & channel);
+        std::unique_ptr<Logger> New(const std::string & name, const std::string & channel);
     private:
         std::shared_ptr<LogImpl> m_LogImpl;
         std::shared_ptr<Logger> m_DefaultLogger;
@@ -148,5 +149,7 @@ namespace log
 }
 
 #include "util/OldLog.h"
+
+typedef std::unique_ptr<kovri::log::Logger> Logger_t;
 
 #endif

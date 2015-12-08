@@ -59,7 +59,7 @@ namespace i2p
                     LogPrint("Error, could not create process group.");
                     return false;
                 }
-                std::string d(i2p::util::filesystem::GetDataDir().string()); // make a copy
+                std::string d(i2p::util::filesystem::GetDataPath().string()); // make a copy
                 chdir(d.c_str());
 
                 // close stdin/stdout/stderr descriptors
@@ -72,7 +72,7 @@ namespace i2p
             }
 
             // Pidfile
-            m_pidfile = IsService() ? "/var/run" : i2p::util::filesystem::GetDataDir().string();
+            m_pidfile = IsService() ? "/var/run" : i2p::util::filesystem::GetDataPath().string();
             m_pidfile.append("/kovri.pid");
             m_pidFilehandle = open(m_pidfile.c_str(), O_RDWR | O_CREAT, 0600);
             if (m_pidFilehandle == -1)

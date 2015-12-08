@@ -34,7 +34,7 @@ namespace client
 
         private:    
             
-            boost::filesystem::path GetPath () const { return i2p::util::filesystem::GetDefaultDataDir() / "addressbook"; };
+            boost::filesystem::path GetPath () const { return i2p::util::filesystem::GetDefaultDataPath() / "addressbook"; };
 
     };
 
@@ -463,9 +463,9 @@ namespace client
         // must be run in separate thread   
         LogPrint (eLogInfo, "Downloading hosts from ", m_Link, " ETag: ", m_Etag, " Last-Modified: ", m_LastModified);
         bool success = false;   
-        i2p::util::http::url u (m_Link);
+        i2p::util::http::URI uri(m_Link);
         i2p::data::IdentHash ident;
-        if (m_Book.GetIdentHash (u.m_host, ident) && m_Book.getSharedLocalDestination())
+        if (m_Book.GetIdentHash (uri.m_Host, ident) && m_Book.getSharedLocalDestination())
         {
             std::condition_variable newDataReceived;
             std::mutex newDataReceivedMutex;
@@ -486,13 +486,13 @@ namespace client
             {
                 std::stringstream request, response;
                 // standard header
-		request << i2p::util::http::httpHeader(u.m_path, u.m_host, "1.1");
+		request << i2p::util::http::HttpHeader(uri.m_Path, uri.m_Host, "1.1");
                 if (m_Etag.length () > 0) // etag
                     request << i2p::util::http::IF_NONE_MATCH << ": \"" << m_Etag << "\"\r\n";
                 if (m_LastModified.length () > 0) // if modified since
                     request << i2p::util::http::IF_MODIFIED_SINCE << ": " << m_LastModified << "\r\n";
                 request << "\r\n"; // end of header
-                auto stream = m_Book.getSharedLocalDestination()->CreateStream (leaseSet, u.m_port);
+                auto stream = m_Book.getSharedLocalDestination()->CreateStream (leaseSet, uri.m_Port);
                 stream->Send ((uint8_t *)request.str ().c_str (), request.str ().length ());
                 
                 uint8_t buf[4096];
@@ -568,10 +568,10 @@ namespace client
                     LogPrint (eLogWarning, "Addressbook HTTP response ", status);
             }
             else
-                LogPrint (eLogError, "Address ", u.m_host, " not found");
+                LogPrint (eLogError, "Address ", uri.m_Host, " not found");
         }
         else
-            LogPrint (eLogError, "Can't resolve ", u.m_host);
+            LogPrint (eLogError, "Can't resolve ", uri.m_Host);
         LogPrint (eLogInfo, "Download complete ", success ? "Success" : "Failed");
         m_Book.DownloadComplete (success);
     }

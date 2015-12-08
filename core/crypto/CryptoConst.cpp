@@ -67,7 +67,7 @@ namespace crypto
         };  
         return cryptoConstants;
     }   
-    
-}
-}
+
+} // crypto
+} // i2p
 

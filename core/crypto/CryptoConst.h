@@ -7,7 +7,6 @@ namespace i2p {
 namespace crypto {
 
 struct CryptoConstants {
-
     // DH/ElGamal
     const CryptoPP::Integer elgp;
     const CryptoPP::Integer elgg; 
@@ -30,8 +29,9 @@ const CryptoConstants& GetCryptoConstants ();
 #define dsag GetCryptoConstants ().dsag 
 
 // RSA
-const int rsae = 65537; 
-}       
-}   
+const int rsae = 65537;
+
+} // crypto
+} // i2p
 
 #endif

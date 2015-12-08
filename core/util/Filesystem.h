@@ -19,50 +19,41 @@
 namespace i2p {
 namespace util {
 namespace filesystem {
+
+    using namespace std;
+    using namespace boost::filesystem;
+
     /**
      * Change the application name.
      */
-    void SetAppName(const std::string& name);
+    void SetAppName(const string& name);
 
-    /**
-     * @return the application name.
-     */
-    std::string GetAppName();
+    // @return the application name.
+    string GetAppName();
 
-    /**
-     * @return the default directory for app data
-     */
-    boost::filesystem::path GetDefaultDataDir();
+    // @return the full path of a file within the kovri directory
+    string GetFullPath(const string& filename);
 
-    /**
-     * @return the path of the kovri directory
-     */
-    const boost::filesystem::path& GetDataDir();
+    // @return the path of the configuration file
+    path GetConfigFile();
 
-    /**
-     * @return the full path of a file within the kovri directory
-     */
-    std::string GetFullPath(const std::string& filename);
+    // @return the path of the tunnels configuration file
+    path GetTunnelsConfigFile();
 
-    /**
-     * @return the path of the configuration file
-     */
-    boost::filesystem::path GetConfigFile();
+    // @return the path to certificates for SU3 verification
+    path GetSU3CertsPath();
 
-    /**
-     * @return the path of the tunnels configuration file
-     */
-    boost::filesystem::path GetTunnelsConfigFile();
+    // @return the path to SSL certificates for TLS/SSL negotiation
+    path GetSSLCertsPath();
 
-    /**
-     * Read a configuration file and store its contents in the given maps.
-     */
-    void ReadConfigFile(std::map<std::string, std::string>& mapSettingsRet,
-         std::map<std::string, std::vector<std::string> >& mapMultiSettingsRet);
+    // @return the path of the kovri directory
+    const path& GetDataPath();
+
+    // @return the default directory for app data
+    path GetDefaultDataPath();
 
 } // filesystem
 } // util
 } // i2p
-
 
 #endif

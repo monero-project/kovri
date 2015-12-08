@@ -5,88 +5,42 @@
 #include <string>
 #include <vector>
 #include <map>
+
+#include <boost/asio.hpp>
+#include <boost/filesystem.hpp>
 #include <cryptopp/osrng.h>
 #include <cryptopp/rsa.h>
-#include <boost/asio.hpp>
-#include "Identity.h"
+
 #include "crypto/AES.h"
+#include "Identity.h"
 
-namespace i2p
-{
-namespace data
-{
+namespace i2p {
+namespace data {
 
-    class Reseeder
-    {
+    class Reseeder {
         typedef Tag<512> PublicKey; 
+        std::map<std::string, PublicKey> m_SigningKeys;
         
+        int ReseedFromSU3(const std::string& host);
+        int ProcessSU3Stream(std::istream& s);
+        bool FindZipDataDescriptor(std::istream& s);
+
+        bool ProcessSU3Cert(const std::string& filename);
+        std::string ProcessSU3Cert (CryptoPP::ByteQueue& queue); // returns issuer's name
+
         public:
-        
             Reseeder();
             ~Reseeder();
-
-            int ReseedNowSU3 ();
-
-            bool LoadCertificates ();
-            
-        private:
-
-            bool LoadCertificate (const std::string& filename);
-            std::string LoadCertificate (CryptoPP::ByteQueue& queue); // returns issuer's name
-            
-            int ReseedFromSU3 (const std::string& host);
-            int ProcessSU3File (const char * filename); 
-            int ProcessSU3Stream (std::istream& s); 
-
-            bool FindZipDataDescriptor (std::istream& s);
-
-        private:    
-
-            std::map<std::string, PublicKey> m_SigningKeys;
+            int ReseedNowSU3();
+            bool LoadSU3Certs();
     };
-
-
-    class TlsCipher
-    {
-        public:
-
-            virtual ~TlsCipher () {};
-
-            virtual void CalculateMAC (uint8_t type, const uint8_t * buf, size_t len, uint8_t * mac) = 0;
-            virtual size_t Encrypt (const uint8_t * in, size_t len, const uint8_t * mac, uint8_t * out) = 0;
-            virtual size_t Decrypt (uint8_t * buf, size_t len) = 0;
-            virtual size_t GetIVSize () const { return 0; }; // override for AES
-    };
-
-
-    class TlsSession
-    {
-        public:
-
-            TlsSession (const std::string& host, int port);
-            ~TlsSession ();
-            void Send (const uint8_t * buf, size_t len);
-            bool Receive (std::ostream& rs);
-            bool IsEstablished () const { return m_IsEstablished; };
-            
-        private:
-
-            void Handshake ();
-            void SendHandshakeMsg (uint8_t handshakeType, uint8_t * data, size_t len);
-            void SendFinishedMsg ();
-            CryptoPP::RSA::PublicKey ExtractPublicKey (const uint8_t * certificate, size_t len);
-
-            void PRF (const uint8_t * secret, const char * label, const uint8_t * random, size_t randomLen,
-                size_t len, uint8_t * buf);
-
-        private:
-
-            bool m_IsEstablished;
-            boost::asio::ip::tcp::iostream m_Site;
-            CryptoPP::SHA256 m_FinishedHash;
-            uint8_t m_MasterSecret[64]; // actual size is 48, but must be multiple of 32
-            TlsCipher * m_Cipher;
-    };
+    const char SU3_MAGIC_NUMBER[]="I2Psu3";
+    const uint32_t ZIP_HEADER_SIGNATURE = 0x04034B50;
+    const uint32_t ZIP_CENTRAL_DIRECTORY_HEADER_SIGNATURE = 0x02014B50;
+    const uint16_t ZIP_BIT_FLAG_DATA_DESCRIPTOR = 0x0008;
+    const uint8_t ZIP_DATA_DESCRIPTOR_SIGNATURE[] = { 0x50, 0x4B, 0x07, 0x08 };
+    const char CERTIFICATE_HEADER[] = "-----BEGIN CERTIFICATE-----";
+    const char CERTIFICATE_FOOTER[] = "-----END CERTIFICATE-----";
 }
 }
 

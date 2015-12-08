@@ -374,7 +374,7 @@ void I2PControlSession::handleDatapath(Response& response)
 {
     response.setParam(
         constants::ROUTER_INFO_DATAPATH,
-        i2p::util::filesystem::GetDefaultDataDir().string()
+        i2p::util::filesystem::GetDefaultDataPath().string()
     );
 }
 

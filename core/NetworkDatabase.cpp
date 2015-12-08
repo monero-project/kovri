@@ -281,11 +281,12 @@ namespace data
         if (m_Reseeder == nullptr)
         {       
             m_Reseeder = new Reseeder ();
-            if(!m_Reseeder->LoadCertificates ())
+            if(!m_Reseeder->LoadSU3Certs())
             {
                 delete m_Reseeder;
                 m_Reseeder = nullptr;
                 LogPrint(eLogError, "Failed to load reseed certificates");
+                // we need to die hard if this happens
                 return false;
             }
         }
@@ -303,7 +304,7 @@ namespace data
 
     void NetDb::Load ()
     {
-        boost::filesystem::path p(i2p::util::filesystem::GetDataDir() / m_NetDbPath);
+        boost::filesystem::path p(i2p::util::filesystem::GetDataPath() / m_NetDbPath);
         if (!boost::filesystem::exists (p))
         {
             // seems netDb doesn't exist yet
@@ -358,7 +359,7 @@ namespace data
             return directory / (std::string("r") + s[0]) / ("routerInfo-" + s + ".dat");
         };  
 
-        boost::filesystem::path fullDirectory (i2p::util::filesystem::GetDataDir() / m_NetDbPath);
+        boost::filesystem::path fullDirectory (i2p::util::filesystem::GetDataPath() / m_NetDbPath);
         int count = 0, deletedCount = 0;
         auto total = m_RouterInfos.size ();
         uint64_t ts = i2p::util::GetMillisecondsSinceEpoch ();

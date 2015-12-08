@@ -119,8 +119,8 @@ elseif(NOT WIN32)
     # HINT: revert c266cff CMakeLists.txt: compilation speed up
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 else() # Not a static build
-  add_definitions(-DBOOST_ALL_DYN_LINK)
-  add_definitions(-DBOOST_LOG_DYN_LINK)
+    add_definitions(-DBOOST_ALL_DYN_LINK)
+    add_definitions(-DBOOST_LOG_DYN_LINK)
 endif()
   
 if(WITH_BOOST_LOG)
@@ -148,7 +148,12 @@ endif()
 
 find_package(CryptoPP REQUIRED)
 if(NOT DEFINED CRYPTO++_INCLUDE_DIR)
-  message(SEND_ERROR "Could not find Crypto++. Please download and install it first!")
+    message(SEND_ERROR "Could not find Crypto++. Please download and install it first!")
+endif()
+
+find_package(OpenSSL REQUIRED)
+if(NOT DEFINED OPENSSL_INCLUDE_DIR)
+    message(SEND_ERROR "Could not find OpenSSL. Please download and install it first!")
 endif()
 
 find_package(MiniUPnPc)
@@ -158,7 +163,7 @@ endif()
 
 # Load includes
 include_directories(
-    ${CMAKE_SOURCE_DIR} ${Boost_INCLUDE_DIRS} ${CRYPTO++_INCLUDE_DIR}
+    ${CMAKE_SOURCE_DIR} ${Boost_INCLUDE_DIRS} ${CRYPTO++_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR}
     "core/"
 )
 

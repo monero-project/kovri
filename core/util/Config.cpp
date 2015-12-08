@@ -18,7 +18,7 @@ namespace config {
                         bpo::variables_map& vm)
     {
         ifstream ifs(conf.c_str());
-        if (!ifs) {
+        if(!ifs) {
             cout << "Could not open " << conf << "!\n";
         } else {
             bpo::store(bpo::parse_config_file(ifs, opts), vm);
@@ -29,7 +29,7 @@ namespace config {
     bool ParseArgs(int argc, char* argv[])
     {
         /**
-        * Random generated port if none is supplied via CLI or config
+        * Random generated port if none is supplied via cli or config
         * See Java I2P:
         * i2p.i2p/router/java/src/net/i2p/router/transport/udp/UDPEndpoint.java
         */
@@ -237,9 +237,8 @@ namespace config {
             .add(i2pcs)
             .add(config);
 
-	ParseConfigFile(kovriConfig, confOpts, varMap);
 
-        // Available CLI options
+        // Available cli options
         bpo::options_description cliOpts;
         cliOpts
             .add(help)
@@ -253,21 +252,22 @@ namespace config {
             .add(i2pcs)
             .add(config);
 
-        // Map and store CLI options
+        // Map and store cli options
         bpo::store(bpo::parse_command_line(argc, argv, cliOpts), varMap);
         bpo::notify(varMap);
+
+        // Parse config after mapping cli
+        ParseConfigFile(kovriConfig, confOpts, varMap);
 
         /*
          * Display --help and --help-with
          */
-        if (varMap.count("help"))
-        {
+        if (varMap.count("help")) {
             cout << kovri << endl;;
             return 1;
         }
 
-        if (varMap.count("help-with"))
-        {
+        if (varMap.count("help-with")) {
             const string& s = varMap["help-with"].as<string>();
 
             if (s == "all") {

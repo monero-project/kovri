@@ -37,14 +37,14 @@ void HTTPConnection::HandleReceive(const boost::system::error_code& e, std::size
         m_Buffer[nb_bytes] = 0;
         m_BufferLen = nb_bytes;
         const std::string data = std::string(m_Buffer, m_Buffer + m_BufferLen);
-        if(!m_Request.hasData()) // New request
+        if(!m_Request.HasData()) // New request
             m_Request = i2p::util::http::Request(data);
         else 
-            m_Request.update(data);
+            m_Request.Update(data);
 
-        if(m_Request.isComplete()) {
+        if(m_Request.IsComplete()) {
             RunRequest();
-            m_Request.clear();
+            m_Request.Clear();
         } else {
             Receive();
         }
@@ -55,9 +55,9 @@ void HTTPConnection::HandleReceive(const boost::system::error_code& e, std::size
 void HTTPConnection::RunRequest()
 {
     try {
-      if(m_Request.getMethod() == "GET")
+      if(m_Request.GetMethod() == "GET")
           return HandleRequest();
-      if(m_Request.getHeader("Content-Type").find("application/json") != std::string::npos)
+      if(m_Request.GetHeader("Content-Type").find("application/json") != std::string::npos)
           return HandleI2PControlRequest();
     } catch(...) {
         // Ignore the error for now, probably Content-Type doesn't exist
@@ -99,7 +99,7 @@ void HTTPConnection::Send404Reply()
     try {
         const std::string error_page = "404.html";
         m_Reply = i2p::util::http::Response(404, GetFileContents(error_page, true));
-        m_Reply.setHeader("Content-Type", i2p::util::http::getMimeType(error_page));
+        m_Reply.SetHeader("Content-Type", i2p::util::http::GetMimeType(error_page));
     } catch(const std::runtime_error&) {
         // Failed to load 404.html, assume the webui is incorrectly installed
         m_Reply = i2p::util::http::Response(404,
@@ -123,7 +123,7 @@ std::string HTTPConnection::GetFileContents(const std::string& filename, bool pr
 
      // Use canonical to avoid .. or . in path
     const boost::filesystem::path address = boost::filesystem::canonical(
-        i2p::util::filesystem::GetDataDir() / "resources" / "webui" / filename, e
+        i2p::util::filesystem::GetDataPath() / "resources" / "webui" / filename, e
     );
 
     const std::string address_str = address.string();
@@ -140,7 +140,7 @@ std::string HTTPConnection::GetFileContents(const std::string& filename, bool pr
     ifs.close();
     
     if(preprocess)
-        return i2p::util::http::preprocessContent(str, address.parent_path().string());
+        return i2p::util::http::PreprocessContent(str, address.parent_path().string());
     else
         return str;
 }
@@ -148,13 +148,13 @@ std::string HTTPConnection::GetFileContents(const std::string& filename, bool pr
 void HTTPConnection::HandleRequest()
 {
 
-    std::string uri = m_Request.getUri();
+    std::string uri = m_Request.GetUri();
     if(uri == "/")
         uri = "index.html";
 
     try {
         m_Reply = i2p::util::http::Response(200, GetFileContents(uri, true));
-        m_Reply.setHeader("Content-Type", i2p::util::http::getMimeType(uri) + "; charset=UTF-8");
+        m_Reply.SetHeader("Content-Type", i2p::util::http::GetMimeType(uri) + "; charset=UTF-8");
         SendReply();
     } catch(const std::runtime_error&) {
         // Cannot open the file for some reason, send 404
@@ -164,10 +164,10 @@ void HTTPConnection::HandleRequest()
 
 void HTTPConnection::HandleI2PControlRequest()
 {
-    std::stringstream ss(m_Request.getContent());
+    std::stringstream ss(m_Request.GetContent());
     const client::i2pcontrol::I2PControlSession::Response rsp = m_Session->handleRequest(ss);
     m_Reply = i2p::util::http::Response(200, rsp.toJsonString());
-    m_Reply.setHeader("Content-Type", "application/json");
+    m_Reply.SetHeader("Content-Type", "application/json");
     SendReply();
 }
 
@@ -188,11 +188,11 @@ void HTTPConnection::SendReply()
     std::time_t time_now = std::time(nullptr);
     char time_buff[128];
     if(std::strftime(time_buff, sizeof(time_buff), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&time_now)) ) {
-        m_Reply.setHeader("Date", std::string(time_buff));
-        m_Reply.setContentLength();
+        m_Reply.SetHeader("Date", std::string(time_buff));
+        m_Reply.SetContentLength();
     }
     boost::asio::async_write(
-        *m_Socket, boost::asio::buffer(m_Reply.toString()),
+        *m_Socket, boost::asio::buffer(m_Reply.ToString()),
         std::bind(&HTTPConnection::HandleWriteReply, shared_from_this(), std::placeholders::_1)
     );
 }

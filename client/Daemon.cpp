@@ -83,7 +83,7 @@ namespace i2p
             {
                 if (m_isDaemon)
                 {
-                    std::string logfile_path = IsService() ? "/var/log" : i2p::util::filesystem::GetDataDir().string();
+                    std::string logfile_path = IsService() ? "/var/log" : i2p::util::filesystem::GetDataPath().string();
 #ifndef _WIN32
                     logfile_path.append("/kovri.log");
 #else

@@ -1,9 +1,11 @@
 #include <string.h>
 #include <fstream>
 #include <sstream>
+
 #include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
+
 #include <cryptopp/asn.h>
 #include <cryptopp/base64.h>
 #include <cryptopp/crc.h>
@@ -11,6 +13,8 @@
 #include <cryptopp/zinflate.h>
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
 #include <cryptopp/arc4.h>
+
+#include "util/Filesystem.h"
 #include "Identity.h"
 #include "NetworkDatabase.h"
 #include "Reseed.h"
@@ -20,75 +24,50 @@
 #include "util/I2PEndian.h"
 #include "util/Log.h"
 
-namespace i2p
-{
-namespace data
-{
-    static std::vector<std::string> httpsReseedHostList = {
-                "https://netdb.i2p2.no/",
-                "https://reseed.i2p-projekt.de/",
-                "https://reseed.i2p.vzaws.com:8443/",
-                "https://uk.reseed.i2p2.no:444/",
+namespace i2p {
+namespace data {
 
-                // The following will not work with our current SSL implementation
-                //"https://193.150.121.66/netDb/",
-                //"https://i2p.mooo.com/netDb/",
-                //"https://i2pseed.zarrenspry.info/",
-                //"https://ieb9oopo.mooo.com/",
-                //"https://link.mx24.eu/",
-                //"https://us.reseed.i2p2.no:444/",
-                //"https://user.mx24.eu/"
-            };
+    static std::vector<std::string> reseedHosts = {
+        "https://i2p.mooo.com/netDb/",
+        //"https://i2pseed.zarrenspry.info/", // Host not found (authoritative)
+        "https://ieb9oopo.mooo.com/",
+        //"https://netdb.i2p2.no/", // certificate verify failed
+        "https://reseed.i2p-projekt.de/",
+        "https://reseed.i2p.vzaws.com:8443/",
+        "https://uk.reseed.i2p2.no:444/",
+        "https://us.reseed.i2p2.no:444/",
+        "https://user.mx24.eu/",
+        //"https://www.torontocrypto.org:8443/",// tlsv1 alert internal error
+    };
     
-    Reseeder::Reseeder()
-    {
-    }
+    Reseeder::Reseeder() {}
+    Reseeder::~Reseeder() {}
 
-    Reseeder::~Reseeder()
+    int Reseeder::ReseedNowSU3()
     {
-    }
+        CryptoPP::AutoSeededRandomPool rnd;
+        int ind = rnd.GenerateWord32(0, reseedHosts.size());
+        std::string& reseedHost = reseedHosts[ind];
 
-    int Reseeder::ReseedNowSU3 ()
-    {
-        auto ind = rand () % httpsReseedHostList.size ();
-        std::string& reseedHost = httpsReseedHostList[ind];
-        return ReseedFromSU3 (reseedHost);
+        return ReseedFromSU3(reseedHost);
     }
 
     int Reseeder::ReseedFromSU3(const std::string& host)
     {
+        LogPrint(eLogInfo, "Downloading SU3 from ", host);
         std::string url = host + "i2pseeds.su3";
-        LogPrint (eLogInfo, "Downloading SU3 from ", host);
-        std::string su3 = i2p::util::http::httpsRequest(url);
-        if (su3.length () > 0)
-        {
-            std::stringstream s(su3);
-            return ProcessSU3Stream (s);
+        std::string su3 = i2p::util::http::HttpsDownload(url);
+        if (su3.length () > 0) {
+            std::stringstream ss(su3);
+            return ProcessSU3Stream(ss);
         }
-        else
-        {
-            LogPrint (eLogWarning, "SU3 download failed");
-            return -1;
-        }
-    }
-    
-    int Reseeder::ProcessSU3File (const char * filename)
-    {
-        std::ifstream s(filename, std::ifstream::binary);
-        if (s.is_open ())   
-            return ProcessSU3Stream (s);
-        else
-        {
-            LogPrint (eLogError, "Can't open file ", filename);
+        else {
+            LogPrint(eLogWarning, "SU3 download failed");
             return -1;
         }
     }
 
-    const char SU3_MAGIC_NUMBER[]="I2Psu3"; 
-    const uint32_t ZIP_HEADER_SIGNATURE = 0x04034B50;
-    const uint32_t ZIP_CENTRAL_DIRECTORY_HEADER_SIGNATURE = 0x02014B50; 
-    const uint16_t ZIP_BIT_FLAG_DATA_DESCRIPTOR = 0x0008;   
-    int Reseeder::ProcessSU3Stream (std::istream& s)
+    int Reseeder::ProcessSU3Stream(std::istream& s)
     {
         char magicNumber[7];
         s.read (magicNumber, 7); // magic number and zero byte 6
@@ -291,8 +270,7 @@ namespace data
         return numFiles;
     }
 
-    const uint8_t ZIP_DATA_DESCRIPTOR_SIGNATURE[] = { 0x50, 0x4B, 0x07, 0x08 }; 
-    bool Reseeder::FindZipDataDescriptor (std::istream& s)
+    bool Reseeder::FindZipDataDescriptor(std::istream& s)
     {
         size_t nextInd = 0; 
         while (!s.eof ())
@@ -311,9 +289,34 @@ namespace data
         return false;
     }
 
-    const char CERTIFICATE_HEADER[] = "-----BEGIN CERTIFICATE-----";
-    const char CERTIFICATE_FOOTER[] = "-----END CERTIFICATE-----";
-    bool Reseeder::LoadCertificate (const std::string& filename)
+    bool Reseeder::LoadSU3Certs()
+    {
+	using namespace std;
+	using namespace boost::filesystem;
+
+        path certsPath = i2p::util::filesystem::GetSU3CertsPath();
+
+        if(!exists(certsPath)) {
+            LogPrint(eLogError, "Reseed certificates ", certsPath, " don't exist");
+            return false;
+        }
+
+        int numCerts = 0;
+        directory_iterator iter(certsPath), end;
+        BOOST_FOREACH(path const& cert, make_pair(iter, end)) {
+            if(is_regular_file(cert)) {
+                if(ProcessSU3Cert(cert.string()))
+		    numCerts++;
+                else
+		    return false;
+            }
+        }
+
+        LogPrint(eLogInfo, numCerts, " certificates loaded");
+        return numCerts > 0;
+    }
+
+    bool Reseeder::ProcessSU3Cert(const std::string& filename)
     {
         std::ifstream s(filename, std::ifstream::binary);
         if (s.is_open ())   
@@ -327,10 +330,8 @@ namespace data
             // assume file in pem format
             auto pos1 = cert.find (CERTIFICATE_HEADER); 
             auto pos2 = cert.find (CERTIFICATE_FOOTER); 
-            if (pos1 == std::string::npos || pos2 == std::string::npos)
-            {
+            if (pos1 == std::string::npos || pos2 == std::string::npos) {
                 LogPrint (eLogError, "Malformed certificate file");
-                // die hard if this happens
                 return false;
             }   
             pos1 += strlen (CERTIFICATE_HEADER);
@@ -343,18 +344,16 @@ namespace data
             decoder.Put ((const uint8_t *)base64.data(), base64.length());
             decoder.MessageEnd ();
             
-            LoadCertificate (queue);
+            ProcessSU3Cert(queue);
         }
-        else
-        {
+        else {
             LogPrint (eLogError, "Can't open certificate file ", filename);
-            // we need to die hard if this happens
             return false;
         }
         return true;
     }
 
-    std::string Reseeder::LoadCertificate (CryptoPP::ByteQueue& queue)
+    std::string Reseeder::ProcessSU3Cert(CryptoPP::ByteQueue& queue)
     {
         // extract X.509
         CryptoPP::BERSequenceDecoder x509Cert (queue);
@@ -423,449 +422,7 @@ namespace data
         x509Cert.SkipAll();
         return name;
     }   
-    
-    bool Reseeder::LoadCertificates()
-    {
-        boost::filesystem::path reseedDir = i2p::util::filesystem::GetDataDir() / "resources" / "certificates" / "reseed";
-        
-        if (!boost::filesystem::exists(reseedDir))
-        {
-            LogPrint(eLogError, "Reseed certificates ", reseedDir, " don't exist");
-            // we need to die hard if this happens
-            return false;
-        }
 
-        int numCertificates = 0;
-        boost::filesystem::directory_iterator end; // empty
-        for (boost::filesystem::directory_iterator it(reseedDir); it != end; ++it)
-        {
-            if (boost::filesystem::is_regular_file(it->status()) && it->path().extension() == ".crt")
-            {
-                if(LoadCertificate (it->path().string())) numCertificates++;
-                else return false;
-            }   
-        }   
-        LogPrint(eLogInfo, numCertificates, " certificates loaded");
-        return numCertificates > 0;
-    }   
-
-/*------------------------------------------------------------------
-    TLS has nothing to do with the reseed process (except for HTTPS)
-    Once #19 is resolved, this will all be axed - so moving the
-    following to util.cpp is not worth the effort for now.
-/------------------------------------------------------------------*/
-
-    template<class Hash>
-    class TlsCipherMAC: public TlsCipher
-    {
-        public:
-
-            TlsCipherMAC (const uint8_t * keys):  m_Seqn (0)
-            {
-                memcpy (m_MacKey, keys, Hash::DIGESTSIZE);
-            }
-            
-            void CalculateMAC (uint8_t type, const uint8_t * buf, size_t len, uint8_t * mac)
-            {
-                uint8_t header[13]; // seqn (8) + type (1) + version (2) + length (2)
-                htobe64buf (header, m_Seqn);
-                header[8] = type; header[9] = 3; header[10] = 3; // 3,3 means TLS 1.2 
-                htobe16buf (header + 11, len);
-                CryptoPP::HMAC<Hash> hmac (m_MacKey, Hash::DIGESTSIZE); 
-                hmac.Update (header, 13);
-                hmac.Update (buf, len);
-                hmac.Final (mac);   
-                m_Seqn++;
-            }
-            
-        private:
-
-            uint64_t m_Seqn;
-            uint8_t m_MacKey[Hash::DIGESTSIZE]; // client   
-    };  
-
-    template<class Hash>
-    class TlsCipher_AES_256_CBC: public TlsCipherMAC<Hash>
-    {
-        public:
-
-            TlsCipher_AES_256_CBC (const uint8_t * keys): TlsCipherMAC<Hash> (keys)
-            {
-                m_Encryption.SetKey (keys + 2*Hash::DIGESTSIZE);
-                m_Decryption.SetKey (keys + 2*Hash::DIGESTSIZE + 32);
-            }
-
-            size_t Encrypt (const uint8_t * in, size_t len, const uint8_t * mac, uint8_t * out)
-            {
-                size_t size = 0;
-                m_Rnd.GenerateBlock (out, 16); // iv
-                size += 16;
-                m_Encryption.SetIV (out);
-                memcpy (out + size, in, len);
-                size += len;
-                memcpy (out + size, mac, Hash::DIGESTSIZE);
-                size += Hash::DIGESTSIZE;   
-                uint8_t paddingSize = size + 1;
-                paddingSize &= 0x0F;  // %16
-                if (paddingSize > 0) paddingSize = 16 - paddingSize;
-                memset (out + size, paddingSize, paddingSize + 1); // padding and last byte are equal to padding size
-                size += paddingSize + 1;
-                m_Encryption.Encrypt (out + 16, size - 16, out + 16);
-                return size;    
-            }
-
-            size_t Decrypt (uint8_t * buf, size_t len) // payload is buf + 16   
-            {
-                m_Decryption.SetIV (buf);
-                m_Decryption.Decrypt (buf + 16, len - 16, buf + 16);
-                return len - 16 - Hash::DIGESTSIZE - buf[len -1] - 1; // IV(16), mac(32 or 20) and padding
-            }   
-
-            size_t GetIVSize () const { return 16; };
-            
-        private:
-
-            CryptoPP::AutoSeededRandomPool m_Rnd;
-            i2p::crypto::CBCEncryption m_Encryption;
-            i2p::crypto::CBCDecryption m_Decryption; 
-    };  
-
-
-    class TlsCipher_RC4_SHA: public TlsCipherMAC<CryptoPP::SHA1>
-    {
-        public:
-
-            TlsCipher_RC4_SHA (const uint8_t * keys): TlsCipherMAC (keys)
-            {
-                m_Encryption.SetKey (keys + 40, 16); // 20 + 20
-                m_Decryption.SetKey (keys + 56, 16); // 20 + 20 + 16
-            }
-
-            size_t Encrypt (const uint8_t * in, size_t len, const uint8_t * mac, uint8_t * out)
-            {
-                memcpy (out, in, len);
-                memcpy (out + len, mac, 20);
-                m_Encryption.ProcessData (out, out, len + 20);
-                return len + 20;
-            }   
-            
-            size_t Decrypt (uint8_t * buf, size_t len) 
-            {
-                m_Decryption.ProcessData (buf, buf, len);
-                return len - 20; 
-            }   
-            
-        private:
-
-            CryptoPP::Weak1::ARC4 m_Encryption, m_Decryption;
-    };  
-
-    
-    TlsSession::TlsSession (const std::string& host, int port):
-        m_IsEstablished (false), m_Cipher (nullptr)
-    {
-        m_Site.connect(host, boost::lexical_cast<std::string>(port));
-        if (m_Site.good ())
-            Handshake ();
-        else
-            LogPrint (eLogError, "Can't connect to ", host, ":", port);
-    }   
-    
-    TlsSession::~TlsSession ()
-    {
-        delete m_Cipher;
-    }
-
-    void TlsSession::Handshake ()
-    {
-        static uint8_t clientHello[] = 
-        {
-            0x16, // handshake
-            0x03, 0x03, // version (TLS 1.2)
-            0x00, 0x33, // length of handshake
-            // handshake
-            0x01, // handshake type (client hello)
-            0x00, 0x00, 0x2F, // length of handshake payload 
-            // client hello
-            0x03, 0x03, // highest version supported (TLS 1.2)
-            0x45, 0xFA, 0x01, 0x19, 0x74, 0x55, 0x18, 0x36, 
-            0x42, 0x05, 0xC1, 0xDD, 0x4A, 0x21, 0x80, 0x80, 
-            0xEC, 0x37, 0x11, 0x93, 0x16, 0xF4, 0x66, 0x00, 
-            0x12, 0x67, 0xAB, 0xBA, 0xFF, 0x29, 0x13, 0x9E, // 32 random bytes
-            0x00, // session id length
-            0x00, 0x06, // chiper suites length
-            0x00, 0x3D, // RSA_WITH_AES_256_CBC_SHA256
-            0x00, 0x35, // RSA_WITH_AES_256_CBC_SHA
-            0x00, 0x05, // RSA_WITH_RC4_128_SHA
-            0x01, // compression methods length
-            0x00,  // no compression
-            0x00, 0x00 // extensions length
-        };  
-
-        static uint8_t changeCipherSpecs[] =
-        {
-            0x14, // change cipher specs
-            0x03, 0x03, // version (TLS 1.2)
-            0x00, 0x01, // length
-            0x01 // type
-        };
-    
-        // send ClientHello
-        m_Site.write ((char *)clientHello, sizeof (clientHello));
-        m_FinishedHash.Update (clientHello + 5, sizeof (clientHello) - 5);
-        // read ServerHello
-        uint8_t type;
-        m_Site.read ((char *)&type, 1); 
-        uint16_t version;
-        m_Site.read ((char *)&version, 2); 
-        uint16_t length;
-        m_Site.read ((char *)&length, 2); 
-        length = be16toh (length);
-        char * serverHello = new char[length];
-        m_Site.read (serverHello, length);
-        m_FinishedHash.Update ((uint8_t *)serverHello, length);
-        uint8_t serverRandom[32];
-        if (serverHello[0] == 0x02) // handshake type server hello
-            memcpy (serverRandom, serverHello + 6, 32);
-        else
-            LogPrint (eLogError, "Unexpected handshake type ", (int)serverHello[0]);
-        uint8_t sessionIDLen = serverHello[38]; // 6 + 32
-        char * cipherSuite = serverHello + 39 + sessionIDLen;
-        if (cipherSuite[1] == 0x3D || cipherSuite[1] == 0x35 || cipherSuite[1] == 0x05)
-            m_IsEstablished = true; 
-        else
-            LogPrint (eLogError, "Unsupported cipher ", (int)cipherSuite[0], ",", (int)cipherSuite[1]); 
-        // read Certificate
-        m_Site.read ((char *)&type, 1); 
-        m_Site.read ((char *)&version, 2); 
-        m_Site.read ((char *)&length, 2); 
-        length = be16toh (length);
-        char * certificate = new char[length];
-        m_Site.read (certificate, length);
-        m_FinishedHash.Update ((uint8_t *)certificate, length);
-        CryptoPP::RSA::PublicKey publicKey;
-        // 0 - handshake type
-        // 1 - 3 - handshake payload length
-        // 4 - 6 - length of array of certificates
-        // 7 - 9 - length of certificate
-        if (certificate[0] == 0x0B) // handshake type certificate
-            publicKey = ExtractPublicKey ((uint8_t *)certificate + 10, length - 10);
-        else
-            LogPrint (eLogError, "Unexpected handshake type ", (int)certificate[0]);
-        // read ServerHelloDone
-        m_Site.read ((char *)&type, 1); 
-        m_Site.read ((char *)&version, 2); 
-        m_Site.read ((char *)&length, 2); 
-        length = be16toh (length);
-        char * serverHelloDone = new char[length];
-        m_Site.read (serverHelloDone, length);
-        m_FinishedHash.Update ((uint8_t *)serverHelloDone, length);
-        if (serverHelloDone[0] != 0x0E) // handshake type hello done
-            LogPrint (eLogError, "Unexpected handshake type ", (int)serverHelloDone[0]);
-        // our turn now
-        // generate secret key
-        uint8_t secret[48]; 
-        secret[0] = 3; secret[1] = 3; // version
-        CryptoPP::AutoSeededRandomPool rnd; 
-        rnd.GenerateBlock (secret + 2, 46); // 46 random bytes
-        // encrypt RSA
-        CryptoPP::RSAES_PKCS1v15_Encryptor encryptor(publicKey);
-        size_t encryptedLen = encryptor.CiphertextLength (48); // number of bytes for encrypted 48 bytes, usually 256 (2048 bits key)
-        uint8_t * encrypted = new uint8_t[encryptedLen + 2]; // + 2 bytes for length
-        htobe16buf (encrypted, encryptedLen); // first two bytes means length 
-        encryptor.Encrypt (rnd, secret, 48, encrypted + 2);
-        // send ClientKeyExchange
-        // 0x10 - handshake type "client key exchange"
-        SendHandshakeMsg (0x10, encrypted, encryptedLen + 2);
-        delete[] encrypted;
-        // send ChangeCipherSpecs
-        m_Site.write ((char *)changeCipherSpecs, sizeof (changeCipherSpecs));
-        // calculate master secret
-        uint8_t random[64];
-        memcpy (random, clientHello + 11, 32);
-        memcpy (random + 32, serverRandom, 32);
-        PRF (secret, "master secret", random, 64, 48, m_MasterSecret);          
-        // create keys
-        memcpy (random, serverRandom, 32);
-        memcpy (random + 32, clientHello + 11, 32); 
-        uint8_t keys[128]; // clientMACKey(32 or 20), serverMACKey(32 or 20), clientKey(32), serverKey(32)
-        PRF (m_MasterSecret, "key expansion", random, 64, 128, keys); 
-        // create cipher
-        if (cipherSuite[1] == 0x3D)
-        {
-            LogPrint (eLogInfo, "Cipher suite is RSA_WITH_AES_256_CBC_SHA256"); 
-            m_Cipher = new TlsCipher_AES_256_CBC<CryptoPP::SHA256> (keys);
-        }
-        else if (cipherSuite[1] == 0x35)
-        {
-            LogPrint (eLogInfo, "Cipher suite is RSA_WITH_AES_256_CBC_SHA"); 
-            m_Cipher = new TlsCipher_AES_256_CBC<CryptoPP::SHA1> (keys);
-        }   
-        else
-        {
-            // TODO:
-            if (cipherSuite[1] == 0x05)
-                LogPrint (eLogInfo, "Cipher suite is RSA_WITH_RC4_128_SHA");
-            m_Cipher = new TlsCipher_RC4_SHA (keys);
-        }
-        // send finished
-        SendFinishedMsg ();
-        // read ChangeCipherSpecs
-        uint8_t changeCipherSpecs1[6];
-        m_Site.read ((char *)changeCipherSpecs1, 6);
-        // read finished
-        m_Site.read ((char *)&type, 1); 
-        m_Site.read ((char *)&version, 2); 
-        m_Site.read ((char *)&length, 2); 
-        length = be16toh (length);
-        char * finished1 = new char[length];
-        m_Site.read (finished1, length);
-        m_Cipher->Decrypt ((uint8_t *)finished1, length); // for streaming ciphers
-        delete[] finished1;
-
-        delete[] serverHello;
-        delete[] certificate;
-        delete[] serverHelloDone;
-    }
-
-    void TlsSession::SendHandshakeMsg (uint8_t handshakeType, uint8_t * data, size_t len)
-    {
-        uint8_t handshakeHeader[9];
-        handshakeHeader[0] = 0x16; // handshake
-        handshakeHeader[1] = 0x03; handshakeHeader[2] = 0x03; // version is always TLS 1.2 (3,3) 
-        htobe16buf (handshakeHeader + 3, len + 4); // length of payload
-        //payload starts
-        handshakeHeader[5] = handshakeType; // handshake type
-        handshakeHeader[6] = 0; // highest byte of payload length is always zero
-        htobe16buf (handshakeHeader + 7, len); // length of data
-        m_Site.write ((char *)handshakeHeader, 9);
-        m_FinishedHash.Update (handshakeHeader + 5, 4); // only payload counts
-        m_Site.write ((char *)data, len);
-        m_FinishedHash.Update (data, len);
-    }
-
-    void TlsSession::SendFinishedMsg ()
-    {
-        // 0x16  handshake
-        // 0x03, 0x03  version (TLS 1.2)
-        // 2 bytes length of handshake (80 or 64 bytes)
-        // handshake (encrypted)
-        // unencrypted context
-        // 0x14 handshake type (finished)
-        // 0x00, 0x00, 0x0C  length of handshake payload 
-        // 12 bytes of verified data
-
-        uint8_t finishedHashDigest[32], finishedPayload[40], encryptedPayload[80];
-        finishedPayload[0] = 0x14; // handshake type (finished)
-        finishedPayload[1] = 0; finishedPayload[2] = 0; finishedPayload[3] = 0x0C; // 12 bytes
-        m_FinishedHash.Final (finishedHashDigest);
-        PRF (m_MasterSecret, "client finished", finishedHashDigest, 32, 12, finishedPayload + 4);
-        uint8_t mac[32];
-        m_Cipher->CalculateMAC (0x16, finishedPayload, 16, mac);
-        size_t encryptedPayloadSize = m_Cipher->Encrypt (finishedPayload, 16, mac, encryptedPayload);
-        uint8_t finished[5];
-        finished[0] = 0x16; // handshake
-        finished[1] = 0x03; finished[2] = 0x03; // version is always TLS 1.2 (3,3) 
-        htobe16buf (finished + 3, encryptedPayloadSize); // length of payload   
-        m_Site.write ((char *)finished, sizeof (finished));
-        m_Site.write ((char *)encryptedPayload, encryptedPayloadSize);
-    }
-
-    void TlsSession::PRF (const uint8_t * secret, const char * label, const uint8_t * random, size_t randomLen,
-        size_t len, uint8_t * buf)
-    {
-        // secret is assumed 48 bytes   
-        // random is not more than 64 bytes
-        CryptoPP::HMAC<CryptoPP::SHA256> hmac (secret, 48); 
-        uint8_t seed[96]; size_t seedLen;
-        seedLen = strlen (label);   
-        memcpy (seed, label, seedLen);
-        memcpy (seed + seedLen, random, randomLen);
-        seedLen += randomLen;
-
-        size_t offset = 0;
-        uint8_t a[128];
-        hmac.CalculateDigest (a, seed, seedLen);
-        while (offset < len)
-        {
-            memcpy (a + 32, seed, seedLen);
-            hmac.CalculateDigest (buf + offset, a, seedLen + 32);
-            offset += 32;
-            hmac.CalculateDigest (a, a, 32);
-        }
-    }
-
-    CryptoPP::RSA::PublicKey TlsSession::ExtractPublicKey (const uint8_t * certificate, size_t len)
-    {
-        CryptoPP::ByteQueue queue;
-        queue.Put (certificate, len);   
-        queue.MessageEnd ();
-        // extract X.509
-        CryptoPP::BERSequenceDecoder x509Cert (queue);
-        CryptoPP::BERSequenceDecoder tbsCert (x509Cert);
-        // version
-        uint32_t ver;
-        CryptoPP::BERGeneralDecoder context (tbsCert, CryptoPP::CONTEXT_SPECIFIC | CryptoPP::CONSTRUCTED);
-        CryptoPP::BERDecodeUnsigned<uint32_t>(context, ver, CryptoPP::INTEGER);
-        // serial
-        CryptoPP::Integer serial;
-        serial.BERDecode(tbsCert);  
-        // signature
-        CryptoPP::BERSequenceDecoder signature (tbsCert);
-        signature.SkipAll();
-        // issuer
-        CryptoPP::BERSequenceDecoder issuer (tbsCert);
-        issuer.SkipAll();
-        // validity
-        CryptoPP::BERSequenceDecoder validity (tbsCert);
-        validity.SkipAll();
-        // subject
-        CryptoPP::BERSequenceDecoder subject (tbsCert);
-        subject.SkipAll();
-        // public key
-        CryptoPP::BERSequenceDecoder publicKey (tbsCert);           
-        CryptoPP::BERSequenceDecoder ident (publicKey);
-        ident.SkipAll ();
-        CryptoPP::BERGeneralDecoder key (publicKey, CryptoPP::BIT_STRING);
-        key.Skip (1); // FIXME: probably bug in crypto++
-        CryptoPP::BERSequenceDecoder keyPair (key);
-        CryptoPP::Integer n, e;
-        n.BERDecode (keyPair);
-        e.BERDecode (keyPair);
-
-        CryptoPP::RSA::PublicKey ret; 
-        ret.Initialize (n, e);
-        return ret;
-    }       
-
-    void TlsSession::Send (const uint8_t * buf, size_t len)
-    {
-        uint8_t * out = new uint8_t[len + 64 + 5]; // 64 = 32 mac + 16 iv + upto 16 padding, 5 = header
-        out[0] = 0x17; // application data
-        out[1] = 0x03; out[2] = 0x03; // version
-        uint8_t mac[32];
-        m_Cipher->CalculateMAC (0x17, buf, len, mac);
-        size_t encryptedLen = m_Cipher->Encrypt (buf, len, mac, out + 5);
-        htobe16buf (out + 3, encryptedLen);
-        m_Site.write ((char *)out, encryptedLen + 5);
-        delete[] out;
-    }
-
-    bool TlsSession::Receive (std::ostream& rs)
-    {
-        if (m_Site.eof ()) return false;
-        uint8_t type; uint16_t version, length;
-        m_Site.read ((char *)&type, 1); 
-        m_Site.read ((char *)&version, 2); 
-        m_Site.read ((char *)&length, 2); 
-        length = be16toh (length);
-        uint8_t * buf = new uint8_t[length];
-        m_Site.read ((char *)buf, length);
-        size_t decryptedLen = m_Cipher->Decrypt (buf, length);
-        rs.write ((char *)buf + m_Cipher->GetIVSize (), decryptedLen);
-        delete[] buf;
-        return true;
-    }
-}
-}
+} // data
+} // i2p
 

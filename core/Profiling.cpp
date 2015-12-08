@@ -42,7 +42,7 @@ namespace data
         pt.put_child (PEER_PROFILE_SECTION_USAGE, usage);       
 
         // save to file
-        auto path = i2p::util::filesystem::GetDefaultDataDir() / PEER_PROFILES_DIRECTORY;
+        auto path = i2p::util::filesystem::GetDefaultDataPath() / PEER_PROFILES_DIRECTORY;
         if (!boost::filesystem::exists (path))
         {
             // Create directory is necessary
@@ -78,7 +78,7 @@ namespace data
     void RouterProfile::Load ()
     {
         std::string base64 = m_IdentHash.ToBase64 ();
-        auto path = i2p::util::filesystem::GetDefaultDataDir() / PEER_PROFILES_DIRECTORY;
+        auto path = i2p::util::filesystem::GetDefaultDataPath() / PEER_PROFILES_DIRECTORY;
         path /= std::string ("p") + base64[0];
         auto filename = path / (std::string (PEER_PROFILE_PREFIX) + base64 + ".txt");
         if (boost::filesystem::exists (filename))
@@ -186,7 +186,7 @@ namespace data
     {
         int num = 0;
         auto ts = boost::posix_time::second_clock::local_time();
-        boost::filesystem::path p (i2p::util::filesystem::GetDataDir()/PEER_PROFILES_DIRECTORY);
+        boost::filesystem::path p (i2p::util::filesystem::GetDataPath()/PEER_PROFILES_DIRECTORY);
         if (boost::filesystem::exists (p))
         {
             boost::filesystem::directory_iterator end;

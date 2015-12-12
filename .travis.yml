@@ -1,11 +1,10 @@
 sudo: required
-
 dist: trusty
-
 language: cpp
 
 compiler:
     - gcc
+    # Uncomment when we can actually build with clang
     #- clang
 
 addons:
@@ -18,3 +17,6 @@ script: cd build && cmake ../ && make
 
 notifications:
     email: false
+    #irc: "chat.freenode.net#kovri-dev"
+    #nick: kovri-ci
+    #password:

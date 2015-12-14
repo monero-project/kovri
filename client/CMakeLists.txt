@@ -1,5 +1,4 @@
 set(CLIENT_SRC
-  "BOB.cpp"	
   "ClientContext.cpp"
   "Daemon.cpp"
   "HTTPProxy.cpp"
@@ -7,7 +6,6 @@ set(CLIENT_SRC
   "I2PService.cpp"
   "I2PTunnel.cpp"
   "Kovri.cpp"
-  "SAM.cpp"
   "SOCKS.cpp"
   "i2pcontrol/I2PControl.cpp"
   "i2pcontrol/I2PControlServer.cpp"

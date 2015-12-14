@@ -16,16 +16,12 @@ namespace client
         m_SharedLocalDestination (nullptr),
         m_HttpProxy (nullptr),
         m_SocksProxy (nullptr),
-        m_SamBridge (nullptr),
-        m_BOBCommandChannel (nullptr),
         m_I2PControlService (nullptr) {}
     
     ClientContext::~ClientContext () 
     {
         delete m_HttpProxy;
         delete m_SocksProxy;
-        delete m_SamBridge;
-        delete m_BOBCommandChannel;
         delete m_I2PControlService;
     }
     
@@ -95,28 +91,6 @@ namespace client
 
         ReadTunnels ();
 
-        // SAM
-        int samPort = i2p::util::config::varMap["samport"].as<int>();
-        if (samPort)
-        {
-            m_SamBridge = new SAMBridge(
-                i2p::util::config::varMap["samaddress"].as<std::string>(), samPort
-            );
-            m_SamBridge->Start();
-            LogPrint("SAM bridge started");
-        } 
-
-        // BOB
-        int bobPort = i2p::util::config::varMap["bobport"].as<int>();
-        if (bobPort)
-        {
-            m_BOBCommandChannel = new BOBCommandChannel(
-                i2p::util::config::varMap["bobaddress"].as<std::string>(), bobPort
-            );
-            m_BOBCommandChannel->Start ();
-            LogPrint("BOB command channel started");
-        } 
-
         // I2P Control
         int i2pcontrolPort = i2p::util::config::varMap["i2pcontrolport"].as<int>();
         if(i2pcontrolPort) {
@@ -159,20 +133,6 @@ namespace client
             LogPrint("I2P server tunnel stopped");  
         }
         m_ServerTunnels.clear ();   
-        if (m_SamBridge)
-        {
-            m_SamBridge->Stop ();
-            delete m_SamBridge; 
-            m_SamBridge = nullptr;
-            LogPrint("SAM bridge stopped"); 
-        }       
-        if (m_BOBCommandChannel)
-        {
-            m_BOBCommandChannel->Stop ();
-            delete m_BOBCommandChannel; 
-            m_BOBCommandChannel = nullptr;
-            LogPrint("BOB command channel stopped");    
-        }           
         if (m_I2PControlService)
         {
             m_I2PControlService->Stop ();

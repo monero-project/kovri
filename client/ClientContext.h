@@ -8,8 +8,6 @@
 #include "HTTPProxy.h"
 #include "SOCKS.h"
 #include "I2PTunnel.h"
-#include "SAM.h"
-#include "BOB.h"
 #include "AddressBook.h"
 #include "i2pcontrol/I2PControlServer.h"
 
@@ -52,7 +50,6 @@ namespace client
             std::shared_ptr<ClientDestination> LoadLocalDestination (const std::string& filename, bool isPublic);
 
             AddressBook& GetAddressBook () { return m_AddressBook; };
-            const SAMBridge * GetSAMBridge () const { return m_SamBridge; };
         
         private:
 
@@ -70,8 +67,6 @@ namespace client
             i2p::proxy::SOCKSProxy * m_SocksProxy;
             std::map<int, std::unique_ptr<I2PClientTunnel> > m_ClientTunnels; // port->tunnel
             std::map<i2p::data::IdentHash, std::unique_ptr<I2PServerTunnel> > m_ServerTunnels; // destination->tunnel
-            SAMBridge * m_SamBridge;
-            BOBCommandChannel * m_BOBCommandChannel;
             i2pcontrol::I2PControlService * m_I2PControlService;
 
         public:

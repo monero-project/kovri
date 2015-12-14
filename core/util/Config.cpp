@@ -59,11 +59,9 @@ namespace config {
                     "Available options:\n"
                     "==================\n\n"
 
-                    "all\n\n"
-
-                    "basic | system | network\n"
-                    "proxy | irc    | eepsite\n"
-                    "api   | i2pcs  | config\n\n"
+                    "all     | basic | system\n"
+                    "network | proxy | irc\n"
+                    "eepsite | i2pcs | config\n\n"
 
                     "Examples\n"
                     "========\n\n"
@@ -77,7 +75,7 @@ namespace config {
         bpo::options_description basic("\nBasic");
         basic.add_options()
             ("host",
-                bpo::value<string>()->default_value("127.0.0.1"),  //TODO tie in external interface IP
+                bpo::value<string>()->default_value("127.0.0.1"),
                     "The external IP (deprecated).\n"
                     "Default: external interface")
             ("port",
@@ -170,25 +168,6 @@ namespace config {
                     "File containing destination keys, ex. privKeys.dat\n"
                     "The file will be created if it does not exist\n");
 
-        bpo::options_description api("\nAPI");
-        api.add_options()
-            ("samport",
-                bpo::value<int>()->default_value(0),
-                    "Port of SAM bridge (usually 7656)\n"
-                    "Default: SAM is disabled if not specified\n")
-            ("samaddress",
-                bpo::value<string>()->default_value("127.0.0.1"),
-                    "Address of SAM bridge\n"
-                    "Default: 127.0.0.1 (only used if SAM is enabled)\n")
-            ("bobport",
-                bpo::value<int>()->default_value(0),
-                    "Port of BOB command channel (usually 2827)\n"
-                    "BOB is disabled if not specified\n")
-            ("bobaddress",
-                bpo::value<string>()->default_value("127.0.0.1"),
-                    "Address of BOB service\n"
-                    "Default: 127.0.0.1 (only used if BOB is enabled)\n");
-
         bpo::options_description i2pcs("\nI2P Control Service");
         i2pcs.add_options()
             ("i2pcontrolport",
@@ -233,7 +212,6 @@ namespace config {
             .add(proxy)
             .add(irc)
             .add(eepsite)
-            .add(api)
             .add(i2pcs)
             .add(config);
 
@@ -248,7 +226,6 @@ namespace config {
             .add(proxy)
             .add(irc)
             .add(eepsite)
-            .add(api)
             .add(i2pcs)
             .add(config);
 

@@ -12,13 +12,12 @@ namespace i2p
 {
     namespace util
     {
-        class Daemon_Singleton_Private;
         class Daemon_Singleton
         {
         public:
-            virtual bool init();
-            virtual bool start();
-            virtual bool stop();
+            virtual bool Init();
+            virtual bool Start();
+            virtual bool Stop();
 
             bool m_isDaemon, m_isLogging, m_isRunning;
 
@@ -28,9 +27,6 @@ namespace i2p
 
             bool IsService() const;
 
-            // d-pointer for httpServer, httpProxy, etc.
-            class Daemon_Singleton_Private;
-            Daemon_Singleton_Private &m_dsp;
             std::shared_ptr<kovri::log::Log> m_log;
         };
 
@@ -44,9 +40,9 @@ namespace i2p
                 return instance;
             }
 
-            virtual bool init();
-            virtual bool start();
-            virtual bool stop();
+            virtual bool Init();
+            virtual bool Start();
+            virtual bool Stop();
         };
 #else
         class DaemonLinux : public Daemon_Singleton
@@ -60,8 +56,8 @@ namespace i2p
                 return instance;
             }
 
-            virtual bool start();
-            virtual bool stop();
+            virtual bool Start();
+            virtual bool Stop();
 
          private:
                 std::string m_pidfile;

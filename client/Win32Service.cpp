@@ -150,7 +150,7 @@ void I2PService::OnStart(DWORD dwArgc, PSTR *pszArgv)
 	LogPrint("Win32Service in OnStart",
 		EVENTLOG_INFORMATION_TYPE);
 
-	Daemon.start();
+	Daemon.Start();
 
 	_worker = new std::thread(std::bind(&I2PService::WorkerThread, this));
 }
@@ -199,7 +199,7 @@ void I2PService::OnStop()
 	// Log a service stop message to the Application log.
 	LogPrint("Win32Service in OnStop", EVENTLOG_INFORMATION_TYPE);
 
-	Daemon.stop();
+	Daemon.Stop();
 
 	m_fStopping = TRUE;
 	if (WaitForSingleObject(m_hStoppedEvent, INFINITE) != WAIT_OBJECT_0)

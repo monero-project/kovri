@@ -3,7 +3,6 @@
 #include "Daemon.h"
 #include "Destination.h"
 #include "Garlic.h"
-#include "HTTPServer.h"
 #include "NetworkDatabase.h"
 #include "RouterContext.h"
 #include "RouterInfo.h"
@@ -17,21 +16,10 @@ namespace i2p
 {
     namespace util
     {
-        class Daemon_Singleton::Daemon_Singleton_Private
-        {
-        public:
-            i2p::util::HTTPServer *httpServer;
-
-            Daemon_Singleton_Private() : httpServer(nullptr) {};
-            ~Daemon_Singleton_Private() { delete httpServer; };
-        };
-
         Daemon_Singleton::Daemon_Singleton() :
 		m_isRunning(1),
-		m_dsp(*new Daemon_Singleton_Private()),
 		m_log(kovri::log::Log::Get()) {};
-
-        Daemon_Singleton::~Daemon_Singleton() { delete &m_dsp; };
+        Daemon_Singleton::~Daemon_Singleton() {};
 
         bool Daemon_Singleton::IsService () const
         {
@@ -42,7 +30,7 @@ namespace i2p
 #endif
         }
 
-        bool Daemon_Singleton::init()
+        bool Daemon_Singleton::Init()
         {
             i2p::context.Init();
 
@@ -73,17 +61,16 @@ namespace i2p
             return true;
         }
             
-        bool Daemon_Singleton::start()
+        bool Daemon_Singleton::Start()
         {
             LogPrint("The Kovri I2P Router Project");
             LogPrint("Version ", KOVRI_VERSION);
             LogPrint("Listening on port ", i2p::util::config::varMap["port"].as<int>());
 
-            if (m_isLogging)
-            {
-                if (m_isDaemon)
-                {
-                    std::string logfile_path = IsService() ? "/var/log" : i2p::util::filesystem::GetDataPath().string();
+            if (m_isLogging) {
+                if (m_isDaemon) {
+                    std::string logfile_path = IsService() ? "/var/log" :
+			i2p::util::filesystem::GetDataPath().string();
 #ifndef _WIN32
                     logfile_path.append("/kovri.log");
 #else
@@ -96,19 +83,10 @@ namespace i2p
             }
             
             try {
-                LogPrint("Starting HTTP server...");
-                m_dsp.httpServer = new i2p::util::HTTPServer(
-		    i2p::util::config::varMap["httpaddress"].as<std::string>(),
-		    i2p::util::config::varMap["httpport"].as<int>()
-		);
-                m_dsp.httpServer->Start();
-                LogPrint("HTTP server started");
-
                 LogPrint("Starting NetDB...");
                 if(i2p::data::netdb.Start()) {
                     LogPrint("NetDB started");
-                }
-                else {
+                } else {
                     LogPrint("NetDB failed to start");
                     return false;
                 }
@@ -132,7 +110,7 @@ namespace i2p
             return true;
         }
 
-        bool Daemon_Singleton::stop()
+        bool Daemon_Singleton::Stop()
         {
             LogPrint("Stopping client...");
             i2p::client::context.Stop();
@@ -150,14 +128,8 @@ namespace i2p
             i2p::data::netdb.Stop();
             LogPrint("NetDB stopped");
 
-            LogPrint("Stopping HTTP server...");
-            m_dsp.httpServer->Stop();
-            LogPrint("HTTP server stopped");
-
-            StopLog ();
-
-            delete m_dsp.httpServer; m_dsp.httpServer = nullptr;
-
+	    LogPrint("Goodbye!");
+            StopLog();
             return true;
         }
     }

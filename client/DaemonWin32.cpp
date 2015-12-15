@@ -9,14 +9,14 @@ namespace i2p
 {
     namespace util
     {
-        bool DaemonWin32::init()
+        bool DaemonWin32::Init()
         {
             setlocale(LC_CTYPE, "");
             SetConsoleCP(1251);
             SetConsoleOutputCP(1251);
             setlocale(LC_ALL, "Russian");
 
-            if (!Daemon_Singleton::init()) return false;
+            if (!Daemon_Singleton::Init()) return false;
             if (I2PService::isService())
                 m_isDaemon = 1;
             else
@@ -62,19 +62,19 @@ namespace i2p
 
             return true;
         }
-        bool DaemonWin32::start()
+        bool DaemonWin32::Start()
         {
             setlocale(LC_CTYPE, "");
             SetConsoleCP(1251);
             SetConsoleOutputCP(1251);
             setlocale(LC_ALL, "Russian");
 
-            return Daemon_Singleton::start();
+            return Daemon_Singleton::Start();
         }
 
-        bool DaemonWin32::stop()
+        bool DaemonWin32::Stop()
         {
-            return Daemon_Singleton::stop();
+            return Daemon_Singleton::Stop();
         }
     }
 }

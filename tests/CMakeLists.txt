@@ -5,7 +5,6 @@ set(TESTS_SRC
   "Utility.cpp"
 )
 
-
 if(WITH_TESTS)
     find_package(Boost COMPONENTS
         system filesystem regex program_options date_time thread chrono
@@ -19,7 +18,7 @@ if(WITH_TESTS)
     )
 
     enable_testing()
-    add_test(kovriTest ${TESTS_NAME})
+    add_test(KovriTest ${TESTS_NAME})
     install(TARGETS
         ${TESTS_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     )

@@ -81,13 +81,7 @@ namespace config {
             ("port",
                 bpo::value<int>()->default_value(port),
                     "Port to listen on.\n"
-                    "Default: random (then saved to router.info)")
-            ("httpport",
-                bpo::value<int>()->default_value(7070),
-                    "The HTTP port to listen on for WebUI.\n")
-            ("httpaddress",
-                bpo::value<string>()->default_value("127.0.0.1"),
-                    "The IP address of the WebUI HTTP server.\n");
+                    "Default: random (then saved to router.info)");
 
         bpo::options_description system("\nSystem");
         system.add_options()

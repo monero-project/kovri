@@ -1,5 +1,5 @@
 set(BENCHMARK_SRC
-  "main.cpp"
+  "Crypto.cpp"
 )
 
 if(WITH_BENCHMARK)

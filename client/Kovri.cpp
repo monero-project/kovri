@@ -14,15 +14,15 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    if(!Daemon.init())
+    if(!Daemon.Init())
         return EXIT_FAILURE;
 
-    if(Daemon.start()) {
+    if(Daemon.Start()) {
         while (Daemon.m_isRunning) {
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
     }
 
-    Daemon.stop();
+    Daemon.Stop();
     return EXIT_SUCCESS;
 }

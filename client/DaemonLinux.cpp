@@ -39,7 +39,7 @@ namespace i2p
 {
     namespace util
     {
-        bool DaemonLinux::start()
+        bool DaemonLinux::Start()
         {
             if (m_isDaemon == 1)
             {
@@ -99,15 +99,15 @@ namespace i2p
             sigaction(SIGTERM, &sa, 0);
             sigaction(SIGINT, &sa, 0);
 
-            return Daemon_Singleton::start();
+            return Daemon_Singleton::Start();
         }
 
-        bool DaemonLinux::stop()
+        bool DaemonLinux::Stop()
         {
             close(m_pidFilehandle);
             unlink(m_pidfile.c_str());
 
-            return Daemon_Singleton::stop();            
+            return Daemon_Singleton::Stop();
         }
 
     }

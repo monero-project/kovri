@@ -6,6 +6,4 @@
 
 BOOST_AUTO_TEST_SUITE(IdentityTests)
 
-
-
 BOOST_AUTO_TEST_SUITE_END()

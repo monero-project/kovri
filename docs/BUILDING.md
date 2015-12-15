@@ -1,34 +1,36 @@
 # Step 1. Satisfy requirements
 
-## Requirements for Linux/FreeBSD/OSX
+## Linux/FreeBSD/OSX
 
 * GCC 4.6 or newer (Clang can be used instead of GCC)
 * Boost 1.46 or newer
 * crypto++
+* openssl
 
-## Requirements for Windows
+## Windows
 
 * VS2013 (known to work with 12.0.21005.1 or newer)
 * Boost 1.46 or newer
 * crypto++ 5.62
+* openssl
+
+## Open you NAT/Firewall
+
+Pick a port and allow inbound TCP/UDP.
+Do not tell anyone your port number as it can effect your anonymity!
 
 # Step 2. Install dependencies
 
 ## Debian/Ubuntu
 
-``` console
-$ sudo apt-get install cmake libboost-date-time-dev libboost-filesystem-dev libboost-log-dev libboost-program-options-dev libboost-regex-dev libboost-system-dev libcrypto++-dev
 ```
-
-Optional packages (for tests):
-``` console
-$ sudo apt-get install libboost-test-dev
+$ sudo apt-get install cmake libboost-all-dev libcrypto++-dev libssl-dev libssl1.0.0
 ```
 
 ## Arch
 
-``` console
-$ sudo pacman -Syu cmake boost crypto++
+```
+$ sudo pacman -Syu cmake boost crypto++ openssl
 ```
 
 ## FreeBSD
@@ -41,6 +43,7 @@ Required ports:
 * devel/boost-libs
 * lang/gcc47 # or later version
 * security/cryptopp
+* security/openssl
 
 To use newer compiler you should set these variables:
 
@@ -51,37 +54,34 @@ Replace "47" with your actual gcc version
 
 # Step 3: Building
 
-## (Optional) CMake options
+## To view CMake options:
 
-* CMAKE_BUILD_TYPE -- build profile (Debug/Release)
-* WITH_AESNI -- AES-NI support (ON/OFF)
-* WITH_HARDENING -- enable hardening features (ON/OFF) (gcc only)
-* WITH_TESTS -- build tests (ON/OFF)
-* WITH_BENCHMARK -- build bechmarking code (ON/OFF)
-* WITH_OPTIMIZE -- enable optimization flags (ON/OFF) (not for MSVC)
-* KOVRI_DATA_DIR -- directory where kovri will store data
+```
+$ cd kovri/build
+$ cmake -L ../
+```
 
-## Now, build!
+## For a regular build:
 
-``` console
+```
 $ cd kovri/build
 $ cmake ../
 $ make
 ```
 
-## Then, run!
+## Run Kovri!
 
-``` console
-$ ./kovri
 ```
+$ ./kovri --port <your chosen port>
+```
+or set your port in kovri.conf
+
 
 For a full list of options:
 
-``` console
+```
 $ ./kovri --help
 ```
-
-Note: by default, the web console is located at `http://localhost:7070/`.
 
 # Step 4: Send feedback, contribute, or donate
 

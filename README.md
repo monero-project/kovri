@@ -17,7 +17,7 @@ $ git clone https://github.com/monero-project/kovri && cd kovri/build && cmake .
 
 ## Build. Contribute. Ask questions!
 - See [BUILDING.md](https://github.com/monero-project/kovri/blob/master/BUILDING.md) for more options and instructions for your favourite OS.
-- See [CONTRIBUTING.md]((https://github.com/monero-project/kovri/blob/master/CONTRIBUTING.md) and send us a PR. All developers welcome!
+- See [CONTRIBUTING.md](https://github.com/monero-project/kovri/blob/master/CONTRIBUTING.md) and send us a PR. All developers welcome!
 - See [FAQ.md](https://github.com/monero-project/kovri/blob/master/FAQ.md) or join us in ```#kovri``` or ```#kovri-dev``` on Irc2P or Freenode.
 
 ## Vulnerability Response

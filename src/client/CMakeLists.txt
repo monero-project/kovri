@@ -10,7 +10,7 @@ set(CLIENT_SRC
   "i2pcontrol/I2PControlServer.cpp"
 )
 
-include_directories(".")
+include_directories("." "../" "../core/")
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     list(APPEND CLIENT_SRC "DaemonLinux.cpp")

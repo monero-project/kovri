@@ -83,7 +83,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     list(APPEND CORE_SRC "util/I2PEndian.cpp")
 endif()
 
-include_directories(".")
+include_directories("." "../")
 
 set(EDDSA_LIB "ed25519-ref10")
 

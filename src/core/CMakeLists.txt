@@ -1,6 +1,5 @@
 set(CORE_SRC
     "AddressBook.cpp"	
-    "Datagram.cpp"
     "Destination.cpp"
     "Garlic.cpp"
     "I2NPProtocol.cpp"
@@ -12,7 +11,6 @@ set(CORE_SRC
     "Reseed.cpp"
     "RouterContext.cpp"
     "RouterInfo.cpp"
-    "Streaming.cpp"
     "UPnP.cpp"
     "crypto/AES.cpp"
     "crypto/CryptoConst.cpp"
@@ -103,7 +101,7 @@ list(APPEND CORE_SRC ${LOG_SRC})
 if(WITH_LIBRARY)
     add_library(${CORE_NAME} ${CORE_SRC} ${EDDSA_SRC})
     target_link_libraries(
-        ${CORE_NAME} ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${OPENSSL_LIBRARIES}
+	${CORE_NAME} ${API_NAME} ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${OPENSSL_LIBRARIES}
     )
     install (
         TARGETS ${CORE_NAME}

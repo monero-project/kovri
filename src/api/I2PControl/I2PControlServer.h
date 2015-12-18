@@ -1,14 +1,16 @@
 #ifndef I2P_CONTROL_SERVER_H__
 #define I2P_CONTROL_SERVER_H__
 
-#include "I2PControl.h"
-#include <inttypes.h>
-#include <thread>
-#include <memory>
 #include <array>
-#include <string>
+#include <inttypes.h>
+#include <memory>
 #include <sstream>
+#include <string>
+#include <thread>
+
 #include <boost/asio.hpp>
+
+#include "I2PControl.h"
 
 namespace i2p {
 namespace client {

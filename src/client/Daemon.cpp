@@ -1,4 +1,5 @@
 #include <thread>
+
 #include "ClientContext.h"
 #include "Daemon.h"
 #include "Destination.h"
@@ -6,11 +7,11 @@
 #include "NetworkDatabase.h"
 #include "RouterContext.h"
 #include "RouterInfo.h"
-#include "Streaming.h"
+#include "Version.h"
+#include "api/Streaming.h"
 #include "transport/NTCPSession.h"
 #include "transport/Transports.h"
 #include "tunnel/Tunnel.h"
-#include "Version.h"
 
 namespace i2p
 {

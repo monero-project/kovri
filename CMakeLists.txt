@@ -101,11 +101,12 @@ endif()
 if(WITH_STATIC)
     set(Boost_USE_STATIC_LIBS ON)
     set(Boost_USE_STATIC_RUNTIME OFF)
+    set(BUILD_SHARED_LIBS OFF)
+
     if(NOT WIN32)
         set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
     endif()
 
-    set(BUILD_SHARED_LIBS OFF)
     if(${CMAKE_CXX_COMPILER} MATCHES ".*-openwrt-.*")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
         set(
@@ -166,6 +167,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR} ${Boost_INCLUDE_DIRS} ${CRYPTO++_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR}
 )
 
+# Set default path
 if(KOVRI_DATA_PATH)
     set(KOVRI_DATA_DIR ${KOVRI_DATA_PATH})
     # Using custom path, make sure the code knows about this
@@ -202,14 +204,12 @@ message(STATUS "---------------------------------------")
 # Handle paths nicely
 include(GNUInstallDirs)
 
-set(CORE_NAME "${PROJECT_NAME}-core")
+set(API_NAME "${PROJECT_NAME}-api")
 set(CLIENT_NAME "${PROJECT_NAME}-client")
+set(CORE_NAME "${PROJECT_NAME}-core")
 set(TESTS_NAME "${PROJECT_NAME}-tests")
 set(BENCHMARKS_NAME "${PROJECT_NAME}-benchmarks")
-#add_subdirectory(core)
-#add_subdirectory(client)
 add_subdirectory(src)
-#add_subdirectory(tests)
 
 # Copy resources
 if(WITH_BINARY)

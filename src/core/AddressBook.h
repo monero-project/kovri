@@ -1,13 +1,15 @@
 #ifndef ADDRESS_BOOK_H__
 #define ADDRESS_BOOK_H__
 
+#include <iostream>
+#include <map>
+#include <mutex>
 #include <string.h>
 #include <string>
-#include <map>
 #include <vector>
-#include <iostream>
-#include <mutex>
+
 #include <boost/asio.hpp>
+
 #include "Identity.h"
 #include "util/Base64.h"
 #include "util/Filesystem.h"

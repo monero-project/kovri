@@ -2,11 +2,13 @@
 #define HTTP_PROXY_H__
 
 #include <memory>
-#include <set>
-#include <boost/asio.hpp>
 #include <mutex>
-#include "I2PService.h"
+#include <set>
+
+#include <boost/asio.hpp>
+
 #include "Destination.h"
+#include "client/I2PService.h"
 
 namespace i2p
 {

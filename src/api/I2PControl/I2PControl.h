@@ -1,12 +1,13 @@
 #ifndef I2PCONTROL_H__
 #define I2PCONTROL_H__
 
-#include <boost/property_tree/ptree.hpp>
-#include <string>
-#include <map>
 #include <functional>
+#include <map>
 #include <mutex>
+#include <string>
+
 #include <boost/asio.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 namespace i2p {
 

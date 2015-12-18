@@ -1,22 +1,24 @@
 #ifndef DESTINATION_H__
 #define DESTINATION_H__
 
-#include <thread>
-#include <mutex>
-#include <memory>
+#include <functional>
 #include <map>
+#include <memory>
+#include <mutex>
 #include <set>
 #include <string>
-#include <functional>
+#include <thread>
+
 #include <boost/asio.hpp>
-#include "Identity.h"
-#include "tunnel/TunnelPool.h"
-#include "crypto/CryptoConst.h"
-#include "LeaseSet.h"
+
 #include "Garlic.h"
+#include "Identity.h"
+#include "LeaseSet.h"
 #include "NetworkDatabase.h"
-#include "Streaming.h"
-#include "Datagram.h"
+#include "api/Datagram.h"
+#include "api/Streaming.h"
+#include "crypto/CryptoConst.h"
+#include "tunnel/TunnelPool.h"
 
 namespace i2p
 {

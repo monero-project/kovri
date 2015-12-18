@@ -4,12 +4,13 @@
 #include <map>
 #include <mutex>
 #include <memory>
-#include "Destination.h"
-#include "HTTPProxy.h"
-#include "SOCKS.h"
-#include "I2PTunnel.h"
+
 #include "AddressBook.h"
-#include "i2pcontrol/I2PControlServer.h"
+#include "Destination.h"
+#include "api/I2PControl/I2PControlServer.h"
+#include "api/I2PTunnel/HTTPProxy.h"
+#include "api/I2PTunnel/I2PTunnel.h"
+#include "api/I2PTunnel/SOCKS.h"
 
 namespace i2p
 {

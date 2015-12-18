@@ -1,14 +1,15 @@
-#include <cstring>
-#include <cassert>
-#include <string>
 #include <atomic>
-#include "SOCKS.h"
-#include "Identity.h"
-#include "Streaming.h"
+#include <cassert>
+#include <cstring>
+#include <string>
+
 #include "Destination.h"
-#include "ClientContext.h"
+#include "Identity.h"
+#include "SOCKS.h"
+#include "api/I2PTunnel/I2PTunnel.h"
+#include "api/Streaming.h"
+#include "client/ClientContext.h"
 #include "util/I2PEndian.h"
-#include "I2PTunnel.h"
 
 namespace i2p
 {

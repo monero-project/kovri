@@ -1,17 +1,19 @@
-#include <cstring>
+#include <atomic>
 #include <cassert>
+#include <cstring>
+#include <string>
+
 #include <boost/lexical_cast.hpp>
 #include <boost/regex.hpp>
-#include <string>
-#include <atomic>
-#include "HTTPProxy.h"
-#include "util/HTTP.h"
-#include "Identity.h"
-#include "Streaming.h"
+
 #include "Destination.h"
-#include "ClientContext.h"
-#include "util/I2PEndian.h"
+#include "HTTPProxy.h"
 #include "I2PTunnel.h"
+#include "Identity.h"
+#include "api/Streaming.h"
+#include "client/ClientContext.h"
+#include "util/HTTP.h"
+#include "util/I2PEndian.h"
 
 namespace i2p
 {

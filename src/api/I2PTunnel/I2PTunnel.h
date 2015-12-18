@@ -2,15 +2,17 @@
 #define I2PTUNNEL_H__
 
 #include <inttypes.h>
-#include <string>
-#include <set>
 #include <memory>
+#include <set>
 #include <sstream>
+#include <string>
+
 #include <boost/asio.hpp>
-#include "Identity.h"
+
 #include "Destination.h"
-#include "Streaming.h"
-#include "I2PService.h"
+#include "Identity.h"
+#include "api/Streaming.h"
+#include "client/I2PService.h"
 
 namespace i2p
 {

@@ -1,10 +1,12 @@
 #include <fstream>
 #include <iostream>
-#include <boost/property_tree/ptree.hpp>
+
 #include <boost/property_tree/ini_parser.hpp>
-#include "util/Log.h"
-#include "Identity.h"
+#include <boost/property_tree/ptree.hpp>
+
 #include "ClientContext.h"
+#include "Identity.h"
+#include "util/Log.h"
 
 namespace i2p
 {

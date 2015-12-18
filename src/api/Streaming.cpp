@@ -1,11 +1,12 @@
 #include <cryptopp/gzip.h>
-#include "util/Log.h"
-#include "RouterInfo.h"
-#include "RouterContext.h"
-#include "tunnel/Tunnel.h"
-#include "util/Timestamp.h"
+
 #include "Destination.h"
+#include "RouterContext.h"
+#include "RouterInfo.h"
 #include "Streaming.h"
+#include "tunnel/Tunnel.h"
+#include "util/Log.h"
+#include "util/Timestamp.h"
 
 namespace i2p
 {

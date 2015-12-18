@@ -2,22 +2,23 @@
 // #define GCC47_BOOST149 ((BOOST_VERSION == 104900) && (__GNUC__ == 4) && (__GNUC_MINOR__ == 7))
 // TODO: handle this somewhere, but definitely not here
 
-#include "I2PControl.h"
 #include <iomanip>
 #include <sstream>
+
+#include <boost/property_tree/json_parser.hpp>
 
 #include <cryptopp/osrng.h>
 #include <cryptopp/hex.h>
 #include <cryptopp/filters.h>
 
-#include <boost/property_tree/json_parser.hpp>
-#include "util/Log.h"
-#include "util/Timestamp.h"
+#include "I2PControl.h"
+#include "NetworkDatabase.h"
+#include "client/Daemon.h"
+#include "core/Version.h"
 #include "transport/Transports.h"
 #include "tunnel/Tunnel.h"
-#include "NetworkDatabase.h"
-#include "core/Version.h"
-#include "Daemon.h"
+#include "util/Log.h"
+#include "util/Timestamp.h"
 
 namespace i2p {
 namespace client {

@@ -1,22 +1,24 @@
 #ifndef STREAMING_H__
 #define STREAMING_H__
 
-#include <inttypes.h>
-#include <string>
-#include <sstream>
-#include <map>
-#include <set>
-#include <queue>
 #include <functional>
+#include <inttypes.h>
+#include <map>
 #include <memory>
 #include <mutex>
+#include <queue>
+#include <set>
+#include <sstream>
+#include <string>
+
 #include <boost/asio.hpp>
-#include "util/I2PEndian.h"
+
+#include "Garlic.h"
+#include "I2NPProtocol.h"
 #include "Identity.h"
 #include "LeaseSet.h"
-#include "I2NPProtocol.h"
-#include "Garlic.h"
 #include "tunnel/Tunnel.h"
+#include "util/I2PEndian.h"
 
 namespace i2p
 {

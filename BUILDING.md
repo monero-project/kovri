@@ -23,7 +23,7 @@ If you do not choose a port via cli or kovri.conf, Kovri will randomly generate 
 
 ## Debian/Ubuntu
 ```
-$ sudo apt-get install cmake libboost-all-dev libcrypto++-dev libssl-dev libssl1.0.0
+$ sudo apt-get install g++ cmake libboost-all-dev libcrypto++-dev libssl-dev libssl1.0.0
 ```
 
 ## Arch

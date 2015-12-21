@@ -218,3 +218,5 @@ if(WITH_BINARY)
     file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/pkg/resources/kovri.conf" DESTINATION "${KOVRI_DATA_DIR}/")
     file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/pkg/resources/tunnels.cfg" DESTINATION "${KOVRI_DATA_DIR}/")
 endif()
+
+# vim: noai:ts=4:sw=4

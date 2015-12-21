@@ -1,9 +1,11 @@
 #ifndef NETDB_REQUESTS_H__
 #define NETDB_REQUESTS_H__
 
-#include <memory>
-#include <set>
 #include <map>
+#include <memory>
+#include <mutex>
+#include <set>
+
 #include "Identity.h"
 #include "RouterInfo.h"
 

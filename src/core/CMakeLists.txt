@@ -28,8 +28,6 @@ set(CORE_SRC
     "tunnel/TunnelGateway.cpp"
     "tunnel/TunnelPool.cpp"
     "util/Base64.cpp"
-    "util/Config.cpp"
-    "util/Filesystem.cpp"
     "util/HTTP.cpp"
     "util/MTU.cpp"
     "util/OldLog.cpp"
@@ -110,3 +108,5 @@ if(WITH_LIBRARY)
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     )
 endif()
+
+# vim: noai:ts=4:sw=4

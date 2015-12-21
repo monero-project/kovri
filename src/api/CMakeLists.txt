@@ -12,3 +12,5 @@ include_directories("." "../" "../core/")
 
 add_library(${API_NAME} ${API_SRC})
 target_link_libraries(${API_NAME})
+
+# vim: noai:ts=4:sw=4

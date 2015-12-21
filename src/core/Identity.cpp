@@ -1,8 +1,10 @@
-#include <time.h>
 #include <stdio.h>
-#include <cryptopp/sha.h>
-#include <cryptopp/osrng.h>
+#include <time.h>
+
 #include <cryptopp/dsa.h>
+#include <cryptopp/osrng.h>
+#include <cryptopp/sha.h>
+
 #include "Identity.h"
 #include "RouterContext.h"
 #include "crypto/CryptoConst.h"

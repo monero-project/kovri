@@ -1,15 +1,17 @@
-#include <fstream>
 #include <cryptopp/dh.h>
 #include <cryptopp/dsa.h>
+#include <fstream>
+
 #include <boost/lexical_cast.hpp>
-#include "crypto/CryptoConst.h"
-#include "RouterContext.h"
-#include "util/Timestamp.h"
+
 #include "I2NPProtocol.h"
 #include "NetworkDatabase.h"
-#include "util/MTU.h"
-#include "util/Config.h"
+#include "RouterContext.h"
 #include "Version.h"
+#include "client/util/Config.h"
+#include "crypto/CryptoConst.h"
+#include "util/MTU.h"
+#include "util/Timestamp.h"
 
 namespace i2p
 {

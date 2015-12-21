@@ -2,13 +2,15 @@
 #define FILESYSTEM_H
 
 #include <map>
-#include <string>
 #include <set>
+#include <string>
+
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <boost/program_options/detail/config_file.hpp>
-#include "Log.h"
+
 #include "Config.h"
+#include "core/util/Log.h"
 
 /**
  * Fixes undefined reference to boost::filesystem::detail::copy_file

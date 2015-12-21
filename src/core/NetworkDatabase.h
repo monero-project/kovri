@@ -7,21 +7,22 @@
 #define NETDB_H__
 
 #include <inttypes.h>
-#include <set>
-#include <map>
 #include <list>
+#include <map>
+#include <mutex>
+#include <set>
 #include <string>
 #include <thread>
-#include <mutex>
-#include "util/Queue.h"
+
 #include "I2NPProtocol.h"
-#include "RouterInfo.h"
 #include "LeaseSet.h"
+#include "NetDbRequests.h"
+#include "Reseed.h"
+#include "RouterInfo.h"
+#include "client/util/Filesystem.h"
 #include "tunnel/Tunnel.h"
 #include "tunnel/TunnelPool.h"
-#include "Reseed.h"
-#include "NetDbRequests.h"
-#include "util/Filesystem.h"
+#include "util/Queue.h"
 
 namespace i2p
 {

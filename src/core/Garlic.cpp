@@ -1,14 +1,15 @@
 #include <inttypes.h>
-#include "util/I2PEndian.h"
 #include <map>
 #include <string>
-#include "RouterContext.h"
-#include "I2NPProtocol.h"
-#include "tunnel/Tunnel.h"
-#include "tunnel/TunnelPool.h"
-#include "util/Timestamp.h"
+
 #include "Destination.h"
 #include "Garlic.h"
+#include "I2NPProtocol.h"
+#include "RouterContext.h"
+#include "tunnel/Tunnel.h"
+#include "tunnel/TunnelPool.h"
+#include "util/I2PEndian.h"
+#include "util/Timestamp.h"
 
 namespace i2p
 {

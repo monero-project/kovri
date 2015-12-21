@@ -3,7 +3,6 @@
 #include "ClientContext.h"
 #include "I2PService.h"
 
-
 namespace i2p
 {
 namespace client

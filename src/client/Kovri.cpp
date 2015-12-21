@@ -1,8 +1,9 @@
 #include <thread>
 #include <stdlib.h>
+
 #include "Daemon.h"
+//#include "core/util/Log.h"
 #include "util/Config.h"
-#include "util/Log.h"
 
 int main(int argc, char* argv[])
 {

@@ -6,7 +6,8 @@
 #else
 #define Daemon i2p::util::DaemonLinux::Instance()
 #endif
-#include "util/Log.h"
+
+#include "core/util/Log.h"
 
 namespace i2p
 {

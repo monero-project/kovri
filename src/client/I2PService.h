@@ -2,10 +2,12 @@
 #define I2PSERVICE_H__
 
 #include <atomic>
+#include <memory>
 #include <mutex>
 #include <unordered_set>
-#include <memory>
+
 #include <boost/asio.hpp>
+
 #include "Destination.h"
 #include "Identity.h"
 

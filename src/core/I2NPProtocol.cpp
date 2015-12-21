@@ -1,15 +1,17 @@
-#include <string.h>
 #include <atomic>
-#include "util/I2PEndian.h"
+#include <string.h>
+
 #include <cryptopp/gzip.h>
-#include "crypto/ElGamal.h"
-#include "util/Timestamp.h"
-#include "RouterContext.h"
-#include "NetworkDatabase.h"
-#include "tunnel/Tunnel.h"
-#include "transport/Transports.h"
+
 #include "Garlic.h"
 #include "I2NPProtocol.h"
+#include "NetworkDatabase.h"
+#include "RouterContext.h"
+#include "crypto/ElGamal.h"
+#include "transport/Transports.h"
+#include "tunnel/Tunnel.h"
+#include "util/I2PEndian.h"
+#include "util/Timestamp.h"
 
 using namespace i2p::transport;
 

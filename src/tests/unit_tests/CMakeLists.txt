@@ -23,3 +23,5 @@ if(WITH_TESTS)
         ${TESTS_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     )
 endif()
+
+# vim: noai:ts=4:sw=4

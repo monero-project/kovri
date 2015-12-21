@@ -1,8 +1,10 @@
 set(CLIENT_SRC
-  "ClientContext.cpp"
-  "Daemon.cpp"
-  "I2PService.cpp"
-  "Kovri.cpp"
+    "ClientContext.cpp"
+    "Daemon.cpp"
+    "I2PService.cpp"
+    "Kovri.cpp"
+    "util/Config.cpp"
+    "util/Filesystem.cpp"
 )
 
 include_directories("." "../" "../core/")
@@ -61,3 +63,5 @@ if(WITH_BINARY)
     endif()
 
 endif()
+
+# vim: noai:ts=4:sw=4

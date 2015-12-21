@@ -1,10 +1,10 @@
-#include "EdDSA25519.h"
-#include "ed25519/ed25519_ref10.h"
 #include <cstring>
+
+#include "ed25519/ed25519_ref10.h"
+#include "EdDSA25519.h"
 
 namespace i2p {
 namespace crypto {
-
 
 EDDSA25519Verifier::EDDSA25519Verifier(const uint8_t* signingKey)
 {

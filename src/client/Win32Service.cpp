@@ -2,13 +2,13 @@
 #define _CRT_SECURE_NO_WARNINGS // to use freopen
 #endif
 
-#include "Win32Service.h"
 #include <assert.h>
 #include <strsafe.h>
 #include <windows.h>
 
 #include "Daemon.h"
-#include "util/Log.h"
+#include "Win32Service.h"
+#include "core/util/Log.h"
 
 I2PService *I2PService::s_service = NULL;
 

@@ -13,11 +13,10 @@
 #include <dlfcn.h>
 #endif
 
-#include "util/Log.h"
-
+#include "NetworkDatabase.h"
 #include "RouterContext.h"
 #include "UPnP.h"
-#include "NetworkDatabase.h"
+#include "util/Log.h"
 
 #include <miniupnpc/miniupnpc.h>
 #include <miniupnpc/upnpcommands.h>

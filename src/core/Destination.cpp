@@ -1,12 +1,14 @@
 #include <algorithm>
 #include <cassert>
+
 #include <boost/lexical_cast.hpp>
-#include "util/Log.h"
-#include "crypto/ElGamal.h"
-#include "util/Timestamp.h"
-#include "NetworkDatabase.h"
-#include "Destination.h"
+
 #include "AddressBook.h"
+#include "Destination.h"
+#include "NetworkDatabase.h"
+#include "crypto/ElGamal.h"
+#include "util/Log.h"
+#include "util/Timestamp.h"
 
 namespace i2p
 {

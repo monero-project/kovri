@@ -1,8 +1,8 @@
-#include "util/Log.h"
 #include "I2NPProtocol.h"
-#include "transport/Transports.h"
-#include "NetworkDatabase.h"
 #include "NetDbRequests.h"
+#include "NetworkDatabase.h"
+#include "transport/Transports.h"
+#include "util/Log.h"
 
 namespace i2p
 {

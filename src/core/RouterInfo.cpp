@@ -1,9 +1,12 @@
+#include <fstream>
 #include <stdio.h>
 #include <string.h>
-#include <fstream>
+
 #include <boost/lexical_cast.hpp>
-#include <cryptopp/sha.h>
+
 #include <cryptopp/dsa.h>
+#include <cryptopp/sha.h>
+
 #include "RouterContext.h"
 #include "RouterInfo.h"
 #include "crypto/CryptoConst.h"
@@ -11,7 +14,6 @@
 #include "util/I2PEndian.h"
 #include "util/Log.h"
 #include "util/Timestamp.h"
-
 
 namespace i2p
 {

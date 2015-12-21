@@ -1,7 +1,7 @@
 # Contributing
-The Kovri I2P Router Project welcomes all contributions.
-Every pull request and correspondence will be treated with the utmost respect and consideration.
-Don't forget: this is *your* Kovri too!
+- The Kovri I2P Router Project welcomes all contributions.
+- Every pull request and correspondence will be treated with the utmost respect and consideration.
+- Don't forget: this is *your* Kovri too!
 
 ## IRC
 Join us in ```#kovri-dev``` on Irc2P or Freenode; we'll be happy to say hi!
@@ -13,17 +13,9 @@ In the future we will provide bounty for vulnerabilities and bugs. Please stay t
 We do our best to adhere to the [Agile](https://en.wikipedia.org/wiki/Agile_development)/[Scrum](https://en.wikipedia.org/wiki/Scrum_%28development%29) software development model. The benefits of such a model will become more apparent when our software and developer-base grows (we hope!). Please, consider this model before contributing.
 
 ## Style
-We try to adhere to [Google's C++ Style Guide](https://google.github.io/styleguide/cppguide.html) and the following:
+We ardently adhere to (or are in the process of adhering to) [Google's C++ Style Guide](https://google.github.io/styleguide/cppguide.html).
 
-- 4 spaces, not tabs
-- Pointers on the left
-- Colons in the middle
-- Functions should newline brace
-- Flow statements should not newline brace
-- No spaces between parenthesis
-- No Hungarian notation - ever
-- Save space where possible
-- Try to keep code within 80 character per line
+Please run [cpplint](https://github.com/google/styleguide/tree/gh-pages/cpplint) on any applicable work before contributing to Kovri.
 
 ## Workflow
 To contribute a patch, consider the following:

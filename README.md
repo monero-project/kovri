@@ -11,7 +11,7 @@
 1. Choose a port between 9111 and 30777. For this example,  we'll use port ```12345``` *(please, don't use this number outside of this example as it will effect your anonymity)*.
 2. Open port ```12345``` in your NAT/Firewall to allow incoming TCP/UDP connections.
 3. Clone, build, and run Kovri with one line:
-```
+```bash
 $ git clone https://github.com/monero-project/kovri && cd kovri/build && cmake ../ && make && ./kovri --port 12345
 ```
 

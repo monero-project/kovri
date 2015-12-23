@@ -28,6 +28,17 @@ Our answer? **...No, we don't!**
 
 Note: to this day, i2pd has not resolved these security issues - *but Kovri has*.
 
+## Why are there two i2pd repositories; one on Bitbucket and one on GitHub?
+So begins the drama of i2pd.
+
+One of the developers with push privileges on GitHub pushed a commit(s) that orignal did not like. Instead of working together to resolve the issue, orignal took i2pd to Bitbucket, deleted all existing git history, and made himself sole 'contributor' of the software. He then vowed to never return to Irc2P.
+
+These actions pissed off a lot of people, and nearly killed the software.
+
+Along came anonimal who, not wanting to see everyone's work to go to waste, revived the project through contributions and by reigning-in development. An open invitation for all remaining active developers to meet and discuss i2pd's future was given. This action apparently rustled orignal's feathers to the point where he [retaliated](https://github.com/PurpleI2P/i2pd/issues/279) and began to work on GitHub again - but this time within an ```openssl``` branch (which turned out to be the Bitbucket repository) instead of the ```master``` branch.
+
+Seeing that this sort of behavior would only hurt the I2P network, the remaining developers had [several important meetings](https://github.com/monero-project/kovri/issues/47) and Kovri was born.
+
 ## I found a bug or vulnerability. What do I do?
 See our [CONTRIBUTING.md](https://github.com/monero-project/kovri/blob/master/CONTRIBUTING.md) guide for bugs.
 See our [README.md](https://github.com/monero-project/kovri/blob/master/README.md) for reporting vulnerabilities.

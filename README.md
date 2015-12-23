@@ -31,5 +31,5 @@ Note: our future VRP will be inline with [I2P's VRP](https://trac.i2p2.de/ticket
 
 ## Acknowledgments
 - **orion** and **EinMByte** for providing the [first](http://git.repo.i2p.xyz/w/i2pcpp.git) C++ implementation of I2P.
-- **orignal** for providing a [mostly-working](https://github.com/PurpleI2P/i2pd/issues) C++ implementation of I2P.
+- **orignal** and **EinMByte** for providing a [mostly-working](https://github.com/PurpleI2P/i2pd/issues) C++ implementation of I2P.
 - The ed25519/ folder is based on the [ref10 implementation from SUPERCOP](http://bench.cr.yp.to/supercop.html).

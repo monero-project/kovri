@@ -31,10 +31,8 @@ if(NOT MSVC)
     # TODO: The following is incompatible with static build and enabled hardening
     #  for OpenWRT.
     # Multiple definitions of __stack_chk_fail (libssp & libc)
-    set(
-        CMAKE_CXX_FLAGS_MINSIZEREL
-        "${CMAKE_CXX_FLAGS_MINSIZEREL} -flto -s -ffunction-sections -fdata-sections"
-    )
+    set(CMAKE_CXX_FLAGS_MINSIZEREL
+        "${CMAKE_CXX_FLAGS_MINSIZEREL} -flto -s -ffunction-sections -fdata-sections")
     # -flto is added from above
     set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "-Wl,--gc-sections")
 endif()
@@ -54,23 +52,24 @@ endif()
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     if(WITH_HARDENING)
         add_definitions("-D_FORTIFY_SOURCE=2")
-        set(
-            CMAKE_CXX_FLAGS
-            "${CMAKE_CXX_FLAGS} -Wformat -Wformat-security -Werror=format-security"
-        )
-        set(
-            CMAKE_CXX_FLAGS
-            "${CMAKE_CXX_FLAGS} -fstack-protector-strong -fPIE --param ssp-buffer-size=4 -z relro -z now"
-        )
+        set(CMAKE_CXX_FLAGS
+            "${CMAKE_CXX_FLAGS} -Wformat -Wformat-security -Werror=format-security")
+        set(CMAKE_CXX_FLAGS
+            "${CMAKE_CXX_FLAGS} -fstack-protector-strong -fPIE --param ssp-buffer-size=4 -z relro -z now")
     endif()
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    # TODO: Clang-specific flags 
+	# Uncomment for verbose output
+	#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -v")
 endif()
 
 # Compiler flags customization (by system)
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
-  # "'sleep_for' is not a member of 'std::this_thread'" in gcc 4.7/4.8
-  add_definitions( "-D_GLIBCXX_USE_NANOSLEEP=1" )
+	# "'sleep_for' is not a member of 'std::this_thread'" in gcc 4.7/4.8
+	add_definitions("-D_GLIBCXX_USE_NANOSLEEP=1")
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 endif()
 
 if(WITH_UPNP)
@@ -81,7 +80,7 @@ if(WITH_UPNP)
 endif()
 
 if(WITH_AESNI)
-    add_definitions( "-maes -DAESNI")
+    add_definitions("-maes -DAESNI")
 endif()
 
 if(WITH_OPTIMIZE AND (NOT MSVC))
@@ -109,10 +108,8 @@ if(WITH_STATIC)
 
     if(${CMAKE_CXX_COMPILER} MATCHES ".*-openwrt-.*")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
-        set(
-            CMAKE_THREAD_LIBS_INIT
-            "gcc_eh -Wl,-u,pthread_create,-u,pthread_once,-u,pthread_mutex_lock,-u,pthread_mutex_unlock,-u,pthread_join,-u,pthread_equal,-u,pthread_detach,-u,pthread_cond_wait,-u,pthread_cond_signal,-u,pthread_cond_destroy,-u,pthread_cond_broadcast,-u,pthread_cancel"
-        )
+        set(CMAKE_THREAD_LIBS_INIT
+            "gcc_eh -Wl,-u,pthread_create,-u,pthread_once,-u,pthread_mutex_lock,-u,pthread_mutex_unlock,-u,pthread_join,-u,pthread_equal,-u,pthread_detach,-u,pthread_cond_wait,-u,pthread_cond_signal,-u,pthread_cond_destroy,-u,pthread_cond_broadcast,-u,pthread_cancel")
     endif()
 elseif(NOT WIN32)
     # TODO: Consider separate compilation for COMMON_SRC for library.
@@ -134,10 +131,8 @@ if(WITH_BOOST_LOG)
     add_definitions(-DBOOST_LOG_DYN_LINK)
   endif()
 else()
-  find_package(
-    Boost COMPONENTS
-    system filesystem regex program_options date_time thread chrono REQUIRED
-    )
+  find_package(Boost COMPONENTS
+    system filesystem regex program_options date_time thread chrono REQUIRED)
     if(NOT WITH_STATIC)    
       add_definitions(-DBOOST_ALL_DYN_LINK)
     endif()
@@ -163,9 +158,7 @@ if(NOT ${MINIUPNPC_FOUND})
 endif()
 
 # Load includes
-include_directories(
-    ${CMAKE_SOURCE_DIR} ${Boost_INCLUDE_DIRS} ${CRYPTO++_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR}
-)
+include_directories(${CMAKE_SOURCE_DIR} ${Boost_INCLUDE_DIRS} ${CRYPTO++_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR})
 
 # Set default path
 if(KOVRI_DATA_PATH)

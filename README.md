@@ -8,7 +8,8 @@
 - See branch ```development``` and ```crypto_refactor``` for the meat of Kovri evolution.
 
 ## Quickstart
-1. Choose a port between 9111 and 30777. For this example,  we'll use port ```12345``` *(please, don't use this number outside of this example as it will effect your anonymity)*.
+1. Download/install the **latest** [CMake](https://cmake.org/), [Boost](http://www.boost.org/), [Crypto++](https://cryptopp.com/#download), and [OpenSSL](https://www.openssl.org/source/). If you use a package manager, check against [BUILDING.md](https://github.com/monero-project/kovri/blob/master/BUILDING.md) for minimum version requirements.
+1. Choose a port between ```9111``` and ```30777```. For this example,  we'll use port ```12345```. **Please, do not use this number outside of this example as it will effect your anonymity**.
 2. Open port ```12345``` in your NAT/Firewall to allow incoming TCP/UDP connections.
 3. Clone, build, and run Kovri with one line:
 ```bash

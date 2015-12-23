@@ -1,53 +1,68 @@
-# 1. Satisfy requirements
+# 1. Satisfy minimum requirements
 
-## Linux/FreeBSD/OSX
-- GCC 4.6 or newer (Clang is optional)
-- Boost 1.46 or newer
-- Crypto++
-- OpenSSL
+- [CMake](https://cmake.org/) 2.8.12
+- [Boost](http://www.boost.org/) 1.59
+- [Crypto++](https://cryptopp.com/) 5.6.2
+- [OpenSSL](https://openssl.org/) (always the latest stable version)
+
+## Linux
+- [GCC](https://gcc.gnu.org/) 4.9.2 (5.2.1 or newer is recommended)
+
+## FreeBSD 10
+- [Clang](http://clang.llvm.org/) 3.4.1
+
+## MacOSX 10.8.5
+- [Apple LLVM](https://developer.apple.com/library/mac/documentation/CompilerTools/Conceptual/LLVMCompilerOverview/) 5.1
+- [Homebrew](http://brew.sh/)
 
 ## Windows
-- VS2013 (known to work with 12.0.21005.1 or newer)
-- Boost 1.46 or newer
-- Crypto++ 5.62
-- OpenSSL
+- [VS2013](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx) (last known to work with 12.0.21005.1)
 
 ## Open your NAT/Firewall
-1. Choose a port between 9111 and 30777.
-2. Poke a hole in your NAT/Firewall to allow incoming TCP/UDP connections on that port.
-3. Don't share this number with anyone as it will effect your anonymity.
+1. Choose a port between ```9111``` and ```30777```.
+2. Poke a hole in your NAT/Firewall to allow incoming TCP/UDP connections to that port.
+3. Don't share this number with anyone as it will effect your anonymity!
 
-If you do not choose a port via cli or kovri.conf, Kovri will randomly generate a new one on each startup. If you do not have access to your NAT, you can instead install and build with [MiniUPnP](http://miniupnp.free.fr/files/) support
+If you do not choose a port via cli or ```kovri.conf```, Kovri will randomly generate a new one on each startup. If you do not have access to your NAT, you can instead install and build with [MiniUPnP](http://miniupnp.free.fr/files/) support
 
 # 2. Install dependencies
 
-## Debian/Ubuntu
+## Debian (Jessie) / Ubuntu (Vivid, Wily)
+```bash
+$ sudo apt-get install g++ cmake libssl-dev libssl1.0.0
 ```
-$ sudo apt-get install g++ cmake libboost-all-dev libcrypto++-dev libssl-dev libssl1.0.0
+- [Install](http://www.boost.org/doc/libs/1_60_0/more/getting_started/unix-variants.html) the [latest stable Boost](http://sourceforge.net/projects/boost/files/boost/)
+```bash
+$ tar --bzip2 -xf /path/to/boost_latest.tar.bz2
+$ cd /path/to/boost_latest/
+$ ./bootstrap.sh && sudo ./b2 install
+```
+- [Install](https://github.com/weidai11/cryptopp/blob/master/Readme.txt) the [latest Crypto++](https://www.cryptopp.com/#download)
+```bash
+$ unzip -a -d cryptopp cryptopp_latest.zip
+$ make && sudo make install
 ```
 
-## Arch
+## Arch Linux
+```bash
+$ sudo pacman -Syu cmake boost crypto++  # gcc and openssl installed by default
 ```
-$ sudo pacman -Syu cmake boost crypto++ openssl
+
+## FreeBSD 10
+```bash
+$ sudo pkg install cmake cryptopp openssl
+```
+- [Install](http://www.boost.org/doc/libs/1_60_0/more/getting_started/unix-variants.html) the [latest stable Boost](http://sourceforge.net/projects/boost/files/boost/)
+```bash
+$ tar --bzip2 -xf /path/to/boost_latest.tar.bz2
+$ cd /path/to/boost_latest/
+$ ./bootstrap.sh --with-tools=clang && sudo ./b2 install
 ```
 
-## FreeBSD
-Branch 9.X has gcc v4.2, that knows nothing about required c++11 standard.
-
-Required ports:
-
-- devel/cmake
-- devel/boost-libs
-- lang/gcc47 # or later version
-- security/cryptopp
-- security/openssl
-
-To use newer compiler you should set these variables:
-
-  export CC=/usr/local/bin/gcc47
-  export CXX=/usr/local/bin/g++47
-
-Replace "47" with your actual gcc version
+## MacOSX
+```bash
+$ brew install cmake boost cryptopp openssl
+```
 
 # 3. Building
 
@@ -58,21 +73,22 @@ $ cmake -L ../
 ```
 
 ## For a regular build:
-```
+```bash
 $ cd kovri/build
 $ cmake ../
 $ make
 ```
 
-## For UPnP support *(see requirements above)*:
-```
+## For UPnP support:
+- Install [MiniUPnP](http://miniupnp.free.fr/files/)
+```bash
 $ cd kovri/build
 $ cmake -DWITH_UPNP=ON ../
 $ make
 ```
 
 ## To build tests:
-```
+```bash
 $ cd kovri/build
 $ cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON ../
 $ make
@@ -80,15 +96,18 @@ $ make
 
 ## Run Kovri!
 
-```$ ./kovri --port (your chosen port)```
+```bash
+$ ./kovri --port (your chosen port)
+```
 
 or set your port in kovri.conf
 
 
 For a full list of options:
 
-```$ ./kovri --help```
-
+```bash
+$ ./kovri --help
+```
 
 # 4. Configuration files *(optional)*
 

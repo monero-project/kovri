@@ -45,13 +45,21 @@ namespace util {
 namespace config {
 
 // Our configuration files
-extern std::string kovriConfig, tunnelsConfig;
+extern std::string kovriConfig,
+       tunnelsConfig;
 
 // Config option descriptions
 extern boost::program_options::options_description confOpts;
 
 // Variable map for CLI and conf args
 extern boost::program_options::variables_map varMap;
+
+/**
+ * @return 1 on failure/help, 0 on success
+ */
+bool ParseArgs(
+    int argc,
+    char* argv[]);
 
 /**
  * Note: CLI args override config file args but
@@ -61,11 +69,6 @@ void ParseConfigFile(
     std::string& kovriConfig,
     boost::program_options::options_description& confOpts,
     boost::program_options::variables_map& varMap);
-
-/**
- * @return 1 on failure/help, 0 on success
- */
-bool ParseArgs(int argc, char* argv[]);
 
 }  // namespace config
 }  // namespace util

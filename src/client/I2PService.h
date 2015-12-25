@@ -50,15 +50,18 @@ class I2PService {
  public:
   explicit I2PService(
       std::shared_ptr<ClientDestination> localDestination = nullptr);
-  explicit I2PService(i2p::data::SigningKeyType kt);
+  explicit I2PService(
+      i2p::data::SigningKeyType kt);
   virtual ~I2PService() { ClearHandlers(); }
 
-  inline void AddHandler(std::shared_ptr<I2PServiceHandler> conn) {
+  inline void AddHandler(
+      std::shared_ptr<I2PServiceHandler> conn) {
     std::unique_lock<std::mutex> l(m_HandlersMutex);
     m_Handlers.insert(conn);
   }
 
-  inline void RemoveHandler(std::shared_ptr<I2PServiceHandler> conn) {
+  inline void RemoveHandler(
+      std::shared_ptr<I2PServiceHandler> conn) {
     std::unique_lock<std::mutex> l(m_HandlersMutex);
     m_Handlers.erase(conn);
   }
@@ -72,12 +75,15 @@ class I2PService {
     return m_LocalDestination;
   }
 
-  inline void SetLocalDestination(std::shared_ptr<ClientDestination> dest) {
+  inline void SetLocalDestination(
+      std::shared_ptr<ClientDestination> dest) {
     m_LocalDestination = dest;
   }
 
-  void CreateStream(StreamRequestComplete streamRequestComplete,
-      const std::string& dest, int port = 0);
+  void CreateStream(
+      StreamRequestComplete streamRequestComplete,
+      const std::string& dest,
+      int port = 0);
 
   inline boost::asio::io_service& GetService() {
     return m_LocalDestination->GetService();
@@ -86,7 +92,7 @@ class I2PService {
   virtual void Start() = 0;
   virtual void Stop() = 0;
 
-  virtual const char* GetName() {return "Generic I2P Service"; }
+  virtual const char* GetName() {return "Kovri I2P Router Service"; }
 
  private:
   std::shared_ptr<ClientDestination> m_LocalDestination;
@@ -100,8 +106,10 @@ class I2PService {
  */
 class I2PServiceHandler {
  public:
-  explicit I2PServiceHandler(I2PService * parent) :
-    m_Service(parent), m_Dead(false) {}
+  explicit I2PServiceHandler(
+      I2PService* parent)
+      : m_Service(parent),
+        m_Dead(false) {}
   virtual ~I2PServiceHandler() {}
 
   // If you override this make sure you call it from the children
@@ -119,7 +127,6 @@ class I2PServiceHandler {
     if (m_Service)
       m_Service->RemoveHandler(me);
   }
-
   //  Call to talk with the owner
   inline I2PService* GetOwner() { return m_Service; }
 
@@ -133,21 +140,36 @@ class I2PServiceHandler {
  * This is a service that listens for connections on
  * the IP network and interacts with I2P
  */
-class TCPIPAcceptor: public I2PService {
+class TCPIPAcceptor
+    : public I2PService {
  public:
   TCPIPAcceptor(
-      const std::string& address, int port,
-      std::shared_ptr<ClientDestination> localDestination = nullptr) :
-        I2PService(localDestination), m_Acceptor(GetService(),
+      const std::string& address,
+      int port,
+      std::shared_ptr<ClientDestination> localDestination = nullptr)
+      : I2PService(localDestination),
+        m_Acceptor(
+            GetService(),
             boost::asio::ip::tcp::endpoint(
-              boost::asio::ip::address::from_string(address), port)),
-                m_Timer(GetService()) {}
+              boost::asio::ip::address::from_string(
+                address),
+              port)),
+        m_Timer(
+            GetService()) {}
 
-  TCPIPAcceptor(const std::string& address, int port,
-      i2p::data::SigningKeyType kt) : I2PService(kt), m_Acceptor(GetService(),
-        boost::asio::ip::tcp::endpoint(
-          boost::asio::ip::address::from_string(address), port)),
-            m_Timer(GetService()) {}
+  TCPIPAcceptor(
+      const std::string& address,
+      int port,
+      i2p::data::SigningKeyType kt)
+    : I2PService(kt),
+      m_Acceptor(
+          GetService(),
+          boost::asio::ip::tcp::endpoint(
+            boost::asio::ip::address::from_string(
+              address),
+            port)),
+      m_Timer(
+          GetService()) {}
 
   virtual ~TCPIPAcceptor() { TCPIPAcceptor::Stop(); }
 
@@ -165,7 +187,8 @@ class TCPIPAcceptor: public I2PService {
 
  private:
   void Accept();
-  void HandleAccept(const boost::system::error_code& ecode,
+  void HandleAccept(
+      const boost::system::error_code& ecode,
       std::shared_ptr<boost::asio::ip::tcp::socket> socket);
 
   boost::asio::ip::tcp::acceptor m_Acceptor;

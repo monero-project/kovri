@@ -41,16 +41,12 @@ int main(int argc, char* argv[]) {
       std::cout << ex.what() << "\nTry using --help" << std::endl;
       return EXIT_FAILURE;
   }
-
   if (!Daemon.Init())
     return EXIT_FAILURE;
-
   if (Daemon.Start()) {
     while (Daemon.m_isRunning)
       std::this_thread::sleep_for(std::chrono::seconds(1));
   }
-
   Daemon.Stop();
-
   return EXIT_SUCCESS;
 }

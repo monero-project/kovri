@@ -45,18 +45,14 @@ bool DaemonWin32::Init() {
   SetConsoleCP(1251);
   SetConsoleOutputCP(1251);
   setlocale(LC_ALL, "Russian");  // TODO(any windows dev) set different locale
-
   if (!Daemon_Singleton::Init())
     return false;
-
   if (I2PService::isService())
     m_isDaemon = 1;
   else
     m_isDaemon = 0;
-
   std::string serviceControl =
     i2p::util::config::varMap["service"].as<std::string>();
-
   if (serviceControl == "install") {
     InstallService(
         SERVICE_NAME,               // Name of service
@@ -73,7 +69,6 @@ bool DaemonWin32::Init() {
     printf(" --service=install  to install the service.\n");
     printf(" --service=remove   to remove the service.\n");
   }
-
   if (m_isDaemon == 1) {
     LogPrint("Service session");
     I2PService service(SERVICE_NAME);
@@ -85,7 +80,6 @@ bool DaemonWin32::Init() {
   } else {
     LogPrint("User session");
   }
-
   return true;
 }
 
@@ -94,7 +88,6 @@ bool DaemonWin32::Start() {
   SetConsoleCP(1251);
   SetConsoleOutputCP(1251);
   setlocale(LC_ALL, "Russian");  // TODO(any windows dev) set different locale
-
   return Daemon_Singleton::Start();
 }
 

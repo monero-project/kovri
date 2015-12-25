@@ -58,11 +58,11 @@
 
 class I2PService {
  public:
-  I2PService(PSTR pszServiceName,
-    BOOL fCanStop = TRUE,
-    BOOL fCanShutdown = TRUE,
-    BOOL fCanPauseContinue = FALSE);
-
+  I2PService(
+      PSTR pszServiceName,
+      BOOL fCanStop = TRUE,
+      BOOL fCanShutdown = TRUE,
+      BOOL fCanPauseContinue = FALSE);
   virtual ~I2PService(void);
 
   static BOOL isService();
@@ -70,20 +70,28 @@ class I2PService {
   void Stop();
 
  protected:
-  virtual void OnStart(DWORD dwArgc, PSTR *pszArgv);
+  virtual void OnStart(
+      DWORD dwArgc,
+      PSTR *pszArgv);
   virtual void OnStop();
   virtual void OnPause();
   virtual void OnContinue();
   virtual void OnShutdown();
-  void SetServiceStatus(DWORD dwCurrentState,
-    DWORD dwWin32ExitCode = NO_ERROR,
-    DWORD dwWaitHint = 0);
+  void SetServiceStatus(
+      DWORD dwCurrentState,
+      DWORD dwWin32ExitCode = NO_ERROR,
+      DWORD dwWaitHint = 0);
 
  private:
-  static void WINAPI ServiceMain(DWORD dwArgc, LPSTR *lpszArgv);
-  static void WINAPI ServiceCtrlHandler(DWORD dwCtrl);
+  static void WINAPI ServiceMain(
+      DWORD dwArgc,
+      LPSTR *lpszArgv);
+  static void WINAPI ServiceCtrlHandler(
+      DWORD dwCtrl);
   void WorkerThread();
-  void Start(DWORD dwArgc, PSTR *pszArgv);
+  void Start(
+      DWORD dwArgc,
+      PSTR *pszArgv);
   void Pause();
   void Continue();
   void Shutdown();
@@ -98,12 +106,13 @@ class I2PService {
   std::thread* _worker;
 };
 
-void InstallService(PSTR pszServiceName,
-  PSTR pszDisplayName,
-  DWORD dwStartType,
-  PSTR pszDependencies,
-  PSTR pszAccount,
-  PSTR pszPassword);
+void InstallService(
+    PSTR pszServiceName,
+    PSTR pszDisplayName,
+    DWORD dwStartType,
+    PSTR pszDependencies,
+    PSTR pszAccount,
+    PSTR pszPassword);
 
 void UninstallService(PSTR pszServiceName);
 

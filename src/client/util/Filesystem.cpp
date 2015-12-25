@@ -40,31 +40,28 @@ namespace bfs = boost::filesystem;
 
 std::string appName("kovri");
 
-void SetAppName(const std::string& name) {
-    appName = name;
+void SetAppName(
+    const std::string& name) {
+  appName = name;
 }
 
 std::string GetAppName() {
-    return appName;
+  return appName;
 }
 
 bfs::path GetConfigFile() {
   bfs::path pathConfigFile(
       i2p::util::config::varMap["config"].as<std::string>());
-
   if (!pathConfigFile.is_complete())
         pathConfigFile = GetDataPath() / pathConfigFile;
-
   return pathConfigFile;
 }
 
 bfs::path GetTunnelsConfigFile() {
   bfs::path pathTunnelsConfigFile(
       i2p::util::config::varMap["tunnelscfg"].as<std::string>());
-
   if (!pathTunnelsConfigFile.is_complete())
     pathTunnelsConfigFile = GetDataPath() / pathTunnelsConfigFile;
-
   return pathTunnelsConfigFile;
 }
 
@@ -76,7 +73,8 @@ bfs::path GetSSLCertsPath() {
   return GetDataPath() / "resources" / "certificates" / "ssl";
 }
 
-std::string GetFullPath(const std::string& filename) {
+std::string GetFullPath(
+    const std::string& filename) {
   std::string fullPath = GetDataPath().string();
 #ifdef _WIN32
   fullPath.append("\\");
@@ -89,9 +87,7 @@ std::string GetFullPath(const std::string& filename) {
 
 const bfs::path& GetDataPath() {
   static bfs::path path;
-
   path = GetDefaultDataPath();
-
   if (!exists(path)) {
     // Create data directory
     if (!create_directory(path)) {
@@ -100,10 +96,8 @@ const bfs::path& GetDataPath() {
       return path;
     }
   }
-
   if (!is_directory(path))
     path = GetDefaultDataPath();
-
   return path;
 }
 

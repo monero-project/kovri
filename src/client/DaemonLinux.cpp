@@ -73,26 +73,19 @@ bool DaemonLinux::Start() {
   if (m_isDaemon == 1) {
     pid_t pid;
     pid = fork();
-
     if (pid > 0)  // parent
       ::exit(EXIT_SUCCESS);
-
     if (pid < 0)  // error
       return false;
-
     // child
     umask(0);
     int sid = setsid();
-
     if (sid < 0) {
       LogPrint("Error, could not create process group.");
       return false;
     }
-
-    std::string d(
-        i2p::util::filesystem::GetDataPath().string());  // make a copy
+    std::string d(i2p::util::filesystem::GetDataPath().string());  // makes copy
     chdir(d.c_str());
-
     // close stdin/stdout/stderr descriptors
     ::close(0);
     ::open("/dev/null", O_RDWR);
@@ -101,49 +94,42 @@ bool DaemonLinux::Start() {
     ::close(2);
     ::open("/dev/null", O_RDWR);
   }
-
   // Pidfile
   m_pidFile = IsService() ? "/var/run" :
     i2p::util::filesystem::GetDataPath().string();
-
   m_pidFile.append("/kovri.pid");
-
-  m_pidFilehandle = open(m_pidFile.c_str(), O_RDWR | O_CREAT, 0600);
-
+  m_pidFilehandle = open(
+      m_pidFile.c_str(),
+      O_RDWR | O_CREAT,
+      0600);
   if (m_pidFilehandle == -1) {
     LogPrint("Error, could not create pid file (",
         m_pidFile, ")\nIs an instance already running?");
     return false;
   }
-
   if (lockf(m_pidFilehandle, F_TLOCK, 0) == -1) {
     LogPrint("Error, could not lock pid file (",
         m_pidFile, ")\nIs an instance already running?");
     return false;
   }
-
   char pid[10];
   snprintf(pid, sizeof(pid), "%d\n", getpid());
   write(m_pidFilehandle, pid, strlen(pid));
-
   // Signal handler
   struct sigaction sa;
   sa.sa_handler = handle_signal;
   sigemptyset(&sa.sa_mask);
   sa.sa_flags = SA_RESTART;
-
   sigaction(SIGHUP, &sa, 0);
   sigaction(SIGABRT, &sa, 0);
   sigaction(SIGTERM, &sa, 0);
   sigaction(SIGINT, &sa, 0);
-
   return Daemon_Singleton::Start();
 }
 
 bool DaemonLinux::Stop() {
   close(m_pidFilehandle);
   unlink(m_pidFile.c_str());
-
   return Daemon_Singleton::Stop();
 }
 

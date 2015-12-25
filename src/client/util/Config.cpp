@@ -44,7 +44,9 @@ std::string kovriConfig, tunnelsConfig;
 bpo::options_description confOpts;
 bpo::variables_map varMap;
 
-bool ParseArgs(int argc, char* argv[]) {
+bool ParseArgs(
+    int argc,
+    char* argv[]) {
   /**
    * Random generated port if none is supplied via cli or config
    * See Java I2P:
@@ -95,7 +97,6 @@ bool ParseArgs(int argc, char* argv[]) {
     ("host", bpo::value<std::string>()->default_value("127.0.0.1"),
      "The external IP (deprecated).\n"
      "Default: external interface")
-
     ("port", bpo::value<int>()->default_value(port),
      "Port to listen on.\n"
      "Default: random (then saved to router.info)");
@@ -245,10 +246,8 @@ bool ParseArgs(int argc, char* argv[]) {
     std::cout << kovri << std::endl;
     return 1;
   }
-
   if (varMap.count("help-with")) {
     const std::string& s = varMap["help-with"].as<std::string>();
-
     if (s == "all") {
       std::cout << confOpts;  // We don't need .add(help)
     } else if (s == "basic") {
@@ -273,20 +272,24 @@ bool ParseArgs(int argc, char* argv[]) {
     }
     return 1;
   }
-
   return 0;
 }
 
 // TODO(anonimal):
 // rewrite this parser to include tunnelscfg and respond to SIGHUP
 void ParseConfigFile(
-    std::string& conf, bpo::options_description& opts, bpo::variables_map& vm) {
-
+    std::string& conf,
+    bpo::options_description& opts,
+    bpo::variables_map& vm) {
   std::ifstream ifs(conf.c_str());
   if (!ifs) {
     std::cout << "Could not open " << conf << "!\n";
   } else {
-    bpo::store(bpo::parse_config_file(ifs, opts), vm);
+    bpo::store(
+        bpo::parse_config_file(
+          ifs,
+          opts),
+        vm);
     bpo::notify(vm);
   }
 }

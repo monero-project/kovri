@@ -57,13 +57,15 @@ namespace bfs = boost::filesystem;
 /**
  * Change the application name.
  */
-void SetAppName(const std::string& name);
+void SetAppName(
+    const std::string& name);
 
 // @return the application name.
 std::string GetAppName();
 
 // @return the full path of a file within the kovri directory
-std::string GetFullPath(const std::string& filename);
+std::string GetFullPath(
+    const std::string& filename);
 
 // @return the path of the configuration file
 bfs::path GetConfigFile();

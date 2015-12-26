@@ -1,6 +1,4 @@
 set(CORE_SRC
-    "AddressBook.cpp"	
-    "Destination.cpp"
     "Garlic.cpp"
     "I2NPProtocol.cpp"
     "Identity.cpp"
@@ -11,7 +9,6 @@ set(CORE_SRC
     "Reseed.cpp"
     "RouterContext.cpp"
     "RouterInfo.cpp"
-    "UPnP.cpp"
     "crypto/AES.cpp"
     "crypto/CryptoConst.cpp"
     "crypto/EdDSA25519.cpp"
@@ -21,6 +18,7 @@ set(CORE_SRC
     "transport/SSUData.cpp"
     "transport/SSUSession.cpp"
     "transport/Transports.cpp"
+    "transport/UPnP.cpp"
     "tunnel/TransitTunnel.cpp"
     "tunnel/Tunnel.cpp"
     "tunnel/TunnelCrypto.cpp"

@@ -39,9 +39,9 @@
 #include <sstream>
 #include <string>
 
-#include "Destination.h"
 #include "Identity.h"
 #include "api/Streaming.h"
+#include "client/Destination.h"
 #include "client/I2PService.h"
 
 namespace i2p {

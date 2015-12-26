@@ -33,10 +33,10 @@
 #include <algorithm>
 #include <vector>
 
-#include "Destination.h"
 #include "RouterContext.h"
 #include "RouterInfo.h"
 #include "Streaming.h"
+#include "client/Destination.h"
 #include "tunnel/Tunnel.h"
 #include "util/Log.h"
 #include "util/Timestamp.h"

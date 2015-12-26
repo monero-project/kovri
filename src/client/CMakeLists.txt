@@ -1,4 +1,6 @@
 set(CLIENT_SRC
+	"AddressBook.cpp"
+	"Destination.cpp"
     "ClientContext.cpp"
     "Daemon.cpp"
     "I2PService.cpp"

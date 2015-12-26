@@ -38,11 +38,11 @@
 #include <cstring>
 #include <string>
 
-#include "Destination.h"
 #include "I2PTunnel.h"
 #include "Identity.h"
 #include "api/Streaming.h"
 #include "client/ClientContext.h"
+#include "client/Destination.h"
 #include "util/HTTP.h"
 #include "util/I2PEndian.h"
 

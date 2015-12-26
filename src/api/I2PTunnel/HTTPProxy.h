@@ -38,7 +38,7 @@
 #include <set>
 #include <string>
 
-#include "Destination.h"
+#include "client/Destination.h"
 #include "client/I2PService.h"
 
 namespace i2p {

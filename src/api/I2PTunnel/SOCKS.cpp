@@ -35,11 +35,11 @@
 #include <cstring>
 #include <string>
 
-#include "Destination.h"
 #include "Identity.h"
 #include "api/I2PTunnel/I2PTunnel.h"
 #include "api/Streaming.h"
 #include "client/ClientContext.h"
+#include "client/Destination.h"
 #include "util/I2PEndian.h"
 
 namespace i2p {

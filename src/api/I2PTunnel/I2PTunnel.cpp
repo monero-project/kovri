@@ -34,8 +34,8 @@
 #include <set>
 #include <string>
 
-#include "Destination.h"
 #include "client/ClientContext.h"
+#include "client/Destination.h"
 #include "util/Log.h"
 
 namespace i2p {

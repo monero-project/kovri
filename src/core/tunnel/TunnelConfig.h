@@ -131,7 +131,7 @@ namespace tunnel
             clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] = flag;
             htobe32buf (clearText + BUILD_REQUEST_RECORD_REQUEST_TIME_OFFSET, i2p::util::GetHoursSinceEpoch ()); 
             htobe32buf (clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET, replyMsgID); 
-            // TODO: fill padding
+            // TODO(unassigned): fill padding
             router->GetElGamalEncryption ()->Encrypt (clearText, BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE, record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET);
             memcpy (record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET, (const uint8_t *)router->GetIdentHash (), 16);
         }   

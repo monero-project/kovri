@@ -276,7 +276,7 @@ namespace i2p
                 LogPrint ("Our v6 MTU=", mtu);
                 if (mtu > 1472) mtu = 1472; 
             }   
-            m_RouterInfo.AddSSUAddress (host.to_string ().c_str (), port, GetIdentHash (), mtu ? mtu : 1472); // TODO
+            m_RouterInfo.AddSSUAddress (host.to_string ().c_str (), port, GetIdentHash (), mtu ? mtu : 1472); // TODO:(unassigned)
             updated = true;
         }
         if (updated)
@@ -303,7 +303,7 @@ namespace i2p
         fk.read ((char *)&keys, sizeof (keys));
         m_Keys = keys;
 
-        i2p::data::RouterInfo routerInfo(i2p::util::filesystem::GetFullPath (ROUTER_INFO)); // TODO
+        i2p::data::RouterInfo routerInfo(i2p::util::filesystem::GetFullPath (ROUTER_INFO)); // TODO(unassigned):
         m_RouterInfo.Update (routerInfo.GetBuffer (), routerInfo.GetBufferLen ());
         m_RouterInfo.SetProperty ("coreVersion", I2P_VERSION);
         m_RouterInfo.SetProperty ("router.version", I2P_VERSION);

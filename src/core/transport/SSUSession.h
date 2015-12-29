@@ -263,7 +263,7 @@ namespace transport
 
         private:
     
-            friend class SSUData; // TODO: change in later
+            friend class SSUData; // TODO(unassigned): change in later
             SSUServer& m_Server;
             boost::asio::ip::udp::endpoint m_RemoteEndpoint;
             boost::asio::deadline_timer m_Timer;

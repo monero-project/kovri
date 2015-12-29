@@ -364,7 +364,7 @@ void Stream::SendBuffer() {
           !m_SendBuffer.eof() && numMsgs > 0)) {
       Packet* p = new Packet();
       uint8_t* packet = p->GetBuffer();
-      // TODO(open): implement setters
+      // TODO(unassigned): implement setters
       size_t size = 0;
       htobe32buf(packet + size, m_SendStreamID);
       size += 4;  // sendStreamID
@@ -882,7 +882,7 @@ void StreamingDestination::HandleNextPacket(
           it.second->HandleNextPacket(packet);
           return;
         }
-      // TODO(open): should queue it up
+      // TODO(unassigned): should queue it up
       LogPrint("Unknown stream receiveStreamID=", receiveStreamID);
       delete packet;
     }

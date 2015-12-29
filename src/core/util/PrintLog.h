@@ -33,7 +33,7 @@
 #include "Log.h"
 #include <mutex>
 
-/* TODO: implement */
+/* TODO(unassigned): implement */
 
 namespace kovri
 {

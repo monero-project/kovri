@@ -49,7 +49,7 @@ std::string HttpsDownload(const std::string& address)
 
     if(!ec) {
         // Initialize SSL
-        ssl::context ctx(service, ssl::context::sslv23); // TODO deprecated constructor
+        ssl::context ctx(service, ssl::context::sslv23); // TODO(anonimal): deprecated constructor
         ctx.set_options(ssl::context::no_tlsv1 | ssl::context::no_sslv3, ec);
 
 	if(!ec) {
@@ -131,7 +131,7 @@ void URI::ParseURI(const std::string& uri)
 	back_inserter(m_Protocol), ptr_fun<int, int>(tolower)
     );
 
-    // TODO: better error checking and handling
+    // TODO(unassigned): better error checking and handling
     if(prot_i == uri.end())
 	return;
 

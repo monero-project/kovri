@@ -344,7 +344,7 @@ void SOCKSHandler::SocksRequestFailed(
 
 void SOCKSHandler::SocksRequestSuccess() {
   boost::asio::const_buffers_1 response(nullptr, 0);
-  // TODO(open):
+  // TODO(unassigned):
   // this should depend on things like the command type and callbacks may change
   switch (m_socksv) {
     case SOCKS4:
@@ -403,12 +403,12 @@ void SOCKSHandler::EnterState(
 
 bool SOCKSHandler::ValidateSOCKSRequest() {
   if ( m_cmd != CMD_CONNECT ) {
-    // TODO(open): we need to support binds and other shit!
+    // TODO(unassigned): we need to support binds and other shit!
     LogPrint(eLogError, "--- SOCKS unsupported command: ", m_cmd);
     SocksRequestFailed(SOCKS5_CMD_UNSUP);
     return false;
   }
-  // TODO(open): we may want to support other address types!
+  // TODO(unassigned): we may want to support other address types!
   if ( m_addrtype != ADDR_DNS ) {
     switch (m_socksv) {
       case SOCKS5:
@@ -422,7 +422,7 @@ bool SOCKSHandler::ValidateSOCKSRequest() {
     SocksRequestFailed(SOCKS5_ADDR_UNSUP);
     return false;
   }
-  // TODO(open): we may want to support other domains
+  // TODO(unassigned): we may want to support other domains
   if (m_addrtype == ADDR_DNS &&
       m_address.dns.ToString().find(".i2p") == std::string::npos) {
     LogPrint(eLogError, "--- SOCKS invalid hostname: ",

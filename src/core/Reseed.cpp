@@ -149,7 +149,7 @@ namespace data {
         auto it = m_SigningKeys.find (signerID);
         if (it != m_SigningKeys.end ())
         {
-            // TODO: implement all signature types
+            // TODO(unassigned): implement all signature types
             if (signatureType == SIGNING_KEY_TYPE_RSA_SHA512_4096)
             {
                 size_t pos = s.tellg ();

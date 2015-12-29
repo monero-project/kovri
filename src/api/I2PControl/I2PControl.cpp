@@ -89,7 +89,7 @@ JsonObject tunnelToJsonObject(
     i2p::tunnel::Tunnel* tunnel) {
   JsonObject obj;
   std::stringstream ss;
-  tunnel->GetTunnelConfig()->Print(ss);  // TODO(open): use a JsonObject
+  tunnel->GetTunnelConfig()->Print(ss);  // TODO(unassigned): use a JsonObject
   obj["layout"] = JsonObject(ss.str());
   const auto state = tunnel->GetState();
   if (state == i2p::tunnel::eTunnelStateFailed)

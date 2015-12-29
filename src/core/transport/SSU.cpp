@@ -362,7 +362,7 @@ namespace transport
                             else // create new
                             {
                                 LogPrint ("Creating new session to introducer");
-                                introducer = &(address->introducers[0]); // TODO:
+                                introducer = &(address->introducers[0]); // TODO(unassigned): ???
                                 boost::asio::ip::udp::endpoint introducerEndpoint (introducer->iHost, introducer->iPort);
                                 introducerSession = std::make_shared<SSUSession> (*this, introducerEndpoint, router);
                                 std::unique_lock<std::mutex> l(m_SessionsMutex);

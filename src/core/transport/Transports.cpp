@@ -418,7 +418,7 @@ namespace transport
             m_SSUServer->DeleteSession (ssuSession);
             LogPrint ("SSU session closed");    
         }   
-        // TODO: delete NTCP
+        // TODO(unassigned): delete NTCP
     }   
         
     void Transports::DetectExternalIP ()
@@ -482,7 +482,7 @@ namespace transport
             if (it != m_Peers.end ())
             {
                 it->second.sessions.remove (session);
-                if (it->second.sessions.empty ()) // TODO: why?
+                if (it->second.sessions.empty ()) // TODO(unassigned): why?
                 {   
                     if (it->second.delayedMessages.size () > 0)
                         ConnectToPeer (ident, it->second);
@@ -514,7 +514,7 @@ namespace transport
                 else
                     it++;
             }
-            UpdateBandwidth (); // TODO: use separate timer(s) for it
+            UpdateBandwidth (); // TODO(unassigned): use separate timer(s) for it
             if (i2p::context.GetStatus () == eRouterStatusTesting) // if still testing,  repeat peer test
                 DetectExternalIP ();
             m_PeerCleanupTimer.expires_from_now (boost::posix_time::seconds(5*SESSION_CREATION_TIMEOUT));

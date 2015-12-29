@@ -104,7 +104,7 @@ void ClientContext::Start() {
         ircPort,
         localDestination);
     ircTunnel->Start();
-    // TODO(open):
+    // TODO(unassigned):
     // allow multiple tunnels on the same port (but on a different address)
     m_ClientTunnels.insert(
         std::make_pair(

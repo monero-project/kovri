@@ -17,6 +17,9 @@ We ardently adhere to (or are in the process of adhering to) [Google's C++ Style
 
 Please run [cpplint](https://github.com/google/styleguide/tree/gh-pages/cpplint) on any applicable work before contributing to Kovri.
 
+## TODO's
+Do a quick search in the codebase for TODO(unassigned) and/or pick a ticket and start patching!
+
 ## Workflow
 To contribute a patch, consider the following:
 

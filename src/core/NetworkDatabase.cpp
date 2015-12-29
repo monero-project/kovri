@@ -284,7 +284,7 @@ namespace data
             return it->second->SetUnreachable (unreachable);
     }
 
-    // TODO: Move to reseed and/or scheduled tasks. (In java version, scheduler fix this as well as sort RIs.)
+    // TODO(unassigned): Move to reseed and/or scheduled tasks. (In java version, scheduler fix this as well as sort RIs.)
     bool NetDb::CreateNetDb(boost::filesystem::path directory)
     {
         LogPrint("Creating ", directory.string());
@@ -700,7 +700,7 @@ namespace data
         if (numExcluded > 512)
         {
             LogPrint ("Number of excluded peers", numExcluded, " exceeds 512");
-            numExcluded = 0; // TODO:
+            numExcluded = 0; // TODO(unassigned): ???
         } 
         
         std::shared_ptr<I2NPMessage> replyMsg;
@@ -847,7 +847,7 @@ namespace data
 
     void NetDb::Publish ()
     {
-        std::set<IdentHash> excluded; // TODO: fill up later
+        std::set<IdentHash> excluded; // TODO(unassigned): fill up later
         for (int i = 0; i < 2; i++)
         {   
             auto floodfill = GetClosestFloodfill (i2p::context.GetRouterInfo ().GetIdentHash (), excluded);

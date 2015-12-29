@@ -94,7 +94,7 @@ namespace log
 
     /**
        Stream for sending events to live UI
-       TODO: implement
+       TODO(unassigned): implement
      */
     class EventStream
     {

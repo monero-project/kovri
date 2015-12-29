@@ -136,7 +136,7 @@ class I2PServiceHandler {
 };
 
 /**
- * TODO(open): support IPv6 too
+ * TODO(unassigned): support IPv6 too
  * This is a service that listens for connections on
  * the IP network and interacts with I2P
  */

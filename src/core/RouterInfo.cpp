@@ -184,12 +184,12 @@ namespace data
                     {   
                         if (address.transportStyle == eTransportNTCP)
                         {
-                            m_SupportedTransports |= eNTCPV4; // TODO:
+                            m_SupportedTransports |= eNTCPV4; // TODO(unassigned):
                             address.addressString = value;
                         }
                         else
                         {   
-                            // TODO: resolve address for SSU
+                            // TODO(unassigned): resolve address for SSU
                             LogPrint (eLogWarning, "Unexpected SSU address ", value);
                             isValidAddress = false;
                         }   
@@ -216,7 +216,7 @@ namespace data
                     // introducers
                     introducers = true;
                     size_t l = strlen(key);     
-                    unsigned char index = key[l-1] - '0'; // TODO:
+                    unsigned char index = key[l-1] - '0'; // TODO(unassigned): ???
                     key[l-1] = 0;
                     if (index >= address.introducers.size ())
                         address.introducers.resize (index + 1); 
@@ -240,7 +240,7 @@ namespace data
         // read peers
         uint8_t numPeers;
         s.read ((char *)&numPeers, sizeof (numPeers));
-        s.seekg (numPeers*32, std::ios_base::cur); // TODO: read peers
+        s.seekg (numPeers*32, std::ios_base::cur); // TODO(unassigned): read peers
         // read properties
         uint16_t size, r = 0;
         s.read ((char *)&size, sizeof (size));
@@ -249,7 +249,7 @@ namespace data
         {
 #ifdef _WIN32           
             char key[500], value[500];
-            // TODO: investigate why properties get read as one long string under Windows
+            // TODO(unassigned): investigate why properties get read as one long string under Windows
             // length should not be more than 44
 #else
             char key[50], value[50];
@@ -548,7 +548,7 @@ namespace data
                 x.iHost = address->host;
                 x.iPort = address->port;
                 x.iTag = tag;
-                memcpy (x.iKey, address->key, 32); // TODO: replace to Tag<32>
+                memcpy (x.iKey, address->key, 32); // TODO(unassigned): replace to Tag<32>
                 addr.introducers.push_back (x);
                 return true;
             }   

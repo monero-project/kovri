@@ -44,7 +44,7 @@ bool DaemonWin32::Init() {
   setlocale(LC_CTYPE, "");
   SetConsoleCP(1251);
   SetConsoleOutputCP(1251);
-  setlocale(LC_ALL, "Russian");  // TODO(any windows dev) set different locale
+  setlocale(LC_ALL, "Russian");  // TODO(unassigned) set different locale
   if (!Daemon_Singleton::Init())
     return false;
   if (I2PService::isService())
@@ -87,7 +87,7 @@ bool DaemonWin32::Start() {
   setlocale(LC_CTYPE, "");
   SetConsoleCP(1251);
   SetConsoleOutputCP(1251);
-  setlocale(LC_ALL, "Russian");  // TODO(any windows dev) set different locale
+  setlocale(LC_ALL, "Russian");  // TODO(unassigned) set different locale
   return Daemon_Singleton::Start();
 }
 

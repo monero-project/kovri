@@ -59,7 +59,7 @@ class HTTPProxyHandler
     GET_METHOD,
     GET_HOSTNAME,
     GET_HTTPV,
-    GET_HTTPVNL,  // TODO(open): fallback to finding Host: header if needed
+    GET_HTTPVNL,  // TODO(unassigned): fallback to finding Host header if needed
     DONE
   };
 

@@ -224,7 +224,7 @@ namespace transport
         CryptoPP::SHA256().CalculateDigest(m_Establisher->phase2.encrypted.hxy, xy, 512); 
         uint32_t tsB = htobe32 (i2p::util::GetSecondsSinceEpoch ());
         m_Establisher->phase2.encrypted.timestamp = tsB;
-        // TODO: fill filler
+        // TODO(unassigned): fill filler
 
         i2p::crypto::AESKey aesKey;
         CreateAESKey (m_Establisher->phase1.pubKey, aesKey);
@@ -311,7 +311,7 @@ namespace transport
         if (paddingSize > 0) 
         {
             paddingSize = 16 - paddingSize;
-            // TODO: fill padding with random data
+            // TODO(unassigned): fill padding with random data
             buf += paddingSize;
             len += paddingSize;
         }
@@ -638,7 +638,7 @@ namespace transport
         {   
             // regular I2NP
             if (msg->offset < 2)
-                LogPrint (eLogError, "Malformed I2NP message"); // TODO:
+                LogPrint (eLogError, "Malformed I2NP message"); // TODO(unassigned): ???
             sendBuffer = msg->GetBuffer () - 2; 
             len = msg->GetLength ();
             htobe16buf (sendBuffer, len);
@@ -654,7 +654,7 @@ namespace transport
         int rem = (len + 6) & 0x0F; // %16
         int padding = 0;
         if (rem > 0) padding = 16 - rem;
-        // TODO: fill padding 
+        // TODO(unassigned): fill padding
         CryptoPP::Adler32().CalculateDigest (sendBuffer + len + 2 + padding, sendBuffer, len + 2+ padding);
 
         int l = len + padding + 6;
@@ -680,7 +680,7 @@ namespace transport
         {
             LogPrint (eLogWarning, "Couldn't send msgs: ", ecode.message ());
             // we shouldn't call Terminate () here, because HandleReceive takes care
-            // TODO: 'delete this' statement in Terminate () must be eliminated later
+            // TODO(unassigned): 'delete this' statement in Terminate () must be eliminated later
             // Terminate ();
         }
         else

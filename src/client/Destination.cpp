@@ -88,7 +88,7 @@ namespace client
             m_Pool->SetExplicitPeers (explicitPeers);
         if (m_IsPublic)
             LogPrint (eLogInfo, "Local address ", i2p::client::GetB32Address(GetIdentHash()), " created");
-        m_StreamingDestination = std::make_shared<i2p::stream::StreamingDestination> (*this); // TODO:
+        m_StreamingDestination = std::make_shared<i2p::stream::StreamingDestination> (*this); // TODO(unassigned): ???
     }
 
     ClientDestination::~ClientDestination ()
@@ -556,7 +556,7 @@ namespace client
             else // duplicate
             {
                 LogPrint (eLogError, "Request of ", dest.ToBase64 (), " is pending already");
-                // TODO: queue up requests
+                // TODO(unassigned): queue up requests
                 if (request->requestComplete) request->requestComplete (nullptr);
                 delete request;
             }   

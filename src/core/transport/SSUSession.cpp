@@ -568,7 +568,7 @@ namespace transport
         m_SessionConfirmData = std::unique_ptr<SignedData>(new SignedData(s));
         s.Insert (payload - 4, 4); // put timestamp
         s.Sign (i2p::context.GetPrivateKeys (), payload); // DSA signature
-        // TODO: fill padding with random data  
+        // TODO(unassigned): fill padding with random data
 
         uint8_t iv[16];
         rnd.GenerateBlock (iv, 16); // random iv
@@ -604,7 +604,7 @@ namespace transport
         auto signatureLen = i2p::context.GetIdentity ().GetSignatureLen ();
         size_t paddingSize = ((payload - buf) + signatureLen)%16;
         if (paddingSize > 0) paddingSize = 16 - paddingSize;
-        // TODO: fill padding   
+        // TODO(unassigned): fill padding
         payload += paddingSize; // padding size
 
         // signature        

@@ -58,7 +58,7 @@ namespace crypto
                 : "%xmm0", "%xmm1", "memory"
             );          
 #else
-            // TODO: implement it better
+            // TODO(unassigned): implement it better
             for (int i = 0; i < 16; i++)
                 buf[i] ^= other.buf[i];
 #endif

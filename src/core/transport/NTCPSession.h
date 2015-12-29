@@ -164,7 +164,7 @@ namespace transport
             boost::asio::ip::address m_ConnectedFrom; // for ban
     };  
 
-    // TODO: move to NTCP.h/.cpp
+    // TODO(unassigned): move to NTCP.h/.cpp
     class NTCPServer
     {
         public:

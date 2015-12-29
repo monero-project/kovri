@@ -472,7 +472,7 @@ AddressBookSubscription::AddressBookSubscription(
 
 void AddressBookSubscription::CheckSubscription() {
   std::thread load_hosts(&AddressBookSubscription::Request, this);
-  load_hosts.detach();  // TODO(open): use join
+  load_hosts.detach();  // TODO(unassigned): use join
 }
 
 void AddressBookSubscription::Request() {

@@ -47,14 +47,11 @@ bpo::variables_map varMap;
 bool ParseArgs(
     int argc,
     char* argv[]) {
-  /**
-   * Random generated port if none is supplied via cli or config
-   * See Java I2P:
-   * i2p.i2p/router/java/src/net/i2p/router/transport/udp/UDPEndpoint.java
-   */
+  // Random generated port if none is supplied via cli or config
+  // See Java I2P:
+  // i2p.i2p/router/java/src/net/i2p/router/transport/udp/UDPEndpoint.java
   CryptoPP::AutoSeededRandomPool rnd;
   int port = rnd.GenerateWord32(9111, 30777);
-
   // Map options values from CLI and config
   bpo::options_description help("Help options");
   help.add_options()
@@ -198,7 +195,6 @@ bool ParseArgs(
     ("tunnelscfg", bpo::value<std::string>(&tunnelsConfig)->default_value(
         i2p::util::filesystem::GetFullPath("tunnels.cfg")),
      "Tunnels Config file\n");
-
   // Default visible option
   bpo::options_description kovri(
       ":----------------------------------------------------:\n"
@@ -206,7 +202,6 @@ bool ParseArgs(
       "|                    version " KOVRI_VERSION "                   |\n"
       ":----------------------------------------------------");
   kovri.add(help);
-
   // Available config file options
   bpo::options_description confOpts;
   confOpts
@@ -218,7 +213,6 @@ bool ParseArgs(
     .add(eepsite)
     .add(i2pcs)
     .add(config);
-
   // Available cli options
   bpo::options_description cliOpts;
   cliOpts
@@ -231,14 +225,11 @@ bool ParseArgs(
     .add(eepsite)
     .add(i2pcs)
     .add(config);
-
   // Map and store cli options
   bpo::store(bpo::parse_command_line(argc, argv, cliOpts), varMap);
   bpo::notify(varMap);
-
   // Parse config after mapping cli
   ParseConfigFile(kovriConfig, confOpts, varMap);
-
   /*
    * Display --help and --help-with
    */

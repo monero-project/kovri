@@ -160,8 +160,7 @@ enum StreamStatus {
 };
 
 class StreamingDestination;
-class Stream
-    : public std::enable_shared_from_this<Stream> {
+class Stream : public std::enable_shared_from_this<Stream> {
  public:
   typedef std::function<void (const boost::system::error_code& ecode)> SendHandler;
 

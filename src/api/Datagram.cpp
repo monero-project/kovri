@@ -57,56 +57,33 @@ void DatagramDestination::SendDatagramTo(
     uint16_t toPort) {
   uint8_t buf[MAX_DATAGRAM_SIZE];
   auto identityLen =
-    m_Owner.GetIdentity().ToBuffer(
-        buf,
-        MAX_DATAGRAM_SIZE);
+    m_Owner.GetIdentity().ToBuffer(buf, MAX_DATAGRAM_SIZE);
   uint8_t* signature = buf + identityLen;
   auto signatureLen = m_Owner.GetIdentity().GetSignatureLen();
   uint8_t* buf1 = signature + signatureLen;
   size_t headerLen = identityLen + signatureLen;
-  memcpy(
-      buf1,
-      payload,
-      len);
+  memcpy(buf1, payload, len);
   if (m_Owner.GetIdentity().GetSigningKeyType() ==
       i2p::data::SIGNING_KEY_TYPE_DSA_SHA1) {
     uint8_t hash[32];
-    CryptoPP::SHA256().CalculateDigest(
-        hash,
-        buf1,
-        len);
-    m_Owner.Sign(
-        hash,
-        32,
-        signature);
+    CryptoPP::SHA256().CalculateDigest(hash, buf1, len);
+    m_Owner.Sign(hash, 32, signature);
   } else {
-    m_Owner.Sign(
-        buf1,
-        len,
-        signature);
+    m_Owner.Sign(buf1, len, signature);
   }
   auto msg =
-    CreateDataMessage(
-      buf,
-      len + headerLen,
-      fromPort,
-      toPort);
+    CreateDataMessage(buf, len + headerLen, fromPort, toPort);
   auto remote = m_Owner.FindLeaseSet(ident);
   if (remote)
     m_Owner.GetService().post(
         std::bind(
           &DatagramDestination::SendMsg,
-          this,
-          msg,
-          remote));
+          this, msg, remote));
   else
     m_Owner.RequestDestination(
-        ident,
-        std::bind(
+        ident, std::bind(
           &DatagramDestination::HandleLeaseSetRequestComplete,
-          this,
-          std::placeholders::_1,
-          msg));
+          this, std::placeholders::_1, msg));
 }
 
 void DatagramDestination::HandleLeaseSetRequestComplete(
@@ -125,15 +102,9 @@ void DatagramDestination::SendMsg(
   auto leases = remote->GetNonExpiredLeases();
   if (!leases.empty() && outboundTunnel) {
     std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
-    uint32_t i =
-      i2p::context.GetRandomNumberGenerator().GenerateWord32(
-          0,
-          leases.size() - 1);
-    auto garlic =
-      m_Owner.WrapMessage(
-          remote,
-          ToSharedI2NPMessage(msg),
-          true);
+    uint32_t i = i2p::context.GetRandomNumberGenerator()
+      .GenerateWord32(0, leases.size() - 1);
+    auto garlic = m_Owner.WrapMessage(remote, ToSharedI2NPMessage(msg), true);
     msgs.push_back(
         i2p::tunnel::TunnelMessageBlock {
         i2p::tunnel::eDeliveryTypeTunnel,
@@ -156,47 +127,26 @@ void DatagramDestination::HandleDatagram(
     const uint8_t* buf,
     size_t len) {
   i2p::data::IdentityEx identity;
-  size_t identityLen =
-    identity.FromBuffer(
-        buf,
-        len);
+  size_t identityLen = identity.FromBuffer(buf, len);
   const uint8_t* signature = buf + identityLen;
   size_t headerLen = identityLen + identity.GetSignatureLen();
   bool verified = false;
   if (identity.GetSigningKeyType() == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1) {
     uint8_t hash[32];
-    CryptoPP::SHA256().CalculateDigest(
-        hash,
-        buf + headerLen,
-        len - headerLen);
-    verified =
-      identity.Verify(
-          hash,
-          32,
-          signature);
+    CryptoPP::SHA256().CalculateDigest(hash, buf + headerLen, len - headerLen);
+    verified = identity.Verify(hash, 32, signature);
   } else {
     verified =
-      identity.Verify(
-          buf + headerLen,
-          len - headerLen,
-          signature);
+      identity.Verify(buf + headerLen, len - headerLen, signature);
   }
   if (verified) {
     auto it = m_ReceiversByPorts.find(toPort);
     if (it != m_ReceiversByPorts.end())
         it->second(
-            identity,
-            fromPort,
-            toPort,
-            buf + headerLen,
-            len - headerLen);
+            identity, fromPort, toPort, buf + headerLen, len - headerLen);
     else if (m_Receiver != nullptr)
         m_Receiver(
-            identity,
-            fromPort,
-            toPort,
-            buf + headerLen,
-            len - headerLen);
+            identity, fromPort, toPort, buf + headerLen, len - headerLen);
     else
         LogPrint(eLogWarning, "Receiver for datagram is not set");
   } else {
@@ -211,21 +161,13 @@ void DatagramDestination::HandleDataMessagePayload(
     size_t len) {
   // unzip it
   CryptoPP::Gunzip decompressor;
-  decompressor.Put(
-      buf,
-      len);
+  decompressor.Put(buf, len);
   decompressor.MessageEnd();
   uint8_t uncompressed[MAX_DATAGRAM_SIZE];
   auto uncompressedLen = decompressor.MaxRetrievable();
   if (uncompressedLen <= MAX_DATAGRAM_SIZE) {
-    decompressor.Get(
-        uncompressed,
-        uncompressedLen);
-    HandleDatagram(
-        fromPort,
-        toPort,
-        uncompressed,
-        uncompressedLen);
+    decompressor.Get(uncompressed, uncompressedLen);
+    HandleDatagram(fromPort, toPort, uncompressed, uncompressedLen);
   } else {
     LogPrint("Received datagram size ", uncompressedLen,  " exceeds max size");
   }

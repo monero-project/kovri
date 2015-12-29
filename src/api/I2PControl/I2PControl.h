@@ -79,47 +79,33 @@ const char I2PCONTROL_PORT[] = "i2pcontrol.port";
 // RouterInfo requests
 const char ROUTER_INFO_UPTIME[] =
   "i2p.router.uptime";
-
 const char ROUTER_INFO_VERSION[] =
   "i2p.router.version";
-
 const char ROUTER_INFO_STATUS[] =
   "i2p.router.status";
-
 const char ROUTER_INFO_DATAPATH[] =
   "i2p.router.datapath";
-
 const char ROUTER_INFO_NETDB_KNOWNPEERS[] =
   "i2p.router.netdb.knownpeers";
-
 const char ROUTER_INFO_NETDB_ACTIVEPEERS[] =
   "i2p.router.netdb.activepeers";
-
 const char ROUTER_INFO_NETDB_FLOODFILLS[] =
   "i2p.router.netdb.floodfills";
-
 const char ROUTER_INFO_NETDB_LEASESETS[] =
   "i2p.router.netdb.leasesets";
-
 const char ROUTER_INFO_NET_STATUS[] =
   "i2p.router.net.status";
-
 const char ROUTER_INFO_TUNNELS_PARTICIPATING[] =
   "i2p.router.net.tunnels.participating";
-
 // TODO(anonimal): Probably better to use the standard GetRate instead
 const char ROUTER_INFO_TUNNELS_CREATION_SUCCESS[] =
   "i2p.router.net.tunnels.creationsuccessrate";
-
 const char ROUTER_INFO_TUNNELS_IN_LIST[] =
   "i2p.router.net.tunnels.inbound.list";
-
 const char ROUTER_INFO_TUNNELS_OUT_LIST[] =
   "i2p.router.net.tunnels.outbound.list";
-
 const char ROUTER_INFO_BW_IB_1S[] =
   "i2p.router.net.bw.inbound.1s";
-
 const char ROUTER_INFO_BW_OB_1S[] =
   "i2p.router.net.bw.outbound.1s";
 
@@ -184,8 +170,7 @@ class I2PControlSession
     std::map<std::string, std::string> parameters;
 
    public:
-    explicit Response(
-        const std::string& version = "2.0");
+    explicit Response(const std::string& version = "2.0");
     std::string toJsonString() const;
     /**
      * Set an output parameter to a specified string.

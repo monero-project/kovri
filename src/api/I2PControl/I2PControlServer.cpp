@@ -172,11 +172,7 @@ void I2PControlService::HandleRequestReceived(
     }
     I2PControlSession::Response response =
       m_Session->handleRequest(ss);
-    SendResponse(
-        socket,
-        buf,
-        response.toJsonString(),
-        isHtml);
+    SendResponse(socket, buf, response.toJsonString(), isHtml);
   } catch (const std::exception& ex) {
     LogPrint(eLogError, "I2PControl handle request: ", ex.what());
   } catch (...) {
@@ -207,15 +203,9 @@ void I2PControlService::SendResponse(
     header << boost::posix_time::second_clock::local_time() << "\r\n";
     header << "\r\n";
     offset = header.str().size();
-    memcpy(
-        buf->data(),
-        header.str().c_str(),
-        offset);
+    memcpy(buf->data(), header.str().c_str(), offset);
   }
-  memcpy(
-      buf->data() + offset,
-      response.c_str(),
-      len);
+  memcpy(buf->data() + offset, response.c_str(), len);
   boost::asio::async_write(
       *socket,
       boost::asio::buffer(

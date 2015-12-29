@@ -63,14 +63,10 @@ bool Daemon_Singleton::IsService() const {
 // TODO(anonimal): find a better way to initialize
 bool Daemon_Singleton::Init() {
   i2p::context.Init();
-  m_isDaemon =
-    i2p::util::config::varMap["daemon"].as<bool>();
-  m_isLogging =
-    i2p::util::config::varMap["log"].as<bool>();
-  int port =
-    i2p::util::config::varMap["port"].as<int>();
-  i2p::context.UpdatePort(
-      port);
+  m_isDaemon = i2p::util::config::varMap["daemon"].as<bool>();
+  m_isLogging = i2p::util::config::varMap["log"].as<bool>();
+  int port = i2p::util::config::varMap["port"].as<int>();
+  i2p::context.UpdatePort(port);
   i2p::context.UpdateAddress(
       boost::asio::ip::address::from_string(
         i2p::util::config::varMap["host"].as<std::string>()));
@@ -78,8 +74,7 @@ bool Daemon_Singleton::Init() {
       i2p::util::config::varMap["v6"].as<bool>());
   i2p::context.SetFloodfill(
       i2p::util::config::varMap["floodfill"].as<bool>());
-  auto bandwidth =
-    i2p::util::config::varMap["bandwidth"].as<std::string>();
+  auto bandwidth = i2p::util::config::varMap["bandwidth"].as<std::string>();
   if (bandwidth.length() > 0) {
     if (bandwidth[0] > 'L')
       i2p::context.SetHighBandwidth();
@@ -92,8 +87,7 @@ bool Daemon_Singleton::Init() {
 bool Daemon_Singleton::Start() {
   LogPrint("The Kovri I2P Router Project");
   LogPrint("Version ", KOVRI_VERSION);
-  LogPrint("Listening on port ",
-      i2p::util::config::varMap["port"].as<int>());
+  LogPrint("Listening on port ", i2p::util::config::varMap["port"].as<int>());
   if (m_isLogging) {
     if (m_isDaemon) {
       std::string logfile_path = IsService() ? "/var/log" :

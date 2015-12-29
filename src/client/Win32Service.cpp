@@ -113,11 +113,7 @@ I2PService::I2PService(
   m_fStopping = FALSE;
   // Create a manual-reset event that is not signaled at first to indicate
   // the stopped signal of the service.
-  m_hStoppedEvent = CreateEvent(
-      NULL,
-      TRUE,
-      FALSE,
-      NULL);
+  m_hStoppedEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
   if (m_hStoppedEvent == NULL) {
     throw GetLastError();
   }

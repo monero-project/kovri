@@ -242,14 +242,8 @@ void Stream::ProcessPacket(
     LogPrint(eLogDebug, "Signature");
     uint8_t signature[256];
     auto signatureLen = m_RemoteIdentity.GetSignatureLen();
-    memcpy(
-        signature,
-        optionData,
-        signatureLen);
-    memset(
-        const_cast<uint8_t *>(optionData),
-        0,
-        signatureLen);
+    memcpy(signature, optionData, signatureLen);
+    memset(const_cast<uint8_t *>(optionData), 0, signatureLen);
     if (!m_RemoteIdentity.Verify(
           packet->GetBuffer(),
           packet->GetLength(),
@@ -258,10 +252,7 @@ void Stream::ProcessPacket(
       Close();
       flags |= PACKET_FLAG_CLOSE;
     }
-    memcpy(
-        const_cast<uint8_t *>(optionData),
-        signature,
-        signatureLen);
+    memcpy(const_cast<uint8_t *>(optionData), signature, signatureLen);
     optionData += signatureLen;
   }
   packet->offset = packet->GetPayload() - packet->buf;
@@ -375,26 +366,16 @@ void Stream::SendBuffer() {
       uint8_t* packet = p->GetBuffer();
       // TODO(open): implement setters
       size_t size = 0;
-      htobe32buf(
-          packet + size,
-          m_SendStreamID);
+      htobe32buf(packet + size, m_SendStreamID);
       size += 4;  // sendStreamID
-      htobe32buf(
-          packet + size,
-          m_RecvStreamID);
+      htobe32buf(packet + size, m_RecvStreamID);
       size += 4;  // receiveStreamID
-      htobe32buf(
-          packet + size,
-          m_SequenceNumber++);
+      htobe32buf(packet + size, m_SequenceNumber++);
       size += 4;  // sequenceNum
       if (isNoAck)
-        htobe32buf(
-            packet + size,
-            m_LastReceivedSequenceNumber);
+        htobe32buf(packet + size, m_LastReceivedSequenceNumber);
       else
-        htobuf32(
-            packet + size,
-            0);
+        htobuf32(packet + size, 0);
       size += 4;  // ack Through
       packet[size] = 0;
       size++;  // NACK count
@@ -408,33 +389,23 @@ void Stream::SendBuffer() {
           PACKET_FLAG_SIGNATURE_INCLUDED | PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED;
         if (isNoAck)
           flags |= PACKET_FLAG_NO_ACK;
-        htobe16buf(
-            packet + size,
-            flags);
+        htobe16buf(packet + size, flags);
         size += 2;  // flags
         size_t identityLen =
           m_LocalDestination.GetOwner().GetIdentity().GetFullLen();
         size_t signatureLen =
           m_LocalDestination.GetOwner().GetIdentity().GetSignatureLen();
         // identity + signature + packet size
-        htobe16buf(
-            packet + size,
-            identityLen + signatureLen + 2);
+        htobe16buf(packet + size, identityLen + signatureLen + 2);
         size += 2;  // options size
         m_LocalDestination.GetOwner().GetIdentity().ToBuffer(
-            packet + size,
-            identityLen);
+            packet + size, identityLen);
         size += identityLen;  // from
-        htobe16buf(
-            packet + size,
-            STREAMING_MTU);
+        htobe16buf(packet + size, STREAMING_MTU);
         size += 2;  // max packet size
         uint8_t* signature = packet + size;  // set it later
         // zeroes for now
-        memset(
-            signature,
-            0,
-            signatureLen);
+        memset(signature, 0, signatureLen);
         size += signatureLen;  // signature
         m_SendBuffer.read(
             reinterpret_cast<char *>(packet + size),
@@ -446,14 +417,10 @@ void Stream::SendBuffer() {
             signature);
       } else {
         // follow on packet
-        htobuf16(
-            packet + size,
-            0);
+        htobuf16(packet + size, 0);
         size += 2;  // flags
         // no options
-        htobuf16(
-            packet + size,
-            0);
+        htobuf16(packet + size, 0);
         size += 2;  // options size
         m_SendBuffer.read(
             reinterpret_cast<char *>(packet + size),
@@ -500,22 +467,14 @@ void Stream::SendQuickAck() {
   Packet p;
   uint8_t* packet = p.GetBuffer();
   size_t size = 0;
-  htobe32buf(
-      packet + size,
-      m_SendStreamID);
+  htobe32buf(packet + size, m_SendStreamID);
   size += 4;  // sendStreamID
-  htobe32buf(
-      packet + size,
-      m_RecvStreamID);
+  htobe32buf(packet + size, m_RecvStreamID);
   size += 4;  // receiveStreamID
   // this is plain Ack message
-  htobuf32(
-      packet + size,
-      0);
+  htobuf32(packet + size, 0);
   size += 4;  // sequenceNum
-  htobe32buf(
-      packet + size,
-      lastReceivedSeqn);
+  htobe32buf(packet + size, lastReceivedSeqn);
   size += 4;  // ack Through
   uint8_t numNacks = 0;
   if (lastReceivedSeqn > m_LastReceivedSequenceNumber) {
@@ -547,14 +506,10 @@ void Stream::SendQuickAck() {
   }
   size++;  // resend delay
   // no flags set
-  htobuf16(
-      packet + size,
-      0);
+  htobuf16(packet + size, 0);
   size += 2;  // flags
   // no options
-  htobuf16(
-      packet + size,
-      0);
+  htobuf16(packet + size, 0);
   size += 2;  // options size
   p.len = size;
   SendPackets(std::vector<Packet *> { &p });
@@ -623,26 +578,14 @@ void Stream::SendClose() {
   size_t signatureLen =
     m_LocalDestination.GetOwner().GetIdentity().GetSignatureLen();
   // signature only
-  htobe16buf(
-      packet + size,
-      signatureLen);
+  htobe16buf(packet + size, signatureLen);
   size += 2;  // options size
   uint8_t* signature = packet + size;
-  memset(
-      packet + size,
-      0,
-      signatureLen);
+  memset(packet + size, 0, signatureLen);
   size += signatureLen;  // signature
-  m_LocalDestination.GetOwner().Sign(
-      packet,
-      size,
-      signature);
+  m_LocalDestination.GetOwner().Sign(packet, size, signature);
   p->len = size;
-  m_Service.post(
-      std::bind(
-        &Stream::SendPacket,
-        shared_from_this(),
-        p));
+  m_Service.post(std::bind(&Stream::SendPacket, shared_from_this(), p));
   LogPrint("FIN sent");
 }
 
@@ -652,13 +595,8 @@ size_t Stream::ConcatenatePackets(
   size_t pos = 0;
   while (pos < len && !m_ReceiveQueue.empty()) {
     Packet* packet = m_ReceiveQueue.front();
-    size_t l = std::min(
-        packet->GetLength(),
-        len - pos);
-    memcpy(
-        buf + pos,
-        packet->GetBuffer(),
-        l);
+    size_t l = std::min(packet->GetLength(), len - pos);
+    memcpy(buf + pos, packet->GetBuffer(), l);
     pos += l;
     packet->offset += l;
     if (!packet->GetLength()) {
@@ -710,7 +648,8 @@ void Stream::SendPackets(
   }
   auto ts = i2p::util::GetMillisecondsSinceEpoch();
   if (!m_CurrentRemoteLease.endDate ||
-      ts >= m_CurrentRemoteLease.endDate - i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD * 1000)
+      ts >= m_CurrentRemoteLease.endDate -
+      i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD * 1000)
     UpdateCurrentRemoteLease(true);
   if (ts < m_CurrentRemoteLease.endDate) {
     std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
@@ -828,9 +767,9 @@ void Stream::UpdateCurrentRemoteLease(
   }
   if (m_RemoteLeaseSet) {
     if (!m_RoutingSession)
-      m_RoutingSession = m_LocalDestination.GetOwner().GetRoutingSession(
-          m_RemoteLeaseSet,
-          32);
+      m_RoutingSession =
+        m_LocalDestination.GetOwner().GetRoutingSession(
+          m_RemoteLeaseSet, 32);
     // try without threshold first
     auto leases = m_RemoteLeaseSet->GetNonExpiredLeases(false);
     if (leases.empty()) {
@@ -854,8 +793,7 @@ void Stream::UpdateCurrentRemoteLease(
       if (!updated) {
         uint32_t i =
           i2p::context.GetRandomNumberGenerator().GenerateWord32(
-              0,
-              leases.size() - 1);
+              0, leases.size() - 1);
         if (m_CurrentRemoteLease.endDate &&
             leases[i].tunnelID == m_CurrentRemoteLease.tunnelID)
           // make sure we don't select previous
@@ -890,26 +828,17 @@ std::shared_ptr<I2NPMessage> Stream::CreateDataMessage(
   int size = compressor.MaxRetrievable();
   uint8_t* buf = msg->GetPayload();
   // length
-  htobe32buf(
-      buf,
-      size);
+  htobe32buf(buf, size);
   buf += 4;
-  compressor.Get(
-      buf,
-      size);
+  compressor.Get(buf, size);
   // source port
-  htobe16buf(
-      buf + 4,
-      m_LocalDestination.GetLocalPort());
+  htobe16buf(buf + 4, m_LocalDestination.GetLocalPort());
   // destination port
-  htobe16buf(
-      buf + 6,
-      m_Port);
+  htobe16buf(buf + 6, m_Port);
   // streaming protocol
   buf[9] = i2p::client::PROTOCOL_TYPE_STREAMING;
   msg->len += size + 4;
-  msg->FillI2NPMessageHeader(
-      eI2NPData);
+  msg->FillI2NPMessageHeader(eI2NPData);
   return msg;
 }
 
@@ -963,20 +892,14 @@ void StreamingDestination::HandleNextPacket(
 std::shared_ptr<Stream> StreamingDestination::CreateNewOutgoingStream(
     std::shared_ptr<const i2p::data::LeaseSet> remote,
     int port) {
-  auto s = std::make_shared<Stream>(
-      m_Owner.GetService(),
-      *this,
-      remote,
-      port);
+  auto s = std::make_shared<Stream>(m_Owner.GetService(), *this, remote, port);
   std::unique_lock<std::mutex> l(m_StreamsMutex);
   m_Streams[s->GetRecvStreamID()] = s;
   return s;
 }
 
 std::shared_ptr<Stream> StreamingDestination::CreateNewIncomingStream() {
-  auto s = std::make_shared<Stream>(
-      m_Owner.GetService(),
-      *this);
+  auto s = std::make_shared<Stream>(m_Owner.GetService(), *this);
   std::unique_lock<std::mutex> l(m_StreamsMutex);
   m_Streams[s->GetRecvStreamID()] = s;
   return s;
@@ -985,10 +908,8 @@ std::shared_ptr<Stream> StreamingDestination::CreateNewIncomingStream() {
 void StreamingDestination::DeleteStream(
     std::shared_ptr<Stream> stream) {
   if (stream) {
-    std::unique_lock<std::mutex> l(
-        m_StreamsMutex);
-    auto it = m_Streams.find(
-        stream->GetRecvStreamID());
+    std::unique_lock<std::mutex> l(m_StreamsMutex);
+    auto it = m_Streams.find(stream->GetRecvStreamID());
     if (it != m_Streams.end())
       m_Streams.erase(it);
   }
@@ -999,17 +920,13 @@ void StreamingDestination::HandleDataMessagePayload(
     size_t len) {
   // unzip it
   CryptoPP::Gunzip decompressor;
-  decompressor.Put(
-      buf,
-      len);
+  decompressor.Put(buf, len);
   decompressor.MessageEnd();
   Packet* uncompressed = new Packet;
   uncompressed->offset = 0;
   uncompressed->len = decompressor.MaxRetrievable();
   if (uncompressed->len <= MAX_PACKET_SIZE) {
-    decompressor.Get(
-        uncompressed->buf,
-        uncompressed->len);
+    decompressor.Get(uncompressed->buf, uncompressed->len);
     HandleNextPacket(uncompressed);
   } else {
     LogPrint("Received packet size ",

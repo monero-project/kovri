@@ -336,9 +336,7 @@ bool I2PControlSession::authenticate(
 std::string I2PControlSession::generateToken() const {
   byte random_data[constants::TOKEN_SIZE] = {};
   CryptoPP::AutoSeededRandomPool rng;
-  rng.GenerateBlock(
-      random_data,
-      constants::TOKEN_SIZE);
+  rng.GenerateBlock(random_data, constants::TOKEN_SIZE);
   std::string token;
   CryptoPP::StringSource ss(
       random_data,
@@ -353,10 +351,9 @@ std::string I2PControlSession::generateToken() const {
 void I2PControlSession::handleAuthenticate(
     const PropertyTree& pt,
     Response& response) {
-  const int api = pt.get<int>(
-      constants::PARAM_API);
-  const std::string given_pass = pt.get<std::string>(
-      constants::PARAM_PASSWORD);
+  const int api = pt.get<int>(constants::PARAM_API);
+  const std::string given_pass =
+    pt.get<std::string>(constants::PARAM_PASSWORD);
   LogPrint(eLogDebug,
       "I2PControl Authenticate API = ", api,
       " Password = ", given_pass);
@@ -367,12 +364,8 @@ void I2PControlSession::handleAuthenticate(
     return;
   }
   const std::string token = generateToken();
-  response.setParam(
-      constants::PARAM_API,
-      api);
-  response.setParam(
-      constants::PARAM_TOKEN,
-      token);
+  response.setParam(constants::PARAM_API, api);
+  response.setParam(constants::PARAM_TOKEN, token);
   std::lock_guard<std::mutex> lock(tokensMutex);
   tokens.insert(
       std::make_pair(
@@ -425,8 +418,8 @@ void I2PControlSession::handleRouterManager(
     if (it != routerManagerHandlers.end()) {
       (this->*(it->second))(response);
     } else {
-      LogPrint(eLogError, "I2PControl RouterManager unknown request ",
-          pair.first);
+      LogPrint(eLogError,
+          "I2PControl RouterManager unknown request ", pair.first);
       response.setError(ErrorCode::InvalidRequest);
     }
   }
@@ -536,10 +529,9 @@ void I2PControlSession::handleTunnelsOutList(
   for (auto tunnel : i2p::tunnel::tunnels.GetOutboundTunnels()) {
     const std::string id = std::to_string(
         tunnel->GetTunnelID());
-    list[id] = tunnelToJsonObject(
-        tunnel.get());
+    list[id] = tunnelToJsonObject(tunnel.get());
     list[id]["bytes"] = JsonObject(
-      static_cast<int>(tunnel->GetNumSentBytes()));
+        static_cast<int>(tunnel->GetNumSentBytes()));
   }
   response.setParam(
       constants::ROUTER_INFO_TUNNELS_OUT_LIST,

@@ -62,8 +62,7 @@ class Daemon_Singleton {
 };
 
 #ifdef _WIN32
-class DaemonWin32
-    : public Daemon_Singleton {
+class DaemonWin32 : public Daemon_Singleton {
  public:
   static DaemonWin32& Instance() {
     static DaemonWin32 instance;
@@ -74,8 +73,7 @@ class DaemonWin32
   virtual bool Stop();
 };
 #else
-class DaemonLinux
-    : public Daemon_Singleton {
+class DaemonLinux : public Daemon_Singleton {
  public:
   DaemonLinux() = default;
   static DaemonLinux& Instance() {

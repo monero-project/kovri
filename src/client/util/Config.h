@@ -45,8 +45,7 @@ namespace util {
 namespace config {
 
 // Our configuration files
-extern std::string kovriConfig,
-       tunnelsConfig;
+extern std::string kovriConfig, tunnelsConfig;
 
 // Config option descriptions
 extern boost::program_options::options_description confOpts;

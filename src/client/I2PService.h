@@ -140,8 +140,7 @@ class I2PServiceHandler {
  * This is a service that listens for connections on
  * the IP network and interacts with I2P
  */
-class TCPIPAcceptor
-    : public I2PService {
+class TCPIPAcceptor : public I2PService {
  public:
   TCPIPAcceptor(
       const std::string& address,

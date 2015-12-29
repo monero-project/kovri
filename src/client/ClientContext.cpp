@@ -67,19 +67,19 @@ void ClientContext::Start() {
     m_SharedLocalDestination->Start();
   }
   std::shared_ptr<ClientDestination> localDestination;
+
   // HTTP proxy
   std::string proxyKeys =
     i2p::util::config::varMap["proxykeys"].as<std::string>();
   if (proxyKeys.length() > 0)
-    localDestination = LoadLocalDestination(
-        proxyKeys,
-        false);
+    localDestination = LoadLocalDestination(proxyKeys, false);
   m_HttpProxy = new i2p::proxy::HTTPProxy(
       i2p::util::config::varMap["httpproxyaddress"].as<std::string>(),
       i2p::util::config::varMap["httpproxyport"].as<int>(),
       localDestination);
   m_HttpProxy->Start();
   LogPrint("HTTP Proxy started");
+
   // SOCKS proxy
   m_SocksProxy = new i2p::proxy::SOCKSProxy(
       i2p::util::config::varMap["socksproxyaddress"].as<std::string>(),
@@ -87,6 +87,7 @@ void ClientContext::Start() {
       localDestination);
   m_SocksProxy->Start();
   LogPrint("SOCKS Proxy Started");
+
   // IRC tunnel
   std::string ircDestination =
     i2p::util::config::varMap["ircdest"].as<std::string>();
@@ -95,16 +96,15 @@ void ClientContext::Start() {
     std::string ircKeys =
       i2p::util::config::varMap["irckeys"].as<std::string>();
     if (ircKeys.length() > 0)
-      localDestination = LoadLocalDestination(
-          ircKeys,
-          false);
+      localDestination = LoadLocalDestination(ircKeys, false);
     auto ircPort = i2p::util::config::varMap["ircport"].as<int>();
     auto ircTunnel = new I2PClientTunnel(
         ircDestination,
         i2p::util::config::varMap["ircaddress"].as<std::string>(),
-        ircPort, localDestination);
+        ircPort,
+        localDestination);
     ircTunnel->Start();
-    // TODO(anonimal):
+    // TODO(open):
     // allow multiple tunnels on the same port (but on a different address)
     m_ClientTunnels.insert(
         std::make_pair(
@@ -112,12 +112,11 @@ void ClientContext::Start() {
           std::unique_ptr<I2PClientTunnel>(ircTunnel)));
     LogPrint("IRC tunnel started");
   }
+
   // Server tunnel
   std::string eepKeys = i2p::util::config::varMap["eepkeys"].as<std::string>();
   if (eepKeys.length() > 0) {  // eepkeys are available
-    localDestination = LoadLocalDestination(
-        eepKeys,
-        true);
+    localDestination = LoadLocalDestination(eepKeys, true);
     auto serverTunnel = new I2PServerTunnel(
         i2p::util::config::varMap["eepaddress"].as<std::string>(),
         i2p::util::config::varMap["eepport"].as<int>(), localDestination);
@@ -129,6 +128,7 @@ void ClientContext::Start() {
     LogPrint("Server tunnel started");
   }
   ReadTunnels();
+
   // I2P Control
   int i2pcontrolPort = i2p::util::config::varMap["i2pcontrolport"].as<int>();
   if (i2pcontrolPort) {
@@ -185,9 +185,7 @@ std::shared_ptr<ClientDestination> ClientContext::LoadLocalDestination(
   i2p::data::PrivateKeys keys;
   std::string fullPath =
     i2p::util::filesystem::GetFullPath(filename);
-  std::ifstream s(
-      fullPath.c_str(),
-      std::ifstream::binary);
+  std::ifstream s(fullPath.c_str(), std::ifstream::binary);
   if (s.is_open()) {
     s.seekg(0, std::ios::end);
     size_t len = s.tellg();
@@ -202,16 +200,15 @@ std::shared_ptr<ClientDestination> ClientContext::LoadLocalDestination(
     LogPrint("Can't open file ", fullPath, ", creating new one");
     keys = i2p::data::PrivateKeys::CreateRandomKeys(
         i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
-    std::ofstream f(
-        fullPath,
-        std::ofstream::binary | std::ofstream::out);
+    std::ofstream f(fullPath, std::ofstream::binary | std::ofstream::out);
     size_t len = keys.GetFullLen();
     uint8_t* buf = new uint8_t[len];
     len = keys.ToBuffer(buf, len);
     f.write(reinterpret_cast<char *>(buf), len);
     delete[] buf;
-    LogPrint("New private keys file ", fullPath, " for ",
-        m_AddressBook.ToAddress(keys.GetPublic().GetIdentHash()), " created");
+    LogPrint("New private keys file ", fullPath,
+        " for ", m_AddressBook.ToAddress(keys.GetPublic().GetIdentHash()),
+        " created");
   }
   std::shared_ptr<ClientDestination> localDestination = nullptr;
   std::unique_lock<std::mutex> l(m_DestinationsMutex);
@@ -292,9 +289,7 @@ void ClientContext::ReadTunnels() {
   std::string pathTunnelsConfigFile =
     i2p::util::filesystem::GetTunnelsConfigFile().string();
   try {
-    boost::property_tree::read_ini(
-        pathTunnelsConfigFile,
-        pt);
+    boost::property_tree::read_ini(pathTunnelsConfigFile, pt);
   } catch(const std::exception& ex) {
     LogPrint(eLogWarning, "Can't read ",
         pathTunnelsConfigFile, ": ", ex.what());
@@ -312,10 +307,12 @@ void ClientContext::ReadTunnels() {
           section.second.get<std::string>(I2P_CLIENT_TUNNEL_DESTINATION);
         int port = section.second.get<int>(I2P_CLIENT_TUNNEL_PORT);
         // optional params
-        std::string address = section.second.get(
+        std::string address =
+          section.second.get(
             I2P_CLIENT_TUNNEL_ADDRESS,
             "127.0.0.1");
-        std::string keys = section.second.get(
+        std::string keys =
+          section.second.get(
             I2P_CLIENT_TUNNEL_KEYS,
             "");
         int destinationPort =
@@ -324,9 +321,7 @@ void ClientContext::ReadTunnels() {
               0);
         std::shared_ptr<ClientDestination>localDestination = nullptr;
         if (keys.length() > 0)
-          localDestination = LoadLocalDestination(
-              keys,
-              false);
+          localDestination = LoadLocalDestination(keys, false);
         auto clientTunnel = new I2PClientTunnel(
             dest,
             address,

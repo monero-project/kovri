@@ -40,8 +40,7 @@ namespace bfs = boost::filesystem;
 
 std::string appName("kovri");
 
-void SetAppName(
-    const std::string& name) {
+void SetAppName(const std::string& name) {
   appName = name;
 }
 

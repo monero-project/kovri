@@ -7,15 +7,15 @@
  * permitted provided that the following conditions are met:
  *
  * 1. Redistributions of source code must retain the above copyright notice, this list of
- *    conditions and the following disclaimer.
+ *  conditions and the following disclaimer.
  *
  * 2. Redistributions in binary form must reproduce the above copyright notice, this list
- *    of conditions and the following disclaimer in the documentation and/or other
- *    materials provided with the distribution.
+ *  of conditions and the following disclaimer in the documentation and/or other
+ *  materials provided with the distribution.
  *
  * 3. Neither the name of the copyright holder nor the names of its contributors may be
- *    used to endorse or promote products derived from this software without specific
- *    prior written permission.
+ *  used to endorse or promote products derived from this software without specific
+ *  prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
  * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
@@ -52,8 +52,8 @@ namespace data {
 template<int SZ>
 class Tag {
  public:
-  explicit Tag(
-      const uint8_t* buf) {
+  Tag(
+      const uint8_t * buf) {
     memcpy(m_Buf, buf, SZ);
   }
   Tag(const Tag<SZ>&) = default;
@@ -62,9 +62,9 @@ class Tag {
 #endif
   Tag() = default;
 
-  Tag<SZ>& operator=(const Tag<SZ>&) = default;
+  Tag<SZ>& operator= (const Tag<SZ>&) = default;
 #ifndef _WIN32
-    Tag<SZ>& operator=(Tag<SZ>&&) = default;
+  Tag<SZ>& operator= (Tag<SZ>&&) = default;
 #endif
 
   uint8_t* operator()() { return m_Buf; }
@@ -75,17 +75,18 @@ class Tag {
 
   const uint64_t* GetLL() const { return ll; }
 
-  bool operator==(const Tag<SZ>& other) const {
+  bool operator== (const Tag<SZ>& other) const {
     return !memcmp(m_Buf, other.m_Buf, SZ);
   }
 
-  bool operator<(const Tag<SZ>& other) const {
+  bool operator< (const Tag<SZ>& other) const {
     return memcmp(m_Buf, other.m_Buf, SZ) < 0;
   }
 
   bool IsZero() const {
-    for (int i = 0; i < SZ/8; i++)
-    if (ll[i]) return false;
+    for (int i = 0; i < SZ / 8; i++)
+    if (ll[i])
+      return false;
     return true;
   }
 
@@ -139,19 +140,25 @@ const uint8_t CERTIFICATE_TYPE_KEY = 5;
 struct Identity {
   uint8_t publicKey[256];
   uint8_t signingKey[128];
+
   struct {
     uint8_t type;
     uint16_t length;
   } certificate;
+
   Identity() = default;
+
   explicit Identity(
       const Keys& keys) {
     *this = keys;
   }
+
   Identity& operator=(const Keys& keys);
+
   size_t FromBuffer(
       const uint8_t* buf,
       size_t len);
+
   IdentHash Hash() const;
 };
 #pragma pack()
@@ -181,7 +188,8 @@ class IdentityEx {
   IdentityEx(
       const uint8_t* buf,
       size_t len);
-  IdentityEx(const IdentityEx& other);
+  IdentityEx(
+      const IdentityEx& other);
   ~IdentityEx();
   IdentityEx& operator=(const IdentityEx& other);
   IdentityEx& operator=(const Identity& standard);
@@ -194,7 +202,8 @@ class IdentityEx {
       uint8_t* buf,
       size_t len) const;
 
-  size_t FromBase64(const std::string& s);
+  size_t FromBase64(
+      const std::string& s);
 
   std::string ToBase64() const;
 
@@ -211,7 +220,9 @@ class IdentityEx {
   }
 
   size_t GetSigningPublicKeyLen() const;
+
   size_t GetSigningPrivateKeyLen() const;
+
   size_t GetSignatureLen() const;
 
   bool Verify(
@@ -220,7 +231,9 @@ class IdentityEx {
       const uint8_t* signature) const;
 
   SigningKeyType GetSigningKeyType() const;
+
   CryptoKeyType GetCryptoKeyType() const;
+
   void DropVerifier();  // to save memory
 
  private:
@@ -236,18 +249,33 @@ class IdentityEx {
 
 class PrivateKeys {  // for eepsites
  public:
-  PrivateKeys() : m_Signer(nullptr) {}
-  PrivateKeys(const PrivateKeys& other)
-      : m_Signer(nullptr) { *this = other; }
-  explicit PrivateKeys(const Keys& keys)
-      : m_Signer(nullptr) { *this = keys; }
+  PrivateKeys()
+      : m_Signer(nullptr) {}
+  PrivateKeys(
+      const PrivateKeys& other)
+      : m_Signer(nullptr) {
+        *this = other;
+      }
+  explicit PrivateKeys(
+      const Keys& keys)
+      : m_Signer(nullptr) {
+        *this = keys;
+      }
   PrivateKeys& operator=(const Keys& keys);
   PrivateKeys& operator=(const PrivateKeys& other);
   ~PrivateKeys();
 
-  const IdentityEx& GetPublic() const { return m_Public; }
-  const uint8_t* GetPrivateKey() const { return m_PrivateKey; }
-  const uint8_t* GetSigningPrivateKey() const { return m_SigningPrivateKey; }
+  const IdentityEx& GetPublic() const {
+    return m_Public;
+  }
+
+  const uint8_t* GetPrivateKey() const {
+    return m_PrivateKey;
+  }
+
+  const uint8_t* GetSigningPrivateKey() const {
+    return m_SigningPrivateKey;
+  }
 
   void Sign(
       const uint8_t* buf,
@@ -266,7 +294,9 @@ class PrivateKeys {  // for eepsites
       uint8_t* buf,
       size_t len) const;
 
-  size_t FromBase64(const std::string& s);
+  size_t FromBase64(
+      const std::string& s);
+
   std::string ToBase64() const;
 
   static PrivateKeys CreateRandomKeys(
@@ -291,16 +321,20 @@ struct XORMetric {
   };
 
   void SetMin() { memset(metric, 0, 32); }
+
   void SetMax() { memset(metric, 0xFF, 32); }
-  bool operator<(const XORMetric& other) const {
+
+  bool operator< (const XORMetric& other) const {
     return memcmp(metric, other.metric, 32) < 0;
   }
 };
 
-IdentHash CreateRoutingKey(const IdentHash& ident);
+IdentHash CreateRoutingKey(
+    const IdentHash& ident);
+
 XORMetric operator^(
-  const IdentHash& key1,
-  const IdentHash& key2);
+    const IdentHash& key1,
+    const IdentHash& key2);
 
 // destination for delivery instructions
 class RoutingDestination {
@@ -309,16 +343,19 @@ class RoutingDestination {
   virtual ~RoutingDestination() {}
 
   virtual const IdentHash& GetIdentHash() const = 0;
-  virtual const uint8_t * GetEncryptionPublicKey() const = 0;
+
+  virtual const uint8_t* GetEncryptionPublicKey() const = 0;
+
   virtual bool IsDestination() const = 0;  // for garlic
 
   std::unique_ptr<const i2p::crypto::ElGamalEncryption>& GetElGamalEncryption() const {
     if (!m_ElGamalEncryption)
-    m_ElGamalEncryption.reset(
-      new i2p::crypto::ElGamalEncryption(
-        GetEncryptionPublicKey()));
+      m_ElGamalEncryption.reset(
+          new i2p::crypto::ElGamalEncryption(
+            GetEncryptionPublicKey()));
     return m_ElGamalEncryption;
   }
+
  private:
   // use lazy initialization
   mutable std::unique_ptr<const i2p::crypto::ElGamalEncryption> m_ElGamalEncryption;
@@ -346,7 +383,10 @@ class LocalDestination {
       const uint8_t* buf,
       int len,
       uint8_t* signature) const {
-    GetPrivateKeys().Sign(buf, len, signature);
+    GetPrivateKeys().Sign(
+        buf,
+        len,
+        signature);
   }
 };
 

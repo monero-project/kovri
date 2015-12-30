@@ -55,14 +55,19 @@ Identity& Identity::operator=(const Keys& keys) {
   return *this;
 }
 
-size_t Identity::FromBuffer(const uint8_t* buf, size_t) {
+size_t Identity::FromBuffer(
+    const uint8_t* buf,
+    size_t) {
   memcpy(publicKey, buf, DEFAULT_IDENTITY_SIZE);
   return DEFAULT_IDENTITY_SIZE;
 }
 
 IdentHash Identity::Hash() const {
   IdentHash hash;
-  CryptoPP::SHA256().CalculateDigest(hash, publicKey, DEFAULT_IDENTITY_SIZE);
+  CryptoPP::SHA256().CalculateDigest(
+      hash,
+      publicKey,
+      DEFAULT_IDENTITY_SIZE);
   return hash;
 }
 

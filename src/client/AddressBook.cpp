@@ -513,9 +513,10 @@ void AddressBookSubscription::Request() {
         << ": " << m_LastModified << "\r\n";
       request << "\r\n";  // end of header
       auto stream =
-        m_Book.getSharedLocalDestination()->CreateStream(leaseSet, uri.m_Port);
-      stream->Send(
-          reinterpret_cast<uint8_t *>(request.str().c_str()),
+        m_Book.getSharedLocalDestination()->CreateStream(
+            leaseSet,
+            uri.m_Port);
+      stream->Send((uint8_t *)request.str().c_str(),
           request.str().length());
       uint8_t buf[4096];
       bool end = false;

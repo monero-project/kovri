@@ -140,9 +140,9 @@ void RouterInfo::ReadFromBuffer(
     // verify signature
     int len = m_BufferLen - m_RouterIdentity.GetSignatureLen();
     if (!m_RouterIdentity.Verify(
-          reinterpret_cast<uint8_t *>(m_Buffer,
+          reinterpret_cast<uint8_t *>(m_Buffer),
           len,
-          reinterpret_cast<uint8_t *>(m_Buffer + len)) {
+          reinterpret_cast<uint8_t *>(m_Buffer + len))) {
       LogPrint(eLogError, "signature verification failed");
       m_IsUnreachable = true;
     }
@@ -462,7 +462,7 @@ void RouterInfo::CreateBuffer(const PrivateKeys& privateKeys) {
   std::stringstream s;
   uint8_t ident[1024];
   auto identLen = privateKeys.GetPublic().ToBuffer(ident, 1024);
-  s.write(reinterpret_cast<char *>(ident, identLen);
+  s.write(reinterpret_cast<char *>(ident), identLen);
   WriteToStream(s);
   m_BufferLen = s.str().size();
   if (!m_Buffer)

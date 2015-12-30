@@ -161,9 +161,9 @@ int Reseeder::ProcessSU3Stream(
       size_t tbsLen = pos + contentLength;
       uint8_t* tbs = new uint8_t[tbsLen];
       s.seekg(0, std::ios::beg);
-      s.read(reinterpret_cast<char *>(tbs, tbsLen);
+      s.read(reinterpret_cast<char *>(tbs), tbsLen);
       uint8_t* signature = new uint8_t[signatureLength];
-      s.read(reinterpret_cast<char *>(signature, signatureLength);
+      s.read(reinterpret_cast<char *>(signature), signatureLength);
       // RSA-raw
       i2p::crypto::RSASHA5124096RawVerifier verifier(it->second);
       verifier.Update(tbs, tbsLen);
@@ -240,7 +240,7 @@ int Reseeder::ProcessSU3Stream(
         continue;
       }
       uint8_t* compressed = new uint8_t[compressedSize];
-      s.read(reinterpret_cast<char *>(compressed, compressedSize);
+      s.read(reinterpret_cast<char *>(compressed), compressedSize);
       if (compressionMethod) {  // we assume Deflate
         CryptoPP::Inflator decompressor;
         decompressor.Put(compressed, compressedSize);

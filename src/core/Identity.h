@@ -52,16 +52,19 @@ namespace data {
 template<int SZ>
 class Tag {
  public:
-  explicit Tag(const uint8_t* buf) { memcpy(m_Buf, buf, SZ); }
+  explicit Tag(
+      const uint8_t* buf) {
+    memcpy(m_Buf, buf, SZ);
+  }
   Tag(const Tag<SZ>&) = default;
 #ifndef _WIN32  // TODO(unassigned): FIXME!!! msvs 2013 can't compile it
   Tag(Tag<SZ>&&) = default;
 #endif
   Tag() = default;
 
-  Tag<SZ>& operator= (const Tag<SZ>&) = default;
+  Tag<SZ>& operator=(const Tag<SZ>&) = default;
 #ifndef _WIN32
-    Tag<SZ>& operator= (Tag<SZ>&&) = default;
+    Tag<SZ>& operator=(Tag<SZ>&&) = default;
 #endif
 
   uint8_t* operator()() { return m_Buf; }
@@ -72,11 +75,11 @@ class Tag {
 
   const uint64_t* GetLL() const { return ll; }
 
-  bool operator== (const Tag<SZ>& other) const {
+  bool operator==(const Tag<SZ>& other) const {
     return !memcmp(m_Buf, other.m_Buf, SZ);
   }
 
-  bool operator< (const Tag<SZ>& other) const {
+  bool operator<(const Tag<SZ>& other) const {
     return memcmp(m_Buf, other.m_Buf, SZ) < 0;
   }
 
@@ -100,11 +103,13 @@ class Tag {
     return std::string(str);
   }
 
-  void FromBase32(const std::string& s) {
+  void FromBase32(
+      const std::string& s) {
     i2p::util::Base32ToByteStream(s.c_str(), s.length(), m_Buf, SZ);
   }
 
-  void FromBase64(const std::string& s) {
+  void FromBase64(
+      const std::string& s) {
     i2p::util::Base64ToByteStream(s.c_str(), s.length(), m_Buf, SZ);
   }
 
@@ -138,9 +143,11 @@ struct Identity {
     uint8_t type;
     uint16_t length;
   } certificate;
-
   Identity() = default;
-  explicit Identity(const Keys& keys) { *this = keys; }
+  explicit Identity(
+      const Keys& keys) {
+    *this = keys;
+  }
   Identity& operator=(const Keys& keys);
   size_t FromBuffer(
       const uint8_t* buf,
@@ -150,7 +157,7 @@ struct Identity {
 #pragma pack()
 Keys CreateRandomKeys();
 
-const size_t DEFAULT_IDENTITY_SIZE = sizeof (Identity);  // 387 bytes
+const size_t DEFAULT_IDENTITY_SIZE = sizeof(Identity);  // 387 bytes
 
 const uint16_t CRYPTO_KEY_TYPE_ELGAMAL = 0;
 const uint16_t SIGNING_KEY_TYPE_DSA_SHA1 = 0;
@@ -285,7 +292,7 @@ struct XORMetric {
 
   void SetMin() { memset(metric, 0, 32); }
   void SetMax() { memset(metric, 0xFF, 32); }
-  bool operator< (const XORMetric& other) const {
+  bool operator<(const XORMetric& other) const {
     return memcmp(metric, other.metric, 32) < 0;
   }
 };
@@ -320,12 +327,21 @@ class RoutingDestination {
 class LocalDestination {
  public:
   virtual ~LocalDestination() {}
+
   virtual const PrivateKeys& GetPrivateKeys() const = 0;
+
   virtual const uint8_t* GetEncryptionPrivateKey() const = 0;
+
   virtual const uint8_t* GetEncryptionPublicKey() const = 0;
 
-  const IdentityEx& GetIdentity() const { return GetPrivateKeys().GetPublic(); }
-  const IdentHash& GetIdentHash() const { return GetIdentity().GetIdentHash(); }
+  const IdentityEx& GetIdentity() const {
+    return GetPrivateKeys().GetPublic();
+  }
+
+  const IdentHash& GetIdentHash() const {
+    return GetIdentity().GetIdentHash();
+  }
+
   void Sign(
       const uint8_t* buf,
       int len,

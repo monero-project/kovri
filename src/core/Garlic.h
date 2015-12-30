@@ -234,7 +234,7 @@ class GarlicDestination : public i2p::data::LocalDestination {
     std::shared_ptr<GarlicRoutingSession> > m_Sessions;
   // incoming
   std::map<SessionTag,
-    std::shared_ptr<i2p::crypto::CBCDecryption>> m_Tags;
+    std::shared_ptr<i2p::crypto::CBCDecryption> > m_Tags;
   uint32_t m_LastTagsCleanupTime;
   // DeliveryStatus
   std::map<uint32_t,

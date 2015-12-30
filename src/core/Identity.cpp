@@ -631,7 +631,7 @@ IdentHash CreateRoutingKey(
       tm.tm_mday);
 #endif
   IdentHash key;
-  CryptoPP::SHA256().CalculateDigest(reinterpret_cast<uint8_t *>(key), buf, 40);
+  CryptoPP::SHA256().CalculateDigest((uint8_t *)key, buf, 40);
   return key;
 }
 

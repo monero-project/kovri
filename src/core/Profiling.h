@@ -28,75 +28,76 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef PROFILING_H__
-#define PROFILING_H__
-
-#include <memory>
+#ifndef SRC_CORE_PROFILING_H_
+#define SRC_CORE_PROFILING_H_
 
 #include <boost/date_time/posix_time/posix_time.hpp>
+
+#include <memory>
 
 #include "Identity.h"
 #include "client/util/Filesystem.h"
 
-namespace i2p
-{
-namespace data
-{   
-    const char PEER_PROFILES_DIRECTORY[] = "peerProfiles";
-    const char PEER_PROFILE_PREFIX[] = "profile-";
-    // sections
-    const char PEER_PROFILE_SECTION_PARTICIPATION[] = "participation";
-    const char PEER_PROFILE_SECTION_USAGE[] = "usage";
-    // params   
-    const char PEER_PROFILE_LAST_UPDATE_TIME[] = "lastupdatetime";
-    const char PEER_PROFILE_PARTICIPATION_AGREED[] = "agreed";
-    const char PEER_PROFILE_PARTICIPATION_DECLINED[] = "declined";
-    const char PEER_PROFILE_PARTICIPATION_NON_REPLIED[] = "nonreplied"; 
-    const char PEER_PROFILE_USAGE_TAKEN[] = "taken";
-    const char PEER_PROFILE_USAGE_REJECTED[] = "rejected";
+namespace i2p {
+namespace data {
 
-    const int PEER_PROFILE_EXPIRATION_TIMEOUT = 72; // in hours (3 days)
-    
-    class RouterProfile
-    {
-        public:
+const char PEER_PROFILES_DIRECTORY[] = "peerProfiles";
+const char PEER_PROFILE_PREFIX[] = "profile-";
+// sections
+const char PEER_PROFILE_SECTION_PARTICIPATION[] = "participation";
+const char PEER_PROFILE_SECTION_USAGE[] = "usage";
+// params
+const char PEER_PROFILE_LAST_UPDATE_TIME[] = "lastupdatetime";
+const char PEER_PROFILE_PARTICIPATION_AGREED[] = "agreed";
+const char PEER_PROFILE_PARTICIPATION_DECLINED[] = "declined";
+const char PEER_PROFILE_PARTICIPATION_NON_REPLIED[] = "nonreplied";
+const char PEER_PROFILE_USAGE_TAKEN[] = "taken";
+const char PEER_PROFILE_USAGE_REJECTED[] = "rejected";
 
-            RouterProfile (const IdentHash& identHash);
-            RouterProfile& operator= (const RouterProfile& ) = default;
-            
-            void Save ();
-            void Load ();
+const int PEER_PROFILE_EXPIRATION_TIMEOUT = 72;  // in hours (3 days)
 
-            bool IsBad ();
-            
-            void TunnelBuildResponse (uint8_t ret);
-            void TunnelNonReplied ();
+class RouterProfile {
+ public:
+  explicit RouterProfile(const IdentHash& identHash);
+  RouterProfile& operator=(const RouterProfile&) = default;
 
-        private:
+  void Save();
+  void Load();
 
-            boost::posix_time::ptime GetTime () const;
-            void UpdateTime ();
+  bool IsBad();
 
-            bool IsAlwaysDeclining () const { return !m_NumTunnelsAgreed && m_NumTunnelsDeclined >= 5; };
-            bool IsLowPartcipationRate () const;
-            bool IsLowReplyRate () const;
-            
-        private:    
+  void TunnelBuildResponse(uint8_t ret);
+  void TunnelNonReplied();
 
-            IdentHash m_IdentHash;
-            boost::posix_time::ptime m_LastUpdateTime;
-            // participation
-            uint32_t m_NumTunnelsAgreed;
-            uint32_t m_NumTunnelsDeclined;  
-            uint32_t m_NumTunnelsNonReplied;
-            // usage
-            uint32_t m_NumTimesTaken;
-            uint32_t m_NumTimesRejected;    
-    };  
+ private:
+  boost::posix_time::ptime GetTime() const;
+  void UpdateTime();
 
-    std::shared_ptr<RouterProfile> GetRouterProfile (const IdentHash& identHash); 
-    void DeleteObsoleteProfiles ();
-}       
-}   
+  bool IsAlwaysDeclining() const {
+    return !m_NumTunnelsAgreed && m_NumTunnelsDeclined >= 5;
+  }
 
-#endif
+  bool IsLowPartcipationRate() const;
+  bool IsLowReplyRate() const;
+
+ private:
+  IdentHash m_IdentHash;
+  boost::posix_time::ptime m_LastUpdateTime;
+  // participation
+  uint32_t m_NumTunnelsAgreed;
+  uint32_t m_NumTunnelsDeclined;
+  uint32_t m_NumTunnelsNonReplied;
+  // usage
+  uint32_t m_NumTimesTaken;
+  uint32_t m_NumTimesRejected;
+};
+
+std::shared_ptr<RouterProfile> GetRouterProfile(
+    const IdentHash& identHash);
+
+void DeleteObsoleteProfiles();
+
+}  // namespace data
+}  // namespace i2p
+
+#endif  // SRC_CORE_PROFILING_H_

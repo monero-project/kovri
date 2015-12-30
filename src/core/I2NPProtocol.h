@@ -287,13 +287,13 @@ struct I2NPMessage {
   void RenewI2NPMessageHeader();
 };
 
-template<int sz>
+template<int SZ>
 struct I2NPMessageBuffer: public I2NPMessage {
   I2NPMessageBuffer() {
     buf = m_Buffer;
-    maxLen = sz;
+    maxLen = SZ;
   }
-  uint8_t m_Buffer[sz + 16] = {};
+  uint8_t m_Buffer[SZ + 16] = {};
 };
 
 I2NPMessage* NewI2NPMessage();

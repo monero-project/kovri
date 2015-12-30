@@ -28,21 +28,22 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @note This file is named NetworkDatabase.h instead of NetDb.h to avoid
- *  a possible nameclash with a file included by boost on case insensitive
- *  filesystems.
- */
-#ifndef NETDB_H__
-#define NETDB_H__
+// Note: this file is named NetworkDatabase.h instead of NetDb.h to avoid
+// a possible nameclash with a file included by boost on case insensitive
+// filesystems.
+
+#ifndef SRC_CORE_NETWORKDATABASE_H_
+#define SRC_CORE_NETWORKDATABASE_H_
 
 #include <inttypes.h>
+
 #include <list>
 #include <map>
 #include <mutex>
 #include <set>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include "I2NPProtocol.h"
 #include "LeaseSet.h"
@@ -54,88 +55,131 @@
 #include "tunnel/TunnelPool.h"
 #include "util/Queue.h"
 
-namespace i2p
-{
-namespace data
-{       
-    
-    class NetDb
-    {
-        public:
+namespace i2p {
+namespace data {
 
-            NetDb ();
-            ~NetDb ();
+class NetDb {
+ public:
+  NetDb();
+  ~NetDb();
 
-            bool Start ();
-            void Stop ();
-            
-            void AddRouterInfo (const uint8_t * buf, int len);
-            void AddRouterInfo (const IdentHash& ident, const uint8_t * buf, int len);
-            void AddLeaseSet (const IdentHash& ident, const uint8_t * buf, int len, std::shared_ptr<i2p::tunnel::InboundTunnel> from);
-            std::shared_ptr<RouterInfo> FindRouter (const IdentHash& ident) const;
-            std::shared_ptr<LeaseSet> FindLeaseSet (const IdentHash& destination) const;
+  bool Start();
+  void Stop();
 
-            void RequestDestination (const IdentHash& destination, RequestedDestination::RequestComplete requestComplete = nullptr);            
-            
-            void HandleDatabaseStoreMsg (std::shared_ptr<const I2NPMessage> msg);
-            void HandleDatabaseSearchReplyMsg (std::shared_ptr<const I2NPMessage> msg);
-            void HandleDatabaseLookupMsg (std::shared_ptr<const I2NPMessage> msg);          
+  void AddRouterInfo(
+      const uint8_t* buf,
+      int len);
+  void AddRouterInfo(
+      const IdentHash& ident,
+      const uint8_t* buf,
+      int len);
 
-            std::shared_ptr<const RouterInfo> GetRandomRouter () const;
-            std::shared_ptr<const RouterInfo> GetRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith) const;
-            std::shared_ptr<const RouterInfo> GetHighBandwidthRandomRouter (std::shared_ptr<const RouterInfo> compatibleWith) const;
-            std::shared_ptr<const RouterInfo> GetRandomPeerTestRouter () const;
-            std::shared_ptr<const RouterInfo> GetRandomIntroducer () const;
-            std::shared_ptr<const RouterInfo> GetClosestFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
-            std::vector<IdentHash> GetClosestFloodfills (const IdentHash& destination, size_t num,
-                std::set<IdentHash>& excluded) const;
-            std::shared_ptr<const RouterInfo> GetClosestNonFloodfill (const IdentHash& destination, const std::set<IdentHash>& excluded) const;
-            void SetUnreachable (const IdentHash& ident, bool unreachable);         
+  void AddLeaseSet(
+      const IdentHash& ident,
+      const uint8_t* buf,
+      int len,
+      std::shared_ptr<i2p::tunnel::InboundTunnel> from);
 
-            void PostI2NPMsg (std::shared_ptr<const I2NPMessage> msg);
+  std::shared_ptr<RouterInfo> FindRouter(
+      const IdentHash& ident) const;
 
-            bool Reseed ();
-            // for web interface
-            int GetNumRouters () const { return m_RouterInfos.size (); };
-            int GetNumFloodfills () const { return m_Floodfills.size (); };
-            int GetNumLeaseSets () const { return m_LeaseSets.size (); };
-            
-        private:
+  std::shared_ptr<LeaseSet> FindLeaseSet(
+      const IdentHash& destination) const;
 
-            bool CreateNetDb(boost::filesystem::path directory);
-            void Load ();
-            void SaveUpdated ();
-            void Run (); // exploratory thread
-            void Explore (int numDestinations); 
-            void Publish ();
-            void ManageLeaseSets ();
-            void ManageRequests ();
+  void RequestDestination(
+      const IdentHash& destination,
+      RequestedDestination::RequestComplete requestComplete = nullptr);
 
-            template<typename Filter>
-            std::shared_ptr<const RouterInfo> GetRandomRouter (Filter filter) const;    
-        
-        private:
+  void HandleDatabaseStoreMsg(
+      std::shared_ptr<const I2NPMessage> msg);
 
-            std::map<IdentHash, std::shared_ptr<LeaseSet> > m_LeaseSets;
-            mutable std::mutex m_RouterInfosMutex;
-            std::map<IdentHash, std::shared_ptr<RouterInfo> > m_RouterInfos;
-            mutable std::mutex m_FloodfillsMutex;
-            std::list<std::shared_ptr<RouterInfo> > m_Floodfills;
-            
-            bool m_IsRunning;
-            std::thread * m_Thread; 
-            i2p::util::Queue<std::shared_ptr<const I2NPMessage> > m_Queue; // of I2NPDatabaseStoreMsg
+  void HandleDatabaseSearchReplyMsg(
+      std::shared_ptr<const I2NPMessage> msg);
 
-            Reseeder * m_Reseeder;
+  void HandleDatabaseLookupMsg(
+      std::shared_ptr<const I2NPMessage> msg);
 
-            friend class NetDbRequests; 
-            NetDbRequests m_Requests;
+  std::shared_ptr<const RouterInfo> GetRandomRouter() const;
+  std::shared_ptr<const RouterInfo> GetRandomRouter(
+      std::shared_ptr<const RouterInfo> compatibleWith) const;
 
-            static const char m_NetDbPath[];
-    };
+  std::shared_ptr<const RouterInfo> GetHighBandwidthRandomRouter(
+      std::shared_ptr<const RouterInfo> compatibleWith) const;
 
-    extern NetDb netdb;
-}
-}
+  std::shared_ptr<const RouterInfo> GetRandomPeerTestRouter() const;
 
-#endif
+  std::shared_ptr<const RouterInfo> GetRandomIntroducer() const;
+
+  std::shared_ptr<const RouterInfo> GetClosestFloodfill(
+      const IdentHash& destination,
+      const std::set<IdentHash>& excluded) const;
+  std::vector<IdentHash> GetClosestFloodfills(
+      const IdentHash& destination,
+      size_t num,
+      std::set<IdentHash>& excluded) const;
+
+  std::shared_ptr<const RouterInfo> GetClosestNonFloodfill(
+      const IdentHash& destination,
+      const std::set<IdentHash>& excluded) const;
+
+  void SetUnreachable(
+      const IdentHash& ident,
+      bool unreachable);
+
+  void PostI2NPMsg(
+      std::shared_ptr<const I2NPMessage> msg);
+
+  bool Reseed();
+
+  int GetNumRouters() const {
+    return m_RouterInfos.size();
+  }
+
+  int GetNumFloodfills() const {
+    return m_Floodfills.size();
+  }
+
+  int GetNumLeaseSets() const {
+    return m_LeaseSets.size();
+  }
+
+ private:
+  bool CreateNetDb(boost::filesystem::path directory);
+  void Load();
+  void SaveUpdated();
+  void Run();  // exploratory thread
+  void Explore(int numDestinations);
+  void Publish();
+  void ManageLeaseSets();
+  void ManageRequests();
+
+  template<typename Filter>
+  std::shared_ptr<const RouterInfo> GetRandomRouter(
+      Filter filter) const;
+
+ private:
+  std::map<IdentHash, std::shared_ptr<LeaseSet> > m_LeaseSets;
+  mutable std::mutex m_RouterInfosMutex;
+  std::map<IdentHash, std::shared_ptr<RouterInfo> > m_RouterInfos;
+  mutable std::mutex m_FloodfillsMutex;
+  std::list<std::shared_ptr<RouterInfo> > m_Floodfills;
+
+  bool m_IsRunning;
+  std::thread * m_Thread;
+  // of I2NPDatabaseStoreMsg
+  i2p::util::Queue<std::shared_ptr<const I2NPMessage> > m_Queue;
+
+  Reseeder* m_Reseeder;
+
+  friend class NetDbRequests;
+  NetDbRequests m_Requests;
+
+  static const char m_NetDbPath[];
+};
+
+extern NetDb netdb;
+
+}  // namespace data
+}  // namespace i2p
+
+#endif  // SRC_CORE_NETWORKDATABASE_H_

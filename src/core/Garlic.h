@@ -34,6 +34,7 @@
 #include <cryptopp/osrng.h>
 
 #include <inttypes.h>
+
 #include <list>
 #include <map>
 #include <memory>

@@ -36,6 +36,7 @@
 #include <mutex>
 #include <set>
 
+#include "I2NPProtocol.h"
 #include "Identity.h"
 #include "RouterInfo.h"
 

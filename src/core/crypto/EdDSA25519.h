@@ -28,8 +28,8 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef EDDSA25519_H__
-#define EDDSA25519_H__
+#ifndef SRC_CORE_CRYPTO_EDDSA25519_H_
+#define SRC_CORE_CRYPTO_EDDSA25519_H_
 
 #include "SignatureBase.h"
 
@@ -39,50 +39,55 @@ namespace crypto {
 // EdDSA
 const size_t EDDSA25519_PUBLIC_KEY_LENGTH = 32;
 const size_t EDDSA25519_SIGNATURE_LENGTH = 64;
-const size_t EDDSA25519_PRIVATE_KEY_LENGTH = 32;        
+const size_t EDDSA25519_PRIVATE_KEY_LENGTH = 32;
 
 class EDDSA25519Verifier : public Verifier {
-public:
+ public:
+  EDDSA25519Verifier(
+      const uint8_t* signingKey);
 
-    EDDSA25519Verifier(const uint8_t* signingKey);
-    bool Verify(const uint8_t* buf, size_t len, const uint8_t* signature) const;
+  bool Verify(
+      const uint8_t* buf,
+      size_t len,
+      const uint8_t* signature) const;
 
-    size_t GetPublicKeyLen() const;
-    size_t GetSignatureLen() const;
+  size_t GetPublicKeyLen() const;
+  size_t GetSignatureLen() const;
 
-private:
-
-    uint8_t m_PublicKey[EDDSA25519_PUBLIC_KEY_LENGTH];
+ private:
+  uint8_t m_PublicKey[EDDSA25519_PUBLIC_KEY_LENGTH];
 };
 
 class EDDSA25519Signer : public Signer {
-public:
+ public:
+  // Construct from a key pair.
+  EDDSA25519Signer(
+      const uint8_t* signingPrivateKey,
+      const uint8_t* signingPublicKey);
 
-    /**
-     * Construct from a key pair.
-     */
-    EDDSA25519Signer(const uint8_t* signingPrivateKey, const uint8_t* signingPublicKey);
+  // Construct from a private key.
+  // The corresponding public key will be computed from it.
+  EDDSA25519Signer(
+      const uint8_t* signingPrivateKey);
 
-    /**
-     * Construct from a private key.
-     * The corresponding public key will be computed from it.
-     */
-    EDDSA25519Signer(const uint8_t* signingPrivateKey);
+  // TODO(unassigned): do not pass random number generator.
+  // EdDSA does not require a random source
+  void Sign(
+      CryptoPP::RandomNumberGenerator&,
+      const uint8_t* buf,
+      int len,
+      uint8_t* signature) const;
 
-    /**
-     * @todo do not pass random number generator, EdDSA does not require a random
-     *  source
-     */
-    void Sign(CryptoPP::RandomNumberGenerator&, const uint8_t* buf, int len, uint8_t* signature) const; 
-
-    uint8_t m_PrivateKey[EDDSA25519_PRIVATE_KEY_LENGTH];
-    uint8_t m_PublicKey[EDDSA25519_PUBLIC_KEY_LENGTH];
+  uint8_t m_PrivateKey[EDDSA25519_PRIVATE_KEY_LENGTH];
+  uint8_t m_PublicKey[EDDSA25519_PUBLIC_KEY_LENGTH];
 };
 
-void CreateEDDSARandomKeys(CryptoPP::RandomNumberGenerator& rnd, uint8_t* privateKey,
+void CreateEDDSARandomKeys(
+    CryptoPP::RandomNumberGenerator& rnd,
+    uint8_t* privateKey,
     uint8_t* publicKey);
 
-}
-}
+}  // namespace crypto
+}  // namespace i2p
 
-#endif // EDDSA25519_H__
+#endif  // SRC_CORE_CRYPTO_EDDSA25519_H_

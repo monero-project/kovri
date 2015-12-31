@@ -28,8 +28,8 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SIGNATUREBASE_H__
-#define SIGNATUREBASE_H__
+#ifndef SRC_CORE_CRYPTO_SIGNATUREBASE_H_
+#define SRC_CORE_CRYPTO_SIGNATUREBASE_H_
 
 #include <cryptopp/osrng.h>
 
@@ -37,23 +37,30 @@ namespace i2p {
 namespace crypto {
 
 class Verifier {
-public:
-    
-    virtual ~Verifier() {};
-    virtual bool Verify(const uint8_t * buf, size_t len, const uint8_t * signature) const = 0;
-    virtual size_t GetPublicKeyLen() const = 0;
-    virtual size_t GetSignatureLen() const = 0;
-    virtual size_t GetPrivateKeyLen() const { return GetSignatureLen()/2; };
+ public:
+  virtual ~Verifier() {}
+  virtual bool Verify(
+      const uint8_t* buf,
+      size_t len,
+      const uint8_t* signature) const = 0;
+  virtual size_t GetPublicKeyLen() const = 0;
+  virtual size_t GetSignatureLen() const = 0;
+  virtual size_t GetPrivateKeyLen() const {
+    return GetSignatureLen() / 2;
+  }
 };
 
 class Signer {
-public:
-
-    virtual ~Signer() {};      
-    virtual void Sign(CryptoPP::RandomNumberGenerator& rnd, const uint8_t * buf, int len, uint8_t * signature) const = 0; 
+ public:
+  virtual ~Signer() {}
+  virtual void Sign(
+      CryptoPP::RandomNumberGenerator& rnd,
+      const uint8_t* buf,
+      int len,
+      uint8_t* signature) const = 0;
 };
 
+}  // namespace crypto
+}  // namespace i2p
 
-}
-}
-#endif // SIGNATUREBASE_H__
+#endif  // SRC_CORE_CRYPTO_SIGNATUREBASE_H_

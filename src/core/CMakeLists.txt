@@ -80,7 +80,6 @@ endif()
 include_directories("." "../")
 
 set(EDDSA_LIB "ed25519-ref10")
-
 add_subdirectory(crypto/ed25519)
 
 if(WITH_BOOST_LOG)

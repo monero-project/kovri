@@ -28,8 +28,8 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef CRYPTO_CONST_H__
-#define CRYPTO_CONST_H__
+#ifndef SRC_CORE_CRYPTO_CRYPTOCONST_H_
+#define SRC_CORE_CRYPTO_CRYPTOCONST_H_
 
 #include <cryptopp/integer.h>
 
@@ -37,31 +37,31 @@ namespace i2p {
 namespace crypto {
 
 struct CryptoConstants {
-    // DH/ElGamal
-    const CryptoPP::Integer elgp;
-    const CryptoPP::Integer elgg; 
+  // DH/ElGamal
+  const CryptoPP::Integer elgp;
+  const CryptoPP::Integer elgg;
 
-    // DSA
-    const CryptoPP::Integer dsap;       
-    const CryptoPP::Integer dsaq;
-    const CryptoPP::Integer dsag;           
-};  
+  // DSA
+  const CryptoPP::Integer dsap;
+  const CryptoPP::Integer dsaq;
+  const CryptoPP::Integer dsag;
+};
 
-const CryptoConstants& GetCryptoConstants ();
+const CryptoConstants& GetCryptoConstants();
 
-// DH/ElGamal   
-#define elgp GetCryptoConstants ().elgp
-#define elgg GetCryptoConstants ().elgg
+// DH/ElGamal
+#define elgp GetCryptoConstants().elgp
+#define elgg GetCryptoConstants().elgg
 
 // DSA
-#define dsap GetCryptoConstants ().dsap 
-#define dsaq GetCryptoConstants ().dsaq
-#define dsag GetCryptoConstants ().dsag 
+#define dsap GetCryptoConstants().dsap
+#define dsaq GetCryptoConstants().dsaq
+#define dsag GetCryptoConstants().dsag
 
 // RSA
 const int rsae = 65537;
 
-} // crypto
-} // i2p
+}  // namespace crypto
+}  // namespace i2p
 
-#endif
+#endif  // SRC_CORE_CRYPTO_CRYPTOCONST_H_

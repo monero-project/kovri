@@ -13,6 +13,7 @@ set(CORE_SRC
     "crypto/CryptoConst.cpp"
     "crypto/EdDSA25519.cpp"
     "crypto/Signature.cpp"
+    "transport/NTCP.cpp"
     "transport/NTCPSession.cpp"
     "transport/SSU.cpp"
     "transport/SSUData.cpp"

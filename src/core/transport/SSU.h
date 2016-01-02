@@ -28,17 +28,21 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SSU_H__
-#define SSU_H__
+#ifndef SRC_CORE_TRANSPORT_SSU_H_
+#define SRC_CORE_TRANSPORT_SSU_H_
+
+#include <boost/asio.hpp>
 
 #include <inttypes.h>
 #include <string.h>
-#include <map>
+
 #include <list>
+#include <map>
+#include <mutex>
 #include <set>
 #include <thread>
-#include <mutex>
-#include <boost/asio.hpp>
+#include <vector>
+
 #include "I2NPProtocol.h"
 #include "Identity.h"
 #include "RouterInfo.h"
@@ -46,99 +50,187 @@
 #include "crypto/AES.h"
 #include "util/I2PEndian.h"
 
-namespace i2p
-{
-namespace transport
-{
-    const int SSU_KEEP_ALIVE_INTERVAL = 30; // 30 seconds   
-    const int SSU_PEER_TEST_TIMEOUT = 60; // 60 seconds     
-    const int SSU_TO_INTRODUCER_SESSION_DURATION = 3600; // 1 hour
-    const size_t SSU_MAX_NUM_INTRODUCERS = 3;
+namespace i2p {
+namespace transport {
 
-    struct SSUPacket
-    {
-        i2p::crypto::AESAlignedBuffer<1500> buf;
-        boost::asio::ip::udp::endpoint from;
-        size_t len;
-    };  
-    
-    class SSUServer
-    {
-        public:
+const int SSU_KEEP_ALIVE_INTERVAL = 30;  // 30 seconds
+const int SSU_PEER_TEST_TIMEOUT = 60;  // 60 seconds
+const int SSU_TO_INTRODUCER_SESSION_DURATION = 3600;  // 1 hour
+const size_t SSU_MAX_NUM_INTRODUCERS = 3;
 
-            SSUServer (int port);
-            ~SSUServer ();
-            void Start ();
-            void Stop ();
-            std::shared_ptr<SSUSession> GetSession (std::shared_ptr<const i2p::data::RouterInfo> router, bool peerTest = false);
-            std::shared_ptr<SSUSession> FindSession (std::shared_ptr<const i2p::data::RouterInfo> router) const;
-            std::shared_ptr<SSUSession> FindSession (const boost::asio::ip::udp::endpoint& e) const;
-            std::shared_ptr<SSUSession> GetRandomEstablishedSession (std::shared_ptr<const SSUSession> excluded);
-            void DeleteSession (std::shared_ptr<SSUSession> session);
-            void DeleteAllSessions ();          
+struct SSUPacket {
+  i2p::crypto::AESAlignedBuffer<1500> buf;
+  boost::asio::ip::udp::endpoint from;
+  size_t len;
+};
 
-            boost::asio::io_service& GetService () { return m_Service; };
-            boost::asio::io_service& GetServiceV6 () { return m_ServiceV6; };
-            const boost::asio::ip::udp::endpoint& GetEndpoint () const { return m_Endpoint; };          
-            void Send (const uint8_t * buf, size_t len, const boost::asio::ip::udp::endpoint& to);
-            void AddRelay (uint32_t tag, const boost::asio::ip::udp::endpoint& relay);
-            std::shared_ptr<SSUSession> FindRelaySession (uint32_t tag);
+class SSUServer {
+ public:
+  SSUServer(
+      int port);
+  ~SSUServer();
 
-            void NewPeerTest (uint32_t nonce, PeerTestParticipant role, std::shared_ptr<SSUSession> session = nullptr);
-            PeerTestParticipant GetPeerTestParticipant (uint32_t nonce);
-            std::shared_ptr<SSUSession> GetPeerTestSession (uint32_t nonce);
-            void UpdatePeerTest (uint32_t nonce, PeerTestParticipant role);
-            void RemovePeerTest (uint32_t nonce);
+  void Start();
 
-        private:
+  void Stop();
 
-            void Run ();
-            void RunV6 ();
-            void RunReceivers ();
-            void Receive ();
-            void ReceiveV6 ();
-            void HandleReceivedFrom (const boost::system::error_code& ecode, std::size_t bytes_transferred, SSUPacket * packet);
-            void HandleReceivedFromV6 (const boost::system::error_code& ecode, std::size_t bytes_transferred, SSUPacket * packet);
-            void HandleReceivedPackets (std::vector<SSUPacket *> packets);
+  std::shared_ptr<SSUSession> GetSession(
+      std::shared_ptr<const i2p::data::RouterInfo> router,
+      bool peerTest = false);
 
-            template<typename Filter>
-            std::shared_ptr<SSUSession> GetRandomSession (Filter filter);
-            
-            std::set<SSUSession *> FindIntroducers (int maxNumIntroducers); 
-            void ScheduleIntroducersUpdateTimer ();
-            void HandleIntroducersUpdateTimer (const boost::system::error_code& ecode);
+  std::shared_ptr<SSUSession> FindSession(
+      std::shared_ptr<const i2p::data::RouterInfo> router) const;
 
-            void SchedulePeerTestsCleanupTimer ();
-            void HandlePeerTestsCleanupTimer (const boost::system::error_code& ecode);
+  std::shared_ptr<SSUSession> FindSession(
+      const boost::asio::ip::udp::endpoint& e) const;
 
-        private:
+  std::shared_ptr<SSUSession> GetRandomEstablishedSession(
+      std::shared_ptr<const SSUSession> excluded);
 
-            struct PeerTest
-            {
-                uint64_t creationTime;
-                PeerTestParticipant role;
-                std::shared_ptr<SSUSession> session; // for Bob to Alice
-            };  
-            
-            bool m_IsRunning;
-            std::thread * m_Thread, * m_ThreadV6, * m_ReceiversThread;  
-            boost::asio::io_service m_Service, m_ServiceV6, m_ReceiversService;
-            boost::asio::io_service::work m_Work, m_WorkV6, m_ReceiversWork;
-            boost::asio::ip::udp::endpoint m_Endpoint, m_EndpointV6;
-            boost::asio::ip::udp::socket m_Socket, m_SocketV6;
-            boost::asio::deadline_timer m_IntroducersUpdateTimer, m_PeerTestsCleanupTimer;
-            std::list<boost::asio::ip::udp::endpoint> m_Introducers; // introducers we are connected to
-            mutable std::mutex m_SessionsMutex;
-            std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> > m_Sessions;
-            std::map<uint32_t, boost::asio::ip::udp::endpoint> m_Relays; // we are introducer
-            std::map<uint32_t, PeerTest> m_PeerTests; // nonce -> creation time in milliseconds
+  void DeleteSession(
+      std::shared_ptr<SSUSession> session);
 
-        public:
-            // for HTTP only
-            const decltype(m_Sessions)& GetSessions () const { return m_Sessions; };
-    };
-}
-}
+  void DeleteAllSessions();
 
-#endif
+  boost::asio::io_service& GetService() {
+    return m_Service;
+  }
 
+  boost::asio::io_service& GetServiceV6() {
+    return m_ServiceV6;
+  }
+
+  const boost::asio::ip::udp::endpoint& GetEndpoint() const {
+    return m_Endpoint;
+  }
+
+  void Send(
+      const uint8_t * buf,
+      size_t len,
+      const boost::asio::ip::udp::endpoint& to);
+
+  void AddRelay(
+      uint32_t tag,
+      const boost::asio::ip::udp::endpoint& relay);
+
+  std::shared_ptr<SSUSession> FindRelaySession(
+      uint32_t tag);
+
+  void NewPeerTest(
+      uint32_t nonce,
+      PeerTestParticipant role,
+      std::shared_ptr<SSUSession> session = nullptr);
+
+  PeerTestParticipant GetPeerTestParticipant(
+      uint32_t nonce);
+
+  std::shared_ptr<SSUSession> GetPeerTestSession(
+      uint32_t nonce);
+
+  void UpdatePeerTest(
+      uint32_t nonce,
+      PeerTestParticipant role);
+
+  void RemovePeerTest(
+      uint32_t nonce);
+
+ private:
+  void Run();
+
+  void RunV6();
+
+  void RunReceivers();
+
+  void Receive();
+
+  void ReceiveV6();
+
+  void HandleReceivedFrom(
+      const boost::system::error_code& ecode,
+      std::size_t bytes_transferred,
+      SSUPacket* packet);
+
+  void HandleReceivedFromV6(
+      const boost::system::error_code& ecode,
+      std::size_t bytes_transferred,
+      SSUPacket* packet);
+
+  void HandleReceivedPackets(
+      std::vector<SSUPacket *> packets);
+
+  template<typename Filter>
+  std::shared_ptr<SSUSession> GetRandomSession(
+      Filter filter);
+
+  std::set<SSUSession *> FindIntroducers(
+      int maxNumIntroducers);
+
+  void ScheduleIntroducersUpdateTimer();
+
+  void HandleIntroducersUpdateTimer(
+      const boost::system::error_code& ecode);
+
+  void SchedulePeerTestsCleanupTimer();
+
+  void HandlePeerTestsCleanupTimer(
+      const boost::system::error_code& ecode);
+
+ private:
+  struct PeerTest {
+    uint64_t creationTime;
+    PeerTestParticipant role;
+    std::shared_ptr<SSUSession> session;  // for Bob to Alice
+  };
+
+  bool m_IsRunning;
+
+  std::thread* m_Thread,
+              *m_ThreadV6,
+              *m_ReceiversThread;
+
+  boost::asio::io_service
+              m_Service,
+              m_ServiceV6,
+              m_ReceiversService;
+
+  boost::asio::io_service::work
+              m_Work,
+              m_WorkV6,
+              m_ReceiversWork;
+
+  boost::asio::ip::udp::endpoint
+              m_Endpoint,
+              m_EndpointV6;
+
+  boost::asio::ip::udp::socket
+              m_Socket,
+              m_SocketV6;
+
+  boost::asio::deadline_timer
+              m_IntroducersUpdateTimer,
+              m_PeerTestsCleanupTimer;
+
+  // introducers we are connected to
+  std::list<boost::asio::ip::udp::endpoint> m_Introducers;
+
+  mutable std::mutex m_SessionsMutex;
+
+  std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> > m_Sessions;
+
+  // we are introducer
+  std::map<uint32_t, boost::asio::ip::udp::endpoint> m_Relays;
+
+  // nonce -> creation time in milliseconds
+  std::map<uint32_t, PeerTest> m_PeerTests;
+
+ public:
+  // for HTTP only
+  const decltype(m_Sessions)& GetSessions() const {
+    return m_Sessions;
+  }
+};
+
+}  // namespace transport
+}  // namespace i2p
+
+#endif  // SRC_CORE_TRANSPORT_SSU_H_

@@ -28,71 +28,91 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_CORE_TRANSPORT_UPNP_H_
-#define SRC_CORE_TRANSPORT_UPNP_H_
-
-#ifdef USE_UPNP
+#ifndef SRC_CORE_TRANSPORT_NTCP_H_
+#define SRC_CORE_TRANSPORT_NTCP_H_
 
 #include <boost/asio.hpp>
 
-#include <miniupnpc/miniwget.h>
-#include <miniupnpc/miniupnpc.h>
-#include <miniupnpc/upnpcommands.h>
-#include <miniupnpc/upnperrors.h>
-
-#include <string>
+#include <map>
+#include <memory>
+#include <mutex>
 #include <thread>
+#include <vector>
 
-#define I2P_UPNP_TCP 1
-#define I2P_UPNP_UDP 2
+#include "Identity.h"
+#include "NTCPSession.h"
+#include "RouterInfo.h"
+#include "TransportSession.h"
 
 namespace i2p {
 namespace transport {
 
-class UPnP {
+class NTCPServer {
  public:
-  UPnP();
-  ~UPnP();
-
-  void Close();
+  NTCPServer(
+      int port);
+  ~NTCPServer();
 
   void Start();
 
   void Stop();
 
-  void Discover();
+  void AddNTCPSession(
+      std::shared_ptr<NTCPSession> session);
 
-  void TryPortMapping(
-      int type,
-      int port);
+  void RemoveNTCPSession(
+      std::shared_ptr<NTCPSession> session);
 
-  void CloseMapping(
-      int type,
-      int port);
+  std::shared_ptr<NTCPSession> FindNTCPSession(
+      const i2p::data::IdentHash& ident);
+
+  void Connect(
+      const boost::asio::ip::address& address,
+      int port,
+      std::shared_ptr<NTCPSession> conn);
+
+  boost::asio::io_service& GetService() {
+    return m_Service;
+  }
+
+  void Ban(
+      const boost::asio::ip::address& addr);
 
  private:
   void Run();
 
-  std::thread* m_Thread;
-  struct UPNPUrls m_upnpUrls;
-  struct IGDdatas m_upnpData;
+  void HandleAccept(
+      std::shared_ptr<NTCPSession> conn,
+      const boost::system::error_code& error);
 
-  // For miniupnpc
-  char* m_MulticastIf = 0;
-  char* m_Minissdpdpath = 0;
-  struct UPNPDev* m_Devlist = 0;
-  char m_NetworkAddr[64];
-  char m_externalIPAddress[40];
-  bool m_IsModuleLoaded;
-#ifndef _WIN32
-  void* m_Module;
-#else
-  HINSTANCE m_Module;
-#endif
+  void HandleAcceptV6(
+      std::shared_ptr<NTCPSession> conn,
+      const boost::system::error_code& error);
+
+  void HandleConnect(
+      const boost::system::error_code& ecode,
+      std::shared_ptr<NTCPSession> conn);
+
+ private:
+  bool m_IsRunning;
+  std::thread* m_Thread;
+  boost::asio::io_service m_Service;
+  boost::asio::io_service::work m_Work;
+  boost::asio::ip::tcp::acceptor* m_NTCPAcceptor,l
+                                  *m_NTCPV6Acceptor;
+  std::mutex m_NTCPSessionsMutex;
+  std::map<i2p::data::IdentHash, std::shared_ptr<NTCPSession> > m_NTCPSessions;
+  // IP -> ban expiration time in seconds
+  std::map<boost::asio::ip::address, uint32_t> m_BanList;
+
+ public:
+  // for HTTP/I2PControl
+  const decltype(m_NTCPSessions)& GetNTCPSessions() const {
+    return m_NTCPSessions;
+  }
 };
 
 }  // namespace transport
 }  // namespace i2p
 
-#endif  // USE_UPNP
-#endif  // SRC_CORE_TRANSPORT_UPNP_H_
+#endif  // SRC_CORE_TRANSPORT_NTCP_H_

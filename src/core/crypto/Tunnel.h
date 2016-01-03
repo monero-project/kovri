@@ -28,52 +28,56 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef TUNNEL_CRYPTO_H__
-#define TUNNEL_CRYPTO_H__
+#ifndef SRC_CORE_CRYPTO_TUNNEL_H_
+#define SRC_CORE_CRYPTO_TUNNEL_H_
 
-#include "crypto/AES.h"
+#include "AES.h"
 
 namespace i2p {
 namespace crypto {
 
-class TunnelEncryption { // with double IV encryption
-public:
-    void SetKeys (const AESKey& layerKey, const AESKey& ivKey);
+class TunnelEncryption {  // with double IV encryption
+ public:
+  void SetKeys(
+      const AESKey& layerKey,
+      const AESKey& ivKey);
 
-    void Encrypt (const uint8_t * in, uint8_t * out); // 1024 bytes (16 IV + 1008 data)     
+  void Encrypt(
+      const uint8_t* in,
+      uint8_t* out);  // 1024 bytes (16 IV + 1008 data)
 
-private:
-
-    ECBEncryption m_IVEncryption;
+ private:
+  ECBEncryption m_IVEncryption;
 #ifdef AESNI
-    ECBEncryption m_LayerEncryption;
+  ECBEncryption m_LayerEncryption;
 #else
-    CBCEncryption m_LayerEncryption;
+  CBCEncryption m_LayerEncryption;
 #endif
 };
 
-class TunnelDecryption { // with double IV encryption
-public:
+class TunnelDecryption {  // with double IV encryption
+ public:
+  void SetKeys(
+      const AESKey& layerKey,
+      const AESKey& ivKey) {
+    m_LayerDecryption.SetKey(layerKey);
+    m_IVDecryption.SetKey(ivKey);
+  }
 
-    void SetKeys (const AESKey& layerKey, const AESKey& ivKey)
-    {
-        m_LayerDecryption.SetKey (layerKey);
-        m_IVDecryption.SetKey (ivKey);
-    }           
+  void Decrypt(
+      const uint8_t* in,
+      uint8_t* out);  // 1024 bytes (16 IV + 1008 data)
 
-    void Decrypt (const uint8_t * in, uint8_t * out); // 1024 bytes (16 IV + 1008 data) 
-
-private:
-
-    ECBDecryption m_IVDecryption;
+ private:
+  ECBDecryption m_IVDecryption;
 #ifdef AESNI
-    ECBDecryption m_LayerDecryption;
+  ECBDecryption m_LayerDecryption;
 #else
-    CBCDecryption m_LayerDecryption;
+  CBCDecryption m_LayerDecryption;
 #endif
 };
 
-} // crypto
-} // i2p
+}  // namespace crypto
+}  // namespace i2p
 
-#endif
+#endif  // SRC_CORE_CRYPTO_TUNNEL_H_

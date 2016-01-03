@@ -98,7 +98,7 @@ class NTCPServer {
   std::thread* m_Thread;
   boost::asio::io_service m_Service;
   boost::asio::io_service::work m_Work;
-  boost::asio::ip::tcp::acceptor* m_NTCPAcceptor,l
+  boost::asio::ip::tcp::acceptor* m_NTCPAcceptor,
                                   *m_NTCPV6Acceptor;
   std::mutex m_NTCPSessionsMutex;
   std::map<i2p::data::IdentHash, std::shared_ptr<NTCPSession> > m_NTCPSessions;

@@ -28,57 +28,72 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef TUNNEL_ENDPOINT_H__
-#define TUNNEL_ENDPOINT_H__
+#ifndef SRC_CORE_TUNNEL_TUNNELENDPOINT_H_
+#define SRC_CORE_TUNNEL_TUNNELENDPOINT_H_
 
 #include <inttypes.h>
+
 #include <map>
 #include <string>
+
 #include "I2NPProtocol.h"
 #include "TunnelBase.h"
 
-namespace i2p
-{
-namespace tunnel
-{
-    class TunnelEndpoint
-    {   
-        struct TunnelMessageBlockEx: public TunnelMessageBlock
-        {
-            uint8_t nextFragmentNum;
-        };  
+namespace i2p {
+namespace tunnel {
 
-        struct Fragment
-        {
-            uint8_t fragmentNum;
-            bool isLastFragment;
-            std::shared_ptr<I2NPMessage> data;
-        };  
-        
-        public:
+class TunnelEndpoint {
+  struct TunnelMessageBlockEx : public TunnelMessageBlock {
+    uint8_t nextFragmentNum;
+  };
 
-            TunnelEndpoint (bool isInbound): m_IsInbound (isInbound), m_NumReceivedBytes (0) {};
-            ~TunnelEndpoint ();
-            size_t GetNumReceivedBytes () const { return m_NumReceivedBytes; };
-            
-            void HandleDecryptedTunnelDataMsg (std::shared_ptr<I2NPMessage> msg);
+  struct Fragment {
+    uint8_t fragmentNum;
+    bool isLastFragment;
+    std::shared_ptr<I2NPMessage> data;
+  };
 
-        private:
+ public:
+    TunnelEndpoint(
+        bool isInbound)
+        : m_IsInbound(isInbound),
+          m_NumReceivedBytes(0) {}
+    ~TunnelEndpoint();
 
-            void HandleFollowOnFragment (uint32_t msgID, bool isLastFragment, const TunnelMessageBlockEx& m);
-            void HandleNextMessage (const TunnelMessageBlock& msg);
+    size_t GetNumReceivedBytes() const {
+      return m_NumReceivedBytes;
+    }
 
-            void AddOutOfSequenceFragment (uint32_t msgID, uint8_t fragmentNum, bool isLastFragment, std::shared_ptr<I2NPMessage> data);
-            void HandleOutOfSequenceFragment (uint32_t msgID, TunnelMessageBlockEx& msg);
-            
-        private:            
+    void HandleDecryptedTunnelDataMsg(
+        std::shared_ptr<I2NPMessage> msg);
 
-            std::map<uint32_t, TunnelMessageBlockEx> m_IncompleteMessages;
-            std::map<uint32_t, Fragment> m_OutOfSequenceFragments;
-            bool m_IsInbound;
-            size_t m_NumReceivedBytes;
-    };  
-}       
-}
+ private:
+    void HandleFollowOnFragment(
+        uint32_t msgID,
+        bool isLastFragment,
+        const TunnelMessageBlockEx& m);
 
-#endif
+    void HandleNextMessage(
+        const TunnelMessageBlock& msg);
+
+    void AddOutOfSequenceFragment(
+        uint32_t msgID,
+        uint8_t fragmentNum,
+        bool isLastFragment,
+        std::shared_ptr<I2NPMessage> data);
+
+    void HandleOutOfSequenceFragment(
+        uint32_t msgID,
+        TunnelMessageBlockEx& msg);
+
+ private:
+    std::map<uint32_t, TunnelMessageBlockEx> m_IncompleteMessages;
+    std::map<uint32_t, Fragment> m_OutOfSequenceFragments;
+    bool m_IsInbound;
+    size_t m_NumReceivedBytes;
+};
+
+}  // namespace tunnel
+}  // namespace i2p
+
+#endif  // SRC_CORE_TUNNEL_TUNNELENDPOINT_H_

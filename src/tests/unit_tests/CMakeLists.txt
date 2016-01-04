@@ -14,7 +14,7 @@ if(WITH_TESTS)
     )
     add_executable(${TESTS_NAME} ${TESTS_SRC})
     target_link_libraries(
-        ${TESTS_NAME} ${CORE_NAME} ${DL_LIB} ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES}
+		${TESTS_NAME} ${CORE_NAME} ${DL_LIB} ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES}
         ${CMAKE_THREAD_LIBS_INIT}
     )
     enable_testing()

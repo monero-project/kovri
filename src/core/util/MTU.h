@@ -28,22 +28,23 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef MTU_H
-#define MTU_H
+#ifndef SRC_CORE_UTIL_MTU_H_
+#define SRC_CORE_UTIL_MTU_H_
 
 #include <boost/asio.hpp>
+
 #include "Log.h"
 
 namespace i2p {
 namespace util {
 namespace mtu {
 
-    /**
-     * @return the maximum transmission unit, or 576 on failure
-     */
-     int GetMTU(const boost::asio::ip::address& localAddress);
-}
-}
-}
+// @return the maximum transmission unit, or 576 on failure
+int GetMTU(
+    const boost::asio::ip::address& localAddress);
 
-#endif
+}  // namespace mtu
+}  // namespace util
+}  // namespace i2p
+
+#endif // SRC_CORE_UTIL_MTU_H_

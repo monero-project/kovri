@@ -28,35 +28,32 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef TIMESTAMP_H__
-#define TIMESTAMP_H__
+#ifndef SRC_CORE_UTIL_TIMESTAMP_H_
+#define SRC_CORE_UTIL_TIMESTAMP_H_
 
 #include <inttypes.h>
+
 #include <chrono>
 
-namespace i2p
-{
-namespace util
-{
-    inline uint64_t GetMillisecondsSinceEpoch ()
-    {
-        return std::chrono::duration_cast<std::chrono::milliseconds>(
-                 std::chrono::system_clock::now().time_since_epoch()).count ();
-    }
+namespace i2p {
+namespace util {
 
-    inline uint32_t GetHoursSinceEpoch ()
-    {
-        return std::chrono::duration_cast<std::chrono::hours>(
-                 std::chrono::system_clock::now().time_since_epoch()).count ();
-    }
-
-    inline uint64_t GetSecondsSinceEpoch ()
-    {
-        return std::chrono::duration_cast<std::chrono::seconds>(
-                 std::chrono::system_clock::now().time_since_epoch()).count ();
-    }
-}
+inline uint64_t GetMillisecondsSinceEpoch() {
+  return std::chrono::duration_cast<std::chrono::milliseconds>(
+      std::chrono::system_clock::now().time_since_epoch()).count();
 }
 
-#endif
+inline uint32_t GetHoursSinceEpoch() {
+  return std::chrono::duration_cast<std::chrono::hours>(
+      std::chrono::system_clock::now().time_since_epoch()).count();
+}
 
+inline uint64_t GetSecondsSinceEpoch() {
+  return std::chrono::duration_cast<std::chrono::seconds>(
+      std::chrono::system_clock::now().time_since_epoch()).count();
+}
+
+}  // namespace util
+}  // namespace i2p
+
+#endif  // SRC_CORE_UTIL_TIMESTAMP_H_

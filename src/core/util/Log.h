@@ -28,158 +28,133 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LOG_H__
-#define LOG_H__
+#ifndef SRC_CORE_UTIL_LOG_H_
+#define SRC_CORE_UTIL_LOG_H_
 
 #include <iostream>
-#include <string>
 #include <memory>
+#include <string>
 #include <vector>
 
-namespace kovri
-{
-namespace log
-{
+namespace kovri {
+namespace log {
 
-    enum LogLevel
-    {
-        eLogLevelDebug,
-        eLogLevelInfo,
-        eLogLevelWarning,
-        eLogLevelError
-    };
+enum LogLevel {
+  eLogLevelDebug,
+  eLogLevelInfo,
+  eLogLevelWarning,
+  eLogLevelError
+};
 
-    // private implemenation of LogStream
-    class LogStreamImpl;
+// private implemenation of LogStream
+class LogStreamImpl;
 
-    
-    /**
-       Generic Log stream
-    */
-    class LogStream : public std::ostream
-    {
-    public:
+// Generic Log stream
+class LogStream : public std::ostream {
+ public:
+  explicit LogStream(
+      LogStreamImpl* impl);
+  ~LogStream();
 
-        LogStream(LogStreamImpl * impl);
-        ~LogStream();
-        
-        /**
-           attach metadata to the current logger's next entries until flushed
-         */
-        LogStream & Meta(const std::string & key, std::string value);
-        /**
-           flush this log stream
-         */
-        LogStream & Flush();
-        
-        /**
-           check if this stream is enabled
-           return true if it is
-         */
-        bool IsEnabled();
+  // attach metadata to the current logger's next entries until flushed
+  LogStream& Meta(
+      const std::string& key,
+      std::string value);
 
-        /**
-           disable logging on this stream
-         */
-        void Disable();
+  // flush this log stream
+  LogStream& Flush();
 
-        /**
-           enable logging on this stream
-         */
-        void Enable();
-        
-    private:
-        LogStreamImpl * m_Impl;
-    };
+  // check if this stream is enabled
+  // return true if it is
+  bool IsEnabled();
 
-    /**
-       Stream for sending events to live UI
-       TODO(unassigned): implement
-     */
-    class EventStream
-    {
-    public:
-        /**
-           flush events
-         */
-        virtual EventStream & Flush() const = 0;
+  // disable logging on this stream
+  void Disable();
 
-        /**
-           operator overload for <<
-           queue an event
-         */
-        virtual EventStream & operator << (const std::vector<std::string> & strs) const = 0;
-    };
+  // enable logging on this stream
+  void Enable();
 
-    // private implementation of Logger
-    class LoggerImpl;
-    
-    class Logger
-    {
-    public:
+ private:
+  LogStreamImpl* m_Impl;
+};
 
-        Logger(LoggerImpl * impl);
-        ~Logger();
-        
-        /**
-           get error level log stream
-         */
-        LogStream & Error();
-        /**
-           get warning level log stream
-         */
-        LogStream & Warning();
-        /**
-           get info level log stream
-         */
-        LogStream & Info();
-        /**
-           get debug level log stream
-         */
-        LogStream & Debug();
-        /**
-           get EventStream to send events to UI
-         */
-        EventStream & UI();
+// Stream for sending events to live UI
+// TODO(unassigned): implement
+class EventStream {
+ public:
+  // flush events
+  virtual EventStream& Flush() const = 0;
 
-        /**
-           flush pending log events
-         */
-        void Flush();
-    private:
-        LoggerImpl * m_Impl;
-    };
+  // operator overload for <<
+  // queue an event
+  virtual EventStream& operator <<(
+      const std::vector<std::string> & strs) const = 0;
+};
 
-    class LogImpl;
-    
-    class Log
-    {
-    public:
-        Log(LogLevel minLev, std::ostream * out);
-        Log() : Log(eLogLevelWarning, &std::clog) {}
-        
-        /**
-           Get global log engine
-         */
-        static std::shared_ptr<Log> Get();
-        /**
-           get default logger
-         */
-        std::shared_ptr<Logger> Default();
-        
-        /**
-           create a logger given name
-         */
-        std::unique_ptr<Logger> New(const std::string & name, const std::string & channel);
-    private:
-        std::shared_ptr<LogImpl> m_LogImpl;
-        std::shared_ptr<Logger> m_DefaultLogger;
-    };
-}    
-}
+// private implementation of Logger
+class LoggerImpl;
+
+class Logger {
+ public:
+  Logger(
+      LoggerImpl* impl);
+  ~Logger();
+
+  // get error level log stream
+  LogStream& Error();
+
+  // get warning level log stream
+  LogStream& Warning();
+
+  // get info level log stream
+  LogStream& Info();
+
+  // get debug level log stream
+  LogStream& Debug();
+
+  // get EventStream to send events to UI
+  EventStream& UI();
+
+  // flush pending log events
+  void Flush();
+
+ private:
+  LoggerImpl* m_Impl;
+};
+
+class LogImpl;
+
+class Log {
+ public:
+  Log(
+      LogLevel minLev,
+      std::ostream* out);
+  Log()
+      : Log(
+          eLogLevelWarning,
+          &std::clog) {}
+
+  // Get global log engine
+  static std::shared_ptr<Log> Get();
+
+  // get default logger
+  std::shared_ptr<Logger> Default();
+
+  // create a logger given name
+  std::unique_ptr<Logger> New(
+      const std::string& name,
+      const std::string& channel);
+
+ private:
+  std::shared_ptr<LogImpl> m_LogImpl;
+  std::shared_ptr<Logger> m_DefaultLogger;
+};
+
+}  // namespace log
+}  // namespace kovri
 
 #include "util/OldLog.h"
 
 typedef std::unique_ptr<kovri::log::Logger> Logger_t;
 
-#endif
+#endif  // SRC_CORE_UTIL_LOG_H_

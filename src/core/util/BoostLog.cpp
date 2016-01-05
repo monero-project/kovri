@@ -33,6 +33,8 @@
 //
 #include "BoostLog.h"
 
+#include <boost/version.hpp>
+
 #if BOOST_VERSION >= 105600
 #include <boost/core/null_deleter.hpp>
 #else

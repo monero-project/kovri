@@ -1,2 +1,2 @@
 
-# vim: noai:ts=4:sw=4
+# vim: noai:ts=2:sw=2

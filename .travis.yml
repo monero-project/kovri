@@ -12,7 +12,8 @@ addons:
     - libcrypto++-dev
     - libssl-dev
     - libssl1.0.0
-script: cd build && cmake ../ && make
+    - libminiupnpc-dev
+script: cd build && cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON -DWITH_UPNP=ON ../ && make
 notifications:
   email: false
   irc:

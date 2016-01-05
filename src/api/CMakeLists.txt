@@ -5,12 +5,14 @@ set(API_SRC
   "I2PTunnel/HTTPProxy.cpp"
   "I2PTunnel/I2PTunnel.cpp"
   "I2PTunnel/SOCKS.cpp"
-  "Streaming.cpp"
-)
+  "Streaming.cpp")
 
-include_directories("." "../" "../core/")
+include_directories(
+  "."
+  "../"
+  "../core/")
 
 add_library(${API_NAME} ${API_SRC})
-target_link_libraries(${API_NAME})
+target_link_libraries(${API_NAME} ${CLIENT_NAME})
 
-# vim: noai:ts=4:sw=4
+# vim: noai:ts=2:sw=2

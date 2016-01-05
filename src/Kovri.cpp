@@ -30,8 +30,8 @@
 
 #include <thread>
 
-#include "Daemon.h"
-#include "util/Config.h"
+#include "client/Daemon.h"
+#include "client/util/Config.h"
 
 int main(int argc, char* argv[]) {
   try {

@@ -2,26 +2,28 @@ set(TESTS_SRC
   "Base64.cpp"
   "Crypto.cpp"
   "Identity.cpp"
-  "Utility.cpp"
-)
+  "Utility.cpp")
 
-include_directories("../../" "../../core/")
+include_directories(
+  "../../"
+  "../../core/"
+  "../../client/")
 
 if(WITH_TESTS)
-    find_package(Boost COMPONENTS
-        system filesystem regex program_options date_time thread chrono
-        unit_test_framework REQUIRED
-    )
-    add_executable(${TESTS_NAME} ${TESTS_SRC})
-    target_link_libraries(
-		${TESTS_NAME} ${CORE_NAME} ${DL_LIB} ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES}
-        ${CMAKE_THREAD_LIBS_INIT}
-    )
-    enable_testing()
-    add_test(KovriTest ${TESTS_NAME})
-    install(TARGETS
-        ${TESTS_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    )
+  find_package(
+    Boost COMPONENTS
+    chrono unit_test_framework
+    program_options date_time thread
+    system filesystem regex
+    REQUIRED)
+  add_executable(${TESTS_NAME} ${TESTS_SRC})
+  target_link_libraries(
+    ${TESTS_NAME} ${CORE_NAME} ${CLIENT_NAME}
+    ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+  enable_testing()
+  add_test(KovriTest ${TESTS_NAME})
+  install(TARGETS
+    ${TESTS_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
 
-# vim: noai:ts=4:sw=4
+# vim: noai:ts=2:sw=2

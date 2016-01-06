@@ -113,45 +113,9 @@ WARN_LOGFILE           =
 INPUT                  = @DOXYFILE_SOURCE_DIRS@
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          = *.c \
-                         *.cc \
-                         *.cxx \
                          *.cpp \
-                         *.c++ \
-                         *.java \
-                         *.ii \
-                         *.ixx \
-                         *.ipp \
-                         *.i++ \
-                         *.inl \
-                         *.idl \
-                         *.ddl \
-                         *.odl \
                          *.h \
-                         *.hh \
-                         *.hxx \
-                         *.hpp \
-                         *.h++ \
-                         *.cs \
-                         *.d \
-                         *.php \
-                         *.php4 \
-                         *.php5 \
-                         *.phtml \
-                         *.inc \
-                         *.m \
-                         *.mm \
-                         *.dox \
                          *.py \
-                         *.f90 \
-                         *.f \
-                         *.for \
-                         *.tcl \
-                         *.vhd \
-                         *.vhdl \
-                         *.ucf \
-                         *.qsf \
-                         *.as \
-                         *.js
 RECURSIVE              = YES
 EXCLUDE                =
 EXCLUDE_SYMLINKS       = NO

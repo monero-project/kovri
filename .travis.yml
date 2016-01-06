@@ -13,7 +13,8 @@ addons:
     - libssl-dev
     - libssl1.0.0
     - libminiupnpc-dev
-script: cd build && cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON -DWITH_UPNP=ON ../ && make
+    - doxygen
+script: cd build && cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON -DWITH_UPNP=ON -DWITH_DOXYGEN=ON ../ && make doc && make
 notifications:
   email: false
   irc:

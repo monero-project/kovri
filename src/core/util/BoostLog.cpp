@@ -38,7 +38,16 @@
 #if BOOST_VERSION >= 105600
 #include <boost/core/null_deleter.hpp>
 #else
-#include <boost/utility/empty_deleter.hpp>
+
+/* defines null_deleter here if we don't have the right boost version */
+
+#include <boost/config.hpp>
+namespace boost {
+  struct null_deleter {
+    typedef void result_type;
+    template <typename T> void operator() (T*) const {}
+  };
+}
 #endif
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
@@ -59,11 +68,7 @@ namespace log {
 std::shared_ptr<Log> g_Log = nullptr;
 sink_ptr g_LogSink;
 
-#if BOOST_VERSION >= 105600
 typedef boost::null_deleter boost_deleter_t;
-#else
-typedef boost::empty_deleter boost_deleter_t;
-#endif
 
 LogImpl::LogImpl(
     LogLevel minlev,

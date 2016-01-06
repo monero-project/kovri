@@ -38,7 +38,7 @@
 #if BOOST_VERSION >= 105600
 #include <boost/core/null_deleter.hpp>
 #else
-#include <boost/core/empty_deleter.hpp>
+#include <boost/utility/empty_deleter.hpp>
 #endif
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>

@@ -113,7 +113,8 @@ LogStreamImpl::LogStreamImpl(
     std::mutex& mtx,
     log_t& l,
     LogLevel level)
-    : m_Access(mtx),
+    : m_Str(new std::stringbuf),
+      m_Access(mtx),
       m_Log(l),
       m_Level(level),
       m_Enable(true) {
@@ -197,7 +198,7 @@ LogStreamImpl::int_type LogStreamImpl::overflow(
 
 int LogStreamImpl::sync() {
   int ret;
-  ret = m_Str.pubsync();
+  ret = m_Str->pubsync();
   Flush();
   m_Access.unlock();
   return ret;
@@ -207,13 +208,18 @@ int LogStreamImpl::sync() {
 std::streamsize LogStreamImpl::xsputn(
     const LogStreamImpl::char_type* s,
     std::streamsize count) {
-  return m_Str.sputn(s, count);
+  return m_Str->sputn(s, count);
 }
 
+LogStreamImpl::~LogStreamImpl() {
+  delete m_Str;
+}
+  
 // not thread safe
 void LogStreamImpl::Flush() {
-  BOOST_LOG_SEV(m_Log, m_Level) << &m_Str;
-  m_Str = std::stringbuf();
+  BOOST_LOG_SEV(m_Log, m_Level) << m_Str;
+  delete m_Str;
+  m_Str = new std::stringbuf;
   g_LogSink->flush();
 }
 

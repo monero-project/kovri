@@ -66,7 +66,7 @@ class LogStreamImpl : public std::streambuf {
       std::mutex& access,
       log_t& l,
       LogLevel levelno);
-  ~LogStreamImpl() {}
+  ~LogStreamImpl();
 
   void MetaImpl(
       const std::string& key,
@@ -98,7 +98,7 @@ class LogStreamImpl : public std::streambuf {
 
  private:
   void Flush();
-  std::stringbuf m_Str;
+  std::stringbuf * m_Str;
   std::mutex& m_Access;
   log_t& m_Log;
   LogLevel m_Level;

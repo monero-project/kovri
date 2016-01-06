@@ -5,6 +5,10 @@
 - [Crypto++](https://cryptopp.com/) 5.6.2
 - [OpenSSL](https://openssl.org/) (always the latest stable version)
 
+Optional
+
+- [Doxygen](http://www.doxygen.org/) (for Doxygen documentation)
+
 ## Linux
 - [GCC](https://gcc.gnu.org/) 4.9.2 (5.2.1 or newer is recommended)
 
@@ -30,6 +34,7 @@ If you do not choose a port via cli or ```kovri.conf```, Kovri will randomly gen
 ## Debian (Jessie) / Ubuntu (Vivid, Wily)
 ```bash
 $ sudo apt-get install g++ cmake libssl-dev libssl1.0.0
+$ sudo apt-get install doxygen  # (optional)
 ```
 - [Install](http://www.boost.org/doc/libs/1_60_0/more/getting_started/unix-variants.html) the [latest stable Boost](http://sourceforge.net/projects/boost/files/boost/)
 ```bash
@@ -46,11 +51,13 @@ $ make && sudo make install
 ## Arch Linux
 ```bash
 $ sudo pacman -Syu cmake boost crypto++  # gcc and openssl installed by default
+$ sudo pacman -S doxygen  # (optional)
 ```
 
 ## FreeBSD 10
 ```bash
 $ sudo pkg install cmake cryptopp openssl
+$ sudo pkg install doxygen  # (optional)
 ```
 - [Install](http://www.boost.org/doc/libs/1_60_0/more/getting_started/unix-variants.html) the [latest stable Boost](http://sourceforge.net/projects/boost/files/boost/)
 ```bash
@@ -92,6 +99,13 @@ $ make
 $ cd kovri/build
 $ cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON ../
 $ make
+```
+
+## To produce Doxygen
+```bash
+$ cd kovri/build
+$ cmake -DWITH_DOXYGEN=ON ../
+$ make doc && firefox ./doc/html/index.html  # or use browser of choice
 ```
 
 ## Run Kovri!

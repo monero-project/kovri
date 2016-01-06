@@ -45,11 +45,12 @@ class LogStreamImpl : public std::streambuf {
  public:
   LogStreamImpl(
       std::ostream& out,
-      std::mutex& mtx)
-      : m_Out(out),
+      std::mutex& mtx)  
+      : m_Str(new std::stringbuf),
+        m_Out(out),
         m_Access(mtx),
         m_Enable(true) {}
-  ~LogStreamImpl() {}
+  ~LogStreamImpl();
 
   void MetaImpl(
       const std::string& key,
@@ -79,7 +80,7 @@ class LogStreamImpl : public std::streambuf {
       std::streamsize count);
 
  private:
-  std::stringbuf m_Str;
+  std::stringbuf * m_Str;
   std::ostream& m_Out;
   std::mutex& m_Access;
   bool m_Enable;

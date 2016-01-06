@@ -67,15 +67,20 @@ LogStreamImpl::int_type LogStreamImpl::overflow(
   return std::streambuf::overflow(ch);
 }
 
+LogStreamImpl::~LogStreamImpl() {
+  delete m_Str;
+}
+
 // called when we get std::flush
 int LogStreamImpl::sync() {
   int ret;
   // sync out std::stringbuf
-  ret = m_Str.pubsync();
+  ret = m_Str->pubsync();
   // flush to std::ostream
-  m_Out << &m_Str;
+  m_Out << m_Str;
   m_Out << std::endl;
-  m_Str = std::stringbuf();
+  delete m_Str;
+  m_Str = new std::stringbuf;
   // unlock our access mutex so that others can now acquire the log stream
   m_Access.unlock();
   return ret;
@@ -85,7 +90,7 @@ int LogStreamImpl::sync() {
 std::streamsize LogStreamImpl::xsputn(
     const LogStreamImpl::char_type* s,
     std::streamsize count) {
-  return m_Str.sputn(s, count);
+  return m_Str->sputn(s, count);
 }
 
 bool LogStream::IsEnabled() {

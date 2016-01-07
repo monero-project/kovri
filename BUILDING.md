@@ -1,7 +1,7 @@
 # 1. Satisfy minimum requirements
 
 - [CMake](https://cmake.org/) 2.8.12
-- [Boost](http://www.boost.org/) 1.59
+- [Boost](http://www.boost.org/) 1.54
 - [Crypto++](https://cryptopp.com/) 5.6.2
 - [OpenSSL](https://openssl.org/) (always the latest stable version)
 
@@ -10,7 +10,7 @@ Optional
 - [Doxygen](http://www.doxygen.org/) (for Doxygen documentation)
 
 ## Linux
-- [GCC](https://gcc.gnu.org/) 4.9.2 (5.2.1 or newer is recommended)
+- [GCC](https://gcc.gnu.org/) 4.8.2
 
 ## FreeBSD 10
 - [Clang](http://clang.llvm.org/) 3.4.1
@@ -31,44 +31,28 @@ If you do not choose a port via cli or ```kovri.conf```, Kovri will randomly gen
 
 # 2. Install dependencies
 
-## Debian (Jessie) / Ubuntu (Vivid, Wily)
+## Debian (Jessie) / Ubuntu (Trusty, Vivid, Wily)
 ```bash
-$ sudo apt-get install g++ cmake libssl-dev libssl1.0.0
-$ sudo apt-get install doxygen  # (optional)
-```
-- [Install](http://www.boost.org/doc/libs/1_60_0/more/getting_started/unix-variants.html) the [latest stable Boost](http://sourceforge.net/projects/boost/files/boost/)
-```bash
-$ tar --bzip2 -xf /path/to/boost_latest.tar.bz2
-$ cd /path/to/boost_latest/
-$ ./bootstrap.sh && sudo ./b2 install
-```
-- [Install](https://github.com/weidai11/cryptopp/blob/master/Readme.txt) the [latest Crypto++](https://www.cryptopp.com/#download)
-```bash
-$ unzip -a -d cryptopp cryptopp_latest.zip
-$ make && sudo make install
+$ sudo apt-get install g++ cmake libboost-all-dev libcrypto++-dev libssl-dev libssl1.0.0
+$ sudo apt-get install libminiupnpc-dev doxygen  # (optional)
 ```
 
 ## Arch Linux
 ```bash
 $ sudo pacman -Syu cmake boost crypto++  # gcc and openssl installed by default
-$ sudo pacman -S doxygen  # (optional)
+$ sudo pacman -S miniupnpc doxygen  # (optional)
 ```
 
 ## FreeBSD 10
 ```bash
-$ sudo pkg install cmake cryptopp openssl
-$ sudo pkg install doxygen  # (optional)
-```
-- [Install](http://www.boost.org/doc/libs/1_60_0/more/getting_started/unix-variants.html) the [latest stable Boost](http://sourceforge.net/projects/boost/files/boost/)
-```bash
-$ tar --bzip2 -xf /path/to/boost_latest.tar.bz2
-$ cd /path/to/boost_latest/
-$ ./bootstrap.sh --with-tools=clang && sudo ./b2 install
+$ sudo pkg install cmake boost-libs cryptopp openssl
+$ sudo pkg install miniupnpc doxygen  # (optional)
 ```
 
 ## MacOSX
 ```bash
 $ brew install cmake boost cryptopp openssl
+$ brew install miniupnpc doxygen  # (optional)
 ```
 
 # 3. Building
@@ -87,7 +71,7 @@ $ make
 ```
 
 ## For UPnP support:
-- Install [MiniUPnP](http://miniupnp.free.fr/files/)
+- Install [MiniUPnP](http://miniupnp.free.fr/files/) or use your package manager (see above)
 ```bash
 $ cd kovri/build
 $ cmake -DWITH_UPNP=ON ../

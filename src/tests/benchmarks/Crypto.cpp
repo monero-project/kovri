@@ -50,13 +50,13 @@ void benchmark(
     KeyGenerator generator) {
   typedef std::chrono::time_point<std::chrono::high_resolution_clock> TimePoint;
   CryptoPP::AutoSeededRandomPool rng;
-  uint8_t private_key[private_key_size] = {};
-  uint8_t public_key[public_key_size] = {};
+  uint8_t private_key[private_key_size];
+  uint8_t public_key[public_key_size];
   generator(rng, private_key, public_key);
   Verifier verifier(public_key);
   Signer signer(private_key);
   uint8_t message[512] = {};
-  uint8_t output[signature_size] = {};
+  uint8_t output[signature_size];
   std::chrono::nanoseconds sign_duration(0);
   std::chrono::nanoseconds verify_duration(0);
   for (std::size_t i = 0; i < count; ++i) {

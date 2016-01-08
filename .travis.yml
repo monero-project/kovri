@@ -18,12 +18,12 @@ script: cd build && cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON -DWITH_UPNP=ON -D
 notifications:
   email: false
   irc:
+    template:
+    - "%{repository_name} #%{build_number} | %{branch} | %{commit} | %{commit_subject} | %{author} : %{message}"
+    - "View diff  | %{compare_url}"
+    - "View build | %{build_url}"
     secure: XZM8Cf0xb+bOoUlplWD2TlXwJ9DD+b8CMlmfqX9sU2EeVmDKskJETBuKjSOaaIgWHuLDWZb0P1E+5v8Em+yIEv4vnDa7WWFY3c4bdnSSG0XWngMMKKNOF5TX8mW3/+3FsuXpBgXnLnjNEks8UaEtwb4ArN6dUyV/fsQw1hueXESJDLdQ/2JOCFAS9+0khVVVrOM8szW5ITaX3o88vs0SWMtksrLICudZPDd7GhbSyBo6Anl0fTn9ClSXwDfFkb6W8k3Nhg+3/CYJb2CR4vGV4TylfBuRf5ijWtp/orzYsPmllLolOlGwxsciufvZ6rnP+bYgfpUowY3bDodhTsjimjMy7xLLNw7MG+oBDWy9uOficsylnAXwqVAc39VNG3+ho0NQmZPY/GS0h/pqYuihKBrV+uUq2T7nslQgOwcSEJgjoIzRgiGCjBJ1oqueS6nRHa69AVoOcfcSPWJ3KpQVC8RA7d8qni7BYKHbDTX/McQixJ2evrGLz23jp9GlQqjgxs7nOSVOkMS5tVxJRl6IjZzerPqp8XchqL1sXgEMCFK1wdTZaBZdoqlOY4QclyLYroa/w679WLCJMyX5qI7xwzmPq7X4MNmKTCdcTnshZhDv2g7vLm3BDeM2MgGCzL7Eb7xhQWuejBD7hO1iFqQXi69pPIF6kTsSKD1dixXLY9Q=
     nick:
       secure: uW44mhTbE/aMDpCMFQY5/zvfbjncQfz0E1rmw141CNgS9+yTR1jzTpfa4DKqb4mwBp8Ctw3Nvt/5eoi3ccd0jQRCVjJkj8fLmJ7ypAhYldPOepcPkDQ91PdT913APuLmR8bz8QLiuSTeCEQNg74x9w7aRNazxXSkZI94xnSxtS3iWeByp14kPMFLaDLZ9TNFHvbPV5fDZws+oode1NdU+CdLy/PciRDpMu+kBTPWfD2FT75UudiJaDGvdepvTM4Isomg0gVb/bqsWkoTBmR8VakCt/YyczLr4dANB8kS+P7eXMqQXqfd8QjV6eGU2RvXKz7t68ffpUkvlAYLTeZio95Tetlun4DcaKS8agoXspr/REN4TOramTI43rx6OPFj4kkbzvL4gM7z/D5nrUZKnbURPSIKzYXu8fYvwbquoLB/RbiOpOuvFSVdFHM0lcCM+dBREkrzABbOm91Ph2/zeMQ+w7CVnr/IuHNHhfuiL4Y5XD/rJJw0vTGEKsaftWCNZ87h4qke65b4ybeeeKf3iNnSjOm9MmCcT7c6XWP7uHJWK/nrj4HSTD/3WqUY2ldnbnUz8V9Rx5WbK8F6xqP9OW5HrPkjvPVX9Edlas6sMckBy3ZP7eRxdf/d00RqiUs5vc5iEsmy6RqksyqIz5QVRpt1+tW5oh1efOA2S2pkONw=
     password:
       secure: guYSbj8QuJ2Hf7RLULxMqDREUDgq/W2sB1xQ8fzW2qe+/UNkJ4MWoExHDu+CRNnJaLGm7SoPcgwLHzDEQnq2Qr2oB9C6+Uc7t1vid/OeXUYevDhDNrDqsmQvkmwrWNDJyR2nsnVpYkECtLY/wxFccq04AEl2WAswO8FQ4QX8OSjAgHmUDWjcnSA5ovVv4LPt8af5q60P+lljqtLZgdlP5pA25Jx9u6b00Vbz48tnqvhlgT+OvkWbsZWppfcRoSBlFed+/+LJWnKtdj6DnP9n3ht1uYc3xvid2YLieVco9/+LjUmESgFCbKnUCJ26kesbEftY10aLxB5X4rI415s/6lXZ4G71SdBOu1vXb4/cg0TlD3rwjy5LSrROiwm8wPfUbcTHqe4mUetz/AtybrRi2Bli8FomYpCDusqUZW1Z+Lx09ycCqgdyBrapuqz+pWe8CmZRsXYY9zx3R3g3mEiYeejDOqDycVxuxDS1x3sopmj2sE5UAFfr3F3UaJHQS7JfwKlllfAw5+RldWlXA3iasqPBhOAChK4Cfxtwydn7WwefXf5ybQXiB74E4Ka4DWvzG1yJXaLTi8Ee3Xp54HXs4fpDkZDtAhX/gioxS14KaDxVRCpI9nra2/h883fgvZAV1ok84KurQH03ZNW1hvXJi/oOaalaE66cgjDe94acnmM=
-    template:
-    - "%{repository_name} #%{build_number} | %{branch} | %{commit} | %{commit_subject} | %{author}: %{message}"
-    - "View diff  | %{compare_url}"
-    - "View build | %{build_url}"

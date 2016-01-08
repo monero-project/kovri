@@ -26,7 +26,7 @@ To contribute a patch, consider the following:
 - Fork Kovri
 - Create a topic branch
 - Commit your feature(s)/patch(es)
-- Pull request to branch ```development``` or appropriate branch
+- Pull request to branch ```development```
 
 In general, commits should be [atomic](https://en.wikipedia.org/wiki/Atomic_commit#Atomic_commit_convention) and diffs should be easy to read. For this reason, please try to not mix formatting fixes with non-formatting commits.
 

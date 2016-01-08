@@ -6,7 +6,7 @@ Kovri is a C++ router implementation of the [I2P](https://geti2p.net) anonymous 
 ## What are the biggest differences between Kovri and i2pd?
 As we are currently in pre-alpha, we are working on following:
 
-- We provide a [working development model](https://github.com/monero-project/kovri/blob/master/CONTRIBUTING.md) to encourage open collaboration. This results in better quality software.
+- We provide both end-users and developers a [quality assurance](https://github.com/monero-project/kovri/issues/58) and [development model](https://github.com/monero-project/kovri/blob/master/CONTRIBUTING.md) in order to provide better software for everyone.
 - We focus on implementing an [I2CP](https://geti2p.net/en/docs/spec/i2cp) server for any application to connect to and use the I2P network; this includes Monero.
 - We focus on creating a ["secure by default"](http://www.openbsd.org/security.html), easily maintainable, more-likely-to-be-reviewed I2P router. This will come with the cost of dropping lesser-used features found in the other routers, but core functionality and I2CP will be fully intact. By creating a smaller, efficient, "bare-bones" router, we will provide developers and researchers more time for security auditing and more time to question the I2P design and specifications.
 - We will implement alternative reseeding options so users can use [Pluggable Transports](https://www.torproject.org/docs/pluggable-transports.html.en) instead of HTTPS for reseed.
@@ -25,8 +25,6 @@ Ask yourself one question: do you trust your anonymity with i2pd's [attitude](ht
 2015-12-09 11:41:12     +anonimal       orignal: I've 0day'd i2pd. Quit being an idiot and respect my responsible disclosure. Don't put your users at risk.
 ```
 Our answer? **...No, we don't!**
-
-Note: to this day, i2pd has not resolved these security issues - *but Kovri has*.
 
 ## Why are there two i2pd repositories; one on Bitbucket and one on GitHub?
 So begins the drama of i2pd.

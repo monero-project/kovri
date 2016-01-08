@@ -7,7 +7,7 @@
 
 ## Disclaimer
 - Currently pre-alpha software; under heavy overhaul and development! Stick to branch ```master``` for stability.
-- See branch ```development``` and ```crypto_refactor``` for the meat of Kovri evolution.
+- See branch ```development``` for the meat of Kovri evolution.
 
 ## Quickstart
 1. Download/install the **latest** [CMake](https://cmake.org/), [Boost](http://www.boost.org/), [Crypto++](https://cryptopp.com/#download), and [OpenSSL](https://www.openssl.org/source/). If you use a package manager, check against [BUILDING.md](https://github.com/monero-project/kovri/blob/master/BUILDING.md) for minimum version requirements.

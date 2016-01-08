@@ -39,9 +39,9 @@ using namespace i2p::crypto;
 BOOST_AUTO_TEST_SUITE(CryptographyTests)
 
 BOOST_AUTO_TEST_CASE(XorZeroCipherBlocks) {
-  CipherBlock block = {};
+  CipherBlock block = {0};
   block ^= block;
-  const CipherBlock result = {};
+  const CipherBlock result = {0};
   BOOST_CHECK_EQUAL_COLLECTIONS(result.buf, result.buf + 16, block.buf, block.buf + 16);
 }
 
@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(XorSelfCipherBlocks) {
     0xcf, 0xf5, 0xbf, 0xf0, 0xd6
   };
   block ^= block;
-  const CipherBlock result = {};
+  const CipherBlock result = {0};
   BOOST_CHECK_EQUAL_COLLECTIONS(result.buf, result.buf + 16, block.buf, block.buf + 16);
 }
 

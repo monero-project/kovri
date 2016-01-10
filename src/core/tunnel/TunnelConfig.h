@@ -53,6 +53,7 @@ struct TunnelHopConfig {
   uint8_t ivKey[32];
   uint8_t replyKey[32];
   uint8_t replyIV[16];
+  uint8_t randPad[28];
   bool isGateway,
        isEndpoint;
 
@@ -65,7 +66,9 @@ struct TunnelHopConfig {
       i2p::context.GetRandomNumberGenerator();
     rnd.GenerateBlock(layerKey, 32);
     rnd.GenerateBlock(ivKey, 32);
+    rnd.GenerateBlock(replyKey, 32);
     rnd.GenerateBlock(replyIV, 16);
+    rnd.GenerateBlock(randPad, 28);
     tunnelID = rnd.GenerateWord32();
     isGateway = true;
     isEndpoint = true;
@@ -160,7 +163,10 @@ struct TunnelHopConfig {
     htobe32buf(
         clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET,
         replyMsgID);
-    // TODO(unassigned): fill padding
+    memcpy(
+        clearText + BUILD_REQUEST_RECORD_PADDING_OFFSET,
+        randPad,
+        29);
     router->GetElGamalEncryption()->Encrypt(
         clearText,
         BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE,

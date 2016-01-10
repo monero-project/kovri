@@ -82,7 +82,7 @@ void Tunnel::Build(
   while (hop) {
     int idx = recordIndicies[i];
     hop->CreateBuildRequestRecord(
-        records + idx*TUNNEL_BUILD_RECORD_SIZE,
+        records + idx * TUNNEL_BUILD_RECORD_SIZE,
         // we set replyMsgID for last hop only
         hop->next ? rnd.GenerateWord32() : replyMsgID);
     hop->recordIndex = idx;

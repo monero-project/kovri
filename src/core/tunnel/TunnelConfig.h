@@ -53,7 +53,7 @@ struct TunnelHopConfig {
   uint8_t ivKey[32];
   uint8_t replyKey[32];
   uint8_t replyIV[16];
-  uint8_t randPad[28];
+  uint8_t randPad[29];
   bool isGateway,
        isEndpoint;
 
@@ -68,7 +68,7 @@ struct TunnelHopConfig {
     rnd.GenerateBlock(ivKey, 32);
     rnd.GenerateBlock(replyKey, 32);
     rnd.GenerateBlock(replyIV, 16);
-    rnd.GenerateBlock(randPad, 28);
+    rnd.GenerateBlock(randPad, 29);
     tunnelID = rnd.GenerateWord32();
     isGateway = true;
     isEndpoint = true;

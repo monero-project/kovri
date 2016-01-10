@@ -28,17 +28,18 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "I2PControl.h"
+
+#include <boost/property_tree/json_parser.hpp>
+
 #include <cryptopp/filters.h>
 #include <cryptopp/hex.h>
 #include <cryptopp/osrng.h>
-
-#include <boost/property_tree/json_parser.hpp>
 
 #include <iomanip>
 #include <sstream>
 #include <string>
 
-#include "I2PControl.h"
 #include "NetworkDatabase.h"
 #include "client/Daemon.h"
 #include "core/Version.h"
@@ -51,41 +52,45 @@ namespace i2p {
 namespace client {
 namespace i2pcontrol {
 
-JsonObject::JsonObject(const std::string& value)
-    : children(),
-      value("\"" + value + "\"") {}
+JsonObject::JsonObject(
+    const std::string& value)
+    : m_Children(),
+      m_Value("\"" + value + "\"") {}
 
-JsonObject::JsonObject(int value)
-    : children(),
-      value(std::to_string(value)) {}
+JsonObject::JsonObject(
+    int value)
+    : m_Children(),
+      m_Value(std::to_string(value)) {}
 
-JsonObject::JsonObject(double v)
-    : children(),
-      value() {
+JsonObject::JsonObject(
+    double v)
+    : m_Children(),
+      m_Value() {
         std::ostringstream oss;
         oss << std::fixed << std::setprecision(2) << v;
-        value = oss.str();
+        m_Value = oss.str();
 }
 
-JsonObject& JsonObject::operator[](const std::string& key) {
-  return children[key];
+JsonObject& JsonObject::operator[](
+    const std::string& key) {
+  return m_Children[key];
 }
 
-std::string JsonObject::toString() const {
-  if (children.empty())
-    return value;
+std::string JsonObject::ToString() const {
+  if (m_Children.empty())
+    return m_Value;
   std::ostringstream oss;
   oss << '{';
-  for (auto it = children.begin(); it != children.end(); ++it) {
-    if (it != children.begin())
+  for (auto it = m_Children.begin(); it != m_Children.end(); ++it) {
+    if (it != m_Children.begin())
       oss << ',';
-    oss << '"' << it->first << "\":" << it->second.toString();
+    oss << '"' << it->first << "\":" << it->second.ToString();
   }
   oss << '}';
   return oss.str();
 }
 
-JsonObject tunnelToJsonObject(
+JsonObject TunnelToJsonObject(
     i2p::tunnel::Tunnel* tunnel) {
   JsonObject obj;
   std::stringstream ss;
@@ -101,239 +106,242 @@ JsonObject tunnelToJsonObject(
 
 I2PControlSession::Response::Response(
     const std::string& version)
-    : id(),
-      version(version),
-      error(ErrorCode::None),
-      parameters() {}
+    : m_ID(),
+      m_Version(version),
+      m_Error(ErrorCode::e_None),
+      m_Params() {}
 
-std::string I2PControlSession::Response::toJsonString() const {
+std::string I2PControlSession::Response::ToJsonString() const {
   std::ostringstream oss;
-  oss << "{\"id\":" << id << ",\"result\":{";
-  for (auto it = parameters.begin(); it != parameters.end(); ++it) {
-    if (it != parameters.begin())
+  oss << "{\"id\":" << m_ID << ",\"result\":{";
+  for (auto it = m_Params.begin(); it != m_Params.end(); ++it) {
+    if (it != m_Params.begin())
       oss << ',';
     oss << '"' << it->first << "\":" << it->second;
   }
-  oss << "},\"jsonrpc\":\"" << version << '"';
-  if (error != ErrorCode::None)
-    oss << ",\"error\":{\"code\":" << -static_cast<int>(error)
-      << ",\"message\":\"" << getErrorMsg() << "\"" << "}";
+  oss << "},\"jsonrpc\":\"" << m_Version << '"';
+  if (m_Error != ErrorCode::e_None)
+    oss << ",\"error\":{\"code\":" << -static_cast<int>(m_Error)
+      << ",\"message\":\"" << GetErrorMsg() << "\"" << "}";
   oss << "}";
   return oss.str();
 }
 
-std::string I2PControlSession::Response::getErrorMsg() const {
-  switch (error) {
-    case ErrorCode::MethodNotFound:
+std::string I2PControlSession::Response::GetErrorMsg() const {
+  switch (m_Error) {
+    case ErrorCode::e_MethodNotFound:
       return "Method not found.";
-    case ErrorCode::InvalidParameters:
+    case ErrorCode::e_InvalidParameters:
       return "Invalid parameters.";
-    case ErrorCode::InvalidRequest:
+    case ErrorCode::e_InvalidRequest:
       return "Invalid request.";
-    case ErrorCode::ParseError:
+    case ErrorCode::e_ParseError:
       return "Json parse error.";
-    case ErrorCode::InvalidPassword:
+    case ErrorCode::e_InvalidPassword:
       return "Invalid password.";
-    case ErrorCode::NoToken:
+    case ErrorCode::e_NoToken:
       return "No authentication token given.";
-    case ErrorCode::NonexistentToken:
+    case ErrorCode::e_NonexistentToken:
       return "Nonexistent authentication token given.";
-    case ErrorCode::ExpiredToken:
+    case ErrorCode::e_ExpiredToken:
       return "Expired authentication token given.";
-    case ErrorCode::UnspecifiedVersion:
+    case ErrorCode::e_UnspecifiedVersion:
       return "Version not specified.";
-    case ErrorCode::UnsupportedVersion:
+    case ErrorCode::e_UnsupportedVersion:
       return "Version not supported.";
     default:
       return "";
   }
 }
 
-void I2PControlSession::Response::setParam(
-  const std::string& param,
-  const std::string& value) {
-  parameters[param] = value.empty() ? "null" : "\"" + value + "\"";
+void I2PControlSession::Response::SetParam(
+    const std::string& param,
+    const std::string& value) {
+  m_Params[param] = value.empty() ?
+    "null" :
+    "\"" + value + "\"";
 }
 
-void I2PControlSession::Response::setParam(
-  const std::string& param,
-  int value) {
-  parameters[param] = std::to_string(value);
+void I2PControlSession::Response::SetParam(
+    const std::string& param,
+    int value) {
+  m_Params[param] = std::to_string(value);
 }
 
-void I2PControlSession::Response::setParam(
-  const std::string& param,
-  double value) {
+void I2PControlSession::Response::SetParam(
+    const std::string& param,
+    double value) {
   std::ostringstream oss;
   oss << std::fixed << std::setprecision(2) << value;
-  parameters[param] = oss.str();
+  m_Params[param] = oss.str();
 }
 
-void I2PControlSession::Response::setParam(
-  const std::string& param,
-  const JsonObject& value) {
-  parameters[param] = value.toString();
+void I2PControlSession::Response::SetParam(
+    const std::string& param,
+    const JsonObject& value) {
+  m_Params[param] = value.ToString();
 }
 
-void I2PControlSession::Response::setError(ErrorCode code) {
-  error = code;
+void I2PControlSession::Response::SetError(
+    ErrorCode code) {
+  m_Error = code;
 }
 
-void I2PControlSession::Response::setId(const std::string& identifier) {
-  id = identifier;
+void I2PControlSession::Response::SetID(
+    const std::string& id) {
+  m_ID = id;
 }
 
 I2PControlSession::I2PControlSession(
   boost::asio::io_service& ios,
   const std::string& pass)
-    : password(pass),
-      tokens(),
-      tokensMutex(),
-      service(ios),
-      shutdownTimer(ios),
-      expireTokensTimer(ios) {
+    : m_Password(pass),
+      m_Tokens(),
+      m_TokensMutex(),
+      m_Service(ios),
+      m_ShutdownTimer(ios),
+      m_ExpireTokensTimer(ios) {
 
   namespace constants = i2p::client::i2pcontrol::constants;
 
   // Method handlers
-  methodHandlers[constants::METHOD_AUTHENTICATE] =
-    &I2PControlSession::handleAuthenticate;
+  m_MethodHandlers[constants::METHOD_AUTHENTICATE] =
+    &I2PControlSession::HandleAuthenticate;
 
-  methodHandlers[constants::METHOD_ECHO] =
-    &I2PControlSession::handleEcho;
+  m_MethodHandlers[constants::METHOD_ECHO] =
+    &I2PControlSession::HandleEcho;
 
-  methodHandlers[constants::METHOD_I2PCONTROL] =
-    &I2PControlSession::handleI2PControl;
+  m_MethodHandlers[constants::METHOD_I2PCONTROL] =
+    &I2PControlSession::HandleI2PControl;
 
-  methodHandlers[constants::METHOD_ROUTER_INFO] =
-    &I2PControlSession::handleRouterInfo;
+  m_MethodHandlers[constants::METHOD_ROUTER_INFO] =
+    &I2PControlSession::HandleRouterInfo;
 
-  methodHandlers[constants::METHOD_ROUTER_MANAGER] =
-    &I2PControlSession::handleRouterManager;
+  m_MethodHandlers[constants::METHOD_ROUTER_MANAGER] =
+    &I2PControlSession::HandleRouterManager;
 
-  methodHandlers[constants::METHOD_NETWORK_SETTING] =
-    &I2PControlSession::handleNetworkSetting;
+  m_MethodHandlers[constants::METHOD_NETWORK_SETTING] =
+    &I2PControlSession::HandleNetworkSetting;
 
   // RouterInfo handlers
-  routerInfoHandlers[constants::ROUTER_INFO_UPTIME] =
-    &I2PControlSession::handleUptime;
+  m_RouterInfoHandlers[constants::ROUTER_INFO_UPTIME] =
+    &I2PControlSession::HandleUptime;
 
-  routerInfoHandlers[constants::ROUTER_INFO_VERSION] =
-    &I2PControlSession::handleVersion;
+  m_RouterInfoHandlers[constants::ROUTER_INFO_VERSION] =
+    &I2PControlSession::HandleVersion;
 
-  routerInfoHandlers[constants::ROUTER_INFO_STATUS] =
-    &I2PControlSession::handleStatus;
+  m_RouterInfoHandlers[constants::ROUTER_INFO_STATUS] =
+    &I2PControlSession::HandleStatus;
 
-  routerInfoHandlers[constants::ROUTER_INFO_DATAPATH] =
-    &I2PControlSession::handleDatapath;
+  m_RouterInfoHandlers[constants::ROUTER_INFO_DATAPATH] =
+    &I2PControlSession::HandleDatapath;
 
-  routerInfoHandlers[constants::ROUTER_INFO_NETDB_KNOWNPEERS] =
-    &I2PControlSession::handleNetDbKnownPeers;
+  m_RouterInfoHandlers[constants::ROUTER_INFO_NETDB_KNOWNPEERS] =
+    &I2PControlSession::HandleNetDbKnownPeers;
 
-  routerInfoHandlers[constants::ROUTER_INFO_NETDB_ACTIVEPEERS] =
-    &I2PControlSession::handleNetDbActivePeers;
+  m_RouterInfoHandlers[constants::ROUTER_INFO_NETDB_ACTIVEPEERS] =
+    &I2PControlSession::HandleNetDbActivePeers;
 
-  routerInfoHandlers[constants::ROUTER_INFO_NETDB_LEASESETS] =
-    &I2PControlSession::handleNetDbLeaseSets;
+  m_RouterInfoHandlers[constants::ROUTER_INFO_NETDB_LEASESETS] =
+    &I2PControlSession::HandleNetDbLeaseSets;
 
-  routerInfoHandlers[constants::ROUTER_INFO_NETDB_FLOODFILLS] =
-    &I2PControlSession::handleNetDbFloodfills;
+  m_RouterInfoHandlers[constants::ROUTER_INFO_NETDB_FLOODFILLS] =
+    &I2PControlSession::HandleNetDbFloodfills;
 
-  routerInfoHandlers[constants::ROUTER_INFO_NET_STATUS] =
-    &I2PControlSession::handleNetStatus;
+  m_RouterInfoHandlers[constants::ROUTER_INFO_NET_STATUS] =
+    &I2PControlSession::HandleNetStatus;
 
-  routerInfoHandlers[constants::ROUTER_INFO_TUNNELS_PARTICIPATING] =
-    &I2PControlSession::handleTunnelsParticipating;
+  m_RouterInfoHandlers[constants::ROUTER_INFO_TUNNELS_PARTICIPATING] =
+    &I2PControlSession::HandleTunnelsParticipating;
 
-  routerInfoHandlers[constants::ROUTER_INFO_TUNNELS_CREATION_SUCCESS] =
-    &I2PControlSession::handleTunnelsCreationSuccess;
+  m_RouterInfoHandlers[constants::ROUTER_INFO_TUNNELS_CREATION_SUCCESS] =
+    &I2PControlSession::HandleTunnelsCreationSuccess;
 
-  routerInfoHandlers[constants::ROUTER_INFO_TUNNELS_IN_LIST] =
-    &I2PControlSession::handleTunnelsInList;
+  m_RouterInfoHandlers[constants::ROUTER_INFO_TUNNELS_IN_LIST] =
+    &I2PControlSession::HandleTunnelsInList;
 
-  routerInfoHandlers[constants::ROUTER_INFO_TUNNELS_OUT_LIST] =
-    &I2PControlSession::handleTunnelsOutList;
+  m_RouterInfoHandlers[constants::ROUTER_INFO_TUNNELS_OUT_LIST] =
+    &I2PControlSession::HandleTunnelsOutList;
 
-  routerInfoHandlers[constants::ROUTER_INFO_BW_IB_1S] =
-    &I2PControlSession::handleInBandwidth1S;
+  m_RouterInfoHandlers[constants::ROUTER_INFO_BW_IB_1S] =
+    &I2PControlSession::HandleInBandwidth1S;
 
-  routerInfoHandlers[constants::ROUTER_INFO_BW_OB_1S] =
-    &I2PControlSession::handleOutBandwidth1S;
+  m_RouterInfoHandlers[constants::ROUTER_INFO_BW_OB_1S] =
+    &I2PControlSession::HandleOutBandwidth1S;
 
   // RouterManager handlers
-  routerManagerHandlers[constants::ROUTER_MANAGER_SHUTDOWN] =
-    &I2PControlSession::handleShutdown;
+  m_RouterManagerHandlers[constants::ROUTER_MANAGER_SHUTDOWN] =
+    &I2PControlSession::HandleShutdown;
 
-  routerManagerHandlers[constants::ROUTER_MANAGER_SHUTDOWN_GRACEFUL] =
-    &I2PControlSession::handleShutdownGraceful;
+  m_RouterManagerHandlers[constants::ROUTER_MANAGER_SHUTDOWN_GRACEFUL] =
+    &I2PControlSession::HandleShutdownGraceful;
 
-  routerManagerHandlers[constants::ROUTER_MANAGER_RESEED] =
-    &I2PControlSession::handleReseed;
+  m_RouterManagerHandlers[constants::ROUTER_MANAGER_RESEED] =
+    &I2PControlSession::HandleReseed;
 }
 
-void I2PControlSession::start() {
-  startExpireTokensJob();
+void I2PControlSession::Start() {
+  StartExpireTokensJob();
 }
 
-void I2PControlSession::stop() {
+void I2PControlSession::Stop() {
   boost::system::error_code e;  // Make sure this doesn't throw
-  shutdownTimer.cancel(e);
-  expireTokensTimer.cancel(e);
+  m_ShutdownTimer.cancel(e);
+  m_ExpireTokensTimer.cancel(e);
 }
 
-I2PControlSession::Response I2PControlSession::handleRequest(
+I2PControlSession::Response I2PControlSession::HandleRequest(
     std::stringstream& request) {
   boost::property_tree::ptree pt;
   boost::property_tree::read_json(request, pt);
   Response response;
   try {
-    response.setId(pt.get<std::string>(constants::PROPERTY_ID));
+    response.SetID(pt.get<std::string>(constants::PROPERTY_ID));
     std::string method = pt.get<std::string>(constants::PROPERTY_METHOD);
-    auto it = methodHandlers.find(method);
-    if (it == methodHandlers.end()) {  // Not found
+    auto it = m_MethodHandlers.find(method);
+    if (it == m_MethodHandlers.end()) {  // Not found
       LogPrint(eLogWarning, "Unknown I2PControl method ", method);
-      response.setError(ErrorCode::MethodNotFound);
+      response.SetError(ErrorCode::e_MethodNotFound);
       return response;
     }
-    PropertyTree params = pt.get_child(constants::PROPERTY_PARAMS);
+    ptree params = pt.get_child(constants::PROPERTY_PARAMS);
     if (method != constants::METHOD_AUTHENTICATE &&
-        !authenticate(params, response)) {
+        !Authenticate(params, response)) {
       LogPrint(eLogWarning, "I2PControl invalid token presented");
       return response;
     }
     // Call the appropriate handler
     (this->*(it->second))(params, response);
   } catch (const boost::property_tree::ptree_error& error) {
-    response.setError(ErrorCode::ParseError);
+    response.SetError(ErrorCode::e_ParseError);
   } catch (...) {
-    response.setError(ErrorCode::InternalError);
+    response.SetError(ErrorCode::e_InternalError);
   }
-
   return response;
 }
 
-bool I2PControlSession::authenticate(
-    const PropertyTree& pt, Response& response) {
+bool I2PControlSession::Authenticate(
+    const ptree& pt, Response& response) {
   try {
     std::string token = pt.get<std::string>(constants::PARAM_TOKEN);
-    std::lock_guard<std::mutex> lock(tokensMutex);
-    auto it = tokens.find(token);
-    if (it == tokens.end()) {
-      response.setError(ErrorCode::NonexistentToken);
+    std::lock_guard<std::mutex> lock(m_TokensMutex);
+    auto it = m_Tokens.find(token);
+    if (it == m_Tokens.end()) {
+      response.SetError(ErrorCode::e_NonexistentToken);
       return false;
     } else if (util::GetSecondsSinceEpoch() - it->second >
         constants::TOKEN_LIFETIME) {
-      response.setError(ErrorCode::ExpiredToken);
+      response.SetError(ErrorCode::e_ExpiredToken);
       return false;
     }
   } catch (const boost::property_tree::ptree_error& error) {
-    response.setError(ErrorCode::NoToken);
+    response.SetError(ErrorCode::e_NoToken);
     return false;
   }
   return true;
 }
 
-std::string I2PControlSession::generateToken() const {
+std::string I2PControlSession::GenerateToken() const {
   byte random_data[constants::TOKEN_SIZE] = {};
   CryptoPP::AutoSeededRandomPool rng;
   rng.GenerateBlock(random_data, constants::TOKEN_SIZE);
@@ -348,271 +356,280 @@ std::string I2PControlSession::generateToken() const {
   return token;
 }
 
-void I2PControlSession::handleAuthenticate(
-    const PropertyTree& pt,
+void I2PControlSession::HandleAuthenticate(
+    const ptree& pt,
     Response& response) {
-  const int api = pt.get<int>(constants::PARAM_API);
-  const std::string given_pass =
-    pt.get<std::string>(constants::PARAM_PASSWORD);
+  const int api = pt.get<int>(
+      constants::PARAM_API);
+  const std::string given_pass = pt.get<std::string>(
+      constants::PARAM_PASSWORD);
   LogPrint(eLogDebug,
       "I2PControl Authenticate API = ", api,
       " Password = ", given_pass);
-  if (given_pass != password) {
-    LogPrint(eLogError, "I2PControl Authenticate Invalid password ",
-      given_pass, " expected ", password);
-    response.setError(ErrorCode::InvalidPassword);
+  if (given_pass != m_Password) {
+    LogPrint(eLogError, "I2PControl authenticate invalid password ",
+      given_pass, " expected ", m_Password);
+    response.SetError(ErrorCode::e_InvalidPassword);
     return;
   }
-  const std::string token = generateToken();
-  response.setParam(constants::PARAM_API, api);
-  response.setParam(constants::PARAM_TOKEN, token);
-  std::lock_guard<std::mutex> lock(tokensMutex);
-  tokens.insert(
+  const std::string token = GenerateToken();
+  response.SetParam(constants::PARAM_API, api);
+  response.SetParam(constants::PARAM_TOKEN, token);
+  std::lock_guard<std::mutex> lock(m_TokensMutex);
+  m_Tokens.insert(
       std::make_pair(
         token,
         util::GetSecondsSinceEpoch()));
 }
 
-void I2PControlSession::handleEcho(
-    const PropertyTree& pt,
+void I2PControlSession::HandleEcho(
+    const ptree& pt,
     Response& response) {
   const std::string echo = pt.get<std::string>(constants::PARAM_ECHO);
   LogPrint(eLogDebug, "I2PControl Echo Echo = ", echo);
-  response.setParam(constants::PARAM_RESULT, echo);
+  response.SetParam(constants::PARAM_RESULT, echo);
 }
 
-void I2PControlSession::handleI2PControl(
-    const PropertyTree&,
+void I2PControlSession::HandleI2PControl(
+    const ptree&,
     Response&) {
   LogPrint(eLogDebug, "I2PControl I2PControl");
   // TODO(anonimal): implement
 }
 
-void I2PControlSession::handleRouterInfo(
-    const PropertyTree& pt,
+void I2PControlSession::HandleRouterInfo(
+    const ptree& pt,
     Response& response) {
   LogPrint(eLogDebug, "I2PControl RouterInfo");
   for (const auto& pair : pt) {
     if (pair.first == constants::PARAM_TOKEN)
       continue;
     LogPrint(eLogDebug, pair.first);
-    auto it = routerInfoHandlers.find(pair.first);
-    if (it != routerInfoHandlers.end()) {
+    auto it = m_RouterInfoHandlers.find(pair.first);
+    if (it != m_RouterInfoHandlers.end()) {
       (this->*(it->second))(response);
     } else {
-      LogPrint(eLogError, "I2PControl RouterInfo unknown request ", pair.first);
-      response.setError(ErrorCode::InvalidRequest);
+      LogPrint(eLogError,
+          "I2PControl RouterInfo unknown request ", pair.first);
+      response.SetError(ErrorCode::e_InvalidRequest);
     }
   }
 }
 
-void I2PControlSession::handleRouterManager(
-    const PropertyTree& pt,
+void I2PControlSession::HandleRouterManager(
+    const ptree& pt,
     Response& response) {
   LogPrint(eLogDebug, "I2PControl RouterManager");
   for (const auto& pair : pt) {
     if (pair.first == constants::PARAM_TOKEN)
       continue;
     LogPrint(eLogDebug, pair.first);
-    auto it = routerManagerHandlers.find(pair.first);
-    if (it != routerManagerHandlers.end()) {
+    auto it = m_RouterManagerHandlers.find(pair.first);
+    if (it != m_RouterManagerHandlers.end()) {
       (this->*(it->second))(response);
     } else {
       LogPrint(eLogError,
           "I2PControl RouterManager unknown request ", pair.first);
-      response.setError(ErrorCode::InvalidRequest);
+      response.SetError(ErrorCode::e_InvalidRequest);
     }
   }
 }
 
-void I2PControlSession::handleNetworkSetting(
-    const PropertyTree&,
+void I2PControlSession::HandleNetworkSetting(
+    const ptree&,
     Response&) {
   // TODO(anonimal): implement
 }
 
-void I2PControlSession::handleUptime(
+void I2PControlSession::HandleUptime(
     Response& response) {
-  response.setParam(
+  response.SetParam(
       constants::ROUTER_INFO_UPTIME,
       static_cast<int>(i2p::context.GetUptime())*1000);
 }
 
-void I2PControlSession::handleVersion(
+void I2PControlSession::HandleVersion(
     Response& response) {
-  response.setParam(
+  response.SetParam(
       constants::ROUTER_INFO_VERSION,
       KOVRI_VERSION);
 }
 
-void I2PControlSession::handleStatus(
+void I2PControlSession::HandleStatus(
     Response& response) {
   // TODO(anonimal): implement
-  response.setParam(
+  response.SetParam(
       constants::ROUTER_INFO_STATUS,
       "???");
 }
 
-void I2PControlSession::handleDatapath(
+void I2PControlSession::HandleDatapath(
     Response& response) {
-  response.setParam(
+  response.SetParam(
       constants::ROUTER_INFO_DATAPATH,
       i2p::util::filesystem::GetDefaultDataPath().string());
 }
 
-void I2PControlSession::handleNetDbKnownPeers(
+void I2PControlSession::HandleNetDbKnownPeers(
     Response& response) {
-  response.setParam(
+  response.SetParam(
       constants::ROUTER_INFO_NETDB_KNOWNPEERS,
       i2p::data::netdb.GetNumRouters());
 }
 
-void I2PControlSession::handleNetDbActivePeers(
+void I2PControlSession::HandleNetDbActivePeers(
     Response& response) {
-  response.setParam(
+  response.SetParam(
       constants::ROUTER_INFO_NETDB_ACTIVEPEERS,
       static_cast<int>(i2p::transport::transports.GetPeers().size()));
 }
 
-void I2PControlSession::handleNetDbFloodfills(
+void I2PControlSession::HandleNetDbFloodfills(
     Response& response) {
-  response.setParam(
+  response.SetParam(
       constants::ROUTER_INFO_NETDB_FLOODFILLS,
       static_cast<int>(i2p::data::netdb.GetNumFloodfills()));
 }
 
-void I2PControlSession::handleNetDbLeaseSets(
+void I2PControlSession::HandleNetDbLeaseSets(
     Response& response) {
-  response.setParam(
+  response.SetParam(
       constants::ROUTER_INFO_NETDB_LEASESETS,
       static_cast<int>(i2p::data::netdb.GetNumLeaseSets()));
 }
 
-void I2PControlSession::handleNetStatus(
+void I2PControlSession::HandleNetStatus(
     Response& response) {
-  response.setParam(
+  response.SetParam(
       constants::ROUTER_INFO_NET_STATUS,
       static_cast<int>(i2p::context.GetStatus()));
 }
 
-void I2PControlSession::handleTunnelsParticipating(
+void I2PControlSession::HandleTunnelsParticipating(
     Response& response) {
-  response.setParam(
+  response.SetParam(
       constants::ROUTER_INFO_TUNNELS_PARTICIPATING,
       static_cast<int>(i2p::tunnel::tunnels.GetTransitTunnels().size()));
 }
 
-void I2PControlSession::handleTunnelsCreationSuccess(
+void I2PControlSession::HandleTunnelsCreationSuccess(
     Response& response) {
-  response.setParam(
+  response.SetParam(
       constants::ROUTER_INFO_TUNNELS_CREATION_SUCCESS,
       i2p::tunnel::tunnels.GetTunnelCreationSuccessRate());
 }
 
-void I2PControlSession::handleTunnelsInList(
+void I2PControlSession::HandleTunnelsInList(
     Response& response) {
   JsonObject list;
   for (auto pair : i2p::tunnel::tunnels.GetInboundTunnels()) {
     const std::string id = std::to_string(pair.first);
-    list[id] = tunnelToJsonObject(pair.second.get());
+    list[id] = TunnelToJsonObject(pair.second.get());
     list[id]["bytes"] = JsonObject(
       static_cast<int>(pair.second->GetNumReceivedBytes()));
   }
-  response.setParam(
+  response.SetParam(
       constants::ROUTER_INFO_TUNNELS_IN_LIST,
       list);
 }
 
-void I2PControlSession::handleTunnelsOutList(
+void I2PControlSession::HandleTunnelsOutList(
     Response& response) {
   JsonObject list;
   for (auto tunnel : i2p::tunnel::tunnels.GetOutboundTunnels()) {
     const std::string id = std::to_string(
         tunnel->GetTunnelID());
-    list[id] = tunnelToJsonObject(tunnel.get());
+    list[id] = TunnelToJsonObject(tunnel.get());
     list[id]["bytes"] = JsonObject(
         static_cast<int>(tunnel->GetNumSentBytes()));
   }
-  response.setParam(
+  response.SetParam(
       constants::ROUTER_INFO_TUNNELS_OUT_LIST,
       list);
 }
 
-void I2PControlSession::handleInBandwidth1S(
+void I2PControlSession::HandleInBandwidth1S(
     Response& response) {
-  response.setParam(
+  response.SetParam(
       constants::ROUTER_INFO_BW_IB_1S,
       static_cast<double>(i2p::transport::transports.GetInBandwidth()));
 }
 
-void I2PControlSession::handleOutBandwidth1S(
+void I2PControlSession::HandleOutBandwidth1S(
     Response& response) {
-  response.setParam(
+  response.SetParam(
       constants::ROUTER_INFO_BW_OB_1S,
       static_cast<double>(i2p::transport::transports.GetOutBandwidth()));
 }
 
-void I2PControlSession::handleShutdown(
+void I2PControlSession::HandleShutdown(
     Response& response) {
   LogPrint(eLogInfo, "Shutdown requested");
-  response.setParam(constants::ROUTER_MANAGER_SHUTDOWN, "");
+  response.SetParam(constants::ROUTER_MANAGER_SHUTDOWN, "");
   // 1 second to make sure response has been sent
-  shutdownTimer.expires_from_now(
+  m_ShutdownTimer.expires_from_now(
       boost::posix_time::seconds(1));
-  shutdownTimer.async_wait([](
+  m_ShutdownTimer.async_wait(
+      [](
         const boost::system::error_code&) {
-      Daemon.m_isRunning = 0;});
+      Daemon.m_IsRunning = 0;});
 }
 
-void I2PControlSession::handleShutdownGraceful(
+void I2PControlSession::HandleShutdownGraceful(
     Response& response) {
+  // Stop accepting tunnels
   i2p::context.SetAcceptsTunnels(false);
+  // Get tunnel expiry time
   int timeout = i2p::tunnel::tunnels.GetTransitTunnelsExpirationTimeout();
-  LogPrint(eLogInfo, "Graceful shutdown requested. Will shutdown after ",
+  LogPrint(eLogInfo,
+      "Graceful shutdown requested. Will shutdown after ",
       timeout, " seconds");
-  response.setParam(
+  // Initiate graceful shutdown
+  response.SetParam(
       constants::ROUTER_MANAGER_SHUTDOWN_GRACEFUL,
       "");
-  shutdownTimer.expires_from_now(
+  m_ShutdownTimer.expires_from_now(
       boost::posix_time::seconds(
         timeout + 1));
-  shutdownTimer.async_wait([](
+  m_ShutdownTimer.async_wait(
+      [](
         const boost::system::error_code&) {
-      Daemon.m_isRunning = 0;});
+      // Begin router shutdown
+      Daemon.m_IsRunning = 0;});
 }
 
-void I2PControlSession::handleReseed(
+void I2PControlSession::HandleReseed(
     Response& response) {
   LogPrint(eLogInfo, "Reseed requested");
-  response.setParam(
+  response.SetParam(
       constants::ROUTER_MANAGER_SHUTDOWN,
       "");
   i2p::data::netdb.Reseed();
 }
 
-void I2PControlSession::expireTokens(
+void I2PControlSession::ExpireTokens(
     const boost::system::error_code& error) {
   if (error == boost::asio::error::operation_aborted)
     return;  // Do not restart timer, shutting down
-  startExpireTokensJob();
+  StartExpireTokensJob();
   LogPrint(eLogDebug, "I2PControl is expiring tokens.");
   const uint64_t now = util::GetSecondsSinceEpoch();
-  std::lock_guard<std::mutex> lock(tokensMutex);
-  for (auto it = tokens.begin(); it != tokens.end(); ) {
+  std::lock_guard<std::mutex> lock(m_TokensMutex);
+  for (auto it = m_Tokens.begin(); it != m_Tokens.end(); ) {
     if (now - it->second > constants::TOKEN_LIFETIME)
-      it = tokens.erase(it);
+      it = m_Tokens.erase(it);
     else
       ++it;
   }
 }
 
-void I2PControlSession::startExpireTokensJob() {
-  expireTokensTimer.expires_from_now(
+void I2PControlSession::StartExpireTokensJob() {
+  m_ExpireTokensTimer.expires_from_now(
       boost::posix_time::seconds(
         constants::TOKEN_LIFETIME));
-  expireTokensTimer.async_wait(
+  m_ExpireTokensTimer.async_wait(
       std::bind(
-        &I2PControlSession::expireTokens,
+        &I2PControlSession::ExpireTokens,
         shared_from_this(),
         std::placeholders::_1));
 }

@@ -56,10 +56,13 @@ class LogStream : public std::ostream {
       LogStreamImpl* impl);
   ~LogStream();
 
-  // attach metadata to the current logger's next entries until flushed
-  LogStream& Meta(
-      const std::string& key,
-      std::string value);
+  /**
+   * TODO(unassigned): implement (currently unfinished)
+   * // attach metadata to the current logger's next entries until flushed
+   * LogStream& Meta(
+   *    const std::string& key,
+   *    std::string value);
+  */
 
   // flush this log stream
   LogStream& Flush();
@@ -78,18 +81,19 @@ class LogStream : public std::ostream {
   LogStreamImpl* m_Impl;
 };
 
-// Stream for sending events to live UI
-// TODO(unassigned): implement
-class EventStream {
- public:
-  // flush events
-  virtual EventStream& Flush() const = 0;
-
-  // operator overload for <<
-  // queue an event
-  virtual EventStream& operator <<(
-      const std::vector<std::string> & strs) const = 0;
-};
+/**
+ * // TODO(unassigned): implement (currently unfinished)
+ * // Stream for sending events to live UI
+ * class EventStream {
+ *  public:
+ *   // flush events
+ *   virtual EventStream& Flush() const = 0;
+ *   // operator overload for <<
+ *   // queue an event
+ *   virtual EventStream& operator <<(
+ *       const std::vector<std::string> & strs) const = 0;
+ * };
+ */
 
 // private implementation of Logger
 class LoggerImpl;
@@ -112,8 +116,9 @@ class Logger {
   // get debug level log stream
   LogStream& Debug();
 
+  // TODO(unassigned): implement (currently unfinished)
   // get EventStream to send events to UI
-  EventStream& UI();
+  //EventStream& UI();
 
   // flush pending log events
   void Flush();

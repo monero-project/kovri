@@ -35,6 +35,7 @@
 
 #include <sstream>
 #include <string>
+#include <memory>
 
 #include "core/Version.h"
 #include "util/Log.h"
@@ -47,11 +48,11 @@ namespace i2pcontrol {
 I2PControlService::I2PControlService(
   const std::string& address,
   int port,
-  const std::string& pass)
+  const std::string& password)
     : m_Session(
         std::make_shared<I2PControlSession>(
           m_Service,
-          pass)),
+          password)),
       m_IsRunning(false),
       m_Thread(nullptr),
       m_Acceptor(
@@ -66,7 +67,7 @@ I2PControlService::~I2PControlService() { Stop(); }
 void I2PControlService::Start() {
   if (!m_IsRunning) {
     Accept();
-    m_Session->start();
+    m_Session->Start();
     m_IsRunning = true;
     m_Thread = new std::thread(
         std::bind(
@@ -79,7 +80,7 @@ void I2PControlService::Stop() {
   if (m_IsRunning) {
     m_IsRunning = false;
     m_Acceptor.cancel();
-    m_Session->stop();
+    m_Session->Stop();
     // Release ownership before the io_service is stopped and destroyed
     m_Session.reset();
     m_Service.stop();
@@ -120,8 +121,8 @@ void I2PControlService::HandleAccept(
   if (ecode != boost::asio::error::operation_aborted)
     Accept();
   if (!ecode) {
-    LogPrint(eLogInfo, "New I2PControl request from ",
-        socket->remote_endpoint());
+    LogPrint(eLogInfo,
+	"New I2PControl request from ", socket->remote_endpoint());
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
     ReadRequest(socket);
   } else {
@@ -171,8 +172,8 @@ void I2PControlService::HandleRequestReceived(
       }
     }
     I2PControlSession::Response response =
-      m_Session->handleRequest(ss);
-    SendResponse(socket, buf, response.toJsonString(), isHtml);
+      m_Session->HandleRequest(ss);
+    SendResponse(socket, buf, response.ToJsonString(), isHtml);
   } catch (const std::exception& ex) {
     LogPrint(eLogError, "I2PControl handle request: ", ex.what());
   } catch (...) {
@@ -222,7 +223,8 @@ void I2PControlService::SendResponse(
 }
 
 void I2PControlService::HandleResponseSent(
-    const boost::system::error_code& ecode, std::size_t,
+    const boost::system::error_code& ecode,
+    std::size_t,
     std::shared_ptr<boost::asio::ip::tcp::socket> socket,
     std::shared_ptr<I2PControlBuffer>) {
   if (ecode)

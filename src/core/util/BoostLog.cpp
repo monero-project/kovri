@@ -38,17 +38,16 @@
 #if BOOST_VERSION >= 105600
 #include <boost/core/null_deleter.hpp>
 #else
-
-/* defines null_deleter here if we don't have the right boost version */
-
+// defines null_deleter here if we don't have the right boost version
 #include <boost/config.hpp>
 namespace boost {
-  struct null_deleter {
-    typedef void result_type;
-    template <typename T> void operator() (T*) const {}
-  };
+struct null_deleter {
+  typedef void result_type;
+  template <typename T> void operator() (T*) const {}
+};
 }
 #endif
+
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 #include <boost/log/attributes.hpp>
@@ -94,14 +93,14 @@ LogImpl::LogImpl(
 
 Log::Log(
     LogLevel minlev,
-    std::ostream * out) {
+    std::ostream* out) {
   m_LogImpl = std::make_shared<LogImpl>(minlev, out);
   m_DefaultLogger = std::make_shared<Logger>(new LoggerImpl);
 }
 
 LoggerImpl::LoggerImpl(
     const std::string& name,
-    const std::string & channel)
+    const std::string& channel)
     : log(boost::log::keywords::channel = channel),
       m_Debug(new LogStreamImpl(m_DebugMtx, log, eLogDebug)),
       m_Info(new LogStreamImpl(m_InfoMtx, log, eLogInfo)),
@@ -159,13 +158,16 @@ LogStream::LogStream(
 
 LogStream::~LogStream() { delete m_Impl; }
 
-LogStream & LogStream::Meta(
-    const std::string& key,
-    std::string value) {
-  // this doesn't do anything yet
-  // m_Impl->MetaImpl(key, value);
-  return *this;
-}
+/**
+ * TODO(unassigned): implement
+ * LogStream& LogStream::Meta(
+ *     const std::string& key,
+ *     std::string value) {
+ *   //TODO(unassigned): this doesn't do anything yet
+ *   m_Impl->MetaImpl(key, value);
+ *   return *this;
+ * }
+*/
 
 LogStream & LoggerImpl::Debug() {
   return GetLogger(m_Debug, m_DebugMtx);

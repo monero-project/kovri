@@ -79,7 +79,7 @@ Reseeder::~Reseeder() {}
 
 int Reseeder::ReseedNowSU3() {
   CryptoPP::AutoSeededRandomPool rnd;
-  int ind = rnd.GenerateWord32(0, reseedHosts.size());
+  int ind = rnd.GenerateWord32(0, reseedHosts.size() - 1);
   std::string& reseedHost = reseedHosts[ind];
   return ReseedFromSU3(reseedHost);
 }

@@ -50,13 +50,13 @@ LogStream::LogStream(
       m_Impl(impl) {}
 LogStream::~LogStream() { delete m_Impl; }
 
-LogStream & LogStream::Flush() {
+LogStream& LogStream::Flush() {
   // we don't want to flush anything here
   return *this;
 }
 
-LogStream & LoggerImpl::GetLogStream(
-    const std::string & name) {
+LogStream& LoggerImpl::GetLogStream(
+    const std::string& name) {
   m_LogMtx.lock();
   m_LogStream << m_LogName << "\t" << name << "\t";
   return m_LogStream;

@@ -98,20 +98,22 @@ class LogStreamImpl : public std::streambuf {
 
  private:
   void Flush();
-  std::stringbuf * m_Str;
+  std::stringbuf* m_Str;
   std::mutex& m_Access;
   log_t& m_Log;
   LogLevel m_Level;
   bool m_Enable;
 };
 
-class BoostEventStream : public EventStream {
- public:
-  virtual EventStream& Flush() const {}
-
-  virtual EventStream& operator <<(
-      const std::vector<std::string>& strs) const {}
-};
+/**
+ * // TODO(unassigned): implement (currently unfinished)
+ * class BoostEventStream : public EventStream {
+ *  public:
+ *   virtual EventStream& Flush() const {}
+ *   virtual EventStream& operator <<(
+ *       const std::vector<std::string>& strs) const {}
+ * };
+ */
 
 class LoggerImpl {
  public:
@@ -130,9 +132,10 @@ class LoggerImpl {
 
   LogStream& Error();
 
-  EventStream& UI() {
-    return m_Events;
-  }
+  // TODO(unassigned): implement (currently unfinished)
+  //EventStream& UI() {
+  //  return m_Events;
+  //}
 
   log_t log;
 
@@ -151,7 +154,8 @@ class LoggerImpl {
             m_Warn,
             m_Error;
 
-  BoostEventStream m_Events;
+  // TODO(unassigned): implement (currently unfinished)
+  //BoostEventStream m_Events;
 };
 
 class LogImpl {

@@ -50,9 +50,9 @@ class Daemon_Singleton {
   virtual bool Init();
   virtual bool Start();
   virtual bool Stop();
-  bool m_isDaemon,
-       m_isLogging,
-       m_isRunning;
+  bool m_IsDaemon,
+       m_IsLogging,
+       m_IsRunning;
 
  protected:
   Daemon_Singleton();

@@ -79,33 +79,47 @@ const char I2PCONTROL_PORT[] = "i2pcontrol.port";
 // RouterInfo requests
 const char ROUTER_INFO_UPTIME[] =
   "i2p.router.uptime";
+
 const char ROUTER_INFO_VERSION[] =
   "i2p.router.version";
+
 const char ROUTER_INFO_STATUS[] =
   "i2p.router.status";
+
 const char ROUTER_INFO_DATAPATH[] =
   "i2p.router.datapath";
+
 const char ROUTER_INFO_NETDB_KNOWNPEERS[] =
   "i2p.router.netdb.knownpeers";
+
 const char ROUTER_INFO_NETDB_ACTIVEPEERS[] =
   "i2p.router.netdb.activepeers";
+
 const char ROUTER_INFO_NETDB_FLOODFILLS[] =
   "i2p.router.netdb.floodfills";
+
 const char ROUTER_INFO_NETDB_LEASESETS[] =
   "i2p.router.netdb.leasesets";
+
 const char ROUTER_INFO_NET_STATUS[] =
   "i2p.router.net.status";
+
 const char ROUTER_INFO_TUNNELS_PARTICIPATING[] =
   "i2p.router.net.tunnels.participating";
+
 // TODO(anonimal): Probably better to use the standard GetRate instead
 const char ROUTER_INFO_TUNNELS_CREATION_SUCCESS[] =
   "i2p.router.net.tunnels.creationsuccessrate";
+
 const char ROUTER_INFO_TUNNELS_IN_LIST[] =
   "i2p.router.net.tunnels.inbound.list";
+
 const char ROUTER_INFO_TUNNELS_OUT_LIST[] =
   "i2p.router.net.tunnels.outbound.list";
+
 const char ROUTER_INFO_BW_IB_1S[] =
   "i2p.router.net.bw.inbound.1s";
+
 const char ROUTER_INFO_BW_OB_1S[] =
   "i2p.router.net.bw.outbound.1s";
 
@@ -122,19 +136,27 @@ const char ROUTER_MANAGER_RESEED[] = "Reseed";
 class JsonObject {
  public:
   JsonObject() = default;
-  explicit JsonObject(const std::string& value);
-  explicit JsonObject(int value);
-  explicit JsonObject(double value);
-  JsonObject& operator[](const std::string& key);
 
-  std::string toString() const;
+  explicit JsonObject(
+      const std::string& value);
+
+  explicit JsonObject(
+      int value);
+
+  explicit JsonObject(
+      double value);
+
+  JsonObject& operator[](
+      const std::string& key);
+
+  std::string ToString() const;
 
  private:
-  std::map<std::string, JsonObject> children;
-  std::string value;
+  std::map<std::string, JsonObject> m_Children;
+  std::string m_Value;
 };
 
-JsonObject tunnelToJsonObject(
+JsonObject TunnelToJsonObject(
     i2p::tunnel::Tunnel* tunnel);
 
 /**
@@ -147,164 +169,157 @@ class I2PControlSession
     : public std::enable_shared_from_this<I2PControlSession> {
  public:
   enum class ErrorCode {
-    None = 0,
+    e_None = 0,
     // JSON-RPC2
-    MethodNotFound = 32601,
-    InvalidParameters = 32602,
-    InvalidRequest = 32600,
-    InternalError = 32603,
-    ParseError = 32700,
+    e_MethodNotFound = 32601,
+    e_InvalidParameters = 32602,
+    e_InvalidRequest = 32600,
+    e_InternalError = 32603,
+    e_ParseError = 32700,
     // I2PControl specific
-    InvalidPassword = 32001,
-    NoToken = 32002,
-    NonexistentToken = 32003,
-    ExpiredToken = 32004,
-    UnspecifiedVersion = 32005,
-    UnsupportedVersion = 32006
+    e_InvalidPassword = 32001,
+    e_NoToken = 32002,
+    e_NonexistentToken = 32003,
+    e_ExpiredToken = 32004,
+    e_UnspecifiedVersion = 32005,
+    e_UnsupportedVersion = 32006
   };
 
   class Response {
-    std::string id;
-    std::string version;
-    ErrorCode error;
-    std::map<std::string, std::string> parameters;
-
    public:
-    explicit Response(const std::string& version = "2.0");
-    std::string toJsonString() const;
-    /**
-     * Set an output parameter to a specified string.
-     * @todo escape quotes
-     */
-    void setParam(
+    explicit Response(
+        const std::string& version = "2.0");
+
+    // Returns response params in JSON form
+    std::string ToJsonString() const;
+
+    // Set an output parameter to a specified string.
+    // @todo escape quotes
+    void SetParam(
         const std::string& param,
         const std::string& value);
-    /**
-     * Set an output parameter to a specified integer.
-     */
-    void setParam(
+
+    // Set an output parameter to a specified integer.
+    void SetParam(
         const std::string& param,
         int value);
-    /**
-     * Set an output parameter to a specified double.
-     */
-    void setParam(
+
+    // Set an output parameter to a specified double.
+    void SetParam(
         const std::string& param,
         double value);
-    /**
-     * Set an output parameter to a specified Json object.
-     */
-    void setParam(
+
+    // Set an output parameter to a specified Json object.
+    void SetParam(
         const std::string& param,
         const JsonObject& value);
 
-    void setError(ErrorCode code);
-    void setId(const std::string& identifier);
+    void SetError(
+        ErrorCode code);
 
-    std::string getErrorMsg() const;
-  };
+    void SetID(
+        const std::string& id);
 
-  /**
-   * Sets up the appropriate handlers.
-   * @param pass the password required to authenticate (i.e. obtains a token)
-   * @param ios the parent io_service object, must remain valid throughout
-   *  the lifetime of this I2PControlSession.
-   */
+    std::string GetErrorMsg() const;
+
+   private:
+    std::string m_ID;
+    std::string m_Version;
+    ErrorCode m_Error;
+    std::map<std::string, std::string> m_Params;
+  };  // class Response
+
+  // Sets up the appropriate handlers.
+  // @param ios the parent io_service object, must remain valid throughout
+  // the lifetime of this I2PControlSession.
+  // @param pass the password required to authenticate (i.e. obtains a token)
   I2PControlSession(
       boost::asio::io_service& ios,
       const std::string& pass = constants::DEFAULT_PASSWORD);
 
-  /**
-   * Starts the I2PControlSession.
-   * In essence, this starts the expireTokensTimer.
-   * @note should always be called after construction
-   */
-  void start();
+  // Starts the I2PControlSession.
+  // In essence, this starts the expireTokensTimer.
+  // @note should always be called after construction
+  void Start();
 
-  /**
-   * Cancels all operations that are waiting.
-   * @note it's a good idea to call this before destruction (shared_ptr reset)
-   */
-  void stop();
+  // Cancels all operations that are waiting.
+  // @note it's a good idea to call this before destruction (shared_ptr reset)
+  void Stop();
 
-  /**
-   * Handle a json string with I2PControl instructions.
-   */
-  Response handleRequest(std::stringstream& request);
+  // Handle a json string with I2PControl instructions.
+  Response HandleRequest(
+      std::stringstream& request);
 
  private:
   // For convenience
-  typedef boost::property_tree::ptree PropertyTree;
+  typedef boost::property_tree::ptree ptree;
+
   // Handler types
   typedef void (I2PControlSession::*MethodHandler)(
-      const PropertyTree& pt, Response& results);
-  typedef void (I2PControlSession::*RequestHandler)(Response& results);
+      const ptree& pt,
+      Response& results);
+  typedef void (I2PControlSession::*RequestHandler)(
+      Response& results);
 
-  /**
-   * Tries to authenticate by checking whether the given token is valid.
-   * Sets the appropriate error code in the given response.
-   */
-  bool authenticate(
-      const PropertyTree& pt,
+  // Tries to authenticate by checking whether the given token is valid.
+  // Sets the appropriate error code in the given response.
+  bool Authenticate(
+      const ptree& pt,
       Response& response);
 
-  /**
-   * Generate a random authentication token.
-   * @return 8 random bytes as a hexadecimal string
-   */
-  std::string generateToken() const;
+  // Generate a random authentication token.
+  // @return 8 random bytes as a hexadecimal string
+  std::string GenerateToken() const;
 
-  /**
-   * Expire tokens that are too old.
-   */
-  void startExpireTokensJob();
-  void expireTokens(const boost::system::error_code& error);
+  // Expire tokens that are too old.
+  void StartExpireTokensJob();
+  void ExpireTokens(const boost::system::error_code& error);
 
   // Method handlers
-  void handleAuthenticate(const PropertyTree& pt, Response& response);
-  void handleEcho(const PropertyTree& pt, Response& response);
-  void handleI2PControl(const PropertyTree& pt, Response& response);
-  void handleRouterInfo(const PropertyTree& pt, Response& response);
-  void handleRouterManager(const PropertyTree& pt, Response& response);
-  void handleNetworkSetting(const PropertyTree& pt, Response& response);
+  void HandleAuthenticate(const ptree& pt, Response& response);
+  void HandleEcho(const ptree& pt, Response& response);
+  void HandleI2PControl(const ptree& pt, Response& response);
+  void HandleRouterInfo(const ptree& pt, Response& response);
+  void HandleRouterManager(const ptree& pt, Response& response);
+  void HandleNetworkSetting(const ptree& pt, Response& response);
 
   // RouterInfo handlers
-  void handleUptime(Response& response);
-  void handleVersion(Response& response);
-  void handleStatus(Response& response);
-  void handleDatapath(Response& response);
-  void handleNetDbKnownPeers(Response& response);
-  void handleNetDbActivePeers(Response& response);
-  void handleNetDbFloodfills(Response& response);
-  void handleNetDbLeaseSets(Response& response);
-  void handleNetStatus(Response& response);
+  void HandleUptime(Response& response);
+  void HandleVersion(Response& response);
+  void HandleStatus(Response& response);
+  void HandleDatapath(Response& response);
+  void HandleNetDbKnownPeers(Response& response);
+  void HandleNetDbActivePeers(Response& response);
+  void HandleNetDbFloodfills(Response& response);
+  void HandleNetDbLeaseSets(Response& response);
+  void HandleNetStatus(Response& response);
 
-  void handleTunnelsParticipating(Response& response);
-  void handleTunnelsCreationSuccess(Response& response);
-  void handleTunnelsInList(Response& response);
-  void handleTunnelsOutList(Response& response);
+  void HandleTunnelsParticipating(Response& response);
+  void HandleTunnelsCreationSuccess(Response& response);
+  void HandleTunnelsInList(Response& response);
+  void HandleTunnelsOutList(Response& response);
 
-  void handleInBandwidth1S(Response& response);
-  void handleOutBandwidth1S(Response& response);
+  void HandleInBandwidth1S(Response& response);
+  void HandleOutBandwidth1S(Response& response);
 
   // RouterManager handlers
-  void handleShutdown(Response& response);
-  void handleShutdownGraceful(Response& response);
-  void handleReseed(Response& response);
+  void HandleShutdown(Response& response);
+  void HandleShutdownGraceful(Response& response);
+  void HandleReseed(Response& response);
 
-  std::string password;
-  std::map<std::string, uint64_t> tokens;
-  std::mutex tokensMutex;
+  std::string m_Password;
+  std::map<std::string, uint64_t> m_Tokens;
+  std::mutex m_TokensMutex;
 
-  std::map<std::string, MethodHandler> methodHandlers;
-  std::map<std::string, RequestHandler> routerInfoHandlers;
-  std::map<std::string, RequestHandler> routerManagerHandlers;
-  std::map<std::string, RequestHandler> networkSettingHandlers;
+  std::map<std::string, MethodHandler> m_MethodHandlers;
+  std::map<std::string, RequestHandler> m_RouterInfoHandlers,
+                                        m_RouterManagerHandlers,
+                                        m_NetworkSettingHandlers;
 
-  boost::asio::io_service& service;
-  boost::asio::deadline_timer shutdownTimer;
-  boost::asio::deadline_timer expireTokensTimer;
-};
+  boost::asio::io_service& m_Service;
+  boost::asio::deadline_timer m_ShutdownTimer,
+                              m_ExpireTokensTimer;
+};  // class I2PControlSession
 
 }  // namespace i2pcontrol
 }  // namespace client

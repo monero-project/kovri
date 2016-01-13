@@ -32,6 +32,7 @@
 
 #include <cryptopp/gzip.h>
 #include <cryptopp/sha.h>
+
 #include <string.h>
 
 #include <vector>
@@ -107,7 +108,7 @@ void DatagramDestination::SendMsg(
     auto garlic = m_Owner.WrapMessage(remote, ToSharedI2NPMessage(msg), true);
     msgs.push_back(
         i2p::tunnel::TunnelMessageBlock {
-        i2p::tunnel::eDeliveryTypeTunnel,
+        i2p::tunnel::e_DeliveryTypeTunnel,
         leases[i].tunnelGateway,
         leases[i].tunnelID,
         garlic});

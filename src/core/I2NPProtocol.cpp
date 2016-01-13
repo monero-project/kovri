@@ -54,7 +54,7 @@ I2NPMessage* NewI2NPMessage() {
   return new I2NPMessageBuffer<I2NP_MAX_MESSAGE_SIZE>();
 }
 
-I2NPMessage * NewI2NPShortMessage() {
+I2NPMessage* NewI2NPShortMessage() {
   return new I2NPMessageBuffer<I2NP_MAX_SHORT_MESSAGE_SIZE>();
 }
 
@@ -248,8 +248,8 @@ std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg(
     uint32_t replyToken) {
   if (!router)  // we send own RouterInfo
     router = context.GetSharedRouterInfo();
-  auto m =  ToSharedI2NPMessage(NewI2NPShortMessage());
-  uint8_t * payload = m->GetPayload();
+  auto m = ToSharedI2NPMessage(NewI2NPShortMessage());
+  uint8_t* payload = m->GetPayload();
   memcpy(payload + DATABASE_STORE_KEY_OFFSET, router->GetIdentHash(), 32);
   payload[DATABASE_STORE_TYPE_OFFSET] = 0;  // RouterInfo
   htobe32buf(payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, replyToken);
@@ -284,7 +284,8 @@ std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg(
 std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg(
     std::shared_ptr<const i2p::data::LeaseSet> leaseSet,
     uint32_t replyToken) {
-  if (!leaseSet) return nullptr;
+  if (!leaseSet)
+    return nullptr;
   auto m = ToSharedI2NPMessage(NewI2NPShortMessage());
   uint8_t* payload = m->GetPayload();
   memcpy(payload + DATABASE_STORE_KEY_OFFSET, leaseSet->GetIdentHash(), 32);
@@ -317,7 +318,8 @@ bool HandleBuildRequestRecords(
     uint8_t * record = records + i*TUNNEL_BUILD_RECORD_SIZE;
     if (!memcmp(
           record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET,
-          (const uint8_t *)i2p::context.GetRouterInfo().GetIdentHash(), 16)) {
+          (const uint8_t *)i2p::context.GetRouterInfo().GetIdentHash(),
+          16)) {
       LogPrint("Record ", i, " is ours");
       i2p::crypto::ElGamalDecrypt(
           i2p::context.GetEncryptionPrivateKey(),
@@ -325,9 +327,9 @@ bool HandleBuildRequestRecords(
           clearText);
       // replace record to reply
       if (i2p::context.AcceptsTunnels() &&
-        i2p::tunnel::tunnels.GetTransitTunnels().size() <=
-        MAX_NUM_TRANSIT_TUNNELS &&
-        !i2p::transport::transports.IsBandwidthExceeded()) {
+          i2p::tunnel::tunnels.GetTransitTunnels().size() <=
+          MAX_NUM_TRANSIT_TUNNELS &&
+          !i2p::transport::transports.IsBandwidthExceeded()) {
         i2p::tunnel::TransitTunnel* transitTunnel =
           i2p::tunnel::CreateTransitTunnel(
               bufbe32toh(clearText + BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
@@ -336,7 +338,7 @@ bool HandleBuildRequestRecords(
               clearText + BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET,
               clearText + BUILD_REQUEST_RECORD_IV_KEY_OFFSET,
               clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x80,
-              clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET ] & 0x40);
+              clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x40);
         i2p::tunnel::tunnels.AddTransitTunnel(transitTunnel);
         record[BUILD_RESPONSE_RECORD_RET_OFFSET] = 0;
       } else {  // always reject with bandwidth reason (30)
@@ -373,11 +375,11 @@ void HandleVariableTunnelBuildMsg(
     LogPrint("VariableTunnelBuild reply for tunnel ", tunnel->GetTunnelID());
     if (tunnel->HandleTunnelBuildResponse(buf, len)) {
       LogPrint("Inbound tunnel ", tunnel->GetTunnelID(), " has been created");
-      tunnel->SetState(i2p::tunnel::eTunnelStateEstablished);
+      tunnel->SetState(i2p::tunnel::e_TunnelStateEstablished);
       i2p::tunnel::tunnels.AddInboundTunnel(tunnel);
     } else {
       LogPrint("Inbound tunnel ", tunnel->GetTunnelID(), " has been declined");
-      tunnel->SetState(i2p::tunnel::eTunnelStateBuildFailed);
+      tunnel->SetState(i2p::tunnel::e_TunnelStateBuildFailed);
     }
   } else {
     uint8_t clearText[BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE] = {};
@@ -454,11 +456,11 @@ void HandleVariableTunnelBuildReplyMsg(
     // reply for outbound tunnel
     if (tunnel->HandleTunnelBuildResponse(buf, len)) {
       LogPrint("Outbound tunnel ", tunnel->GetTunnelID(), " has been created");
-      tunnel->SetState(i2p::tunnel::eTunnelStateEstablished);
+      tunnel->SetState(i2p::tunnel::e_TunnelStateEstablished);
       i2p::tunnel::tunnels.AddOutboundTunnel(tunnel);
     } else {
       LogPrint("Outbound tunnel ", tunnel->GetTunnelID(), " has been declined");
-      tunnel->SetState(i2p::tunnel::eTunnelStateBuildFailed);
+      tunnel->SetState(i2p::tunnel::e_TunnelStateBuildFailed);
     }
   } else {
     LogPrint("Pending tunnel for message ", replyMsgID, " not found");

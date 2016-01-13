@@ -117,7 +117,7 @@ class LeaseSet : public RoutingDestination {
   std::vector<Lease> m_Leases;
   IdentityEx m_Identity;
   uint8_t m_EncryptionKey[256];
-  uint8_t * m_Buffer;
+  uint8_t* m_Buffer;
   size_t m_BufferLen;
 };
 

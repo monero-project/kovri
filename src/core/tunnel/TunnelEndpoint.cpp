@@ -87,15 +87,15 @@ void TunnelEndpoint::HandleDecryptedTunnelDataMsg(
         // first fragment
         m.deliveryType = (TunnelDeliveryType)((flag >> 5) & 0x03);
         switch (m.deliveryType) {
-          case eDeliveryTypeLocal:  // 0
+          case e_DeliveryTypeLocal:  // 0
           break;
-          case eDeliveryTypeTunnel:  // 1
+          case e_DeliveryTypeTunnel:  // 1
             m.tunnelID = bufbe32toh(fragment);
             fragment += 4;  // tunnelID
             m.hash = i2p::data::IdentHash(fragment);
             fragment += 32;  // hash
           break;
-          case eDeliveryTypeRouter:  // 2
+          case e_DeliveryTypeRouter:  // 2
             m.hash = i2p::data::IdentHash(fragment);
             fragment += 32;  // to hash
           break;
@@ -271,17 +271,17 @@ void TunnelEndpoint::HandleNextMessage(
       "TunnelMessage: handle fragment of ", msg.data->GetLength(),
       " bytes. Msg type ", static_cast<int>(msg.data->GetTypeID()));
   switch (msg.deliveryType) {
-    case eDeliveryTypeLocal:
+    case e_DeliveryTypeLocal:
       i2p::HandleI2NPMessage(msg.data);
     break;
-    case eDeliveryTypeTunnel:
+    case e_DeliveryTypeTunnel:
       i2p::transport::transports.SendMessage(
           msg.hash,
           i2p::CreateTunnelGatewayMsg(
             msg.tunnelID,
             msg.data));
     break;
-    case eDeliveryTypeRouter:
+    case e_DeliveryTypeRouter:
       // check if message is sent to us
       if (msg.hash == i2p::context.GetRouterInfo().GetIdentHash()) {
         i2p::HandleI2NPMessage(msg.data);

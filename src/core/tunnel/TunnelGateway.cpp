@@ -66,8 +66,8 @@ void TunnelGatewayBuffer::PutI2NPMsg(
   // create delivery instructions
   uint8_t di[43];  // max delivery instruction length is 43 for tunnel
   size_t diLen = 1;  // flag
-  if (block.deliveryType != eDeliveryTypeLocal) {  // tunnel or router
-    if (block.deliveryType == eDeliveryTypeTunnel) {
+  if (block.deliveryType != e_DeliveryTypeLocal) {  // tunnel or router
+    if (block.deliveryType == e_DeliveryTypeTunnel) {
       htobe32buf(di + diLen, block.tunnelID);
       diLen += 4;  // tunnelID
     }
@@ -204,7 +204,8 @@ void TunnelGatewayBuffer::CompleteCurrentTunnelDataMessage() {
   ptrdiff_t paddingSize = payload - buf - 25;  // 25  = 24 + 1
   if (paddingSize > 0) {
     // non-zero padding
-    auto randomOffset = rnd.GenerateWord32(
+    auto randomOffset =
+      rnd.GenerateWord32(
         0,
         TUNNEL_DATA_MAX_PAYLOAD_SIZE - paddingSize);
     memcpy(

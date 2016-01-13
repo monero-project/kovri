@@ -685,7 +685,7 @@ bool ClientDestination::SendLeaseSetRequest(
             replyTag));
     outboundTunnel->SendTunnelDataMsg({
         i2p::tunnel::TunnelMessageBlock {
-          i2p::tunnel::eDeliveryTypeRouter,
+          i2p::tunnel::e_DeliveryTypeRouter,
           nextFloodfill->GetIdentHash(),
           0,
           msg

@@ -97,9 +97,9 @@ JsonObject TunnelToJsonObject(
   tunnel->GetTunnelConfig()->Print(ss);  // TODO(unassigned): use a JsonObject
   obj["layout"] = JsonObject(ss.str());
   const auto state = tunnel->GetState();
-  if (state == i2p::tunnel::eTunnelStateFailed)
+  if (state == i2p::tunnel::e_TunnelStateFailed)
      obj["state"] = JsonObject("failed");
-  else if (state == i2p::tunnel::eTunnelStateExpiring)
+  else if (state == i2p::tunnel::e_TunnelStateExpiring)
      obj["state"] = JsonObject("expiring");
   return obj;
 }

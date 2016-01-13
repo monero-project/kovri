@@ -288,7 +288,7 @@ struct I2NPMessage {
 };
 
 template<int SZ>
-struct I2NPMessageBuffer: public I2NPMessage {
+struct I2NPMessageBuffer : public I2NPMessage {
   I2NPMessageBuffer() {
     buf = m_Buffer;
     maxLen = SZ;
@@ -297,11 +297,13 @@ struct I2NPMessageBuffer: public I2NPMessage {
 };
 
 I2NPMessage* NewI2NPMessage();
-I2NPMessage* NewI2NPMessage(size_t len);
+I2NPMessage* NewI2NPMessage(
+    size_t len);
 
 I2NPMessage* NewI2NPShortMessage();
 
-void DeleteI2NPMessage(I2NPMessage * msg);
+void DeleteI2NPMessage(
+    I2NPMessage* msg);
 
 std::shared_ptr<I2NPMessage> ToSharedI2NPMessage(I2NPMessage * msg);
 
@@ -357,7 +359,9 @@ void HandleVariableTunnelBuildReplyMsg(
     uint8_t* buf,
     size_t len);
 
-void HandleTunnelBuildMsg(uint8_t* buf, size_t len);
+void HandleTunnelBuildMsg(
+    uint8_t* buf,
+    size_t len);
 
 I2NPMessage* CreateTunnelDataMsg(
     const uint8_t * buf);
@@ -381,19 +385,27 @@ std::shared_ptr<I2NPMessage> CreateTunnelGatewayMsg(
     uint32_t tunnelID,
     std::shared_ptr<I2NPMessage> msg);
 
-size_t GetI2NPMessageLength(const uint8_t * msg);
+size_t GetI2NPMessageLength(
+    const uint8_t* msg);
 
-void HandleI2NPMessage(uint8_t * msg, size_t len);
-void HandleI2NPMessage(std::shared_ptr<I2NPMessage> msg);
+void HandleI2NPMessage(
+    uint8_t* msg,
+    size_t len);
+void HandleI2NPMessage(
+    std::shared_ptr<I2NPMessage> msg);
 
 class I2NPMessagesHandler {
  public:
   ~I2NPMessagesHandler();
-  void PutNextMessage(std::shared_ptr<I2NPMessage> msg);
+
+  void PutNextMessage(
+      std::shared_ptr<I2NPMessage> msg);
+
   void Flush();
 
  private:
-  std::vector<std::shared_ptr<I2NPMessage> > m_TunnelMsgs, m_TunnelGatewayMsgs;
+  std::vector<std::shared_ptr<I2NPMessage> > m_TunnelMsgs,
+                                             m_TunnelGatewayMsgs;
 };
 
 }  // namespace i2p

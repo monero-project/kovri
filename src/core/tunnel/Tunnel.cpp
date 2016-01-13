@@ -53,7 +53,7 @@ Tunnel::Tunnel(
     std::shared_ptr<const TunnelConfig> config)
     : m_Config(config),
       m_Pool(nullptr),
-      m_State(eTunnelStatePending),
+      m_State(e_TunnelStatePending),
       m_IsRecreated(false) {}
 
 Tunnel::~Tunnel() {}
@@ -170,7 +170,7 @@ bool Tunnel::HandleTunnelBuildResponse(
     }
   }
   if (established)
-    m_State = eTunnelStateEstablished;
+    m_State = e_TunnelStateEstablished;
   return established;
 }
 
@@ -196,7 +196,7 @@ void InboundTunnel::HandleTunnelDataMsg(
     std::shared_ptr<const I2NPMessage> msg) {
   // incoming messages means a tunnel is alive
   if (IsFailed())
-    SetState(eTunnelStateEstablished);
+    SetState(e_TunnelStateEstablished);
   auto newMsg = CreateEmptyTunnelDataMsg();
   EncryptTunnelMsg(msg, newMsg);
   newMsg->from = shared_from_this();
@@ -211,13 +211,13 @@ void OutboundTunnel::SendTunnelDataMsg(
   if (gwHash) {
     block.hash = gwHash;
     if (gwTunnel) {
-      block.deliveryType = eDeliveryTypeTunnel;
+      block.deliveryType = e_DeliveryTypeTunnel;
       block.tunnelID = gwTunnel;
     } else {
-      block.deliveryType = eDeliveryTypeRouter;
+      block.deliveryType = e_DeliveryTypeRouter;
     }
   } else {
-    block.deliveryType = eDeliveryTypeLocal;
+    block.deliveryType = e_DeliveryTypeLocal;
   }
   block.data = msg;
   std::unique_lock<std::mutex> l(m_SendMutex);
@@ -288,8 +288,8 @@ std::shared_ptr<TTunnel> Tunnels::GetPendingTunnel(
     std::shared_ptr<TTunnel> >& pendingTunnels) {
   auto it = pendingTunnels.find(replyMsgID);
   if (it != pendingTunnels.end() &&
-      it->second->GetState() == eTunnelStatePending) {
-    it->second->SetState(eTunnelStateBuildReplyReceived);
+      it->second->GetState() == e_TunnelStatePending) {
+    it->second->SetState(e_TunnelStateBuildReplyReceived);
     return it->second;
   }
   return nullptr;
@@ -312,8 +312,8 @@ std::shared_ptr<InboundTunnel> Tunnels::GetNextInboundTunnel() {
 std::shared_ptr<OutboundTunnel> Tunnels::GetNextOutboundTunnel() {
   CryptoPP::RandomNumberGenerator& rnd =
     i2p::context.GetRandomNumberGenerator();
-  uint32_t ind = rnd.GenerateWord32(0, m_OutboundTunnels.size() - 1),
-             i = 0;
+  uint32_t ind = rnd.GenerateWord32(0, m_OutboundTunnels.size() - 1);
+  uint32_t i = 0;
   std::shared_ptr<OutboundTunnel> tunnel;
   for (auto it : m_OutboundTunnels) {
     if (it->IsEstablished()) {
@@ -332,7 +332,8 @@ std::shared_ptr<TunnelPool> Tunnels::CreateTunnelPool(
     int numOutboundHops,
     int numInboundTunnels,
     int numOutboundTunnels) {
-  auto pool = std::make_shared<TunnelPool> (
+  auto pool =
+    std::make_shared<TunnelPool> (
       localDestination,
       numInboundHops,
       numOutboundHops,
@@ -505,7 +506,7 @@ void Tunnels::ManagePendingTunnels(
   for (auto it = pendingTunnels.begin(); it != pendingTunnels.end();) {
     auto tunnel = it->second;
     switch (tunnel->GetState()) {
-      case eTunnelStatePending:
+      case e_TunnelStatePending:
         if (ts > tunnel->GetCreationTime() + TUNNEL_CREATION_TIMEOUT) {
           LogPrint("Pending tunnel build request ",
               it->first, " timeout. Deleted");
@@ -526,13 +527,13 @@ void Tunnels::ManagePendingTunnels(
           it++;
         }
       break;
-      case eTunnelStateBuildFailed:
+      case e_TunnelStateBuildFailed:
         LogPrint("Pending tunnel build request ",
             it->first, " failed. Deleted");
         it = pendingTunnels.erase(it);
         m_NumFailedTunnelCreations++;
       break;
-      case eTunnelStateBuildReplyReceived:
+      case e_TunnelStateBuildReplyReceived:
         // intermediate state, will be either established of build failed
         it++;
       break;
@@ -566,7 +567,7 @@ void Tunnels::ManageOutboundTunnels() {
           }
           if (ts + TUNNEL_EXPIRATION_THRESHOLD >
               tunnel->GetCreationTime() + TUNNEL_EXPIRATION_TIMEOUT)
-            tunnel->SetState(eTunnelStateExpiring);
+            tunnel->SetState(e_TunnelStateExpiring);
         }
         it++;
       }
@@ -608,7 +609,7 @@ void Tunnels::ManageInboundTunnels() {
           }
           if (ts + TUNNEL_EXPIRATION_THRESHOLD >
               tunnel->GetCreationTime() + TUNNEL_EXPIRATION_TIMEOUT)
-            tunnel->SetState(eTunnelStateExpiring);
+            tunnel->SetState(e_TunnelStateExpiring);
         }
         it++;
       }

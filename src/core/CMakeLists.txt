@@ -1,4 +1,5 @@
 set(CORE_SRC
+	"tunnel/TunnelConfig.cpp"
   "Garlic.cpp"
   "I2NPProtocol.cpp"
   "Identity.cpp"

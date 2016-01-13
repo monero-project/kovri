@@ -92,7 +92,8 @@ class I2PService {
   virtual void Start() = 0;
   virtual void Stop() = 0;
 
-  virtual const char* GetName() {return "Kovri I2P Router Service"; }
+  // everyone must override this
+  virtual std::string GetName() = 0; 
 
  private:
   std::shared_ptr<ClientDestination> m_LocalDestination;
@@ -147,6 +148,7 @@ class TCPIPAcceptor : public I2PService {
       int port,
       std::shared_ptr<ClientDestination> localDestination = nullptr)
       : I2PService(localDestination),
+        m_Address(address),
         m_Acceptor(
             GetService(),
             boost::asio::ip::tcp::endpoint(
@@ -161,6 +163,7 @@ class TCPIPAcceptor : public I2PService {
       int port,
       i2p::data::SigningKeyType kt)
     : I2PService(kt),
+      m_Address(address),
       m_Acceptor(
           GetService(),
           boost::asio::ip::tcp::endpoint(
@@ -178,12 +181,28 @@ class TCPIPAcceptor : public I2PService {
   // If you override this make sure you call it from the children
   void Stop();
 
+  /**
+     stop tunnel, change address, start tunnel
+     will throw exception if the address is already in use
+   */
+  void Rebind(const std::string & addr, uint16_t port);
+  
+  /**
+     @return the endpoint this TCPIPAcceptor is bound on
+   */
+  boost::asio::ip::tcp::endpoint GetEndpoint() const {
+    return m_Acceptor.local_endpoint();
+  }
+  
  protected:
   virtual std::shared_ptr<I2PServiceHandler> CreateHandler(
       std::shared_ptr<boost::asio::ip::tcp::socket> socket) = 0;
 
-  virtual const char* GetName() { return "Generic TCP/IP accepting daemon"; }
+  virtual std::string GetName() { return "Generic TCP/IP accepting daemon"; }
 
+ protected:
+  std::string m_Address;
+  
  private:
   void Accept();
   void HandleAccept(
@@ -192,6 +211,15 @@ class TCPIPAcceptor : public I2PService {
 
   boost::asio::ip::tcp::acceptor m_Acceptor;
   boost::asio::deadline_timer m_Timer;
+
+public:
+  /**
+     get our current address
+  */
+  std::string GetAddress() const {
+    return m_Address;
+  }
+
 };
 
 }  // namespace client

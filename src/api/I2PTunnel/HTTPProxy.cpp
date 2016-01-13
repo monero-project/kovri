@@ -379,6 +379,7 @@ void HTTPProxyHandler::HandleStreamRequestComplete(
 }
 
 HTTPProxyServer::HTTPProxyServer(
+    const std::string& name,
     const std::string& address,
     int port,
     std::shared_ptr<i2p::client::ClientDestination> localDestination)
@@ -387,7 +388,8 @@ HTTPProxyServer::HTTPProxyServer(
         port,
         localDestination ?
         localDestination :
-        i2p::client::context.GetSharedLocalDestination()) {}
+        i2p::client::context.GetSharedLocalDestination()),
+      m_Name(name) {}
 
 std::shared_ptr<i2p::client::I2PServiceHandler> HTTPProxyServer::CreateHandler(
     std::shared_ptr<boost::asio::ip::tcp::socket> socket) {

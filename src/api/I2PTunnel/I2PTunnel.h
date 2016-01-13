@@ -141,10 +141,10 @@ class I2PClientTunnel : public TCPIPAcceptor {
   // Implements TCPIPAcceptor
   std::shared_ptr<I2PServiceHandler> CreateHandler(
       std::shared_ptr<boost::asio::ip::tcp::socket> socket);
-  const char* GetName() { return "I2P Client Tunnel"; }
 
  public:
   I2PClientTunnel(
+      const std::string& name,
       const std::string& destination,
       const std::string& address,
       int port,
@@ -155,10 +155,11 @@ class I2PClientTunnel : public TCPIPAcceptor {
 
   void Start();
   void Stop();
-
+  std::string GetName();
+  
  private:
   const i2p::data::IdentHash* GetIdentHash();
-
+  std::string m_TunnelName;
   std::string m_Destination;
   const i2p::data::IdentHash* m_DestinationIdentHash;
   int m_DestinationPort;
@@ -167,6 +168,7 @@ class I2PClientTunnel : public TCPIPAcceptor {
 class I2PServerTunnel : public I2PService {
  public:
   I2PServerTunnel(
+      const std::string& name,
       const std::string& address,
       int port,
       std::shared_ptr<ClientDestination> localDestination,
@@ -179,23 +181,54 @@ class I2PServerTunnel : public I2PService {
   void SetAccessList(
       const std::set<i2p::data::IdentHash>& accessList);
 
-  const std::string& GetAddress() const {
+  /**
+     set access list given csv 
+   */
+  void SetAccessListString(const std::string & idents_str);
+  
+  std::string GetAddress() const {
     return m_Address;
   }
+
+  /**
+     update the streaming destination's port
+   */
+  void UpdateStreamingPort(int port) const {
+    if (port > 0 ) {
+      uint16_t localPort = port;
+      m_PortDestination->UpdateLocalPort(localPort);
+    } else {
+      throw std::logic_error("streaming port cannot be negative");
+    }
+  }
+  
+  /**
+     update the address of this server tunnel
+   */
+  void UpdateAddress(const std::string & addr);
+
 
   int GetPort() const {
     return m_Port;
   }
 
+  /**
+     update the out port of this server tunnel
+   */
+  void UpdatePort(int port);
+  
   const boost::asio::ip::tcp::endpoint& GetEndpoint() const {
     return m_Endpoint;
   }
 
+  std::string GetName();
+  
  private:
   void HandleResolve(
       const boost::system::error_code& ecode,
       boost::asio::ip::tcp::resolver::iterator it,
-      std::shared_ptr<boost::asio::ip::tcp::resolver> resolver);
+      std::shared_ptr<boost::asio::ip::tcp::resolver> resolver,
+      bool acceptAfter=true);
 
   void Accept();
 
@@ -207,6 +240,7 @@ class I2PServerTunnel : public I2PService {
 
  private:
   std::string m_Address;
+  std::string m_TunnelName;
   int m_Port;
   boost::asio::ip::tcp::endpoint m_Endpoint;
   std::shared_ptr<i2p::stream::StreamingDestination> m_PortDestination;
@@ -217,6 +251,7 @@ class I2PServerTunnel : public I2PService {
 class I2PServerTunnelHTTP: public I2PServerTunnel {
  public:
   I2PServerTunnelHTTP(
+      const std::string& name,
       const std::string& address,
       int port,
       std::shared_ptr<ClientDestination> localDestination,

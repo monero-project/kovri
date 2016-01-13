@@ -85,6 +85,22 @@ void TCPIPAcceptor::Stop() {
   ClearHandlers();
 }
 
+void TCPIPAcceptor::Rebind(const std::string & addr, uint16_t port) {
+  LogPrint(eLogInfo, "rebind ", GetName(), " to ", addr, ":", port);
+  // stop everything with us
+  m_Acceptor.cancel();
+  Stop();
+  // make new acceptor
+  m_Acceptor = boost::asio::ip::tcp::acceptor(GetService(),
+    boost::asio::ip::tcp::endpoint(
+      boost::asio::ip::address::from_string(
+        addr),
+      port));
+  // start everything again
+  Start();
+  
+}
+  
 void TCPIPAcceptor::Accept() {
   auto newSocket =
     std::make_shared<boost::asio::ip::tcp::socket> (GetService());

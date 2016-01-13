@@ -245,17 +245,17 @@ void TunnelPool::TestTunnels() {
     LogPrint("Tunnel test ", static_cast<int>(it.first), " failed");
     // if test failed again with another tunnel we consider it failed
     if (it.second.first) {
-      if (it.second.first->GetState() == eTunnelStateTestFailed) {
-        it.second.first->SetState(eTunnelStateFailed);
+      if (it.second.first->GetState() == e_TunnelStateTestFailed) {
+        it.second.first->SetState(e_TunnelStateFailed);
         std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
         m_OutboundTunnels.erase(it.second.first);
       } else {
-        it.second.first->SetState(eTunnelStateTestFailed);
+        it.second.first->SetState(e_TunnelStateTestFailed);
       }
     }
     if (it.second.second) {
-      if (it.second.second->GetState() == eTunnelStateTestFailed) {
-        it.second.second->SetState(eTunnelStateFailed);
+      if (it.second.second->GetState() == e_TunnelStateTestFailed) {
+        it.second.second->SetState(e_TunnelStateFailed);
         {
           std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
           m_InboundTunnels.erase(it.second.second);
@@ -263,7 +263,7 @@ void TunnelPool::TestTunnels() {
         if (m_LocalDestination)
           m_LocalDestination->SetLeaseSetUpdated();
       } else {
-        it.second.second->SetState(eTunnelStateTestFailed);
+        it.second.second->SetState(e_TunnelStateTestFailed);
       }
     }
   }
@@ -312,10 +312,10 @@ void TunnelPool::ProcessDeliveryStatus(
   auto it = m_Tests.find(msgID);
   if (it != m_Tests.end()) {
     // restore from test failed state if any
-    if (it->second.first->GetState() == eTunnelStateTestFailed)
-      it->second.first->SetState(eTunnelStateEstablished);
-    if (it->second.second->GetState() == eTunnelStateTestFailed)
-      it->second.second->SetState(eTunnelStateEstablished);
+    if (it->second.first->GetState() == e_TunnelStateTestFailed)
+      it->second.first->SetState(e_TunnelStateEstablished);
+    if (it->second.second->GetState() == e_TunnelStateTestFailed)
+      it->second.second->SetState(e_TunnelStateEstablished);
     LogPrint("Tunnel test ", it->first,
         " successive. ", i2p::util::GetMillisecondsSinceEpoch() - timestamp,
         " milliseconds");
@@ -415,7 +415,8 @@ void TunnelPool::RecreateInboundTunnel(
   if (!outboundTunnel)
     outboundTunnel = tunnels.GetNextOutboundTunnel();
   LogPrint("Re-creating destination inbound tunnel...");
-  auto newTunnel = tunnels.CreateTunnel<InboundTunnel> (
+  auto newTunnel =
+    tunnels.CreateTunnel<InboundTunnel> (
       tunnel->GetTunnelConfig()->Clone(),
       outboundTunnel);
   newTunnel->SetTunnelPool(shared_from_this());

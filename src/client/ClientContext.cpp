@@ -135,7 +135,9 @@ void ClientContext::Start() {
   // I2P Control
   int i2pcontrolPort = i2p::util::config::varMap["i2pcontrolport"].as<int>();
   if (i2pcontrolPort) {
-    m_I2PControlService = new i2pcontrol::I2PControlService(
+    LogPrint("Starting I2PControlService ...");
+    m_I2PControlService =
+      new i2pcontrol::I2PControlService(
         i2p::util::config::varMap["i2pcontroladdress"].as<std::string>(),
         i2pcontrolPort,
         i2p::util::config::varMap["i2pcontrolpassword"].as<std::string>());

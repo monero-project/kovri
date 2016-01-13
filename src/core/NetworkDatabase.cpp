@@ -584,7 +584,7 @@ void NetDb::HandleDatabaseSearchReplyMsg(
               // tell floodfill about us
               msgs.push_back(
                   i2p::tunnel::TunnelMessageBlock {
-                  i2p::tunnel::eDeliveryTypeRouter,
+                  i2p::tunnel::e_DeliveryTypeRouter,
                   nextFloodfill->GetIdentHash(),
                   0,
                   CreateDatabaseStoreMsg()
@@ -596,7 +596,7 @@ void NetDb::HandleDatabaseSearchReplyMsg(
               auto msg = dest->CreateRequestMessage(nextFloodfill, inbound);
               msgs.push_back(
                   i2p::tunnel::TunnelMessageBlock {
-                  i2p::tunnel::eDeliveryTypeRouter,
+                  i2p::tunnel::e_DeliveryTypeRouter,
                   nextFloodfill->GetIdentHash(),
                   0,
                   msg
@@ -784,14 +784,14 @@ void NetDb::Explore(
       if (throughTunnels) {
         msgs.push_back(
             i2p::tunnel::TunnelMessageBlock {
-            i2p::tunnel::eDeliveryTypeRouter,
+            i2p::tunnel::e_DeliveryTypeRouter,
             floodfill->GetIdentHash(),
             0,
             CreateDatabaseStoreMsg()  // tell floodfill about us
           });
         msgs.push_back(
             i2p::tunnel::TunnelMessageBlock  {
-            i2p::tunnel::eDeliveryTypeRouter,
+            i2p::tunnel::e_DeliveryTypeRouter,
             floodfill->GetIdentHash(),
             0,
             dest->CreateRequestMessage(

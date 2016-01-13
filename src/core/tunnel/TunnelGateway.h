@@ -73,7 +73,7 @@ class TunnelGatewayBuffer {
 class TunnelGateway {
  public:
   TunnelGateway(
-      TunnelBase * tunnel)
+      TunnelBase* tunnel)
       : m_Tunnel(tunnel),
         m_Buffer(tunnel->GetNextTunnelID()),
         m_NumSentBytes(0) {}

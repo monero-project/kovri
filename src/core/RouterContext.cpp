@@ -341,7 +341,7 @@ void RouterContext::SaveKeys() {
 }
 
 std::shared_ptr<i2p::tunnel::TunnelPool> RouterContext::GetTunnelPool() const {
-  return i2p::tunnel::tunnels.GetExploratoryPool ();
+  return i2p::tunnel::tunnels.GetExploratoryPool();
 }
 
 void RouterContext::HandleI2NPMessage(

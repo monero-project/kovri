@@ -1,7 +1,7 @@
 # FAQ
 
 ## What is Kovri?
-Kovri is a C++ router implementation of the [I2P](https://geti2p.net) anonymous network.
+Kovri is a secure, private, untraceable C++ router implementation of the [I2P](https://geti2p.net) anonymous network, forked from i2pd.
 
 ## What are the biggest differences between Kovri and i2pd?
 As we are currently in pre-alpha, we are working on following:

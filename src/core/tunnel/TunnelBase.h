@@ -47,9 +47,9 @@ const size_t TUNNEL_DATA_ENCRYPTED_SIZE = 1008;
 const size_t TUNNEL_DATA_MAX_PAYLOAD_SIZE = 1003;
 
 enum TunnelDeliveryType {
-  eDeliveryTypeLocal = 0,
-  eDeliveryTypeTunnel = 1,
-  eDeliveryTypeRouter = 2
+  e_DeliveryTypeLocal = 0,
+  e_DeliveryTypeTunnel = 1,
+  e_DeliveryTypeRouter = 2
 };
 
 struct TunnelMessageBlock {

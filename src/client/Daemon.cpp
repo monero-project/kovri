@@ -48,7 +48,7 @@ namespace i2p {
 namespace util {
 
 Daemon_Singleton::Daemon_Singleton()
-    : m_isRunning(1),
+    : m_IsRunning(1),
       m_log(kovri::log::Log::Get()) {}
 Daemon_Singleton::~Daemon_Singleton() {}
 
@@ -63,8 +63,8 @@ bool Daemon_Singleton::IsService() const {
 // TODO(anonimal): find a better way to initialize
 bool Daemon_Singleton::Init() {
   i2p::context.Init();
-  m_isDaemon = i2p::util::config::varMap["daemon"].as<bool>();
-  m_isLogging = i2p::util::config::varMap["log"].as<bool>();
+  m_IsDaemon = i2p::util::config::varMap["daemon"].as<bool>();
+  m_IsLogging = i2p::util::config::varMap["log"].as<bool>();
   int port = i2p::util::config::varMap["port"].as<int>();
   i2p::context.UpdatePort(port);
   i2p::context.UpdateAddress(
@@ -88,8 +88,8 @@ bool Daemon_Singleton::Start() {
   LogPrint("The Kovri I2P Router Project");
   LogPrint("Version ", KOVRI_VERSION);
   LogPrint("Listening on port ", i2p::util::config::varMap["port"].as<int>());
-  if (m_isLogging) {
-    if (m_isDaemon) {
+  if (m_IsLogging) {
+    if (m_IsDaemon) {
       std::string logfile_path = IsService() ? "/var/log" :
       i2p::util::filesystem::GetDataPath().string();
 #ifndef _WIN32

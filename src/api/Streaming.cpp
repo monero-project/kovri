@@ -660,7 +660,7 @@ void Stream::SendPackets(
             it->GetLength()));
       msgs.push_back(
           i2p::tunnel::TunnelMessageBlock  {
-          i2p::tunnel::eDeliveryTypeTunnel,
+          i2p::tunnel::e_DeliveryTypeTunnel,
           m_CurrentRemoteLease.tunnelGateway,
           m_CurrentRemoteLease.tunnelID,
           msg});

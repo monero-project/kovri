@@ -102,7 +102,7 @@ void TransitTunnel::HandleTunnelDataMsg(
 void TransitTunnelGateway::SendTunnelDataMsg(
     std::shared_ptr<i2p::I2NPMessage> msg) {
   TunnelMessageBlock block;
-  block.deliveryType = eDeliveryTypeLocal;
+  block.deliveryType = e_DeliveryTypeLocal;
   block.data = msg;
   std::unique_lock<std::mutex> l(m_SendMutex);
   m_Gateway.PutTunnelDataMsg(block);

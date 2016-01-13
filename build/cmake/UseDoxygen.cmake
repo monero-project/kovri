@@ -99,11 +99,25 @@ if(DOXYGEN_FOUND AND DOXYFILE_IN_FOUND)
     PATH "Doxygen output directory")
   usedoxygen_set_default(DOXYFILE_HTML_DIR "."
     STRING "Doxygen HTML output directory")
-  usedoxygen_set_default(DOXYFILE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
+  usedoxygen_set_default(DOXYFILE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src"
     PATH "Input files source directory")
-  usedoxygen_set_default(DOXYFILE_EXTRA_SOURCE_DIRS ""
-    STRING "Additional source files/directories separated by space")
-  set(DOXYFILE_SOURE_DIRS "\"${DOXYFILE_SOURCE_DIR}\" ${DOXYFILE_EXTRA_SOURCES}")
+  ### Apparently, we must explicitly specificy our source dirs.
+  ### Flipping on recursion in Doxyfile.in has no effect (though it apparently did in 1.8.10)
+  ### See https://github.com/monero-project/kovri/issues/68
+  ### TODO(anonimal): resolve this patch
+  usedoxygen_set_default(DOXYFILE_SOURCE_API
+    "${DOXYFILE_SOURCE_DIR}/api ${DOXYFILE_SOURCE_DIR}/api/I2PControl ${DOXYFILE_SOURCE_DIR}/api/I2PTunnel"
+    STRING "API source files")
+  usedoxygen_set_default(DOXYFILE_SOURCE_CLIENT
+    "${DOXYFILE_SOURCE_DIR}/client ${DOXYFILE_SOURCE_DIR}/client/util"
+    STRING "Client source files")
+  usedoxygen_set_default(DOXYFILE_SOURCE_CORE
+    "${DOXYFILE_SOURCE_DIR}/core ${DOXYFILE_SOURCE_DIR}/core/crypto ${DOXYFILE_SOURCE_DIR}/core/crypto/ed25519 ${DOXYFILE_SOURCE_DIR}/core/transport ${DOXYFILE_SOURCE_DIR}/core/tunnel ${DOXYFILE_SOURCE_DIR}/core/util"
+    STRING "Core source files")
+  usedoxygen_set_default(DOXYFILE_SOURCE_CLIENT
+    "${DOXYFILE_SOURCE_DIR}/tests/benchmarks ${DOXYFILE_SOURCE_DIR}/tests/unit_tests"
+    STRING "Tests source files")
+  set(DOXYFILE_SOURCE_DIRS "\"${DOXYFILE_SOURCE_DIR}\" ${DOXYFILE_SOURCE_API} ${DOXYFILE_SOURCE_CLIENT} ${DOXYFILE_SOURCE_CORE} ${DOXYFILE_SOURCE_TESTS}")
 
   usedoxygen_set_default(DOXYFILE_LATEX YES BOOL "Generate LaTeX API documentation" OFF)
   usedoxygen_set_default(DOXYFILE_LATEX_DIR "latex" STRING "LaTex output directory")

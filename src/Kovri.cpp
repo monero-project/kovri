@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
   if (!Daemon.Init())
     return EXIT_FAILURE;
   if (Daemon.Start()) {
-    while (Daemon.m_isRunning)
+    while (Daemon.m_IsRunning)
       std::this_thread::sleep_for(std::chrono::seconds(1));
   }
   Daemon.Stop();

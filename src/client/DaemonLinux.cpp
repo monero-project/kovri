@@ -47,7 +47,7 @@
 void handle_signal(int sig) {
   switch (sig) {
     case SIGHUP:
-      if (Daemon.m_isDaemon == 1) {
+      if (Daemon.m_IsDaemon == 1) {
         static bool first = true;
         if (first) {
           first = false;
@@ -61,7 +61,7 @@ void handle_signal(int sig) {
     case SIGABRT:
     case SIGTERM:
     case SIGINT:
-      Daemon.m_isRunning = 0;  // Exit loop
+      Daemon.m_IsRunning = 0;  // Exit loop
       break;
   }
 }
@@ -70,7 +70,7 @@ namespace i2p {
 namespace util {
 
 bool DaemonLinux::Start() {
-  if (m_isDaemon == 1) {
+  if (m_IsDaemon == 1) {
     pid_t pid;
     pid = fork();
     if (pid > 0)  // parent

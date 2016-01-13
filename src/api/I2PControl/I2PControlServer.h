@@ -55,7 +55,7 @@ class I2PControlService {
   I2PControlService(
       const std::string& address,
       int port,
-      const std::string& pass);
+      const std::string& password);
   ~I2PControlService();
 
   void Start();
@@ -81,7 +81,8 @@ class I2PControlService {
   void SendResponse(
       std::shared_ptr<boost::asio::ip::tcp::socket> socket,
       std::shared_ptr<I2PControlBuffer> buf,
-      const std::string& response, bool isHtml);
+      const std::string& response,
+      bool isHtml);
 
   void HandleResponseSent(
       const boost::system::error_code& ecode,

@@ -50,10 +50,10 @@ class Daemon_Singleton {
   virtual bool Init();
   virtual bool Start();
   virtual bool Stop();
-  virtual void Reload();
-  bool m_isDaemon,
-       m_isLogging,
-       m_isRunning;
+  virtual void Reload() = 0;
+  bool m_IsDaemon,
+       m_IsLogging,
+       m_IsRunning;
 
  protected:
   Daemon_Singleton();
@@ -72,7 +72,6 @@ class DaemonWin32 : public Daemon_Singleton {
   virtual bool Init();
   virtual bool Start();
   virtual bool Stop();
-  virtual void Reload() {} // does nothing on win32 (yet)
 };
 #else
 class DaemonLinux : public Daemon_Singleton {
@@ -84,7 +83,7 @@ class DaemonLinux : public Daemon_Singleton {
   }
   virtual bool Start();
   virtual bool Stop();
-  virtual void Reload();
+  void Reload();
  private:
   std::string m_pidFile;
   int m_pidFilehandle;

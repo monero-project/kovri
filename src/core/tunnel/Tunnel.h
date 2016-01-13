@@ -53,20 +53,20 @@
 namespace i2p {
 namespace tunnel {
 
-const int TUNNEL_EXPIRATION_TIMEOUT = 660;    // 11 minutes
-const int TUNNEL_EXPIRATION_THRESHOLD = 60;   // 1 minute
-const int TUNNEL_RECREATION_THRESHOLD = 90;   // 1.5 minutes
-const int TUNNEL_CREATION_TIMEOUT = 30;       // 30 seconds
-const int STANDARD_NUM_RECORDS = 5;           // in VariableTunnelBuild message
+const int TUNNEL_EXPIRATION_TIMEOUT = 660,    // 11 minutes
+          TUNNEL_EXPIRATION_THRESHOLD = 60,   // 1 minute
+          TUNNEL_RECREATION_THRESHOLD = 90,   // 1.5 minutes
+          TUNNEL_CREATION_TIMEOUT = 30,       // 30 seconds
+          STANDARD_NUM_RECORDS = 5;           // in VariableTunnelBuild message
 
 enum TunnelState {
-  eTunnelStatePending,
-  eTunnelStateBuildReplyReceived,
-  eTunnelStateBuildFailed,
-  eTunnelStateEstablished,
-  eTunnelStateTestFailed,
-  eTunnelStateFailed,
-  eTunnelStateExpiring
+  e_TunnelStatePending,
+  e_TunnelStateBuildReplyReceived,
+  e_TunnelStateBuildFailed,
+  e_TunnelStateEstablished,
+  e_TunnelStateTestFailed,
+  e_TunnelStateFailed,
+  e_TunnelStateExpiring
 };
 
 class OutboundTunnel;
@@ -95,11 +95,11 @@ class Tunnel : public TunnelBase {
   }
 
   bool IsEstablished() const {
-    return m_State == eTunnelStateEstablished;
+    return m_State == e_TunnelStateEstablished;
   }
 
   bool IsFailed() const {
-    return m_State == eTunnelStateFailed;
+    return m_State == e_TunnelStateFailed;
   }
 
   bool IsRecreated() const {

@@ -187,7 +187,7 @@ void RouterInfo::ReadFromStream(
       if (!strcmp(key, "host")) {
         boost::system::error_code ecode;
         address.host = boost::asio::ip::address::from_string(value, ecode);
-        if (ecode) {
+        if (ecode) {  // no error
           if (address.transportStyle == eTransportNTCP) {
             m_SupportedTransports |= eNTCPV4;  // TODO(unassigned): ???
             address.addressString = value;
@@ -536,7 +536,7 @@ void RouterInfo::AddSSUAddress(
   addr.mtu = mtu;
   memcpy(addr.key, key, 32);
   m_Addresses.push_back(addr);
-  m_SupportedTransports |= addr.host.is_v6() ? eNTCPV6 : eSSUV4;
+  m_SupportedTransports |= addr.host.is_v6() ? eSSUV6 : eSSUV4;
   m_Caps |= eSSUTesting;
   m_Caps |= eSSUIntroducer;
 }
@@ -586,7 +586,7 @@ void RouterInfo::SetCaps(
 }
 
 void RouterInfo::SetCaps(
-    const char * caps) {
+    const char* caps) {
   SetProperty("caps", caps);
   m_Caps = 0;
   ExtractCaps(caps);

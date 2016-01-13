@@ -31,16 +31,13 @@
 #ifndef SRC_CORE_TUNNEL_TUNNELCONFIG_H_
 #define SRC_CORE_TUNNEL_TUNNELCONFIG_H_
 
-#include <inttypes.h>
-
 #include <memory>
-#include <sstream>
+#include <cstdint>
 #include <vector>
+#include <sstream>
 
-#include "RouterContext.h"
 #include "RouterInfo.h"
 #include "crypto/Tunnel.h"
-#include "util/Timestamp.h"
 
 namespace i2p {
 namespace tunnel {

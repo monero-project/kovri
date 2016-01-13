@@ -30,15 +30,8 @@
 
 #include "TunnelConfig.h"
 
-#include <inttypes.h>
-
-#include <memory>
-#include <sstream>
-#include <vector>
-
+#include "I2NPProtocol.h"
 #include "RouterContext.h"
-#include "RouterInfo.h"
-#include "crypto/Tunnel.h"
 #include "util/Timestamp.h"
 
 namespace i2p {

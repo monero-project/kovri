@@ -57,6 +57,7 @@ ClientContext::~ClientContext() {
   delete m_HttpProxy;
   delete m_SocksProxy;
   delete m_I2PControlService;
+  m_Service.stop();
 }
 
 void ClientContext::Start() {
@@ -138,6 +139,7 @@ void ClientContext::Start() {
     LogPrint("Starting I2PControlService ...");
     m_I2PControlService =
       new i2pcontrol::I2PControlService(
+        m_Service,
         i2p::util::config::varMap["i2pcontroladdress"].as<std::string>(),
         i2pcontrolPort,
         i2p::util::config::varMap["i2pcontrolpassword"].as<std::string>());

@@ -46,22 +46,22 @@ namespace client {
 namespace i2pcontrol {
 
 I2PControlService::I2PControlService(
+  boost::asio::io_service & service,
   const std::string& address,
   int port,
   const std::string& password)
     : m_Session(
         std::make_shared<I2PControlSession>(
-          m_Service,
+          service,
           password)),
       m_IsRunning(false),
       m_Thread(nullptr),
-      m_Acceptor(
-          m_Service,
-          boost::asio::ip::tcp::endpoint(
-            boost::asio::ip::address::from_string(
-              address),
-            port)) {}
-
+      m_Service(service),
+      m_Acceptor(service, boost::asio::ip::tcp::endpoint(
+      boost::asio::ip::address::from_string(
+        address),
+      port)) {}
+  
 I2PControlService::~I2PControlService() { Stop(); }
 
 void I2PControlService::Start() {
@@ -79,16 +79,18 @@ void I2PControlService::Start() {
 void I2PControlService::Stop() {
   if (m_IsRunning) {
     m_IsRunning = false;
+    
+
     m_Acceptor.cancel();
     m_Session->Stop();
     // Release ownership before the io_service is stopped and destroyed
     m_Session.reset();
-    m_Service.stop();
     if (m_Thread) {
       m_Thread->join();
       delete m_Thread;
       m_Thread = nullptr;
     }
+        
   }
 }
 

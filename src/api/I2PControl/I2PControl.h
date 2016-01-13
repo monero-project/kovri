@@ -317,8 +317,8 @@ class I2PControlSession
                                         m_NetworkSettingHandlers;
 
   boost::asio::io_service& m_Service;
-  boost::asio::deadline_timer m_ShutdownTimer,
-                              m_ExpireTokensTimer;
+  boost::asio::deadline_timer m_ShutdownTimer;
+  boost::asio::deadline_timer m_ExpireTokensTimer;
 };  // class I2PControlSession
 
 }  // namespace i2pcontrol

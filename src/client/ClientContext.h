@@ -129,6 +129,8 @@ class ClientContext {
   // types for accessing client / server tunnel map entries
   typedef std::pair<const int, std::unique_ptr<I2PClientTunnel> > ClientTunnelEntry;
   typedef std::pair<const i2p::data::IdentHash, std::unique_ptr<I2PServerTunnel> > ServerTunnelEntry;
+
+  boost::asio::io_service m_Service;
   
   i2pcontrol::I2PControlService* m_I2PControlService;
 

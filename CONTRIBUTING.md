@@ -6,16 +6,19 @@
 ## IRC
 Join us in ```#kovri-dev``` on Irc2P or Freenode; we'll be happy to say hi!
 
-## Bounty
-In the future we will provide bounty for vulnerabilities and bugs. Please stay tuned while we work out the details.
-
-## Model
-We do our best to adhere to the [Agile](https://en.wikipedia.org/wiki/Agile_development)/[Scrum](https://en.wikipedia.org/wiki/Scrum_%28development%29) software development model. The benefits of such a model will become more apparent when our software and developer-base grows (we hope!). Please, consider this model before contributing.
-
 ## Style
 We ardently adhere to (or are in the process of adhering to) [Google's C++ Style Guide](https://google.github.io/styleguide/cppguide.html).
 
 Please run [cpplint](https://github.com/google/styleguide/tree/gh-pages/cpplint) on any applicable work before contributing to Kovri.
+
+In addition to the aforementioned, please consider the following:
+
+- If function args newline break, ensure that *every* indent is 4 spaces (and not 2).
+
+ Example: https://github.com/monero-project/kovri/blob/master/src/core/I2NPProtocol.cpp#L392-L402
+
+- Class member variables are prepended with m_
+- Enumerators are prepended with e_
 
 ## TODO's
 Do a quick search in the codebase for TODO(unassigned) and/or pick a ticket and start patching!
@@ -35,6 +38,12 @@ Commit messages should be verbose by default, consisting of a short subject line
 If a particular commit references another issue, please add a reference. For example "See #123", or "Fixes #123". This will help us resolve tickets when we merge into ```master```.
 
 The body of the pull request should contain an accurate description of what the patch does and provide justification/reasoning for the patch (when appropriate). You should include references to any discussions such as other tickets or chats on IRC.
+
+## Bounty
+In the future we will provide bounty for vulnerabilities and bugs. Please stay tuned while we work out the details.
+
+## Model
+We do our best to adhere to the [Agile](https://en.wikipedia.org/wiki/Agile_development)/[Scrum](https://en.wikipedia.org/wiki/Scrum_%28development%29) software development model. The benefits of such a model will become more apparent when our software and developer-base grows (we hope!). Please, consider this model before contributing.
 
 ## Conflict resolution 
 ```

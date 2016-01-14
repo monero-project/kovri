@@ -17,6 +17,11 @@ In addition to the aforementioned, please consider the following:
 
  Example: https://github.com/monero-project/kovri/blob/master/src/core/I2NPProtocol.cpp#L392-L402
 
+- Pointers: reference/dereference operators on the left (attached to datatype) when possible.
+- Abstain from datatype declaration redundancy (e.g., use commas instead of repeating the datatype).
+
+Example: https://github.com/monero-project/kovri/blob/master/src/core/tunnel/TunnelConfig.h#L67-L80
+
 - Class member variables are prepended with m_
 - Enumerators are prepended with e_
 

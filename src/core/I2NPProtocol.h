@@ -103,21 +103,22 @@ const size_t BUILD_RESPONSE_RECORD_HASH_OFFSET = 0;
 const size_t BUILD_RESPONSE_RECORD_PADDING_OFFSET = 32;
 const size_t BUILD_RESPONSE_RECORD_PADDING_SIZE = 495;
 const size_t BUILD_RESPONSE_RECORD_RET_OFFSET =
-  BUILD_RESPONSE_RECORD_PADDING_OFFSET + BUILD_RESPONSE_RECORD_PADDING_SIZE;
+  BUILD_RESPONSE_RECORD_PADDING_OFFSET +
+  BUILD_RESPONSE_RECORD_PADDING_SIZE;
 
 enum I2NPMessageType {
-    eI2NPDatabaseStore = 1,
-    eI2NPDatabaseLookup = 2,
-    eI2NPDatabaseSearchReply = 3,
-    eI2NPDeliveryStatus = 10,
-    eI2NPGarlic = 11,
-    eI2NPTunnelData = 18,
-    eI2NPTunnelGateway = 19,
-    eI2NPData = 20,
-    eI2NPTunnelBuild = 21,
-    eI2NPTunnelBuildReply = 22,
-    eI2NPVariableTunnelBuild = 23,
-    eI2NPVariableTunnelBuildReply = 24
+  e_I2NPDatabaseStore = 1,
+  e_I2NPDatabaseLookup = 2,
+  e_I2NPDatabaseSearchReply = 3,
+  e_I2NPDeliveryStatus = 10,
+  e_I2NPGarlic = 11,
+  e_I2NPTunnelData = 18,
+  e_I2NPTunnelGateway = 19,
+  e_I2NPData = 20,
+  e_I2NPTunnelBuild = 21,
+  e_I2NPTunnelBuildReply = 22,
+  e_I2NPVariableTunnelBuild = 23,
+  e_I2NPVariableTunnelBuildReply = 24
 };
 
 const int NUM_TUNNEL_BUILD_RECORDS = 8;
@@ -140,6 +141,7 @@ class TunnelPool;
 
 const size_t I2NP_MAX_MESSAGE_SIZE = 32768;
 const size_t I2NP_MAX_SHORT_MESSAGE_SIZE = 4096;
+const size_t I2NP_HEADER_DEFAULT_EXPIRATION_TIME = 1 * 60 * 1000;  // 1 minute
 struct I2NPMessage {
   uint8_t* buf;
   size_t len, offset, maxLen;

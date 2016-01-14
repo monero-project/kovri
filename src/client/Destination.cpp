@@ -66,10 +66,10 @@ ClientDestination::ClientDestination(
       i2p::context.GetRandomNumberGenerator(),
       m_EncryptionPrivateKey,
       m_EncryptionPublicKey);
-  int inboundTunnelLen = DEFAULT_INBOUND_TUNNEL_LENGTH;
-  int outboundTunnelLen = DEFAULT_OUTBOUND_TUNNEL_LENGTH;
-  int inboundTunnelsQuantity = DEFAULT_INBOUND_TUNNELS_QUANTITY;
-  int outboundTunnelsQuantity = DEFAULT_OUTBOUND_TUNNELS_QUANTITY;
+  int inboundTunnelLen = DEFAULT_INBOUND_TUNNEL_LENGTH,
+      outboundTunnelLen = DEFAULT_OUTBOUND_TUNNEL_LENGTH,
+      inboundTunnelsQuantity = DEFAULT_INBOUND_TUNNELS_QUANTITY,
+      outboundTunnelsQuantity = DEFAULT_OUTBOUND_TUNNELS_QUANTITY;
   std::shared_ptr<std::vector<i2p::data::IdentHash> > explicitPeers;
   if (params) {
     auto it = params->find(I2CP_PARAM_INBOUND_TUNNEL_LENGTH);
@@ -119,11 +119,11 @@ ClientDestination::ClientDestination(
   }
   m_Pool =
     i2p::tunnel::tunnels.CreateTunnelPool(
-      this,
-      inboundTunnelLen,
-      outboundTunnelLen,
-      inboundTunnelsQuantity,
-      outboundTunnelsQuantity);
+        this,
+        inboundTunnelLen,
+        outboundTunnelLen,
+        inboundTunnelsQuantity,
+        outboundTunnelsQuantity);
   if (explicitPeers)
     m_Pool->SetExplicitPeers(explicitPeers);
   if (m_IsPublic)
@@ -275,13 +275,13 @@ void ClientDestination::HandleI2NPMessage(
     std::shared_ptr<i2p::tunnel::InboundTunnel> from) {
   uint8_t typeID = buf[I2NP_HEADER_TYPEID_OFFSET];
   switch (typeID) {
-    case eI2NPData:
+    case e_I2NPData:
       HandleDataMessage(
           buf + I2NP_HEADER_SIZE,
           bufbe16toh(
             buf + I2NP_HEADER_SIZE_OFFSET));
     break;
-    case eI2NPDeliveryStatus:
+    case e_I2NPDeliveryStatus:
       // we assume tunnel tests non-encrypted
       HandleDeliveryStatusMessage(
           CreateI2NPMessage(
@@ -289,13 +289,13 @@ void ClientDestination::HandleI2NPMessage(
             GetI2NPMessageLength(buf),
             from));
     break;
-    case eI2NPDatabaseStore:
+    case e_I2NPDatabaseStore:
       HandleDatabaseStoreMessage(
           buf + I2NP_HEADER_SIZE,
           bufbe16toh(
             buf + I2NP_HEADER_SIZE_OFFSET));
     break;
-    case eI2NPDatabaseSearchReply:
+    case e_I2NPDatabaseSearchReply:
       HandleDatabaseSearchReplyMessage(
           buf + I2NP_HEADER_SIZE,
           bufbe16toh(

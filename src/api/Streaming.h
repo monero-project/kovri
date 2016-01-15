@@ -346,8 +346,8 @@ class StreamingDestination {
   StreamingDestination(
       i2p::client::ClientDestination& owner,
       uint16_t localPort = 0)
-    : m_Owner(owner),
-    m_LocalPort(localPort) {}
+      : m_Owner(owner),
+        m_LocalPort(localPort) {}
   ~StreamingDestination() {}
 
   void Start();

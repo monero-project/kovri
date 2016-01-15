@@ -192,7 +192,7 @@ I2NPMessage* DatagramDestination::CreateDataMessage(
   htobe16buf(buf + 6, toPort);  // destination port
   buf[9] = i2p::client::PROTOCOL_TYPE_DATAGRAM;  // datagram protocol
   msg->len += size + 4;
-  msg->FillI2NPMessageHeader(eI2NPData);
+  msg->FillI2NPMessageHeader(e_I2NPData);
   return msg;
 }
 

@@ -174,7 +174,8 @@ class ClientDestination : public i2p::garlic::GarlicDestination {
   std::shared_ptr<const i2p::data::LeaseSet> GetLeaseSet();
 
   std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool() const {
-    return m_Pool; }
+    return m_Pool;
+  }
 
   void HandleI2NPMessage(
       const uint8_t* buf,

@@ -70,7 +70,7 @@ void TransitTunnelParticipant::HandleTunnelDataMsg(
   EncryptTunnelMsg(tunnelMsg, newMsg);
   m_NumTransmittedBytes += tunnelMsg->GetLength();
   htobe32buf(newMsg->GetPayload(), GetNextTunnelID());
-  newMsg->FillI2NPMessageHeader(eI2NPTunnelData);
+  newMsg->FillI2NPMessageHeader(e_I2NPTunnelData);
   m_TunnelDataMsgs.push_back(newMsg);
 }
 

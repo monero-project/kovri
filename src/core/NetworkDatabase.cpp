@@ -120,15 +120,15 @@ void NetDb::Run() {
         int numMsgs = 0;
         while (msg) {
           switch (msg->GetTypeID()) {
-            case eI2NPDatabaseStore:
+            case e_I2NPDatabaseStore:
               LogPrint("DatabaseStore");
               HandleDatabaseStoreMsg(msg);
             break;
-            case eI2NPDatabaseSearchReply:
+            case e_I2NPDatabaseSearchReply:
               LogPrint("DatabaseSearchReply");
               HandleDatabaseSearchReplyMsg(msg);
             break;
-            case eI2NPDatabaseLookup:
+            case e_I2NPDatabaseLookup:
               LogPrint("DatabaseLookup");
               HandleDatabaseLookupMsg(msg);
             break;
@@ -517,7 +517,7 @@ void NetDb::HandleDatabaseStoreMsg(
       htobe32buf(payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0);
       memcpy(payload + DATABASE_STORE_HEADER_SIZE, buf + offset, len - offset);
       floodMsg->len += DATABASE_STORE_HEADER_SIZE + len -offset;
-      floodMsg->FillI2NPMessageHeader(eI2NPDatabaseStore);
+      floodMsg->FillI2NPMessageHeader(e_I2NPDatabaseStore);
       std::set<IdentHash> excluded;
       for (int i = 0; i < 3; i++) {
         auto floodfill = GetClosestFloodfill(ident, excluded);

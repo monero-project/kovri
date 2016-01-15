@@ -237,7 +237,7 @@ void TunnelGateway::SendBuffer() {
   auto tunnelMsgs = m_Buffer.GetTunnelDataMsgs();
   for (auto tunnelMsg : tunnelMsgs) {
     m_Tunnel->EncryptTunnelMsg(tunnelMsg, tunnelMsg);
-    tunnelMsg->FillI2NPMessageHeader(eI2NPTunnelData);
+    tunnelMsg->FillI2NPMessageHeader(e_I2NPTunnelData);
     m_NumSentBytes += TUNNEL_DATA_MSG_SIZE;
   }
   i2p::transport::transports.SendMessages(

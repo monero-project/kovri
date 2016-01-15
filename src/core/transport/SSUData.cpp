@@ -271,10 +271,10 @@ void SSUData::ProcessFragments(
       } else {
         auto i2np_type = msg->GetTypeID();
         // we expect DeliveryStatus
-        if (i2np_type == eI2NPDeliveryStatus) {
+        if (i2np_type == e_I2NPDeliveryStatus) {
           LogPrint("SSU session established");
           m_Session.Established();
-        } else if (i2np_type == eI2NPDatabaseStore) {
+        } else if (i2np_type == e_I2NPDatabaseStore) {
           // we got a database store message
           LogPrint("Got DSM From SSU");
           m_ReceivedMessages.insert(msgID);

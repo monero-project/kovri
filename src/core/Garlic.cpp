@@ -191,7 +191,7 @@ std::shared_ptr<I2NPMessage> GarlicRoutingSession::WrapSingleMessage(
   len += CreateAESBlock(buf, msg);
   htobe32buf(m->GetPayload(), len);
   m->len += len + 4;
-  m->FillI2NPMessageHeader(eI2NPGarlic);
+  m->FillI2NPMessageHeader(e_I2NPGarlic);
   return m;
 }
 

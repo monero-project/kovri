@@ -112,7 +112,7 @@ void Tunnel::Build(
     }
     hop = hop->prev;
   }
-  msg->FillI2NPMessageHeader(eI2NPVariableTunnelBuild);
+  msg->FillI2NPMessageHeader(e_I2NPVariableTunnelBuild);
   // send message
   if (outboundTunnel)
     outboundTunnel->SendTunnelDataMsg(
@@ -409,19 +409,19 @@ void Tunnels::Run() {
           TunnelBase* tunnel = nullptr;
           uint8_t typeID = msg->GetTypeID();
           switch (typeID) {
-            case eI2NPTunnelData:
-            case eI2NPTunnelGateway: {
+            case e_I2NPTunnelData:
+            case e_I2NPTunnelGateway: {
               tunnelID = bufbe32toh(msg->GetPayload());
               if (tunnelID == prevTunnelID)
                 tunnel = prevTunnel;
               else if (prevTunnel)
                 prevTunnel->FlushTunnelDataMsgs();
-              if (!tunnel && typeID == eI2NPTunnelData)
+              if (!tunnel && typeID == e_I2NPTunnelData)
                 tunnel = GetInboundTunnel(tunnelID).get();
               if (!tunnel)
                 tunnel = GetTransitTunnel(tunnelID);
               if (tunnel) {
-                if (typeID == eI2NPTunnelData)
+                if (typeID == e_I2NPTunnelData)
                   tunnel->HandleTunnelDataMsg(msg);
                 else  // tunnel gateway assumed
                   HandleTunnelGatewayMsg(tunnel, msg);
@@ -430,10 +430,10 @@ void Tunnels::Run() {
               }
               break;
             }
-            case eI2NPVariableTunnelBuild:
-            case eI2NPVariableTunnelBuildReply:
-            case eI2NPTunnelBuild:
-            case eI2NPTunnelBuildReply:
+            case e_I2NPVariableTunnelBuild:
+            case e_I2NPVariableTunnelBuildReply:
+            case e_I2NPTunnelBuild:
+            case e_I2NPTunnelBuildReply:
               HandleI2NPMessage(msg->GetBuffer(), msg->GetLength());
             break;
             default:
@@ -478,7 +478,7 @@ void Tunnels::HandleTunnelGatewayMsg(
       "TunnelGateway of ", static_cast<int>(len),
       " bytes for tunnel ", tunnel->GetTunnelID(),
       ". Msg type ", static_cast<int>(typeID));
-  if (typeID == eI2NPDatabaseStore || typeID == eI2NPDatabaseSearchReply)
+  if (typeID == e_I2NPDatabaseStore || typeID == e_I2NPDatabaseSearchReply)
     // transit DatabaseStore my contain new/updated RI
     // or DatabaseSearchReply with new routers
     i2p::data::netdb.PostI2NPMsg(msg);

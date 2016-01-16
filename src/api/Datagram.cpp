@@ -39,6 +39,7 @@
 
 #include "RouterContext.h"
 #include "client/Destination.h"
+#include "core/crypto/Rand.h"
 #include "tunnel/TunnelBase.h"
 #include "util/Log.h"
 
@@ -103,8 +104,7 @@ void DatagramDestination::SendMsg(
   auto leases = remote->GetNonExpiredLeases();
   if (!leases.empty() && outboundTunnel) {
     std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
-    uint32_t i = i2p::context.GetRandomNumberGenerator()
-      .GenerateWord32(0, leases.size() - 1);
+    uint32_t i = i2p::crypto::RandInRange<uint32_t>(0, leases.size() - 1);
     auto garlic = m_Owner.WrapMessage(remote, ToSharedI2NPMessage(msg), true);
     msgs.push_back(
         i2p::tunnel::TunnelMessageBlock {

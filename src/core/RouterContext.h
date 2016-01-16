@@ -77,10 +77,6 @@ class RouterContext : public i2p::garlic::GarlicDestination {
         [](const i2p::data::RouterInfo *) {});
   }
 
-  CryptoPP::RandomNumberGenerator& GetRandomNumberGenerator() {
-    return m_Rnd;
-  }
-
   uint32_t GetUptime() const;
 
   uint32_t GetStartupTime() const {
@@ -194,7 +190,6 @@ class RouterContext : public i2p::garlic::GarlicDestination {
  private:
   i2p::data::RouterInfo m_RouterInfo;
   i2p::data::PrivateKeys m_Keys;
-  CryptoPP::AutoSeededRandomPool m_Rnd;
   uint64_t m_LastUpdateTime;
   bool m_AcceptsTunnels, m_IsFloodfill;
   uint64_t m_StartupTime;  // in seconds since epoch

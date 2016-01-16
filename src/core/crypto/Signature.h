@@ -31,13 +31,6 @@
 #ifndef SRC_CORE_CRYPTO_SIGNATURE_H_
 #define SRC_CORE_CRYPTO_SIGNATURE_H_
 
-#include <cryptopp/asn.h>
-#include <cryptopp/dsa.h>
-#include <cryptopp/eccrypto.h>
-#include <cryptopp/oids.h>
-#include <cryptopp/osrng.h>
-#include <cryptopp/rsa.h>
-
 #include <inttypes.h>
 
 #include "CryptoConst.h"
@@ -51,27 +44,20 @@ const size_t DSA_PUBLIC_KEY_LENGTH = 128;
 const size_t DSA_SIGNATURE_LENGTH = 40;
 const size_t DSA_PRIVATE_KEY_LENGTH = DSA_SIGNATURE_LENGTH/2;
 
+  // private dsa verifier implementation
+class DSAVerifier_Pimpl;
+  
 class DSAVerifier
     : public Verifier {
  public:
   DSAVerifier(
-      const uint8_t* signingKey) {
-    m_PublicKey.Initialize(
-        dsap,
-        dsaq,
-        dsag,
-        CryptoPP::Integer(
-          signingKey,
-          DSA_PUBLIC_KEY_LENGTH));
-  }
+    const uint8_t* signingKey);
 
+  ~DSAVerifier();
   bool Verify(
       const uint8_t* buf,
       size_t len,
-      const uint8_t* signature) const {
-    CryptoPP::DSA::Verifier verifier(m_PublicKey);
-    return verifier.VerifyMessage(buf, len, signature, DSA_SIGNATURE_LENGTH);
-  }
+      const uint8_t* signature) const;
 
   size_t GetPublicKeyLen() const {
     return DSA_PUBLIC_KEY_LENGTH;
@@ -81,376 +67,260 @@ class DSAVerifier
     return DSA_SIGNATURE_LENGTH;
   }
 
+  size_t GetPrivateKeyLen() const {
+    return DSA_SIGNATURE_LENGTH / 2;
+  }
+
+  
  private:
-  CryptoPP::DSA::PublicKey m_PublicKey;
+  DSAVerifier_Pimpl* m_Impl;
 };
 
+
+  // private dsa signer implementation
+class DSASigner_Pimpl;
+  
 class DSASigner
     : public Signer {
  public:
-  DSASigner(
+  explicit DSASigner(
       const uint8_t* signingPrivateKey);
-
+  ~DSASigner();
+  
   void Sign(
-      CryptoPP::RandomNumberGenerator& rnd,
       const uint8_t* buf,
-      int len,
+      size_t len,
       uint8_t* signature) const;
 
  private:
-  CryptoPP::DSA::PrivateKey m_PrivateKey;
+  DSASigner_Pimpl* m_Impl;
 };
 
+  // generate random dsa keypair
 void CreateDSARandomKeys(
-    CryptoPP::RandomNumberGenerator& rnd,
     uint8_t* signingPrivateKey,
     uint8_t* signingPublicKey);
 
-template<typename Hash, size_t keyLen>
-class ECDSAVerifier
-    : public Verifier {
- public:
-  template<typename Curve>
-  ECDSAVerifier(
-      Curve curve,
-      const uint8_t* signingKey) {
-    m_PublicKey.Initialize(
-        curve,
-        CryptoPP::ECP::Point(
-          CryptoPP::Integer(
-            signingKey,
-            keyLen / 2),
-          CryptoPP::Integer(
-            signingKey + keyLen / 2, keyLen / 2)));
-  }
-
-  bool Verify(
-      const uint8_t* buf,
-      size_t len,
-      const uint8_t * signature) const {
-    typename CryptoPP::ECDSA<CryptoPP::ECP, Hash>::Verifier verifier(m_PublicKey);
-    return verifier.VerifyMessage(
-        buf, len, signature, keyLen);  // signature length
-  }
-
-  size_t GetPublicKeyLen() const {
-    return keyLen;
-  }
-
-  size_t GetSignatureLen() const {
-    return keyLen;  // signature length = key length
-  }
-
- private:
-  typename CryptoPP::ECDSA<CryptoPP::ECP, Hash>::PublicKey m_PublicKey;
-};
-
-template<typename Hash>
-class ECDSASigner
-    : public Signer {
- public:
-  template<typename Curve>
-  ECDSASigner(
-      Curve curve,
-      const uint8_t* signingPrivateKey,
-      size_t keyLen) {
-    m_PrivateKey.Initialize(
-        curve,
-        CryptoPP::Integer(
-          signingPrivateKey,
-          keyLen/2));  // private key length
-  }
-
-  void Sign(
-      CryptoPP::RandomNumberGenerator& rnd,
-      const uint8_t* buf,
-      int len,
-      uint8_t* signature) const {
-    typename CryptoPP::ECDSA<CryptoPP::ECP, Hash>::Signer signer(m_PrivateKey);
-    signer.SignMessage(rnd, buf, len, signature);
-  }
-
- private:
-  typename CryptoPP::ECDSA<CryptoPP::ECP, Hash>::PrivateKey m_PrivateKey;
-};
-
-template<typename Hash, typename Curve>
-inline void CreateECDSARandomKeys(
-    CryptoPP::RandomNumberGenerator& rnd,
-    Curve curve,
-    size_t keyLen,
-    uint8_t* signingPrivateKey,
-    uint8_t* signingPublicKey) {
-  typename CryptoPP::ECDSA<CryptoPP::ECP, Hash>::PrivateKey privateKey;
-  typename CryptoPP::ECDSA<CryptoPP::ECP, Hash>::PublicKey publicKey;
-  privateKey.Initialize(rnd, curve);
-  privateKey.MakePublicKey(publicKey);
-  privateKey.GetPrivateExponent().Encode(signingPrivateKey, keyLen / 2);
-  auto q = publicKey.GetPublicElement();
-  q.x.Encode(signingPublicKey, keyLen / 2);
-  q.y.Encode(signingPublicKey + keyLen / 2, keyLen / 2);
-}
 
 // ECDSA_SHA256_P256
 const size_t ECDSAP256_KEY_LENGTH = 64;
 
-struct ECDSAP256Verifier
-    : public ECDSAVerifier<CryptoPP::SHA256, ECDSAP256_KEY_LENGTH> {
-  ECDSAP256Verifier(
-      const uint8_t * signingKey)
-      : ECDSAVerifier(
-          CryptoPP::ASN1::secp256r1(),
-          signingKey) {}
+class ECDSAP256Verifier_Pimpl;
+  
+  class ECDSAP256Verifier : public Verifier {
+public:
+  ECDSAP256Verifier(const uint8_t * signingKey);
+  ~ECDSAP256Verifier();
+    bool Verify(const uint8_t* buf, size_t len, const uint8_t* signature) const;
+    size_t GetPublicKeyLen() const { return ECDSAP256_KEY_LENGTH; }
+    size_t GetSignatureLen() const { return ECDSAP256_KEY_LENGTH; }
+    size_t GetPrivateKeyLen() const { return ECDSAP256_KEY_LENGTH / 2; }
+  private:
+
+  ECDSAP256Verifier_Pimpl* m_Impl;
+  
 };
 
+class ECDSAP256Signer_Pimpl;
+  
 struct ECDSAP256Signer
-    : public ECDSASigner<CryptoPP::SHA256> {
-  explicit ECDSAP256Signer(
-      const uint8_t* signingPrivateKey)
-      : ECDSASigner(
-          CryptoPP::ASN1::secp256r1(),
-          signingPrivateKey,
-          ECDSAP256_KEY_LENGTH) {}
+    : public Signer {
+  explicit ECDSAP256Signer(const uint8_t* signingPrivateKey);
+  ~ECDSAP256Signer();
+  void Sign(const uint8_t* buf, size_t len, uint8_t* signature) const;
+private:
+
+  ECDSAP256Signer_Pimpl* m_Impl;
+ 
 };
 
-inline void CreateECDSAP256RandomKeys(
-    CryptoPP::RandomNumberGenerator& rnd,
+void CreateECDSAP256RandomKeys(
     uint8_t* signingPrivateKey,
-    uint8_t* signingPublicKey) {
-  CreateECDSARandomKeys<CryptoPP::SHA256>(
-      rnd,
-      CryptoPP::ASN1::secp256r1(),
-      ECDSAP256_KEY_LENGTH,
-      signingPrivateKey,
-      signingPublicKey);
-}
+    uint8_t* signingPublicKey);
 
-// ECDSA_SHA384_P384
-const size_t ECDSAP384_KEY_LENGTH = 96;
-class ECDSAP384Verifier
-    : public ECDSAVerifier<CryptoPP::SHA384, ECDSAP384_KEY_LENGTH> {
- public:
-  ECDSAP384Verifier(
-      const uint8_t * signingKey):
 
-  ECDSAVerifier(
-      CryptoPP::ASN1::secp384r1(),
-      signingKey) {}
+
+  // ECDSA_SHA384_P384
+  const size_t ECDSAP384_KEY_LENGTH = 96;
+
+class ECDSAP384Verifier_Pimpl;
+  
+  class ECDSAP384Verifier : public Verifier {
+public:
+  ECDSAP384Verifier(const uint8_t * signingKey);
+  ~ECDSAP384Verifier();
+    bool Verify(const uint8_t* buf, size_t len, const uint8_t* signature) const;
+    size_t GetPublicKeyLen() const { return ECDSAP384_KEY_LENGTH; }
+    size_t GetSignatureLen() const { return ECDSAP384_KEY_LENGTH; }
+    size_t GetPrivateKeyLen() const { return ECDSAP384_KEY_LENGTH / 2; }
+private:
+
+  ECDSAP384Verifier_Pimpl* m_Impl;
+  
 };
 
-class ECDSAP384Signer
-    : public ECDSASigner<CryptoPP::SHA384> {
- public:
-  ECDSAP384Signer(
-      const uint8_t * signingPrivateKey):
+class ECDSAP384Signer_Pimpl;
+  
+struct ECDSAP384Signer
+    : public Signer {
+  explicit ECDSAP384Signer(const uint8_t* signingPrivateKey);
+  ~ECDSAP384Signer();
+  void Sign(const uint8_t* buf, size_t len, uint8_t* signature) const;
 
-  ECDSASigner(
-      CryptoPP::ASN1::secp384r1(),
-      signingPrivateKey,
-      ECDSAP384_KEY_LENGTH) {}
+private:
+
+  ECDSAP384Signer_Pimpl* m_Impl;
+ 
 };
 
-inline void CreateECDSAP384RandomKeys(
-    CryptoPP::RandomNumberGenerator& rnd,
+  void CreateECDSAP384RandomKeys(
     uint8_t* signingPrivateKey,
-    uint8_t* signingPublicKey) {
-  CreateECDSARandomKeys<CryptoPP::SHA384>(
-      rnd,
-      CryptoPP::ASN1::secp384r1(),
-      ECDSAP384_KEY_LENGTH,
-      signingPrivateKey,
-      signingPublicKey);
-}
+    uint8_t* signingPublicKey);
 
+
+
+  
 // ECDSA_SHA512_P521
 const size_t ECDSAP521_KEY_LENGTH = 132;
-class ECDSAP521Verifier
-    : public ECDSAVerifier<CryptoPP::SHA512, ECDSAP521_KEY_LENGTH> {
- public:
-  ECDSAP521Verifier(
-    const uint8_t * signingKey):
 
-  ECDSAVerifier(
-      CryptoPP::ASN1::secp521r1(),
-      signingKey) {}
+
+class ECDSAP521Verifier_Pimpl;
+  
+  class ECDSAP521Verifier : public Verifier {
+public:
+  ECDSAP521Verifier(const uint8_t * signingKey);
+  ~ECDSAP521Verifier();
+    bool Verify(const uint8_t* buf, size_t len, const uint8_t* signature) const;
+    size_t GetPublicKeyLen() const { return ECDSAP521_KEY_LENGTH; }
+    size_t GetSignatureLen() const { return ECDSAP521_KEY_LENGTH; }
+    size_t GetPrivateKeyLen() const { return ECDSAP521_KEY_LENGTH / 2; }
+  private:
+
+  ECDSAP521Verifier_Pimpl* m_Impl;
+  
 };
 
-class ECDSAP521Signer
-    : public ECDSASigner<CryptoPP::SHA512> {
- public:
-  ECDSAP521Signer(
-      const uint8_t * signingPrivateKey):
-
-  ECDSASigner(
-      CryptoPP::ASN1::secp521r1(),
-      signingPrivateKey,
-      ECDSAP521_KEY_LENGTH) {}
-};
-
-inline void CreateECDSAP521RandomKeys(
-    CryptoPP::RandomNumberGenerator& rnd,
-    uint8_t* signingPrivateKey,
-    uint8_t* signingPublicKey) {
-  CreateECDSARandomKeys<CryptoPP::SHA512>(
-      rnd,
-      CryptoPP::ASN1::secp521r1(),
-      ECDSAP521_KEY_LENGTH,
-      signingPrivateKey,
-      signingPublicKey);
-}
-
-// RSA
-template<typename Hash, size_t keyLen>
-class RSAVerifier
-    : public Verifier {
- public:
-  explicit RSAVerifier(
-      const uint8_t* signingKey) {
-    m_PublicKey.Initialize(
-        CryptoPP::Integer(
-          signingKey,
-          keyLen),
-        CryptoPP::Integer(
-          rsae));
-  }
-
-  bool Verify(
-      const uint8_t* buf,
-      size_t len,
-      const uint8_t* signature) const {
-    typename CryptoPP::RSASS<CryptoPP::PKCS1v15, Hash>::Verifier verifier(m_PublicKey);
-    return verifier.VerifyMessage(buf, len, signature, keyLen);  // signature length
-  }
-
-  size_t GetPublicKeyLen() const {
-    return keyLen;
-  }
-
-  size_t GetSignatureLen() const {
-    return keyLen;
-  }
-
-  size_t GetPrivateKeyLen() const {
-    return GetSignatureLen() * 2;
-  }
-
- private:
-  CryptoPP::RSA::PublicKey m_PublicKey;
-};
-
-
-template<typename Hash>
-class RSASigner
+class ECDSAP521Signer_Pimpl;
+  
+struct ECDSAP521Signer
     : public Signer {
- public:
-  RSASigner(
-       const uint8_t* signingPrivateKey,
-       size_t keyLen) {
-     m_PrivateKey.Initialize(
-         CryptoPP::Integer(
-           signingPrivateKey,
-           keyLen / 2),
-         rsae,
-         CryptoPP::Integer(
-           signingPrivateKey + keyLen/2,
-           keyLen/2));
-  }
+  explicit ECDSAP521Signer(const uint8_t* signingPrivateKey);
+  ~ECDSAP521Signer();
+  void Sign(const uint8_t* buf, size_t len, uint8_t* signature) const;
 
-  void Sign(
-      CryptoPP::RandomNumberGenerator& rnd,
-      const uint8_t* buf,
-      int len,
-      uint8_t* signature) const {
-    typename CryptoPP::RSASS<CryptoPP::PKCS1v15, Hash>::Signer signer(m_PrivateKey);
-    signer.SignMessage(rnd, buf, len, signature);
-  }
+private:
 
- private:
-  CryptoPP::RSA::PrivateKey m_PrivateKey;
+  ECDSAP521Signer_Pimpl* m_Impl;
+ 
 };
 
-inline void CreateRSARandomKeys(
-    CryptoPP::RandomNumberGenerator& rnd,
-    size_t publicKeyLen,
-    uint8_t* signingPrivateKey,
-    uint8_t* signingPublicKey) {
-  CryptoPP::RSA::PrivateKey privateKey;
-  privateKey.Initialize(
-      rnd,
-      publicKeyLen * 8,
-      rsae);
-  privateKey.GetModulus().Encode(
-      signingPrivateKey,
-      publicKeyLen);
-  privateKey.GetPrivateExponent().Encode(
-      signingPrivateKey + publicKeyLen,
-      publicKeyLen);
-  privateKey.GetModulus().Encode(
-      signingPublicKey,
-      publicKeyLen);
-}
 
+  
+void CreateECDSAP521RandomKeys(
+    uint8_t* signingPrivateKey,
+    uint8_t* signingPublicKey);
 
 //  RSA_SHA256_2048
 const size_t RSASHA2562048_KEY_LENGTH = 256;
+
+class RSASHA2562048Verifier_Pimpl;
 class RSASHA2562048Verifier
-    : public RSAVerifier<CryptoPP::SHA256, RSASHA2562048_KEY_LENGTH> {
+    : public Verifier {
  public:
-  RSASHA2562048Verifier(
-      const uint8_t* signingKey)
-      : RSAVerifier(signingKey) {}
+    explicit RSASHA2562048Verifier(
+                        const uint8_t* signingKey);
+  ~RSASHA2562048Verifier();
+  size_t GetPublicKeyLen() const { return RSASHA2562048_KEY_LENGTH; }
+  size_t GetSignatureLen() const { return RSASHA2562048_KEY_LENGTH; }
+  size_t GetPrivateKeyLen() const { return RSASHA2562048_KEY_LENGTH * 2; }
+  bool Verify(const uint8_t* buf, size_t len, const uint8_t* signature) const;
+
+private:
+  RSASHA2562048Verifier_Pimpl* m_Impl;
 };
 
+class RSASHA2562048Signer_Pimpl;
 class RSASHA2562048Signer
-    : public RSASigner<CryptoPP::SHA256> {
+    : public Signer {
  public:
-  RSASHA2562048Signer(
-      const uint8_t* signingPrivateKey)
-      : RSASigner(
-          signingPrivateKey,
-          RSASHA2562048_KEY_LENGTH * 2) {}
+   explicit RSASHA2562048Signer(
+                      const uint8_t* signingPrivateKey);
+  ~RSASHA2562048Signer();
+void Sign(const uint8_t* buf, size_t len, uint8_t * signature) const;
+
+private:
+  RSASHA2562048Signer_Pimpl* m_Impl;
 };
 
 // RSA_SHA384_3072
 const size_t RSASHA3843072_KEY_LENGTH = 384;
+
+class RSASHA3843072Verifier_Pimpl;
 class RSASHA3843072Verifier
-    : public RSAVerifier<CryptoPP::SHA384, RSASHA3843072_KEY_LENGTH> {
+    : public Verifier {
  public:
-  RSASHA3843072Verifier(
-      const uint8_t* signingKey)
-      : RSAVerifier(signingKey) {}
+    explicit RSASHA3843072Verifier(
+                        const uint8_t* signingKey);
+  ~RSASHA3843072Verifier();
+  size_t GetPublicKeyLen() const { return RSASHA3843072_KEY_LENGTH; }
+  size_t GetSignatureLen() const { return RSASHA3843072_KEY_LENGTH; }
+  size_t GetPrivateKeyLen() const { return RSASHA3843072_KEY_LENGTH * 2; }
+  bool Verify(const uint8_t* buf, size_t len, const uint8_t* signature) const;
+
+private:
+  RSASHA3843072Verifier_Pimpl* m_Impl;
 };
 
+class RSASHA3843072Signer_Pimpl;
 class RSASHA3843072Signer
-    : public RSASigner<CryptoPP::SHA384> {
+    : public Signer {
  public:
-  RSASHA3843072Signer(
-      const uint8_t * signingPrivateKey)
-      : RSASigner(
-          signingPrivateKey,
-          RSASHA3843072_KEY_LENGTH * 2) {}
+  explicit  RSASHA3843072Signer(
+                      const uint8_t* signingPrivateKey);
+   ~RSASHA3843072Signer();
+  void Sign(const uint8_t* buf, size_t len, uint8_t * signature) const;
+private:
+  RSASHA3843072Signer_Pimpl* m_Impl;
 };
 
 // RSA_SHA512_4096
 const size_t RSASHA5124096_KEY_LENGTH = 512;
+
+
+class RSASHA5124096Verifier_Pimpl;
 class RSASHA5124096Verifier
-    : public RSAVerifier<CryptoPP::SHA512, RSASHA5124096_KEY_LENGTH> {
+    : public Verifier {
  public:
-  RSASHA5124096Verifier(
-      const uint8_t* signingKey)
-      : RSAVerifier(signingKey) {}
+  explicit RSASHA5124096Verifier(
+                        const uint8_t* signingKey);
+  ~RSASHA5124096Verifier();
+  size_t GetPublicKeyLen() const { return RSASHA5124096_KEY_LENGTH; }
+  size_t GetSignatureLen() const { return RSASHA5124096_KEY_LENGTH; }
+  size_t GetPrivateKeyLen() const { return RSASHA5124096_KEY_LENGTH * 2; }
+  bool Verify(const uint8_t* buf, size_t len, const uint8_t* signature) const;
+
+private:
+  RSASHA5124096Verifier_Pimpl* m_Impl;
 };
 
+class RSASHA5124096Signer_Pimpl;
 class RSASHA5124096Signer
-    : public RSASigner<CryptoPP::SHA512> {
+    : public Signer {
  public:
-  RSASHA5124096Signer(
-      const uint8_t* signingPrivateKey)
-      : RSASigner(
-          signingPrivateKey,
-          RSASHA5124096_KEY_LENGTH * 2) {}
+  explicit RSASHA5124096Signer(
+                      const uint8_t* signingPrivateKey);
+  ~RSASHA5124096Signer();
+  void Sign(const uint8_t* buf, size_t len, uint8_t * signature) const;
+private:
+  RSASHA5124096Signer_Pimpl* m_Impl;
 };
 
+void CreateRSARandomKeys(size_t publicKeyLen,
+                                  uint8_t* signingPrivateKey,
+                         uint8_t* signingPublicKey);
+  
+  
+  /*
 // Raw verifiers
 class RawVerifier {
  public:
@@ -507,12 +377,19 @@ class RSARawVerifier
   Hash m_Hash;
 };
 
+
+  */
+class RSASHA5124096RawVerifier_Pimpl;
+  
 class RSASHA5124096RawVerifier
-    : public RSARawVerifier<CryptoPP::SHA512, RSASHA5124096_KEY_LENGTH> {
+  : public RawVerifier { // public RSARawVerifier<CryptoPP::SHA512, RSASHA5124096_KEY_LENGTH> {
  public:
-  RSASHA5124096RawVerifier(
-      const uint8_t* signingKey)
-      : RSARawVerifier(signingKey) {}
+  explicit RSASHA5124096RawVerifier(const uint8_t* signingKey);
+  ~RSASHA5124096RawVerifier();
+  bool Verify(const uint8_t* signature);
+  void Update(const uint8_t* signature, size_t len);
+private:
+  RSASHA5124096RawVerifier_Pimpl* m_Impl;
 };
 
 }  // namespace crypto

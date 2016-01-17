@@ -64,7 +64,7 @@ I2NPMessage* NewI2NPShortMessage() {
 
 I2NPMessage* NewI2NPMessage(
     size_t len) {
-  return (len < I2NP_MAX_SHORT_MESSAGE_SIZE/2) ?
+  return (len < I2NP_MAX_SHORT_MESSAGE_SIZE / 2) ?
       NewI2NPShortMessage() :
       NewI2NPMessage();
 }
@@ -322,7 +322,7 @@ bool HandleBuildRequestRecords(
     uint8_t* records,
     uint8_t* clearText) {
   for (int i = 0; i < num; i++) {
-    uint8_t * record = records + i*TUNNEL_BUILD_RECORD_SIZE;
+    uint8_t* record = records + i * TUNNEL_BUILD_RECORD_SIZE;
     if (!memcmp(
             record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET,
             (const uint8_t *)i2p::context.GetRouterInfo().GetIdentHash(),
@@ -348,19 +348,21 @@ bool HandleBuildRequestRecords(
               clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x40);
         i2p::tunnel::tunnels.AddTransitTunnel(transitTunnel);
         record[BUILD_RESPONSE_RECORD_RET_OFFSET] = 0;
-      } else {  // always reject with bandwidth reason (30)
+      } else {
+        // always reject with bandwidth reason (30)
         record[BUILD_RESPONSE_RECORD_RET_OFFSET] = 30;
       }
       // TODO(unassigned): fill filler
       CryptoPP::SHA256().CalculateDigest(
-          record + BUILD_RESPONSE_RECORD_HASH_OFFSET,
-          record + BUILD_RESPONSE_RECORD_PADDING_OFFSET,
-          BUILD_RESPONSE_RECORD_PADDING_SIZE + 1);  // + 1 byte of ret
+          record + BUILD_RESPONSE_RECORD_SHA256HASH_OFFSET,
+          record + BUILD_RESPONSE_RECORD_RANDPAD_OFFSET,
+          BUILD_RESPONSE_RECORD_RANDPAD_SIZE + 1);  // + 1 byte of ret
       // encrypt reply
       i2p::crypto::CBCEncryption encryption;
       for (int j = 0; j < num; j++) {
         encryption.SetKey(clearText + BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET);
         encryption.SetIV(clearText + BUILD_REQUEST_RECORD_REPLY_IV_OFFSET);
+	// TODO(anonimal): records or record?
         uint8_t* reply = records + j * TUNNEL_BUILD_RECORD_SIZE;
         encryption.Encrypt(reply, TUNNEL_BUILD_RECORD_SIZE, reply);
       }
@@ -376,7 +378,7 @@ void HandleVariableTunnelBuildMsg(
     size_t len) {
   int num = buf[0];
   LogPrint("VariableTunnelBuild ", num, " records");
-  auto tunnel =  i2p::tunnel::tunnels.GetPendingInboundTunnel(replyMsgID);
+  auto tunnel = i2p::tunnel::tunnels.GetPendingInboundTunnel(replyMsgID);
   if (tunnel) {
     // endpoint of inbound tunnel
     LogPrint("VariableTunnelBuild reply for tunnel ", tunnel->GetTunnelID());
@@ -393,7 +395,7 @@ void HandleVariableTunnelBuildMsg(
     if (HandleBuildRequestRecords(num, buf + 1, clearText)) {
       // we are endpoint of outboud tunnel
       if (clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x40) {
-        // so we send it to reply tunnel
+        // So, we send it to reply tunnel
         i2p::transport::transports.SendMessage(
             clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
             ToSharedI2NPMessage(

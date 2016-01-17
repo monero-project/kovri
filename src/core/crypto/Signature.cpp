@@ -29,9 +29,8 @@
  */
 
 #include "Signature.h"
-
-#include <cryptopp/eccrypto.h>
-#include <cryptopp/integer.h>
+#include "cryptopp_impl.h"
+#include "Rand.h"
 
 #include <memory>
 
@@ -40,33 +39,53 @@
 namespace i2p {
 namespace crypto {
 
-DSASigner::DSASigner(
-    const uint8_t* signingPrivateKey) {
-  m_PrivateKey.Initialize(
-      dsap,
-      dsaq,
-      dsag,
-      CryptoPP::Integer(
-        signingPrivateKey,
-        DSA_PRIVATE_KEY_LENGTH));
-}
+  DSAVerifier::DSAVerifier(const uint8_t * signingKey) : m_Impl(new DSAVerifier_Pimpl(signingKey)) {}
 
-void DSASigner::Sign(
-    CryptoPP::RandomNumberGenerator& rnd,
-    const uint8_t* buf,
-    int len,
-    uint8_t* signature) const {
-  CryptoPP::DSA::Signer signer(m_PrivateKey);
-  signer.SignMessage(rnd, buf, len, signature);
-}
+  DSAVerifier::~DSAVerifier() {
+    delete m_Impl;
+  }
+
+  bool DSAVerifier::Verify(const uint8_t* buf, size_t len, const uint8_t* signature) const {
+    return m_Impl->Verify(buf, len, signature);
+  }
+  
+  DSASigner::DSASigner(const uint8_t* signingPrivateKey) : m_Impl(new DSASigner_Pimpl(signingPrivateKey)) {}
+  DSASigner::~DSASigner() { delete m_Impl; }
+
+  void DSASigner::Sign(const uint8_t* buf, size_t len, uint8_t* signature) const {
+    m_Impl->Sign(buf, len, signature);
+  }
+  
+
+  
+  DSASigner_Pimpl::DSASigner_Pimpl(const uint8_t* signingPrivateKey) {
+    m_PrivateKey.Initialize(
+                            dsap,
+                            dsaq,
+                            dsag,
+                            CryptoPP::Integer(
+                                              signingPrivateKey,
+                                              DSA_PRIVATE_KEY_LENGTH));
+  }
+
+  void DSASigner_Pimpl::Sign(
+                             const uint8_t* buf,
+                             size_t len,
+                             uint8_t* signature) const {
+    i2p::crypto::PRNG & rnd = i2p::crypto::GetPRNG();
+    CryptoPP::DSA::Signer signer(m_PrivateKey);
+    signer.SignMessage(rnd, buf, len, signature);
+  }
 
 void CreateDSARandomKeys(
-    CryptoPP::RandomNumberGenerator& rnd,
     uint8_t* signingPrivateKey,
     uint8_t* signingPublicKey) {
+  uint8_t keybuff[DSA_PRIVATE_KEY_LENGTH];
+  i2p::crypto::RandBytes(keybuff, DSA_PRIVATE_KEY_LENGTH);
+  CryptoPP::Integer dsax(keybuff, DSA_PRIVATE_KEY_LENGTH);
   CryptoPP::DSA::PrivateKey privateKey;
   CryptoPP::DSA::PublicKey publicKey;
-  privateKey.Initialize(rnd, dsap, dsaq, dsag);
+  privateKey.Initialize(dsap, dsaq, dsag, dsax);
   privateKey.MakePublicKey(publicKey);
   privateKey.GetPrivateExponent().Encode(
       signingPrivateKey,
@@ -76,5 +95,153 @@ void CreateDSARandomKeys(
       DSA_PUBLIC_KEY_LENGTH);
 }
 
+    DSAVerifier_Pimpl::DSAVerifier_Pimpl(const uint8_t* signingKey) {
+      m_PublicKey.Initialize(
+                             dsap,
+                             dsaq,
+                             dsag,
+                             CryptoPP::Integer(
+                                               signingKey,
+                                               DSA_PUBLIC_KEY_LENGTH));
+    }
+
+    bool DSAVerifier_Pimpl::Verify(
+                                   const uint8_t* buf,
+                                   size_t len,
+                                   const uint8_t* signature) const {
+      CryptoPP::DSA::Verifier verifier(m_PublicKey);
+      return verifier.VerifyMessage(buf, len, signature, DSA_SIGNATURE_LENGTH);
+    }
+
+  ECDSAP256Verifier::ECDSAP256Verifier(const uint8_t* signingKey) : m_Impl(new ECDSAP256Verifier_Pimpl(signingKey)) {}
+    ECDSAP256Verifier::~ECDSAP256Verifier() { delete m_Impl; }
+    bool ECDSAP256Verifier::Verify(const uint8_t* buf, size_t len, const uint8_t* signature) const {
+      return m_Impl->Verify(buf, len, signature);
+    }
+
+    ECDSAP256Signer::ECDSAP256Signer(const uint8_t* signingPrivateKey) : m_Impl(new ECDSAP256Signer_Pimpl(signingPrivateKey)) {}
+    ECDSAP256Signer::~ECDSAP256Signer() { delete m_Impl; }
+    void ECDSAP256Signer::Sign(const uint8_t* buf, size_t len, uint8_t * signature) const {
+      m_Impl->Sign(buf, len, signature);
+    }
+    
+    ECDSAP384Verifier::ECDSAP384Verifier(const uint8_t* signingKey) : m_Impl(new ECDSAP384Verifier_Pimpl(signingKey)) {}
+    ECDSAP384Verifier::~ECDSAP384Verifier() { delete m_Impl; }
+    bool ECDSAP384Verifier::Verify(const uint8_t* buf, size_t len, const uint8_t* signature) const {
+      return m_Impl->Verify(buf, len, signature);
+    }
+
+    ECDSAP384Signer::ECDSAP384Signer(const uint8_t* signingPrivateKey) : m_Impl(new ECDSAP384Signer_Pimpl(signingPrivateKey)) {}
+    ECDSAP384Signer::~ECDSAP384Signer() { delete m_Impl; }
+    void ECDSAP384Signer::Sign(const uint8_t* buf, size_t len, uint8_t * signature) const {
+      m_Impl->Sign(buf, len, signature);
+    }
+    
+    ECDSAP521Verifier::ECDSAP521Verifier(const uint8_t* signingKey) : m_Impl(new ECDSAP521Verifier_Pimpl(signingKey)) {}
+    ECDSAP521Verifier::~ECDSAP521Verifier() { delete m_Impl; }
+    bool ECDSAP521Verifier::Verify(const uint8_t* buf, size_t len, const uint8_t* signature) const {
+      return m_Impl->Verify(buf, len, signature);
+    }
+
+    ECDSAP521Signer::ECDSAP521Signer(const uint8_t* signingPrivateKey) : m_Impl(new ECDSAP521Signer_Pimpl(signingPrivateKey)) {}
+    ECDSAP521Signer::~ECDSAP521Signer() { delete m_Impl; }
+    void ECDSAP521Signer::Sign(const uint8_t* buf, size_t len, uint8_t * signature) const {
+      m_Impl->Sign(buf, len, signature);
+    }
+
+  
+    void CreateECDSAP256RandomKeys(uint8_t* signingPrivateKey, uint8_t* signingPublicKey) {
+      CreateECDSARandomKeys<CryptoPP::SHA256>(
+                                              CryptoPP::ASN1::secp256r1(),
+                                              ECDSAP256_KEY_LENGTH,
+                                              signingPrivateKey,
+                                              signingPublicKey);
+    }
+
+    void CreateECDSAP384RandomKeys(uint8_t* signingPrivateKey, uint8_t* signingPublicKey) {
+      CreateECDSARandomKeys<CryptoPP::SHA384>(
+                                              CryptoPP::ASN1::secp384r1(),
+                                              ECDSAP384_KEY_LENGTH,
+                                              signingPrivateKey,
+                                              signingPublicKey);
+    }
+    
+    void CreateECDSAP521RandomKeys(uint8_t* signingPrivateKey, uint8_t* signingPublicKey) {
+      CreateECDSARandomKeys<CryptoPP::SHA512>(
+                                              CryptoPP::ASN1::secp521r1(),
+                                              ECDSAP521_KEY_LENGTH,
+                                              signingPrivateKey,
+                                              signingPublicKey);
+    }
+
+
+    void CreateRSARandomKeys(size_t publicKeyLen,
+                                  uint8_t* signingPrivateKey,
+                                  uint8_t* signingPublicKey) {
+  CryptoPP::RSA::PrivateKey privateKey;
+  PRNG & rnd = GetPRNG();
+  privateKey.Initialize(rnd,
+                        publicKeyLen * 8,
+                        rsae);
+  privateKey.GetModulus().Encode(signingPrivateKey,
+                                 publicKeyLen);
+  privateKey.GetPrivateExponent().Encode(
+                                         signingPrivateKey + publicKeyLen,
+                                         publicKeyLen);
+  privateKey.GetModulus().Encode(
+                                 signingPublicKey,
+                                 publicKeyLen);
+  }
+
+
+  RSASHA2562048Signer::RSASHA2562048Signer(const uint8_t* privateKey) : m_Impl(new RSASHA2562048Signer_Pimpl(privateKey)) {}
+  RSASHA2562048Signer::~RSASHA2562048Signer() { delete m_Impl; }
+  void RSASHA2562048Signer::Sign(const uint8_t* buf, size_t len, uint8_t* signature) const {
+    m_Impl->Sign(buf, len, signature);
+  }
+  
+  RSASHA3843072Signer::RSASHA3843072Signer(const uint8_t* privateKey) : m_Impl(new RSASHA3843072Signer_Pimpl(privateKey)) {}
+  RSASHA3843072Signer::~RSASHA3843072Signer() { delete m_Impl; }
+  void RSASHA3843072Signer::Sign(const uint8_t* buf, size_t len, uint8_t* signature) const {
+    m_Impl->Sign(buf, len, signature);
+  }
+
+  RSASHA5124096Signer::RSASHA5124096Signer(const uint8_t* privateKey) : m_Impl(new RSASHA5124096Signer_Pimpl(privateKey)) {}
+  RSASHA5124096Signer::~RSASHA5124096Signer() { delete m_Impl; }
+  void RSASHA5124096Signer::Sign(const uint8_t* buf, size_t len, uint8_t* signature) const {
+    m_Impl->Sign(buf, len, signature);
+  }
+  
+  RSASHA2562048Verifier::RSASHA2562048Verifier(const uint8_t* pubKey) : m_Impl(new RSASHA2562048Verifier_Pimpl(pubKey)) {}
+  RSASHA2562048Verifier::~RSASHA2562048Verifier() { delete m_Impl; }
+  bool RSASHA2562048Verifier::Verify(const uint8_t* buf, size_t len, const uint8_t* signature) const {
+    return m_Impl->Verify(buf, len, signature);
+  }
+  
+  RSASHA3843072Verifier::RSASHA3843072Verifier(const uint8_t* pubKey) : m_Impl(new RSASHA3843072Verifier_Pimpl(pubKey)) {}
+  RSASHA3843072Verifier::~RSASHA3843072Verifier() { delete m_Impl; }
+  bool RSASHA3843072Verifier::Verify(const uint8_t* buf, size_t len, const uint8_t* signature) const {
+    return m_Impl->Verify(buf, len, signature);
+  }
+
+  RSASHA5124096Verifier::RSASHA5124096Verifier(const uint8_t* pubKey) : m_Impl(new RSASHA5124096Verifier_Pimpl(pubKey)) {}
+  RSASHA5124096Verifier::~RSASHA5124096Verifier() { delete m_Impl; }
+  bool RSASHA5124096Verifier::Verify(const uint8_t* buf, size_t len, const uint8_t* signature) const {
+    return m_Impl->Verify(buf, len, signature);
+  }
+
+
+  RSASHA5124096RawVerifier::RSASHA5124096RawVerifier(const uint8_t* signingKey) : m_Impl(new RSASHA5124096RawVerifier_Pimpl(signingKey)) {}
+  RSASHA5124096RawVerifier::~RSASHA5124096RawVerifier() { delete m_Impl; }
+
+  void RSASHA5124096RawVerifier::Update(const uint8_t* buf, size_t len) {
+    m_Impl->Update(buf, len);
+  }
+  
+  bool RSASHA5124096RawVerifier::Verify(const uint8_t* signature) {
+    return m_Impl->Verify(signature);
+  }
+                                                                                         
+  
 }  // namespace crypto
 }  // namespace i2p

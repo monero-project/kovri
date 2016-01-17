@@ -36,14 +36,6 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/regex.hpp>
 
-#define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
-#include <cryptopp/arc4.h>
-#include <cryptopp/asn.h>
-#include <cryptopp/base64.h>
-#include <cryptopp/crc.h>
-#include <cryptopp/hmac.h>
-#include <cryptopp/zinflate.h>
-
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -52,11 +44,22 @@
 #include "Identity.h"
 #include "NetworkDatabase.h"
 #include "client/util/Filesystem.h"
+#include "crypto/Rand.h"
 #include "crypto/CryptoConst.h"
 #include "crypto/Signature.h"
 #include "util/HTTP.h"
 #include "util/I2PEndian.h"
 #include "util/Log.h"
+
+// do this AFTER other includes
+#define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
+#include <cryptopp/arc4.h>
+#include <cryptopp/asn.h>
+#include <cryptopp/base64.h>
+#include <cryptopp/crc.h>
+#include <cryptopp/hmac.h>
+#include <cryptopp/zinflate.h>
+
 
 namespace i2p {
 namespace data {
@@ -78,8 +81,8 @@ Reseeder::Reseeder() {}
 Reseeder::~Reseeder() {}
 
 int Reseeder::ReseedNowSU3() {
-  CryptoPP::AutoSeededRandomPool rnd;
-  int ind = rnd.GenerateWord32(0, reseedHosts.size() - 1);
+  size_t s = reseedHosts.size();
+  size_t ind = i2p::crypto::RandInRange<size_t>(size_t{0}, s - size_t{1});
   std::string& reseedHost = reseedHosts[ind];
   return ReseedFromSU3(reseedHost);
 }

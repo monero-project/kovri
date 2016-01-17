@@ -96,6 +96,13 @@ class ClientContext {
 
   AddressBook& GetAddressBook() { return m_AddressBook; }
 
+  /**
+     reload tunnels.cfg
+     removes tunnels not in new tunnels.cfg
+     adds tunnels that were previously not in tunnels.cfg
+   */
+  void ReloadTunnels();
+  
  private:
   void ReadTunnels();
 
@@ -110,11 +117,21 @@ class ClientContext {
   i2p::proxy::HTTPProxy* m_HttpProxy;
   i2p::proxy::SOCKSProxy* m_SocksProxy;
 
+  std::mutex m_ClientMutex;
   std::map<int, std::unique_ptr<I2PClientTunnel> >
     m_ClientTunnels;  // port->tunnel
+
+  std::mutex m_ServerMutex;
   std::map<i2p::data::IdentHash, std::unique_ptr<I2PServerTunnel> >
     m_ServerTunnels;  // destination->tunnel
 
+
+  // types for accessing client / server tunnel map entries
+  typedef std::pair<const int, std::unique_ptr<I2PClientTunnel> > ClientTunnelEntry;
+  typedef std::pair<const i2p::data::IdentHash, std::unique_ptr<I2PServerTunnel> > ServerTunnelEntry;
+
+  boost::asio::io_service m_Service;
+  
   i2pcontrol::I2PControlService* m_I2PControlService;
 
  public:

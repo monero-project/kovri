@@ -38,6 +38,7 @@
 #include <vector>
 #include <set>
 
+#include "crypto/Rand.h"
 #include "NetworkDatabase.h"
 #include "RouterContext.h"
 #include "util/Log.h"
@@ -481,10 +482,11 @@ std::shared_ptr<SSUSession> SSUServer::GetRandomSession(
     if (filter (s.second))
       filteredSessions.push_back(s.second);
   if (filteredSessions.size() > 0) {
-    auto ind =
-      i2p::context.GetRandomNumberGenerator().GenerateWord32(
-          0,
-          filteredSessions.size() - 1);
+    size_t s = filteredSessions.size();
+    size_t ind =
+      i2p::crypto::RandInRange<size_t>(
+          size_t{0},
+          s - 1);
     return filteredSessions[ind];
   }
   return nullptr;

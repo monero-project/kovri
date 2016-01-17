@@ -266,7 +266,7 @@ BOOST_FIXTURE_TEST_CASE(EdDSA25519Sign, EDDSAFixture) {
     0x5c, 0x94, 0x7e, 0x0d
   };
   uint8_t output[64] = {};
-  signer.Sign(dummy_rng, message, 33, output);
+  signer.Sign(message, 33, output);
   BOOST_CHECK_EQUAL_COLLECTIONS(output, output + 64, signature, signature + 64);
 }
 

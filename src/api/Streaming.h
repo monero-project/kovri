@@ -384,6 +384,10 @@ class StreamingDestination {
     return m_LocalPort;
   }
 
+  void UpdateLocalPort(uint16_t port) {
+    m_LocalPort = port;
+  }
+  
   void HandleDataMessagePayload(
       const uint8_t* buf,
       size_t len);

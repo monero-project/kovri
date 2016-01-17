@@ -13,6 +13,8 @@ set(CORE_SRC
   "crypto/AES.cpp"
   "crypto/CryptoConst.cpp"
   "crypto/EdDSA25519.cpp"
+  "crypto/ElGamal.cpp"
+  "crypto/Rand.cpp"
   "crypto/Signature.cpp"
   "crypto/Tunnel.cpp"
   "transport/NTCP.cpp"

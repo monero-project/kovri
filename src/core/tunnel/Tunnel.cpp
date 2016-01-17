@@ -37,6 +37,7 @@
 #include <thread>
 #include <vector>
 
+#include "crypto/Rand.h"
 #include "I2NPProtocol.h"
 #include "NetworkDatabase.h"
 #include "RouterContext.h"
@@ -61,8 +62,6 @@ Tunnel::~Tunnel() {}
 void Tunnel::Build(
     uint32_t replyMsgID,
     std::shared_ptr<OutboundTunnel> outboundTunnel) {
-  CryptoPP::RandomNumberGenerator& rnd =
-    i2p::context.GetRandomNumberGenerator();
   auto numHops = m_Config->GetNumHops();
   int numRecords = numHops <= STANDARD_NUM_RECORDS ?
     STANDARD_NUM_RECORDS :
@@ -84,7 +83,7 @@ void Tunnel::Build(
     hop->CreateBuildRequestRecord(
         records + idx * TUNNEL_BUILD_RECORD_SIZE,
         // we set replyMsgID for last hop only
-        hop->next ? rnd.GenerateWord32() : replyMsgID);
+        hop->next ? i2p::crypto::Rand<uint32_t>() : replyMsgID);
     hop->recordIndex = idx;
     i++;
     hop = hop->next;
@@ -92,7 +91,7 @@ void Tunnel::Build(
   // fill up fake records with random data
   for (int i = numHops; i < numRecords; i++) {
     int idx = recordIndicies[i];
-    rnd.GenerateBlock(
+    i2p::crypto::RandBytes(
         records + idx * TUNNEL_BUILD_RECORD_SIZE,
         TUNNEL_BUILD_RECORD_SIZE);
   }
@@ -310,9 +309,9 @@ std::shared_ptr<InboundTunnel> Tunnels::GetNextInboundTunnel() {
 }
 
 std::shared_ptr<OutboundTunnel> Tunnels::GetNextOutboundTunnel() {
-  CryptoPP::RandomNumberGenerator& rnd =
-    i2p::context.GetRandomNumberGenerator();
-  uint32_t ind = rnd.GenerateWord32(0, m_OutboundTunnels.size() - 1);
+  // XXX: integer size
+  uint32_t s = m_OutboundTunnels.size();
+  uint32_t ind = i2p::crypto::RandInRange<uint32_t>(uint32_t{0}, s - 1);
   uint32_t i = 0;
   std::shared_ptr<OutboundTunnel> tunnel;
   for (auto it : m_OutboundTunnels) {
@@ -677,8 +676,7 @@ std::shared_ptr<TTunnel> Tunnels::CreateTunnel(
     std::shared_ptr<TunnelConfig> config,
     std::shared_ptr<OutboundTunnel> outboundTunnel) {
   auto newTunnel = std::make_shared<TTunnel> (config);
-  uint32_t replyMsgID =
-    i2p::context.GetRandomNumberGenerator().GenerateWord32();
+  uint32_t replyMsgID = i2p::crypto::Rand<uint32_t>();
   AddPendingTunnel(replyMsgID, newTunnel);
   newTunnel->Build(replyMsgID, outboundTunnel);
   return newTunnel;

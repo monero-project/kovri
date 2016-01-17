@@ -168,7 +168,7 @@ void CreateDSARandomKeys(
     
     void CreateECDSAP521RandomKeys(uint8_t* signingPrivateKey, uint8_t* signingPublicKey) {
       CreateECDSARandomKeys<CryptoPP::SHA512>(
-                                              CryptoPP::ASN1::secp256r1(),
+                                              CryptoPP::ASN1::secp521r1(),
                                               ECDSAP521_KEY_LENGTH,
                                               signingPrivateKey,
                                               signingPublicKey);

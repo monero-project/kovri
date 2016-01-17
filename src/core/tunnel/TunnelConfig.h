@@ -62,7 +62,8 @@ struct TunnelHopConfig {
       uint8_t* record,
       uint32_t replyMsgID) const;
 
-  std::shared_ptr<const i2p::data::RouterInfo> router, nextRouter;
+  std::shared_ptr<const i2p::data::RouterInfo> router,
+                                               nextRouter;
 
   uint32_t tunnelID,
            nextTunnelID;

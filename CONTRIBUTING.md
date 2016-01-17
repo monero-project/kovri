@@ -15,12 +15,49 @@ In addition to the aforementioned, please consider the following:
 
 - If function args newline break, ensure that *every* indent is 4 spaces (and not 2).
 
- Example: https://github.com/monero-project/kovri/blob/master/src/core/I2NPProtocol.cpp#L392-L402
+```cpp
+if (clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x40) {
+  // So, we send it to reply tunnel
+  i2p::transport::transports.SendMessage(
+      clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
+      ToSharedI2NPMessage(
+          CreateTunnelGatewayMsg(
+              bufbe32toh(
+                  clearText + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
+              e_I2NPVariableTunnelBuildReply,
+              buf,
+              len,
+              bufbe32toh(
+                  clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET))));
+} else {
+  i2p::transport::transports.SendMessage(
+      clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
+      ToSharedI2NPMessage(
+          CreateI2NPMessage(
+              e_I2NPVariableTunnelBuild,
+              buf,
+              len,
+              bufbe32toh(
+                  clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET))));
+}
+```
 
 - Pointers: reference/dereference operators on the left (attached to datatype) when possible.
 - Abstain from datatype declaration redundancy (e.g., use commas instead of repeating the datatype).
 
-Example: https://github.com/monero-project/kovri/blob/master/src/core/tunnel/TunnelConfig.h#L67-L80
+```cpp
+uint32_t tunnelID,
+         nextTunnelID;
+
+uint8_t layerKey[32],
+        ivKey[32],
+        replyKey[32],
+        replyIV[16],
+        randPad[29];
+
+bool isGateway,
+     isEndpoint;
+```
 
 - Class member variables are prepended with m_
 - Enumerators are prepended with e_

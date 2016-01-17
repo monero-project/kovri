@@ -84,7 +84,7 @@ class ElGamalEncryption {
 
 inline bool ElGamalDecrypt(
     const uint8_t* key,
-    const uint8_t * encrypted,
+    const uint8_t* encrypted,
     uint8_t* data,
     bool zeroPadding = false) {
   CryptoPP::Integer

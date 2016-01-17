@@ -93,7 +93,7 @@ void Tunnel::Build(
   for (int i = numHops; i < numRecords; i++) {
     int idx = recordIndicies[i];
     rnd.GenerateBlock(
-        records + idx*TUNNEL_BUILD_RECORD_SIZE,
+        records + idx * TUNNEL_BUILD_RECORD_SIZE,
         TUNNEL_BUILD_RECORD_SIZE);
   }
   // decrypt real records

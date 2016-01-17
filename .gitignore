@@ -1,26 +1,15 @@
-# kovri
-router.info
-router.keys
-kovri
-libkovri.so
-netDb
-tunnels.cfg
-tests/tests
-
 # Build files
-CMakeCache.txt
-build/CMakeFiles/*
-build/tests
-build/client
-build/core
-build/benchmark
-build/kovri
-build/kovri-tests
-build/kovri-benchmark
-*.cmake
 *.a
 *.o
-
+build/CMakeCache.txt
+build/CMakeFiles/*
+build/Doxyfile
+build/cmake_install.cmake
+build/doc
+build/kovri
+build/kovri-benchmarks
+build/kovri-tests
+build/src
 
 # Autotools
 autom4te.cache

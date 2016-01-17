@@ -3,35 +3,35 @@ env:
    # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
    # via the "travis encrypt" command using the project repo's public key
    #- secure: "Z3IXrEUCV/gada+XZ0mMTnIIlto/rutD3aDKZhrGzwNT19U41bLr75aXmQC5I8FtXW49J3UtxsYa51sb/sqwBdCeCpD8xhXFbW4ekTl+colIE43xv9A0xSU+LU9Cyi9kS5TtAxLii/OhNk2GV0c3mcxQBCkQGeZmu9m46OeOc44hl1Xa7ujlvSbFb9ITiUqYSsj0PQAM7aPhntXTvuDnXbfhqp/MMs/mObVjEDvahUjUxN2TxIBBBnljMX9XKiYEL/UjHe4vamlX0AlB+7sY6sYVLLTp1g5MDxFaPyc3+a6UVGE3dieQOKnGuMDPC2iZfOL29scAJ0BcxI4yFxxZS0Ozb46LMYEUcUHQlX8llLSiA9ELtVxwUrLCtsXxDz/lzgzxx6eomOzHnOvymi5oo/pY3QpGuoPq+ikgpUKxXyN89ppH0d7tuemCcGdAwv32UGyPL2Kus08bRU12+bF3dEroCmkQ/aYpF9wL9ZTES7pUQBZPnuVsT6v0bSJd3iQiopUIgPNjPlmOaGaLtue+KExj5cu/pynjtFGTGGD21hKLxO8yXOTFmhxytuPb4jjEPddng5h7FKqcUJShqCPpOqoA6zOvp2U/D5btaySb/WfyghGVO/BuIoIdKkwIHClPV7e4Q7s8eWIfYk9R93MdQCmcoCziPgc5UrZ4ZoJ9rss="
-
 sudo: required
 dist: trusty
 language: cpp
-
 compiler:
-    - gcc
-    # Uncomment when we can actually build with clang
-    #- clang
-
+- gcc
+# Uncomment when we can actually build with clang
+#- clang
 addons:
-    apt:
-        packages:
-            - libboost-all-dev
-            - libcrypto++-dev
-
-    coverity_scan:
-        project:
-            name: "monero-project/kovri"
-            description: "The Kovri I2P Router Project"
-        notification_email: anonimal@i2pmail.org
-        #build_command_prepend: ""
-        build_command:   "cd build && cmake ../ && make"
-        branch_pattern: coverity_scan
-
-script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then cd build && cmake ../ && make ; fi
-
+  apt:
+    packages:
+    - libboost-all-dev
+    - libcrypto++-dev
+    - libssl-dev
+    - libssl1.0.0
+    - libminiupnpc-dev
+    - doxygen
+coverity_scan:
+  project:
+    name: "monero-project/kovri"
+    description: "The Kovri I2P Router Project"
+  notification_email: anonimal@i2pmail.org
+  build_command: "cd build && cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON -DWITH_UPNP=ON -DWITH_DOXYGEN=ON ../ && make"
+  branch_pattern: coverity_scan
+script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then cd build && cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON -DWITH_UPNP=ON -DWITH_DOXYGEN=ON ../ && make doc && make ; fi
 notifications:
-    email: false
-    #irc: "chat.freenode.net#kovri-dev"
-    #nick: kovri-ci
-    #password:
+  email: false
+  irc:
+    secure: XZM8Cf0xb+bOoUlplWD2TlXwJ9DD+b8CMlmfqX9sU2EeVmDKskJETBuKjSOaaIgWHuLDWZb0P1E+5v8Em+yIEv4vnDa7WWFY3c4bdnSSG0XWngMMKKNOF5TX8mW3/+3FsuXpBgXnLnjNEks8UaEtwb4ArN6dUyV/fsQw1hueXESJDLdQ/2JOCFAS9+0khVVVrOM8szW5ITaX3o88vs0SWMtksrLICudZPDd7GhbSyBo6Anl0fTn9ClSXwDfFkb6W8k3Nhg+3/CYJb2CR4vGV4TylfBuRf5ijWtp/orzYsPmllLolOlGwxsciufvZ6rnP+bYgfpUowY3bDodhTsjimjMy7xLLNw7MG+oBDWy9uOficsylnAXwqVAc39VNG3+ho0NQmZPY/GS0h/pqYuihKBrV+uUq2T7nslQgOwcSEJgjoIzRgiGCjBJ1oqueS6nRHa69AVoOcfcSPWJ3KpQVC8RA7d8qni7BYKHbDTX/McQixJ2evrGLz23jp9GlQqjgxs7nOSVOkMS5tVxJRl6IjZzerPqp8XchqL1sXgEMCFK1wdTZaBZdoqlOY4QclyLYroa/w679WLCJMyX5qI7xwzmPq7X4MNmKTCdcTnshZhDv2g7vLm3BDeM2MgGCzL7Eb7xhQWuejBD7hO1iFqQXi69pPIF6kTsSKD1dixXLY9Q=
+  nick:
+    secure: uW44mhTbE/aMDpCMFQY5/zvfbjncQfz0E1rmw141CNgS9+yTR1jzTpfa4DKqb4mwBp8Ctw3Nvt/5eoi3ccd0jQRCVjJkj8fLmJ7ypAhYldPOepcPkDQ91PdT913APuLmR8bz8QLiuSTeCEQNg74x9w7aRNazxXSkZI94xnSxtS3iWeByp14kPMFLaDLZ9TNFHvbPV5fDZws+oode1NdU+CdLy/PciRDpMu+kBTPWfD2FT75UudiJaDGvdepvTM4Isomg0gVb/bqsWkoTBmR8VakCt/YyczLr4dANB8kS+P7eXMqQXqfd8QjV6eGU2RvXKz7t68ffpUkvlAYLTeZio95Tetlun4DcaKS8agoXspr/REN4TOramTI43rx6OPFj4kkbzvL4gM7z/D5nrUZKnbURPSIKzYXu8fYvwbquoLB/RbiOpOuvFSVdFHM0lcCM+dBREkrzABbOm91Ph2/zeMQ+w7CVnr/IuHNHhfuiL4Y5XD/rJJw0vTGEKsaftWCNZ87h4qke65b4ybeeeKf3iNnSjOm9MmCcT7c6XWP7uHJWK/nrj4HSTD/3WqUY2ldnbnUz8V9Rx5WbK8F6xqP9OW5HrPkjvPVX9Edlas6sMckBy3ZP7eRxdf/d00RqiUs5vc5iEsmy6RqksyqIz5QVRpt1+tW5oh1efOA2S2pkONw=
+  password:
+    secure: guYSbj8QuJ2Hf7RLULxMqDREUDgq/W2sB1xQ8fzW2qe+/UNkJ4MWoExHDu+CRNnJaLGm7SoPcgwLHzDEQnq2Qr2oB9C6+Uc7t1vid/OeXUYevDhDNrDqsmQvkmwrWNDJyR2nsnVpYkECtLY/wxFccq04AEl2WAswO8FQ4QX8OSjAgHmUDWjcnSA5ovVv4LPt8af5q60P+lljqtLZgdlP5pA25Jx9u6b00Vbz48tnqvhlgT+OvkWbsZWppfcRoSBlFed+/+LJWnKtdj6DnP9n3ht1uYc3xvid2YLieVco9/+LjUmESgFCbKnUCJ26kesbEftY10aLxB5X4rI415s/6lXZ4G71SdBOu1vXb4/cg0TlD3rwjy5LSrROiwm8wPfUbcTHqe4mUetz/AtybrRi2Bli8FomYpCDusqUZW1Z+Lx09ycCqgdyBrapuqz+pWe8CmZRsXYY9zx3R3g3mEiYeejDOqDycVxuxDS1x3sopmj2sE5UAFfr3F3UaJHQS7JfwKlllfAw5+RldWlXA3iasqPBhOAChK4Cfxtwydn7WwefXf5ybQXiB74E4Ka4DWvzG1yJXaLTi8Ee3Xp54HXs4fpDkZDtAhX/gioxS14KaDxVRCpI9nra2/h883fgvZAV1ok84KurQH03ZNW1hvXJi/oOaalaE66cgjDe94acnmM=

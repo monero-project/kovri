@@ -237,7 +237,6 @@ struct EDDSAFixture {
 
   EDDSA25519Verifier verifier;
   EDDSA25519Signer signer;
-  CryptoPP::RandomNumberGenerator dummy_rng;
 };
 
 BOOST_FIXTURE_TEST_CASE(EdDSA25519KeyLength, EDDSAFixture) {

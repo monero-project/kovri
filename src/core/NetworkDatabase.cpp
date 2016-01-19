@@ -32,7 +32,7 @@
 
 #include <boost/asio.hpp>
 
-// TODO: use util/GZIP.h ?
+// TODO(unassigned): use util/GZIP.h ?
 #include <cryptopp/gzip.h>
 
 #include <string.h>
@@ -53,7 +53,7 @@
 #include "util/Log.h"
 #include "util/Timestamp.h"
 
-// TODO(unassigned): do not use namespace using-directives.
+// TODO(anonimal): do not use namespace using-directives.
 using namespace i2p::transport;
 
 namespace i2p {

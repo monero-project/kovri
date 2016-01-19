@@ -309,7 +309,7 @@ std::shared_ptr<InboundTunnel> Tunnels::GetNextInboundTunnel() {
 }
 
 std::shared_ptr<OutboundTunnel> Tunnels::GetNextOutboundTunnel() {
-  // XXX: integer size
+  // TODO(unassigned): integer size
   uint32_t s = m_OutboundTunnels.size();
   uint32_t ind = i2p::crypto::RandInRange<uint32_t>(uint32_t{0}, s - 1);
   uint32_t i = 0;

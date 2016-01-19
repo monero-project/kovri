@@ -163,13 +163,13 @@ void I2PTunnelConnection::StreamReceive() {
   if (m_Stream)
     m_Stream->AsyncReceive(
         boost::asio::buffer(
-          m_StreamBuffer,
-          I2P_TUNNEL_CONNECTION_BUFFER_SIZE),
+            m_StreamBuffer,
+            I2P_TUNNEL_CONNECTION_BUFFER_SIZE),
         std::bind(
-          &I2PTunnelConnection::HandleStreamReceive,
-          shared_from_this(),
-          std::placeholders::_1,
-          std::placeholders::_2),
+            &I2PTunnelConnection::HandleStreamReceive,
+            shared_from_this(),
+            std::placeholders::_1,
+            std::placeholders::_2),
         I2P_TUNNEL_CONNECTION_MAX_IDLE);
 }
 
@@ -189,11 +189,13 @@ void I2PTunnelConnection::Write(
     const uint8_t* buf,
     size_t len) {
   m_Socket->async_send(
-      boost::asio::buffer(buf, len),
+      boost::asio::buffer(
+          buf,
+          len),
       std::bind(
-        &I2PTunnelConnection::HandleWrite,
-        shared_from_this(),
-        std::placeholders::_1));
+          &I2PTunnelConnection::HandleWrite,
+          shared_from_this(),
+          std::placeholders::_1));
 }
 
 void I2PTunnelConnection::HandleConnect(
@@ -228,10 +230,10 @@ I2PTunnelConnectionHTTP::I2PTunnelConnectionHTTP(
     const boost::asio::ip::tcp::endpoint& target,
     const std::string& host)
     : I2PTunnelConnection(
-        owner,
-        stream,
-        socket,
-        target),
+          owner,
+          stream,
+          socket,
+          target),
       m_Host(host),
       m_HeaderSent(false) {}
 
@@ -280,9 +282,9 @@ class I2PClientTunnelHandler
       int destinationPort,
       std::shared_ptr<boost::asio::ip::tcp::socket> socket)
     : I2PServiceHandler(parent),
-    m_DestinationIdentHash(destination),
-    m_DestinationPort(destinationPort),
-    m_Socket(socket) {}
+      m_DestinationIdentHash(destination),
+      m_DestinationPort(destinationPort),
+      m_Socket(socket) {}
   void Handle();
   void Terminate();
 
@@ -296,9 +298,9 @@ class I2PClientTunnelHandler
 void I2PClientTunnelHandler::Handle() {
   GetOwner()->GetLocalDestination()->CreateStream(
       std::bind(
-        &I2PClientTunnelHandler::HandleStreamRequestComplete,
-        shared_from_this(),
-        std::placeholders::_1),
+          &I2PClientTunnelHandler::HandleStreamRequestComplete,
+          shared_from_this(),
+          std::placeholders::_1),
       m_DestinationIdentHash,
       m_DestinationPort);
 }
@@ -343,9 +345,9 @@ I2PClientTunnel::I2PClientTunnel(
     std::shared_ptr<ClientDestination> localDestination,
     int destinationPort)
     : TCPIPAcceptor(
-        address,
-        port,
-        localDestination),
+          address,
+          port,
+          localDestination),
       m_TunnelName(name),
       m_Destination(destination),
       m_DestinationIdentHash(nullptr),
@@ -406,16 +408,18 @@ I2PServerTunnel::I2PServerTunnel(
       m_IsAccessList(false) {
       m_PortDestination =
         localDestination->CreateStreamingDestination(
-        inport > 0 ? inport : port);
+            inport > 0 ? inport : port);
 }
 
 void I2PServerTunnel::Start() {
-  // XXX: we don't resolve the dns entry each time we connect so we'd have to SIGHUP every time the entry changes
+  // TODO(unassigned): we don't resolve the dns entry each time we connect so
+  // we'd have to SIGHUP every time the entry changes
   // OR, we could resolve each time
   // BUT that would mean lots of dns queries
-  // HOWEVER if when we SIGHUP something changes we SHOULD NOT throw away the destination because that will
-  // discard the tunnel encryption keys which causes interruption
-  // TODO(psi) implement a strategy for caching and looking up hostname ip addresses
+  // HOWEVER if when we SIGHUP something changes we SHOULD NOT throw away
+  // the destination because that will discard the tunnel encryption keys which
+  // causes interruption.
+  // TODO(psi): implement a strategy for caching and looking up hostname ip addresses
   m_Endpoint.port(m_Port);
   boost::system::error_code ec;
   auto addr =
@@ -431,15 +435,15 @@ void I2PServerTunnel::Start() {
           GetService());
     resolver->async_resolve(
         boost::asio::ip::tcp::resolver::query(
-          m_Address,
-          ""),
+            m_Address,
+            ""),
         std::bind(
-          &I2PServerTunnel::HandleResolve,
-          this,
-          std::placeholders::_1,
-          std::placeholders::_2,
-          resolver,
-          true));
+            &I2PServerTunnel::HandleResolve,
+            this,
+            std::placeholders::_1,
+            std::placeholders::_2,
+            resolver,
+            true));
   }
 }
 
@@ -466,14 +470,15 @@ void I2PServerTunnel::HandleResolve(
   }
 }
 
-  
-void I2PServerTunnel::UpdateAddress(const std::string & addr) {
+
+void I2PServerTunnel::UpdateAddress(
+    const std::string& addr) {
   m_Address = addr;
   boost::system::error_code ec;
   auto a =
     boost::asio::ip::address::from_string(
-      m_Address,
-      ec);
+        m_Address,
+        ec);
   if (!ec) {
     m_Endpoint.address(a);
   } else {
@@ -482,23 +487,36 @@ void I2PServerTunnel::UpdateAddress(const std::string & addr) {
           GetService());
     resolver->async_resolve(
         boost::asio::ip::tcp::resolver::query(
-          m_Address,
-          ""),
+            m_Address,
+            ""),
         std::bind(
-          &I2PServerTunnel::HandleResolve,
-          this,
-          std::placeholders::_1,
-          std::placeholders::_2,
-          resolver,
-          false));
+            &I2PServerTunnel::HandleResolve,
+            this,
+            std::placeholders::_1,
+            std::placeholders::_2,
+            resolver,
+            false));
   }
 }
 
-void I2PServerTunnel::UpdatePort(int port) {
-  if ( port < 0 ) { throw std::logic_error("i2p server tunnel < 0"); } 
+void I2PServerTunnel::UpdatePort(
+    int port) {
+  if (port < 0) {
+    throw std::logic_error("I2P server tunnel < 0");
+  }
   m_Port = port;
 }
-  
+
+void I2PServerTunnel::UpdateStreamingPort(
+    int port) const {
+  if (port > 0) {
+    uint16_t localPort = port;
+    m_PortDestination->UpdateLocalPort(localPort);
+  } else {
+    throw std::logic_error("Streaming port cannot be negative");
+  }
+}
+
 void I2PServerTunnel::SetAccessList(
     const std::set<i2p::data::IdentHash>& accessList) {
   m_AccessList = accessList;
@@ -558,19 +576,19 @@ void I2PServerTunnel::CreateI2PConnection(
 std::string I2PServerTunnel::GetName() {
   return m_TunnelName;
 }
-  
+
 I2PServerTunnelHTTP::I2PServerTunnelHTTP(
-    const std::string & name,
+    const std::string& name,
     const std::string& address,
     int port,
     std::shared_ptr<ClientDestination> localDestination,
     int inport)
     : I2PServerTunnel(
-        name,
-        address,
-        port,
-        localDestination,
-        inport) {}
+          name,
+          address,
+          port,
+          localDestination,
+          inport) {}
 
 void I2PServerTunnelHTTP::CreateI2PConnection(
     std::shared_ptr<i2p::stream::Stream> stream) {
@@ -585,8 +603,8 @@ void I2PServerTunnelHTTP::CreateI2PConnection(
   AddHandler(conn);
   conn->Connect();
 }
-void I2PServerTunnel::SetAccessListString(const std::string & idents_str)
-{
+void I2PServerTunnel::SetAccessListString(
+    const std::string& idents_str) {
   std::set<i2p::data::IdentHash> idents;
   if (idents_str.length() > 0) {
     size_t pos = 0, comma;
@@ -594,15 +612,17 @@ void I2PServerTunnel::SetAccessListString(const std::string & idents_str)
       comma = idents_str.find(',', pos);
       i2p::data::IdentHash ident;
       ident.FromBase32(
-        idents_str.substr(
-          pos,
-          comma != std::string::npos ? comma - pos : std::string::npos));
+          idents_str.substr(
+              pos,
+              comma != std::string::npos ?
+                       comma - pos :
+                       std::string::npos));
       idents.insert(ident);
       pos = comma + 1;
     } while (comma != std::string::npos);
   }
   SetAccessList(idents);
 }
-  
+
 }  // namespace client
 }  // namespace i2p

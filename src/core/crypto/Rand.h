@@ -35,18 +35,16 @@
 
 namespace i2p {
 namespace crypto {
-  
-  /**
-     generate random bytes
-     @param dataptr buffer to store result
-     @param datalen size of buffer
-   */
-  void RandBytes(void * dataptr, size_t datalen);
 
-  /**
-     generate random of type T
-     @param T integer or floating point type
-   */
+  // generate random bytes
+  // @param dataptr buffer to store result
+  // @param datalen size of buffer
+  void RandBytes(
+      void* dataptr,
+      size_t datalen);
+
+  // generate random of type T
+  // @param T integer or floating point type
   template<class T>
   T Rand() {
     T ret;
@@ -54,24 +52,26 @@ namespace crypto {
     return ret;
   }
 
-  /**
-     generate a random of type T
-     @param T integer type
-     @param min lowerbound
-     @param max upperbound
-     @return random in range [min, max)
-   */
+  // generate a random of type T
+  // @param T integer type
+  // @param min lowerbound
+  // @param max upperbound
+  // @return random in range [min, max)
   template<class T>
   T RandInRange(T min, T max) {
-    if (min > max ) { throw std::logic_error("i2p::crypto::RandInRange() min <= max"); }
-    else if (min == max) { return min; }
+    if (min > max) {
+      throw std::logic_error("i2p::crypto::RandInRange() min <= max");
+    } else if (min == max) {
+      return min;
+    }
     T dlt = max - min;
     T ret = Rand<T>();
     ret %= dlt;
     ret += min;
     return ret;
   }
-  
-}
-}
-#endif
+
+}  // namespace crypto
+}  // namespace i2p
+
+#endif  // SRC_CORE_CRYPTO_RAND_H_

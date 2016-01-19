@@ -28,9 +28,9 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-// TODO: use crypto/DSA.h
+// TODO(unassigned): use crypto/DSA.h
 #include <cryptopp/dsa.h>
-// TODO: use crypto/SHA.h
+// TODO(unassigned): use crypto/SHA.h
 #include <cryptopp/sha.h>
 
 #include <cryptopp/dh.h>
@@ -43,9 +43,9 @@
 #include "Identity.h"
 #include "RouterContext.h"
 #include "crypto/CryptoConst.h"
+#include "crypto/CryptoPP_Rand.h"
 #include "crypto/ElGamal.h"
 #include "crypto/Rand.h"
-#include "crypto/cryptopp_rand.h"
 #include "crypto/Signature.h"
 #include "util/Base64.h"
 #include "util/I2PEndian.h"
@@ -175,7 +175,7 @@ IdentityEx::IdentityEx(
     // calculate ident hash
     uint8_t* buf = new uint8_t[GetFullLen()];
     ToBuffer(buf, GetFullLen());
-    // TODO: use i2p::crypto::SHA256()
+    // TODO(unassigned): use i2p::crypto::SHA256()
     CryptoPP::SHA256().CalculateDigest(m_IdentHash, buf, GetFullLen());
     delete[] buf;
   } else {  // DSA-SHA1

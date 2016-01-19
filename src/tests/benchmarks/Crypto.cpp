@@ -49,7 +49,6 @@ void benchmark(
     std::size_t signature_size,
     KeyGenerator generator) {
   typedef std::chrono::time_point<std::chrono::high_resolution_clock> TimePoint;
-
   uint8_t private_key[private_key_size];
   uint8_t public_key[public_key_size];
   generator(private_key, public_key);

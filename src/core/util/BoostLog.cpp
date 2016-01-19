@@ -292,6 +292,10 @@ void LogImpl::Flush() {
 void LogImpl::Stop() {
   m_Silent = true;
 }
+
+bool LogImpl::IsSilent() {
+  return m_Silent;
+}
   
 std::shared_ptr<Log> Log::Get() {
   // make default logger if we don't have a logger

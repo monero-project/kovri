@@ -578,8 +578,7 @@ void SSUSession::SendSessionCreated(
   // encrypt signature and padding with newly created session key
   size_t signatureLen = i2p::context.GetIdentity().GetSignatureLen();
   size_t paddingSize = signatureLen & 0x0F;  // %16
-  if (paddingSize > 0)
-  {
+  if (paddingSize > 0) {
     signatureLen += (16 - paddingSize);
     i2p::crypto::RandBytes(payload, paddingSize);
   }
@@ -767,7 +766,7 @@ void SSUSession::SendRelayIntro(
   payload += 2;  // port
   *payload = 0;  // challenge size
   uint8_t iv[16];
-  i2p::crypto::RandBytes(iv, 16); // random iv
+  i2p::crypto::RandBytes(iv, 16);  // random iv
   FillHeaderAndEncrypt(
       PAYLOAD_TYPE_RELAY_INTRO,
       buf,
@@ -874,7 +873,7 @@ void SSUSession::FillHeaderAndEncrypt(
     return;
   }
   SSUSessionPacket pkt(buf, len);
-  i2p::crypto::RandBytes(pkt.IV(), 16); // random iv
+  i2p::crypto::RandBytes(pkt.IV(), 16);  // random iv
   m_SessionKeyEncryption.SetIV(pkt.IV());
   pkt.PutFlag(payloadType << 4);  // MSB is 0
   pkt.PutTime(i2p::util::GetSecondsSinceEpoch());

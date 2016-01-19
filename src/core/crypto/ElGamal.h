@@ -38,21 +38,21 @@ namespace i2p {
 namespace crypto {
 
 class ElGamalEncryption_Pimpl;
-  
+
 class ElGamalEncryption {
  public:
-  ElGamalEncryption(const uint8_t* key);
+  ElGamalEncryption(
+      const uint8_t* key);
   ~ElGamalEncryption();
-  
+
   void Encrypt(
       const uint8_t* data,
       size_t len,
       uint8_t* encrypted,
-      bool zeroPadding = false) const ;
+      bool zeroPadding = false) const;
 
-private:
+ private:
   ElGamalEncryption_Pimpl* m_Impl;
-
 };
 
 bool ElGamalDecrypt(

@@ -62,9 +62,14 @@ bool Daemon_Singleton::IsService() const {
 
 // TODO(anonimal): find a better way to initialize
 bool Daemon_Singleton::Init() {
-  i2p::context.Init();
+  i2p::context.Init(i2p::util::filesystem::GetFullPath(i2p::ROUTER_KEYS),
+                    i2p::util::filesystem::GetFullPath(i2p::ROUTER_INFO));
   m_IsDaemon = i2p::util::config::varMap["daemon"].as<bool>();
   m_IsLogging = i2p::util::config::varMap["log"].as<bool>();
+  // stop logging if we specifiy no logging
+  if (!m_IsLogging) {
+    m_log->Stop();
+  }
   int port = i2p::util::config::varMap["port"].as<int>();
   i2p::context.UpdatePort(port);
   i2p::context.UpdateAddress(

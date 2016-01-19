@@ -65,7 +65,7 @@ class RouterContext : public i2p::garlic::GarlicDestination {
  public:
   RouterContext();
 
-  void Init();
+  void Init(const std::string & keyfile, const std::string & routerInfoFile);
 
   i2p::data::RouterInfo& GetRouterInfo() {
     return m_RouterInfo;
@@ -181,13 +181,15 @@ class RouterContext : public i2p::garlic::GarlicDestination {
       std::shared_ptr<I2NPMessage> msg);
 
  private:
-  void CreateNewRouter();
-  void NewRouterInfo();
+  void CreateNewRouter(const std::string& keyfile, const std::string& host, uint16_t port);
+  void NewRouterInfo(const std::string& host, uint16_t port);
   void UpdateRouterInfo();
-  bool Load();
-  void SaveKeys();
+  bool Load(const std::string& privateKeyfile, const std::string& routerInfoFile);
+  void SaveKeys(const std::string& privateKeyfile);
 
  private:
+  std::string m_RouterInfoFilePath;
+  std::string m_RouterKeysFilePath;
   i2p::data::RouterInfo m_RouterInfo;
   i2p::data::PrivateKeys m_Keys;
   uint64_t m_LastUpdateTime;

@@ -13,12 +13,20 @@ int kovri_set_tunnel_build_strategy(lua_State* L);
 int kovri_get_ri_by_hash(lua_State* L);
 // get a random RI
 int kovri_get_ri_random(lua_State* L);
+// sleep until router is done
+int kovri_wait(lua_State* L);
+// stop execution of kovri router immediately
+int kovri_stop(lua_State* L);
+
 
 luaL_Reg funcs[] = {
-  {"startRouter", kovri_start},
-  {"setBuildStrategy", kovri_set_tunnel_build_strategy},
-  {"getRouterByHash", kovri_get_ri_by_hash},
-  {"getRandomHash", kovri_get_ri_random},
+  {"Init", kovri_init},
+  {"Start", kovri_start},
+  {"SetBuildStrategy", kovri_set_tunnel_build_strategy},
+  {"GetRouterByHash", kovri_get_ri_by_hash},
+  {"GetRandomHash", kovri_get_ri_random},
+  {"Stop", kovri_stop},
+  {"Wait", kovri_wait},
   {0, 0}
 };
 

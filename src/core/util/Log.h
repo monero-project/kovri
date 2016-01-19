@@ -150,6 +150,10 @@ class Log {
       const std::string& name,
       const std::string& channel);
 
+  // turn off logging forever
+  void Stop();
+  // is logging silent right now?
+  bool Silent();
  private:
   std::shared_ptr<LogImpl> m_LogImpl;
   std::shared_ptr<Logger> m_DefaultLogger;

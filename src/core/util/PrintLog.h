@@ -133,8 +133,12 @@ class LogImpl {
   LogLevel CurrentLevel() {
     return m_LogLevel;
   }
-
+  void Stop() {
+    m_Silent = true;
+  }
+  bool Silent();
  private:
+  bool m_Silent;
   LogLevel m_LogLevel;
   std::ostream& m_Out;
 };

@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+lint=./contrib/tools/cpplint
+for f in $(find . | grep -E '\.(h|cpp)$') ; do $lint $f ; done

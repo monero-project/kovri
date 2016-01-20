@@ -35,6 +35,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <utility>
 
 #include "AddressBook.h"
 #include "Destination.h"
@@ -96,13 +97,11 @@ class ClientContext {
 
   AddressBook& GetAddressBook() { return m_AddressBook; }
 
-  /**
-     reload tunnels.cfg
-     removes tunnels not in new tunnels.cfg
-     adds tunnels that were previously not in tunnels.cfg
-   */
+  // reload tunnels.cfg
+  // removes tunnels not in new tunnels.cfg
+  //  adds tunnels that were previously not in tunnels.cfg
   void ReloadTunnels();
-  
+
  private:
   void ReadTunnels();
 
@@ -127,11 +126,13 @@ class ClientContext {
 
 
   // types for accessing client / server tunnel map entries
-  typedef std::pair<const int, std::unique_ptr<I2PClientTunnel> > ClientTunnelEntry;
-  typedef std::pair<const i2p::data::IdentHash, std::unique_ptr<I2PServerTunnel> > ServerTunnelEntry;
+  typedef std::pair<const int, std::unique_ptr<I2PClientTunnel> >
+    ClientTunnelEntry;
+  typedef std::pair<const i2p::data::IdentHash, std::unique_ptr<I2PServerTunnel> >
+    ServerTunnelEntry;
 
   boost::asio::io_service m_Service;
-  
+
   i2pcontrol::I2PControlService* m_I2PControlService;
 
  public:

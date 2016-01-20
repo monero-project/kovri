@@ -28,48 +28,20 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_CORE_CRYPTO_SIGNATUREBASE_H_
-#define SRC_CORE_CRYPTO_SIGNATUREBASE_H_
+#ifndef SRC_CORE_CRYPTO_CRYPTOPP_RAND_H_
+#define SRC_CORE_CRYPTO_CRYPTOPP_RAND_H_
+
+// CryptoPP specific PRNG header
 
 #include <cryptopp/osrng.h>
 
 namespace i2p {
 namespace crypto {
 
-class Verifier {
- public:
-  virtual ~Verifier() {}
-  virtual bool Verify(
-      const uint8_t* buf,
-      size_t len,
-      const uint8_t* signature) const = 0;
-  virtual size_t GetPublicKeyLen() const = 0;
-  virtual size_t GetSignatureLen() const = 0;
-  virtual size_t GetPrivateKeyLen() const = 0;
-};
-
-class Signer {
- public:
-  virtual ~Signer() {}
-  virtual void Sign(
-      const uint8_t* buf,
-      size_t len,
-      uint8_t* signature) const = 0;
-};
-
-class RawVerifier {
- public:
-  virtual ~RawVerifier() {}
-
-  virtual void Update(
-      const uint8_t* buf,
-      size_t len) = 0;
-
-  virtual bool Verify(
-      const uint8_t* signature) = 0;
-};
+typedef CryptoPP::RandomNumberGenerator PRNG;
+PRNG& GetPRNG();
 
 }  // namespace crypto
 }  // namespace i2p
 
-#endif  // SRC_CORE_CRYPTO_SIGNATUREBASE_H_
+#endif  // SRC_CORE_CRYPTO_CRYPTOPP_RAND_H_

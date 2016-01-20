@@ -30,6 +30,8 @@
 
 #include "TunnelConfig.h"
 
+#include <vector>
+
 #include "crypto/Rand.h"
 #include "I2NPProtocol.h"
 #include "RouterContext.h"
@@ -37,7 +39,7 @@
 
 namespace i2p {
 namespace tunnel {
-  
+
 TunnelHopConfig::TunnelHopConfig(
     std::shared_ptr<const i2p::data::RouterInfo> r) {
   i2p::crypto::RandBytes(layerKey, 32);

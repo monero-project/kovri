@@ -51,9 +51,18 @@ class EDDSA25519Verifier : public Verifier {
       size_t len,
       const uint8_t* signature) const;
 
-  size_t GetPublicKeyLen() const { return EDDSA25519_PUBLIC_KEY_LENGTH; }
-  size_t GetSignatureLen() const { return EDDSA25519_SIGNATURE_LENGTH; }
-  size_t GetPrivateKeyLen() const { return EDDSA25519_PRIVATE_KEY_LENGTH; }
+  size_t GetPublicKeyLen() const {
+    return EDDSA25519_PUBLIC_KEY_LENGTH;
+  }
+
+  size_t GetSignatureLen() const {
+    return EDDSA25519_SIGNATURE_LENGTH;
+  }
+
+  size_t GetPrivateKeyLen() const {
+    return EDDSA25519_PRIVATE_KEY_LENGTH;
+  }
+
  private:
   uint8_t m_PublicKey[EDDSA25519_PUBLIC_KEY_LENGTH];
 };

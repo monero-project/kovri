@@ -156,7 +156,7 @@ class I2PClientTunnel : public TCPIPAcceptor {
   void Start();
   void Stop();
   std::string GetName();
-  
+
  private:
   const i2p::data::IdentHash* GetIdentHash();
   std::string m_TunnelName;
@@ -181,54 +181,42 @@ class I2PServerTunnel : public I2PService {
   void SetAccessList(
       const std::set<i2p::data::IdentHash>& accessList);
 
-  /**
-     set access list given csv 
-   */
-  void SetAccessListString(const std::string & idents_str);
-  
+  // set access list given csv
+  void SetAccessListString(
+      const std::string& idents_str);
+
   std::string GetAddress() const {
     return m_Address;
   }
 
-  /**
-     update the streaming destination's port
-   */
-  void UpdateStreamingPort(int port) const {
-    if (port > 0 ) {
-      uint16_t localPort = port;
-      m_PortDestination->UpdateLocalPort(localPort);
-    } else {
-      throw std::logic_error("streaming port cannot be negative");
-    }
-  }
-  
-  /**
-     update the address of this server tunnel
-   */
-  void UpdateAddress(const std::string & addr);
-
+  // update the address of this server tunnel
+  void UpdateAddress(
+      const std::string& addr);
 
   int GetPort() const {
     return m_Port;
   }
 
-  /**
-     update the out port of this server tunnel
-   */
-  void UpdatePort(int port);
-  
+  // update the out port of this server tunnel
+  void UpdatePort(
+      int port);
+
+  // update the streaming destination's port
+  void UpdateStreamingPort(
+      int port) const;
+
   const boost::asio::ip::tcp::endpoint& GetEndpoint() const {
     return m_Endpoint;
   }
 
   std::string GetName();
-  
+
  private:
   void HandleResolve(
       const boost::system::error_code& ecode,
       boost::asio::ip::tcp::resolver::iterator it,
       std::shared_ptr<boost::asio::ip::tcp::resolver> resolver,
-      bool acceptAfter=true);
+      bool acceptAfter = true);
 
   void Accept();
 

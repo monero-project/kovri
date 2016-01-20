@@ -60,7 +60,6 @@
 #include <cryptopp/hmac.h>
 #include <cryptopp/zinflate.h>
 
-
 namespace i2p {
 namespace data {
 

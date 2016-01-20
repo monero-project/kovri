@@ -78,7 +78,7 @@ void ElGamalEncryption::Encrypt(
 
 ElGamalEncryption_Pimpl::ElGamalEncryption_Pimpl(
     const uint8_t* key) {
-  PRNG & rnd = GetPRNG();
+  PRNG rnd;
   CryptoPP::Integer y(key, 256),
     k(rnd, CryptoPP::Integer::One(), elgp-1);
   a = a_exp_b_mod_c(elgg, k, elgp);
@@ -133,7 +133,7 @@ void GenerateElGamalKeyPair(
   RandBytes(priv, 256);
   a_exp_b_mod_c(elgg, CryptoPP::Integer(priv, 256), elgp).Encode(pub, 256);
 #else
-  PRNG & rnd = GetPRNG();
+  PRNG rnd;
   CryptoPP::DH dh(elgp, elgg);
   dh.GenerateKeyPair(rnd, priv, pub);
 #endif

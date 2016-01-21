@@ -174,13 +174,13 @@ std::unique_ptr<Logger> Log::New(
           m_LogImpl->Out())));
 }
 
-  void Log::Stop() {
-    m_LogImpl->Stop();
-  }
+void Log::Stop() {
+  m_LogImpl->Stop();
+}
 
-  bool Log::Silent() {
-    return m_LogImpl->Silent();
-  }
+bool Log::Silent() {
+  return m_LogImpl->Silent();
+}
   
 }  // namespace log
 }  // namespace kovri

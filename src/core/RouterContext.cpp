@@ -57,7 +57,7 @@ const uint16_t DefaultMaxPort = 50000;
 RouterContext context;
 
 RouterContext::RouterContext()
-   :  m_LastUpdateTime(0),
+    : m_LastUpdateTime(0),
       m_AcceptsTunnels(true),
       m_IsFloodfill(false),
       m_StartupTime(0),

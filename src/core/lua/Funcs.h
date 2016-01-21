@@ -17,7 +17,8 @@ int kovri_get_ri_random(lua_State* L);
 int kovri_wait(lua_State* L);
 // stop execution of kovri router immediately
 int kovri_stop(lua_State* L);
-
+// sleep for n milliseconds
+int kovri_sleep(lua_State* L);
 
 luaL_Reg funcs[] = {
   {"Init", kovri_init},
@@ -27,6 +28,7 @@ luaL_Reg funcs[] = {
   {"GetRandomHash", kovri_get_ri_random},
   {"Stop", kovri_stop},
   {"Wait", kovri_wait},
+  {"Sleep", kovri_sleep},
   {0, 0}
 };
 

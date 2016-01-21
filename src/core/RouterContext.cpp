@@ -50,8 +50,8 @@
 namespace i2p {
 
 const std::string DefaultRouterAddress("0.0.0.0");
-const uint16_t DefaultMinPort = 1024;
-const uint16_t DefaultMaxPort = 50000;
+const uint16_t DefaultMinPort = 9111;
+const uint16_t DefaultMaxPort = 30777;
 
 
 RouterContext context;

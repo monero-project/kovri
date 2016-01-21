@@ -5,7 +5,7 @@
 
 namespace i2lua
 {
-  i2p::data::RouterInfo* FindRouterByHash(const std::string & hash);
+  const i2p::data::RouterInfo* FindRouterByHash(const std::string & hash);
 }
 
 #endif

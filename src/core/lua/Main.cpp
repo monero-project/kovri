@@ -4,6 +4,7 @@
 
 #include <boost/asio.hpp>
 
+#include <chrono>
 #include <future>
 #include <iostream>
 #include <string>
@@ -13,6 +14,8 @@
 #include "transport/Transports.h"
 #include "tunnel/Tunnel.h"
 #include "util/Log.h"
+
+#include "lua/NetDB.hpp"
 
 std::promise<void> complete;
 
@@ -83,8 +86,7 @@ int main(int argc, char * argv[]) {
 int kovri_init(lua_State* L) {
   int n = lua_gettop(L); // num of args
   if (n != 1) {
-    lua_pushliteral(L, "invalid number of arguments, expected 1");
-    return lua_error(L);
+    return luaL_error(L, "invalid number of arguments, expected 1 got %d", n);
   } else {
     std::string host("0.0.0.0");
     int port = 0;
@@ -156,10 +158,26 @@ int kovri_get_ri_random(lua_State* L) {
   return 1;
 }
 
-// TODO: implement
 int kovri_get_ri_by_hash(lua_State* L) {
-  (void) L;
-  return 0;
+  int n = lua_gettop(L);
+  if (n == 1) {
+    if( lua_isstring(L, 1) ) {
+      // valid arguments
+      const char * cstr = lua_tostring(L, 1);
+      std::string str(cstr);
+      const i2p::data::RouterInfo* ri = i2lua::FindRouterByHash(str);
+      if (ri) {
+        lua_pushlightuserdata(L, (void*)ri);
+      } else {
+        // does not exist
+        lua_pushnil(L);
+      }
+    }
+  } else {
+    return luaL_error(L, "invalid number of arguments: %d", n);
+  }
+
+  return 1;
 }
 
 int kovri_stop(lua_State* L) {
@@ -178,6 +196,20 @@ int kovri_stop(lua_State* L) {
 
 int kovri_wait(lua_State* L) {
   complete.get_future().wait();
+  lua_pushnil(L);
+  return 1;
+}
+
+int kovri_sleep(lua_State* L) {
+  int n = lua_gettop(L);
+  if ( n != 1 ) {
+    return luaL_error(L, "invalid number of arguments: %d", n);
+  }
+  if (!lua_isnumber(L, 1)) {
+    return luaL_argerror(L, 1, "not an integer");
+  }
+  n = lua_tointeger(L, 1);
+  std::this_thread::sleep_for(std::chrono::milliseconds(n));
   lua_pushnil(L);
   return 1;
 }

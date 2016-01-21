@@ -114,7 +114,8 @@ if(WITH_LIBRARY)
     set(LUA_NAME "i2lua")
     set(LUA_SRC
       "lua/Main.cpp"
-      )
+      "lua/NetDB.cpp"
+    )
     include_directories(${LUAJIT_INCLUDE_DIR})
     add_executable(${LUA_NAME} ${LUA_SRC})
     target_link_libraries(${LUA_NAME} ${LUAJIT_LIBRARIES} ${CORE_NAME})

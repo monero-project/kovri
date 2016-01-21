@@ -49,6 +49,11 @@
 
 namespace i2p {
 
+const std::string DefaultRouterAddress("0.0.0.0");
+const uint16_t DefaultMinPort = 1024;
+const uint16_t DefaultMaxPort = 50000;
+
+
 RouterContext context;
 
 RouterContext::RouterContext()
@@ -58,22 +63,28 @@ RouterContext::RouterContext()
       m_StartupTime(0),
       m_Status(eRouterStatusOK) {}
 
-  void RouterContext::Init(const std::string & routerKeysFilePath, const std::string & routerInfoFilePath) {
+void RouterContext::Init(const std::string & routerKeysFilePath, 
+    const std::string & routerInfoFilePath) {
   m_RouterInfoFilePath = routerInfoFilePath;
   m_RouterKeysFilePath = routerKeysFilePath;
   m_StartupTime = i2p::util::GetSecondsSinceEpoch();
-  if (!Load(routerKeysFilePath, routerInfoFilePath))
-    CreateNewRouter(routerKeysFilePath, "0.0.0.0", i2p::crypto::RandInRange<uint16_t>(1024, 60000));
+  if (!Load(routerKeysFilePath, routerInfoFilePath)) {
+    CreateNewRouter(
+      routerKeysFilePath, 
+      DefaultRouterAddress, 
+      i2p::crypto::RandInRange<uint16_t>(DefaultMinPort, DefaultMaxPort));
+  }
   UpdateRouterInfo();
 }
 
-void RouterContext::CreateNewRouter(const std::string& keyfile, const std::string& host, uint16_t port) {
+void RouterContext::CreateNewRouter(const std::string& keyfile, 
+    const std::string& host, uint16_t port) {
   m_Keys = i2p::data::CreateRandomKeys();
   SaveKeys(keyfile);
   NewRouterInfo(host, port);
 }
 
-  void RouterContext::NewRouterInfo(const std::string& host, uint16_t port) {
+void RouterContext::NewRouterInfo(const std::string& host, uint16_t port) {
   i2p::data::RouterInfo routerInfo;
   routerInfo.SetRouterIdentity(
       GetIdentity());
@@ -293,7 +304,8 @@ void RouterContext::UpdateStats() {
   }
 }
 
-bool RouterContext::Load(const std::string & privateKeyfile, const std::string & routerInfoFile) {
+bool RouterContext::Load(const std::string & privateKeyfile, 
+  const std::string & routerInfoFile) {
     std::ifstream fk(privateKeyfile.c_str(),
       std::ifstream::binary | std::ofstream::in);
   if (!fk.is_open())

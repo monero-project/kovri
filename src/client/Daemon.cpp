@@ -106,29 +106,29 @@ bool Daemon_Singleton::Start() {
     } else {
       StartLog("");  // write to stdout
     }
-    try {
-      LogPrint("Starting NetDB...");
-      if (i2p::data::netdb.Start()) {
-        LogPrint("NetDB started");
-      } else {
-        LogPrint("NetDB failed to start");
-        return false;
-      }
-      LogPrint("Starting transports...");
-      i2p::transport::transports.Start();
-      LogPrint("Transports started");
-
-      LogPrint("Starting tunnels...");
-      i2p::tunnel::tunnels.Start();
-      LogPrint("Tunnels started");
-
-      LogPrint("Starting client...");
-      i2p::client::context.Start();
-      LogPrint("Client started");
-    } catch (std::runtime_error& e) {
-      LogPrint(eLogError, e.what());
+  }
+  try {
+    LogPrint("Starting NetDB...");
+    if (i2p::data::netdb.Start()) {
+      LogPrint("NetDB started");
+    } else {
+      LogPrint("NetDB failed to start");
       return false;
     }
+    LogPrint("Starting transports...");
+    i2p::transport::transports.Start();
+    LogPrint("Transports started");
+    
+    LogPrint("Starting tunnels...");
+    i2p::tunnel::tunnels.Start();
+    LogPrint("Tunnels started");
+    
+    LogPrint("Starting client...");
+    i2p::client::context.Start();
+    LogPrint("Client started");
+  } catch (std::runtime_error& e) {
+    LogPrint(eLogError, e.what());
+    return false;
   }
   return true;
 }

@@ -58,19 +58,24 @@ void benchmark(
   std::chrono::nanoseconds sign_duration(0);
   std::chrono::nanoseconds verify_duration(0);
   for (std::size_t i = 0; i < count; ++i) {
-    i2p::crypto::RandBytes(message, 512);
-    TimePoint begin1 = std::chrono::high_resolution_clock::now();
-    signer.Sign(message, 512, output);
-    TimePoint end1 = std::chrono::high_resolution_clock::now();
-    sign_duration +=
-      std::chrono::duration_cast<std::chrono::nanoseconds>(end1 - begin1);
-    TimePoint begin2 = std::chrono::high_resolution_clock::now();
-    if( ! verifier.Verify(message, 512, output) ) {
-      badVerify ++;
+    try {
+      i2p::crypto::RandBytes(message, 512);
+      TimePoint begin1 = std::chrono::high_resolution_clock::now();
+      signer.Sign(message, 512, output);
+      TimePoint end1 = std::chrono::high_resolution_clock::now();
+      sign_duration +=
+        std::chrono::duration_cast<std::chrono::nanoseconds>(end1 - begin1);
+      TimePoint begin2 = std::chrono::high_resolution_clock::now();
+      if( ! verifier.Verify(message, 512, output) ) {
+        badVerify ++;
+      }
+      TimePoint end2 = std::chrono::high_resolution_clock::now();
+      verify_duration +=
+        std::chrono::duration_cast<std::chrono::nanoseconds>(end2 - begin2);
+    } catch ( CryptoPP::Exception & ex ) {
+      std::cout << "!!! " << ex.what() << std::endl;
+      break;
     }
-    TimePoint end2 = std::chrono::high_resolution_clock::now();
-    verify_duration +=
-      std::chrono::duration_cast<std::chrono::nanoseconds>(end2 - begin2);
   }
   std::cout << "Conducted " << count << " experiments." << std::endl;
   std::cout << "Bad Signatures: " << badVerify << std::endl;
@@ -85,7 +90,7 @@ void benchmark(
 
 int main() {
   // TODO(unassigned): don't use namespace using-directives
-  const size_t benchmark_count = 100;
+  const size_t benchmark_count = 1000;
   using namespace i2p::crypto;
   std::cout << "--------DSA---------" << std::endl;
   benchmark<DSAVerifier, DSASigner>(

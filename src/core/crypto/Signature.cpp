@@ -90,8 +90,8 @@ void DSASigner_Pimpl::Sign(
     const uint8_t* buf,
     size_t len,
     uint8_t* signature) const {
+  PRNG & r = prng;
   CryptoPP::DSA::Signer signer(m_PrivateKey);
-  PRNG r;
   signer.SignMessage(r, buf, len, signature);
 }
 

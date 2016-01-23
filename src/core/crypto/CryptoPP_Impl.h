@@ -132,8 +132,8 @@ class ECDSASigner : public Signer {
       uint8_t* signature) const {
     typename CryptoPP::ECDSA<CryptoPP::ECP, Hash>::Signer
       signer(m_PrivateKey);
-    PRNG rnd;
-    signer.SignMessage(rnd, buf, len, signature);
+    PRNG & r = prng;
+    signer.SignMessage(r, buf, len, signature);
   }
 
  private:
@@ -150,8 +150,8 @@ inline void CreateECDSARandomKeys(
     privateKey;
   typename CryptoPP::ECDSA<CryptoPP::ECP, Hash>::PublicKey
     publicKey;
-  PRNG rnd;
-  privateKey.Initialize(rnd, curve);
+  PRNG & r = prng;
+  privateKey.Initialize(r, curve);
   privateKey.MakePublicKey(publicKey);
   privateKey.GetPrivateExponent().Encode(signingPrivateKey, keyLen / 2);
   auto q = publicKey.GetPublicElement();

@@ -65,6 +65,7 @@ class DSASigner_Pimpl {
   DSASigner_Pimpl(
       const uint8_t* signingPrivateKey);
 
+  ~DSASigner_Pimpl();
   void Sign(
       const uint8_t* buf,
       size_t len,
@@ -72,6 +73,7 @@ class DSASigner_Pimpl {
 
  private:
   CryptoPP::DSA::PrivateKey m_PrivateKey;
+  uint8_t* m_PrivateKeyBuff;
 };
 
 template<typename Hash, size_t keyLen>
@@ -110,6 +112,8 @@ class ECDSAVerifier {
 template<typename Hash>
 class ECDSASigner : public Signer {
  public:
+
+  typedef typename CryptoPP::ECDSA<CryptoPP::ECP, Hash>::PrivateKey SignKey;
   template<typename Curve>
   ECDSASigner(
       Curve curve,
@@ -133,8 +137,7 @@ class ECDSASigner : public Signer {
   }
 
  private:
-  typename CryptoPP::ECDSA<CryptoPP::ECP, Hash>::PrivateKey
-    m_PrivateKey;
+  SignKey m_PrivateKey;
 };
 
 template<typename Hash, typename Curve>

@@ -1,7 +1,9 @@
 #include "lua/NetDB.hpp"
 #include "NetworkDatabase.h"
 
-namespace i2lua
+namespace i2p
+{
+namespace lua
 {
   const i2p::data::RouterInfo* FindRouterByHash(const std::string & hash) {
     i2p::data::IdentHash rh;
@@ -13,5 +15,5 @@ namespace i2lua
       return nullptr;
     }
   }
-
+}
 }

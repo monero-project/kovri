@@ -40,9 +40,8 @@ namespace crypto {
 void RandBytes(
     uint8_t* dataptr,
     size_t datalen) {
-  PRNG r;
-  r.GenerateBlock(dataptr, datalen);
+  prng.GenerateBlock(dataptr, datalen);
 }
- 
+
 }  // namespace crypto
 }  // namespace i2p

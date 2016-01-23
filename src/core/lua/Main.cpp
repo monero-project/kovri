@@ -84,6 +84,7 @@ int main(int argc, char * argv[]) {
 }
 
 int kovri_init(lua_State* L) {
+  // TODO(psi): specifiy netdb directory
   int n = lua_gettop(L); // num of args
   if (n != 1) {
     return luaL_error(L, "invalid number of arguments, expected 1 got %d", n);
@@ -100,7 +101,8 @@ int kovri_init(lua_State* L) {
       if ( port > 0 ) {
         char * err_msg = nullptr;
         try {
-          i2p::context.Init("router.keys", "router.info");
+          // TODO(psi): make configurable 
+          i2p::context.InitFrom("router.keys", "router.info");
           i2p::context.UpdatePort(port);
           i2p::context.UpdateAddress(boost::asio::ip::address::from_string(host));
           i2p::context.SetSupportsV6(v6);
@@ -165,7 +167,7 @@ int kovri_get_ri_by_hash(lua_State* L) {
       // valid arguments
       const char * cstr = lua_tostring(L, 1);
       std::string str(cstr);
-      const i2p::data::RouterInfo* ri = i2lua::FindRouterByHash(str);
+      const i2p::data::RouterInfo* ri = i2p::lua::FindRouterByHash(str);
       if (ri) {
         lua_pushlightuserdata(L, (void*)ri);
       } else {

@@ -63,7 +63,14 @@ RouterContext::RouterContext()
       m_StartupTime(0),
       m_Status(eRouterStatusOK) {}
 
-void RouterContext::Init(const std::string & routerKeysFilePath, 
+
+void RouterContext::Init() {
+  auto keysFile = i2p::util::filesystem::GetFullPath(ROUTER_KEYS);
+  auto riFile = i2p::util::filesystem::GetFullPath(ROUTER_INFO);
+  InitFrom(keysFile, riFile);
+}
+
+void RouterContext::InitFrom(const std::string & routerKeysFilePath, 
     const std::string & routerInfoFilePath) {
   m_RouterInfoFilePath = routerInfoFilePath;
   m_RouterKeysFilePath = routerKeysFilePath;

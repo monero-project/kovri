@@ -83,11 +83,11 @@ const uint8_t dsag_[128]= {
 
 const CryptoConstants& GetCryptoConstants() {
   static CryptoConstants cryptoConstants = {
-    {elgp_, 256},   // elgp
-    {2},      // elgg
-    {dsap_, 128},   // dsap
-    {dsaq_, 20},  // dsaq
-    {dsag_, 128}  // dsag
+    CryptoPP::Integer(elgp_, 256),   // elgp
+    CryptoPP::Integer(2),      // elgg
+    CryptoPP::Integer(dsap_, 128),   // dsap
+    CryptoPP::Integer(dsaq_, 20),  // dsaq
+    CryptoPP::Integer(dsag_, 128)  // dsag
   };
   return cryptoConstants;
 }

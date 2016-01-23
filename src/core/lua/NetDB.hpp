@@ -3,9 +3,12 @@
 #include <string>
 #include "RouterInfo.h"
 
-namespace i2lua
+namespace i2p
+{
+namespace lua
 {
   const i2p::data::RouterInfo* FindRouterByHash(const std::string & hash);
+}
 }
 
 #endif

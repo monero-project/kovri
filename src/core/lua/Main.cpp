@@ -39,7 +39,7 @@ int main(int argc, char * argv[]) {
     glog->Stop();
     lua_State* l = luaL_newstate();
     luaL_openlibs(l);
-    luaL_register(l, "i2lua", funcs);
+    luaL_register(l, "i2lua", i2p::lua::funcs);
     int err = luaL_loadfile(l, argv[1]);
     if (err == LUA_ERRSYNTAX) {
       std::cout << "invalid syntax in " << argv[1];
@@ -83,7 +83,7 @@ int main(int argc, char * argv[]) {
   }
 }
 
-int kovri_init(lua_State* L) {
+int i2p::lua::Init(lua_State* L) {
   // TODO(psi): specifiy netdb directory
   int n = lua_gettop(L); // num of args
   if (n != 1) {
@@ -123,7 +123,7 @@ int kovri_init(lua_State* L) {
   return 1;
 }
   
-int kovri_start(lua_State* L) {
+int i2p::lua::Start(lua_State* L) {
   char * err = nullptr;
   try {
     if( i2p::data::netdb.Start() ) {
@@ -143,13 +143,13 @@ int kovri_start(lua_State* L) {
 }
 
 //TODO: implement
-int kovri_set_tunnel_build_strategy(lua_State* L) {
+int i2p::lua::SetTunnelBuildStrategy(lua_State* L) {
   (void) L;
   return 0;
 }
 
 
-int kovri_get_ri_random(lua_State* L) {
+int i2p::lua::GetRandomRouterInfo(lua_State* L) {
   auto ptr = i2p::data::netdb.GetRandomRouter();
   if (ptr) {
     const void * vptr = ptr.get();
@@ -160,7 +160,7 @@ int kovri_get_ri_random(lua_State* L) {
   return 1;
 }
 
-int kovri_get_ri_by_hash(lua_State* L) {
+int i2p::lua::GetRouterInfoByHash(lua_State* L) {
   int n = lua_gettop(L);
   if (n == 1) {
     if( lua_isstring(L, 1) ) {
@@ -182,7 +182,7 @@ int kovri_get_ri_by_hash(lua_State* L) {
   return 1;
 }
 
-int kovri_stop(lua_State* L) {
+int i2p::lua::Stop(lua_State* L) {
   char * msg = nullptr;
   try {
     complete.set_value();
@@ -196,13 +196,13 @@ int kovri_stop(lua_State* L) {
   return 1;
 }
 
-int kovri_wait(lua_State* L) {
+int i2p::lua::Wait(lua_State* L) {
   complete.get_future().wait();
   lua_pushnil(L);
   return 1;
 }
 
-int kovri_sleep(lua_State* L) {
+int i2p::lua::Sleep(lua_State* L) {
   int n = lua_gettop(L);
   if ( n != 1 ) {
     return luaL_error(L, "invalid number of arguments: %d", n);

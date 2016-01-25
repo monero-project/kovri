@@ -99,8 +99,11 @@ void CreateDSARandomKeys(
     uint8_t* signingPrivateKey,
     uint8_t* signingPublicKey) {
   uint8_t keybuff[DSA_PRIVATE_KEY_LENGTH];
-  i2p::crypto::RandBytes(keybuff, DSA_PRIVATE_KEY_LENGTH);
-  CryptoPP::Integer dsax(keybuff, DSA_PRIVATE_KEY_LENGTH);
+  CryptoPP::Integer dsax;
+  do {
+    i2p::crypto::RandBytes(keybuff, DSA_PRIVATE_KEY_LENGTH);
+    dsax = CryptoPP::Integer(keybuff, DSA_PRIVATE_KEY_LENGTH);
+  } while( dsax.IsZero() || dsax >= dsaq );
   CryptoPP::DSA::PrivateKey privateKey;
   CryptoPP::DSA::PublicKey publicKey;
   privateKey.Initialize(dsap, dsaq, dsag, dsax);

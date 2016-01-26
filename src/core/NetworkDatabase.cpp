@@ -370,6 +370,19 @@ void NetDb::Load() {
   LogPrint(m_Floodfills.size(), " floodfills loaded");
 }
 
+std::shared_ptr<const RouterInfo> NetDb::GetRouterByHash(IdentHash & ih) const {
+  std::shared_ptr<const RouterInfo> ri = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(m_RouterInfosMutex);
+    auto itr = m_RouterInfos.find(ih);
+    if (itr != m_RouterInfos.end()) {
+      // exists
+      ri = itr->second;
+    }
+  }
+  return ri;
+}
+
 void NetDb::SaveUpdated() {
   auto GetFilePath = [](
       const boost::filesystem::path& directory,

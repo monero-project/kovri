@@ -29,7 +29,7 @@
  */
 
 #include "Signature.h"
-
+#include "CryptoConst.h"
 #include "CryptoPP_Impl.h"
 #include "Rand.h"
 
@@ -84,21 +84,26 @@ DSASigner_Pimpl::DSASigner_Pimpl(
           DSA_PRIVATE_KEY_LENGTH));
 }
 
+DSASigner_Pimpl::~DSASigner_Pimpl() {}
+
 void DSASigner_Pimpl::Sign(
     const uint8_t* buf,
     size_t len,
     uint8_t* signature) const {
-  i2p::crypto::PRNG& rnd = i2p::crypto::GetPRNG();
+  PRNG & r = prng;
   CryptoPP::DSA::Signer signer(m_PrivateKey);
-  signer.SignMessage(rnd, buf, len, signature);
+  signer.SignMessage(r, buf, len, signature);
 }
 
 void CreateDSARandomKeys(
     uint8_t* signingPrivateKey,
     uint8_t* signingPublicKey) {
   uint8_t keybuff[DSA_PRIVATE_KEY_LENGTH];
-  i2p::crypto::RandBytes(keybuff, DSA_PRIVATE_KEY_LENGTH);
-  CryptoPP::Integer dsax(keybuff, DSA_PRIVATE_KEY_LENGTH);
+  CryptoPP::Integer dsax;
+  do {
+    i2p::crypto::RandBytes(keybuff, DSA_PRIVATE_KEY_LENGTH);
+    dsax = CryptoPP::Integer(keybuff, DSA_PRIVATE_KEY_LENGTH);
+  } while( dsax.IsZero() || dsax >= dsaq );
   CryptoPP::DSA::PrivateKey privateKey;
   CryptoPP::DSA::PublicKey publicKey;
   privateKey.Initialize(dsap, dsaq, dsag, dsax);
@@ -268,9 +273,8 @@ void CreateRSARandomKeys(
     uint8_t* signingPrivateKey,
     uint8_t* signingPublicKey) {
   CryptoPP::RSA::PrivateKey privateKey;
-  PRNG & rnd = GetPRNG();
   privateKey.Initialize(
-      rnd,
+      prng,
       publicKeyLen * 8,
       rsae);
   privateKey.GetModulus().Encode(

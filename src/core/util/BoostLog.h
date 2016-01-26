@@ -169,8 +169,10 @@ class LogImpl {
           &std::clog) {}
 
   void Flush();
-
+  void Stop();
+  bool IsSilent();
  private:
+  bool m_Silent;
   backend_ptr m_LogBackend;
   core_ptr m_LogCore;
   static void Format(

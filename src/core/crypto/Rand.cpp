@@ -31,23 +31,16 @@
 #include "Rand.h"
 
 #include "CryptoPP_Rand.h"
-#include <cryptopp/osrng.h>
 
 // implementation of i2p::crypto::Rand* functions
 
 namespace i2p {
 namespace crypto {
 
-static CryptoPP::AutoSeededRandomPool rnd;
-
-PRNG & GetPRNG() {
-  return rnd;
-}
-
 void RandBytes(
-    void* dataptr,
+    uint8_t* dataptr,
     size_t datalen) {
-  rnd.GenerateBlock((uint8_t *)dataptr, datalen);
+  prng.GenerateBlock(dataptr, datalen);
 }
 
 }  // namespace crypto

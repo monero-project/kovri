@@ -14,6 +14,7 @@ option(WITH_OPTIMIZE   "Optimization flags" OFF)
 option(WITH_STATIC     "Static build" OFF)
 option(WITH_TESTS      "Build unit tests" OFF)
 option(WITH_UPNP       "Include support for UPnP client" OFF)
+option(WITH_LUA        "Build lua interpreter" OFF)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/build/cmake/")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -203,6 +204,7 @@ message(STATUS "  OPTIMIZATION     : ${WITH_OPTIMIZE}")
 message(STATUS "  STATIC BUILD     : ${WITH_STATIC}")
 message(STATUS "  TESTS            : ${WITH_TESTS}")
 message(STATUS "  UPnP             : ${WITH_UPNP}")
+message(STATUS "  Lua Interpreter  : ${WITH_LUA}")
 message(STATUS "---------------------------------------")
 
 # Handle paths nicely

@@ -204,7 +204,7 @@ LogStreamImpl::int_type LogStreamImpl::overflow(
 }
 
 int LogStreamImpl::sync() {
-  int ret;
+  int ret = 0;
   ret = m_Str->pubsync();
   Flush();
   m_Access.unlock();
@@ -224,6 +224,10 @@ LogStreamImpl::~LogStreamImpl() {
   
 // not thread safe
 void LogStreamImpl::Flush() {
+  if (g_Log->Silent()) {
+    // don't log if we are silent
+    return;
+  }
   BOOST_LOG_SEV(m_Log, m_Level) << m_Str;
   delete m_Str;
   m_Str = new std::stringbuf;
@@ -285,6 +289,14 @@ void LogImpl::Flush() {
   g_LogSink->flush();
 }
 
+void LogImpl::Stop() {
+  m_Silent = true;
+}
+
+bool LogImpl::IsSilent() {
+  return m_Silent;
+}
+  
 std::shared_ptr<Log> Log::Get() {
   // make default logger if we don't have a logger
   if (g_Log == nullptr)
@@ -306,5 +318,13 @@ std::unique_ptr<Logger> Log::New(
           channel)));
 }
 
+void Log::Stop() {
+  m_LogImpl->Stop();
+}
+
+bool Log::Silent() {
+  return m_LogImpl->IsSilent();
+}
+  
 }  // namespace log
 }  // namespace kovri

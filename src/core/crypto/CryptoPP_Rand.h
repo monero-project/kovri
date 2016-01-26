@@ -38,8 +38,10 @@
 namespace i2p {
 namespace crypto {
 
-typedef CryptoPP::RandomNumberGenerator PRNG;
-PRNG& GetPRNG();
+typedef CryptoPP::AutoSeededRandomPool PRNG;
+
+
+static PRNG prng;
 
 }  // namespace crypto
 }  // namespace i2p

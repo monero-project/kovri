@@ -64,86 +64,195 @@ enum RouterStatus {
 class RouterContext : public i2p::garlic::GarlicDestination {
  public:
   RouterContext();
-
+  /**
+     Initialize with default private key and rotuer info file paths
+   */
   void Init();
+  /**
+     Initialize from explicitly provided private keys and router info
+     file paths
+   */
+  void InitFrom(const std::string & keyfilePath, 
+                const std::string & routerInfoFilePath);
 
+  /**
+     @return This RouterContext's RouterInfo
+   */
   i2p::data::RouterInfo& GetRouterInfo() {
     return m_RouterInfo;
   }
 
+  /**
+     @return This RouterContext's RouterInfo wrapped in a smart pointer
+   */
   std::shared_ptr<const i2p::data::RouterInfo> GetSharedRouterInfo() const  {
     return std::shared_ptr<const i2p::data::RouterInfo>(
         &m_RouterInfo,
         [](const i2p::data::RouterInfo *) {});
   }
 
+  /**
+     @return How long this RouterContext has been online in seconds since epoch 
+   */
   uint32_t GetUptime() const;
 
+  /**
+     @return Time that this RouterContext started in seconds since epoch
+   */
   uint32_t GetStartupTime() const {
     return m_StartupTime;
   }
 
+  /**
+     @return Time this RouterContext last updated its RouterInfo
+   */
   uint64_t GetLastUpdateTime() const {
     return m_LastUpdateTime;
   }
 
+  /**
+     @return eRouterStatusOk if the RouterContext is fully port forwarded, 
+       eRouterStatusTesting if the RouterContext is testing connectivity
+       eRouterStatusFirewalled if the RouterContext detects being firewalled
+   */
   RouterStatus GetStatus() const {
     return m_Status;
   }
 
+  /**
+     Set RouterContext's Status
+     @see GetStatus
+     @param status the new status this RouterContext will have
+   */
   void SetStatus(
       RouterStatus status) {
     m_Status = status;
   }
 
-  void UpdatePort(int port);  // called from Daemon
+  /**
+     Called from Daemon.
+     Update this RouterContext's Port.
+     Rebuilds RouterInfo
+     @param port port number
+  */
+  void UpdatePort(int port); 
 
+  /**
+     Called From SSU or Daemon.
+     Update Our IP Address, external IP Address if behind NAT.
+     Rebuilds RouterInfo
+     @param host the ip address
+   */
   void UpdateAddress(
-      const boost::asio::ip::address& host);  // called from SSU or Daemon
+      const boost::asio::ip::address& host);  
 
+  /**
+     Add an SSU introducer to our RouterInfo. 
+     Rebuild RouterInfo.
+     @param routerInfo the RouterInfo to use in the Introducer
+     @param tag 
+   */
   bool AddIntroducer(
       const i2p::data::RouterInfo& routerInfo,
       uint32_t tag);
 
+  /**
+     Remove and SSU introducer given its endpoint.
+     Rebuilds RouterInfo.
+     @param e the SSU introducer's endpoint
+   */
   void RemoveIntroducer(
       const boost::asio::ip::udp::endpoint& e);
 
+  /**
+     @return true if other routers cannot reach us otherwise false
+   */
   bool IsUnreachable() const;
 
+  /**
+     Set that other routers cannot reach us
+   */
   void SetUnreachable();
 
+  /**
+     Set that outer routers can reach us
+   */
   void SetReachable();
 
+  /**
+     @return true if we are a floodfill router otherwise false
+   */
   bool IsFloodfill() const {
     return m_IsFloodfill;
   }
 
+  /**
+     Set if we are a floodfill router, rebuild RouterInfo.
+     @param floodfill true if we want to become floodfill, false if we don't
+   */
   void SetFloodfill(
       bool floodfill);
 
+  /**
+     Mark ourselves as having high bandwidth.
+     Changes caps flags.
+     Rebuilds RouterInfo.
+   */
   void SetHighBandwidth();
 
+
+  /**
+     Mark ourselves as having low (aka NOT high) Bandwidth.
+     Changes Capacity Flags.
+     Rebuilds RouterInfo.
+   */
   void SetLowBandwidth();
 
+  /** 
+      @return true if we are going to accept tunnels right now.
+   */
   bool AcceptsTunnels() const {
     return m_AcceptsTunnels;
   }
-
+  
+  /**
+     Set explicitly if we want to accept tunnels right now.
+     @param acceptTunnels true if we want to accept tunnels otherwise false
+   */
   void SetAcceptsTunnels(
       bool acceptsTunnels) {
     m_AcceptsTunnels = acceptsTunnels;
   }
 
+  /**
+     @return true if we support IPv6 connectivity otherwise false
+   */
   bool SupportsV6() const {
     return m_RouterInfo.IsV6();
   }
 
+  /**
+     Set if we support IPv6 connectivity.
+     Rebuilds RouterInfo.
+     @param supportsV6 true if we support IPv6, false if we don't
+   */
   void SetSupportsV6(
       bool supportsV6);
 
+  /**
+     Called From NTCPSession.
+     Update our NTCP IPv6 address.
+     Rebuilds RouterInfo.
+     @param host Our reachable IPv6 address for NTCP
+   */
   void UpdateNTCPV6Address(
-      const boost::asio::ip::address& host);  // called from NTCP session
+      const boost::asio::ip::address& host);  
 
+
+  /**
+     Update Stats in Router Info when floodfill.
+     Rebuilds RouterInfo.
+   */
   void UpdateStats();
 
   // implements LocalDestination
@@ -151,10 +260,16 @@ class RouterContext : public i2p::garlic::GarlicDestination {
     return m_Keys;
   }
 
+  /**
+     @return Pointer to RouterContext's private encryption key
+   */
   const uint8_t* GetEncryptionPrivateKey() const {
     return m_Keys.GetPrivateKey();
   }
 
+  /**
+     @return Pointer to RouterContext's public encryption key
+   */
   const uint8_t* GetEncryptionPublicKey() const {
     return GetIdentity().GetStandardIdentity().publicKey;
   }
@@ -166,8 +281,17 @@ class RouterContext : public i2p::garlic::GarlicDestination {
     return nullptr;
   }
 
+  /**
+     @return TunnelPool for exploritory tunnels
+   */
   std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool() const;
 
+  /**
+     Process and I2NPMessage
+     @param buf buffer containing I2NP Message
+     @param len size of buffer containing I2NP Message
+     @param from Which inbound tunnel this I2NP Message came from
+   */
   void HandleI2NPMessage(
       const uint8_t* buf,
       size_t len,
@@ -181,13 +305,17 @@ class RouterContext : public i2p::garlic::GarlicDestination {
       std::shared_ptr<I2NPMessage> msg);
 
  private:
-  void CreateNewRouter();
-  void NewRouterInfo();
+  void CreateNewRouter(const std::string& keyfile, 
+       const std::string& host, uint16_t port);
+  void NewRouterInfo(const std::string& host, uint16_t port);
   void UpdateRouterInfo();
-  bool Load();
-  void SaveKeys();
+  bool Load(const std::string& privateKeyfile, 
+       const std::string& routerInfoFile);
+  void SaveKeys(const std::string& privateKeyfile);
 
  private:
+  std::string m_RouterInfoFilePath;
+  std::string m_RouterKeysFilePath;
   i2p::data::RouterInfo m_RouterInfo;
   i2p::data::PrivateKeys m_Keys;
   uint64_t m_LastUpdateTime;

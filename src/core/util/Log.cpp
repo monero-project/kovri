@@ -216,6 +216,7 @@ void Logger::Flush() {
 LogImpl::LogImpl(
     LogLevel minlev,
     std::ostream* out) {
+  m_Silent = false;
   m_LogCore = boost::log::core::get();
   m_LogBackend = boost::make_shared<backend_t>();
   m_LogBackend->add_stream(

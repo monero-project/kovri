@@ -56,17 +56,22 @@ void benchmark(
   std::chrono::nanoseconds sign_duration(0);
   std::chrono::nanoseconds verify_duration(0);
   for (std::size_t i = 0; i < count; ++i) {
-    i2p::crypto::RandBytes(message, 512);
-    TimePoint begin1 = std::chrono::high_resolution_clock::now();
-    signer.Sign(message, 512, output);
-    TimePoint end1 = std::chrono::high_resolution_clock::now();
-    sign_duration +=
-      std::chrono::duration_cast<std::chrono::nanoseconds>(end1 - begin1);
-    TimePoint begin2 = std::chrono::high_resolution_clock::now();
-    verifier.Verify(message, 512, output);
-    TimePoint end2 = std::chrono::high_resolution_clock::now();
-    verify_duration +=
-      std::chrono::duration_cast<std::chrono::nanoseconds>(end2 - begin2);
+    try {
+      i2p::crypto::RandBytes(message, 512);
+      TimePoint begin1 = std::chrono::high_resolution_clock::now();
+      signer.Sign(message, 512, output);
+      TimePoint end1 = std::chrono::high_resolution_clock::now();
+      sign_duration +=
+        std::chrono::duration_cast<std::chrono::nanoseconds>(end1 - begin1);
+      TimePoint begin2 = std::chrono::high_resolution_clock::now();
+      verifier.Verify(message, 512, output);
+      TimePoint end2 = std::chrono::high_resolution_clock::now();
+      verify_duration +=
+        std::chrono::duration_cast<std::chrono::nanoseconds>(end2 - begin2);
+    } catch (CryptoPP::Exception& ex) {
+      std::cout << "!!! " << ex.what() << std::endl;
+      break;
+    }
   }
   std::cout << "Conducted " << count << " experiments." << std::endl;
   std::cout << "Total sign time: " <<
@@ -76,7 +81,6 @@ void benchmark(
     std::chrono::duration_cast<std::chrono::milliseconds>(
         verify_duration).count() << std::endl;
 }
-
 
 int main() {
   // TODO(unassigned): don't use namespace using-directives
@@ -90,21 +94,21 @@ int main() {
   std::cout << "-----ECDSAP256------" << std::endl;
   benchmark<ECDSAP256Verifier, ECDSAP256Signer>(
     benchmark_count, ECDSAP256_KEY_LENGTH,
-    ECDSAP256_KEY_LENGTH, 64,
+    ECDSAP256_KEY_LENGTH / 2, ECDSAP256_KEY_LENGTH,
     CreateECDSAP256RandomKeys);
   std::cout << "-----ECDSAP384------" << std::endl;
   benchmark<ECDSAP384Verifier, ECDSAP384Signer>(
     benchmark_count, ECDSAP384_KEY_LENGTH,
-    ECDSAP384_KEY_LENGTH, 64,
+    ECDSAP384_KEY_LENGTH / 2, ECDSAP384_KEY_LENGTH,
     CreateECDSAP384RandomKeys);
   std::cout << "-----ECDSAP521------" << std::endl;
   benchmark<ECDSAP521Verifier, ECDSAP521Signer>(
     benchmark_count, ECDSAP521_KEY_LENGTH,
-    ECDSAP521_KEY_LENGTH, 64,
+    ECDSAP521_KEY_LENGTH / 2, ECDSAP521_KEY_LENGTH,
     CreateECDSAP521RandomKeys);
   std::cout << "-----EDDSA25519-----" << std::endl;
   benchmark<EDDSA25519Verifier, EDDSA25519Signer>(
     benchmark_count, EDDSA25519_PUBLIC_KEY_LENGTH,
-    EDDSA25519_PRIVATE_KEY_LENGTH, 64,
+    EDDSA25519_PRIVATE_KEY_LENGTH, EDDSA25519_SIGNATURE_LENGTH,
     CreateEDDSARandomKeys);
 }

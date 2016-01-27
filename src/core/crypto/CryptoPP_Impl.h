@@ -64,6 +64,7 @@ class DSASigner_Pimpl {
  public:
   DSASigner_Pimpl(
       const uint8_t* signingPrivateKey);
+  ~DSASigner_Pimpl();
 
   void Sign(
       const uint8_t* buf,
@@ -72,6 +73,7 @@ class DSASigner_Pimpl {
 
  private:
   CryptoPP::DSA::PrivateKey m_PrivateKey;
+  uint8_t* m_PrivateKeyBuff;
 };
 
 template<typename Hash, size_t keyLen>
@@ -110,6 +112,7 @@ class ECDSAVerifier {
 template<typename Hash>
 class ECDSASigner : public Signer {
  public:
+  typedef typename CryptoPP::ECDSA<CryptoPP::ECP, Hash>::PrivateKey SignKey;
   template<typename Curve>
   ECDSASigner(
       Curve curve,
@@ -128,13 +131,12 @@ class ECDSASigner : public Signer {
       uint8_t* signature) const {
     typename CryptoPP::ECDSA<CryptoPP::ECP, Hash>::Signer
       signer(m_PrivateKey);
-    PRNG rnd;
-    signer.SignMessage(rnd, buf, len, signature);
+    PRNG& r = prng;
+    signer.SignMessage(r, buf, len, signature);
   }
 
  private:
-  typename CryptoPP::ECDSA<CryptoPP::ECP, Hash>::PrivateKey
-    m_PrivateKey;
+  SignKey m_PrivateKey;
 };
 
 template<typename Hash, typename Curve>
@@ -147,8 +149,8 @@ inline void CreateECDSARandomKeys(
     privateKey;
   typename CryptoPP::ECDSA<CryptoPP::ECP, Hash>::PublicKey
     publicKey;
-  PRNG rnd;
-  privateKey.Initialize(rnd, curve);
+  PRNG& r = prng;
+  privateKey.Initialize(r, curve);
   privateKey.MakePublicKey(publicKey);
   privateKey.GetPrivateExponent().Encode(signingPrivateKey, keyLen / 2);
   auto q = publicKey.GetPublicElement();

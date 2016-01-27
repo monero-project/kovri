@@ -88,7 +88,7 @@ void DSASigner_Pimpl::Sign(
     const uint8_t* buf,
     size_t len,
     uint8_t* signature) const {
-  i2p::crypto::PRNG& rnd = i2p::crypto::GetPRNG();
+  PRNG rnd;
   CryptoPP::DSA::Signer signer(m_PrivateKey);
   signer.SignMessage(rnd, buf, len, signature);
 }
@@ -268,7 +268,7 @@ void CreateRSARandomKeys(
     uint8_t* signingPrivateKey,
     uint8_t* signingPublicKey) {
   CryptoPP::RSA::PrivateKey privateKey;
-  PRNG & rnd = GetPRNG();
+  PRNG rnd;
   privateKey.Initialize(
       rnd,
       publicKeyLen * 8,

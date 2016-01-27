@@ -31,15 +31,12 @@
 #include <cryptopp/osrng.h>
 
 #include <chrono>
-#include <functional>
 #include <iostream>
 
 #include "crypto/Rand.h"
 #include "crypto/Signature.h"
 
-typedef std::function<void(
-    uint8_t*,
-    uint8_t*)> KeyGenerator;
+typedef void (*KeyGenerator)(uint8_t*,uint8_t*) ;
 
 template<class Verifier, class Signer>
 void benchmark(
@@ -89,25 +86,25 @@ int main() {
   benchmark<DSAVerifier, DSASigner>(
     benchmark_count, DSA_PUBLIC_KEY_LENGTH,
     DSA_PRIVATE_KEY_LENGTH, DSA_SIGNATURE_LENGTH,
-    &CreateDSARandomKeys);
+    CreateDSARandomKeys);
   std::cout << "-----ECDSAP256------" << std::endl;
   benchmark<ECDSAP256Verifier, ECDSAP256Signer>(
     benchmark_count, ECDSAP256_KEY_LENGTH,
     ECDSAP256_KEY_LENGTH, 64,
-    &CreateECDSAP256RandomKeys);
+    CreateECDSAP256RandomKeys);
   std::cout << "-----ECDSAP384------" << std::endl;
   benchmark<ECDSAP384Verifier, ECDSAP384Signer>(
     benchmark_count, ECDSAP384_KEY_LENGTH,
     ECDSAP384_KEY_LENGTH, 64,
-    &CreateECDSAP384RandomKeys);
+    CreateECDSAP384RandomKeys);
   std::cout << "-----ECDSAP521------" << std::endl;
   benchmark<ECDSAP521Verifier, ECDSAP521Signer>(
     benchmark_count, ECDSAP521_KEY_LENGTH,
     ECDSAP521_KEY_LENGTH, 64,
-    &CreateECDSAP521RandomKeys);
+    CreateECDSAP521RandomKeys);
   std::cout << "-----EDDSA25519-----" << std::endl;
   benchmark<EDDSA25519Verifier, EDDSA25519Signer>(
     benchmark_count, EDDSA25519_PUBLIC_KEY_LENGTH,
     EDDSA25519_PRIVATE_KEY_LENGTH, 64,
-    &CreateEDDSARandomKeys);
+    CreateEDDSARandomKeys);
 }

@@ -59,7 +59,7 @@ class Daemon_Singleton {
   Daemon_Singleton();
   virtual ~Daemon_Singleton();
   bool IsService() const;
-  std::shared_ptr<kovri::log::Log> m_log;
+  std::shared_ptr<i2p::util::log::Log> m_log;
 };
 
 #ifdef _WIN32

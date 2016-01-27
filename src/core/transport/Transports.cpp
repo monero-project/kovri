@@ -36,10 +36,12 @@
 #include <string>
 #include <vector>
 
+
 #include "I2NPProtocol.h"
 #include "NetworkDatabase.h"
 #include "RouterContext.h"
 #include "crypto/CryptoConst.h"
+#include "crypto/Rand.h"
 #include "util/Log.h"
 
 // TODO(anonimal): don't use using-directive
@@ -552,14 +554,11 @@ void Transports::HandlePeerCleanupTimer(
 std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRandomPeer() const {
   if (m_Peers.empty())  // ensure m.Peers.size() >= 1
     return nullptr;
-  CryptoPP::RandomNumberGenerator& rnd =
-    i2p::context.GetRandomNumberGenerator();
+  size_t s = m_Peers.size();
   auto it = m_Peers.begin();
   std::advance(
       it,
-      rnd.GenerateWord32(
-        0,
-        m_Peers.size() - 1));
+      i2p::crypto::RandInRange<size_t>(0, s - 1));
 
   return it->second.router;
 }

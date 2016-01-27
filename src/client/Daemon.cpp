@@ -49,7 +49,7 @@ namespace util {
 
 Daemon_Singleton::Daemon_Singleton()
     : m_IsRunning(1),
-      m_log(kovri::log::Log::Get()) {}
+      m_log(i2p::util::log::Log::Get()) {}
 Daemon_Singleton::~Daemon_Singleton() {}
 
 bool Daemon_Singleton::IsService() const {
@@ -101,29 +101,31 @@ bool Daemon_Singleton::Start() {
     } else {
       StartLog("");  // write to stdout
     }
-    try {
-      LogPrint("Starting NetDB...");
-      if (i2p::data::netdb.Start()) {
-        LogPrint("NetDB started");
-      } else {
-        LogPrint("NetDB failed to start");
-        return false;
-      }
-      LogPrint("Starting transports...");
-      i2p::transport::transports.Start();
-      LogPrint("Transports started");
-
-      LogPrint("Starting tunnels...");
-      i2p::tunnel::tunnels.Start();
-      LogPrint("Tunnels started");
-
-      LogPrint("Starting client...");
-      i2p::client::context.Start();
-      LogPrint("Client started");
-    } catch (std::runtime_error& e) {
-      LogPrint(eLogError, e.what());
+  } else {
+    m_log->Stop();
+  }
+  try {
+    LogPrint("Starting NetDB...");
+    if (i2p::data::netdb.Start()) {
+      LogPrint("NetDB started");
+    } else {
+      LogPrint("NetDB failed to start");
       return false;
     }
+    LogPrint("Starting transports...");
+    i2p::transport::transports.Start();
+    LogPrint("Transports started");
+
+    LogPrint("Starting tunnels...");
+    i2p::tunnel::tunnels.Start();
+    LogPrint("Tunnels started");
+
+    LogPrint("Starting client...");
+    i2p::client::context.Start();
+    LogPrint("Client started");
+  } catch (std::runtime_error& e) {
+    LogPrint(eLogError, e.what());
+    return false;
   }
   return true;
 }
@@ -148,6 +150,14 @@ bool Daemon_Singleton::Stop() {
   LogPrint("Goodbye!");
   StopLog();
   return true;
+}
+
+void Daemon_Singleton::Reload() {
+  // TODO(psi): do we want to add locking?
+  LogPrint("Reloading configuration");
+  // reload tunnels.cfg
+  i2p::client::context.ReloadTunnels();
+  // TODO(psi): reload kovri.conf
 }
 
 }  // namespace util

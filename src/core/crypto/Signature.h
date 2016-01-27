@@ -33,6 +33,7 @@
 
 #include <inttypes.h>
 
+#include "CryptoConst.h"
 #include "EdDSA25519.h"
 #include "SignatureBase.h"
 
@@ -65,7 +66,7 @@ class DSAVerifier : public Verifier {
   }
 
   size_t GetPrivateKeyLen() const {
-    return DSA_PRIVATE_KEY_LENGTH;
+    return DSA_SIGNATURE_LENGTH / 2;
   }
 
  private:

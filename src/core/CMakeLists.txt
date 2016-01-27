@@ -108,19 +108,6 @@ if(WITH_LIBRARY)
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-  
-  if(WITH_LUA)
-    find_package("LuaJIT")
-    set(LUA_NAME "i2lua")
-    set(LUA_SRC
-      "lua/Main.cpp"
-      "lua/NetDB.cpp"
-    )
-    include_directories(${LUAJIT_INCLUDE_DIR})
-    add_executable(${LUA_NAME} ${LUA_SRC})
-    target_link_libraries(${LUA_NAME} ${LUAJIT_LIBRARIES} ${CORE_NAME})
-  endif()
-
 endif()
 
 # vim: noai:ts=2:sw=2

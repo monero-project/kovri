@@ -37,11 +37,11 @@
 namespace kovri {
 namespace log {
 
-static std::shared_ptr<Log> g_Log = nullptr;
+std::shared_ptr<Log> g_Log =  nullptr;
 
 Logger::Logger(
     LoggerImpl* impl)
-  : m_Impl(impl) {}
+    : m_Impl(impl) {}
 Logger::~Logger() { delete m_Impl; }
 
 LogStream::LogStream(
@@ -76,15 +76,10 @@ int LogStreamImpl::sync() {
   int ret;
   // sync out std::stringbuf
   ret = m_Str->pubsync();
-  // flush to std::ostream if we are not silent
-  if (g_Log->Silent()) {
-  } else {
-    m_Out << m_Str;
-    m_Out << std::endl;
-  }
-  // delete underlying stringbuf
+  // flush to std::ostream
+  m_Out << m_Str;
+  m_Out << std::endl;
   delete m_Str;
-  // make a new stringbuf
   m_Str = new std::stringbuf;
   // unlock our access mutex so that others can now acquire the log stream
   m_Access.unlock();
@@ -143,15 +138,9 @@ Log::Log(
 LogImpl::LogImpl(
     LogLevel minLev,
     std::ostream & out)
-    : m_Silent(false),
-      m_LogLevel(minLev),
+    : m_LogLevel(minLev),
       m_Out(out) {}
 
-bool LogImpl::Silent()
-{
-  return m_Silent;
-}
-  
 std::shared_ptr<Log> Log::Get() {
   // make default logger if we don't have a logger
   if (g_Log == nullptr)
@@ -174,13 +163,5 @@ std::unique_ptr<Logger> Log::New(
           m_LogImpl->Out())));
 }
 
-void Log::Stop() {
-  m_LogImpl->Stop();
-}
-
-bool Log::Silent() {
-  return m_LogImpl->Silent();
-}
-  
 }  // namespace log
 }  // namespace kovri

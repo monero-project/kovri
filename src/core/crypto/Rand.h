@@ -40,15 +40,15 @@ namespace crypto {
   // @param dataptr buffer to store result
   // @param datalen size of buffer
   void RandBytes(
-      uint8_t* dataptr,
+      void* dataptr,
       size_t datalen);
 
   // generate random of type T
+  // @param T integer or floating point type
   template<class T>
   T Rand() {
     T ret;
-    //TODO(psi): alignment
-    RandBytes((uint8_t*)&ret, sizeof(ret));
+    RandBytes(&ret, sizeof(ret));
     return ret;
   }
 

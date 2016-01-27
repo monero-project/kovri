@@ -99,8 +99,6 @@ class NetDb {
   void HandleDatabaseLookupMsg(
       std::shared_ptr<const I2NPMessage> msg);
 
-
-  std::shared_ptr<const RouterInfo> GetRouterByHash(IdentHash & ih) const;
   std::shared_ptr<const RouterInfo> GetRandomRouter() const;
   std::shared_ptr<const RouterInfo> GetRandomRouter(
       std::shared_ptr<const RouterInfo> compatibleWith) const;

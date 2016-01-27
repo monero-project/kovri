@@ -218,7 +218,8 @@ BOOST_FIXTURE_TEST_CASE(AesCbcDecrypt, AesCbcFixture) {
 struct EDDSAFixture {
   EDDSAFixture()
     : verifier(public_key),
-      signer(private_key) {}
+      signer(private_key),
+      dummy_rng() {}
 
   uint8_t private_key[32] = {
     0xe1, 0xec, 0xff, 0xa6, 0xcd, 0x4e, 0xc7, 0x09, 0x2f, 0x87,
@@ -236,6 +237,7 @@ struct EDDSAFixture {
 
   EDDSA25519Verifier verifier;
   EDDSA25519Signer signer;
+  CryptoPP::RandomNumberGenerator dummy_rng;
 };
 
 BOOST_FIXTURE_TEST_CASE(EdDSA25519KeyLength, EDDSAFixture) {

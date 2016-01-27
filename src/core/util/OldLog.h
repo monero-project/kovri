@@ -75,10 +75,9 @@ void DeprecatedLogPrint(
   auto l = kovri::log::Log::Get();
   if (l == nullptr) {
     // fallback logging to std::clog
-    // let's not anymore actually ~ psi
-    // std::clog << "!!! ";
-    // DeprecatedLog(std::clog, args...);
-    // std::clog << std::endl;
+    std::clog << "!!! ";
+    DeprecatedLog(std::clog, args...);
+    std::clog << std::endl;
   } else {
     auto log = l->Default();
     if (level == eLogDebug) {

@@ -65,7 +65,6 @@ class DSASigner_Pimpl {
   DSASigner_Pimpl(
       const uint8_t* signingPrivateKey);
 
-  ~DSASigner_Pimpl();
   void Sign(
       const uint8_t* buf,
       size_t len,
@@ -73,7 +72,6 @@ class DSASigner_Pimpl {
 
  private:
   CryptoPP::DSA::PrivateKey m_PrivateKey;
-  uint8_t* m_PrivateKeyBuff;
 };
 
 template<typename Hash, size_t keyLen>
@@ -112,8 +110,6 @@ class ECDSAVerifier {
 template<typename Hash>
 class ECDSASigner : public Signer {
  public:
-
-  typedef typename CryptoPP::ECDSA<CryptoPP::ECP, Hash>::PrivateKey SignKey;
   template<typename Curve>
   ECDSASigner(
       Curve curve,
@@ -132,12 +128,13 @@ class ECDSASigner : public Signer {
       uint8_t* signature) const {
     typename CryptoPP::ECDSA<CryptoPP::ECP, Hash>::Signer
       signer(m_PrivateKey);
-    PRNG & r = prng;
-    signer.SignMessage(r, buf, len, signature);
+    PRNG& rnd = GetPRNG();
+    signer.SignMessage(rnd, buf, len, signature);
   }
 
  private:
-  SignKey m_PrivateKey;
+  typename CryptoPP::ECDSA<CryptoPP::ECP, Hash>::PrivateKey
+    m_PrivateKey;
 };
 
 template<typename Hash, typename Curve>
@@ -150,8 +147,8 @@ inline void CreateECDSARandomKeys(
     privateKey;
   typename CryptoPP::ECDSA<CryptoPP::ECP, Hash>::PublicKey
     publicKey;
-  PRNG & r = prng;
-  privateKey.Initialize(r, curve);
+  i2p::crypto::PRNG& rnd = i2p::crypto::GetPRNG();
+  privateKey.Initialize(rnd, curve);
   privateKey.MakePublicKey(publicKey);
   privateKey.GetPrivateExponent().Encode(signingPrivateKey, keyLen / 2);
   auto q = publicKey.GetPublicElement();
@@ -269,7 +266,7 @@ class RSASigner {
       const uint8_t* buf,
       size_t len,
       uint8_t* signature) const {
-    PRNG rnd;
+    PRNG& rnd = GetPRNG();
     typename CryptoPP::RSASS<CryptoPP::PKCS1v15, Hash>::Signer
       signer(m_PrivateKey);
     signer.SignMessage(rnd, buf, len, signature);

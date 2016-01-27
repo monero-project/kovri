@@ -43,7 +43,6 @@
 #include "transport/NTCPSession.h"
 #include "transport/Transports.h"
 #include "tunnel/Tunnel.h"
-#include "util/Filesystem.h"
 
 namespace i2p {
 namespace util {
@@ -63,14 +62,9 @@ bool Daemon_Singleton::IsService() const {
 
 // TODO(anonimal): find a better way to initialize
 bool Daemon_Singleton::Init() {
-  i2p::context.InitFrom(i2p::util::filesystem::GetFullPath(i2p::ROUTER_KEYS),
-    i2p::util::filesystem::GetFullPath(i2p::ROUTER_INFO));
+  i2p::context.Init();
   m_IsDaemon = i2p::util::config::varMap["daemon"].as<bool>();
   m_IsLogging = i2p::util::config::varMap["log"].as<bool>();
-  // stop logging if we specifiy no logging
-  if (!m_IsLogging) {
-    m_log->Stop();
-  }
   int port = i2p::util::config::varMap["port"].as<int>();
   i2p::context.UpdatePort(port);
   i2p::context.UpdateAddress(
@@ -107,29 +101,29 @@ bool Daemon_Singleton::Start() {
     } else {
       StartLog("");  // write to stdout
     }
-  }
-  try {
-    LogPrint("Starting NetDB...");
-    if (i2p::data::netdb.Start()) {
-      LogPrint("NetDB started");
-    } else {
-      LogPrint("NetDB failed to start");
+    try {
+      LogPrint("Starting NetDB...");
+      if (i2p::data::netdb.Start()) {
+        LogPrint("NetDB started");
+      } else {
+        LogPrint("NetDB failed to start");
+        return false;
+      }
+      LogPrint("Starting transports...");
+      i2p::transport::transports.Start();
+      LogPrint("Transports started");
+
+      LogPrint("Starting tunnels...");
+      i2p::tunnel::tunnels.Start();
+      LogPrint("Tunnels started");
+
+      LogPrint("Starting client...");
+      i2p::client::context.Start();
+      LogPrint("Client started");
+    } catch (std::runtime_error& e) {
+      LogPrint(eLogError, e.what());
       return false;
     }
-    LogPrint("Starting transports...");
-    i2p::transport::transports.Start();
-    LogPrint("Transports started");
-    
-    LogPrint("Starting tunnels...");
-    i2p::tunnel::tunnels.Start();
-    LogPrint("Tunnels started");
-    
-    LogPrint("Starting client...");
-    i2p::client::context.Start();
-    LogPrint("Client started");
-  } catch (std::runtime_error& e) {
-    LogPrint(eLogError, e.what());
-    return false;
   }
   return true;
 }

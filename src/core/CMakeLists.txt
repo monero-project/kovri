@@ -1,5 +1,5 @@
 set(CORE_SRC
-	"tunnel/TunnelConfig.cpp"
+  "tunnel/TunnelConfig.cpp"
   "Garlic.cpp"
   "I2NPProtocol.cpp"
   "Identity.cpp"
@@ -31,8 +31,8 @@ set(CORE_SRC
   "tunnel/TunnelPool.cpp"
   "util/Base64.cpp"
   "util/HTTP.cpp"
-  "util/MTU.cpp"
-  "util/OldLog.cpp")
+  "util/Log.cpp"
+  "util/MTU.cpp")
 
 set(EDDSA_SRC
   "crypto/ed25519/fe_0.cpp"
@@ -85,16 +85,6 @@ include_directories(
 
 set(EDDSA_LIB "ed25519-ref10")
 add_subdirectory(crypto/ed25519)
-
-if(WITH_BOOST_LOG)
-  # using boost log backend
-  set(LOG_SRC "util/BoostLog.cpp")
-else()
-  # print log backend
-  set(LOG_SRC "util/PrintLog.cpp")
-endif()
-
-list(APPEND CORE_SRC ${LOG_SRC})
 
 # Library building
 if(WITH_LIBRARY)

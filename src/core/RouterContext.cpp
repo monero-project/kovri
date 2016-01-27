@@ -43,16 +43,10 @@
 #include "Version.h"
 #include "client/util/Config.h"
 #include "crypto/CryptoConst.h"
-#include "crypto/Rand.h"
 #include "util/MTU.h"
 #include "util/Timestamp.h"
 
 namespace i2p {
-
-const std::string DefaultRouterAddress("0.0.0.0");
-const uint16_t DefaultMinPort = 9111;
-const uint16_t DefaultMaxPort = 30777;
-
 
 RouterContext context;
 
@@ -63,45 +57,30 @@ RouterContext::RouterContext()
       m_StartupTime(0),
       m_Status(eRouterStatusOK) {}
 
-
 void RouterContext::Init() {
-  auto keysFile = i2p::util::filesystem::GetFullPath(ROUTER_KEYS);
-  auto riFile = i2p::util::filesystem::GetFullPath(ROUTER_INFO);
-  InitFrom(keysFile, riFile);
-}
-
-void RouterContext::InitFrom(const std::string & routerKeysFilePath, 
-    const std::string & routerInfoFilePath) {
-  m_RouterInfoFilePath = routerInfoFilePath;
-  m_RouterKeysFilePath = routerKeysFilePath;
   m_StartupTime = i2p::util::GetSecondsSinceEpoch();
-  if (!Load(routerKeysFilePath, routerInfoFilePath)) {
-    CreateNewRouter(
-      routerKeysFilePath, 
-      DefaultRouterAddress, 
-      i2p::crypto::RandInRange<uint16_t>(DefaultMinPort, DefaultMaxPort));
-  }
+  if (!Load())
+    CreateNewRouter();
   UpdateRouterInfo();
 }
 
-void RouterContext::CreateNewRouter(const std::string& keyfile, 
-    const std::string& host, uint16_t port) {
+void RouterContext::CreateNewRouter() {
   m_Keys = i2p::data::CreateRandomKeys();
-  SaveKeys(keyfile);
-  NewRouterInfo(host, port);
+  SaveKeys();
+  NewRouterInfo();
 }
 
-void RouterContext::NewRouterInfo(const std::string& host, uint16_t port) {
+void RouterContext::NewRouterInfo() {
   i2p::data::RouterInfo routerInfo;
   routerInfo.SetRouterIdentity(
       GetIdentity());
   routerInfo.AddSSUAddress(
-      host,
-      port,
+      i2p::util::config::varMap["host"].as<std::string>(),
+      i2p::util::config::varMap["port"].as<int>(),
       routerInfo.GetIdentHash());
   routerInfo.AddNTCPAddress(
-      host,
-      port);
+      i2p::util::config::varMap["host"].as<std::string>(),
+      i2p::util::config::varMap["port"].as<int>());
   routerInfo.SetCaps(
       i2p::data::RouterInfo::eReachable |
       i2p::data::RouterInfo::eSSUTesting |
@@ -118,7 +97,9 @@ void RouterContext::NewRouterInfo(const std::string& host, uint16_t port) {
 
 void RouterContext::UpdateRouterInfo() {
   m_RouterInfo.CreateBuffer(m_Keys);
-  m_RouterInfo.SaveToFile(m_RouterInfoFilePath);
+  m_RouterInfo.SaveToFile(
+      i2p::util::filesystem::GetFullPath(
+        ROUTER_INFO));
   m_LastUpdateTime = i2p::util::GetSecondsSinceEpoch();
 }
 
@@ -311,23 +292,21 @@ void RouterContext::UpdateStats() {
   }
 }
 
-bool RouterContext::Load(const std::string & privateKeyfile, 
-  const std::string & routerInfoFile) {
-    std::ifstream fk(privateKeyfile.c_str(),
+bool RouterContext::Load() {
+  std::ifstream fk(
+      i2p::util::filesystem::GetFullPath(ROUTER_KEYS).c_str(),
       std::ifstream::binary | std::ofstream::in);
   if (!fk.is_open())
     return false;
   i2p::data::Keys keys;
   fk.read(reinterpret_cast<char *>(&keys), sizeof(keys));
   m_Keys = keys;
-  i2p::data::RouterInfo routerInfo(routerInfoFile);
-  if ( routerInfo.GetBufferLen() > 0 ) {
-    m_RouterInfo.Update(
+  i2p::data::RouterInfo routerInfo(
+      i2p::util::filesystem::GetFullPath(
+        ROUTER_INFO));  // TODO(unassigned): ???
+  m_RouterInfo.Update(
       routerInfo.GetBuffer(),
       routerInfo.GetBufferLen());
-  } else {
-    return false;
-  }
   m_RouterInfo.SetProperty("coreVersion", I2P_VERSION);
   m_RouterInfo.SetProperty("router.version", I2P_VERSION);
   if (IsUnreachable())
@@ -336,8 +315,9 @@ bool RouterContext::Load(const std::string & privateKeyfile,
   return true;
 }
 
-void RouterContext::SaveKeys(const std::string& privateKeyFile) {
-  std::ofstream fk(privateKeyFile,                  
+void RouterContext::SaveKeys() {
+  std::ofstream fk(
+      i2p::util::filesystem::GetFullPath(ROUTER_KEYS).c_str(),
       std::ofstream::binary | std::ofstream::out);
   i2p::data::Keys keys;
   memcpy(

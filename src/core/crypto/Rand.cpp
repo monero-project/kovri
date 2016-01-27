@@ -42,6 +42,6 @@ void RandBytes(
     size_t datalen) {
   prng.GenerateBlock(dataptr, datalen);
 }
-
+ 
 }  // namespace crypto
 }  // namespace i2p

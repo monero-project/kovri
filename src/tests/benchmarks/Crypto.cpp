@@ -33,7 +33,6 @@
 #include <chrono>
 #include <iostream>
 
-#include "Alloc.h"
 #include "crypto/Rand.h"
 #include "crypto/Signature.h"
 
@@ -47,14 +46,13 @@ void benchmark(
     std::size_t signature_size,
     KeyGenerator generator) {
   typedef std::chrono::time_point<std::chrono::high_resolution_clock> TimePoint;
-  std::size_t badVerify = 0;
-  i2p::Buffer private_key(private_key_size);
-  i2p::Buffer public_key(public_key_size);
+  uint8_t private_key[private_key_size];
+  uint8_t public_key[public_key_size];
   generator(private_key, public_key);
   Verifier verifier(public_key);
   Signer signer(private_key);
-  i2p::Buffer message(512);
-  i2p::Buffer output(signature_size);
+  uint8_t message[512] = {};
+  uint8_t output[signature_size];
   std::chrono::nanoseconds sign_duration(0);
   std::chrono::nanoseconds verify_duration(0);
   for (std::size_t i = 0; i < count; ++i) {
@@ -66,19 +64,16 @@ void benchmark(
       sign_duration +=
         std::chrono::duration_cast<std::chrono::nanoseconds>(end1 - begin1);
       TimePoint begin2 = std::chrono::high_resolution_clock::now();
-      if( ! verifier.Verify(message, 512, output) ) {
-        badVerify ++;
-      }
+      verifier.Verify(message, 512, output);
       TimePoint end2 = std::chrono::high_resolution_clock::now();
       verify_duration +=
         std::chrono::duration_cast<std::chrono::nanoseconds>(end2 - begin2);
-    } catch ( CryptoPP::Exception & ex ) {
+    } catch (CryptoPP::Exception& ex) {
       std::cout << "!!! " << ex.what() << std::endl;
       break;
     }
   }
   std::cout << "Conducted " << count << " experiments." << std::endl;
-  std::cout << "Bad Signatures: " << badVerify << std::endl;
   std::cout << "Total sign time: " <<
     std::chrono::duration_cast<std::chrono::milliseconds>(
         sign_duration).count() << std::endl;
@@ -86,7 +81,6 @@ void benchmark(
     std::chrono::duration_cast<std::chrono::milliseconds>(
         verify_duration).count() << std::endl;
 }
-
 
 int main() {
   // TODO(unassigned): don't use namespace using-directives

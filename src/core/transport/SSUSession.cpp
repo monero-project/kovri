@@ -589,16 +589,18 @@ void SSUSession::SendSessionCreated(
       payload);
   payload += signatureLen;
   size_t msgLen = payload - buf;
-  // encrypt message with intro key
-  FillHeaderAndEncrypt(
+  if (msgLen <= SSU_MTU_V4 ) {
+    // encrypt message with intro key
+    FillHeaderAndEncrypt(
       PAYLOAD_TYPE_SESSION_CREATED,
       buf,
       msgLen,
       introKey,
       iv,
       introKey);
-  // send it
-  Send(buf, msgLen);
+    // send it
+    Send(buf, msgLen);
+  }
 }
 
 void SSUSession::SendSessionConfirmed(

@@ -28,11 +28,12 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "Daemon.h"
+
 #include <string>
 #include <thread>
 
 #include "ClientContext.h"
-#include "Daemon.h"
 #include "Destination.h"
 #include "Garlic.h"
 #include "NetworkDatabase.h"
@@ -40,6 +41,7 @@
 #include "RouterInfo.h"
 #include "Version.h"
 #include "api/Streaming.h"
+#include "core/util/Log.h"
 #include "transport/NTCPSession.h"
 #include "transport/Transports.h"
 #include "tunnel/Tunnel.h"

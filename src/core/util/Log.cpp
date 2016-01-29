@@ -221,14 +221,14 @@ LogImpl::LogImpl(
   m_LogBackend = boost::make_shared<backend_t>();
   m_LogBackend->add_stream(
       boost::shared_ptr<std::ostream>(
-        out,
-        boost::null_deleter()));
+          out,
+          boost::null_deleter()));
   g_LogSink = boost::shared_ptr<sink_t>(
       new sink_t(
-        m_LogBackend));
+          m_LogBackend));
   g_LogSink->set_filter(
       boost::log::expressions::attr<LogLevel>(
-        "Severity") >= minlev);
+          "Severity") >= minlev);
   g_LogSink->set_formatter(&LogImpl::Format);
   m_LogCore->add_sink(g_LogSink);
   m_LogCore->add_global_attribute(

@@ -50,6 +50,7 @@ class Daemon_Singleton {
   virtual bool Init();
   virtual bool Start();
   virtual bool Stop();
+  virtual void Reload() = 0;
   bool m_IsDaemon,
        m_IsLogging,
        m_IsRunning;
@@ -58,7 +59,7 @@ class Daemon_Singleton {
   Daemon_Singleton();
   virtual ~Daemon_Singleton();
   bool IsService() const;
-  std::shared_ptr<kovri::log::Log> m_log;
+  std::shared_ptr<i2p::util::log::Log> m_log;
 };
 
 #ifdef _WIN32
@@ -82,7 +83,7 @@ class DaemonLinux : public Daemon_Singleton {
   }
   virtual bool Start();
   virtual bool Stop();
-
+  void Reload();
  private:
   std::string m_pidFile;
   int m_pidFilehandle;

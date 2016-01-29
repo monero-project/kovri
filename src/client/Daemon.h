@@ -31,7 +31,6 @@
 #ifndef SRC_CLIENT_DAEMON_H_
 #define SRC_CLIENT_DAEMON_H_
 
-#pragma once
 #include <string>
 
 #ifdef _WIN32

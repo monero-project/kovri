@@ -55,7 +55,7 @@ void handle_signal(int sig) {
         }
       }
       LogPrint("Reloading config...");
-      // TODO(anonimal) rewrite ParseConfigFile() to respond to SIGHUP
+      Daemon.Reload();
       LogPrint("Config reloaded");
       break;
     case SIGABRT:
@@ -131,6 +131,11 @@ bool DaemonLinux::Stop() {
   close(m_pidFilehandle);
   unlink(m_pidFile.c_str());
   return Daemon_Singleton::Stop();
+}
+
+void DaemonLinux::Reload() {
+  // no linux specific reload operations
+  Daemon_Singleton::Reload();
 }
 
 }  // namespace util

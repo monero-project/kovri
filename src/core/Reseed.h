@@ -31,19 +31,13 @@
 #ifndef SRC_CORE_RESEED_H_
 #define SRC_CORE_RESEED_H_
 
-#include <boost/asio.hpp>
-#include <boost/filesystem.hpp>
-
-#include <cryptopp/osrng.h>
 #include <cryptopp/rsa.h>
 
 #include <iostream>
 #include <map>
 #include <string>
-#include <vector>
 
 #include "Identity.h"
-#include "crypto/AES.h"
 
 namespace i2p {
 namespace data {

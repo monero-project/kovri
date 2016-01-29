@@ -1,3 +1,8 @@
+env:
+  global:
+   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+   # via the "travis encrypt" command using the project repo's public key
+   #- secure: "Z3IXrEUCV/gada+XZ0mMTnIIlto/rutD3aDKZhrGzwNT19U41bLr75aXmQC5I8FtXW49J3UtxsYa51sb/sqwBdCeCpD8xhXFbW4ekTl+colIE43xv9A0xSU+LU9Cyi9kS5TtAxLii/OhNk2GV0c3mcxQBCkQGeZmu9m46OeOc44hl1Xa7ujlvSbFb9ITiUqYSsj0PQAM7aPhntXTvuDnXbfhqp/MMs/mObVjEDvahUjUxN2TxIBBBnljMX9XKiYEL/UjHe4vamlX0AlB+7sY6sYVLLTp1g5MDxFaPyc3+a6UVGE3dieQOKnGuMDPC2iZfOL29scAJ0BcxI4yFxxZS0Ozb46LMYEUcUHQlX8llLSiA9ELtVxwUrLCtsXxDz/lzgzxx6eomOzHnOvymi5oo/pY3QpGuoPq+ikgpUKxXyN89ppH0d7tuemCcGdAwv32UGyPL2Kus08bRU12+bF3dEroCmkQ/aYpF9wL9ZTES7pUQBZPnuVsT6v0bSJd3iQiopUIgPNjPlmOaGaLtue+KExj5cu/pynjtFGTGGD21hKLxO8yXOTFmhxytuPb4jjEPddng5h7FKqcUJShqCPpOqoA6zOvp2U/D5btaySb/WfyghGVO/BuIoIdKkwIHClPV7e4Q7s8eWIfYk9R93MdQCmcoCziPgc5UrZ4ZoJ9rss="
 sudo: required
 dist: trusty
 language: cpp
@@ -14,7 +19,14 @@ addons:
     - libssl1.0.0
     - libminiupnpc-dev
     - doxygen
-script: cd build && cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON -DWITH_UPNP=ON -DWITH_DOXYGEN=ON ../ && make doc && make
+coverity_scan:
+  project:
+    name: "monero-project/kovri"
+    description: "The Kovri I2P Router Project"
+  notification_email: anonimal@i2pmail.org
+  build_command: "cd build && cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON -DWITH_UPNP=ON -DWITH_DOXYGEN=ON ../ && make"
+  branch_pattern: coverity_scan
+script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then cd build && cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON -DWITH_UPNP=ON -DWITH_DOXYGEN=ON ../ && make doc && make ; fi
 notifications:
   email: false
   irc:

@@ -28,20 +28,20 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <boost/date_time/posix_time/posix_time.hpp>
+#include "Rand.h"
 
-#include <string>
+#include "CryptoPP_Rand.h"
 
-#include "Log.h"
+// implementation of i2p::crypto::Rand* functions
 
-void DeprecatedStartLog(
-    const std::string& fullFilePath) {
-    std::cerr << "Not opening log file: " << fullFilePath << std::endl;
+namespace i2p {
+namespace crypto {
+
+void RandBytes(
+    uint8_t* dataptr,
+    size_t datalen) {
+  prng.GenerateBlock(dataptr, datalen);
 }
-
-void DeprecatedStartLog(
-    std::ostream* s) {
-    *s << "Deprecated Logging not implemented" << std::endl;
-}
-
-void DeprecatedStopLog() {}
+ 
+}  // namespace crypto
+}  // namespace i2p

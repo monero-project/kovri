@@ -109,23 +109,25 @@ void DHKeysPairSupplier::CreateDHKeysPairs(
 }
 
 DHKeysPair* DHKeysPairSupplier::Acquire() {
+  std::unique_lock<std::mutex> l(m_AcquiredMutex);
   if (!m_Queue.empty()) {
-    std::unique_lock<std::mutex> l(m_AcquiredMutex);
     auto pair = m_Queue.front();
     m_Queue.pop();
     m_Acquired.notify_one();
     return pair;
-  } else {  // queue is empty, create new
-    DHKeysPair* pair = new DHKeysPair();
-    CryptoPP::DH dh(
-        i2p::crypto::elgp,
-        i2p::crypto::elgg);
-    dh.GenerateKeyPair(
-        m_Rnd,
-        pair->privateKey,
-        pair->publicKey);
-    return pair;
   }
+  l.unlock();
+
+  // queue is empty, create new key pair
+  DHKeysPair* pair = new DHKeysPair();
+  CryptoPP::DH dh(
+      i2p::crypto::elgp,
+      i2p::crypto::elgg);
+  dh.GenerateKeyPair(
+      m_Rnd,
+      pair->privateKey,
+      pair->publicKey);
+  return pair;
 }
 
 void DHKeysPairSupplier::Return(

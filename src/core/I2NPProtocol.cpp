@@ -30,7 +30,7 @@
 
 #include "I2NPProtocol.h"
 
-#include <cryptopp/gzip.h>
+#include <cryptopp/gzip.h>  // TODO(unassigned): use util/GZIP.h (?)
 
 #include <string.h>
 
@@ -38,6 +38,7 @@
 #include <vector>
 #include <set>
 
+#include "crypto/Rand.h"
 #include "Garlic.h"
 #include "NetworkDatabase.h"
 #include "RouterContext.h"
@@ -46,6 +47,10 @@
 #include "tunnel/Tunnel.h"
 #include "util/I2PEndian.h"
 #include "util/Timestamp.h"
+
+#ifndef NETWORK_ID
+#define NETWORK_ID 2
+#endif
 
 namespace i2p {
 
@@ -81,7 +86,7 @@ void I2NPMessage::FillI2NPMessageHeader(
   if (replyMsgID)  // for tunnel creation
     SetMsgID(replyMsgID);
   else
-    SetMsgID(i2p::context.GetRandomNumberGenerator().GenerateWord32());
+    SetMsgID(i2p::crypto::Rand<uint32_t>());
   SetExpiration(
       i2p::util::GetMillisecondsSinceEpoch() +
       I2NP_HEADER_DEFAULT_EXPIRATION_TIME);
@@ -90,7 +95,7 @@ void I2NPMessage::FillI2NPMessageHeader(
 }
 
 void I2NPMessage::RenewI2NPMessageHeader() {
-  SetMsgID(i2p::context.GetRandomNumberGenerator().GenerateWord32());
+  SetMsgID(i2p::crypto::Rand<uint32_t>());
   SetExpiration(
       i2p::util::GetMillisecondsSinceEpoch() +
       I2NP_HEADER_DEFAULT_EXPIRATION_TIME);
@@ -138,10 +143,10 @@ std::shared_ptr<I2NPMessage> CreateDeliveryStatusMsg(
   } else {  // for SSU establishment
     htobe32buf(
         buf + DELIVERY_STATUS_MSGID_OFFSET,
-        i2p::context.GetRandomNumberGenerator().GenerateWord32());
+        i2p::crypto::Rand<uint32_t>());
     htobe64buf(
         buf + DELIVERY_STATUS_TIMESTAMP_OFFSET,
-        2);  // netID = 2
+        NETWORK_ID);
   }
   m->len += DELIVERY_STATUS_SIZE;
   m->FillI2NPMessageHeader(e_I2NPDeliveryStatus);
@@ -350,7 +355,7 @@ bool HandleBuildRequestRecords(
         // always reject with bandwidth reason (30)
         record[BUILD_RESPONSE_RECORD_RET_OFFSET] = 30;
       }
-      // TODO(unassigned): fill filler
+      // TODO(anonimal): fill filler
       CryptoPP::SHA256().CalculateDigest(
           record + BUILD_RESPONSE_RECORD_SHA256HASH_OFFSET,
           record + BUILD_RESPONSE_RECORD_RANDPAD_OFFSET,
@@ -360,7 +365,7 @@ bool HandleBuildRequestRecords(
       for (int j = 0; j < num; j++) {
         encryption.SetKey(clearText + BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET);
         encryption.SetIV(clearText + BUILD_REQUEST_RECORD_REPLY_IV_OFFSET);
-	// TODO(anonimal): records or record?
+        // TODO(anonimal): records or record?
         uint8_t* reply = records + j * TUNNEL_BUILD_RECORD_SIZE;
         encryption.Encrypt(reply, TUNNEL_BUILD_RECORD_SIZE, reply);
       }

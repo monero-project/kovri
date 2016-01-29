@@ -29,6 +29,7 @@
  */
 
 #include "EdDSA25519.h"
+#include "Rand.h"
 
 #include <cstring>
 
@@ -56,14 +57,6 @@ bool EDDSA25519Verifier::Verify(
       m_PublicKey) >= 0;
 }
 
-size_t EDDSA25519Verifier::GetPublicKeyLen() const {
-  return EDDSA25519_PUBLIC_KEY_LENGTH;
-}
-
-size_t EDDSA25519Verifier::GetSignatureLen() const {
-  return EDDSA25519_SIGNATURE_LENGTH;
-}
-
 EDDSA25519Signer::EDDSA25519Signer(
     const uint8_t* signingPrivateKey,
     const uint8_t* signingPublicKey) {
@@ -87,9 +80,8 @@ EDDSA25519Signer::EDDSA25519Signer(
 }
 
 void EDDSA25519Signer::Sign(
-    CryptoPP::RandomNumberGenerator&,
     const uint8_t* buf,
-    int len,
+    size_t len,
     uint8_t* signature) const {
   ed25519_ref10_sign(
       signature,
@@ -100,10 +92,9 @@ void EDDSA25519Signer::Sign(
 }
 
 void CreateEDDSARandomKeys(
-    CryptoPP::RandomNumberGenerator& rnd,
     uint8_t* privateKey,
     uint8_t* publicKey) {
-  rnd.GenerateBlock(
+  i2p::crypto::RandBytes(
       privateKey,
       EDDSA25519_PRIVATE_KEY_LENGTH);
   ed25519_ref10_pubkey(

@@ -53,6 +53,7 @@ typedef std::array<char, I2P_CONTROL_MAX_REQUEST_SIZE> I2PControlBuffer;
 class I2PControlService {
  public:
   I2PControlService(
+      boost::asio::io_service& service,
       const std::string& address,
       int port,
       const std::string& password);
@@ -96,7 +97,7 @@ class I2PControlService {
   bool m_IsRunning;
   std::thread* m_Thread;
 
-  boost::asio::io_service m_Service;
+  boost::asio::io_service& m_Service;
   boost::asio::ip::tcp::acceptor m_Acceptor;
 };
 

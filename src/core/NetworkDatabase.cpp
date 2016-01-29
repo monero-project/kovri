@@ -32,6 +32,7 @@
 
 #include <boost/asio.hpp>
 
+// TODO(unassigned): use util/GZIP.h ?
 #include <cryptopp/gzip.h>
 
 #include <string.h>
@@ -44,6 +45,7 @@
 #include "Garlic.h"
 #include "I2NPProtocol.h"
 #include "RouterContext.h"
+#include "crypto/Rand.h"
 #include "transport/Transports.h"
 #include "tunnel/Tunnel.h"
 #include "util/Base64.h"
@@ -51,7 +53,7 @@
 #include "util/Log.h"
 #include "util/Timestamp.h"
 
-// TODO(unassigned): do not use namespace using-directives.
+// TODO(anonimal): do not use namespace using-directives.
 using namespace i2p::transport;
 
 namespace i2p {
@@ -760,16 +762,14 @@ void NetDb::Explore(
   auto inbound =
     exploratoryPool ? exploratoryPool->GetNextInboundTunnel() : nullptr;
   bool throughTunnels = outbound && inbound;
-  // TODO(unassigned): docs
-  CryptoPP::RandomNumberGenerator& rnd =
-    i2p::context.GetRandomNumberGenerator();
+
   uint8_t randomHash[32];
   std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
   std::set<const RouterInfo *> floodfills;
   // TODO(unassigned): docs
   LogPrint("Exploring new ", numDestinations, " routers ...");
   for (int i = 0; i < numDestinations; i++) {
-    rnd.GenerateBlock(randomHash, 32);
+    i2p::crypto::RandBytes(randomHash, 32);
     auto dest = m_Requests.CreateRequest(randomHash, true);  // exploratory
     if (!dest) {
       LogPrint(eLogWarning, "Exploratory destination is requested already");
@@ -819,8 +819,7 @@ void NetDb::Publish() {
         i2p::context.GetRouterInfo().GetIdentHash(),
         excluded);
     if (floodfill) {
-      uint32_t replyToken =
-        i2p::context.GetRandomNumberGenerator().GenerateWord32();
+      uint32_t replyToken = i2p::crypto::Rand<uint32_t>();
       LogPrint("Publishing our RouterInfo to ",
           floodfill->GetIdentHashAbbreviation(),
           ". reply token=", replyToken);
@@ -878,9 +877,7 @@ std::shared_ptr<const RouterInfo> NetDb::GetHighBandwidthRandomRouter(
 template<typename Filter>
 std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter(
     Filter filter) const {
-  CryptoPP::RandomNumberGenerator& rnd =
-    i2p::context.GetRandomNumberGenerator();
-  uint32_t ind = rnd.GenerateWord32(0, m_RouterInfos.size() - 1);
+  uint32_t ind = i2p::crypto::RandInRange<uint32_t>(0, m_RouterInfos.size() - 1);
   for (int j = 0; j < 2; j++) {
     uint32_t i = 0;
     std::unique_lock<std::mutex> l(m_RouterInfosMutex);

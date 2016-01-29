@@ -37,6 +37,7 @@
 #include "RouterInfo.h"
 #include "Streaming.h"
 #include "client/Destination.h"
+#include "crypto/Rand.h"
 #include "tunnel/Tunnel.h"
 #include "util/Log.h"
 #include "util/Timestamp.h"
@@ -68,8 +69,7 @@ Stream::Stream(
       m_RTO(INITIAL_RTO),
       m_LastWindowSizeIncreaseTime(0),
       m_NumResendAttempts(0) {
-        m_RecvStreamID =
-          i2p::context.GetRandomNumberGenerator().GenerateWord32();
+        m_RecvStreamID = i2p::crypto::Rand<uint32_t>();
         m_RemoteIdentity = remote->GetIdentity();
         m_CurrentRemoteLease.endDate = 0;
 }
@@ -95,8 +95,7 @@ Stream::Stream(
       m_RTO(INITIAL_RTO),
       m_LastWindowSizeIncreaseTime(0),
       m_NumResendAttempts(0) {
-        m_RecvStreamID =
-          i2p::context.GetRandomNumberGenerator().GenerateWord32();
+        m_RecvStreamID = i2p::crypto::Rand<uint32_t>();
 }
 
 Stream::~Stream() {
@@ -792,7 +791,7 @@ void Stream::UpdateCurrentRemoteLease(
       }
       if (!updated) {
         uint32_t i =
-          i2p::context.GetRandomNumberGenerator().GenerateWord32(
+          i2p::crypto::RandInRange<uint32_t>(
               0, leases.size() - 1);
         if (m_CurrentRemoteLease.endDate &&
             leases[i].tunnelID == m_CurrentRemoteLease.tunnelID)

@@ -28,48 +28,50 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_CORE_CRYPTO_SIGNATUREBASE_H_
-#define SRC_CORE_CRYPTO_SIGNATUREBASE_H_
-
-#include <cryptopp/osrng.h>
+#ifndef SRC_CORE_CRYPTO_RAND_H_
+#define SRC_CORE_CRYPTO_RAND_H_
+#include <cstdlib>
+#include <stdexcept>
 
 namespace i2p {
 namespace crypto {
 
-class Verifier {
- public:
-  virtual ~Verifier() {}
-  virtual bool Verify(
-      const uint8_t* buf,
-      size_t len,
-      const uint8_t* signature) const = 0;
-  virtual size_t GetPublicKeyLen() const = 0;
-  virtual size_t GetSignatureLen() const = 0;
-  virtual size_t GetPrivateKeyLen() const = 0;
-};
+  // generate random bytes
+  // @param dataptr buffer to store result
+  // @param datalen size of buffer
+  void RandBytes(
+      uint8_t* dataptr,
+      size_t datalen);
 
-class Signer {
- public:
-  virtual ~Signer() {}
-  virtual void Sign(
-      const uint8_t* buf,
-      size_t len,
-      uint8_t* signature) const = 0;
-};
+  // generate random of type T
+  template<class T>
+  T Rand() {
+    T ret;
+    //TODO(psi): alignment
+    RandBytes((uint8_t*)&ret, sizeof(ret));
+    return ret;
+  }
 
-class RawVerifier {
- public:
-  virtual ~RawVerifier() {}
-
-  virtual void Update(
-      const uint8_t* buf,
-      size_t len) = 0;
-
-  virtual bool Verify(
-      const uint8_t* signature) = 0;
-};
+  // generate a random of type T
+  // @param T integer type
+  // @param min lowerbound
+  // @param max upperbound
+  // @return random in range [min, max)
+  template<class T>
+  T RandInRange(T min, T max) {
+    if (min > max) {
+      throw std::logic_error("i2p::crypto::RandInRange() min <= max");
+    } else if (min == max) {
+      return min;
+    }
+    T dlt = max - min;
+    T ret = Rand<T>();
+    ret %= dlt;
+    ret += min;
+    return ret;
+  }
 
 }  // namespace crypto
 }  // namespace i2p
 
-#endif  // SRC_CORE_CRYPTO_SIGNATUREBASE_H_
+#endif  // SRC_CORE_CRYPTO_RAND_H_

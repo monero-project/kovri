@@ -4,6 +4,7 @@
 2. The secure, private, untraceable C++ [I2P router](https://geti2p.net), forked from [i2pd](https://github.com/PurpleI2P/i2pd/tree/master).
 
 [![Build Status](https://travis-ci.org/monero-project/kovri.svg?branch=master)](https://travis-ci.org/monero-project/kovri)
+[![Documentation](https://codedocs.xyz/monero-project/kovri.svg)](https://codedocs.xyz/monero-project/kovri/)
 
 ## Disclaimer
 - Currently pre-alpha software; under heavy overhaul and development! Stick to branch ```master``` for stability.

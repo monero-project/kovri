@@ -40,6 +40,7 @@
 #include "RouterContext.h"
 #include "SSU.h"
 #include "Transports.h"
+#include "crypto/Rand.h"
 #include "crypto/CryptoConst.h"
 #include "util/Log.h"
 #include "util/Timestamp.h"
@@ -448,9 +449,8 @@ void SSUSession::SendSessionRequest() {
         16);
   }
   uint8_t iv[16];
-  CryptoPP::RandomNumberGenerator& rnd =
-    i2p::context.GetRandomNumberGenerator();
-  rnd.GenerateBlock(iv, 16);  // random iv
+  i2p::crypto::RandBytes(iv, 16);
+
   FillHeaderAndEncrypt(
       PAYLOAD_TYPE_SESSION_REQUEST,
       buf,
@@ -484,11 +484,9 @@ void SSUSession::SendRelayRequest(
   payload++;
   memcpy(payload, (const uint8_t *)address->key, 32);
   payload += 32;
-  CryptoPP::RandomNumberGenerator& rnd =
-    i2p::context.GetRandomNumberGenerator();
-  htobe32buf(payload, rnd.GenerateWord32());  // nonce
+  htobe32buf(payload, i2p::crypto::Rand<uint32_t>());  // nonce
   uint8_t iv[16];
-  rnd.GenerateBlock(iv, 16);  // random iv
+  i2p::crypto::RandBytes(iv, 16);
   if (m_State == eSessionStateEstablished) {
     FillHeaderAndEncrypt(
         PAYLOAD_TYPE_RELAY_REQUEST,
@@ -522,8 +520,6 @@ void SSUSession::SendSessionCreated(
     LogPrint(eLogError, "SSU is not supported");
     return;
   }
-  CryptoPP::RandomNumberGenerator& rnd =
-    i2p::context.GetRandomNumberGenerator();
   // x,y, remote IP, remote port, our IP, our port, relayTag, signed on time
   SignedData s;
   s.Insert(x, 256);  // x
@@ -563,7 +559,7 @@ void SSUSession::SendSessionCreated(
   s.Insert<uint16_t> (htobe16(address->port));  // our port
   uint32_t relayTag = 0;
   if (i2p::context.GetRouterInfo().IsIntroducer()) {
-    relayTag = rnd.GenerateWord32();
+    relayTag = i2p::crypto::Rand<uint32_t>();
     if (!relayTag)
       relayTag = 1;
     m_Server.AddRelay(relayTag, m_RemoteEndpoint);
@@ -577,14 +573,15 @@ void SSUSession::SendSessionCreated(
   m_SessionConfirmData = std::unique_ptr<SignedData>(new SignedData(s));
   s.Insert(payload - 4, 4);  // put timestamp
   s.Sign(i2p::context.GetPrivateKeys(), payload);  // DSA signature
-  // TODO(unassigned): fill padding with random data
   uint8_t iv[16];
-  rnd.GenerateBlock(iv, 16);  // random iv
+  i2p::crypto::RandBytes(iv, 16);
   // encrypt signature and padding with newly created session key
   size_t signatureLen = i2p::context.GetIdentity().GetSignatureLen();
   size_t paddingSize = signatureLen & 0x0F;  // %16
-  if (paddingSize > 0)
+  if (paddingSize > 0) {
     signatureLen += (16 - paddingSize);
+    i2p::crypto::RandBytes(payload, paddingSize);
+  }
   m_SessionKeyEncryption.SetIV(iv);
   m_SessionKeyEncryption.Encrypt(
       payload,
@@ -592,16 +589,18 @@ void SSUSession::SendSessionCreated(
       payload);
   payload += signatureLen;
   size_t msgLen = payload - buf;
-  // encrypt message with intro key
-  FillHeaderAndEncrypt(
+  if (msgLen <= SSU_MTU_V4 ) {
+    // encrypt message with intro key
+    FillHeaderAndEncrypt(
       PAYLOAD_TYPE_SESSION_CREATED,
       buf,
       msgLen,
       introKey,
       iv,
       introKey);
-  // send it
-  Send(buf, msgLen);
+    // send it
+    Send(buf, msgLen);
+  }
 }
 
 void SSUSession::SendSessionConfirmed(
@@ -646,9 +645,7 @@ void SSUSession::SendSessionConfirmed(
   payload += signatureLen;
   size_t msgLen = payload - buf;
   uint8_t iv[16];
-  CryptoPP::RandomNumberGenerator& rnd =
-    i2p::context.GetRandomNumberGenerator();
-  rnd.GenerateBlock(iv, 16);  // random iv
+  i2p::crypto::RandBytes(iv, 16);
   // encrypt message with session key
   FillHeaderAndEncrypt(
       PAYLOAD_TYPE_SESSION_CONFIRMED,
@@ -735,9 +732,7 @@ void SSUSession::SendRelayResponse(
   } else {
     // encrypt with Alice's intro key
     uint8_t iv[16];
-    CryptoPP::RandomNumberGenerator& rnd =
-      i2p::context.GetRandomNumberGenerator();
-    rnd.GenerateBlock(iv, 16);  // random iv
+    i2p::crypto::RandBytes(iv, 16);
     FillHeaderAndEncrypt(
         PAYLOAD_TYPE_RELAY_RESPONSE,
         buf,
@@ -773,9 +768,7 @@ void SSUSession::SendRelayIntro(
   payload += 2;  // port
   *payload = 0;  // challenge size
   uint8_t iv[16];
-  CryptoPP::RandomNumberGenerator& rnd =
-    i2p::context.GetRandomNumberGenerator();
-  rnd.GenerateBlock(iv, 16);  // random iv
+  i2p::crypto::RandBytes(iv, 16);  // random iv
   FillHeaderAndEncrypt(
       PAYLOAD_TYPE_RELAY_INTRO,
       buf,
@@ -882,9 +875,7 @@ void SSUSession::FillHeaderAndEncrypt(
     return;
   }
   SSUSessionPacket pkt(buf, len);
-  i2p::context.GetRandomNumberGenerator().GenerateBlock(
-      pkt.IV(),
-      16);  // random iv
+  i2p::crypto::RandBytes(pkt.IV(), 16);  // random iv
   m_SessionKeyEncryption.SetIV(pkt.IV());
   pkt.PutFlag(payloadType << 4);  // MSB is 0
   pkt.PutTime(i2p::util::GetSecondsSinceEpoch());
@@ -1286,10 +1277,8 @@ void SSUSession::SendPeerTest(
     memcpy(payload, introKey, 32);  // intro key
   }
   // send
-  CryptoPP::RandomNumberGenerator& rnd =
-    i2p::context.GetRandomNumberGenerator();
   uint8_t iv[16];
-  rnd.GenerateBlock(iv, 16);  // random iv
+  i2p::crypto::RandBytes(iv, 16);
   if (toAddress) {
     // encrypt message with specified intro key
     FillHeaderAndEncrypt(
@@ -1322,7 +1311,7 @@ void SSUSession::SendPeerTest() {
     LogPrint(eLogError, "SSU is not supported. Can't send peer test");
     return;
   }
-  uint32_t nonce = i2p::context.GetRandomNumberGenerator().GenerateWord32();
+  uint32_t nonce = i2p::crypto::Rand<uint32_t>();
   if (!nonce)
     nonce = 1;
   m_PeerTest = false;

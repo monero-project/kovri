@@ -94,11 +94,11 @@ class HTTPProxyHandler
   uint8_t m_http_buff[HTTP_BUFFER_SIZE];
   std::shared_ptr<boost::asio::ip::tcp::socket> m_sock;
   std::string m_request,  // Data left to be sent
-  m_url,                  // URL
-  m_method,               // Method
-  m_version,              // HTTP version
-  m_address,              // Address
-  m_path;                 // Path
+              m_url,      // URL
+              m_method,   // Method
+              m_version,  // HTTP version
+              m_address,  // Address
+              m_path;     // Path
   int m_port;             // Port
   state m_state;          // Parsing state
 
@@ -379,15 +379,17 @@ void HTTPProxyHandler::HandleStreamRequestComplete(
 }
 
 HTTPProxyServer::HTTPProxyServer(
+    const std::string& name,
     const std::string& address,
     int port,
     std::shared_ptr<i2p::client::ClientDestination> localDestination)
     : TCPIPAcceptor(
-        address,
-        port,
-        localDestination ?
-        localDestination :
-        i2p::client::context.GetSharedLocalDestination()) {}
+          address,
+          port,
+          localDestination ?
+          localDestination :
+          i2p::client::context.GetSharedLocalDestination()),
+      m_Name(name) {}
 
 std::shared_ptr<i2p::client::I2PServiceHandler> HTTPProxyServer::CreateHandler(
     std::shared_ptr<boost::asio::ip::tcp::socket> socket) {

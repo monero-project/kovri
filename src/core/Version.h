@@ -37,6 +37,6 @@
 
 // Used by I2NP
 // http://i2p-projekt.i2p/en/docs/spec/i2np
-#define I2P_VERSION "0.9.23"
+#define I2P_VERSION "0.9.24"
 
 #endif  // SRC_CORE_VERSION_H_

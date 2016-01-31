@@ -40,7 +40,7 @@
 #include "RouterContext.h"
 #include "RouterInfo.h"
 #include "Version.h"
-#include "api/Streaming.h"
+#include "Streaming.h"
 #include "core/util/Log.h"
 #include "transport/NTCPSession.h"
 #include "transport/Transports.h"

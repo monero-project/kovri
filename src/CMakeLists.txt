@@ -6,7 +6,6 @@ include_directories(
   "client"
   "core")
 
-add_subdirectory(api)
 add_subdirectory(client)
 add_subdirectory(core)
 add_subdirectory(tests)
@@ -15,7 +14,7 @@ if(WITH_BINARY)
   add_executable(${MAIN_NAME} ${MAIN_SRC})
   target_link_libraries(
     ${MAIN_NAME}
-    ${CLIENT_NAME} ${API_NAME} ${CORE_NAME}
+    ${CLIENT_NAME} ${CORE_NAME}
     ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
   if(NOT MSVC) # FIXME: incremental linker file name (.ilk) collision for dll & exe
     set_target_properties(

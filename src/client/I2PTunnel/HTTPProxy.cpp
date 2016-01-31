@@ -40,7 +40,7 @@
 
 #include "I2PTunnel.h"
 #include "Identity.h"
-#include "api/Streaming.h"
+#include "Streaming.h"
 #include "client/ClientContext.h"
 #include "client/Destination.h"
 #include "util/HTTP.h"

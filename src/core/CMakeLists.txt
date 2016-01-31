@@ -90,7 +90,7 @@ add_subdirectory(crypto/ed25519)
 if(WITH_LIBRARY)
   add_library(${CORE_NAME} ${CORE_SRC} ${EDDSA_SRC})
   target_link_libraries(
-    ${CORE_NAME} ${API_NAME}
+    ${CORE_NAME}
     ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${OPENSSL_LIBRARIES}
     ${DL_LIB})
   install(

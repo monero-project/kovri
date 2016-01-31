@@ -1,4 +1,11 @@
 set(CLIENT_SRC
+  "Datagram.cpp"
+  "I2PControl/I2PControl.cpp"
+  "I2PControl/I2PControlServer.cpp"
+  "I2PTunnel/HTTPProxy.cpp"
+  "I2PTunnel/I2PTunnel.cpp"
+  "I2PTunnel/SOCKS.cpp"
+  "Streaming.cpp"
   "AddressBook.cpp"
   "Destination.cpp"
   "ClientContext.cpp"
@@ -28,7 +35,7 @@ endif()
 if(WITH_LIBRARY)
   add_library(${CLIENT_NAME} ${CLIENT_SRC})
   target_link_libraries(
-    ${CLIENT_NAME} ${API_NAME} ${CORE_NAME}
+    ${CLIENT_NAME} ${CORE_NAME}
     ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
   install(
     TARGETS ${CLIENT_NAME}

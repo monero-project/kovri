@@ -39,10 +39,10 @@
 
 #include "AddressBook.h"
 #include "Destination.h"
-#include "api/I2PControl/I2PControlServer.h"
-#include "api/I2PTunnel/HTTPProxy.h"
-#include "api/I2PTunnel/I2PTunnel.h"
-#include "api/I2PTunnel/SOCKS.h"
+#include "I2PControl/I2PControlServer.h"
+#include "I2PTunnel/HTTPProxy.h"
+#include "I2PTunnel/I2PTunnel.h"
+#include "I2PTunnel/SOCKS.h"
 
 namespace i2p {
 namespace client {

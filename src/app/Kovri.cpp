@@ -30,7 +30,7 @@
 
 #include <thread>
 
-#include "client/Daemon.h"
+#include "Daemon.h"
 #include "client/util/Config.h"
 
 int main(int argc, char* argv[]) {

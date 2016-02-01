@@ -187,6 +187,12 @@ void ClientContext::Stop() {
   m_SharedLocalDestination = nullptr;
 }
 
+void ClientContext::RequestShutdown() {
+  Stop();
+  if (m_ShutdownHandler)
+    m_ShutdownHandler();
+}
+
 std::shared_ptr<ClientDestination> ClientContext::LoadLocalDestination(
     const std::string& filename,
     bool isPublic) {
@@ -617,6 +623,10 @@ void ClientContext::ReloadTunnels() {
       m_ClientTunnels.erase(itr);
     }
   }
+}
+
+void ClientContext::RegisterShutdownHandler(std::function<void(void)> handler) {
+ m_ShutdownHandler = handler; 
 }
 
 void ClientContext::ReadTunnels() {

@@ -70,6 +70,15 @@ class ClientContext {
   void Start();
   void Stop();
 
+  /**
+   * Shuts down the ClientContext and calls the shutdown handler.
+   * This member function can be used by client components to shut down the
+   *  router.
+   * @note nothing happens if there is no registered shutdown handler
+   * @warning not thread safe
+   */
+  void RequestShutdown();
+
   std::shared_ptr<ClientDestination> GetSharedLocalDestination() const {
     return m_SharedLocalDestination;
   }
@@ -97,10 +106,13 @@ class ClientContext {
 
   AddressBook& GetAddressBook() { return m_AddressBook; }
 
-  // reload tunnels.cfg
-  // removes tunnels not in new tunnels.cfg
-  //  adds tunnels that were previously not in tunnels.cfg
+  /// Reloads tunnels.cfg.
+  /// Removes tunnels not in new tunnels.cfg.
+  /// Adds tunnels that were previously not in tunnels.cfg.
   void ReloadTunnels();
+
+  /// Registers a shutdown handler, called by ClientContext::RequestShutdown.
+  void RegisterShutdownHandler(std::function<void(void)> handler);
 
  private:
   void ReadTunnels();
@@ -134,6 +146,8 @@ class ClientContext {
   boost::asio::io_service m_Service;
 
   i2pcontrol::I2PControlService* m_I2PControlService;
+
+  std::function<void(void)> m_ShutdownHandler;
 
  public:
   // for HTTP

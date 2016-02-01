@@ -33,7 +33,7 @@
 #include <string>
 #include <thread>
 
-#include "ClientContext.h"
+#include "client/ClientContext.h"
 #include "Destination.h"
 #include "Garlic.h"
 #include "NetworkDatabase.h"
@@ -50,7 +50,7 @@ namespace i2p {
 namespace util {
 
 Daemon_Singleton::Daemon_Singleton()
-    : m_IsRunning(1),
+    : m_IsRunning(true),
       m_log(i2p::util::log::Log::Get()) {}
 Daemon_Singleton::~Daemon_Singleton() {}
 
@@ -83,6 +83,11 @@ bool Daemon_Singleton::Init() {
     else
       i2p::context.SetLowBandwidth();
   }
+
+  // Initialize the client
+  i2p::client::context.RegisterShutdownHandler([this]() {
+        m_IsRunning = false; 
+      });
   return true;
 }
 

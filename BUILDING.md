@@ -54,11 +54,6 @@ $ sudo pkg install miniupnpc doxygen  # (optional)
 $ brew install cmake boost cryptopp openssl
 $ brew install miniupnpc doxygen  # (optional)
 ```
-And, if your openssl brew is not already linked:
-```bash
-$ export PATH=/usr/local/bin:$PATH
-$ brew link --force openssl
-```
 
 # 3. Building
 

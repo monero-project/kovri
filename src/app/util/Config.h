@@ -42,6 +42,22 @@
 
 namespace i2p {
 namespace util {
+
+const char I2P_TUNNELS_SECTION_TYPE[] = "type";
+const char I2P_TUNNELS_SECTION_TYPE_CLIENT[] = "client";
+const char I2P_TUNNELS_SECTION_TYPE_SERVER[] = "server";
+const char I2P_TUNNELS_SECTION_TYPE_HTTP[] = "http";
+const char I2P_CLIENT_TUNNEL_PORT[] = "port";
+const char I2P_CLIENT_TUNNEL_ADDRESS[] = "address";
+const char I2P_CLIENT_TUNNEL_DESTINATION[] = "destination";
+const char I2P_CLIENT_TUNNEL_KEYS[] = "keys";
+const char I2P_CLIENT_TUNNEL_DESTINATION_PORT[] = "destinationport";
+const char I2P_SERVER_TUNNEL_HOST[] = "host";
+const char I2P_SERVER_TUNNEL_PORT[] = "port";
+const char I2P_SERVER_TUNNEL_KEYS[] = "keys";
+const char I2P_SERVER_TUNNEL_INPORT[] = "inport";
+const char I2P_SERVER_TUNNEL_ACCESS_LIST[] = "accesslist";
+    
 namespace config {
 
 // Our configuration files

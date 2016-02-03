@@ -30,9 +30,6 @@
 
 #include "ClientContext.h"
 
-#include <boost/property_tree/ini_parser.hpp>
-#include <boost/property_tree/ptree.hpp>
-
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -71,87 +68,34 @@ void ClientContext::Start() {
   std::shared_ptr<ClientDestination> localDestination;
 
   // HTTP proxy
-  std::string proxyKeys =
-    i2p::util::config::varMap["proxykeys"].as<std::string>();
-  if (proxyKeys.length() > 0)
-    localDestination = LoadLocalDestination(proxyKeys, false);
-  m_HttpProxy = new i2p::proxy::HTTPProxy(
-      "HTTP Proxy",  // TODO(unassigned): what if we want to change the name?
-      i2p::util::config::varMap["httpproxyaddress"].as<std::string>(),
-      i2p::util::config::varMap["httpproxyport"].as<int>(),
-      localDestination);
   m_HttpProxy->Start();
   LogPrint("HTTP Proxy started");
 
   // SOCKS proxy
-  m_SocksProxy = new i2p::proxy::SOCKSProxy(
-      i2p::util::config::varMap["socksproxyaddress"].as<std::string>(),
-      i2p::util::config::varMap["socksproxyport"].as<int>(),
-      localDestination);
-  m_SocksProxy->Start();
+    m_SocksProxy->Start();
   LogPrint("SOCKS Proxy Started");
 
-  // IRC tunnel
-  std::string ircDestination =
-    i2p::util::config::varMap["ircdest"].as<std::string>();
-  if (ircDestination.length() > 0) {  // ircdest is presented
-    localDestination = nullptr;
-    std::string ircKeys =
-      i2p::util::config::varMap["irckeys"].as<std::string>();
-    if (ircKeys.length() > 0)
-      localDestination = LoadLocalDestination(ircKeys, false);
-    auto ircPort = i2p::util::config::varMap["ircport"].as<int>();
-    auto ircTunnel = new I2PClientTunnel(
-        "IRC",  // TODO(unassigned): what happens if we name a tunnel "IRC"?
-        ircDestination,
-        i2p::util::config::varMap["ircaddress"].as<std::string>(),
-        ircPort,
-        localDestination);
-    ircTunnel->Start();
-    // TODO(unassigned):
-    // allow multiple tunnels on the same port (but on a different address)
-    m_ClientTunnels.insert(
-        std::make_pair(
-          ircPort,
-          std::unique_ptr<I2PClientTunnel>(ircTunnel)));
-    LogPrint("IRC tunnel started");
-  }
+  // Start all client tunnels
+  for(auto& pair : m_ClientTunnels)
+    pair.second->Start();
 
-  // Server tunnel
-  std::string eepKeys = i2p::util::config::varMap["eepkeys"].as<std::string>();
-  if (eepKeys.length() > 0) {  // eepkeys are available
-    localDestination = LoadLocalDestination(eepKeys, true);
-    auto serverTunnel = new I2PServerTunnel(
-        "eepsite",  // TODO(unassigned): what if have a tunnel called "eepsite"?
-        i2p::util::config::varMap["eepaddress"].as<std::string>(),
-        i2p::util::config::varMap["eepport"].as<int>(), localDestination);
-    serverTunnel->Start();
-    m_ServerTunnels.insert(
-        std::make_pair(
-          localDestination->GetIdentHash(),
-          std::unique_ptr<I2PServerTunnel>(serverTunnel)));
-    LogPrint("Server tunnel started");
-  }
-  ReadTunnels();
-
+  // Start all server tunnels
+  for(auto& pair : m_ServerTunnels)
+    pair.second->Start();
+  
   // I2P Control
-  int i2pcontrolPort = i2p::util::config::varMap["i2pcontrolport"].as<int>();
-  if (i2pcontrolPort) {
+  if (m_I2PControlService) {
     LogPrint("Starting I2PControlService ...");
-    m_I2PControlService =
-      new i2pcontrol::I2PControlService(
-        m_Service,
-        i2p::util::config::varMap["i2pcontroladdress"].as<std::string>(),
-        i2pcontrolPort,
-        i2p::util::config::varMap["i2pcontrolpassword"].as<std::string>());
     m_I2PControlService->Start();
-    LogPrint("I2PControl started");
   }
-  m_AddressBook.Start(
-      m_SharedLocalDestination.get());
+  m_AddressBook.Start(m_SharedLocalDestination.get());
 }
 
 void ClientContext::Stop() {
+  std::lock_guard<std::mutex> lockClient(m_ClientMutex);
+  std::lock_guard<std::mutex> lockServer(m_ServerMutex);
+  std::lock_guard<std::mutex> lockDest(m_DestinationsMutex);
+
   if (m_HttpProxy) {
     m_HttpProxy->Stop();
     delete m_HttpProxy;
@@ -193,24 +137,34 @@ void ClientContext::RequestShutdown() {
     m_ShutdownHandler();
 }
 
-std::shared_ptr<ClientDestination> ClientContext::LoadLocalDestination(
-    const std::string& filename,
-    bool isPublic) {
+i2p::data::PrivateKeys ClientContext::LoadPrivateKeys(const std::string& file) {
   i2p::data::PrivateKeys keys;
-  std::string fullPath =
-    i2p::util::filesystem::GetFullPath(filename);
+  std::string fullPath = i2p::util::filesystem::GetFullPath(file);
+
   std::ifstream s(fullPath.c_str(), std::ifstream::binary);
-  if (s.is_open()) {
-    s.seekg(0, std::ios::end);
-    size_t len = s.tellg();
-    s.seekg(0, std::ios::beg);
-    uint8_t* buf = new uint8_t[len];
-    s.read(reinterpret_cast<char *>(buf), len);
-    keys.FromBuffer(buf, len);
-    delete[] buf;
-    LogPrint("Local address ", m_AddressBook.ToAddress(
-          keys.GetPublic().GetIdentHash()), " loaded");
-  } else {
+  s.exceptions(std::ifstream::failbit);
+
+  s.seekg(0, std::ios::end);
+  size_t len = s.tellg();
+  s.seekg(0, std::ios::beg);
+  uint8_t* buf = new uint8_t[len];
+  s.read(reinterpret_cast<char *>(buf), len);
+  keys.FromBuffer(buf, len);
+  delete[] buf;
+
+  LogPrint("Local address ", m_AddressBook.ToAddress(
+        keys.GetPublic().GetIdentHash()), " loaded");
+  return keys;
+}
+
+std::shared_ptr<ClientDestination> ClientContext::LoadLocalDestination(
+    const std::string& filename, bool isPublic) {
+
+  i2p::data::PrivateKeys keys;
+  try {
+    keys = LoadPrivateKeys(filename);
+  } catch(std::ios_base::failure&) {
+    std::string fullPath = i2p::util::filesystem::GetFullPath(filename);
     LogPrint("Can't open file ", fullPath, ", creating new one");
     keys = i2p::data::PrivateKeys::CreateRandomKeys(
         i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
@@ -298,440 +252,200 @@ std::shared_ptr<ClientDestination> ClientContext::FindLocalDestination(
   return nullptr;
 }
 
-void ClientContext::ReloadTunnels() {
-  boost::property_tree::ptree pt;
-  std::string tunnelsConfigFile =
-    i2p::util::filesystem::GetTunnelsConfigFile().string();
+void ClientContext::RemoveServerTunnels(
+    std::function<bool(I2PServerTunnel*)> predicate) {
+  std::lock_guard<std::mutex> lock(m_ServerMutex);
+  for (auto it = m_ServerTunnels.begin(); it != m_ServerTunnels.end();) {
+    if (predicate(it->second.get()))
+      it = m_ServerTunnels.erase(it);
+    else
+      ++it;
+  }
+}
+
+void ClientContext::RemoveClientTunnels(
+    std::function<bool(I2PClientTunnel*)> predicate) {
+  std::lock_guard<std::mutex> lock(m_ClientMutex);
+  for (auto it = m_ClientTunnels.begin(); it != m_ClientTunnels.end();) {
+    if (predicate(it->second.get()))
+      it = m_ClientTunnels.erase(it);
+    else
+      ++it;
+  }
+}
+
+void ClientContext::UpdateServerTunnel(
+    const std::string& tunnelName,
+    const std::string& keyfile,
+    const std::string& hostStr,
+    const std::string& accessList,
+    int port,
+    int inPort,
+    bool http) {
+
+  bool createTunnel = false;
+
   try {
-    boost::property_tree::read_ini(tunnelsConfigFile, pt);
-  } catch (const std::exception& ex) {
-    LogPrint(eLogWarning, "Can't read ", tunnelsConfigFile,
-             ": ", ex.what());
-    return;
+    i2p::data::PrivateKeys keys = LoadPrivateKeys(keyfile);
+    i2p::data::IdentHash i = keys.GetPublic().GetIdentHash();
+    // check if it exists in existing local servers
+    I2PServerTunnel* tunnel = GetServerTunnel(i);
+    if(tunnel == nullptr) {
+      // Server with this name does not exist, create it later
+      createTunnel = true;
+    } else {
+      // Server with this already exists, change the settings
+      tunnel->UpdatePort(port);
+      tunnel->UpdateAddress(hostStr);
+      tunnel->UpdateStreamingPort(inPort);
+      tunnel->SetAccessListString(accessList);
+      // we don't want to stop existing connections on this tunnel so
+      // we DON'T call Stop() as it will call ClearHandlers()
+      // this updates the server tunnel stuff
+      // TODO(unassigned): fix confusing name (Apply instead of Start)
+      m_ServerTunnels[i]->Start();
+    }
+  } catch (std::ios_base::failure&) {
+      // Key file does not exist, let's say it's new, create it later
+      createTunnel = true;
   }
-  // existing tunnel names
-  std::vector<std::string> existingTunnels;
-  // collect existing tunnels
-  {
-    // lock mutex while we collect the tunnels
-    std::lock_guard<std::mutex> clock(m_ServerMutex);
-    std::lock_guard<std::mutex> slock(m_ClientMutex);
-    for ( auto & item : m_ServerTunnels ) {
-      existingTunnels.push_back(item.second->GetName());
-    }
-    for ( auto & item : m_ClientTunnels ) {
-      existingTunnels.push_back(item.second->GetName());
-    }
+
+  if (createTunnel) {
+      // Create the server tunnel 
+      auto localDestination = i2p::client::context.LoadLocalDestination(keyfile, true);
+      I2PServerTunnel* serverTunnel = http ? 
+          new I2PServerTunnelHTTP(
+              tunnelName,
+              hostStr,
+              port,
+              localDestination,
+              inPort) :
+          new I2PServerTunnel(
+              tunnelName,
+              hostStr,
+              port,
+              localDestination,
+              inPort);
+      serverTunnel->SetAccessListString(accessList);
+      // Add the server tunnel
+      InsertServerTunnel(localDestination->GetIdentHash(), serverTunnel);
+      // Start the new server tunnel
+      serverTunnel->Start();
   }
-  // a list of tunnels that exist after config update
-  std::vector<std::string> updatedTunnels;
-  // iterate over tunnels' ident hashes for what's in tunnels.cfg now
-  for (auto& section : pt) {
-    // TODO(unassigned): what if we switch a server from client to tunnel
-    // or vice versa?
-    bool createTunnel = false;
-    std::string tunnelName = section.first;
-    updatedTunnels.push_back(tunnelName);
-    std::string type =
-      section.second.get<std::string>(
-          I2P_TUNNELS_SECTION_TYPE,
-          "");
-    if (type == I2P_TUNNELS_SECTION_TYPE_SERVER ||
-        type == I2P_TUNNELS_SECTION_TYPE_HTTP) {
-      // obtain server options
-      std::string keyfile =
-        section.second.get<std::string>(
-            I2P_SERVER_TUNNEL_KEYS,
-            "");
-      std::string keysFullPath =
-        i2p::util::filesystem::GetFullPath(keyfile);
-      std::string hostStr =
-        section.second.get<std::string>(
-            I2P_SERVER_TUNNEL_HOST,
-            "");
-      int port =
-        section.second.get<int>(
-            I2P_SERVER_TUNNEL_PORT,
-            0);
-      int inPort =
-        section.second.get(
-            I2P_SERVER_TUNNEL_INPORT,
-            0);
-      std::string accessList =
-        section.second.get(
-            I2P_SERVER_TUNNEL_ACCESS_LIST,
-            "");
-      {
-        i2p::data::PrivateKeys keys;
-        // get keyfile
-        std::ifstream s(keysFullPath.c_str(), std::ifstream::binary);
-        if (s.is_open()) {  // keyfile exists already
-          // read private keys
-          s.seekg(0, std::ios::end);
-          size_t len = s.tellg();
-          s.seekg(0, std::ios::beg);
-          uint8_t* buf = new uint8_t[len];
-          s.read(reinterpret_cast<char *>(buf), len);
-          keys.FromBuffer(buf, len);
-          delete[] buf;
-          // get key's ident hash
-          i2p::data::IdentHash i = keys.GetPublic().GetIdentHash();
-          // check if it exists in existing local servers
-          auto itrEnd = existingTunnels.end();
-          auto itr = std::find(existingTunnels.begin(), itrEnd, tunnelName);
-          if (itr == itrEnd) {
-            // the server with this name exists locally
-            // we'll load it outside after we close the private key file when
-            // we fall out if the scope it's in
-            createTunnel = true;
-          } else {
-            // the server with this name is already locally running
-            // let's update the settings of it
-            // first we lock the server tunnels mutex
-            std::lock_guard<std::mutex> lock(m_ServerMutex);
-            // update out port for this server tunnel
-            m_ServerTunnels[i]->UpdatePort(port);
-            // update host for this server tunnel
-            m_ServerTunnels[i]->UpdateAddress(hostStr);
-            // update in port for this server tunnel
-            m_ServerTunnels[i]->UpdateStreamingPort(inPort);
-            // update access list
-            m_ServerTunnels[i]->SetAccessListString(accessList);
-            // we don't want to stop existing connections on this tunnel so
-            // we DON'T call Stop() as it will call ClearHandlers()
-            // this updates the server tunnel stuff,
-            // it should really be called Apply() but whatever
-            m_ServerTunnels[i]->Start();  // apply changes
-          }
-        } else {
-          // key file does not exist, let's say it's new
-          // after we fall out of scope of the open file for the keys,
-          // we'll add it
-          createTunnel = true;
-        }
+
+}
+
+void ClientContext::UpdateClientTunnel(
+    const std::string& tunnelName,
+    const std::string& keyfile,
+    const std::string& destination,
+    const std::string& hostStr,
+    int port,
+    int destPort) {
+
+  I2PClientTunnel* clientTunnel = GetClientTunnel(tunnelName);
+  if (clientTunnel == nullptr) {
+    // Client tunnel does not exist yet, create it 
+    auto localDestination = LoadLocalDestination(keyfile, true);
+    clientTunnel = new I2PClientTunnel(
+          tunnelName,
+          destination,
+          hostStr,
+          port,
+          localDestination,
+          destPort);
+    InsertClientTunnel(port, clientTunnel);
+    clientTunnel->Start();
+  } else {
+    // Client with this name is already locally running, update settings
+    // TODO(unassigned): we MUST have a tunnel given this tunnelName RIGHT!?
+    std::string currentAddr = clientTunnel->GetAddress();
+
+    boost::system::error_code ec;
+    auto nextAddr = boost::asio::ip::address::from_string(hostStr, ec);
+
+    bool rebind = false;
+    if (ec) // New address is not an IP address, compare strings
+      rebind = (hostStr != currentAddr);
+    else // New address is an IP address, compare endpoints
+      rebind = (clientTunnel->GetEndpoint() == boost::asio::ip::tcp::endpoint(
+          nextAddr, port));
+   
+    if (rebind) { 
+      // The IP address has changed, rebind  
+      try {
+        clientTunnel->Rebind(hostStr, port);
+      } catch (std::exception& err) {
+        LogPrint(eLogError, "Failed to rebind ", tunnelName, ": ", err.what());
       }
-      if (createTunnel) {
-        // we're going to create a new server tunnel
-        // load the destination
-        auto localDestination = LoadLocalDestination(keysFullPath, true);
-        I2PServerTunnel* serverTunnel =
-          (type == I2P_TUNNELS_SECTION_TYPE_HTTP) ?
-            new I2PServerTunnelHTTP(
-                tunnelName,
-                hostStr,
-                port,
-                localDestination,
-                inPort) :
-            new I2PServerTunnel(
-                tunnelName,
-                hostStr,
-                port,
-                localDestination,
-                inPort);
-        serverTunnel->SetAccessListString(accessList);
-        // add the server tunnel
-        {
-          // lock access to server tunnels
-          std::lock_guard<std::mutex> lock(m_ServerMutex);
-          auto i = localDestination->GetIdentHash();
-          if (m_ServerTunnels.insert(
-               std::make_pair(
-                   i,
-                   std::unique_ptr<I2PServerTunnel>(serverTunnel))).second) {
-            // we added it
-            serverTunnel->Start();
-          } else {
-            // wtf ? it's already there?
-            LogPrint(eLogError,
-                "WTF! NEW I2P Server Tunnel for destination ",
-                m_AddressBook.ToAddress(i), " exists?!");
-          }
-        }
-      }
-    } else if (type == I2P_TUNNELS_SECTION_TYPE_CLIENT) {
-      // get client tunnel parameters
-      std::string keyfile =
-        section.second.get(
-            I2P_CLIENT_TUNNEL_KEYS,
-            "");
-      std::string keysFullPath =
-        i2p::util::filesystem::GetFullPath(keyfile);
-      std::string destination =
-        section.second.get<std::string>(
-            I2P_CLIENT_TUNNEL_DESTINATION,
-            "");
-      std::string hostStr =
-        section.second.get(
-            I2P_CLIENT_TUNNEL_ADDRESS,
-            "127.0.0.1");
-      int port =
-        section.second.get<int>(
-            I2P_CLIENT_TUNNEL_PORT,
-            0);
-      int destPort =
-        section.second.get(
-            I2P_CLIENT_TUNNEL_DESTINATION_PORT,
-            0);
-      {
-        auto itrEnd = existingTunnels.end();
-        auto itr = std::find(existingTunnels.begin(), itrEnd, tunnelName);
-        createTunnel = itr == itrEnd;
-      }
-      // check if we have a conflicting port
-      {
-        // first we lock the client tunnels mutex
-        std::lock_guard<std::mutex> lock(m_ClientMutex);
-        // check if we have someone with this port
-        auto itr = m_ClientTunnels.find(port);
-        if (itr != m_ClientTunnels.end() &&
-            itr->second->GetName() != tunnelName) {
-          // conflicting port
-          // TODO(unassigned): what if we interchange two client tunnels' ports?
-          LogPrint(eLogError,
-              tunnelName, " will not be updated, Conflicting Port");
-          continue;
-        }
-      }
-      // we're going to create a new client tunnel
-      if (createTunnel) {
-        // load the destination
-        auto localDestination = LoadLocalDestination(keysFullPath, true);
-        try {
-          I2PClientTunnel* clientTunnel =
-            new I2PClientTunnel(
-                tunnelName,
-                destination,
-                hostStr,
-                port,
-                localDestination,
-                destPort);
-          // add the client tunnel
-          {
-            // lock access to server tunnels
-            std::lock_guard<std::mutex> lock(m_ClientMutex);
-            auto i = localDestination->GetIdentHash();
-            if (m_ClientTunnels.insert(
-                  std::make_pair(
-                      port,
-                      std::unique_ptr<I2PClientTunnel>(clientTunnel))).second) {
-              // we added it
-              clientTunnel->Start();
-            } else {
-              // wtf ? it's already there?
-              LogPrint(eLogError,
-                  "WTF! NEW I2P Client Tunnel for destination ",
-                  m_AddressBook.ToAddress(i), " exists?!");
-            }
-          }
-        } catch (std::exception& err) {
-          // error happened while making new tunnel
-          LogPrint(eLogError, "failed to create new tunnel: ", err.what());
-          continue;
-        }
-      } else {
-        // the client with this name is already locally running
-        // let's update the settings of it
-        // first we lock the client tunnels mutex
-        std::lock_guard<std::mutex> lock(m_ClientMutex);
-        // get the tunnel given the name
-        auto itr = std::find_if(
-          m_ClientTunnels.begin(),
-          m_ClientTunnels.end(),
-          [&tunnelName](ClientTunnelEntry & e) -> bool {
-            return e.second->GetName() == tunnelName;
-          });
-        // TODO(unassigned): we MUST have a tunnel given this tunnelName RIGHT!?
-        auto & tun = itr->second;
-        // check what we need to rebind if anything
-        auto currentEndpoint = tun->GetEndpoint();
-        std::string currentAddr = tun->GetAddress();
-        boost::system::error_code ec;
-        auto nextAddr = boost::asio::ip::address::from_string(hostStr, ec);
-        if (ec) {
-          // the next address is not an ip address
-          if (hostStr != currentAddr) {
-            // the new address is different
-            // let's rebind
-            try {
-              tun->Rebind(hostStr, port);
-            } catch (std::exception& err) {
-              LogPrint(eLogError,
-                  "failed to rebind ", tunnelName, ": ", err.what());
-            }
-          }
-        } else {
-          // the next address is an ip address
-          boost::asio::ip::tcp::endpoint nextEndpoint(nextAddr, port);
-          if ( currentEndpoint != nextEndpoint ) {
-            // the endpoints differ
-            // let's rebind
-            try {
-              tun->Rebind(hostStr, port);
-            } catch (std::exception& err) {
-              LogPrint(eLogError,
-                  "failed to rebind ", tunnelName, ": ", err.what());
-            }
-          }
-        }
-      }
-    }
-  }
-  {
-    // remove all non existant server tunnels
-    std::vector<std::string> remove;
-    std::lock_guard<std::mutex> lock(m_ServerMutex);
-    for (auto& entry : m_ServerTunnels) {
-      std::string tunnelName = entry.second->GetName();
-      auto itrEnd = updatedTunnels.end();
-      auto itr = std::find(updatedTunnels.begin(), itrEnd, tunnelName);
-      if (itr == itrEnd) {
-        remove.push_back(tunnelName);
-      }
-    }
-    for (auto& tunnelName : remove) {
-      auto itr =
-        std::find_if(
-            m_ServerTunnels.begin(),
-            m_ServerTunnels.end(),
-            [&tunnelName](ServerTunnelEntry & entry) -> bool {
-          return entry.second->GetName() == tunnelName;
-        });
-      m_ServerTunnels.erase(itr);
-    }
-  }
-  {
-    // remove all non existant client tunnels
-    std::vector<std::string> remove;
-    std::lock_guard<std::mutex> lock(m_ClientMutex);
-    for (auto& entry : m_ClientTunnels) {
-      std::string tunnelName = entry.second->GetName();
-      auto itrEnd = updatedTunnels.end();
-      auto itr = std::find(updatedTunnels.begin(), itrEnd, tunnelName);
-      if (itr == itrEnd) {
-        remove.push_back(tunnelName);
-      }
-    }
-    for (auto & tunnelName : remove) {
-      LogPrint(eLogInfo, "Removing Tunnel ", tunnelName);
-      auto itr =
-        std::find_if(
-            m_ClientTunnels.begin(),
-            m_ClientTunnels.end(),
-            [&tunnelName](ClientTunnelEntry & entry) -> bool {
-          return entry.second->GetName() == tunnelName;
-        });
-      m_ClientTunnels.erase(itr);
     }
   }
 }
 
 void ClientContext::RegisterShutdownHandler(std::function<void(void)> handler) {
- m_ShutdownHandler = handler; 
+  m_ShutdownHandler = handler; 
 }
 
-void ClientContext::ReadTunnels() {
-  boost::property_tree::ptree pt;
-  std::string pathTunnelsConfigFile =
-    i2p::util::filesystem::GetTunnelsConfigFile().string();
-  try {
-    boost::property_tree::read_ini(pathTunnelsConfigFile, pt);
-  } catch(const std::exception& ex) {
-    LogPrint(eLogWarning, "Can't read ",
-        pathTunnelsConfigFile, ": ", ex.what());
-    return;
-  }
-  int numClientTunnels = 0, numServerTunnels = 0;
-  for (auto& section : pt) {
-    std::string name = section.first;
-    try {
-      std::string type =
-        section.second.get<std::string>(I2P_TUNNELS_SECTION_TYPE);
-      if (type == I2P_TUNNELS_SECTION_TYPE_CLIENT) {
-        // mandatory params
-        std::string dest =
-          section.second.get<std::string>(I2P_CLIENT_TUNNEL_DESTINATION);
-        int port = section.second.get<int>(I2P_CLIENT_TUNNEL_PORT);
-        // optional params
-        std::string address =
-          section.second.get(
-            I2P_CLIENT_TUNNEL_ADDRESS,
-            "127.0.0.1");
-        std::string keys =
-          section.second.get(
-            I2P_CLIENT_TUNNEL_KEYS,
-            "");
-        int destinationPort =
-          section.second.get(
-              I2P_CLIENT_TUNNEL_DESTINATION_PORT,
-              0);
-        std::shared_ptr<ClientDestination>localDestination = nullptr;
-        if (keys.length() > 0)
-          localDestination = LoadLocalDestination(keys, false);
-        auto clientTunnel = new I2PClientTunnel(
-            name,
-            dest,
-            address,
-            port,
-            localDestination,
-            destinationPort);
-        // TODO(anonimal):
-        // allow multiple tunnels on the same port (but on a different address)
-        if (m_ClientTunnels.insert(
-              std::make_pair(
-                port,
-                std::unique_ptr<I2PClientTunnel>(clientTunnel))).second)
-          clientTunnel->Start();
-        else
-          LogPrint(eLogError, "I2P client tunnel with port ",
-              port, " already exists");
-        numClientTunnels++;
-      } else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER ||
-          type == I2P_TUNNELS_SECTION_TYPE_HTTP) {
-        // mandatory params
-        std::string host =
-          section.second.get<std::string>(
-              I2P_SERVER_TUNNEL_HOST);
-        int port =
-          section.second.get<int>(
-              I2P_SERVER_TUNNEL_PORT);
-        std::string keys =
-          section.second.get<std::string>(
-              I2P_SERVER_TUNNEL_KEYS);
-        // optional params
-        int inPort =
-          section.second.get(
-              I2P_SERVER_TUNNEL_INPORT,
-              0);
-        std::string accessList =
-          section.second.get(
-              I2P_SERVER_TUNNEL_ACCESS_LIST,
-              "");
-        auto localDestination = LoadLocalDestination(keys, true);
-        I2PServerTunnel* serverTunnel =
-          (type == I2P_TUNNELS_SECTION_TYPE_HTTP) ?
-          new I2PServerTunnelHTTP(name, host, port, localDestination, inPort) :
-          new I2PServerTunnel(name, host, port, localDestination, inPort);
-        serverTunnel->SetAccessListString(accessList);
-        if (m_ServerTunnels.insert(
-              std::make_pair(
-                localDestination->GetIdentHash(),
-                std::unique_ptr<I2PServerTunnel>(serverTunnel))).second)
-          serverTunnel->Start();
-        else
-          LogPrint(eLogError, "I2P server tunnel for destination ",
-              m_AddressBook.ToAddress(
-                localDestination->GetIdentHash()), " already exists");
-        numServerTunnels++;
-      } else {
-        LogPrint(eLogWarning, "Unknown section type=", type,
-            " of ", name, " in ", pathTunnelsConfigFile);
-      }
-    } catch(const std::exception& ex) {
-      LogPrint(eLogError, "Can't read tunnel ", name, " params: ", ex.what());
-    }
-  }
-  LogPrint(eLogInfo, numClientTunnels, " I2P client tunnels created");
-  LogPrint(eLogInfo, numServerTunnels, " I2P server tunnels created");
+bool ClientContext::InsertClientTunnel(int port, I2PClientTunnel* tunnel) {
+  std::lock_guard<std::mutex> lock(m_ClientMutex);
+  return m_ClientTunnels.insert(
+      std::make_pair(port, std::unique_ptr<I2PClientTunnel>(tunnel))).second;
+}
+
+bool ClientContext::InsertServerTunnel(const i2p::data::IdentHash& id,
+    I2PServerTunnel* tunnel) {
+  std::lock_guard<std::mutex> lock(m_ServerMutex);
+  return m_ServerTunnels.insert(
+      std::make_pair(id, std::unique_ptr<I2PServerTunnel>(tunnel))).second;
+}
+
+void ClientContext::SetI2PControlService(
+    i2p::client::i2pcontrol::I2PControlService* service) {
+  m_I2PControlService = service;
+}
+
+void ClientContext::SetHTTPProxy(i2p::proxy::HTTPProxy* proxy) {
+  m_HttpProxy = proxy;
+}
+
+void ClientContext::SetSOCKSProxy(i2p::proxy::SOCKSProxy* proxy) {
+  m_SocksProxy = proxy;
+}
+
+I2PServerTunnel* ClientContext::GetServerTunnel(const std::string& name) {
+  std::lock_guard<std::mutex> lock(m_ServerMutex);
+  auto it = std::find_if(
+      m_ServerTunnels.begin(), m_ServerTunnels.end(),
+      [&name](ServerTunnelEntry & e) -> bool {
+        return e.second->GetName() == name;
+      });
+  return it == m_ServerTunnels.end() ? nullptr : it->second.get();
+}
+
+I2PServerTunnel* ClientContext::GetServerTunnel(const i2p::data::IdentHash& id) {
+  std::lock_guard<std::mutex> lock(m_ServerMutex);
+  auto it = m_ServerTunnels.find(id);
+  return it == m_ServerTunnels.end() ? nullptr : it->second.get();
+}
+
+I2PClientTunnel* ClientContext::GetClientTunnel(const std::string& name) {
+  std::lock_guard<std::mutex> lock(m_ClientMutex);
+  auto it = std::find_if(
+      m_ClientTunnels.begin(), m_ClientTunnels.end(),
+      [&name](ClientTunnelEntry & e) -> bool {
+        return e.second->GetName() == name;
+      });
+  return it == m_ClientTunnels.end() ? nullptr : it->second.get();
+}
+
+I2PClientTunnel* ClientContext::GetClientTunnel(int port) {
+  std::lock_guard<std::mutex> lock(m_ClientMutex);
+  auto it = m_ClientTunnels.find(port);
+  return it == m_ClientTunnels.end() ? nullptr : it->second.get();
+}
+
+boost::asio::io_service& ClientContext::GetIoService() {
+  return m_Service;
 }
 
 }  // namespace client

@@ -50,7 +50,6 @@
 #include "NetDbRequests.h"
 #include "Reseed.h"
 #include "RouterInfo.h"
-#include "client/util/Filesystem.h"
 #include "tunnel/Tunnel.h"
 #include "tunnel/TunnelPool.h"
 #include "util/Queue.h"

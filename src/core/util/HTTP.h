@@ -51,7 +51,6 @@
 
 #include "Log.h"
 #include "Reseed.h"
-#include "client/util/Filesystem.h"
 
 namespace i2p {
 namespace util {

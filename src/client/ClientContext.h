@@ -47,21 +47,6 @@
 namespace i2p {
 namespace client {
 
-const char I2P_TUNNELS_SECTION_TYPE[] = "type";
-const char I2P_TUNNELS_SECTION_TYPE_CLIENT[] = "client";
-const char I2P_TUNNELS_SECTION_TYPE_SERVER[] = "server";
-const char I2P_TUNNELS_SECTION_TYPE_HTTP[] = "http";
-const char I2P_CLIENT_TUNNEL_PORT[] = "port";
-const char I2P_CLIENT_TUNNEL_ADDRESS[] = "address";
-const char I2P_CLIENT_TUNNEL_DESTINATION[] = "destination";
-const char I2P_CLIENT_TUNNEL_KEYS[] = "keys";
-const char I2P_CLIENT_TUNNEL_DESTINATION_PORT[] = "destinationport";
-const char I2P_SERVER_TUNNEL_HOST[] = "host";
-const char I2P_SERVER_TUNNEL_PORT[] = "port";
-const char I2P_SERVER_TUNNEL_KEYS[] = "keys";
-const char I2P_SERVER_TUNNEL_INPORT[] = "inport";
-const char I2P_SERVER_TUNNEL_ACCESS_LIST[] = "accesslist";
-
 class ClientContext {
  public:
   ClientContext();
@@ -100,22 +85,92 @@ class ClientContext {
 
   std::shared_ptr<ClientDestination> FindLocalDestination(
       const i2p::data::IdentHash& destination) const;
+  
+  /// Loads the private keys from the given file
+  /// @param file the relative name of the private key file
+  /// @return the loaded private keys
+  i2p::data::PrivateKeys LoadPrivateKeys(const std::string& file);
 
   std::shared_ptr<ClientDestination> LoadLocalDestination(
       const std::string& filename, bool isPublic);
 
   AddressBook& GetAddressBook() { return m_AddressBook; }
 
-  /// Reloads tunnels.cfg.
-  /// Removes tunnels not in new tunnels.cfg.
-  /// Adds tunnels that were previously not in tunnels.cfg.
-  void ReloadTunnels();
+  /// Removes all server unnels satisfying the given predicate
+  /// @param predicate a unary predicate used to filter server tunnels
+  void RemoveServerTunnels(std::function<bool(I2PServerTunnel*)> predicate);
+
+  /// Removes all client tunnels satisfying the given predicate
+  /// @param predicate a unary predicate used to filter client tunnels
+  void RemoveClientTunnels(std::function<bool(I2PClientTunnel*)> predicate);
+
+  /// Updates or creates the specified server tunnel
+  /// @param keyfile the relative filename of the key file 
+  /// @param http true if server tunnel is an HTTP tunnel
+  void UpdateServerTunnel(
+    const std::string& tunnelName,
+    const std::string& keyfile,
+    const std::string& hostStr,
+    const std::string& accessList,
+    int port,
+    int inPort,
+    bool http);
+
+  /// Updates or creates the specified client tunnel
+  /// @param tunnelName the name of the client tunnel
+  /// @param keyfile the relative filename of the key file 
+  void UpdateClientTunnel(
+    const std::string& tunnelName,
+    const std::string& keyfile,
+    const std::string& destination,
+    const std::string& hostStr,
+    int port,
+    int destPort);
 
   /// Registers a shutdown handler, called by ClientContext::RequestShutdown.
+  /// @param the handler to be called on shutdown
   void RegisterShutdownHandler(std::function<void(void)> handler);
 
- private:
-  void ReadTunnels();
+  /// Inserts a client tunnel.
+  /// @return true if the tunnel was inserted, false otherwise
+  /// @note takes ownership of the given pointer
+  bool InsertClientTunnel(int port, I2PClientTunnel* tunnel);
+
+  /// Inserts a server tunnel.
+  /// @return true if the tunnel was inserted, false otherwise
+  /// @note takes ownership of the given pointer
+  bool InsertServerTunnel(
+      const i2p::data::IdentHash& id,
+      I2PServerTunnel* tunnel);
+
+  /// Sets the I2PControl service
+  /// @param service a pointer to the I2PControlService
+  /// @note takes ownership of the given pointer
+  void SetI2PControlService(i2p::client::i2pcontrol::I2PControlService* service);
+
+  /// Sets the HTTP proxy.
+  /// @param proxy a pointer to the HTTPProxy
+  /// @note takes ownership of the given pointer
+  void SetHTTPProxy(i2p::proxy::HTTPProxy* proxy);
+
+  /// Sets the SOCKS proxy.
+  /// @param proxy a pointer to the SOCKSProxy
+  /// @note takes ownership of the given pointer
+  void SetSOCKSProxy(i2p::proxy::SOCKSProxy* proxy);
+
+  /// @return the client tunnel with the given name, or nullptr
+  I2PServerTunnel* GetServerTunnel(const std::string& name);
+
+  /// @return the server tunnel with the given identity hash, or nullptr
+  I2PServerTunnel* GetServerTunnel(const i2p::data::IdentHash& id);
+
+  /// @return the client tunnel with the given name, or nullptr
+  I2PClientTunnel* GetClientTunnel(const std::string& name);
+
+  /// @return the client tunnel with the given (local) port
+  I2PClientTunnel* GetClientTunnel(int port);
+
+  boost::asio::io_service& GetIoService();
 
  private:
   std::mutex m_DestinationsMutex;

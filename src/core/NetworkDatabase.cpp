@@ -325,8 +325,7 @@ bool NetDb::Reseed() {
 }
 
 void NetDb::Load() {
-  boost::filesystem::path p(
-      i2p::util::filesystem::GetDataPath() / m_NetDbPath);
+  boost::filesystem::path p(i2p::context.GetDataPath() / m_NetDbPath);
   if (!boost::filesystem::exists(p)) {
     // seems netDb doesn't exist yet
     if (!CreateNetDb(p)) return;
@@ -378,7 +377,7 @@ void NetDb::SaveUpdated() {
     return directory / (std::string("r") + s[0]) / ("routerInfo-" + s + ".dat");
   };
   boost::filesystem::path fullDirectory(
-      i2p::util::filesystem::GetDataPath() / m_NetDbPath);
+      i2p::context.GetDataPath() / m_NetDbPath);
   int count = 0,
       deletedCount = 0;
   auto total = m_RouterInfos.size();

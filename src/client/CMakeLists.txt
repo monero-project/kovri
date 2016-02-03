@@ -9,9 +9,7 @@ set(CLIENT_SRC
   "AddressBook.cpp"
   "Destination.cpp"
   "ClientContext.cpp"
-  "I2PService.cpp"
-  "util/Config.cpp"
-  "util/Filesystem.cpp")
+  "I2PService.cpp")
 
 include_directories(
   "."

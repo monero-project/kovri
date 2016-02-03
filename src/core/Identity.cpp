@@ -49,6 +49,7 @@
 #include "crypto/Signature.h"
 #include "util/Base64.h"
 #include "util/I2PEndian.h"
+#include "util/Log.h"
 
 namespace i2p {
 namespace data {

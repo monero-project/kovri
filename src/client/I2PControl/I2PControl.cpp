@@ -40,6 +40,7 @@
 #include <sstream>
 #include <string>
 
+#include "core/RouterContext.h"
 #include "core/NetworkDatabase.h"
 #include "client/ClientContext.h"
 #include "core/Version.h"
@@ -467,7 +468,7 @@ void I2PControlSession::HandleDatapath(
     Response& response) {
   response.SetParam(
       constants::ROUTER_INFO_DATAPATH,
-      i2p::util::filesystem::GetDefaultDataPath().string());
+      i2p::context.GetDataPath().string());
 }
 
 void I2PControlSession::HandleNetDbKnownPeers(

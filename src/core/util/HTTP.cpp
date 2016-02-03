@@ -30,6 +30,8 @@
 
 #include "HTTP.h"
 
+#include "util/Filesystem.h"
+
 #include <string>
 #include <functional>
 

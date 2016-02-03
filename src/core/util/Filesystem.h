@@ -28,25 +28,34 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <thread>
+#ifndef SRC_CORE_UTIL_FILESYSTEM_H_
+#define SRC_CORE_UTIL_FILESYSTEM_H_
 
-#include "Daemon.h"
-#include "util/Config.h"
+#include <boost/filesystem.hpp>
 
-int main(int argc, char* argv[]) {
-  try {
-    if (i2p::util::config::ParseArgs(argc, argv) == 1)
-      return EXIT_FAILURE;
-  } catch(const std::exception& ex) {
-      std::cout << ex.what() << "\nTry using --help" << std::endl;
-      return EXIT_FAILURE;
-  }
-  if (!Daemon.Init())
-    return EXIT_FAILURE;
-  if (Daemon.Start()) {
-    while (Daemon.m_IsRunning)
-      std::this_thread::sleep_for(std::chrono::seconds(1));
-  }
-  Daemon.Stop();
-  return EXIT_SUCCESS;
-}
+/**
+ * Fixes undefined reference to boost::filesystem::detail::copy_file
+ * See https://github.com/purplei2p/i2pd/issues/272
+ */
+#define BOOST_NO_CXX11_SCOPED_ENUMS
+
+namespace i2p {
+namespace util {
+namespace filesystem {
+
+namespace bfs = boost::filesystem;
+
+/// @return the full path of a file within the kovri directory
+std::string GetFullPath(const std::string& filename);
+
+/// @return the path to certificates for SU3 verification
+bfs::path GetSU3CertsPath();
+
+/// @return the path to SSL certificates for TLS/SSL negotiation
+bfs::path GetSSLCertsPath();
+
+}  // namespace filesystem
+}  // namespace util
+}  // namespace i2p
+
+#endif  // SRC_CORE_UTIL_FILESYSTEM_H_

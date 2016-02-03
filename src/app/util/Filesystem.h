@@ -39,8 +39,8 @@
 #include <set>
 #include <string>
 
-#include "Config.h"
 #include "core/util/Log.h"
+#include "core/util/Filesystem.h"
 
 /**
  * Fixes undefined reference to boost::filesystem::detail::copy_file
@@ -72,12 +72,6 @@ bfs::path GetConfigFile();
 
 // @return the path of the tunnels configuration file
 bfs::path GetTunnelsConfigFile();
-
-// @return the path to certificates for SU3 verification
-bfs::path GetSU3CertsPath();
-
-// @return the path to SSL certificates for TLS/SSL negotiation
-bfs::path GetSSLCertsPath();
 
 // @return the path of the kovri directory
 const bfs::path& GetDataPath();

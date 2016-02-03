@@ -44,15 +44,40 @@
 namespace i2p {
 namespace util {
 
+// TODO(EinMByte): Move this to somewhere else (Config.h/cpp?)
+const char I2P_TUNNELS_SECTION_TYPE[] = "type";
+const char I2P_TUNNELS_SECTION_TYPE_CLIENT[] = "client";
+const char I2P_TUNNELS_SECTION_TYPE_SERVER[] = "server";
+const char I2P_TUNNELS_SECTION_TYPE_HTTP[] = "http";
+const char I2P_CLIENT_TUNNEL_PORT[] = "port";
+const char I2P_CLIENT_TUNNEL_ADDRESS[] = "address";
+const char I2P_CLIENT_TUNNEL_DESTINATION[] = "destination";
+const char I2P_CLIENT_TUNNEL_KEYS[] = "keys";
+const char I2P_CLIENT_TUNNEL_DESTINATION_PORT[] = "destinationport";
+const char I2P_SERVER_TUNNEL_HOST[] = "host";
+const char I2P_SERVER_TUNNEL_PORT[] = "port";
+const char I2P_SERVER_TUNNEL_KEYS[] = "keys";
+const char I2P_SERVER_TUNNEL_INPORT[] = "inport";
+const char I2P_SERVER_TUNNEL_ACCESS_LIST[] = "accesslist";
+
 class Daemon_Singleton {
  public:
   virtual bool Init();
   virtual bool Start();
   virtual bool Stop();
-  virtual void Reload() = 0;
+  virtual void Reload();
   bool m_IsDaemon,
        m_IsLogging,
        m_IsRunning;
+
+ private:
+  /// Initializes the router's client context object
+  /// Creates tunnels, proxies and I2PControl service
+  void InitClientContext();
+  void SetupDefaultIRCTunnel();
+  void SetupEepsiteTunnel();
+  void SetupCustomTunnels();
+  void ReloadClientTunnels();
 
  protected:
   Daemon_Singleton();

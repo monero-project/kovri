@@ -1,6 +1,8 @@
 set(MAIN_SRC
   "Kovri.cpp"
-  "Daemon.cpp")
+  "Daemon.cpp"
+  "util/Config.cpp"
+  "util/Filesystem.cpp")
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   list(APPEND MAIN_SRC "DaemonLinux.cpp")

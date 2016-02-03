@@ -28,25 +28,36 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <thread>
+#include "Filesystem.h"
+#include "RouterContext.h"
 
-#include "Daemon.h"
-#include "util/Config.h"
+#include <string>
 
-int main(int argc, char* argv[]) {
-  try {
-    if (i2p::util::config::ParseArgs(argc, argv) == 1)
-      return EXIT_FAILURE;
-  } catch(const std::exception& ex) {
-      std::cout << ex.what() << "\nTry using --help" << std::endl;
-      return EXIT_FAILURE;
-  }
-  if (!Daemon.Init())
-    return EXIT_FAILURE;
-  if (Daemon.Start()) {
-    while (Daemon.m_IsRunning)
-      std::this_thread::sleep_for(std::chrono::seconds(1));
-  }
-  Daemon.Stop();
-  return EXIT_SUCCESS;
+namespace i2p {
+namespace util {
+namespace filesystem {
+
+namespace bfs = boost::filesystem;
+
+bfs::path GetSU3CertsPath() {
+  return i2p::context.GetDataPath() / "resources" / "certificates" / "su3";
 }
+
+bfs::path GetSSLCertsPath() {
+  return i2p::context.GetDataPath() / "resources" / "certificates" / "ssl";
+}
+
+std::string GetFullPath(const std::string& filename) {
+  std::string fullPath = i2p::context.GetDataPath().string();
+#ifdef _WIN32
+  fullPath.append("\\");
+#else
+  fullPath.append("/");
+#endif
+  fullPath.append(filename);
+  return fullPath;
+}
+
+}  // namespace filesystem
+}  // namespace util
+}  // namespace i2p

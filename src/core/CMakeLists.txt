@@ -32,7 +32,8 @@ set(CORE_SRC
   "util/Base64.cpp"
   "util/HTTP.cpp"
   "util/Log.cpp"
-  "util/MTU.cpp")
+  "util/MTU.cpp"
+  "util/Filesystem.cpp")
 
 set(EDDSA_SRC
   "crypto/ed25519/fe_0.cpp"

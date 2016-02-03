@@ -167,7 +167,7 @@ void Daemon_Singleton::Reload() {
   // TODO(psi): do we want to add locking?
   LogPrint("Reloading configuration");
   // reload tunnels.cfg
-  ReloadClientTunnels();
+  ReloadTunnels();
   // TODO(psi): reload kovri.conf
 }
 
@@ -203,49 +203,11 @@ void Daemon_Singleton::InitClientContext() {
           i2p::util::config::varMap["i2pcontrolpassword"].as<std::string>()));
   }
 
-  // Insert client and server tunnels
-  SetupDefaultIRCTunnel();
-  SetupEepsiteTunnel();
-  SetupCustomTunnels();
+  // Setup client and server tunnels
+  SetupTunnels();
 }
 
-void Daemon_Singleton::SetupDefaultIRCTunnel() {
-  const std::string ircDestination =
-    i2p::util::config::varMap["ircdest"].as<std::string>();
-
-  std::shared_ptr<i2p::client::ClientDestination> localDestination;
-  if (ircDestination.length() > 0) {  // ircdest is presented
-    localDestination = nullptr;
-    const std::string ircKeys =
-      i2p::util::config::varMap["irckeys"].as<std::string>();
-    if (ircKeys.length() > 0)
-      localDestination = i2p::client::context.LoadLocalDestination(ircKeys, false);
-
-    const int port = i2p::util::config::varMap["ircport"].as<int>();
-    i2p::client::context.InsertClientTunnel(port,
-        new i2p::client::I2PClientTunnel(
-          "IRC",  // TODO(unassigned): what happens if we name a tunnel "IRC"?
-          ircDestination,
-          i2p::util::config::varMap["ircaddress"].as<std::string>(),
-          port,
-          localDestination));
-  }
-}
-
-void Daemon_Singleton::SetupEepsiteTunnel() {
-  std::string eepKeys = i2p::util::config::varMap["eepkeys"].as<std::string>();
-  if (eepKeys.length() > 0) {  // eepkeys are available
-    std::shared_ptr<i2p::client::ClientDestination> localDestination =
-        i2p::client::context.LoadLocalDestination(eepKeys, true);
-    i2p::client::context.InsertServerTunnel(localDestination->GetIdentHash(),
-        new i2p::client::I2PServerTunnel(
-          "eepsite",  // TODO(unassigned): what if we name a tunnel "eepsite"?
-          i2p::util::config::varMap["eepaddress"].as<std::string>(),
-          i2p::util::config::varMap["eepport"].as<int>(), localDestination));
-  }
-}
-
-void Daemon_Singleton::SetupCustomTunnels() {
+void Daemon_Singleton::SetupTunnels() {
   boost::property_tree::ptree pt;
   std::string pathTunnelsConfigFile =
     i2p::util::filesystem::GetTunnelsConfigFile().string();
@@ -332,7 +294,7 @@ void Daemon_Singleton::SetupCustomTunnels() {
   LogPrint(eLogInfo, numServerTunnels, " I2P server tunnels created");
 }
 
-void Daemon_Singleton::ReloadClientTunnels() {
+void Daemon_Singleton::ReloadTunnels() {
   boost::property_tree::ptree pt;
   std::string tunnelsConfigFile =
     i2p::util::filesystem::GetTunnelsConfigFile().string();
@@ -346,8 +308,7 @@ void Daemon_Singleton::ReloadClientTunnels() {
 
   // List of tunnels that still exist after config update
   // Make sure the default IRC and eepsite tunnels do not get removed
-  // TODO(EinMByte): Why not get rid of default tunnels? Use the config file.
-  std::vector<std::string> updatedTunnels = {"IRC", "eepsite"};
+  std::vector<std::string> updatedTunnels;
  
   // Iterate over tunnels' ident hashes for what's in tunnels.cfg now
   for (auto& section : pt) {

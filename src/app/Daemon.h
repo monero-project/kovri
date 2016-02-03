@@ -58,10 +58,8 @@ class Daemon_Singleton {
   /// Initializes the router's client context object
   /// Creates tunnels, proxies and I2PControl service
   void InitClientContext();
-  void SetupDefaultIRCTunnel();
-  void SetupEepsiteTunnel();
-  void SetupCustomTunnels();
-  void ReloadClientTunnels();
+  void SetupTunnels();
+  void ReloadTunnels();
 
  protected:
   Daemon_Singleton();

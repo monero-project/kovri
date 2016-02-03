@@ -59,11 +59,10 @@ namespace http {
 /**
  * @return the result of the download, or an empty string if it fails
  */
-std::string HttpsDownload(
-    const std::string& address);
+std::string HttpsDownload(const std::string& address);
 
 /**
- * @class URI provides functionality for parsing URIs
+ * Provides functionality for parsing URIs
  */
 class URI {
   /**
@@ -75,10 +74,10 @@ class URI {
    * Note: fragments are not parsed by this function (if they should
    * ever be needed in the future).
    *
-   * @param string URI
+   * @param uri the URI to be parsed
+   * @warning the default port is 80, for HTTPS it is 443
    */
-  void ParseURI(
-      const std::string& uri);
+  void ParseURI(const std::string& uri);
  public:
   std::string m_Protocol, m_Host, m_Path, m_PortString, m_Query;
   int m_Port;
@@ -87,8 +86,9 @@ class URI {
 };
 
 /**
- * Header for HTTPS requests.
+ * Header for HTTP requests.
  * @return a string of the complete header
+ * @warning this function does NOT append an additional \r\n
  */
 std::string HttpHeader(
     const std::string& path,
@@ -98,8 +98,7 @@ std::string HttpHeader(
 /**
  * @return the content of the given HTTP stream without headers
  */
-std::string GetHttpContent(
-    std::istream& response);
+std::string GetHttpContent(std::istream& response);
 
 /**
  * Merge chunks of an HTTP response.

@@ -69,7 +69,7 @@ std::string HttpsDownload(
           LogPrint(eLogInfo, "Connected to ", uri.m_Host, ":", uri.m_Port);
           // Send header
           std::stringstream sendStream;
-          sendStream << HttpHeader(uri.m_Path, uri.m_Host, "1.1");
+          sendStream << HttpHeader(uri.m_Path, uri.m_Host, "1.1") << "\r\n";
           socket.write_some(buffer(sendStream.str()));
           // Read response / download
           std::stringstream readStream;
@@ -103,11 +103,16 @@ std::string HttpsDownload(
 
 URI::URI(
     const std::string& uri) {
-  m_PortString = "443";
-  m_Port = 443;
   m_Path = "";
   m_Query = "";
   ParseURI(uri);
+  if (m_Protocol == "https") {
+    m_PortString = "443";
+    m_Port = 443;
+  } else {
+    m_PortString = "80";
+    m_Port = 80;
+  }
 }
 
 void URI::ParseURI(
@@ -157,7 +162,7 @@ void URI::ParseURI(
     try {
       m_Port = boost::lexical_cast<decltype(m_Port)>(m_PortString);
     } catch (const exception& e) {
-      m_Port = 443;
+      // Keep the default port
     }
   }
   // Parse query, assuming it's valid input
@@ -177,7 +182,7 @@ std::string HttpHeader(
     "Host: " + host + "\r\n" +
     "Accept: */*\r\n" +
     "User-Agent: Wget/1.11.4\r\n" +
-    "Connection: close\r\n\r\n";
+    "Connection: close\r\n";
   return header;
 }
 

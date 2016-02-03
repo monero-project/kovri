@@ -15,7 +15,7 @@ Optional
 ## FreeBSD 10
 - [Clang](http://clang.llvm.org/) 3.4.1
 
-## MacOSX 10.8.5
+## MacOSX 10.9.4 (Mavericks)
 - [Apple LLVM](https://developer.apple.com/library/mac/documentation/CompilerTools/Conceptual/LLVMCompilerOverview/) 5.1
 - [Homebrew](http://brew.sh/)
 
@@ -49,7 +49,7 @@ $ sudo pkg install cmake boost-libs cryptopp openssl
 $ sudo pkg install miniupnpc doxygen  # (optional)
 ```
 
-## MacOSX
+## MacOSX (Mavericks)
 ```bash
 $ brew install cmake boost cryptopp openssl
 $ brew install miniupnpc doxygen  # (optional)

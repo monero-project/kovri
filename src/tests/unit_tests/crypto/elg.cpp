@@ -15,7 +15,8 @@ struct ElgamalFixture {
   uint8_t publicKey[256];
   ElGamalEncryption* enc;
   static constexpr size_t messageLen = 222;
-
+  static constexpr size_t cipherTextLen = 512;
+  static constexpr size_t zpCipherTextLen = cipherTextLen + 2;
   ElgamalFixture() {
     // TODO(psi): use static keys
     GenerateElGamalKeyPair(privateKey, publicKey);
@@ -32,7 +33,7 @@ struct ElgamalFixture {
 
 BOOST_FIXTURE_TEST_CASE(ElgamalEncryptDecryptSuccess, ElgamalFixture) {
   uint8_t plaintext[messageLen];
-  uint8_t ciphertext[512];
+  uint8_t ciphertext[cipherTextLen];
   uint8_t result[messageLen];
   RandBytes(plaintext, messageLen);
   enc->Encrypt(plaintext, messageLen, ciphertext, false);
@@ -45,7 +46,7 @@ BOOST_FIXTURE_TEST_CASE(ElgamalEncryptDecryptSuccess, ElgamalFixture) {
 
 BOOST_FIXTURE_TEST_CASE(ElgamalEncryptDecryptFail, ElgamalFixture) {
   uint8_t plaintext[messageLen];
-  uint8_t ciphertext[512];
+  uint8_t ciphertext[cipherTextLen];
   uint8_t result[messageLen];
   RandBytes(plaintext, messageLen);
   enc->Encrypt(plaintext, messageLen, ciphertext, false);
@@ -57,7 +58,7 @@ BOOST_FIXTURE_TEST_CASE(ElgamalEncryptDecryptFail, ElgamalFixture) {
 
 BOOST_FIXTURE_TEST_CASE(ElgamalEncryptDecryptZeroPaddBadPad, ElgamalFixture) {
   uint8_t plaintext[messageLen];
-  uint8_t ciphertext[514];
+  uint8_t ciphertext[zpCipherTextLen];
   uint8_t result[messageLen];
   RandBytes(plaintext, messageLen);
   enc->Encrypt(plaintext, messageLen, ciphertext, true);
@@ -69,7 +70,7 @@ BOOST_FIXTURE_TEST_CASE(ElgamalEncryptDecryptZeroPaddBadPad, ElgamalFixture) {
 
 BOOST_FIXTURE_TEST_CASE(ElgamalEncryptDecryptZeroPadSuccess, ElgamalFixture) {
   uint8_t plaintext[messageLen];
-  uint8_t ciphertext[514];
+  uint8_t ciphertext[zpCipherTextLen];
   uint8_t result[messageLen];
   RandBytes(plaintext, messageLen);
   enc->Encrypt(plaintext, messageLen, ciphertext, true);
@@ -82,6 +83,23 @@ BOOST_FIXTURE_TEST_CASE(ElgamalEncryptDecryptZeroPadSuccess, ElgamalFixture) {
       plaintext, plaintext + messageLen,
       result, result + messageLen);
   }
+}
+
+BOOST_FIXTURE_TEST_CASE(ElgamalEncryptDecryptZeroPadSmallMessageSuccess,
+                        ElgamalFixture) {
+  size_t smaller = 50;
+  uint8_t plaintext[messageLen-smaller];
+  uint8_t ciphertext[zpCipherTextLen];
+  uint8_t result[messageLen];
+  RandBytes(plaintext, messageLen-smaller);
+  enc->Encrypt(plaintext, messageLen, ciphertext, true);
+  
+  BOOST_CHECK(ElGamalDecrypt(privateKey, ciphertext, result, true));
+  
+  BOOST_CHECK_EQUAL_COLLECTIONS(
+    plaintext, plaintext + messageLen - smaller,
+    result, result + messageLen - smaller);
+  
 }
 
 BOOST_AUTO_TEST_SUITE_END()

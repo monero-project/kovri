@@ -35,7 +35,7 @@
 
 using namespace i2p::crypto;
 
-BOOST_AUTO_TEST_SUITE(CryptographyTests)
+BOOST_AUTO_TEST_SUITE(EdDSA25519Tests)
 
 struct EDDSAFixture {
   EDDSAFixture()

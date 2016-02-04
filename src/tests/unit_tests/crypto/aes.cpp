@@ -35,6 +35,8 @@
 
 using namespace i2p::crypto;
 
+BOOST_AUTO_TEST_SUITE(AESTests)
+
 BOOST_AUTO_TEST_CASE(XorZeroCipherBlocks) {
   CipherBlock block = {0};
   block ^= block;
@@ -211,3 +213,5 @@ BOOST_FIXTURE_TEST_CASE(AesCbcDecrypt, AesCbcFixture) {
       result[i].buf, result[i].buf + 16);
   }
 }
+
+BOOST_AUTO_TEST_SUITE_END()

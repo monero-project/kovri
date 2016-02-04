@@ -4,7 +4,8 @@ set(TESTS_SRC
   "Utility.cpp"
   "crypto/aes.cpp"
   "crypto/dsa.cpp"
-  "crypto/ed25519.cpp")
+  "crypto/ed25519.cpp"
+  "crypto/elg.cpp")
 
 include_directories(
   "../../"

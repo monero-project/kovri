@@ -57,6 +57,7 @@ struct DSAFixture {
   uint8_t publicKey[128];
   DSAVerifier* verifier;
   DSASigner* signer;
+  static constexpr size_t messageLen = 1024;
 };
 
 BOOST_FIXTURE_TEST_CASE(DSASHA1KeyLength, DSAFixture) {
@@ -69,7 +70,6 @@ BOOST_FIXTURE_TEST_CASE(DSASHA1SignatureLength, DSAFixture) {
 }
 
 BOOST_FIXTURE_TEST_CASE(DSASHA1SignVerifyValid, DSAFixture) {
-  constexpr size_t messageLen = 1024;
   uint8_t signature[40];
   uint8_t message[messageLen];
   RandBytes(message, messageLen);
@@ -78,33 +78,30 @@ BOOST_FIXTURE_TEST_CASE(DSASHA1SignVerifyValid, DSAFixture) {
   BOOST_CHECK_EQUAL(verifier->Verify(message, messageLen, signature), true);
 }
 BOOST_FIXTURE_TEST_CASE(DSASHA1SignVerifyBadSignature, DSAFixture) {
-  constexpr size_t messageLen = 1024;
   uint8_t signature[40];
   uint8_t message[messageLen];
   RandBytes(message, messageLen);
   signer->Sign(message, messageLen, signature);
   
   // now we fugg up the signature a bit :-DDDD
-  signature[5] = Rand<uint8_t>();
+  signature[5] ^= RandInRange<uint8_t>(1, 128);
   // it should fail verification
   BOOST_CHECK_EQUAL(verifier->Verify(message, messageLen, signature), false);
 
 }
 
 BOOST_FIXTURE_TEST_CASE(DSASHA1SignVerifyBadMessage, DSAFixture) {
-  constexpr size_t messageLen = 1024;
   uint8_t signature[40];
   uint8_t message[messageLen];
   RandBytes(message, messageLen);
   signer->Sign(message, messageLen, signature);
   // fugg up the message
-  message[5] = Rand<uint8_t>();
+  message[5] ^= RandInRange<uint8_t>(1, 128);
   // this should also fail verification
   BOOST_CHECK_EQUAL(verifier->Verify(message, messageLen, signature), false);
 }
 
 BOOST_FIXTURE_TEST_CASE(DSASHA1SignVerifyBadSignatureAndMessage, DSAFixture) {
-  constexpr size_t messageLen = 1024;
   uint8_t signature[40];
   uint8_t message[messageLen];
   RandBytes(message, messageLen);
@@ -112,8 +109,8 @@ BOOST_FIXTURE_TEST_CASE(DSASHA1SignVerifyBadSignatureAndMessage, DSAFixture) {
   signer->Sign(message, messageLen, signature);
 
   // now we fug up both message and signature
-  message[6] = Rand<uint8_t>();
-  signature[2] = Rand<uint8_t>();
+  message[6] ^= RandInRange<uint8_t>(1, 128);
+  signature[2] ^= RandInRange<uint8_t>(1, 128);
   // this should fail verification as well
   BOOST_CHECK_EQUAL(verifier->Verify(message, messageLen, signature), false);
 }

@@ -79,7 +79,7 @@ BOOST_FIXTURE_TEST_CASE(ElgamalEncryptDecryptFail, ElgamalFixture) {
   uint8_t result[messageLen];
   RandBytes(plaintext, messageLen);
   enc->Encrypt(plaintext, messageLen, ciphertext, false);
-  // fug up the ciphertext
+  // Introduce an error in the ciphertext
   ciphertext[4] ^= RandInRange<uint8_t>(1, 128);
 
   BOOST_CHECK(!ElGamalDecrypt(privateKey, ciphertext, result, false));
@@ -91,7 +91,7 @@ BOOST_FIXTURE_TEST_CASE(ElgamalEncryptDecryptZeroPaddBadPad, ElgamalFixture) {
   uint8_t result[messageLen];
   RandBytes(plaintext, messageLen);
   enc->Encrypt(plaintext, messageLen, ciphertext, true);
-  // fug up the ciphertext zeropadding
+  // Introduce an error in the ciphertext zeropadding
   ciphertext[0] = RandInRange<uint8_t>(1, 128);
   BOOST_CHECK(!ElGamalDecrypt(privateKey, ciphertext, result, true));
 }

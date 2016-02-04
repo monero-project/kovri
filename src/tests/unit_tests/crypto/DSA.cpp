@@ -83,7 +83,7 @@ BOOST_FIXTURE_TEST_CASE(DSASHA1SignVerifyBadSignature, DSAFixture) {
   RandBytes(message, messageLen);
   signer->Sign(message, messageLen, signature);
   
-  // now we fugg up the signature a bit :-DDDD
+  // introduce an error in the signature 
   signature[5] ^= RandInRange<uint8_t>(1, 128);
   // it should fail verification
   BOOST_CHECK_EQUAL(verifier->Verify(message, messageLen, signature), false);
@@ -95,7 +95,7 @@ BOOST_FIXTURE_TEST_CASE(DSASHA1SignVerifyBadMessage, DSAFixture) {
   uint8_t message[messageLen];
   RandBytes(message, messageLen);
   signer->Sign(message, messageLen, signature);
-  // fugg up the message
+  // introduce an error in the message
   message[5] ^= RandInRange<uint8_t>(1, 128);
   // this should also fail verification
   BOOST_CHECK_EQUAL(verifier->Verify(message, messageLen, signature), false);
@@ -108,7 +108,7 @@ BOOST_FIXTURE_TEST_CASE(DSASHA1SignVerifyBadSignatureAndMessage, DSAFixture) {
   
   signer->Sign(message, messageLen, signature);
 
-  // now we fug up both message and signature
+  // introduce errors in both the message and signature
   message[6] ^= RandInRange<uint8_t>(1, 128);
   signature[2] ^= RandInRange<uint8_t>(1, 128);
   // this should fail verification as well

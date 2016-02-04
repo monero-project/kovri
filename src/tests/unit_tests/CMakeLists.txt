@@ -2,8 +2,9 @@ set(TESTS_SRC
   "Base64.cpp"
   "Identity.cpp"
   "Utility.cpp"
-  "crypto/ed25519.cpp"
-  "crypto/aes.cpp")
+  "crypto/aes.cpp"
+  "crypto/dsa.cpp"
+  "crypto/ed25519.cpp")
 
 include_directories(
   "../../"

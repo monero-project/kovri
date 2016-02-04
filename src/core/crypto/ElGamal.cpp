@@ -144,9 +144,8 @@ void GenerateElGamalKeyPair(
   RandBytes(priv, 256);
   a_exp_b_mod_c(elgg, CryptoPP::Integer(priv, 256), elgp).Encode(pub, 256);
 #else
-  PRNG rnd;
   CryptoPP::DH dh(elgp, elgg);
-  dh.GenerateKeyPair(rnd, priv, pub);
+  dh.GenerateKeyPair(prng, priv, pub);
 #endif
 }
 

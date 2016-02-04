@@ -90,8 +90,15 @@ void ElGamalEncryption_Pimpl::Encrypt(
     size_t len,
     uint8_t* encrypted,
     bool zeroPadding) const {
-  // calculate b = b1*m mod p
+  if ( len > 222 ) {
+    // bad size will overflow
+    // let's complain
+    throw std::logic_error("bad size for elgamal encryption: "+
+                           std::to_string(len));
+  }
   uint8_t m[255];
+  // don't use uninitialized memory as padding
+  RandBytes(m, 255);
   m[0] = 0xFF;
   memcpy(m + 33, data, len);
   CryptoPP::SHA256().CalculateDigest(m + 1, m + 33, 222);
@@ -113,6 +120,10 @@ bool ElGamalDecrypt(
     const uint8_t* encrypted,
     uint8_t* data,
     bool zeroPadding) {
+  if (zeroPadding && ( encrypted[0] || encrypted[257] ) )  {
+    // bad padding
+    return false;
+  }
   CryptoPP::Integer
     x(key, 256),
     a(zeroPadding ? encrypted + 1 : encrypted, 256),

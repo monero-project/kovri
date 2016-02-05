@@ -28,8 +28,8 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_CLIENT_DAEMON_H_
-#define SRC_CLIENT_DAEMON_H_
+#ifndef SRC_APP_DAEMON_H_
+#define SRC_APP_DAEMON_H_
 
 #include <string>
 
@@ -99,4 +99,4 @@ class DaemonLinux : public Daemon_Singleton {
 }  // namespace util
 }  // namespace i2p
 
-#endif  // SRC_CLIENT_DAEMON_H_
+#endif  // SRC_APP_DAEMON_H_

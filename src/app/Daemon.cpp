@@ -31,6 +31,7 @@
 #include "Daemon.h"
 
 #include <string>
+#include <vector>
 #include <thread>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -173,7 +174,7 @@ void Daemon_Singleton::Reload() {
 
 void Daemon_Singleton::InitClientContext() {
   i2p::client::context.RegisterShutdownHandler([this]() {
-        m_IsRunning = false; 
+        m_IsRunning = false;
       });
 
   std::shared_ptr<i2p::client::ClientDestination> localDestination;
@@ -181,7 +182,8 @@ void Daemon_Singleton::InitClientContext() {
   std::string proxyKeys =
     i2p::util::config::varMap["proxykeys"].as<std::string>();
   if (proxyKeys.length() > 0)
-    localDestination = i2p::client::context.LoadLocalDestination(proxyKeys, false);
+    localDestination = i2p::client::context.LoadLocalDestination(
+        proxyKeys, false);
   i2p::client::context.SetHTTPProxy(new i2p::proxy::HTTPProxy(
       "HTTP Proxy",  // TODO(unassigned): what if we want to change the name?
       i2p::util::config::varMap["httpproxyaddress"].as<std::string>(),
@@ -237,7 +239,8 @@ void Daemon_Singleton::SetupTunnels() {
 
         std::shared_ptr<i2p::client::ClientDestination> localDestination;
         if (keys.length() > 0)
-          localDestination = i2p::client::context.LoadLocalDestination(keys, false);
+          localDestination = i2p::client::context.LoadLocalDestination(
+              keys, false);
 
         bool result = i2p::client::context.InsertClientTunnel(port,
             new i2p::client::I2PClientTunnel(
@@ -309,7 +312,7 @@ void Daemon_Singleton::ReloadTunnels() {
   // List of tunnels that still exist after config update
   // Make sure the default IRC and eepsite tunnels do not get removed
   std::vector<std::string> updatedTunnels;
- 
+
   // Iterate over tunnels' ident hashes for what's in tunnels.cfg now
   for (auto& section : pt) {
     // TODO(unassigned): what if we switch a server from client to tunnel
@@ -317,11 +320,11 @@ void Daemon_Singleton::ReloadTunnels() {
     const std::string tunnelName = section.first;
     const auto value = section.second;
 
-    const std::string type = value.get<std::string>(I2P_TUNNELS_SECTION_TYPE, "");
+    const std::string type = value.get<std::string>(
+        I2P_TUNNELS_SECTION_TYPE, "");
 
     if (type == I2P_TUNNELS_SECTION_TYPE_SERVER ||
         type == I2P_TUNNELS_SECTION_TYPE_HTTP) {
-
       // Obtain server options
       std::string keyfile = value.get<std::string>(I2P_SERVER_TUNNEL_KEYS, "");
       std::string hostStr = value.get<std::string>(I2P_SERVER_TUNNEL_HOST, "");
@@ -331,7 +334,7 @@ void Daemon_Singleton::ReloadTunnels() {
 
       i2p::client::context.UpdateServerTunnel(
           tunnelName, keyfile, hostStr, accessList, port, inPort,
-          (type == I2P_TUNNELS_SECTION_TYPE_HTTP)); 
+          (type == I2P_TUNNELS_SECTION_TYPE_HTTP));
 
     } else if (type == I2P_TUNNELS_SECTION_TYPE_CLIENT) {
       // Get client tunnel parameters

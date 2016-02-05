@@ -300,7 +300,7 @@ bool RouterContext::Load() {
   fk.read(reinterpret_cast<char *>(&keys), sizeof(keys));
   m_Keys = keys;
   i2p::data::RouterInfo routerInfo(
-      i2p::util::filesystem::GetFullPath(ROUTER_INFO));  // TODO(unassigned): ???
+      i2p::util::filesystem::GetFullPath(ROUTER_INFO));
   m_RouterInfo.Update(
       routerInfo.GetBuffer(),
       routerInfo.GetBufferLen());

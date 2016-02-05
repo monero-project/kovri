@@ -76,13 +76,13 @@ void ClientContext::Start() {
   LogPrint("SOCKS Proxy Started");
 
   // Start all client tunnels
-  for(auto& pair : m_ClientTunnels)
+  for (auto& pair : m_ClientTunnels)
     pair.second->Start();
 
   // Start all server tunnels
-  for(auto& pair : m_ServerTunnels)
+  for (auto& pair : m_ServerTunnels)
     pair.second->Start();
-  
+
   // I2P Control
   if (m_I2PControlService) {
     LogPrint("Starting I2PControlService ...");
@@ -290,7 +290,7 @@ void ClientContext::UpdateServerTunnel(
     i2p::data::IdentHash i = keys.GetPublic().GetIdentHash();
     // check if it exists in existing local servers
     I2PServerTunnel* tunnel = GetServerTunnel(i);
-    if(tunnel == nullptr) {
+    if (tunnel == nullptr) {
       // Server with this name does not exist, create it later
       createTunnel = true;
     } else {
@@ -311,9 +311,10 @@ void ClientContext::UpdateServerTunnel(
   }
 
   if (createTunnel) {
-      // Create the server tunnel 
-      auto localDestination = i2p::client::context.LoadLocalDestination(keyfile, true);
-      I2PServerTunnel* serverTunnel = http ? 
+      // Create the server tunnel
+      auto localDestination = i2p::client::context.LoadLocalDestination(
+          keyfile, true);
+      I2PServerTunnel* serverTunnel = http ?
           new I2PServerTunnelHTTP(
               tunnelName,
               hostStr,
@@ -332,7 +333,6 @@ void ClientContext::UpdateServerTunnel(
       // Start the new server tunnel
       serverTunnel->Start();
   }
-
 }
 
 void ClientContext::UpdateClientTunnel(
@@ -345,7 +345,7 @@ void ClientContext::UpdateClientTunnel(
 
   I2PClientTunnel* clientTunnel = GetClientTunnel(tunnelName);
   if (clientTunnel == nullptr) {
-    // Client tunnel does not exist yet, create it 
+    // Client tunnel does not exist yet, create it
     auto localDestination = LoadLocalDestination(keyfile, true);
     clientTunnel = new I2PClientTunnel(
           tunnelName,
@@ -365,14 +365,14 @@ void ClientContext::UpdateClientTunnel(
     auto nextAddr = boost::asio::ip::address::from_string(hostStr, ec);
 
     bool rebind = false;
-    if (ec) // New address is not an IP address, compare strings
+    if (ec)  // New address is not an IP address, compare strings
       rebind = (hostStr != currentAddr);
-    else // New address is an IP address, compare endpoints
+    else  // New address is an IP address, compare endpoints
       rebind = (clientTunnel->GetEndpoint() == boost::asio::ip::tcp::endpoint(
           nextAddr, port));
-   
-    if (rebind) { 
-      // The IP address has changed, rebind  
+
+    if (rebind) {
+      // The IP address has changed, rebind
       try {
         clientTunnel->Rebind(hostStr, port);
       } catch (std::exception& err) {
@@ -383,7 +383,7 @@ void ClientContext::UpdateClientTunnel(
 }
 
 void ClientContext::RegisterShutdownHandler(std::function<void(void)> handler) {
-  m_ShutdownHandler = handler; 
+  m_ShutdownHandler = handler;
 }
 
 bool ClientContext::InsertClientTunnel(int port, I2PClientTunnel* tunnel) {
@@ -422,7 +422,8 @@ I2PServerTunnel* ClientContext::GetServerTunnel(const std::string& name) {
   return it == m_ServerTunnels.end() ? nullptr : it->second.get();
 }
 
-I2PServerTunnel* ClientContext::GetServerTunnel(const i2p::data::IdentHash& id) {
+I2PServerTunnel* ClientContext::GetServerTunnel(
+    const i2p::data::IdentHash& id) {
   std::lock_guard<std::mutex> lock(m_ServerMutex);
   auto it = m_ServerTunnels.find(id);
   return it == m_ServerTunnels.end() ? nullptr : it->second.get();

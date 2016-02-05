@@ -31,6 +31,7 @@
 #ifndef SRC_CORE_UTIL_FILESYSTEM_H_
 #define SRC_CORE_UTIL_FILESYSTEM_H_
 
+#include <string>
 #include <boost/filesystem.hpp>
 
 /**

@@ -85,7 +85,7 @@ class ClientContext {
 
   std::shared_ptr<ClientDestination> FindLocalDestination(
       const i2p::data::IdentHash& destination) const;
-  
+
   /// Loads the private keys from the given file
   /// @param file the relative name of the private key file
   /// @return the loaded private keys
@@ -105,7 +105,7 @@ class ClientContext {
   void RemoveClientTunnels(std::function<bool(I2PClientTunnel*)> predicate);
 
   /// Updates or creates the specified server tunnel
-  /// @param keyfile the relative filename of the key file 
+  /// @param keyfile the relative filename of the key file
   /// @param http true if server tunnel is an HTTP tunnel
   void UpdateServerTunnel(
     const std::string& tunnelName,
@@ -118,7 +118,7 @@ class ClientContext {
 
   /// Updates or creates the specified client tunnel
   /// @param tunnelName the name of the client tunnel
-  /// @param keyfile the relative filename of the key file 
+  /// @param keyfile the relative filename of the key file
   void UpdateClientTunnel(
     const std::string& tunnelName,
     const std::string& keyfile,
@@ -146,7 +146,8 @@ class ClientContext {
   /// Sets the I2PControl service
   /// @param service a pointer to the I2PControlService
   /// @note takes ownership of the given pointer
-  void SetI2PControlService(i2p::client::i2pcontrol::I2PControlService* service);
+  void SetI2PControlService(
+      i2p::client::i2pcontrol::I2PControlService* service);
 
   /// Sets the HTTP proxy.
   /// @param proxy a pointer to the HTTPProxy
@@ -195,8 +196,10 @@ class ClientContext {
   // types for accessing client / server tunnel map entries
   typedef std::pair<const int, std::unique_ptr<I2PClientTunnel> >
     ClientTunnelEntry;
-  typedef std::pair<const i2p::data::IdentHash, std::unique_ptr<I2PServerTunnel> >
-    ServerTunnelEntry;
+  typedef std::pair<
+      const i2p::data::IdentHash,
+      std::unique_ptr<I2PServerTunnel>
+    >ServerTunnelEntry;
 
   boost::asio::io_service m_Service;
 

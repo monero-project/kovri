@@ -28,8 +28,8 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_CLIENT_UTIL_FILESYSTEM_H_
-#define SRC_CLIENT_UTIL_FILESYSTEM_H_
+#ifndef SRC_APP_UTIL_FILESYSTEM_H_
+#define SRC_APP_UTIL_FILESYSTEM_H_
 
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
@@ -83,4 +83,4 @@ bfs::path GetDefaultDataPath();
 }  // namespace util
 }  // namespace i2p
 
-#endif  // SRC_CLIENT_UTIL_FILESYSTEM_H_
+#endif  // SRC_APP_UTIL_FILESYSTEM_H_

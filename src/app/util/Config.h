@@ -28,8 +28,8 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_CLIENT_UTIL_CONFIG_H_
-#define SRC_CLIENT_UTIL_CONFIG_H_
+#ifndef SRC_APP_UTIL_CONFIG_H_
+#define SRC_APP_UTIL_CONFIG_H_
 
 #include <boost/filesystem/fstream.hpp>
 #include <boost/program_options.hpp>
@@ -57,7 +57,7 @@ const char I2P_SERVER_TUNNEL_PORT[] = "port";
 const char I2P_SERVER_TUNNEL_KEYS[] = "keys";
 const char I2P_SERVER_TUNNEL_INPORT[] = "inport";
 const char I2P_SERVER_TUNNEL_ACCESS_LIST[] = "accesslist";
-    
+
 namespace config {
 
 // Our configuration files
@@ -89,4 +89,4 @@ void ParseConfigFile(
 }  // namespace util
 }  // namespace i2p
 
-#endif  // SRC_CLIENT_UTIL_CONFIG_H_
+#endif  // SRC_APP_UTIL_CONFIG_H_

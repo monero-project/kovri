@@ -39,11 +39,10 @@ using namespace i2p::crypto;
 BOOST_AUTO_TEST_SUITE(DSASHA1ests)
 
 struct DSAFixture {
-
   DSAFixture() {
     // TODO(psi): generate static test keys
     CreateDSARandomKeys(privateKey, publicKey);
-    
+
     verifier = new DSAVerifier(publicKey);
     signer = new DSASigner(privateKey);
   }
@@ -57,7 +56,7 @@ struct DSAFixture {
   uint8_t publicKey[128];
   DSAVerifier* verifier;
   DSASigner* signer;
-  static constexpr size_t messageLen = 1024;
+  static constexpr size_t kMessageLen = 1024;
 };
 
 BOOST_FIXTURE_TEST_CASE(DSASHA1KeyLength, DSAFixture) {
@@ -71,48 +70,48 @@ BOOST_FIXTURE_TEST_CASE(DSASHA1SignatureLength, DSAFixture) {
 
 BOOST_FIXTURE_TEST_CASE(DSASHA1SignVerifyValid, DSAFixture) {
   uint8_t signature[40];
-  uint8_t message[messageLen];
-  RandBytes(message, messageLen);
-  signer->Sign(message, messageLen, signature);
+  uint8_t message[kMessageLen];
+  RandBytes(message, kMessageLen);
+  signer->Sign(message, kMessageLen, signature);
   // check that the signature is valid
-  BOOST_CHECK_EQUAL(verifier->Verify(message, messageLen, signature), true);
+  BOOST_CHECK_EQUAL(verifier->Verify(message, kMessageLen, signature), true);
 }
+
 BOOST_FIXTURE_TEST_CASE(DSASHA1SignVerifyBadSignature, DSAFixture) {
   uint8_t signature[40];
-  uint8_t message[messageLen];
-  RandBytes(message, messageLen);
-  signer->Sign(message, messageLen, signature);
-  
-  // introduce an error in the signature 
+  uint8_t message[kMessageLen];
+  RandBytes(message, kMessageLen);
+  signer->Sign(message, kMessageLen, signature);
+
+  // introduce an error in the signature
   signature[5] ^= RandInRange<uint8_t>(1, 128);
   // it should fail verification
-  BOOST_CHECK_EQUAL(verifier->Verify(message, messageLen, signature), false);
-
+  BOOST_CHECK_EQUAL(verifier->Verify(message, kMessageLen, signature), false);
 }
 
 BOOST_FIXTURE_TEST_CASE(DSASHA1SignVerifyBadMessage, DSAFixture) {
   uint8_t signature[40];
-  uint8_t message[messageLen];
-  RandBytes(message, messageLen);
-  signer->Sign(message, messageLen, signature);
+  uint8_t message[kMessageLen];
+  RandBytes(message, kMessageLen);
+  signer->Sign(message, kMessageLen, signature);
   // introduce an error in the message
   message[5] ^= RandInRange<uint8_t>(1, 128);
   // this should also fail verification
-  BOOST_CHECK_EQUAL(verifier->Verify(message, messageLen, signature), false);
+  BOOST_CHECK_EQUAL(verifier->Verify(message, kMessageLen, signature), false);
 }
 
 BOOST_FIXTURE_TEST_CASE(DSASHA1SignVerifyBadSignatureAndMessage, DSAFixture) {
   uint8_t signature[40];
-  uint8_t message[messageLen];
-  RandBytes(message, messageLen);
-  
-  signer->Sign(message, messageLen, signature);
+  uint8_t message[kMessageLen];
+  RandBytes(message, kMessageLen);
+
+  signer->Sign(message, kMessageLen, signature);
 
   // introduce errors in both the message and signature
   message[6] ^= RandInRange<uint8_t>(1, 128);
   signature[2] ^= RandInRange<uint8_t>(1, 128);
   // this should fail verification as well
-  BOOST_CHECK_EQUAL(verifier->Verify(message, messageLen, signature), false);
+  BOOST_CHECK_EQUAL(verifier->Verify(message, kMessageLen, signature), false);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

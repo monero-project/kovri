@@ -124,7 +124,7 @@ BOOST_FIXTURE_TEST_CASE(ElgamalEncryptDecryptZeroPadSmallMessageSuccess,
 
   BOOST_CHECK_EQUAL_COLLECTIONS(
     plaintext, plaintext + kMessageLen - kSmaller,
-    result, result + kMessageLen - kSpaller);
+    result, result + kMessageLen - kSmaller);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -41,7 +41,9 @@ BOOST_AUTO_TEST_CASE(XorZeroCipherBlocks) {
   CipherBlock block = {0};
   block ^= block;
   const CipherBlock result = {0};
-  BOOST_CHECK_EQUAL_COLLECTIONS(result.buf, result.buf + 16, block.buf, block.buf + 16);
+  BOOST_CHECK_EQUAL_COLLECTIONS(
+      result.buf, result.buf + 16,
+      block.buf, block.buf + 16);
 }
 
 BOOST_AUTO_TEST_CASE(XorSelfCipherBlocks) {
@@ -51,7 +53,9 @@ BOOST_AUTO_TEST_CASE(XorSelfCipherBlocks) {
   };
   block ^= block;
   const CipherBlock result = {0};
-  BOOST_CHECK_EQUAL_COLLECTIONS(result.buf, result.buf + 16, block.buf, block.buf + 16);
+  BOOST_CHECK_EQUAL_COLLECTIONS(
+      result.buf, result.buf + 16,
+      block.buf, block.buf + 16);
 }
 
 BOOST_AUTO_TEST_CASE(XorCipherBlocks) {
@@ -68,7 +72,9 @@ BOOST_AUTO_TEST_CASE(XorCipherBlocks) {
     0xe7, 0xb7, 0x89, 0xac, 0xc, 0x27, 0xe7, 0xd6, 0x7c, 0x4d, 0x5e,
     0xec, 0xe8, 0x10, 0x97, 0x7a
   };
-  BOOST_CHECK_EQUAL_COLLECTIONS(block2.buf, block2.buf + 16, result.buf, result.buf + 16);
+  BOOST_CHECK_EQUAL_COLLECTIONS(
+      block2.buf, block2.buf + 16,
+      result.buf, result.buf + 16);
 }
 
 // NIST test parameters

@@ -73,12 +73,16 @@ struct NTCPPhase2 {
 const size_t NTCP_MAX_MESSAGE_SIZE = 16384;
 const size_t NTCP_BUFFER_SIZE = 4160;  // fits 4 tunnel messages (4 * 1028)
 const int NTCP_TERMINATION_TIMEOUT = 120;  // 2 minutes
-const size_t NTCP_DEFAULT_PHASE3_SIZE = 2 +   // size
-                                        i2p::data::DEFAULT_IDENTITY_SIZE +  // 387
-                                        4 +   // ts
-                                        15 +  // padding
-                                        40;   // signature
-                                        // Total == 448
+
+// Total == 448
+// TODO(unassigned): replace raw numbers with constants
+const size_t NTCP_DEFAULT_PHASE3_SIZE =
+  2 +   // size
+  i2p::data::DEFAULT_IDENTITY_SIZE +  // 387
+  4 +   // ts
+  15 +  // padding
+  40;   // signature
+
 const int NTCP_BAN_EXPIRATION_TIMEOUT = 70;  // in second
 
 class NTCPServer;
@@ -124,7 +128,8 @@ class NTCPSession
   }
 
   void CreateAESKey(
-      uint8_t * pubKey, i2p::crypto::AESKey& key);
+      uint8_t* pubKey,
+      i2p::crypto::AESKey& key);
 
   // client
   void SendPhase3();

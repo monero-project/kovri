@@ -50,9 +50,6 @@
 #include "util/Log.h"
 #include "util/Timestamp.h"
 
-// TODO(anonimal): do not use namespace using-directives.
-using namespace i2p::crypto;
-
 namespace i2p {
 namespace transport {
 
@@ -79,7 +76,9 @@ NTCPSession::~NTCPSession() {
 void NTCPSession::CreateAESKey(
     uint8_t* pubKey,
     i2p::crypto::AESKey& key) {
-  CryptoPP::DH dh(elgp, elgg);
+  CryptoPP::DH dh(
+      i2p::crypto::elgp,
+      i2p::crypto::elgg);
   uint8_t sharedKey[256];
   if (!dh.Agree(sharedKey, m_DHKeysPair->privateKey, pubKey)) {
     LogPrint(eLogError, "Couldn't create shared key");
@@ -94,7 +93,7 @@ void NTCPSession::CreateAESKey(
     memcpy(aesKey, sharedKey, 32);
   } else {
     // find first non-zero byte
-    uint8_t * nonZero = sharedKey + 1;
+    uint8_t* nonZero = sharedKey + 1;
     while (!*nonZero) {
       nonZero++;
       if (nonZero - sharedKey > 32) {
@@ -110,8 +109,8 @@ void NTCPSession::CreateAESKey(
 void NTCPSession::Done() {
   m_Server.GetService().post(
       std::bind(
-        &NTCPSession::Terminate,
-        shared_from_this()));
+          &NTCPSession::Terminate,
+          shared_from_this()));
 }
 
 void NTCPSession::Terminate() {
@@ -159,14 +158,14 @@ void NTCPSession::ClientLogin() {
   boost::asio::async_write(
       m_Socket,
       boost::asio::buffer(
-        &m_Establisher->phase1,
-        sizeof(NTCPPhase1)),
+          &m_Establisher->phase1,
+          sizeof(NTCPPhase1)),
       boost::asio::transfer_all(),
       std::bind(
-        &NTCPSession::HandlePhase1Sent,
-        shared_from_this(),
-        std::placeholders::_1,
-        std::placeholders::_2));
+          &NTCPSession::HandlePhase1Sent,
+          shared_from_this(),
+          std::placeholders::_1,
+          std::placeholders::_2));
   ScheduleTermination();
 }
 
@@ -179,14 +178,14 @@ void NTCPSession::ServerLogin() {
     boost::asio::async_read(
         m_Socket,
         boost::asio::buffer(
-          &m_Establisher->phase1,
-          sizeof(NTCPPhase1)),
+            &m_Establisher->phase1,
+            sizeof(NTCPPhase1)),
         boost::asio::transfer_all(),
         std::bind(
-          &NTCPSession::HandlePhase1Received,
-          shared_from_this(),
-          std::placeholders::_1,
-          std::placeholders::_2));
+            &NTCPSession::HandlePhase1Received,
+            shared_from_this(),
+            std::placeholders::_1,
+            std::placeholders::_2));
     ScheduleTermination();
   }
 }
@@ -203,14 +202,14 @@ void NTCPSession::HandlePhase1Sent(
     boost::asio::async_read(
         m_Socket,
         boost::asio::buffer(
-          &m_Establisher->phase2,
-          sizeof(NTCPPhase2)),
+            &m_Establisher->phase2,
+            sizeof(NTCPPhase2)),
         boost::asio::transfer_all(),
         std::bind(
-          &NTCPSession::HandlePhase2Received,
-          shared_from_this(),
-          std::placeholders::_1,
-          std::placeholders::_2));
+            &NTCPSession::HandlePhase2Received,
+            shared_from_this(),
+            std::placeholders::_1,
+            std::placeholders::_2));
   }
 }
 
@@ -218,7 +217,8 @@ void NTCPSession::HandlePhase1Received(
     const boost::system::error_code& ecode,
     std::size_t) {
   if (ecode) {
-    LogPrint(eLogError, "Phase 1 read error: ", ecode.message());
+    LogPrint(eLogError,
+        "Phase 1 read error: ", ecode.message());
     if (ecode != boost::asio::error::operation_aborted)
       Terminate();
   } else {
@@ -268,15 +268,15 @@ void NTCPSession::SendPhase2() {
   boost::asio::async_write(
       m_Socket,
       boost::asio::buffer(
-        &m_Establisher->phase2,
-        sizeof(NTCPPhase2)),
+          &m_Establisher->phase2,
+          sizeof(NTCPPhase2)),
       boost::asio::transfer_all(),
       std::bind(
-        &NTCPSession::HandlePhase2Sent,
-        shared_from_this(),
-        std::placeholders::_1,
-        std::placeholders::_2,
-        tsB));
+          &NTCPSession::HandlePhase2Sent,
+          shared_from_this(),
+          std::placeholders::_1,
+          std::placeholders::_2,
+          tsB));
 }
 
 void NTCPSession::HandlePhase2Sent(
@@ -284,22 +284,23 @@ void NTCPSession::HandlePhase2Sent(
     std::size_t,
     uint32_t tsB) {
   if (ecode) {
-    LogPrint(eLogError, "Couldn't send Phase 2 message: ", ecode.message());
+    LogPrint(eLogError,
+        "Couldn't send Phase 2 message: ", ecode.message());
     if (ecode != boost::asio::error::operation_aborted)
       Terminate();
   } else {
     boost::asio::async_read(
         m_Socket,
         boost::asio::buffer(
-          m_ReceiveBuffer,
-          NTCP_DEFAULT_PHASE3_SIZE),
+            m_ReceiveBuffer,
+            NTCP_DEFAULT_PHASE3_SIZE),
         boost::asio::transfer_all(),
         std::bind(
-          &NTCPSession::HandlePhase3Received,
-          shared_from_this(),
-          std::placeholders::_1,
-          std::placeholders::_2,
-          tsB));
+            &NTCPSession::HandlePhase3Received,
+            shared_from_this(),
+            std::placeholders::_1,
+            std::placeholders::_2,
+            tsB));
   }
 }
 
@@ -379,15 +380,15 @@ void NTCPSession::SendPhase3() {
   boost::asio::async_write(
       m_Socket,
       boost::asio::buffer(
-        m_ReceiveBuffer,
-        len),
+          m_ReceiveBuffer,
+          len),
       boost::asio::transfer_all(),
       std::bind(
-        &NTCPSession::HandlePhase3Sent,
-        shared_from_this(),
-        std::placeholders::_1,
-        std::placeholders::_2,
-        tsA));
+          &NTCPSession::HandlePhase3Sent,
+          shared_from_this(),
+          std::placeholders::_1,
+          std::placeholders::_2,
+          tsA));
 }
 
 void NTCPSession::HandlePhase3Sent(
@@ -395,7 +396,8 @@ void NTCPSession::HandlePhase3Sent(
     std::size_t,
     uint32_t tsA) {
   if (ecode) {
-    LogPrint(eLogError, "Couldn't send Phase 3 message: ", ecode.message());
+    LogPrint(eLogError,
+        "Couldn't send Phase 3 message: ", ecode.message());
     if (ecode != boost::asio::error::operation_aborted)
       Terminate();
   } else {
@@ -407,15 +409,15 @@ void NTCPSession::HandlePhase3Sent(
     boost::asio::async_read(
         m_Socket,
         boost::asio::buffer(
-          m_ReceiveBuffer,
-          signatureLen),
+            m_ReceiveBuffer,
+            signatureLen),
         boost::asio::transfer_all(),
         std::bind(
-          &NTCPSession::HandlePhase4Received,
-          shared_from_this(),
-          std::placeholders::_1,
-          std::placeholders::_2,
-          tsA));
+            &NTCPSession::HandlePhase4Received,
+            shared_from_this(),
+            std::placeholders::_1,
+            std::placeholders::_2,
+            tsA));
   }
 }
 
@@ -440,7 +442,7 @@ void NTCPSession::HandlePhase3Received(
       Terminate();
     }
     size_t expectedSize =
-      size + 2/*size*/ + 4/*timestamp*/ + m_RemoteIdentity.GetSignatureLen();
+      size + 2 + 4 + m_RemoteIdentity.GetSignatureLen();
     size_t paddingLen = expectedSize & 0x0F;
     if (paddingLen)
       paddingLen = (16 - paddingLen);
@@ -450,16 +452,16 @@ void NTCPSession::HandlePhase3Received(
       boost::asio::async_read(
           m_Socket,
           boost::asio::buffer(
-            m_ReceiveBuffer + NTCP_DEFAULT_PHASE3_SIZE,
-            expectedSize),
+              m_ReceiveBuffer + NTCP_DEFAULT_PHASE3_SIZE,
+              expectedSize),
           boost::asio::transfer_all(),
           std::bind(
-            &NTCPSession::HandlePhase3ExtraReceived,
-            shared_from_this(),
-            std::placeholders::_1,
-            std::placeholders::_2,
-            tsB,
-            paddingLen));
+              &NTCPSession::HandlePhase3ExtraReceived,
+              shared_from_this(),
+              std::placeholders::_1,
+              std::placeholders::_2,
+              tsB,
+              paddingLen));
     } else {
       HandlePhase3(tsB, paddingLen);
     }
@@ -472,7 +474,8 @@ void NTCPSession::HandlePhase3ExtraReceived(
     uint32_t tsB,
     size_t paddingLen) {
   if (ecode) {
-    LogPrint(eLogError, "Phase 3 extra read error: ", ecode.message());
+    LogPrint(eLogError,
+        "Phase 3 extra read error: ", ecode.message());
     if (ecode != boost::asio::error::operation_aborted)
       Terminate();
   } else {
@@ -528,14 +531,14 @@ void NTCPSession::SendPhase4(
   boost::asio::async_write(
       m_Socket,
       boost::asio::buffer(
-        m_ReceiveBuffer,
-        signatureLen),
+          m_ReceiveBuffer,
+          signatureLen),
       boost::asio::transfer_all(),
       std::bind(
-        &NTCPSession::HandlePhase4Sent,
-        shared_from_this(),
-        std::placeholders::_1,
-        std::placeholders::_2));
+          &NTCPSession::HandlePhase4Sent,
+          shared_from_this(),
+          std::placeholders::_1,
+          std::placeholders::_2));
 }
 
 void NTCPSession::HandlePhase4Sent(
@@ -596,13 +599,13 @@ void NTCPSession::HandlePhase4Received(
 void NTCPSession::Receive() {
   m_Socket.async_read_some(
       boost::asio::buffer(
-        m_ReceiveBuffer + m_ReceiveBufferOffset,
-        NTCP_BUFFER_SIZE - m_ReceiveBufferOffset),
+          m_ReceiveBuffer + m_ReceiveBufferOffset,
+          NTCP_BUFFER_SIZE - m_ReceiveBufferOffset),
       std::bind(
-        &NTCPSession::HandleReceived,
-        shared_from_this(),
-        std::placeholders::_1,
-        std::placeholders::_2));
+          &NTCPSession::HandleReceived,
+          shared_from_this(),
+          std::placeholders::_1,
+          std::placeholders::_2));
 }
 
 void NTCPSession::HandleReceived(
@@ -688,14 +691,17 @@ bool NTCPSession::DecryptNextBlock(
       return true;
     }
   } else {  // message continues
-    m_Decryption.Decrypt(encrypted, m_NextMessage->buf + m_NextMessageOffset);
+    m_Decryption.Decrypt(
+        encrypted,
+        m_NextMessage->buf + m_NextMessageOffset);
     m_NextMessageOffset += 16;
   }
   if (m_NextMessageOffset >= m_NextMessage->len + 4) {  // +checksum
     // we have a complete I2NP message
     if (CryptoPP::Adler32().VerifyDigest(
           m_NextMessage->buf + m_NextMessageOffset - 4,
-          m_NextMessage->buf, m_NextMessageOffset - 4))
+          m_NextMessage->buf,
+          m_NextMessageOffset - 4))
       m_Handler.PutNextMessage(m_NextMessage);
     else
       LogPrint(eLogWarning,
@@ -713,21 +719,22 @@ void NTCPSession::Send(
       CreateMsgBuffer(msg),
       boost::asio::transfer_all(),
       std::bind(
-        &NTCPSession::HandleSent,
-        shared_from_this(),
-        std::placeholders::_1,
-        std::placeholders::_2,
-        std::vector<std::shared_ptr<I2NPMessage> >{ msg }));
+          &NTCPSession::HandleSent,
+          shared_from_this(),
+          std::placeholders::_1,
+          std::placeholders::_2,
+          std::vector<std::shared_ptr<I2NPMessage> >{ msg }));
 }
 
 boost::asio::const_buffers_1 NTCPSession::CreateMsgBuffer(
     std::shared_ptr<I2NPMessage> msg) {
-  uint8_t * sendBuffer;
+  uint8_t* sendBuffer;
   int len;
   if (msg) {
     // regular I2NP
     if (msg->offset < 2)
-      LogPrint(eLogError, "Malformed I2NP message");  // TODO(unassigned): ???
+      LogPrint(eLogError,
+          "Malformed I2NP message");  // TODO(unassigned): Error handling
     sendBuffer = msg->GetBuffer() - 2;
     len = msg->GetLength();
     htobe16buf(sendBuffer, len);
@@ -752,7 +759,6 @@ boost::asio::const_buffers_1 NTCPSession::CreateMsgBuffer(
   return boost::asio::buffer ((const uint8_t *)sendBuffer, l);
 }
 
-
 void NTCPSession::Send(
     const std::vector<std::shared_ptr<I2NPMessage> >& msgs) {
   m_IsSending = true;
@@ -764,10 +770,10 @@ void NTCPSession::Send(
       bufs,
       boost::asio::transfer_all(),
       std::bind(
-        &NTCPSession::HandleSent,
-        shared_from_this(),
-        std::placeholders::_1,
-        std::placeholders::_2, msgs));
+          &NTCPSession::HandleSent,
+          shared_from_this(),
+          std::placeholders::_1,
+          std::placeholders::_2, msgs));
 }
 
 void NTCPSession::HandleSent(
@@ -800,9 +806,9 @@ void NTCPSession::SendI2NPMessages(
     const std::vector<std::shared_ptr<I2NPMessage> >& msgs) {
   m_Server.GetService().post(
       std::bind(
-        &NTCPSession::PostI2NPMessages,
-        shared_from_this(),
-        msgs));
+          &NTCPSession::PostI2NPMessages,
+          shared_from_this(),
+          msgs));
 }
 
 void NTCPSession::PostI2NPMessages(
@@ -823,9 +829,9 @@ void NTCPSession::ScheduleTermination() {
       boost::posix_time::seconds(NTCP_TERMINATION_TIMEOUT));
   m_TerminationTimer.async_wait(
       std::bind(
-        &NTCPSession::HandleTerminationTimer,
-        shared_from_this(),
-        std::placeholders::_1));
+          &NTCPSession::HandleTerminationTimer,
+          shared_from_this(),
+          std::placeholders::_1));
 }
 
 void NTCPSession::HandleTerminationTimer(

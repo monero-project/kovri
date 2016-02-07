@@ -40,8 +40,9 @@
 #include <sstream>
 #include <string>
 
-#include "NetworkDatabase.h"
-#include "client/Daemon.h"
+#include "core/RouterContext.h"
+#include "core/NetworkDatabase.h"
+#include "client/ClientContext.h"
 #include "core/Version.h"
 #include "transport/Transports.h"
 #include "tunnel/Tunnel.h"
@@ -467,7 +468,7 @@ void I2PControlSession::HandleDatapath(
     Response& response) {
   response.SetParam(
       constants::ROUTER_INFO_DATAPATH,
-      i2p::util::filesystem::GetDefaultDataPath().string());
+      i2p::context.GetDataPath().string());
 }
 
 void I2PControlSession::HandleNetDbKnownPeers(
@@ -570,9 +571,11 @@ void I2PControlSession::HandleShutdown(
   m_ShutdownTimer.expires_from_now(
       boost::posix_time::seconds(1));
   m_ShutdownTimer.async_wait(
-      [](
+      [this](
         const boost::system::error_code&) {
-      Daemon.m_IsRunning = 0;});
+      std::lock_guard<std::mutex> lock(m_ShutdownMutex);
+      i2p::client::context.RequestShutdown();
+      });
 }
 
 void I2PControlSession::HandleShutdownGraceful(
@@ -592,10 +595,11 @@ void I2PControlSession::HandleShutdownGraceful(
       boost::posix_time::seconds(
         timeout + 1));
   m_ShutdownTimer.async_wait(
-      [](
+      [this](
         const boost::system::error_code&) {
-      // Begin router shutdown
-      Daemon.m_IsRunning = 0;});
+      std::lock_guard<std::mutex> lock(m_ShutdownMutex);
+      i2p::client::context.RequestShutdown();
+      });
 }
 
 void I2PControlSession::HandleReseed(

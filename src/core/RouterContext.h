@@ -32,6 +32,7 @@
 #define SRC_CORE_ROUTERCONTEXT_H_
 
 #include <boost/asio.hpp>
+#include <boost/filesystem.hpp>
 
 #include <cryptopp/dsa.h>
 #include <cryptopp/osrng.h>
@@ -65,7 +66,13 @@ class RouterContext : public i2p::garlic::GarlicDestination {
  public:
   RouterContext();
 
-  void Init();
+  /// Initializes the router context, must be called before use
+  /// @param host the external address of this router
+  /// @param port the port to be used (for both SSU and NTCP)
+  void Init(
+      const std::string& host,
+      int port,
+      const boost::filesystem::path& dataPath);
 
   // @return This RouterContext's RouterInfo
   i2p::data::RouterInfo& GetRouterInfo() {
@@ -231,6 +238,14 @@ class RouterContext : public i2p::garlic::GarlicDestination {
   void ProcessDeliveryStatusMessage(
       std::shared_ptr<I2NPMessage> msg);
 
+  boost::filesystem::path GetDataPath() const {
+    return m_DataPath;
+  }
+
+  /// @return the full path of a file within m_DataPath
+  // TODO(EinMByte): Eventually use this everywhere instead of util::filesystem
+  std::string GetFullPath(const std::string& file);
+
  private:
   void CreateNewRouter();
   void NewRouterInfo();
@@ -246,6 +261,9 @@ class RouterContext : public i2p::garlic::GarlicDestination {
   uint64_t m_StartupTime;  // in seconds since epoch
   RouterStatus m_Status;
   std::mutex m_GarlicMutex;
+  std::string m_Host;
+  int m_Port;
+  boost::filesystem::path m_DataPath;
 };
 
 extern RouterContext context;

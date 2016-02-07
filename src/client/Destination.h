@@ -45,8 +45,8 @@
 #include "Identity.h"
 #include "LeaseSet.h"
 #include "NetworkDatabase.h"
-#include "api/Datagram.h"
-#include "api/Streaming.h"
+#include "Datagram.h"
+#include "Streaming.h"
 #include "crypto/CryptoConst.h"
 #include "tunnel/TunnelPool.h"
 

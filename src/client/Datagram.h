@@ -28,8 +28,8 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_API_DATAGRAM_H_
-#define SRC_API_DATAGRAM_H_
+#ifndef SRC_CLIENT_DATAGRAM_H_
+#define SRC_CLIENT_DATAGRAM_H_
 
 #include <inttypes.h>
 
@@ -124,4 +124,4 @@ class DatagramDestination {
 }  // namespace datagram
 }  // namespace i2p
 
-#endif  // SRC_API_DATAGRAM_H_
+#endif  // SRC_CLIENT_DATAGRAM_H_

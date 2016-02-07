@@ -47,6 +47,7 @@
 #include "tunnel/Tunnel.h"
 #include "util/I2PEndian.h"
 #include "util/Timestamp.h"
+#include "util/Log.h"
 
 #ifndef NETWORK_ID
 #define NETWORK_ID 2

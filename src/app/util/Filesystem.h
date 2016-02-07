@@ -28,68 +28,59 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_CLIENT_DAEMON_H_
-#define SRC_CLIENT_DAEMON_H_
+#ifndef SRC_APP_UTIL_FILESYSTEM_H_
+#define SRC_APP_UTIL_FILESYSTEM_H_
 
+#include <boost/filesystem.hpp>
+#include <boost/program_options.hpp>
+#include <boost/program_options/detail/config_file.hpp>
+
+#include <map>
+#include <set>
 #include <string>
 
-#ifdef _WIN32
-#define Daemon i2p::util::DaemonWin32::Instance()
-#else
-#define Daemon i2p::util::DaemonLinux::Instance()
-#endif
-
 #include "core/util/Log.h"
+#include "core/util/Filesystem.h"
+
+/**
+ * Fixes undefined reference to boost::filesystem::detail::copy_file
+ * See https://github.com/purplei2p/i2pd/issues/272
+ */
+#define BOOST_NO_CXX11_SCOPED_ENUMS
 
 namespace i2p {
 namespace util {
+namespace filesystem {
 
-class Daemon_Singleton {
- public:
-  virtual bool Init();
-  virtual bool Start();
-  virtual bool Stop();
-  virtual void Reload() = 0;
-  bool m_IsDaemon,
-       m_IsLogging,
-       m_IsRunning;
+namespace bfs = boost::filesystem;
 
- protected:
-  Daemon_Singleton();
-  virtual ~Daemon_Singleton();
-  bool IsService() const;
-  std::shared_ptr<i2p::util::log::Log> m_log;
-};
+/**
+ * Change the application name.
+ */
+void SetAppName(
+    const std::string& name);
 
-#ifdef _WIN32
-class DaemonWin32 : public Daemon_Singleton {
- public:
-  static DaemonWin32& Instance() {
-    static DaemonWin32 instance;
-    return instance;
-  }
-  virtual bool Init();
-  virtual bool Start();
-  virtual bool Stop();
-};
-#else
-class DaemonLinux : public Daemon_Singleton {
- public:
-  DaemonLinux() = default;
-  static DaemonLinux& Instance() {
-    static DaemonLinux instance;
-    return instance;
-  }
-  virtual bool Start();
-  virtual bool Stop();
-  void Reload();
- private:
-  std::string m_pidFile;
-  int m_pidFilehandle;
-};
-#endif
+// @return the application name.
+std::string GetAppName();
 
+// @return the full path of a file within the kovri directory
+std::string GetFullPath(
+    const std::string& filename);
+
+// @return the path of the configuration file
+bfs::path GetConfigFile();
+
+// @return the path of the tunnels configuration file
+bfs::path GetTunnelsConfigFile();
+
+// @return the path of the kovri directory
+const bfs::path& GetDataPath();
+
+// @return the default directory for app data
+bfs::path GetDefaultDataPath();
+
+}  // namespace filesystem
 }  // namespace util
 }  // namespace i2p
 
-#endif  // SRC_CLIENT_DAEMON_H_
+#endif  // SRC_APP_UTIL_FILESYSTEM_H_

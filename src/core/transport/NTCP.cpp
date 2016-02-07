@@ -34,6 +34,7 @@
 #include "NetworkDatabase.h"
 #include "RouterContext.h"
 #include "Transports.h"
+#include "util/Log.h"
 #include "util/Timestamp.h"
 
 namespace i2p {

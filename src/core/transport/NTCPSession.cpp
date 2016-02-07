@@ -360,7 +360,7 @@ void NTCPSession::SendPhase3() {
   size_t paddingSize = len & 0x0F;  // %16
   if (paddingSize > 0) {
     paddingSize = 16 - paddingSize;
-    // TODO(unassigned): fill padding with random data
+    i2p::crypto::RandBytes(buf, paddingSize);
     buf += paddingSize;
     len += paddingSize;
   }
@@ -739,9 +739,10 @@ boost::asio::const_buffers_1 NTCPSession::CreateMsgBuffer(
   }
   int rem = (len + 6) & 0x0F;  // %16
   int padding = 0;
-  if (rem > 0)
+  if (rem > 0) {
     padding = 16 - rem;
-  // TODO(unassigned): fill padding
+    i2p::crypto::RandBytes(sendBuffer + len + 2, padding);
+  }
   CryptoPP::Adler32().CalculateDigest(
       sendBuffer + len + 2 + padding,
       sendBuffer, len + 2+ padding);

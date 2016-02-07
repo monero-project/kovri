@@ -202,7 +202,7 @@ message(STATUS "---------------------------------------")
 # Handle paths nicely
 include(GNUInstallDirs)
 
-set(MAIN_NAME "${PROJECT_NAME}-main")
+set(APP_NAME "${PROJECT_NAME}-app")
 set(CLIENT_NAME "${PROJECT_NAME}-client")
 set(CORE_NAME "${PROJECT_NAME}-core")
 set(TESTS_NAME "${PROJECT_NAME}-tests")

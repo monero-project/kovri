@@ -106,8 +106,10 @@ URI::URI(
   m_Query = "";
   ParseURI(uri);
   if (m_Protocol == "https") {
-    m_PortString = "443";
-    m_Port = 443;
+    if (m_PortString.empty()) {
+      m_PortString = "443";
+      m_Port = 443;
+    }
   } else {
     m_PortString = "80";
     m_Port = 80;

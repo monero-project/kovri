@@ -87,50 +87,50 @@ struct SSUSessionPacket {
         bodyptr(nullptr),
         bodylen(0) {}
 
-  // How many bytes long is the header (includes Extended options)
-  // @return n bytes denoting size of header
+  /// How many bytes long is the header (includes Extended options)
+  /// @return n bytes denoting size of header
   size_t ComputeHeaderSize() const;
 
-  // Do we have extended options?
-  // @return true if we have extended options
+  /// Do we have extended options?
+  /// @return true if we have extended options
   bool HasExtendedOptions() const;
 
-  // Extract the extended options from the SSUHeader
-  // @return true if successful otherwise false
+  /// Extract the extended options from the SSUHeader
+  /// @return true if successful otherwise false
   bool ExtractExtendedOptions(SSUExtendedOptions & opts) const;
 
-  // Obtain the SSU payload type
-  // @return what type of ssu packet are we?
+  /// Obtain the SSU payload type
+  /// @return what type of ssu packet are we?
   uint8_t GetPayloadType() const;
 
-  // @return true if the rekey flag is set
+  /// @return true if the rekey flag is set
   bool Rekey() const;
 
-  // Used for rekey and extended options
+  /// Used for rekey and extended options
   uint8_t Flag() const;
 
-  // Set flag byte
+  /// Set flag byte
   void PutFlag(
       uint8_t f) const;
 
-  // Packet timestamp
-  // @return a four byte sending timestamp (seconds since the unix epoch).
+  /// Packet timestamp
+  /// @return a four byte sending timestamp (seconds since the unix epoch).
   uint32_t Time() const;
 
-  // Put timestamp into packet header
+  /// Put timestamp into packet header
   void PutTime(uint32_t t) const;
 
-  // Get pointer to MAC
+  /// Get pointer to MAC
   uint8_t* MAC() const;
 
-  // Get pointer to begining of encrypted section
+  /// Get pointer to begining of encrypted section
   uint8_t* Encrypted() const;
 
-  // Get pointer to IV
+  /// Get pointer to IV
   uint8_t* IV() const;
 
-  // Parse SSU header
-  // @return true if valid header format otherwise false
+  /// Parse SSU header
+  /// @return true if valid header format otherwise false
   bool ParseHeader();
 };
 

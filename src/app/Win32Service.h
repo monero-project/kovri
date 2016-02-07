@@ -28,8 +28,8 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_CLIENT_WIN32SERVICE_H_
-#define SRC_CLIENT_WIN32SERVICE_H_
+#ifndef SRC_APP_WIN32SERVICE_H_
+#define SRC_APP_WIN32SERVICE_H_
 
 #include <windows.h>
 #define WIN32_LEAN_AND_MEAN
@@ -116,4 +116,4 @@ void InstallService(
 
 void UninstallService(PSTR pszServiceName);
 
-#endif  // SRC_CLIENT_WIN32SERVICE_H_
+#endif  // SRC_APP_WIN32SERVICE_H_

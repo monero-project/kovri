@@ -41,6 +41,7 @@
 #include "transport/Transports.h"
 #include "util/I2PEndian.h"
 #include "util/Timestamp.h"
+#include "util/Log.h"
 
 namespace i2p {
 namespace tunnel {

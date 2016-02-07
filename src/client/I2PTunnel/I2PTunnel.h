@@ -40,7 +40,7 @@
 #include <string>
 
 #include "Identity.h"
-#include "api/Streaming.h"
+#include "Streaming.h"
 #include "client/Destination.h"
 #include "client/I2PService.h"
 

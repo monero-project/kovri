@@ -309,7 +309,8 @@ class I2PControlSession
 
   std::string m_Password;
   std::map<std::string, uint64_t> m_Tokens;
-  std::mutex m_TokensMutex;
+  std::mutex m_TokensMutex,
+             m_ShutdownMutex;
 
   std::map<std::string, MethodHandler> m_MethodHandlers;
   std::map<std::string, RequestHandler> m_RouterInfoHandlers,

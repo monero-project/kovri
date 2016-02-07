@@ -43,12 +43,12 @@
 
 #include "Identity.h"
 #include "NetworkDatabase.h"
-#include "client/util/Filesystem.h"
 #include "crypto/Rand.h"
 #include "crypto/CryptoConst.h"
 #include "crypto/Signature.h"
 #include "util/HTTP.h"
 #include "util/I2PEndian.h"
+#include "util/Filesystem.h"
 #include "util/Log.h"
 
 // do this AFTER other includes

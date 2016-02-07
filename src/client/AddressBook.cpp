@@ -75,7 +75,7 @@ class AddressBookFilesystemStorage : public AddressBookStorage {
 
  private:
   boost::filesystem::path GetPath() const {
-    return i2p::util::filesystem::GetDefaultDataPath() / "addressbook";
+    return i2p::context.GetDataPath() / "addressbook";
   }
 };
 

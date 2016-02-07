@@ -30,6 +30,8 @@
 
 #include "HTTP.h"
 
+#include "util/Filesystem.h"
+
 #include <string>
 #include <functional>
 
@@ -77,9 +79,8 @@ std::string HttpsDownload(
             length = socket.read_some(buffer(response, 1024), ec);
             if (length)
               readStream.write(response, length);
-          }
-          while (!ec && length);
-            return GetHttpContent(readStream);
+          } while (!ec && length);
+          return GetHttpContent(readStream);
          } else {
            LogPrint(eLogError,
                "Could not initialize SSL context: ", ec.message());
@@ -115,56 +116,54 @@ URI::URI(
 
 void URI::ParseURI(
     const std::string& uri) {
-  // TODO(anonimal): do not use using-directive.
-  using namespace std;
   /**
   * This is a hack since colons are a part of the URI scheme
   * and slashes aren't always needed. See RFC 7595.
   * */
-  const string prot_end("://");
+  const std::string prot_end("://");
   // Separate scheme from authority
-  string::const_iterator prot_i = search(
+  std::string::const_iterator prot_i = search(
       uri.begin(),
       uri.end(),
       prot_end.begin(),
       prot_end.end());
   // Prepare for lowercase result and transform to lowercase
   m_Protocol.reserve(
-      distance(
+      std::distance(
         uri.begin(),
         prot_i));
-  transform(
+  std::transform(
       uri.begin(),
       prot_i,
-      back_inserter(
+      std::back_inserter(
         m_Protocol),
-      ptr_fun<int, int>(tolower));
+      std::ptr_fun<int, int>(tolower));
   // TODO(unassigned): better error checking and handling
   if (prot_i == uri.end())
     return;
   // Move onto authority. We assume it's valid and don't bother checking.
-  advance(prot_i, prot_end.length());
-  string::const_iterator path_i = find(prot_i, uri.end(), '/');
+  std::advance(prot_i, prot_end.length());
+  std::string::const_iterator path_i = std::find(prot_i, uri.end(), '/');
   // Prepare for lowercase result and transform to lowercase
-  m_Host.reserve(distance(prot_i, path_i));
-  transform(
+  m_Host.reserve(std::distance(prot_i, path_i));
+  std::transform(
       prot_i,
       path_i,
-      back_inserter(m_Host),
-      ptr_fun<int, int>(tolower));
+      std::back_inserter(m_Host),
+      std::ptr_fun<int, int>(tolower));
   // Parse port, assuming it's valid input
-  auto port_i = find(m_Host.begin(), m_Host.end(), ':');
+  auto port_i = std::find(m_Host.begin(), m_Host.end(), ':');
   if (port_i != m_Host.end()) {
-    m_PortString = string(port_i + 1, m_Host.end());
+    m_PortString = std::string(port_i + 1, m_Host.end());
     m_Host.assign(m_Host.begin(), port_i);
     try {
       m_Port = boost::lexical_cast<decltype(m_Port)>(m_PortString);
-    } catch (const exception& e) {
+    } catch (const std::exception& e) {
       // Keep the default port
     }
   }
   // Parse query, assuming it's valid input
-  string::const_iterator query_i = find(path_i, uri.end(), '?');
+  std::string::const_iterator query_i = std::find(path_i, uri.end(), '?');
   m_Path.assign(path_i, query_i);
   if (query_i != uri.end())
     ++query_i;

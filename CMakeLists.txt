@@ -203,7 +203,6 @@ message(STATUS "---------------------------------------")
 include(GNUInstallDirs)
 
 set(MAIN_NAME "${PROJECT_NAME}-main")
-set(API_NAME "${PROJECT_NAME}-api")
 set(CLIENT_NAME "${PROJECT_NAME}-client")
 set(CORE_NAME "${PROJECT_NAME}-core")
 set(TESTS_NAME "${PROJECT_NAME}-tests")

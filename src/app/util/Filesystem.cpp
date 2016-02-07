@@ -29,6 +29,7 @@
  */
 
 #include "Filesystem.h"
+#include "Config.h"
 
 #include <string>
 

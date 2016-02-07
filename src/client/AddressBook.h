@@ -41,7 +41,7 @@
 #include <vector>
 
 #include "Identity.h"
-#include "client/util/Filesystem.h"
+#include "core/util/Filesystem.h"
 #include "util/Base64.h"
 #include "util/Log.h"
 

@@ -43,6 +43,7 @@
 #include "NetworkDatabase.h"
 #include "RouterContext.h"
 #include "Transports.h"
+#include "crypto/Rand.h"
 #include "crypto/CryptoConst.h"
 #include "util/Base64.h"
 #include "util/I2PEndian.h"

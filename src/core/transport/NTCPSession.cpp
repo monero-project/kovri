@@ -254,7 +254,9 @@ void NTCPSession::SendPhase2() {
       NTCP_PUBKEY_SIZE * 2);
   std::uint32_t tsB = htobe32(i2p::util::GetSecondsSinceEpoch());
   m_Establisher->phase2.encrypted.timestamp = tsB;
-  // TODO(unassigned): fill filler
+  i2p::crypto::RandBytes(
+      m_Establisher->phase2.encrypted.padding,
+      NTCP_PADDING_SIZE);
   i2p::crypto::AESKey aesKey;
   CreateAESKey(m_Establisher->phase1.pubKey, aesKey);
   m_Encryption.SetKey(aesKey);

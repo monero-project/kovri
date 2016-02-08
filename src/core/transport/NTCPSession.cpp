@@ -74,35 +74,35 @@ NTCPSession::~NTCPSession() {
 }
 
 void NTCPSession::CreateAESKey(
-    uint8_t* pubKey,
+    std::uint8_t* pubKey,
     i2p::crypto::AESKey& key) {
   CryptoPP::DH dh(
       i2p::crypto::elgp,
       i2p::crypto::elgg);
-  uint8_t sharedKey[256];
+  std::uint8_t sharedKey[NTCP_PUBKEY_SIZE];
   if (!dh.Agree(sharedKey, m_DHKeysPair->privateKey, pubKey)) {
     LogPrint(eLogError, "Couldn't create shared key");
     Terminate();
     return;
   }
-  uint8_t* aesKey = key;
+  std::uint8_t* aesKey = key;
   if (sharedKey[0] & 0x80) {
     aesKey[0] = 0;
-    memcpy(aesKey + 1, sharedKey, 31);
+    memcpy(aesKey + 1, sharedKey, NTCP_SESSIONKEY_SIZE - 1);
   } else if (sharedKey[0]) {
-    memcpy(aesKey, sharedKey, 32);
+    memcpy(aesKey, sharedKey, NTCP_SESSIONKEY_SIZE);
   } else {
     // find first non-zero byte
-    uint8_t* nonZero = sharedKey + 1;
+    std::uint8_t* nonZero = sharedKey + 1;
     while (!*nonZero) {
       nonZero++;
-      if (nonZero - sharedKey > 32) {
+      if (nonZero - sharedKey > (std::uint8_t)NTCP_SESSIONKEY_SIZE) {
         LogPrint(eLogWarning,
             "First 32 bytes of shared key is all zeros. Ignored");
         return;
       }
     }
-    memcpy(aesKey, nonZero, 32);
+    memcpy(aesKey, nonZero, NTCP_SESSIONKEY_SIZE);
   }
 }
 
@@ -143,17 +143,17 @@ void NTCPSession::ClientLogin() {
   if (!m_DHKeysPair)
     m_DHKeysPair = transports.GetNextDHKeysPair();
   // send Phase1
-  const uint8_t* x = m_DHKeysPair->publicKey;
+  const std::uint8_t* x = m_DHKeysPair->publicKey;
   memcpy(
       m_Establisher->phase1.pubKey,
       x,
-      256);
+      NTCP_PUBKEY_SIZE);
   CryptoPP::SHA256().CalculateDigest(
       m_Establisher->phase1.HXxorHI,
       x,
-      256);
-  const uint8_t* ident = m_RemoteIdentity.GetIdentHash();
-  for (int i = 0; i < 32; i++)
+      NTCP_PUBKEY_SIZE);
+  const std::uint8_t* ident = m_RemoteIdentity.GetIdentHash();
+  for (std::size_t i = 0; i < NTCP_HASH_SIZE; i++)
     m_Establisher->phase1.HXxorHI[i] ^= ident[i];
   boost::asio::async_write(
       m_Socket,
@@ -223,13 +223,13 @@ void NTCPSession::HandlePhase1Received(
       Terminate();
   } else {
     // verify ident
-    uint8_t digest[32];
+    std::uint8_t digest[NTCP_HASH_SIZE];
     CryptoPP::SHA256().CalculateDigest(
         digest,
         m_Establisher->phase1.pubKey,
-        256);
-    const uint8_t* ident = i2p::context.GetRouterInfo().GetIdentHash();
-    for (int i = 0; i < 32; i++) {
+        NTCP_PUBKEY_SIZE);
+    const std::uint8_t* ident = i2p::context.GetRouterInfo().GetIdentHash();
+    for (std::size_t i = 0; i < NTCP_HASH_SIZE; i++) {
       if ((m_Establisher->phase1.HXxorHI[i] ^ ident[i]) != digest[i]) {
         LogPrint(eLogError, "Wrong ident");
         Terminate();
@@ -243,16 +243,16 @@ void NTCPSession::HandlePhase1Received(
 void NTCPSession::SendPhase2() {
   if (!m_DHKeysPair)
     m_DHKeysPair = transports.GetNextDHKeysPair();
-  const uint8_t* y = m_DHKeysPair->publicKey;
-  memcpy(m_Establisher->phase2.pubKey, y, 256);
-  uint8_t xy[512];
-  memcpy(xy, m_Establisher->phase1.pubKey, 256);
-  memcpy(xy + 256, y, 256);
+  const std::uint8_t* y = m_DHKeysPair->publicKey;
+  memcpy(m_Establisher->phase2.pubKey, y, NTCP_PUBKEY_SIZE);
+  std::uint8_t xy[NTCP_PUBKEY_SIZE * 2];  // Combined DH key size for hxy
+  memcpy(xy, m_Establisher->phase1.pubKey, NTCP_PUBKEY_SIZE);
+  memcpy(xy + NTCP_PUBKEY_SIZE, y, NTCP_PUBKEY_SIZE);
   CryptoPP::SHA256().CalculateDigest(
       m_Establisher->phase2.encrypted.hxy,
       xy,
-      512);
-  uint32_t tsB = htobe32(i2p::util::GetSecondsSinceEpoch());
+      NTCP_PUBKEY_SIZE * 2);
+  std::uint32_t tsB = htobe32(i2p::util::GetSecondsSinceEpoch());
   m_Establisher->phase2.encrypted.timestamp = tsB;
   // TODO(unassigned): fill filler
   i2p::crypto::AESKey aesKey;
@@ -260,11 +260,11 @@ void NTCPSession::SendPhase2() {
   m_Encryption.SetKey(aesKey);
   m_Encryption.SetIV(y + 240);
   m_Decryption.SetKey(aesKey);
-  m_Decryption.SetIV(m_Establisher->phase1.HXxorHI + 16);
+  m_Decryption.SetIV(m_Establisher->phase1.HXxorHI + NTCP_IV_SIZE);
   m_Encryption.Encrypt(
-      reinterpret_cast<uint8_t *>(&m_Establisher->phase2.encrypted),
+      reinterpret_cast<std::uint8_t *>(&m_Establisher->phase2.encrypted),
       sizeof(m_Establisher->phase2.encrypted),
-      reinterpret_cast<uint8_t *>(&m_Establisher->phase2.encrypted));
+      reinterpret_cast<std::uint8_t *>(&m_Establisher->phase2.encrypted));
   boost::asio::async_write(
       m_Socket,
       boost::asio::buffer(
@@ -282,7 +282,7 @@ void NTCPSession::SendPhase2() {
 void NTCPSession::HandlePhase2Sent(
     const boost::system::error_code& ecode,
     std::size_t,
-    uint32_t tsB) {
+    std::uint32_t tsB) {
   if (ecode) {
     LogPrint(eLogError,
         "Couldn't send Phase 2 message: ", ecode.message());
@@ -293,7 +293,7 @@ void NTCPSession::HandlePhase2Sent(
         m_Socket,
         boost::asio::buffer(
             m_ReceiveBuffer,
-            NTCP_DEFAULT_PHASE3_SIZE),
+            NTCP_PHASE3_UNENCRYPTED_SIZE),
         boost::asio::transfer_all(),
         std::bind(
             &NTCPSession::HandlePhase3Received,
@@ -325,19 +325,25 @@ void NTCPSession::HandlePhase2Received(
     m_Decryption.SetKey(aesKey);
     m_Decryption.SetIV(m_Establisher->phase2.pubKey + 240);
     m_Encryption.SetKey(aesKey);
-    m_Encryption.SetIV(m_Establisher->phase1.HXxorHI + 16);
+    m_Encryption.SetIV(m_Establisher->phase1.HXxorHI + NTCP_IV_SIZE);
     m_Decryption.Decrypt(
-        reinterpret_cast<uint8_t *>(&m_Establisher->phase2.encrypted),
+        reinterpret_cast<std::uint8_t *>(&m_Establisher->phase2.encrypted),
         sizeof(m_Establisher->phase2.encrypted),
-        reinterpret_cast<uint8_t *>(&m_Establisher->phase2.encrypted));
+        reinterpret_cast<std::uint8_t *>(&m_Establisher->phase2.encrypted));
     // verify
-    uint8_t xy[512];
-    memcpy(xy, m_DHKeysPair->publicKey, 256);
-    memcpy(xy + 256, m_Establisher->phase2.pubKey, 256);
+    std::uint8_t xy[NTCP_PUBKEY_SIZE * 2];
+    memcpy(
+        xy,
+        m_DHKeysPair->publicKey,
+        NTCP_PUBKEY_SIZE);
+    memcpy(
+        xy + NTCP_PUBKEY_SIZE,
+        m_Establisher->phase2.pubKey,
+        NTCP_PUBKEY_SIZE);
     if (!CryptoPP::SHA256().VerifyDigest(
           m_Establisher->phase2.encrypted.hxy,
           xy,
-          512)) {
+          NTCP_PUBKEY_SIZE * 2)) {
       LogPrint(eLogError, "Incorrect hash");
       transports.ReuseDHKeysPair(m_DHKeysPair);
       m_DHKeysPair = nullptr;
@@ -350,28 +356,28 @@ void NTCPSession::HandlePhase2Received(
 
 void NTCPSession::SendPhase3() {
   auto keys = i2p::context.GetPrivateKeys();
-  uint8_t* buf = m_ReceiveBuffer;
+  std::uint8_t* buf = m_ReceiveBuffer;
   htobe16buf(buf, keys.GetPublic().GetFullLen());
-  buf += 2;
+  buf += NTCP_PHASE3_ALICE_RI_SIZE;
   buf += i2p::context.GetIdentity().ToBuffer(buf, NTCP_BUFFER_SIZE);
-  uint32_t tsA = htobe32(i2p::util::GetSecondsSinceEpoch());
+  std::uint32_t tsA = htobe32(i2p::util::GetSecondsSinceEpoch());
   htobuf32(buf, tsA);
-  buf += 4;
-  size_t signatureLen = keys.GetPublic().GetSignatureLen();
-  size_t len = (buf - m_ReceiveBuffer) + signatureLen;
-  size_t paddingSize = len & 0x0F;  // %16
+  buf += NTCP_PHASE3_ALICE_TS_SIZE;
+  std::size_t signatureLen = keys.GetPublic().GetSignatureLen();
+  std::size_t len = (buf - m_ReceiveBuffer) + signatureLen;
+  std::size_t paddingSize = len & 0x0F;  // %16
   if (paddingSize > 0) {
-    paddingSize = 16 - paddingSize;
+    paddingSize = NTCP_IV_SIZE - paddingSize;
     i2p::crypto::RandBytes(buf, paddingSize);
     buf += paddingSize;
     len += paddingSize;
   }
   SignedData s;
-  s.Insert(m_Establisher->phase1.pubKey, 256);  // x
-  s.Insert(m_Establisher->phase2.pubKey, 256);  // y
-  s.Insert(m_RemoteIdentity.GetIdentHash(), 32);  // ident
-  s.Insert(tsA);  // tsA
-  s.Insert(m_Establisher->phase2.encrypted.timestamp);  // tsB
+  s.Insert(m_Establisher->phase1.pubKey, NTCP_PUBKEY_SIZE);  // x
+  s.Insert(m_Establisher->phase2.pubKey, NTCP_PUBKEY_SIZE);  // y
+  s.Insert(m_RemoteIdentity.GetIdentHash(), NTCP_HASH_SIZE);
+  s.Insert(tsA);  // timestamp Alice
+  s.Insert(m_Establisher->phase2.encrypted.timestamp);  // timestamp Bob
   s.Sign(keys, buf);
   m_Encryption.Encrypt(
       m_ReceiveBuffer,
@@ -394,7 +400,7 @@ void NTCPSession::SendPhase3() {
 void NTCPSession::HandlePhase3Sent(
     const boost::system::error_code& ecode,
     std::size_t,
-    uint32_t tsA) {
+    std::uint32_t tsA) {
   if (ecode) {
     LogPrint(eLogError,
         "Couldn't send Phase 3 message: ", ecode.message());
@@ -403,9 +409,9 @@ void NTCPSession::HandlePhase3Sent(
   } else {
     // wait for phase4
     auto signatureLen = m_RemoteIdentity.GetSignatureLen();
-    size_t paddingSize = signatureLen & 0x0F;  // %16
+    std::size_t paddingSize = signatureLen & 0x0F;  // %16
     if (paddingSize > 0)
-      signatureLen += (16 - paddingSize);
+      signatureLen += (NTCP_IV_SIZE - paddingSize);
     boost::asio::async_read(
         m_Socket,
         boost::asio::buffer(
@@ -424,7 +430,7 @@ void NTCPSession::HandlePhase3Sent(
 void NTCPSession::HandlePhase3Received(
     const boost::system::error_code& ecode,
     std::size_t bytes_transferred,
-    uint32_t tsB) {
+    std::uint32_t tsB) {
   if (ecode) {
     LogPrint(eLogError, "Phase 3 read error: ", ecode.message());
     if (ecode != boost::asio::error::operation_aborted)
@@ -434,25 +440,27 @@ void NTCPSession::HandlePhase3Received(
         m_ReceiveBuffer,
         bytes_transferred,
         m_ReceiveBuffer);
-    uint8_t* buf = m_ReceiveBuffer;
+    std::uint8_t* buf = m_ReceiveBuffer;
     uint16_t size = bufbe16toh(buf);
-    m_RemoteIdentity.FromBuffer(buf + 2, size);
+    m_RemoteIdentity.FromBuffer(buf + NTCP_PHASE3_ALICE_RI_SIZE, size);
     if (m_Server.FindNTCPSession(m_RemoteIdentity.GetIdentHash())) {
       LogPrint(eLogError, "NTCP session already exists");
       Terminate();
     }
-    size_t expectedSize =
-      size + 2 + 4 + m_RemoteIdentity.GetSignatureLen();
+    size_t expectedSize = size +
+                          NTCP_PHASE3_ALICE_RI_SIZE +
+                          NTCP_PHASE3_ALICE_TS_SIZE +
+                          m_RemoteIdentity.GetSignatureLen();
     size_t paddingLen = expectedSize & 0x0F;
     if (paddingLen)
       paddingLen = (16 - paddingLen);
-    if (expectedSize > NTCP_DEFAULT_PHASE3_SIZE) {
+    if (expectedSize > NTCP_PHASE3_UNENCRYPTED_SIZE) {
       // we need more bytes for Phase3
       expectedSize += paddingLen;
       boost::asio::async_read(
           m_Socket,
           boost::asio::buffer(
-              m_ReceiveBuffer + NTCP_DEFAULT_PHASE3_SIZE,
+              m_ReceiveBuffer + NTCP_PHASE3_UNENCRYPTED_SIZE,
               expectedSize),
           boost::asio::transfer_all(),
           std::bind(
@@ -471,8 +479,8 @@ void NTCPSession::HandlePhase3Received(
 void NTCPSession::HandlePhase3ExtraReceived(
     const boost::system::error_code& ecode,
     std::size_t bytes_transferred,
-    uint32_t tsB,
-    size_t paddingLen) {
+    std::uint32_t tsB,
+    std::size_t paddingLen) {
   if (ecode) {
     LogPrint(eLogError,
         "Phase 3 extra read error: ", ecode.message());
@@ -480,26 +488,29 @@ void NTCPSession::HandlePhase3ExtraReceived(
       Terminate();
   } else {
     m_Decryption.Decrypt(
-        m_ReceiveBuffer + NTCP_DEFAULT_PHASE3_SIZE,
+        m_ReceiveBuffer + NTCP_PHASE3_UNENCRYPTED_SIZE,
         bytes_transferred,
-        m_ReceiveBuffer+ NTCP_DEFAULT_PHASE3_SIZE);
+        m_ReceiveBuffer+ NTCP_PHASE3_UNENCRYPTED_SIZE);
     HandlePhase3(tsB, paddingLen);
   }
 }
 
 void NTCPSession::HandlePhase3(
-    uint32_t tsB,
-    size_t paddingLen) {
-  uint8_t* buf = m_ReceiveBuffer + m_RemoteIdentity.GetFullLen() + 2 /*size*/;
-  uint32_t tsA = buf32toh(buf);
-  buf += 4;
+    std::uint32_t tsB,
+    std::size_t paddingLen) {
+  std::uint8_t* buf =
+    m_ReceiveBuffer +
+    m_RemoteIdentity.GetFullLen() +
+    NTCP_PHASE3_ALICE_RI_SIZE;
+  std::uint32_t tsA = buf32toh(buf);
+  buf += NTCP_PHASE3_ALICE_TS_SIZE;
   buf += paddingLen;
   SignedData s;
-  s.Insert(m_Establisher->phase1.pubKey, 256);  // x
-  s.Insert(m_Establisher->phase2.pubKey, 256);  // y
-  s.Insert(i2p::context.GetRouterInfo().GetIdentHash(), 32);  // ident
-  s.Insert(tsA);  // tsA
-  s.Insert(tsB);  // tsB
+  s.Insert(m_Establisher->phase1.pubKey, NTCP_PUBKEY_SIZE);  // x
+  s.Insert(m_Establisher->phase2.pubKey, NTCP_PUBKEY_SIZE);  // y
+  s.Insert(i2p::context.GetRouterInfo().GetIdentHash(), NTCP_HASH_SIZE);
+  s.Insert(tsA);
+  s.Insert(tsB);
   if (!s.Verify(m_RemoteIdentity, buf)) {
     LogPrint(eLogError, "signature verification failed");
     Terminate();
@@ -510,20 +521,20 @@ void NTCPSession::HandlePhase3(
 }
 
 void NTCPSession::SendPhase4(
-    uint32_t tsA,
-    uint32_t tsB) {
+    std::uint32_t tsA,
+    std::uint32_t tsB) {
   SignedData s;
-  s.Insert(m_Establisher->phase1.pubKey, 256);  // x
-  s.Insert(m_Establisher->phase2.pubKey, 256);  // y
-  s.Insert(m_RemoteIdentity.GetIdentHash(), 32);  // ident
-  s.Insert(tsA);  // tsA
-  s.Insert(tsB);  // tsB
+  s.Insert(m_Establisher->phase1.pubKey, NTCP_PUBKEY_SIZE);  // x
+  s.Insert(m_Establisher->phase2.pubKey, NTCP_PUBKEY_SIZE);  // y
+  s.Insert(m_RemoteIdentity.GetIdentHash(), NTCP_HASH_SIZE);
+  s.Insert(tsA);
+  s.Insert(tsB);
   auto keys = i2p::context.GetPrivateKeys();
   auto signatureLen = keys.GetPublic().GetSignatureLen();
   s.Sign(keys, m_ReceiveBuffer);
   size_t paddingSize = signatureLen & 0x0F;  // %16
   if (paddingSize > 0)
-    signatureLen += (16 - paddingSize);
+    signatureLen += (NTCP_IV_SIZE - paddingSize);
   m_Encryption.Encrypt(
       m_ReceiveBuffer,
       signatureLen,
@@ -563,7 +574,7 @@ void NTCPSession::HandlePhase4Sent(
 void NTCPSession::HandlePhase4Received(
     const boost::system::error_code& ecode,
     std::size_t bytes_transferred,
-    uint32_t tsA) {
+    std::uint32_t tsA) {
   if (ecode) {
     LogPrint(eLogError,
         "Phase 4 read error: ", ecode.message(), ". Check your clock");
@@ -576,11 +587,11 @@ void NTCPSession::HandlePhase4Received(
     m_Decryption.Decrypt(m_ReceiveBuffer, bytes_transferred, m_ReceiveBuffer);
     // verify signature
     SignedData s;
-    s.Insert(m_Establisher->phase1.pubKey, 256);  // x
-    s.Insert(m_Establisher->phase2.pubKey, 256);  // y
-    s.Insert(i2p::context.GetRouterInfo().GetIdentHash(), 32);  // ident
-    s.Insert(tsA);  // tsA
-    s.Insert(m_Establisher->phase2.encrypted.timestamp);  // tsB
+    s.Insert(m_Establisher->phase1.pubKey, NTCP_PUBKEY_SIZE);  // x
+    s.Insert(m_Establisher->phase2.pubKey, NTCP_PUBKEY_SIZE);  // y
+    s.Insert(i2p::context.GetRouterInfo().GetIdentHash(), NTCP_HASH_SIZE);
+    s.Insert(tsA);  // timestamp Alice
+    s.Insert(m_Establisher->phase2.encrypted.timestamp);  // timestamp Bob
     if (!s.Verify(m_RemoteIdentity, m_ReceiveBuffer)) {
       LogPrint(eLogError, "signature verification failed");
       Terminate();
@@ -613,31 +624,32 @@ void NTCPSession::HandleReceived(
     std::size_t bytes_transferred) {
   if (ecode) {
     LogPrint(eLogError, "Read error: ", ecode.message());
-    if (!m_NumReceivedBytes) m_Server.Ban(m_ConnectedFrom);
+    if (!m_NumReceivedBytes)
+      m_Server.Ban(m_ConnectedFrom);
     // if (ecode != boost::asio::error::operation_aborted)
-      Terminate();
+    Terminate();
   } else {
     m_NumReceivedBytes += bytes_transferred;
     i2p::transport::transports.UpdateReceivedBytes(bytes_transferred);
     m_ReceiveBufferOffset += bytes_transferred;
-    if (m_ReceiveBufferOffset >= 16) {
+    if (m_ReceiveBufferOffset >= NTCP_IV_SIZE) {
       int numReloads = 0;
       do {
-        uint8_t* nextBlock = m_ReceiveBuffer;
-        while (m_ReceiveBufferOffset >= 16) {
+        std::uint8_t* nextBlock = m_ReceiveBuffer;
+        while (m_ReceiveBufferOffset >= NTCP_IV_SIZE) {
           if (!DecryptNextBlock(nextBlock)) {  // 16 bytes
             Terminate();
             return;
           }
-          nextBlock += 16;
-          m_ReceiveBufferOffset -= 16;
+          nextBlock += NTCP_IV_SIZE;
+          m_ReceiveBufferOffset -= NTCP_IV_SIZE;
         }
         if (m_ReceiveBufferOffset > 0)
           memcpy(m_ReceiveBuffer, nextBlock, m_ReceiveBufferOffset);
         // try to read more
         if (numReloads < 5) {
           boost::system::error_code ec;
-          size_t moreBytes = m_Socket.available(ec);
+          std::size_t moreBytes = m_Socket.available(ec);
           if (moreBytes) {
             if (moreBytes > NTCP_BUFFER_SIZE - m_ReceiveBufferOffset)
               moreBytes = NTCP_BUFFER_SIZE - m_ReceiveBufferOffset;
@@ -656,7 +668,7 @@ void NTCPSession::HandleReceived(
           }
         }
       }
-      while (m_ReceiveBufferOffset >= 16);
+      while (m_ReceiveBufferOffset >= NTCP_IV_SIZE);
       m_Handler.Flush();
     }
     ScheduleTermination();  // reset termination timer
@@ -665,10 +677,10 @@ void NTCPSession::HandleReceived(
 }
 
 bool NTCPSession::DecryptNextBlock(
-    const uint8_t* encrypted) {  // 16 bytes
+    const std::uint8_t* encrypted) {  // 16 bytes
   if (!m_NextMessage) {  // new message, header expected
     // decrypt header and extract length
-    uint8_t buf[16];
+    std::uint8_t buf[NTCP_IV_SIZE];
     m_Decryption.Decrypt(encrypted, buf);
     uint16_t dataSize = bufbe16toh(buf);
     if (dataSize) {
@@ -677,14 +689,15 @@ bool NTCPSession::DecryptNextBlock(
         LogPrint(eLogError, "NTCP data size ", dataSize, " exceeds max size");
         return false;
       }
-      auto msg = dataSize <= I2NP_MAX_SHORT_MESSAGE_SIZE - 2 ?
-        NewI2NPShortMessage() :
-        NewI2NPMessage();
+      auto msg =
+        dataSize <= I2NP_MAX_SHORT_MESSAGE_SIZE - NTCP_PHASE3_ALICE_RI_SIZE ?
+          NewI2NPShortMessage() :
+          NewI2NPMessage();
       m_NextMessage = ToSharedI2NPMessage(msg);
-      memcpy(m_NextMessage->buf, buf, 16);
-      m_NextMessageOffset = 16;
-      m_NextMessage->offset = 2;  // size field
-      m_NextMessage->len = dataSize + 2;
+      memcpy(m_NextMessage->buf, buf, NTCP_IV_SIZE);
+      m_NextMessageOffset = NTCP_IV_SIZE;
+      m_NextMessage->offset = NTCP_PHASE3_ALICE_RI_SIZE;  // size field
+      m_NextMessage->len = dataSize + NTCP_PHASE3_ALICE_RI_SIZE;
     } else {
       // timestamp
       LogPrint("Timestamp");
@@ -694,14 +707,14 @@ bool NTCPSession::DecryptNextBlock(
     m_Decryption.Decrypt(
         encrypted,
         m_NextMessage->buf + m_NextMessageOffset);
-    m_NextMessageOffset += 16;
+    m_NextMessageOffset += NTCP_IV_SIZE;
   }
-  if (m_NextMessageOffset >= m_NextMessage->len + 4) {  // +checksum
+  if (m_NextMessageOffset >= m_NextMessage->len + NTCP_ADLER32_SIZE) {
     // we have a complete I2NP message
     if (CryptoPP::Adler32().VerifyDigest(
-          m_NextMessage->buf + m_NextMessageOffset - 4,
+          m_NextMessage->buf + m_NextMessageOffset - NTCP_ADLER32_SIZE,
           m_NextMessage->buf,
-          m_NextMessageOffset - 4))
+          m_NextMessageOffset - NTCP_ADLER32_SIZE))
       m_Handler.PutNextMessage(m_NextMessage);
     else
       LogPrint(eLogWarning,
@@ -728,35 +741,37 @@ void NTCPSession::Send(
 
 boost::asio::const_buffers_1 NTCPSession::CreateMsgBuffer(
     std::shared_ptr<I2NPMessage> msg) {
-  uint8_t* sendBuffer;
+  std::uint8_t* sendBuffer;
   int len;
   if (msg) {
     // regular I2NP
-    if (msg->offset < 2)
+    if (msg->offset < NTCP_PHASE3_ALICE_RI_SIZE)
       LogPrint(eLogError,
           "Malformed I2NP message");  // TODO(unassigned): Error handling
-    sendBuffer = msg->GetBuffer() - 2;
+    sendBuffer = msg->GetBuffer() - NTCP_PHASE3_ALICE_RI_SIZE;
     len = msg->GetLength();
     htobe16buf(sendBuffer, len);
   } else {
     // prepare timestamp
     sendBuffer = m_TimeSyncBuffer;
-    len = 4;
+    len = NTCP_PHASE3_ALICE_TS_SIZE;
     htobuf16(sendBuffer, 0);
-    htobe32buf(sendBuffer + 2, time(0));
+    htobe32buf(sendBuffer + NTCP_PHASE3_ALICE_TS_SIZE, time(0));
   }
   int rem = (len + 6) & 0x0F;  // %16
   int padding = 0;
   if (rem > 0) {
-    padding = 16 - rem;
-    i2p::crypto::RandBytes(sendBuffer + len + 2, padding);
+    padding = NTCP_IV_SIZE - rem;
+    i2p::crypto::RandBytes(
+        sendBuffer + len + NTCP_PHASE3_ALICE_TS_SIZE,
+        padding);
   }
   CryptoPP::Adler32().CalculateDigest(
-      sendBuffer + len + 2 + padding,
-      sendBuffer, len + 2+ padding);
+      sendBuffer + len + NTCP_PHASE3_ALICE_RI_SIZE + padding,
+      sendBuffer, len + NTCP_PHASE3_ALICE_RI_SIZE + padding);
   int l = len + padding + 6;
   m_Encryption.Encrypt(sendBuffer, l, sendBuffer);
-  return boost::asio::buffer ((const uint8_t *)sendBuffer, l);
+  return boost::asio::buffer ((const std::uint8_t *)sendBuffer, l);
 }
 
 void NTCPSession::Send(
@@ -783,9 +798,10 @@ void NTCPSession::HandleSent(
   m_IsSending = false;
   if (ecode) {
     LogPrint(eLogWarning, "Couldn't send msgs: ", ecode.message());
+    // TODO(unassigned):
     // we shouldn't call Terminate () here, because HandleReceive takes care
-    // TODO(unassigned): 'delete this' statement in Terminate() must be eliminated later
-    // Terminate();
+    // 'delete this' statement in Terminate() must be eliminated later
+    //Terminate();
   } else {
     m_NumSentBytes += bytes_transferred;
     i2p::transport::transports.UpdateSentBytes(bytes_transferred);

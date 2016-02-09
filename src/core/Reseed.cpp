@@ -43,12 +43,12 @@
 
 #include "Identity.h"
 #include "NetworkDatabase.h"
-#include "client/util/Filesystem.h"
 #include "crypto/Rand.h"
 #include "crypto/CryptoConst.h"
 #include "crypto/Signature.h"
 #include "util/HTTP.h"
 #include "util/I2PEndian.h"
+#include "util/Filesystem.h"
 #include "util/Log.h"
 
 // do this AFTER other includes
@@ -213,6 +213,11 @@ int Reseeder::ProcessSU3Stream(
       uint16_t fileNameLength, extraFieldLength;
       s.read(reinterpret_cast<char *>(&fileNameLength), 2);
       fileNameLength = le16toh(fileNameLength);
+      if (fileNameLength > 255) {
+        // TODO: avoid overflow with longer filenames
+        LogPrint(eLogError, "Reseed: SU3 fileNameLength too large: ", int(fileNameLength));
+        return numFiles;
+      }
       s.read(reinterpret_cast<char *>(&extraFieldLength), 2);
       extraFieldLength = le16toh(extraFieldLength);
       char localFileName[255];

@@ -36,7 +36,6 @@
 #include <memory>
 
 #include "Identity.h"
-#include "client/util/Filesystem.h"
 
 namespace i2p {
 namespace data {

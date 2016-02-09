@@ -28,49 +28,35 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_CLIENT_UTIL_CONFIG_H_
-#define SRC_CLIENT_UTIL_CONFIG_H_
-
-#include <boost/filesystem/fstream.hpp>
-#include <boost/program_options.hpp>
+#ifndef SRC_CORE_UTIL_FILESYSTEM_H_
+#define SRC_CORE_UTIL_FILESYSTEM_H_
 
 #include <string>
-#include <iostream>
+#include <boost/filesystem.hpp>
 
-#include "core/Version.h"
-#include "Filesystem.h"
+/**
+ * Fixes undefined reference to boost::filesystem::detail::copy_file
+ * See https://github.com/purplei2p/i2pd/issues/272
+ */
+#define BOOST_NO_CXX11_SCOPED_ENUMS
 
 namespace i2p {
 namespace util {
-namespace config {
+namespace filesystem {
 
-// Our configuration files
-extern std::string kovriConfig, tunnelsConfig;
+namespace bfs = boost::filesystem;
 
-// Config option descriptions
-extern boost::program_options::options_description confOpts;
+/// @return the full path of a file within the kovri directory
+std::string GetFullPath(const std::string& filename);
 
-// Variable map for CLI and conf args
-extern boost::program_options::variables_map varMap;
+/// @return the path to certificates for SU3 verification
+bfs::path GetSU3CertsPath();
 
-/**
- * @return 1 on failure/help, 0 on success
- */
-bool ParseArgs(
-    int argc,
-    char* argv[]);
+/// @return the path to SSL certificates for TLS/SSL negotiation
+bfs::path GetSSLCertsPath();
 
-/**
- * Note: CLI args override config file args but
- * args that are not overridden will stay mapped
- */
-void ParseConfigFile(
-    std::string& kovriConfig,
-    boost::program_options::options_description& confOpts,
-    boost::program_options::variables_map& varMap);
-
-}  // namespace config
+}  // namespace filesystem
 }  // namespace util
 }  // namespace i2p
 
-#endif  // SRC_CLIENT_UTIL_CONFIG_H_
+#endif  // SRC_CORE_UTIL_FILESYSTEM_H_

@@ -77,8 +77,8 @@ bool ParseArgs(
       "==================\n\n"
 
       "all     | basic | system\n"
-      "network | proxy | irc\n"
-      "eepsite | i2pcs | config\n\n"
+      "network | proxy | i2pcs\n"
+      "config\n\n"
 
       "Examples\n"
       "========\n\n"
@@ -145,33 +145,6 @@ bool ParseArgs(
     ("proxykeys", bpo::value<std::string>()->default_value(""),
      "Optional keys file for proxy's local destination\n");
 
-  bpo::options_description irc("\nIRC");
-  irc.add_options()
-    ("ircport", bpo::value<int>()->default_value(6669),
-     "The local port of IRC tunnel to listen on\n")
-
-    ("ircaddress", bpo::value<std::string>()->default_value("127.0.0.1"),
-     "The adddress of IRC tunnel to listen on.\n")
-
-    ("ircdest", bpo::value<std::string>()->default_value(""),
-     "I2P destination address of IRC server\n"
-     "Example: irc.postman.i2p\n")
-
-    ("irckeys", bpo::value<std::string>()->default_value(""),
-     "Optional keys file for tunnel's local destination\n");
-
-  bpo::options_description eepsite("\nEepsite");
-  eepsite.add_options()
-    ("eepport", bpo::value<int>()->default_value(80),
-     "Forward incoming traffic to this port\n")
-
-    ("eepaddress", bpo::value<std::string>()->default_value("127.0.0.1"),
-     "Forward incoming traffic to this address\n")
-
-    ("eepkeys", bpo::value<std::string>()->default_value(""),
-     "File containing destination keys, ex. privKeys.dat\n"
-     "The file will be created if it does not exist\n");
-
   bpo::options_description i2pcs("\nI2P Control Service");
   i2pcs.add_options()
     ("i2pcontrolport", bpo::value<int>()->default_value(0),
@@ -209,8 +182,6 @@ bool ParseArgs(
     .add(system)
     .add(network)
     .add(proxy)
-    .add(irc)
-    .add(eepsite)
     .add(i2pcs)
     .add(config);
   // Available cli options
@@ -221,8 +192,6 @@ bool ParseArgs(
     .add(system)
     .add(network)
     .add(proxy)
-    .add(irc)
-    .add(eepsite)
     .add(i2pcs)
     .add(config);
   // Map and store cli options
@@ -249,10 +218,6 @@ bool ParseArgs(
       std::cout << network;
     } else if (s == "proxy") {
       std::cout << proxy;
-    } else if (s == "irc") {
-      std::cout << irc;
-    } else if (s == "eepsite") {
-      std::cout << eepsite;
     } else if (s == "i2pcs") {
       std::cout << i2pcs;
     } else if (s == "config") {

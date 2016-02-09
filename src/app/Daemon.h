@@ -28,25 +28,75 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <thread>
+#ifndef SRC_APP_DAEMON_H_
+#define SRC_APP_DAEMON_H_
 
-#include "client/Daemon.h"
-#include "client/util/Config.h"
+#include <string>
 
-int main(int argc, char* argv[]) {
-  try {
-    if (i2p::util::config::ParseArgs(argc, argv) == 1)
-      return EXIT_FAILURE;
-  } catch(const std::exception& ex) {
-      std::cout << ex.what() << "\nTry using --help" << std::endl;
-      return EXIT_FAILURE;
+#ifdef _WIN32
+#define Daemon i2p::util::DaemonWin32::Instance()
+#else
+#define Daemon i2p::util::DaemonLinux::Instance()
+#endif
+
+#include "core/util/Log.h"
+
+namespace i2p {
+namespace util {
+
+class Daemon_Singleton {
+ public:
+  virtual bool Init();
+  virtual bool Start();
+  virtual bool Stop();
+  virtual void Reload();
+  bool m_IsDaemon,
+       m_IsLogging,
+       m_IsRunning;
+
+ private:
+  /// Initializes the router's client context object
+  /// Creates tunnels, proxies and I2PControl service
+  void InitClientContext();
+  void SetupTunnels();
+  void ReloadTunnels();
+
+ protected:
+  Daemon_Singleton();
+  virtual ~Daemon_Singleton();
+  bool IsService() const;
+  std::shared_ptr<i2p::util::log::Log> m_log;
+};
+
+#ifdef _WIN32
+class DaemonWin32 : public Daemon_Singleton {
+ public:
+  static DaemonWin32& Instance() {
+    static DaemonWin32 instance;
+    return instance;
   }
-  if (!Daemon.Init())
-    return EXIT_FAILURE;
-  if (Daemon.Start()) {
-    while (Daemon.m_IsRunning)
-      std::this_thread::sleep_for(std::chrono::seconds(1));
+  virtual bool Init();
+  virtual bool Start();
+  virtual bool Stop();
+};
+#else
+class DaemonLinux : public Daemon_Singleton {
+ public:
+  DaemonLinux() = default;
+  static DaemonLinux& Instance() {
+    static DaemonLinux instance;
+    return instance;
   }
-  Daemon.Stop();
-  return EXIT_SUCCESS;
-}
+  virtual bool Start();
+  virtual bool Stop();
+  void Reload();
+ private:
+  std::string m_pidFile;
+  int m_pidFilehandle;
+};
+#endif
+
+}  // namespace util
+}  // namespace i2p
+
+#endif  // SRC_APP_DAEMON_H_

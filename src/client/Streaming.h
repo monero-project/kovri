@@ -28,8 +28,8 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_API_STREAMING_H_
-#define SRC_API_STREAMING_H_
+#ifndef SRC_CLIENT_STREAMING_H_
+#define SRC_CLIENT_STREAMING_H_
 
 #include <inttypes.h>
 
@@ -460,4 +460,4 @@ void Stream::HandleReceiveTimer(
 }  // namespace stream
 }  // namespace i2p
 
-#endif  // SRC_API_STREAMING_H_
+#endif  // SRC_CLIENT_STREAMING_H_

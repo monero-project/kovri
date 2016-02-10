@@ -41,42 +41,52 @@ namespace http {
 
 std::string HttpsDownload(
     const std::string& address) {
-  // TODO(anonimal): do not use using-directive.
-  using namespace boost::asio;
-  io_service service;
+  boost::asio::io_service service;
   boost::system::error_code ec;
   URI uri(address);
   // Ensures host is online
-  auto query = ip::tcp::resolver::query(uri.m_Host, std::to_string(uri.m_Port));
-  auto endpoint = ip::tcp::resolver(service).resolve(query, ec);
+  auto query =
+    boost::asio::ip::tcp::resolver::query(
+        uri.m_Host,
+        std::to_string(
+            uri.m_Port));
+  auto endpoint =
+    boost::asio::ip::tcp::resolver(service).resolve(query, ec);
   if (!ec) {
     // Initialize SSL
-    // TODO(anonimal): deprecated constructor/
-    ssl::context ctx(service, ssl::context::sslv23);
-    ctx.set_options(ssl::context::no_tlsv1 | ssl::context::no_sslv3, ec);
+    // TODO(anonimal): deprecated constructor
+    boost::asio::ssl::context ctx(
+        service,
+        boost::asio::ssl::context::sslv23);
+    ctx.set_options(
+        boost::asio::ssl::context::no_tlsv1 | boost::asio::ssl::context::no_sslv3,
+        ec);
     if (!ec) {
       // Ensures that we only download from certified reseed servers
-      ctx.set_verify_mode(ssl::verify_peer | ssl::verify_fail_if_no_peer_cert);
-      ctx.set_verify_callback(ssl::rfc2818_verification(uri.m_Host));
+      ctx.set_verify_mode(
+          boost::asio::ssl::verify_peer | boost::asio::ssl::verify_fail_if_no_peer_cert);
+      ctx.set_verify_callback(
+          boost::asio::ssl::rfc2818_verification(
+              uri.m_Host));
       ctx.add_verify_path(i2p::util::filesystem::GetSSLCertsPath().string());
       // Connect to host
-      ssl::stream<ip::tcp::socket>socket(service, ctx);
+      boost::asio::ssl::stream<boost::asio::ip::tcp::socket>socket(service, ctx);
       socket.lowest_layer().connect(*endpoint, ec);
       if (!ec) {
         // Initiate handshake
-        socket.handshake(ssl::stream_base::client, ec);
+        socket.handshake(boost::asio::ssl::stream_base::client, ec);
         if (!ec) {
           LogPrint(eLogInfo, "Connected to ", uri.m_Host, ":", uri.m_Port);
           // Send header
           std::stringstream sendStream;
           sendStream << HttpHeader(uri.m_Path, uri.m_Host, "1.1") << "\r\n";
-          socket.write_some(buffer(sendStream.str()));
+          socket.write_some(boost::asio::buffer(sendStream.str()));
           // Read response / download
           std::stringstream readStream;
           char response[1024];
           size_t length = 0;
           do {
-            length = socket.read_some(buffer(response, 1024), ec);
+            length = socket.read_some(boost::asio::buffer(response, 1024), ec);
             if (length)
               readStream.write(response, length);
           } while (!ec && length);

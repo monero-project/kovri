@@ -315,18 +315,15 @@ bool Reseeder::FindZipDataDescriptor(
 }
 
 bool Reseeder::LoadSU3Certs() {
-  // TODO(anonimal): do not use namespace using-directives
-  using namespace std;
-  using namespace boost::filesystem;
-  path certsPath = i2p::util::filesystem::GetSU3CertsPath();
+  boost::filesystem::path certsPath = i2p::util::filesystem::GetSU3CertsPath();
   if (!exists(certsPath)) {
     LogPrint(eLogError, "Reseed certificates ", certsPath, " don't exist");
     return false;
   }
   int numCerts = 0;
-  directory_iterator iter(certsPath), end;
-  BOOST_FOREACH(path const& cert, make_pair(iter, end)) {
-    if (is_regular_file(cert)) {
+  boost::filesystem::directory_iterator iter(certsPath), end;
+  BOOST_FOREACH(boost::filesystem::path const& cert, std::make_pair(iter, end)) {
+    if (boost::filesystem::is_regular_file(cert)) {
       if (ProcessSU3Cert(cert.string()))
         numCerts++;
       else

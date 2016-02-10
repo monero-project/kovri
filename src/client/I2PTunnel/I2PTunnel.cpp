@@ -412,14 +412,21 @@ I2PServerTunnel::I2PServerTunnel(
 }
 
 void I2PServerTunnel::Start() {
-  // TODO(unassigned): we don't resolve the dns entry each time we connect so
-  // we'd have to SIGHUP every time the entry changes
-  // OR, we could resolve each time
-  // BUT that would mean lots of dns queries
-  // HOWEVER if when we SIGHUP something changes we SHOULD NOT throw away
-  // the destination because that will discard the tunnel encryption keys which
-  // causes interruption.
-  // TODO(psi): implement a strategy for caching and looking up hostname ip addresses
+  /**
+   * TODO(unassigned):
+   *
+   * We don't resolve the dns entry each time we connect so
+   * we'd have to SIGHUP every time the entry changes
+   * OR, we could resolve each time
+   * BUT that would mean lots of dns queries
+   * HOWEVER if when we SIGHUP something changes we SHOULD NOT throw away
+   * the destination because that will discard the tunnel encryption keys which
+   * causes interruption.
+   *
+   * Review the following options:
+   * A) Get to the core of the problem and rewrite how we handle tunnels
+   * B) Implement a strategy for caching and looking up hostname ip addresses
+   */
   m_Endpoint.port(m_Port);
   boost::system::error_code ec;
   auto addr =

@@ -30,7 +30,7 @@
 
 #include "I2NPProtocol.h"
 
-#include <cryptopp/gzip.h>  // TODO(unassigned): use util/GZIP.h (?)
+#include <cryptopp/gzip.h>
 
 #include <string.h>
 

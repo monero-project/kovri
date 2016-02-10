@@ -282,9 +282,7 @@ void ClientContext::UpdateServerTunnel(
     int port,
     int inPort,
     bool http) {
-
   bool createTunnel = false;
-
   try {
     i2p::data::PrivateKeys keys = LoadPrivateKeys(keyfile);
     i2p::data::IdentHash i = keys.GetPublic().GetIdentHash();
@@ -309,7 +307,6 @@ void ClientContext::UpdateServerTunnel(
       // Key file does not exist, let's say it's new, create it later
       createTunnel = true;
   }
-
   if (createTunnel) {
       // Create the server tunnel
       auto localDestination = i2p::client::context.LoadLocalDestination(
@@ -342,7 +339,6 @@ void ClientContext::UpdateClientTunnel(
     const std::string& hostStr,
     int port,
     int destPort) {
-
   I2PClientTunnel* clientTunnel = GetClientTunnel(tunnelName);
   if (clientTunnel == nullptr) {
     // Client tunnel does not exist yet, create it
@@ -360,17 +356,14 @@ void ClientContext::UpdateClientTunnel(
     // Client with this name is already locally running, update settings
     // TODO(unassigned): we MUST have a tunnel given this tunnelName RIGHT!?
     std::string currentAddr = clientTunnel->GetAddress();
-
     boost::system::error_code ec;
     auto nextAddr = boost::asio::ip::address::from_string(hostStr, ec);
-
     bool rebind = false;
     if (ec)  // New address is not an IP address, compare strings
       rebind = (hostStr != currentAddr);
     else  // New address is an IP address, compare endpoints
       rebind = (clientTunnel->GetEndpoint() == boost::asio::ip::tcp::endpoint(
           nextAddr, port));
-
     if (rebind) {
       // The IP address has changed, rebind
       try {

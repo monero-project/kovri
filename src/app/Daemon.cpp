@@ -165,11 +165,11 @@ bool Daemon_Singleton::Stop() {
 }
 
 void Daemon_Singleton::Reload() {
-  // TODO(psi): do we want to add locking?
+  // TODO(unassigned): do we want to add locking?
   LogPrint("Reloading configuration");
   // reload tunnels.cfg
   ReloadTunnels();
-  // TODO(psi): reload kovri.conf
+  // TODO(anonimal): reload kovri.conf
 }
 
 void Daemon_Singleton::InitClientContext() {

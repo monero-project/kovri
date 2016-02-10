@@ -47,7 +47,7 @@ namespace crypto {
   template<class T>
   T Rand() {
     T ret;
-    //TODO(psi): alignment
+    //TODO(unassigned): alignment
     RandBytes((uint8_t*)&ret, sizeof(ret));
     return ret;
   }

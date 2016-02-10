@@ -83,32 +83,40 @@ void benchmark(
 }
 
 int main() {
-  // TODO(unassigned): don't use namespace using-directives
   const size_t benchmark_count = 1000;
-  using namespace i2p::crypto;
   std::cout << "--------DSA---------" << std::endl;
-  benchmark<DSAVerifier, DSASigner>(
-    benchmark_count, DSA_PUBLIC_KEY_LENGTH,
-    DSA_PRIVATE_KEY_LENGTH, DSA_SIGNATURE_LENGTH,
-    CreateDSARandomKeys);
+  benchmark<i2p::crypto::DSAVerifier, i2p::crypto::DSASigner>(
+    benchmark_count,
+    i2p::crypto::DSA_PUBLIC_KEY_LENGTH,
+    i2p::crypto::DSA_PRIVATE_KEY_LENGTH,
+    i2p::crypto::DSA_SIGNATURE_LENGTH,
+    i2p::crypto::CreateDSARandomKeys);
   std::cout << "-----ECDSAP256------" << std::endl;
-  benchmark<ECDSAP256Verifier, ECDSAP256Signer>(
-    benchmark_count, ECDSAP256_KEY_LENGTH,
-    ECDSAP256_KEY_LENGTH / 2, ECDSAP256_KEY_LENGTH,
-    CreateECDSAP256RandomKeys);
+  benchmark<i2p::crypto::ECDSAP256Verifier, i2p::crypto::ECDSAP256Signer>(
+    benchmark_count,
+    i2p::crypto::ECDSAP256_KEY_LENGTH,
+    i2p::crypto::ECDSAP256_KEY_LENGTH / 2,
+    i2p::crypto::ECDSAP256_KEY_LENGTH,
+    i2p::crypto::CreateECDSAP256RandomKeys);
   std::cout << "-----ECDSAP384------" << std::endl;
-  benchmark<ECDSAP384Verifier, ECDSAP384Signer>(
-    benchmark_count, ECDSAP384_KEY_LENGTH,
-    ECDSAP384_KEY_LENGTH / 2, ECDSAP384_KEY_LENGTH,
-    CreateECDSAP384RandomKeys);
+  benchmark<i2p::crypto::ECDSAP384Verifier, i2p::crypto::ECDSAP384Signer>(
+    benchmark_count,
+    i2p::crypto::ECDSAP384_KEY_LENGTH,
+    i2p::crypto::ECDSAP384_KEY_LENGTH / 2,
+    i2p::crypto::ECDSAP384_KEY_LENGTH,
+    i2p::crypto::CreateECDSAP384RandomKeys);
   std::cout << "-----ECDSAP521------" << std::endl;
-  benchmark<ECDSAP521Verifier, ECDSAP521Signer>(
-    benchmark_count, ECDSAP521_KEY_LENGTH,
-    ECDSAP521_KEY_LENGTH / 2, ECDSAP521_KEY_LENGTH,
-    CreateECDSAP521RandomKeys);
+  benchmark<i2p::crypto::ECDSAP521Verifier, i2p::crypto::ECDSAP521Signer>(
+    benchmark_count,
+    i2p::crypto::ECDSAP521_KEY_LENGTH,
+    i2p::crypto::ECDSAP521_KEY_LENGTH / 2,
+    i2p::crypto::ECDSAP521_KEY_LENGTH,
+    i2p::crypto::CreateECDSAP521RandomKeys);
   std::cout << "-----EDDSA25519-----" << std::endl;
-  benchmark<EDDSA25519Verifier, EDDSA25519Signer>(
-    benchmark_count, EDDSA25519_PUBLIC_KEY_LENGTH,
-    EDDSA25519_PRIVATE_KEY_LENGTH, EDDSA25519_SIGNATURE_LENGTH,
-    CreateEDDSARandomKeys);
+  benchmark<i2p::crypto::EDDSA25519Verifier, i2p::crypto::EDDSA25519Signer>(
+    benchmark_count,
+    i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH,
+    i2p::crypto::EDDSA25519_PRIVATE_KEY_LENGTH,
+    i2p::crypto::EDDSA25519_SIGNATURE_LENGTH,
+    i2p::crypto::CreateEDDSARandomKeys);
 }

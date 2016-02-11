@@ -98,6 +98,25 @@ void SSUSessionRequestPacket::SetIpAddress(uint8_t* ip) {
   m_IpAddress = ip;
 }
 
+void SSUSessionCreatedPacket::SetDhY(uint8_t* dhY) {
+  m_DhY = dhY;
+}
+
+void SSUSessionCreatedPacket::SetIpAddress(uint8_t* ip) {
+  m_IpAddress = ip;
+}
+
+void SSUSessionCreatedPacket::SetPort(uint16_t port) {
+  m_Port = port;
+}
+
+void SSUSessionCreatedPacket::SetRelayTag(uint32_t relayTag) {
+  m_RelayTag = relayTag;
+}
+
+void SSUSessionCreatedPacket::SetSignature(uint8_t* signature) {
+  m_Signature = signature;
+}
 
 void SSUPacketParser::ConsumeData(std::size_t amount) {
   if (amount > m_Length)
@@ -153,7 +172,30 @@ std::unique_ptr<SSUSessionRequestPacket> SSUPacketParser::ParseSessionRequest() 
     return nullptr; /// TODO(EinMByte): Do something meaningful
   packet->SetDhX(m_Data);
   ConsumeData(16);
+  const std::size_t addressSize = *m_Data;
+  ConsumeData(1);
   packet->SetIpAddress(m_Data);
+  ConsumeData(addressSize);
+  return packet; 
+}
+
+std::unique_ptr<SSUSessionCreatedPacket> SSUPacketParser::ParseSessionCreated() {
+  std::unique_ptr<SSUSessionCreatedPacket> packet(
+      new SSUSessionCreatedPacket());
+  packet->SetHeader(ParseHeader());
+  if (m_Length < 16 + 1)
+    return nullptr; /// TODO(EinMByte): Do something meaningful
+  packet->SetDhY(m_Data);
+  const std::size_t addressSize = *m_Data;
+  ConsumeData(1);
+  packet->SetIpAddress(m_Data);
+  ConsumeData(addressSize);
+  packet->SetPort(bufbe16toh(m_Data));
+  ConsumeData(2);
+  packet->SetRelayTag(bufbe32toh(m_Data));
+  // Skip signed on time (4 bytes) 
+  ConsumeData(4 + 4);
+  packet->SetSignature(m_Data);
   return packet; 
 }
 

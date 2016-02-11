@@ -92,8 +92,20 @@ public:
   void SetDhX(uint8_t* dhX);
   void SetIpAddress(uint8_t* ip);
 private:
-  uint8_t* m_DhX;
-  uint8_t* m_IpAddress;
+  uint8_t* m_DhX, * m_IpAddress;
+};
+
+class SSUSessionCreatedPacket : public SSUPacket {
+public:
+  void SetDhY(uint8_t* dhY);
+  void SetIpAddress(uint8_t* ip);
+  void SetPort(uint16_t port);
+  void SetRelayTag(uint32_t relayTag);
+  void SetSignature(uint8_t* signature);
+private:
+  uint8_t* m_DhY, * m_IpAddress, * m_Signature;
+  uint16_t m_Port;
+  uint32_t m_RelayTag;
 };
 
 class SSUPacketParser {
@@ -111,7 +123,7 @@ public:
   std::unique_ptr<SSUHeader> ParseHeader();
  
   std::unique_ptr<SSUSessionRequestPacket> ParseSessionRequest();
-  SSUPacket* ParseSessionCreated();
+  std::unique_ptr<SSUSessionCreatedPacket> ParseSessionCreated();
   SSUPacket* ParseSessionConfirmed();
   SSUPacket* ParseRelayRequest();
   SSUPacket* ParseRelayResponse();

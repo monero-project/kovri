@@ -2,6 +2,7 @@ set(TESTS_SRC
   "Base64.cpp"
   "Identity.cpp"
   "Utility.cpp"
+  "SSUPacket.cpp"
   "crypto/AES.cpp"
   "crypto/DSA.cpp"
   "crypto/EdDSA25519.cpp"

@@ -1142,7 +1142,7 @@ void SSUSession::ProcessPeerTest(
   uint16_t port = buf16toh(buf + size + 5);  // big endian, 2 bytes
   const uint8_t* introKey = buf + size + 7;
   if (port && !address) {
-    LogPrint(eLogWarning, "Address of ", size, " bytes not supported");
+    LogPrint(eLogWarning, "Address of ", int(size), " bytes not supported");
     return;
   }
   switch (m_Server.GetPeerTestParticipant(nonce)) {

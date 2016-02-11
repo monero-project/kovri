@@ -22,6 +22,7 @@ set(CORE_SRC
   "transport/SSU.cpp"
   "transport/SSUData.cpp"
   "transport/SSUSession.cpp"
+  "transport/SSUPacket.cpp"
   "transport/Transports.cpp"
   "transport/UPnP.cpp"
   "tunnel/TransitTunnel.cpp"

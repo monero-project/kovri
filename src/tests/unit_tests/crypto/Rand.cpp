@@ -28,20 +28,67 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "Rand.h"
+#define BOOST_TEST_DYN_LINK
 
-#include "CryptoPP_Rand.h"
+#include <boost/test/unit_test.hpp>
 
-// implementation of crypto::Rand* functions
+#include <limits>
 
-namespace i2p {
-namespace crypto {
+#include "crypto/Rand.h"
 
-void RandBytes(
-    uint8_t* dataptr,
-    size_t datalen) {
-  prng.GenerateBlock(dataptr, datalen);
+/// TODO(anonimal): unit-tests for all crypto::Rand* functions
+
+BOOST_AUTO_TEST_SUITE(RandInRange)
+
+template <class T>
+struct Range {
+  T count, x, y, result;
+  T Test();
+  Range()
+      : count(0),
+        x(std::numeric_limits<T>::min()),
+        y(std::numeric_limits<T>::max()) {
+          result = Test();
+        }
+};
+
+template <class T>
+T Range<T>::Test() {
+  do {
+    result = i2p::crypto::RandInRange<T>(x, y);
+    count++;
+  } while (count != 100);  // Arbitrary number
+  return ((result >= x)) && (result <= y);
 }
 
-}  // namespace crypto
-}  // namespace i2p
+BOOST_AUTO_TEST_CASE(_uint8_t) {
+  Range<uint8_t> test;
+  BOOST_CHECK(test.result);
+}
+
+BOOST_AUTO_TEST_CASE(_uint16_t) {
+  Range<uint16_t> test;
+  BOOST_CHECK(test.result);
+}
+
+BOOST_AUTO_TEST_CASE(_uint32_t) {
+  Range<uint32_t> test;
+  BOOST_CHECK(test.result);
+}
+
+BOOST_AUTO_TEST_CASE(_uint64_t) {
+  Range<uint64_t> test;
+  BOOST_CHECK(test.result);
+}
+
+BOOST_AUTO_TEST_CASE(_int) {
+  Range<int> test;
+  BOOST_CHECK(test.result);
+}
+
+BOOST_AUTO_TEST_CASE(_long) {
+  Range<long> test;
+  BOOST_CHECK(test.result);
+}
+
+BOOST_AUTO_TEST_SUITE_END()

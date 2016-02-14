@@ -30,45 +30,49 @@
 
 #ifndef SRC_CORE_CRYPTO_RAND_H_
 #define SRC_CORE_CRYPTO_RAND_H_
+
 #include <cstdlib>
+#include <random>
 #include <stdexcept>
 
 namespace i2p {
 namespace crypto {
 
-  // generate random bytes
-  // @param dataptr buffer to store result
-  // @param datalen size of buffer
+  /// Generate random bytes
+  /// @param dataptr buffer to store result
+  /// @param datalen size of buffer
   void RandBytes(
       uint8_t* dataptr,
       size_t datalen);
 
-  // generate random of type T
+  /// Generate random of type T
   template<class T>
   T Rand() {
     T ret;
-    //TODO(unassigned): alignment
+    // TODO(unassigned): alignment
     RandBytes((uint8_t*)&ret, sizeof(ret));
     return ret;
   }
 
-  // generate a random of type T
-  // @param T integer type
-  // @param min lowerbound
-  // @param max upperbound
-  // @return random in range [min, max)
+  /// Returns a random integer of type T from a true
+  /// range of integers (either signed or unsigned).
+  ///
+  /// CAUTION: as with usual good programming practice,
+  /// if an implementer expects that x or y should meet their
+  /// lower/upper-bound requirement, they should test that
+  /// x or y is satisfied before implementing this function
+  /// (e.g., if you expect x < y but y < x, a true range will
+  /// still be produced - and your y function is likely broken).
+  ///
+  /// @param T : integer type
+  /// @param x : assumed to be lowerbound (but not necessary)
+  /// @param y : assumed to be upperbound (but not necessary)
+  /// @return  : random number in range [x, y]
   template<class T>
-  T RandInRange(T min, T max) {
-    if (min > max) {
-      throw std::logic_error("i2p::crypto::RandInRange() min <= max");
-    } else if (min == max) {
-      return min;
-    }
-    T dlt = max - min;
-    T ret = Rand<T>();
-    ret %= dlt;
-    ret += min;
-    return ret;
+  T RandInRange(T x, T y) {
+    std::mt19937 mte(Rand<T>());
+    std::uniform_int_distribution<T> d(x, y);
+    return d(mte);
   }
 
 }  // namespace crypto

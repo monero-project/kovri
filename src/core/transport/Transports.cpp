@@ -36,16 +36,12 @@
 #include <string>
 #include <vector>
 
-
 #include "I2NPProtocol.h"
 #include "NetworkDatabase.h"
 #include "RouterContext.h"
 #include "crypto/CryptoConst.h"
 #include "crypto/Rand.h"
 #include "util/Log.h"
-
-// TODO(anonimal): don't use using-directive
-using namespace i2p::data;
 
 namespace i2p {
 namespace transport {
@@ -178,7 +174,7 @@ void Transports::Start() {
       m_NTCPServer->Start();
     }
     if (address.transportStyle ==
-        RouterInfo::eTransportSSU &&
+        i2p::data::RouterInfo::eTransportSSU &&
         address.host.is_v4()) {
       if (!m_SSUServer) {
         m_SSUServer = new SSUServer(address.port);
@@ -289,7 +285,7 @@ void Transports::PostMessages(
   if (it == m_Peers.end()) {
     bool connected = false;
     try {
-      auto r = netdb.FindRouter(ident);
+      auto r = i2p::data::netdb.FindRouter(ident);
       it = m_Peers.insert(
           std::make_pair(
             ident,

@@ -64,16 +64,15 @@ namespace i2p {
 namespace data {
 
 static std::vector<std::string> reseedHosts = {
+  //"https://download.xxlspeed.com/",  // Requires SNI
+  //"https://i2pseed.zarrenspry.info/", // Host not found (authoritative)
   "https://i2p.mooo.com/netDb/",
-  // "https://i2pseed.zarrenspry.info/", // Host not found (authoritative)
-  "https://ieb9oopo.mooo.com/",
-  // "https://netdb.i2p2.no/", // certificate verify failed
+  //"https://netdb.i2p2.no/",  // Requires SNI
   "https://reseed.i2p-projekt.de/",
   "https://reseed.i2p.vzaws.com:8443/",
   "https://uk.reseed.i2p2.no:444/",
   "https://us.reseed.i2p2.no:444/",
   "https://user.mx24.eu/",
-  // "https://www.torontocrypto.org:8443/",// tlsv1 alert internal error
 };
 
 Reseeder::Reseeder() {}
@@ -315,18 +314,15 @@ bool Reseeder::FindZipDataDescriptor(
 }
 
 bool Reseeder::LoadSU3Certs() {
-  // TODO(anonimal): do not use namespace using-directives
-  using namespace std;
-  using namespace boost::filesystem;
-  path certsPath = i2p::util::filesystem::GetSU3CertsPath();
+  boost::filesystem::path certsPath = i2p::util::filesystem::GetSU3CertsPath();
   if (!exists(certsPath)) {
     LogPrint(eLogError, "Reseed certificates ", certsPath, " don't exist");
     return false;
   }
   int numCerts = 0;
-  directory_iterator iter(certsPath), end;
-  BOOST_FOREACH(path const& cert, make_pair(iter, end)) {
-    if (is_regular_file(cert)) {
+  boost::filesystem::directory_iterator iter(certsPath), end;
+  BOOST_FOREACH(boost::filesystem::path const& cert, std::make_pair(iter, end)) {
+    if (boost::filesystem::is_regular_file(cert)) {
       if (ProcessSU3Cert(cert.string()))
         numCerts++;
       else

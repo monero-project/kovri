@@ -34,82 +34,72 @@
 #include "crypto/Signature.h"
 #include "crypto/Rand.h"
 
-using namespace i2p::crypto;
-
 BOOST_AUTO_TEST_SUITE(DSASHA1ests)
 
 struct DSAFixture {
   DSAFixture() {
-    // TODO(psi): generate static test keys
-    CreateDSARandomKeys(privateKey, publicKey);
-
-    verifier = new DSAVerifier(publicKey);
-    signer = new DSASigner(privateKey);
+    // TODO(unassigned): generate static test keys
+    i2p::crypto::CreateDSARandomKeys(privateKey, publicKey);
+    verifier = new i2p::crypto::DSAVerifier(publicKey);
+    signer = new i2p::crypto::DSASigner(privateKey);
   }
-
   ~DSAFixture() {
     delete verifier;
     delete signer;
   }
-
-  uint8_t privateKey[20];
-  uint8_t publicKey[128];
-  DSAVerifier* verifier;
-  DSASigner* signer;
+  uint8_t privateKey[20], publicKey[128];
+  i2p::crypto::DSAVerifier* verifier;
+  i2p::crypto::DSASigner* signer;
   static constexpr size_t kMessageLen = 1024;
 };
 
 BOOST_FIXTURE_TEST_CASE(DSASHA1KeyLength, DSAFixture) {
-  BOOST_CHECK_EQUAL(verifier->GetPublicKeyLen(), DSA_PUBLIC_KEY_LENGTH);
+  BOOST_CHECK_EQUAL(
+      verifier->GetPublicKeyLen(),
+      i2p::crypto::DSA_PUBLIC_KEY_LENGTH);
 }
 
-
 BOOST_FIXTURE_TEST_CASE(DSASHA1SignatureLength, DSAFixture) {
-  BOOST_CHECK_EQUAL(verifier->GetSignatureLen(), DSA_SIGNATURE_LENGTH);
+  BOOST_CHECK_EQUAL(
+      verifier->GetSignatureLen(),
+      i2p::crypto::DSA_SIGNATURE_LENGTH);
 }
 
 BOOST_FIXTURE_TEST_CASE(DSASHA1SignVerifyValid, DSAFixture) {
-  uint8_t signature[40];
-  uint8_t message[kMessageLen];
-  RandBytes(message, kMessageLen);
+  uint8_t signature[40], message[kMessageLen];
+  i2p::crypto::RandBytes(message, kMessageLen);
   signer->Sign(message, kMessageLen, signature);
   // check that the signature is valid
   BOOST_CHECK_EQUAL(verifier->Verify(message, kMessageLen, signature), true);
 }
 
 BOOST_FIXTURE_TEST_CASE(DSASHA1SignVerifyBadSignature, DSAFixture) {
-  uint8_t signature[40];
-  uint8_t message[kMessageLen];
-  RandBytes(message, kMessageLen);
+  uint8_t signature[40], message[kMessageLen];
+  i2p::crypto::RandBytes(message, kMessageLen);
   signer->Sign(message, kMessageLen, signature);
-
   // introduce an error in the signature
-  signature[5] ^= RandInRange<uint8_t>(1, 128);
+  signature[5] ^= i2p::crypto::RandInRange<uint8_t>(1, 128);
   // it should fail verification
   BOOST_CHECK_EQUAL(verifier->Verify(message, kMessageLen, signature), false);
 }
 
 BOOST_FIXTURE_TEST_CASE(DSASHA1SignVerifyBadMessage, DSAFixture) {
-  uint8_t signature[40];
-  uint8_t message[kMessageLen];
-  RandBytes(message, kMessageLen);
+  uint8_t signature[40], message[kMessageLen];
+  i2p::crypto::RandBytes(message, kMessageLen);
   signer->Sign(message, kMessageLen, signature);
   // introduce an error in the message
-  message[5] ^= RandInRange<uint8_t>(1, 128);
+  message[5] ^= i2p::crypto::RandInRange<uint8_t>(1, 128);
   // this should also fail verification
   BOOST_CHECK_EQUAL(verifier->Verify(message, kMessageLen, signature), false);
 }
 
 BOOST_FIXTURE_TEST_CASE(DSASHA1SignVerifyBadSignatureAndMessage, DSAFixture) {
-  uint8_t signature[40];
-  uint8_t message[kMessageLen];
-  RandBytes(message, kMessageLen);
-
+  uint8_t signature[40], message[kMessageLen];
+  i2p::crypto::RandBytes(message, kMessageLen);
   signer->Sign(message, kMessageLen, signature);
-
   // introduce errors in both the message and signature
-  message[6] ^= RandInRange<uint8_t>(1, 128);
-  signature[2] ^= RandInRange<uint8_t>(1, 128);
+  message[6] ^= i2p::crypto::RandInRange<uint8_t>(1, 128);
+  signature[2] ^= i2p::crypto::RandInRange<uint8_t>(1, 128);
   // this should fail verification as well
   BOOST_CHECK_EQUAL(verifier->Verify(message, kMessageLen, signature), false);
 }

@@ -30,7 +30,7 @@
 
 #include "I2NPProtocol.h"
 
-#include <cryptopp/gzip.h>  // TODO(unassigned): use util/GZIP.h (?)
+#include <cryptopp/gzip.h>
 
 #include <string.h>
 
@@ -325,18 +325,41 @@ bool HandleBuildRequestRecords(
     int num,
     uint8_t* records,
     uint8_t* clearText) {
+  /**
+   * When a hop receives a tunnel build message, it looks through the records
+   * contained within it for one starting with their own identity hash
+   * (trimmed to 16 bytes). It then decrypts the ElGamal block from that record
+   * and retrieves the protected cleartext.
+   *
+   *   bytes   0-15 : First 16 bytes of the SHA-256 of
+   *                  the current hop's router identity
+   *   bytes 16-527 : ElGamal-2048 encrypted request record
+   *
+   *   Total: 528 byte record
+   *
+   * TODO(unassigned): implement bloom filter, see #58 + #77
+   */
   for (int i = 0; i < num; i++) {
     uint8_t* record = records + i * TUNNEL_BUILD_RECORD_SIZE;
+    // Test if current hop's router identity is ours
     if (!memcmp(
             record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET,
             (const uint8_t *)i2p::context.GetRouterInfo().GetIdentHash(),
             16)) {
       LogPrint("Record ", i, " is ours");
+      // Get session key from encrypted block
       i2p::crypto::ElGamalDecrypt(
           i2p::context.GetEncryptionPrivateKey(),
           record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET,
           clearText);
-      // replace record to reply
+      /**
+       * After the current hop reads their record, we replace it with
+       * a reply record stating whether or not they agree to participate
+       * in the tunnel, and if we do not, we classify a reason for rejection
+       * This is simply a 1 byte value, with 0x0 meaning that we agree to
+       * participate in the tunnel, and higher values meaning
+       * higher levels of rejection.
+       */
       if (i2p::context.AcceptsTunnels() &&
           i2p::tunnel::tunnels.GetTransitTunnels().size() <=
           MAX_NUM_TRANSIT_TUNNELS &&
@@ -353,20 +376,56 @@ bool HandleBuildRequestRecords(
         i2p::tunnel::tunnels.AddTransitTunnel(transitTunnel);
         record[BUILD_RESPONSE_RECORD_RET_OFFSET] = 0;
       } else {
-        // always reject with bandwidth reason (30)
+        /**
+         * The following rejection codes are defined:
+         *
+         * TUNNEL_REJECT_PROBABALISTIC_REJECT = 10
+         * TUNNEL_REJECT_TRANSIENT_OVERLOAD = 20
+         * TUNNEL_REJECT_BANDWIDTH = 30
+         * TUNNEL_REJECT_CRIT = 50
+         *
+         * To hide other causes from peers (such as router shutdown),
+         * the current implementation uses TUNNEL_REJECT_BANDWIDTH
+         * for *all* rejections.
+         *
+         * TODO(unassigned): review use-case for implementing other rejections
+         */
         record[BUILD_RESPONSE_RECORD_RET_OFFSET] = 30;
       }
-      // TODO(anonimal): fill filler
+      /**
+       * The reply is encrypted using the AES session key delivered to it in
+       * the encrypted block, padded with 495 bytes of random data to reach
+       * the full record size. The padding is placed before the status byte:
+       *
+       *  AES-256-CBC(SHA-256(padding + status) + padding + status, key, IV)
+       *
+       *   bytes   0-31 : SHA-256 of bytes 32-527
+       *   bytes 32-526 : Padding (random generated)
+       *   byte 527     : Status byte / reply value
+       *
+       *   Total: 528 byte record
+       */
+      // Fill random padding
+      i2p::crypto::RandBytes(
+          record + BUILD_RESPONSE_RECORD_RANDPAD_OFFSET,
+          BUILD_RESPONSE_RECORD_RANDPAD_SIZE);
+      // Get SHA256 of complete record
       CryptoPP::SHA256().CalculateDigest(
           record + BUILD_RESPONSE_RECORD_SHA256HASH_OFFSET,
           record + BUILD_RESPONSE_RECORD_RANDPAD_OFFSET,
-          BUILD_RESPONSE_RECORD_RANDPAD_SIZE + 1);  // + 1 byte of ret
-      // encrypt reply
+          BUILD_RESPONSE_RECORD_RANDPAD_SIZE + 1);  // + 1 byte for status/reply
+      /**
+       * After deciding whether they will agree to participate
+       * in the tunnel or not, they replace the record that had contained
+       * the request with an encrypted reply block. All other records are
+       * AES-256 encrypted with the included reply key and IV.
+       * Each is AES/CBC encrypted separately with the same reply key
+       * and reply IV. The CBC mode is not continued (chained) across records.
+       */
       i2p::crypto::CBCEncryption encryption;
       for (int j = 0; j < num; j++) {
         encryption.SetKey(clearText + BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET);
         encryption.SetIV(clearText + BUILD_REQUEST_RECORD_REPLY_IV_OFFSET);
-        // TODO(anonimal): records or record?
         uint8_t* reply = records + j * TUNNEL_BUILD_RECORD_SIZE;
         encryption.Encrypt(reply, TUNNEL_BUILD_RECORD_SIZE, reply);
       }

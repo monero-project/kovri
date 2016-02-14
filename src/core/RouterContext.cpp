@@ -87,7 +87,7 @@ void RouterContext::NewRouterInfo() {
       i2p::data::RouterInfo::eReachable |
       i2p::data::RouterInfo::eSSUTesting |
       i2p::data::RouterInfo::eSSUIntroducer);  // LR, BC
-  routerInfo.SetProperty("netId", "2");
+  routerInfo.SetProperty("netId", NETWORK_ID);
   routerInfo.SetProperty("router.version", I2P_VERSION);
   routerInfo.CreateBuffer(m_Keys);
   m_RouterInfo.Update(

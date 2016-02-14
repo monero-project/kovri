@@ -32,7 +32,6 @@
 
 #include <boost/asio.hpp>
 
-// TODO(unassigned): use util/GZIP.h ?
 #include <cryptopp/gzip.h>
 
 #include <string.h>
@@ -52,9 +51,6 @@
 #include "util/I2PEndian.h"
 #include "util/Log.h"
 #include "util/Timestamp.h"
-
-// TODO(anonimal): do not use namespace using-directives.
-using namespace i2p::transport;
 
 namespace i2p {
 namespace data {
@@ -472,10 +468,10 @@ void NetDb::RequestDestination(
       destination,
       dest->GetExcludedPeers());
   if (floodfill) {
-    transports.SendMessage(
+    i2p::transport::transports.SendMessage(
         floodfill->GetIdentHash(),
         dest->CreateRequestMessage(
-          floodfill->GetIdentHash()));
+            floodfill->GetIdentHash()));
   } else {
     LogPrint(eLogError, "No floodfills found");
     m_Requests.RequestComplete(destination, nullptr);
@@ -498,7 +494,7 @@ void NetDb::HandleDatabaseStoreMsg(
     uint32_t tunnelID = bufbe32toh(buf + offset);
     offset += 4;
     if (!tunnelID) {  // send response directly
-      transports.SendMessage(buf + offset, deliveryStatus);
+      i2p::transport::transports.SendMessage(buf + offset, deliveryStatus);
     } else {
       auto pool = i2p::tunnel::tunnels.GetExploratoryPool();
       auto outbound = pool ? pool->GetNextOutboundTunnel() : nullptr;
@@ -523,7 +519,9 @@ void NetDb::HandleDatabaseStoreMsg(
       for (int i = 0; i < 3; i++) {
         auto floodfill = GetClosestFloodfill(ident, excluded);
         if (floodfill)
-          transports.SendMessage(floodfill->GetIdentHash(), floodMsg);
+          i2p::transport::transports.SendMessage(
+              floodfill->GetIdentHash(),
+              floodMsg);
       }
     }
   }
@@ -741,13 +739,13 @@ void NetDb::HandleDatabaseLookupMsg(
             replyTunnelID,
             replyMsg);
       else
-        transports.SendMessage(
+        i2p::transport::transports.SendMessage(
             buf+32,
             i2p::CreateTunnelGatewayMsg(
-              replyTunnelID,
-              replyMsg));
+                replyTunnelID,
+                replyMsg));
     } else {
-      transports.SendMessage(buf+32, replyMsg);
+      i2p::transport::transports.SendMessage(buf+32, replyMsg);
     }
   }
 }
@@ -822,11 +820,11 @@ void NetDb::Publish() {
       LogPrint("Publishing our RouterInfo to ",
           floodfill->GetIdentHashAbbreviation(),
           ". reply token=", replyToken);
-      transports.SendMessage(
+      i2p::transport::transports.SendMessage(
           floodfill->GetIdentHash(),
           CreateDatabaseStoreMsg(
-            i2p::context.GetSharedRouterInfo(),
-            replyToken));
+              i2p::context.GetSharedRouterInfo(),
+              replyToken));
       excluded.insert(floodfill->GetIdentHash());
     }
   }

@@ -35,7 +35,7 @@
 
 int main(int argc, char* argv[]) {
   try {
-    if (i2p::util::config::ParseArgs(argc, argv) == 1)
+    if (!i2p::util::config::ParseArgs(argc, argv))
       return EXIT_FAILURE;
   } catch(const std::exception& ex) {
       std::cout << ex.what() << "\nTry using --help" << std::endl;

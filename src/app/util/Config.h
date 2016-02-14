@@ -61,13 +61,10 @@ const char I2P_SERVER_TUNNEL_ACCESS_LIST[] = "accesslist";
 namespace config {
 
 // Our configuration files
-extern std::string kovriConfig, tunnelsConfig;
-
-// Config option descriptions
-extern boost::program_options::options_description confOpts;
+extern std::string kovri_config, tunnels_config;
 
 // Variable map for CLI and conf args
-extern boost::program_options::variables_map varMap;
+extern boost::program_options::variables_map var_map;
 
 /**
  * @return 1 on failure/help, 0 on success
@@ -81,9 +78,9 @@ bool ParseArgs(
  * args that are not overridden will stay mapped
  */
 void ParseConfigFile(
-    std::string& kovriConfig,
-    boost::program_options::options_description& confOpts,
-    boost::program_options::variables_map& varMap);
+    std::string& config,
+    boost::program_options::options_description& config_options,
+    boost::program_options::variables_map& var_map);
 
 }  // namespace config
 }  // namespace util

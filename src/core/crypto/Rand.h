@@ -32,7 +32,7 @@
 #define SRC_CORE_CRYPTO_RAND_H_
 
 #include <cstdlib>
-#include <random>
+#include <cinttypes>  // imaxabs()
 #include <stdexcept>
 
 namespace i2p {
@@ -54,25 +54,30 @@ namespace crypto {
     return ret;
   }
 
-  /// Returns a random integer of type T from a true
-  /// range of integers (either signed or unsigned).
+  /// Returns a random integer of type T from
+  /// a range of integers (signed or unsigned).
   ///
-  /// CAUTION: as with usual good programming practice,
-  /// if an implementer expects that x or y should meet their
-  /// lower/upper-bound requirement, they should test that
-  /// x or y is satisfied before implementing this function
-  /// (e.g., if you expect x < y but y < x, a true range will
-  /// still be produced - and your y function is likely broken).
-  ///
-  /// @param T : integer type
-  /// @param x : assumed to be lowerbound (but not necessary)
-  /// @param y : assumed to be upperbound (but not necessary)
-  /// @return  : random number in range [x, y]
+  /// @param T   : integer type
+  /// @param min : lowerbound
+  /// @param max : upperbound
+  /// @return    : random number in range [min, max]
+  ///              (if (min < 0), results are undefined)
   template<class T>
-  T RandInRange(T x, T y) {
-    std::mt19937 mte(Rand<T>());
-    std::uniform_int_distribution<T> d(x, y);
-    return d(mte);
+  T RandInRange(T min, T max) {
+    if ((min > max) || (max < 0)) {
+      throw std::logic_error("RandInRange(): logic error");
+    } else if (min == max) {
+      return min;
+    }
+    T dlt = max - min;
+    // We never want a negative if T is signed
+    T ret = imaxabs(Rand<T>());
+    // If 0, use dlt
+    if (!(ret %= dlt)) {
+      ret = dlt;
+    }
+    ret += min;
+    return ret;
   }
 
 }  // namespace crypto

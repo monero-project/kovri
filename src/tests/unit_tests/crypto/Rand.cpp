@@ -42,12 +42,14 @@ BOOST_AUTO_TEST_SUITE(RandInRange)
 
 template <class T>
 struct Range {
-  T count, x, y, result;
+  T repeated, count;
+  T min, max, result;
   T Test();
   Range()
-      : count(0),
-        x(std::numeric_limits<T>::min()),
-        y(std::numeric_limits<T>::max()) {
+      : repeated(0),
+        count(0),
+        min(0),
+        max(std::numeric_limits<T>::max()) {
           result = Test();
         }
 };
@@ -55,10 +57,13 @@ struct Range {
 template <class T>
 T Range<T>::Test() {
   do {
-    result = i2p::crypto::RandInRange<T>(x, y);
+    repeated = result;
+    result = i2p::crypto::RandInRange<T>(min, max);
     count++;
-  } while (count != 100);  // Arbitrary number
-  return ((result >= x)) && (result <= y);
+  } while ((count != 100));  // Arbitrary number
+  return ((result >= min) &&
+          (result <= max) &&
+          (result != repeated));  // A bit harsh?
 }
 
 BOOST_AUTO_TEST_CASE(_uint8_t) {
@@ -81,6 +86,8 @@ BOOST_AUTO_TEST_CASE(_uint64_t) {
   BOOST_CHECK(test.result);
 }
 
+// Signed, so test for negative results
+// regardless of initialized lowerbound
 BOOST_AUTO_TEST_CASE(_int) {
   Range<int> test;
   BOOST_CHECK(test.result);

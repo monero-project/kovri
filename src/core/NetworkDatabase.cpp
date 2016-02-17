@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include "NetworkDatabase.h"
@@ -44,15 +46,13 @@
 #include "Garlic.h"
 #include "I2NPProtocol.h"
 #include "RouterContext.h"
+#include "crypto/Rand.h"
 #include "transport/Transports.h"
 #include "tunnel/Tunnel.h"
 #include "util/Base64.h"
 #include "util/I2PEndian.h"
 #include "util/Log.h"
 #include "util/Timestamp.h"
-
-// TODO(unassigned): do not use namespace using-directives.
-using namespace i2p::transport;
 
 namespace i2p {
 namespace data {
@@ -323,8 +323,7 @@ bool NetDb::Reseed() {
 }
 
 void NetDb::Load() {
-  boost::filesystem::path p(
-      i2p::util::filesystem::GetDataPath() / m_NetDbPath);
+  boost::filesystem::path p(i2p::context.GetDataPath() / m_NetDbPath);
   if (!boost::filesystem::exists(p)) {
     // seems netDb doesn't exist yet
     if (!CreateNetDb(p)) return;
@@ -376,7 +375,7 @@ void NetDb::SaveUpdated() {
     return directory / (std::string("r") + s[0]) / ("routerInfo-" + s + ".dat");
   };
   boost::filesystem::path fullDirectory(
-      i2p::util::filesystem::GetDataPath() / m_NetDbPath);
+      i2p::context.GetDataPath() / m_NetDbPath);
   int count = 0,
       deletedCount = 0;
   auto total = m_RouterInfos.size();
@@ -471,10 +470,10 @@ void NetDb::RequestDestination(
       destination,
       dest->GetExcludedPeers());
   if (floodfill) {
-    transports.SendMessage(
+    i2p::transport::transports.SendMessage(
         floodfill->GetIdentHash(),
         dest->CreateRequestMessage(
-          floodfill->GetIdentHash()));
+            floodfill->GetIdentHash()));
   } else {
     LogPrint(eLogError, "No floodfills found");
     m_Requests.RequestComplete(destination, nullptr);
@@ -497,7 +496,7 @@ void NetDb::HandleDatabaseStoreMsg(
     uint32_t tunnelID = bufbe32toh(buf + offset);
     offset += 4;
     if (!tunnelID) {  // send response directly
-      transports.SendMessage(buf + offset, deliveryStatus);
+      i2p::transport::transports.SendMessage(buf + offset, deliveryStatus);
     } else {
       auto pool = i2p::tunnel::tunnels.GetExploratoryPool();
       auto outbound = pool ? pool->GetNextOutboundTunnel() : nullptr;
@@ -522,7 +521,9 @@ void NetDb::HandleDatabaseStoreMsg(
       for (int i = 0; i < 3; i++) {
         auto floodfill = GetClosestFloodfill(ident, excluded);
         if (floodfill)
-          transports.SendMessage(floodfill->GetIdentHash(), floodMsg);
+          i2p::transport::transports.SendMessage(
+              floodfill->GetIdentHash(),
+              floodMsg);
       }
     }
   }
@@ -740,13 +741,13 @@ void NetDb::HandleDatabaseLookupMsg(
             replyTunnelID,
             replyMsg);
       else
-        transports.SendMessage(
+        i2p::transport::transports.SendMessage(
             buf+32,
             i2p::CreateTunnelGatewayMsg(
-              replyTunnelID,
-              replyMsg));
+                replyTunnelID,
+                replyMsg));
     } else {
-      transports.SendMessage(buf+32, replyMsg);
+      i2p::transport::transports.SendMessage(buf+32, replyMsg);
     }
   }
 }
@@ -760,16 +761,14 @@ void NetDb::Explore(
   auto inbound =
     exploratoryPool ? exploratoryPool->GetNextInboundTunnel() : nullptr;
   bool throughTunnels = outbound && inbound;
-  // TODO(unassigned): docs
-  CryptoPP::RandomNumberGenerator& rnd =
-    i2p::context.GetRandomNumberGenerator();
+
   uint8_t randomHash[32];
   std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
   std::set<const RouterInfo *> floodfills;
   // TODO(unassigned): docs
   LogPrint("Exploring new ", numDestinations, " routers ...");
   for (int i = 0; i < numDestinations; i++) {
-    rnd.GenerateBlock(randomHash, 32);
+    i2p::crypto::RandBytes(randomHash, 32);
     auto dest = m_Requests.CreateRequest(randomHash, true);  // exploratory
     if (!dest) {
       LogPrint(eLogWarning, "Exploratory destination is requested already");
@@ -819,16 +818,15 @@ void NetDb::Publish() {
         i2p::context.GetRouterInfo().GetIdentHash(),
         excluded);
     if (floodfill) {
-      uint32_t replyToken =
-        i2p::context.GetRandomNumberGenerator().GenerateWord32();
+      uint32_t replyToken = i2p::crypto::Rand<uint32_t>();
       LogPrint("Publishing our RouterInfo to ",
           floodfill->GetIdentHashAbbreviation(),
           ". reply token=", replyToken);
-      transports.SendMessage(
+      i2p::transport::transports.SendMessage(
           floodfill->GetIdentHash(),
           CreateDatabaseStoreMsg(
-            i2p::context.GetSharedRouterInfo(),
-            replyToken));
+              i2p::context.GetSharedRouterInfo(),
+              replyToken));
       excluded.insert(floodfill->GetIdentHash());
     }
   }
@@ -878,9 +876,7 @@ std::shared_ptr<const RouterInfo> NetDb::GetHighBandwidthRandomRouter(
 template<typename Filter>
 std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter(
     Filter filter) const {
-  CryptoPP::RandomNumberGenerator& rnd =
-    i2p::context.GetRandomNumberGenerator();
-  uint32_t ind = rnd.GenerateWord32(0, m_RouterInfos.size() - 1);
+  uint32_t ind = i2p::crypto::RandInRange<uint32_t>(0, m_RouterInfos.size() - 1);
   for (int j = 0; j < 2; j++) {
     uint32_t i = 0;
     std::unique_lock<std::mutex> l(m_RouterInfosMutex);

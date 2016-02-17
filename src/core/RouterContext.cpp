@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include "RouterContext.h"
@@ -41,10 +43,10 @@
 #include "I2NPProtocol.h"
 #include "NetworkDatabase.h"
 #include "Version.h"
-#include "client/util/Config.h"
 #include "crypto/CryptoConst.h"
 #include "util/MTU.h"
 #include "util/Timestamp.h"
+#include "util/Filesystem.h"
 
 namespace i2p {
 
@@ -55,9 +57,16 @@ RouterContext::RouterContext()
       m_AcceptsTunnels(true),
       m_IsFloodfill(false),
       m_StartupTime(0),
-      m_Status(eRouterStatusOK) {}
+      m_Status(eRouterStatusOK),
+      m_DataPath() {}
 
-void RouterContext::Init() {
+void RouterContext::Init(
+    const std::string& host,
+    int port,
+    const boost::filesystem::path& dataPath) {
+  m_Host = host;
+  m_Port = port;
+  m_DataPath = dataPath;
   m_StartupTime = i2p::util::GetSecondsSinceEpoch();
   if (!Load())
     CreateNewRouter();
@@ -74,21 +83,14 @@ void RouterContext::NewRouterInfo() {
   i2p::data::RouterInfo routerInfo;
   routerInfo.SetRouterIdentity(
       GetIdentity());
-  routerInfo.AddSSUAddress(
-      i2p::util::config::varMap["host"].as<std::string>(),
-      i2p::util::config::varMap["port"].as<int>(),
-      routerInfo.GetIdentHash());
-  routerInfo.AddNTCPAddress(
-      i2p::util::config::varMap["host"].as<std::string>(),
-      i2p::util::config::varMap["port"].as<int>());
+  routerInfo.AddSSUAddress(m_Host, m_Port, routerInfo.GetIdentHash());
+  routerInfo.AddNTCPAddress(m_Host, m_Port);
   routerInfo.SetCaps(
       i2p::data::RouterInfo::eReachable |
       i2p::data::RouterInfo::eSSUTesting |
       i2p::data::RouterInfo::eSSUIntroducer);  // LR, BC
-  routerInfo.SetProperty("coreVersion", I2P_VERSION);
-  routerInfo.SetProperty("netId", "2");
+  routerInfo.SetProperty("netId", NETWORK_ID);
   routerInfo.SetProperty("router.version", I2P_VERSION);
-  routerInfo.SetProperty("stat_uptime", "90m");
   routerInfo.CreateBuffer(m_Keys);
   m_RouterInfo.Update(
       routerInfo.GetBuffer(),
@@ -97,9 +99,7 @@ void RouterContext::NewRouterInfo() {
 
 void RouterContext::UpdateRouterInfo() {
   m_RouterInfo.CreateBuffer(m_Keys);
-  m_RouterInfo.SaveToFile(
-      i2p::util::filesystem::GetFullPath(
-        ROUTER_INFO));
+  m_RouterInfo.SaveToFile(i2p::util::filesystem::GetFullPath(ROUTER_INFO));
   m_LastUpdateTime = i2p::util::GetSecondsSinceEpoch();
 }
 
@@ -302,8 +302,7 @@ bool RouterContext::Load() {
   fk.read(reinterpret_cast<char *>(&keys), sizeof(keys));
   m_Keys = keys;
   i2p::data::RouterInfo routerInfo(
-      i2p::util::filesystem::GetFullPath(
-        ROUTER_INFO));  // TODO(unassigned): ???
+      i2p::util::filesystem::GetFullPath(ROUTER_INFO));
   m_RouterInfo.Update(
       routerInfo.GetBuffer(),
       routerInfo.GetBufferLen());

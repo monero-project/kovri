@@ -1,5 +1,5 @@
 set(CORE_SRC
-	"tunnel/TunnelConfig.cpp"
+  "tunnel/TunnelConfig.cpp"
   "Garlic.cpp"
   "I2NPProtocol.cpp"
   "Identity.cpp"
@@ -13,6 +13,8 @@ set(CORE_SRC
   "crypto/AES.cpp"
   "crypto/CryptoConst.cpp"
   "crypto/EdDSA25519.cpp"
+  "crypto/ElGamal.cpp"
+  "crypto/Rand.cpp"
   "crypto/Signature.cpp"
   "crypto/Tunnel.cpp"
   "transport/NTCP.cpp"
@@ -29,8 +31,9 @@ set(CORE_SRC
   "tunnel/TunnelPool.cpp"
   "util/Base64.cpp"
   "util/HTTP.cpp"
+  "util/Log.cpp"
   "util/MTU.cpp"
-  "util/OldLog.cpp")
+  "util/Filesystem.cpp")
 
 set(EDDSA_SRC
   "crypto/ed25519/fe_0.cpp"
@@ -84,21 +87,11 @@ include_directories(
 set(EDDSA_LIB "ed25519-ref10")
 add_subdirectory(crypto/ed25519)
 
-if(WITH_BOOST_LOG)
-  # using boost log backend
-  set(LOG_SRC "util/BoostLog.cpp")
-else()
-  # print log backend
-  set(LOG_SRC "util/PrintLog.cpp")
-endif()
-
-list(APPEND CORE_SRC ${LOG_SRC})
-
 # Library building
 if(WITH_LIBRARY)
   add_library(${CORE_NAME} ${CORE_SRC} ${EDDSA_SRC})
   target_link_libraries(
-    ${CORE_NAME} ${API_NAME}
+    ${CORE_NAME}
     ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${OPENSSL_LIBRARIES}
     ${DL_LIB})
   install(

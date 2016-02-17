@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,12 +26,15 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #ifndef SRC_CORE_ROUTERCONTEXT_H_
 #define SRC_CORE_ROUTERCONTEXT_H_
 
 #include <boost/asio.hpp>
+#include <boost/filesystem.hpp>
 
 #include <cryptopp/dsa.h>
 #include <cryptopp/osrng.h>
@@ -65,89 +68,142 @@ class RouterContext : public i2p::garlic::GarlicDestination {
  public:
   RouterContext();
 
-  void Init();
+  /// Initializes the router context, must be called before use
+  /// @param host the external address of this router
+  /// @param port the port to be used (for both SSU and NTCP)
+  void Init(
+      const std::string& host,
+      int port,
+      const boost::filesystem::path& dataPath);
 
+  // @return This RouterContext's RouterInfo
   i2p::data::RouterInfo& GetRouterInfo() {
     return m_RouterInfo;
   }
 
+  // @return This RouterContext's RouterInfo wrapped in a smart pointer
   std::shared_ptr<const i2p::data::RouterInfo> GetSharedRouterInfo() const  {
     return std::shared_ptr<const i2p::data::RouterInfo>(
         &m_RouterInfo,
         [](const i2p::data::RouterInfo *) {});
   }
 
-  CryptoPP::RandomNumberGenerator& GetRandomNumberGenerator() {
-    return m_Rnd;
-  }
-
+  // @return How long this RouterContext has been online in seconds since epoch
   uint32_t GetUptime() const;
 
+  // @return Time that this RouterContext started in seconds since epoch
   uint32_t GetStartupTime() const {
     return m_StartupTime;
   }
 
+  // @return Time this RouterContext last updated its RouterInfo
   uint64_t GetLastUpdateTime() const {
     return m_LastUpdateTime;
   }
 
+  // @return
+  // eRouterStatusOk - if the RouterContext is fully port forwarded,
+  // eRouterStatusTesting - if the RouterContext is testing connectivity
+  // eRouterStatusFirewalled - if the RouterContext detects being firewalled
   RouterStatus GetStatus() const {
     return m_Status;
   }
 
+  // Set RouterContext's Status
+  // @see GetStatus
+  // @param status the new status this RouterContext will have
   void SetStatus(
       RouterStatus status) {
     m_Status = status;
   }
 
-  void UpdatePort(int port);  // called from Daemon
+  // Called from Daemon, updates this RouterContext's Port.
+  // Rebuilds RouterInfo
+  // @param port port number
+  void UpdatePort(int port);
 
+  // Called From SSU or Daemon.
+  // Update Our IP Address, external IP Address if behind NAT.
+  // Rebuilds RouterInfo
+  // @param host the ip address
   void UpdateAddress(
-      const boost::asio::ip::address& host);  // called from SSU or Daemon
+      const boost::asio::ip::address& host);
 
+  // Add an SSU introducer to our RouterInfo.
+  // Rebuild RouterInfo.
+  // @param routerInfo the RouterInfo to use in the Introducer
+  // @param tag
   bool AddIntroducer(
       const i2p::data::RouterInfo& routerInfo,
       uint32_t tag);
 
+  // Remove and SSU introducer given its endpoint.
+  // Rebuilds RouterInfo.
+  // @param e the SSU introducer's endpoint
   void RemoveIntroducer(
       const boost::asio::ip::udp::endpoint& e);
 
+  // @return true if other routers cannot reach us otherwise false
   bool IsUnreachable() const;
 
+  // Set that other routers cannot reach us
   void SetUnreachable();
 
+  // Set that other routers *can* reach us
   void SetReachable();
 
+  // @return true if we are a floodfill router otherwise false
   bool IsFloodfill() const {
     return m_IsFloodfill;
   }
 
+  // Set if we are a floodfill router, rebuild RouterInfo.
+  // @param floodfill true if we want to become floodfill, false if we don't
   void SetFloodfill(
       bool floodfill);
 
+  // Mark ourselves as having high bandwidth.
+  // Changes caps flags.
+  // Rebuilds RouterInfo.
   void SetHighBandwidth();
 
+  // Mark ourselves as having low (aka NOT high) Bandwidth.
+  // Changes Capacity Flags.
+  // Rebuilds RouterInfo.
   void SetLowBandwidth();
 
+  // @return true if we are going to accept tunnels right now.
   bool AcceptsTunnels() const {
     return m_AcceptsTunnels;
   }
 
+  // Set explicitly if we want to accept tunnels right now.
+  // @param acceptTunnels true if we want to accept tunnels otherwise false
   void SetAcceptsTunnels(
       bool acceptsTunnels) {
     m_AcceptsTunnels = acceptsTunnels;
   }
 
+  // @return true if we support IPv6 connectivity otherwise false
   bool SupportsV6() const {
     return m_RouterInfo.IsV6();
   }
 
+  // Set if we support IPv6 connectivity.
+  // Rebuilds RouterInfo.
+  // @param supportsV6 true if we support IPv6, false if we don't
   void SetSupportsV6(
       bool supportsV6);
 
+  // Called From NTCPSession.
+  // Update our NTCP IPv6 address.
+  // Rebuilds RouterInfo.
+  // @param host Our reachable IPv6 address for NTCP
   void UpdateNTCPV6Address(
-      const boost::asio::ip::address& host);  // called from NTCP session
+      const boost::asio::ip::address& host);
 
+  // Update Stats in Router Info when floodfill.
+  // Rebuilds RouterInfo.
   void UpdateStats();
 
   // implements LocalDestination
@@ -184,6 +240,14 @@ class RouterContext : public i2p::garlic::GarlicDestination {
   void ProcessDeliveryStatusMessage(
       std::shared_ptr<I2NPMessage> msg);
 
+  boost::filesystem::path GetDataPath() const {
+    return m_DataPath;
+  }
+
+  /// @return the full path of a file within m_DataPath
+  // TODO(EinMByte): Eventually use this everywhere instead of util::filesystem
+  std::string GetFullPath(const std::string& file);
+
  private:
   void CreateNewRouter();
   void NewRouterInfo();
@@ -194,12 +258,14 @@ class RouterContext : public i2p::garlic::GarlicDestination {
  private:
   i2p::data::RouterInfo m_RouterInfo;
   i2p::data::PrivateKeys m_Keys;
-  CryptoPP::AutoSeededRandomPool m_Rnd;
   uint64_t m_LastUpdateTime;
   bool m_AcceptsTunnels, m_IsFloodfill;
   uint64_t m_StartupTime;  // in seconds since epoch
   RouterStatus m_Status;
   std::mutex m_GarlicMutex;
+  std::string m_Host;
+  int m_Port;
+  boost::filesystem::path m_DataPath;
 };
 
 extern RouterContext context;

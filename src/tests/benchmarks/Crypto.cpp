@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,20 +26,19 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include <cryptopp/osrng.h>
 
 #include <chrono>
-#include <functional>
 #include <iostream>
 
+#include "crypto/Rand.h"
 #include "crypto/Signature.h"
 
-typedef std::function<void(
-    CryptoPP::RandomNumberGenerator&,
-    uint8_t*,
-    uint8_t*)> KeyGenerator;
+typedef void (*KeyGenerator)(uint8_t*,uint8_t*) ;
 
 template<class Verifier, class Signer>
 void benchmark(
@@ -49,10 +48,9 @@ void benchmark(
     std::size_t signature_size,
     KeyGenerator generator) {
   typedef std::chrono::time_point<std::chrono::high_resolution_clock> TimePoint;
-  CryptoPP::AutoSeededRandomPool rng;
   uint8_t private_key[private_key_size];
   uint8_t public_key[public_key_size];
-  generator(rng, private_key, public_key);
+  generator(private_key, public_key);
   Verifier verifier(public_key);
   Signer signer(private_key);
   uint8_t message[512] = {};
@@ -60,17 +58,22 @@ void benchmark(
   std::chrono::nanoseconds sign_duration(0);
   std::chrono::nanoseconds verify_duration(0);
   for (std::size_t i = 0; i < count; ++i) {
-    rng.GenerateBlock(message, 512);
-    TimePoint begin1 = std::chrono::high_resolution_clock::now();
-    signer.Sign(rng, message, 512, output);
-    TimePoint end1 = std::chrono::high_resolution_clock::now();
-    sign_duration +=
-      std::chrono::duration_cast<std::chrono::nanoseconds>(end1 - begin1);
-    TimePoint begin2 = std::chrono::high_resolution_clock::now();
-    verifier.Verify(message, 512, output);
-    TimePoint end2 = std::chrono::high_resolution_clock::now();
-    verify_duration +=
-      std::chrono::duration_cast<std::chrono::nanoseconds>(end2 - begin2);
+    try {
+      i2p::crypto::RandBytes(message, 512);
+      TimePoint begin1 = std::chrono::high_resolution_clock::now();
+      signer.Sign(message, 512, output);
+      TimePoint end1 = std::chrono::high_resolution_clock::now();
+      sign_duration +=
+        std::chrono::duration_cast<std::chrono::nanoseconds>(end1 - begin1);
+      TimePoint begin2 = std::chrono::high_resolution_clock::now();
+      verifier.Verify(message, 512, output);
+      TimePoint end2 = std::chrono::high_resolution_clock::now();
+      verify_duration +=
+        std::chrono::duration_cast<std::chrono::nanoseconds>(end2 - begin2);
+    } catch (CryptoPP::Exception& ex) {
+      std::cout << "!!! " << ex.what() << std::endl;
+      break;
+    }
   }
   std::cout << "Conducted " << count << " experiments." << std::endl;
   std::cout << "Total sign time: " <<
@@ -81,33 +84,41 @@ void benchmark(
         verify_duration).count() << std::endl;
 }
 
-
 int main() {
-  // TODO(unassigned): don't use namespace using-directives
-  using namespace i2p::crypto;
+  const size_t benchmark_count = 1000;
   std::cout << "--------DSA---------" << std::endl;
-  benchmark<DSAVerifier, DSASigner>(
-    1000, DSA_PUBLIC_KEY_LENGTH,
-    DSA_PRIVATE_KEY_LENGTH, DSA_SIGNATURE_LENGTH,
-    &CreateDSARandomKeys);
+  benchmark<i2p::crypto::DSAVerifier, i2p::crypto::DSASigner>(
+    benchmark_count,
+    i2p::crypto::DSA_PUBLIC_KEY_LENGTH,
+    i2p::crypto::DSA_PRIVATE_KEY_LENGTH,
+    i2p::crypto::DSA_SIGNATURE_LENGTH,
+    i2p::crypto::CreateDSARandomKeys);
   std::cout << "-----ECDSAP256------" << std::endl;
-  benchmark<ECDSAP256Verifier, ECDSAP256Signer>(
-    1000, ECDSAP256_KEY_LENGTH,
-    ECDSAP256_KEY_LENGTH, 64,
-    &CreateECDSAP256RandomKeys);
+  benchmark<i2p::crypto::ECDSAP256Verifier, i2p::crypto::ECDSAP256Signer>(
+    benchmark_count,
+    i2p::crypto::ECDSAP256_KEY_LENGTH,
+    i2p::crypto::ECDSAP256_KEY_LENGTH / 2,
+    i2p::crypto::ECDSAP256_KEY_LENGTH,
+    i2p::crypto::CreateECDSAP256RandomKeys);
   std::cout << "-----ECDSAP384------" << std::endl;
-  benchmark<ECDSAP384Verifier, ECDSAP384Signer>(
-    1000, ECDSAP384_KEY_LENGTH,
-    ECDSAP384_KEY_LENGTH, 64,
-    &CreateECDSAP384RandomKeys);
+  benchmark<i2p::crypto::ECDSAP384Verifier, i2p::crypto::ECDSAP384Signer>(
+    benchmark_count,
+    i2p::crypto::ECDSAP384_KEY_LENGTH,
+    i2p::crypto::ECDSAP384_KEY_LENGTH / 2,
+    i2p::crypto::ECDSAP384_KEY_LENGTH,
+    i2p::crypto::CreateECDSAP384RandomKeys);
   std::cout << "-----ECDSAP521------" << std::endl;
-  benchmark<ECDSAP521Verifier, ECDSAP521Signer>(
-    1000, ECDSAP521_KEY_LENGTH,
-    ECDSAP521_KEY_LENGTH, 64,
-    &CreateECDSAP521RandomKeys);
+  benchmark<i2p::crypto::ECDSAP521Verifier, i2p::crypto::ECDSAP521Signer>(
+    benchmark_count,
+    i2p::crypto::ECDSAP521_KEY_LENGTH,
+    i2p::crypto::ECDSAP521_KEY_LENGTH / 2,
+    i2p::crypto::ECDSAP521_KEY_LENGTH,
+    i2p::crypto::CreateECDSAP521RandomKeys);
   std::cout << "-----EDDSA25519-----" << std::endl;
-  benchmark<EDDSA25519Verifier, EDDSA25519Signer>(
-    1000, EDDSA25519_PUBLIC_KEY_LENGTH,
-    EDDSA25519_PRIVATE_KEY_LENGTH, 64,
-    &CreateEDDSARandomKeys);
+  benchmark<i2p::crypto::EDDSA25519Verifier, i2p::crypto::EDDSA25519Signer>(
+    benchmark_count,
+    i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH,
+    i2p::crypto::EDDSA25519_PRIVATE_KEY_LENGTH,
+    i2p::crypto::EDDSA25519_SIGNATURE_LENGTH,
+    i2p::crypto::CreateEDDSARandomKeys);
 }

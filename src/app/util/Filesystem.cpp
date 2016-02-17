@@ -1,0 +1,142 @@
+/**
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
+ *
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without modification, are
+ * permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this list of
+ *    conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice, this list
+ *    of conditions and the following disclaimer in the documentation and/or other
+ *    materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software without specific
+ *    prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+ * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+ * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
+ */
+
+#include "Filesystem.h"
+#include "Config.h"
+
+#include <string>
+
+namespace i2p {
+namespace util {
+namespace filesystem {
+
+namespace bfs = boost::filesystem;
+
+std::string appName("kovri");
+
+void SetAppName(const std::string& name) {
+  appName = name;
+}
+
+std::string GetAppName() {
+  return appName;
+}
+
+bfs::path GetConfigFile() {
+  bfs::path pathConfigFile(
+      i2p::util::config::var_map["config"].as<std::string>());
+  if (!pathConfigFile.is_complete())
+        pathConfigFile = GetDataPath() / pathConfigFile;
+  return pathConfigFile;
+}
+
+bfs::path GetTunnelsConfigFile() {
+  bfs::path pathTunnelsConfigFile(
+      i2p::util::config::var_map["tunnelscfg"].as<std::string>());
+  if (!pathTunnelsConfigFile.is_complete())
+    pathTunnelsConfigFile = GetDataPath() / pathTunnelsConfigFile;
+  return pathTunnelsConfigFile;
+}
+
+bfs::path GetSU3CertsPath() {
+  return GetDataPath() / "resources" / "certificates" / "su3";
+}
+
+bfs::path GetSSLCertsPath() {
+  return GetDataPath() / "resources" / "certificates" / "ssl";
+}
+
+std::string GetFullPath(
+    const std::string& filename) {
+  std::string fullPath = GetDataPath().string();
+#ifdef _WIN32
+  fullPath.append("\\");
+#else
+  fullPath.append("/");
+#endif
+  fullPath.append(filename);
+  return fullPath;
+}
+
+const bfs::path& GetDataPath() {
+  static bfs::path path;
+  path = GetDefaultDataPath();
+  if (!exists(path)) {
+    // Create data directory
+    if (!create_directory(path)) {
+      LogPrint("Failed to create data directory!");
+      path = "";
+      return path;
+    }
+  }
+  if (!is_directory(path))
+    path = GetDefaultDataPath();
+  return path;
+}
+
+bfs::path GetDefaultDataPath() {
+  // Custom path, or default path:
+  // Windows < Vista: C:\Documents and Settings\Username\Application Data\kovri
+  // Windows >= Vista: C:\Users\Username\AppData\Roaming\kovri
+  // Mac: ~/Library/Application Support/kovri
+  // Unix: ~/.kovri
+#ifdef KOVRI_CUSTOM_DATA_PATH
+  return bfs::path(std::string(KOVRI_CUSTOM_DATA_PATH));
+#else
+#ifdef _WIN32
+  // Windows
+  char localAppData[MAX_PATH];
+  SHGetFolderPath(NULL, CSIDL_APPDATA, 0, NULL, localAppData);
+  return bfs::path(std::string(localAppData) + "\\" + appName);
+#else
+  bfs::path pathRet;
+  char* home = getenv("HOME");
+  if (home == NULL || strlen(home) == 0)
+      pathRet = bfs::path("/");
+  else
+      pathRet = bfs::path(home);
+#ifdef __APPLE__
+  // Mac
+  pathRet /= "Library/Application Support";
+  create_directory(pathRet);
+  return pathRet / appName;
+#else
+  // Unix
+  return pathRet / (std::string(".") + appName);
+#endif
+#endif
+#endif
+}
+
+}  // namespace filesystem
+}  // namespace util
+}  // namespace i2p

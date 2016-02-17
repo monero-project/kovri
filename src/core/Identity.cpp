@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,11 +26,16 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
+// TODO(unassigned): use crypto/DSA.h
 #include <cryptopp/dsa.h>
-#include <cryptopp/osrng.h>
+// TODO(unassigned): use crypto/SHA.h
 #include <cryptopp/sha.h>
+
+#include <cryptopp/dh.h>
 
 #include <stdio.h>
 #include <time.h>
@@ -40,10 +45,13 @@
 #include "Identity.h"
 #include "RouterContext.h"
 #include "crypto/CryptoConst.h"
+#include "crypto/CryptoPP_Rand.h"
 #include "crypto/ElGamal.h"
+#include "crypto/Rand.h"
 #include "crypto/Signature.h"
 #include "util/Base64.h"
 #include "util/I2PEndian.h"
+#include "util/Log.h"
 
 namespace i2p {
 namespace data {
@@ -91,7 +99,7 @@ IdentityEx::IdentityEx(
       case SIGNING_KEY_TYPE_ECDSA_SHA256_P256: {
         size_t padding =
           128 - i2p::crypto::ECDSAP256_KEY_LENGTH;  // 64 = 128 - 64
-        i2p::context.GetRandomNumberGenerator().GenerateBlock(
+        i2p::crypto::RandBytes(
             m_StandardIdentity.signingKey,
             padding);
         memcpy(
@@ -103,7 +111,7 @@ IdentityEx::IdentityEx(
       case SIGNING_KEY_TYPE_ECDSA_SHA384_P384: {
         size_t padding =
           128 - i2p::crypto::ECDSAP384_KEY_LENGTH;  // 32 = 128 - 96
-        i2p::context.GetRandomNumberGenerator().GenerateBlock(
+        i2p::crypto::RandBytes(
             m_StandardIdentity.signingKey,
             padding);
         memcpy(
@@ -143,7 +151,7 @@ IdentityEx::IdentityEx(
       case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519: {
         size_t padding =
           128 - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH;  // 96 = 128 - 32
-        i2p::context.GetRandomNumberGenerator().GenerateBlock(
+        i2p::crypto::RandBytes(
             m_StandardIdentity.signingKey,
             padding);
         memcpy(
@@ -170,6 +178,7 @@ IdentityEx::IdentityEx(
     // calculate ident hash
     uint8_t* buf = new uint8_t[GetFullLen()];
     ToBuffer(buf, GetFullLen());
+    // TODO(unassigned): use i2p::crypto::SHA256()
     CryptoPP::SHA256().CalculateDigest(m_IdentHash, buf, GetFullLen());
     delete[] buf;
   } else {  // DSA-SHA1
@@ -495,7 +504,7 @@ void PrivateKeys::Sign(
     int len,
     uint8_t* signature) const {
   if (m_Signer)
-    m_Signer->Sign(i2p::context.GetRandomNumberGenerator(), buf, len, signature);
+    m_Signer->Sign(buf, len, signature);
 }
 
 void PrivateKeys::CreateSigner() {
@@ -534,45 +543,38 @@ void PrivateKeys::CreateSigner() {
 PrivateKeys PrivateKeys::CreateRandomKeys(SigningKeyType type) {
   if (type != SIGNING_KEY_TYPE_DSA_SHA1) {
     PrivateKeys keys;
-    auto& rnd = i2p::context.GetRandomNumberGenerator();
     // signature
     uint8_t signingPublicKey[512];  // signing public key is 512 bytes max
     switch (type) {
       case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
         i2p::crypto::CreateECDSAP256RandomKeys(
-            rnd,
             keys.m_SigningPrivateKey,
             signingPublicKey);
       break;
       case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
         i2p::crypto::CreateECDSAP384RandomKeys(
-            rnd,
             keys.m_SigningPrivateKey,
             signingPublicKey);
       break;
       case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
         i2p::crypto::CreateECDSAP521RandomKeys(
-            rnd,
             keys.m_SigningPrivateKey,
             signingPublicKey);
       break;
       case SIGNING_KEY_TYPE_RSA_SHA256_2048:
         i2p::crypto::CreateRSARandomKeys(
-            rnd,
             i2p::crypto::RSASHA2562048_KEY_LENGTH,
             keys.m_SigningPrivateKey,
             signingPublicKey);
       break;
       case SIGNING_KEY_TYPE_RSA_SHA384_3072:
         i2p::crypto::CreateRSARandomKeys(
-            rnd,
             i2p::crypto::RSASHA3843072_KEY_LENGTH,
             keys.m_SigningPrivateKey,
             signingPublicKey);
       break;
       case SIGNING_KEY_TYPE_RSA_SHA512_4096:
         i2p::crypto::CreateRSARandomKeys(
-            rnd,
             i2p::crypto::RSASHA5124096_KEY_LENGTH,
             keys.m_SigningPrivateKey,
             signingPublicKey);
@@ -584,8 +586,7 @@ PrivateKeys PrivateKeys::CreateRandomKeys(SigningKeyType type) {
     }
     // encryption
     uint8_t publicKey[256];
-    CryptoPP::DH dh(i2p::crypto::elgp, i2p::crypto::elgg);
-    dh.GenerateKeyPair(rnd, keys.m_PrivateKey, publicKey);
+    i2p::crypto::GenerateElGamalKeyPair(keys.m_PrivateKey, publicKey);
     // identity
     keys.m_Public = IdentityEx(publicKey, signingPublicKey, type);
     keys.CreateSigner();
@@ -596,15 +597,12 @@ PrivateKeys PrivateKeys::CreateRandomKeys(SigningKeyType type) {
 
 Keys CreateRandomKeys() {
   Keys keys;
-  auto& rnd = i2p::context.GetRandomNumberGenerator();
   // encryption
   i2p::crypto::GenerateElGamalKeyPair(
-      rnd,
       keys.privateKey,
       keys.publicKey);
   // signing
   i2p::crypto::CreateDSARandomKeys(
-      rnd,
       keys.signingPrivateKey,
       keys.signingKey);
   return keys;

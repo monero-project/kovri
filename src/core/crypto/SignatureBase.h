@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #ifndef SRC_CORE_CRYPTO_SIGNATUREBASE_H_
@@ -45,19 +47,28 @@ class Verifier {
       const uint8_t* signature) const = 0;
   virtual size_t GetPublicKeyLen() const = 0;
   virtual size_t GetSignatureLen() const = 0;
-  virtual size_t GetPrivateKeyLen() const {
-    return GetSignatureLen() / 2;
-  }
+  virtual size_t GetPrivateKeyLen() const = 0;
 };
 
 class Signer {
  public:
   virtual ~Signer() {}
   virtual void Sign(
-      CryptoPP::RandomNumberGenerator& rnd,
       const uint8_t* buf,
-      int len,
+      size_t len,
       uint8_t* signature) const = 0;
+};
+
+class RawVerifier {
+ public:
+  virtual ~RawVerifier() {}
+
+  virtual void Update(
+      const uint8_t* buf,
+      size_t len) = 0;
+
+  virtual bool Verify(
+      const uint8_t* signature) = 0;
 };
 
 }  // namespace crypto

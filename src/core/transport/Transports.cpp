@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include "Transports.h"
@@ -40,10 +42,8 @@
 #include "NetworkDatabase.h"
 #include "RouterContext.h"
 #include "crypto/CryptoConst.h"
+#include "crypto/Rand.h"
 #include "util/Log.h"
-
-// TODO(anonimal): don't use using-directive
-using namespace i2p::data;
 
 namespace i2p {
 namespace transport {
@@ -107,23 +107,25 @@ void DHKeysPairSupplier::CreateDHKeysPairs(
 }
 
 DHKeysPair* DHKeysPairSupplier::Acquire() {
+  std::unique_lock<std::mutex> l(m_AcquiredMutex);
   if (!m_Queue.empty()) {
-    std::unique_lock<std::mutex> l(m_AcquiredMutex);
     auto pair = m_Queue.front();
     m_Queue.pop();
     m_Acquired.notify_one();
     return pair;
-  } else {  // queue is empty, create new
-    DHKeysPair* pair = new DHKeysPair();
-    CryptoPP::DH dh(
-        i2p::crypto::elgp,
-        i2p::crypto::elgg);
-    dh.GenerateKeyPair(
-        m_Rnd,
-        pair->privateKey,
-        pair->publicKey);
-    return pair;
   }
+  l.unlock();
+
+  // queue is empty, create new key pair
+  DHKeysPair* pair = new DHKeysPair();
+  CryptoPP::DH dh(
+      i2p::crypto::elgp,
+      i2p::crypto::elgg);
+  dh.GenerateKeyPair(
+      m_Rnd,
+      pair->privateKey,
+      pair->publicKey);
+  return pair;
 }
 
 void DHKeysPairSupplier::Return(
@@ -174,7 +176,7 @@ void Transports::Start() {
       m_NTCPServer->Start();
     }
     if (address.transportStyle ==
-        RouterInfo::eTransportSSU &&
+        i2p::data::RouterInfo::eTransportSSU &&
         address.host.is_v4()) {
       if (!m_SSUServer) {
         m_SSUServer = new SSUServer(address.port);
@@ -285,7 +287,7 @@ void Transports::PostMessages(
   if (it == m_Peers.end()) {
     bool connected = false;
     try {
-      auto r = netdb.FindRouter(ident);
+      auto r = i2p::data::netdb.FindRouter(ident);
       it = m_Peers.insert(
           std::make_pair(
             ident,
@@ -552,14 +554,11 @@ void Transports::HandlePeerCleanupTimer(
 std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRandomPeer() const {
   if (m_Peers.empty())  // ensure m.Peers.size() >= 1
     return nullptr;
-  CryptoPP::RandomNumberGenerator& rnd =
-    i2p::context.GetRandomNumberGenerator();
+  size_t s = m_Peers.size();
   auto it = m_Peers.begin();
   std::advance(
       it,
-      rnd.GenerateWord32(
-        0,
-        m_Peers.size() - 1));
+      i2p::crypto::RandInRange<size_t>(0, s - 1));
 
   return it->second.router;
 }

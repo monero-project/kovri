@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include "Profiling.h"
@@ -37,6 +39,8 @@
 #include <string>
 
 #include "util/Base64.h"
+#include "util/Log.h"
+#include "RouterContext.h"
 
 namespace i2p {
 namespace data {
@@ -91,8 +95,7 @@ void RouterProfile::Save() {
       PEER_PROFILE_SECTION_USAGE,
       usage);
   // save to file
-  auto path =
-    i2p::util::filesystem::GetDefaultDataPath() / PEER_PROFILES_DIRECTORY;
+  auto path = i2p::context.GetDataPath() / PEER_PROFILES_DIRECTORY;
   if (!boost::filesystem::exists(path)) {
     // Create directory is necessary
     if (!boost::filesystem::create_directory(path)) {
@@ -120,8 +123,7 @@ void RouterProfile::Save() {
 
 void RouterProfile::Load() {
   std::string base64 = m_IdentHash.ToBase64();
-  auto path =
-    i2p::util::filesystem::GetDefaultDataPath() / PEER_PROFILES_DIRECTORY;
+  auto path = i2p::context.GetDataPath() / PEER_PROFILES_DIRECTORY;
   path /= std::string("p") + base64[0];
   auto filename = path / (std::string(PEER_PROFILE_PREFIX) + base64 + ".txt");
   if (boost::filesystem::exists(filename)) {
@@ -223,7 +225,7 @@ void DeleteObsoleteProfiles() {
   int num = 0;
   auto ts = boost::posix_time::second_clock::local_time();
   boost::filesystem::path p(
-      i2p::util::filesystem::GetDataPath() / PEER_PROFILES_DIRECTORY);
+      i2p::context.GetDataPath() / PEER_PROFILES_DIRECTORY);
   if (boost::filesystem::exists(p)) {
     boost::filesystem::directory_iterator end;
     for (boost::filesystem::directory_iterator it(p); it != end; ++it) {

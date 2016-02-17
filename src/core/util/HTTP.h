@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #ifndef SRC_CORE_UTIL_HTTP_H_
@@ -51,7 +53,6 @@
 
 #include "Log.h"
 #include "Reseed.h"
-#include "client/util/Filesystem.h"
 
 namespace i2p {
 namespace util {
@@ -60,11 +61,10 @@ namespace http {
 /**
  * @return the result of the download, or an empty string if it fails
  */
-std::string HttpsDownload(
-    const std::string& address);
+std::string HttpsDownload(const std::string& address);
 
 /**
- * @class URI provides functionality for parsing URIs
+ * Provides functionality for parsing URIs
  */
 class URI {
   /**
@@ -76,10 +76,10 @@ class URI {
    * Note: fragments are not parsed by this function (if they should
    * ever be needed in the future).
    *
-   * @param string URI
+   * @param uri the URI to be parsed
+   * @warning the default port is 80, for HTTPS it is 443
    */
-  void ParseURI(
-      const std::string& uri);
+  void ParseURI(const std::string& uri);
  public:
   std::string m_Protocol, m_Host, m_Path, m_PortString, m_Query;
   int m_Port;
@@ -88,8 +88,9 @@ class URI {
 };
 
 /**
- * Header for HTTPS requests.
+ * Header for HTTP requests.
  * @return a string of the complete header
+ * @warning this function does NOT append an additional \r\n
  */
 std::string HttpHeader(
     const std::string& path,
@@ -99,8 +100,7 @@ std::string HttpHeader(
 /**
  * @return the content of the given HTTP stream without headers
  */
-std::string GetHttpContent(
-    std::istream& response);
+std::string GetHttpContent(std::istream& response);
 
 /**
  * Merge chunks of an HTTP response.

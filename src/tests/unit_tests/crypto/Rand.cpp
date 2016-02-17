@@ -28,59 +28,74 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_CORE_CRYPTO_RAND_H_
-#define SRC_CORE_CRYPTO_RAND_H_
+#define BOOST_TEST_DYN_LINK
 
-#include <cstdlib>
-#include <cinttypes>  // imaxabs()
-#include <stdexcept>
+#include <boost/test/unit_test.hpp>
 
-namespace i2p {
-namespace crypto {
+#include <limits>
 
-  /// Generate random bytes
-  /// @param dataptr buffer to store result
-  /// @param datalen size of buffer
-  void RandBytes(
-      uint8_t* dataptr,
-      size_t datalen);
+#include "crypto/Rand.h"
 
-  /// Generate random of type T
-  template<class T>
-  T Rand() {
-    T ret;
-    // TODO(unassigned): alignment
-    RandBytes((uint8_t*)&ret, sizeof(ret));
-    return ret;
-  }
+/// TODO(anonimal): unit-tests for all crypto::Rand* functions
 
-  /// Returns a random integer of type T from
-  /// a range of integers (signed or unsigned).
-  ///
-  /// @param T   : integer type
-  /// @param min : lowerbound
-  /// @param max : upperbound
-  /// @return    : random number in range [min, max]
-  ///              (if (min < 0), results are undefined)
-  template<class T>
-  T RandInRange(T min, T max) {
-    if ((min > max) || (max < 0)) {
-      throw std::logic_error("RandInRange(): logic error");
-    } else if (min == max) {
-      return min;
-    }
-    T dlt = max - min;
-    // We never want a negative if T is signed
-    T ret = imaxabs(Rand<T>());
-    // If 0, use dlt
-    if (!(ret %= dlt)) {
-      ret = dlt;
-    }
-    ret += min;
-    return ret;
-  }
+BOOST_AUTO_TEST_SUITE(RandInRange)
 
-}  // namespace crypto
-}  // namespace i2p
+template <class T>
+struct Range {
+  T repeated, count;
+  T min, max, result;
+  T Test();
+  Range()
+      : repeated(0),
+        count(0),
+        min(0),
+        max(std::numeric_limits<T>::max()) {
+          result = Test();
+        }
+};
 
-#endif  // SRC_CORE_CRYPTO_RAND_H_
+template <class T>
+T Range<T>::Test() {
+  do {
+    repeated = result;
+    result = i2p::crypto::RandInRange<T>(min, max);
+    count++;
+  } while ((count != 100));  // Arbitrary number
+  return ((result >= min) &&
+          (result <= max) &&
+          (result != repeated));  // A bit harsh?
+}
+
+BOOST_AUTO_TEST_CASE(_uint8_t) {
+  Range<uint8_t> test;
+  BOOST_CHECK(test.result);
+}
+
+BOOST_AUTO_TEST_CASE(_uint16_t) {
+  Range<uint16_t> test;
+  BOOST_CHECK(test.result);
+}
+
+BOOST_AUTO_TEST_CASE(_uint32_t) {
+  Range<uint32_t> test;
+  BOOST_CHECK(test.result);
+}
+
+BOOST_AUTO_TEST_CASE(_uint64_t) {
+  Range<uint64_t> test;
+  BOOST_CHECK(test.result);
+}
+
+// Signed, so test for negative results
+// regardless of initialized lowerbound
+BOOST_AUTO_TEST_CASE(_int) {
+  Range<int> test;
+  BOOST_CHECK(test.result);
+}
+
+BOOST_AUTO_TEST_CASE(_long) {
+  Range<long> test;
+  BOOST_CHECK(test.result);
+}
+
+BOOST_AUTO_TEST_SUITE_END()

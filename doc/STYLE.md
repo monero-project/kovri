@@ -1,14 +1,13 @@
 # Contributing
-- The Kovri I2P Router Project welcomes all contributions.
+- Firstly, please read our [CONTRIBUTING.md](https://github.com/monero-project/kovri/blob/master/doc/CONTRIBUTING.md) guide
 - Every pull request and correspondence will be treated with the utmost respect and consideration.
-- Don't forget: this is *your* Kovri too!
 
 ## IRC
 Join us in ```#kovri-dev``` on Irc2P or Freenode; we'll be happy to say hi!
 
 ## Style
 We ardently adhere to (or are in the process of adhering to) [Google's C++ Style Guide](https://google.github.io/styleguide/cppguide.html).
-Please run [cpplint](https://github.com/google/styleguide/tree/gh-pages/cpplint) on any applicable work before contributing to Kovri.
+Please run [cpplint](https://github.com/google/styleguide/tree/gh-pages/cpplint) on any applicable work before contributing to Kovri and take no offense if your contribution ends up being style refactored.
 
 In addition to the aforementioned, please consider the following:
 
@@ -17,25 +16,15 @@ In addition to the aforementioned, please consider the following:
 - But why this specific style? Anonymity. Doing things here that wouldn't be done elsewhere helps reduce the chance of programmer correlation. This allows any contributor to *blend-in* as long as they adhere to specifics.
 - Lines should be <=80 spaces unless impossible to do so (see [cpplint](https://github.com/google/styleguide/tree/gh-pages/cpplint)).
 - ```XXX``` and any unassigned ```TODO```'s should be marked instead as ```TODO(unassigned):``` so Doxygen can catch them.
-- Always use ```// C++ comments``` unless they span more than 10 lines (give or take). When that happens, a traditional
+- Always use three-slash ```/// C++ comments``` for Doxygen unless the comments span more than 10 lines (give or take). When that happens, a traditional
 ```c
   /**
    * should suffice
    */
 ```
-- Extensive code that *does* something (more than simply return or more than a hand-ful of lines) should go in a .cpp instead of .h unless it is absolutely necessary to fulfill some abstraction layer.
 - ``if/else`` statements should never one-liner. Nothing bracketed should one-liner unless it is empty (see vertical theory above).
 - Please remove EOL whitespace: ```'s/ *$//g'``` (see [cpplint](https://github.com/google/styleguide/tree/gh-pages/cpplint)).
 - New files should maintain consistency with other filename case, e.g., CryptoPP_rand.h instead of cryptopp_rand.h
-- English punctuation will help clarify questions about the comments. For example:
-```cpp
-// key file does not exist, let's say it's new
-// after we fall out of scope of the open file for the keys we'll add it
-createTunnel = true;
-```
-So, is it "let's say it's new after we fall out of scope" or a completely different thought?
-The code that is commented on isn't a dead give-away and requires the reader to expend more time analyzing. A simple english consideration could help with review.
-
 - Pointers: reference/dereference operators on the left (attached to datatype) when possible.
 - Class member variables are prepended with m_
 - Enumerators are prepended with e_

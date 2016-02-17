@@ -64,15 +64,16 @@ namespace i2p {
 namespace data {
 
 static std::vector<std::string> reseedHosts = {
-  //"https://download.xxlspeed.com/",  // Requires SNI
-  //"https://i2pseed.zarrenspry.info/", // Host not found (authoritative)
   "https://i2p.mooo.com/netDb/",
-  //"https://netdb.i2p2.no/",  // Requires SNI
   "https://reseed.i2p-projekt.de/",
   "https://reseed.i2p.vzaws.com:8443/",
   "https://uk.reseed.i2p2.no:444/",
   "https://us.reseed.i2p2.no:444/",
   "https://user.mx24.eu/",
+  //"https://download.xxlspeed.com/",  // Requires SNI
+  //"https://i2p-0.manas.ca:8443/",  // Requires SNI
+  //"https://i2pseed.zarrenspry.info/", // Host not found (authoritative)
+  //"https://netdb.i2p2.no/",  // Requires SNI
 };
 
 Reseeder::Reseeder() {}

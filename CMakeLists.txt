@@ -138,19 +138,18 @@ if(NOT DEFINED CRYPTO++_INCLUDE_DIR)
   message(SEND_ERROR "Could not find Crypto++. Please download and install it first!")
 endif()
 
-find_package(OpenSSL REQUIRED)
-if(NOT DEFINED OPENSSL_INCLUDE_DIR)
-  message(SEND_ERROR "Could not find OpenSSL. Please download and install it first!")
-endif()
-
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+if(APPLE)
   # If we're on OS X check for Homebrew's copy of OpenSSL instead of Apple's
-  if(NOT OpenSSL_DIR)
-    execute_process (
-      COMMAND brew --prefix openssl
+  if (NOT OpenSSL_DIR)
+    execute_process (COMMAND brew --prefix openssl
       OUTPUT_VARIABLE OPENSSL_ROOT_DIR
       OUTPUT_STRIP_TRAILING_WHITESPACE)
   endif()
+endif()
+
+find_package(OpenSSL REQUIRED)
+if(NOT DEFINED OPENSSL_INCLUDE_DIR)
+  message(SEND_ERROR "Could not find OpenSSL. Please download and install it first!")
 endif()
 
 find_package(MiniUPnPc)

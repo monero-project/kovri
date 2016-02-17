@@ -32,7 +32,7 @@
 
 #include "CryptoPP_Rand.h"
 
-// implementation of i2p::crypto::Rand* functions
+// implementation of crypto::Rand* functions
 
 namespace i2p {
 namespace crypto {
@@ -42,6 +42,6 @@ void RandBytes(
     size_t datalen) {
   prng.GenerateBlock(dataptr, datalen);
 }
- 
+
 }  // namespace crypto
 }  // namespace i2p

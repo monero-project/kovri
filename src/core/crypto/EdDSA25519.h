@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #ifndef SRC_CORE_CRYPTO_EDDSA25519_H_
@@ -51,8 +53,17 @@ class EDDSA25519Verifier : public Verifier {
       size_t len,
       const uint8_t* signature) const;
 
-  size_t GetPublicKeyLen() const;
-  size_t GetSignatureLen() const;
+  size_t GetPublicKeyLen() const {
+    return EDDSA25519_PUBLIC_KEY_LENGTH;
+  }
+
+  size_t GetSignatureLen() const {
+    return EDDSA25519_SIGNATURE_LENGTH;
+  }
+
+  size_t GetPrivateKeyLen() const {
+    return EDDSA25519_PRIVATE_KEY_LENGTH;
+  }
 
  private:
   uint8_t m_PublicKey[EDDSA25519_PUBLIC_KEY_LENGTH];
@@ -70,12 +81,9 @@ class EDDSA25519Signer : public Signer {
   EDDSA25519Signer(
       const uint8_t* signingPrivateKey);
 
-  // TODO(unassigned): do not pass random number generator.
-  // EdDSA does not require a random source
   void Sign(
-      CryptoPP::RandomNumberGenerator&,
       const uint8_t* buf,
-      int len,
+      size_t len,
       uint8_t* signature) const;
 
   uint8_t m_PrivateKey[EDDSA25519_PRIVATE_KEY_LENGTH];
@@ -83,7 +91,6 @@ class EDDSA25519Signer : public Signer {
 };
 
 void CreateEDDSARandomKeys(
-    CryptoPP::RandomNumberGenerator& rnd,
     uint8_t* privateKey,
     uint8_t* publicKey);
 

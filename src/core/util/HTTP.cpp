@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,9 +26,13 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include "HTTP.h"
+
+#include "util/Filesystem.h"
 
 #include <string>
 #include <functional>
@@ -39,47 +43,56 @@ namespace http {
 
 std::string HttpsDownload(
     const std::string& address) {
-  // TODO(anonimal): do not use using-directive.
-  using namespace boost::asio;
-  io_service service;
+  boost::asio::io_service service;
   boost::system::error_code ec;
   URI uri(address);
   // Ensures host is online
-  auto query = ip::tcp::resolver::query(uri.m_Host, std::to_string(uri.m_Port));
-  auto endpoint = ip::tcp::resolver(service).resolve(query, ec);
+  auto query =
+    boost::asio::ip::tcp::resolver::query(
+        uri.m_Host,
+        std::to_string(
+            uri.m_Port));
+  auto endpoint =
+    boost::asio::ip::tcp::resolver(service).resolve(query, ec);
   if (!ec) {
     // Initialize SSL
-    // TODO(anonimal): deprecated constructor/
-    ssl::context ctx(service, ssl::context::sslv23);
-    ctx.set_options(ssl::context::no_tlsv1 | ssl::context::no_sslv3, ec);
+    // TODO(anonimal): deprecated constructor
+    boost::asio::ssl::context ctx(
+        service,
+        boost::asio::ssl::context::sslv23);
+    ctx.set_options(
+        boost::asio::ssl::context::no_tlsv1 | boost::asio::ssl::context::no_sslv3,
+        ec);
     if (!ec) {
       // Ensures that we only download from certified reseed servers
-      ctx.set_verify_mode(ssl::verify_peer | ssl::verify_fail_if_no_peer_cert);
-      ctx.set_verify_callback(ssl::rfc2818_verification(uri.m_Host));
+      ctx.set_verify_mode(
+          boost::asio::ssl::verify_peer | boost::asio::ssl::verify_fail_if_no_peer_cert);
+      ctx.set_verify_callback(
+          boost::asio::ssl::rfc2818_verification(
+              uri.m_Host));
       ctx.add_verify_path(i2p::util::filesystem::GetSSLCertsPath().string());
       // Connect to host
-      ssl::stream<ip::tcp::socket>socket(service, ctx);
+      boost::asio::ssl::stream<boost::asio::ip::tcp::socket>socket(service, ctx);
       socket.lowest_layer().connect(*endpoint, ec);
       if (!ec) {
         // Initiate handshake
-        socket.handshake(ssl::stream_base::client, ec);
+        socket.handshake(boost::asio::ssl::stream_base::client, ec);
         if (!ec) {
           LogPrint(eLogInfo, "Connected to ", uri.m_Host, ":", uri.m_Port);
           // Send header
           std::stringstream sendStream;
-          sendStream << HttpHeader(uri.m_Path, uri.m_Host, "1.1");
-          socket.write_some(buffer(sendStream.str()));
+          sendStream << HttpHeader(uri.m_Path, uri.m_Host, "1.1") << "\r\n";
+          socket.write_some(boost::asio::buffer(sendStream.str()));
           // Read response / download
           std::stringstream readStream;
           char response[1024];
           size_t length = 0;
           do {
-            length = socket.read_some(buffer(response, 1024), ec);
+            length = socket.read_some(boost::asio::buffer(response, 1024), ec);
             if (length)
               readStream.write(response, length);
-          }
-          while (!ec && length);
-            return GetHttpContent(readStream);
+          } while (!ec && length);
+          return GetHttpContent(readStream);
          } else {
            LogPrint(eLogError,
                "Could not initialize SSL context: ", ec.message());
@@ -101,65 +114,70 @@ std::string HttpsDownload(
 
 URI::URI(
     const std::string& uri) {
-  m_PortString = "443";
-  m_Port = 443;
   m_Path = "";
   m_Query = "";
   ParseURI(uri);
+  if (!m_PortString.empty())
+    return;
+  if (m_Protocol == "https") {
+    m_PortString = "443";
+    m_Port = 443;
+  } else {
+    m_PortString = "80";
+    m_Port = 80;
+  }
 }
 
 void URI::ParseURI(
     const std::string& uri) {
-  // TODO(anonimal): do not use using-directive.
-  using namespace std;
   /**
   * This is a hack since colons are a part of the URI scheme
   * and slashes aren't always needed. See RFC 7595.
   * */
-  const string prot_end("://");
+  const std::string prot_end("://");
   // Separate scheme from authority
-  string::const_iterator prot_i = search(
+  std::string::const_iterator prot_i = search(
       uri.begin(),
       uri.end(),
       prot_end.begin(),
       prot_end.end());
   // Prepare for lowercase result and transform to lowercase
   m_Protocol.reserve(
-      distance(
+      std::distance(
         uri.begin(),
         prot_i));
-  transform(
+  std::transform(
       uri.begin(),
       prot_i,
-      back_inserter(
+      std::back_inserter(
         m_Protocol),
-      ptr_fun<int, int>(tolower));
+      std::ptr_fun<int, int>(tolower));
   // TODO(unassigned): better error checking and handling
   if (prot_i == uri.end())
     return;
   // Move onto authority. We assume it's valid and don't bother checking.
-  advance(prot_i, prot_end.length());
-  string::const_iterator path_i = find(prot_i, uri.end(), '/');
+  std::advance(prot_i, prot_end.length());
+  std::string::const_iterator path_i = std::find(prot_i, uri.end(), '/');
   // Prepare for lowercase result and transform to lowercase
-  m_Host.reserve(distance(prot_i, path_i));
-  transform(
+  m_Host.reserve(std::distance(prot_i, path_i));
+  std::transform(
       prot_i,
       path_i,
-      back_inserter(m_Host),
-      ptr_fun<int, int>(tolower));
+      std::back_inserter(m_Host),
+      std::ptr_fun<int, int>(tolower));
   // Parse port, assuming it's valid input
-  auto port_i = find(m_Host.begin(), m_Host.end(), ':');
+  auto port_i = std::find(m_Host.begin(), m_Host.end(), ':');
   if (port_i != m_Host.end()) {
-    m_PortString = string(port_i + 1, m_Host.end());
+    m_PortString = std::string(port_i + 1, m_Host.end());
     m_Host.assign(m_Host.begin(), port_i);
     try {
       m_Port = boost::lexical_cast<decltype(m_Port)>(m_PortString);
-    } catch (const exception& e) {
-      m_Port = 443;
+    } catch (const std::exception& e) {
+      // Keep the default port
     }
   }
   // Parse query, assuming it's valid input
-  string::const_iterator query_i = find(path_i, uri.end(), '?');
+  std::string::const_iterator query_i = std::find(path_i, uri.end(), '?');
   m_Path.assign(path_i, query_i);
   if (query_i != uri.end())
     ++query_i;
@@ -175,7 +193,7 @@ std::string HttpHeader(
     "Host: " + host + "\r\n" +
     "Accept: */*\r\n" +
     "User-Agent: Wget/1.11.4\r\n" +
-    "Connection: close\r\n\r\n";
+    "Connection: close\r\n";
   return header;
 }
 

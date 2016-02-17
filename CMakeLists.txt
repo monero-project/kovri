@@ -6,7 +6,6 @@ option(KOVRI_DATA_PATH "The path to the kovri data folder")
 option(WITH_AESNI      "Use AES-NI instructions set" OFF)
 option(WITH_BENCHMARKS "Build with benchmarks" OFF)
 option(WITH_BINARY     "Build binary" ON)
-option(WITH_BOOST_LOG  "Use Boost.Log for logging" ON)
 option(WITH_DOXYGEN    "Enable support for Doxygen" OFF)
 option(WITH_HARDENING  "Use hardening compiler flags" OFF)
 option(WITH_LIBRARY    "Build library" ON)
@@ -110,41 +109,28 @@ if(WITH_STATIC)
     set(CMAKE_THREAD_LIBS_INIT
       "gcc_eh -Wl,-u,pthread_create,-u,pthread_once,-u,pthread_mutex_lock,-u,pthread_mutex_unlock,-u,pthread_join,-u,pthread_equal,-u,pthread_detach,-u,pthread_cond_wait,-u,pthread_cond_signal,-u,pthread_cond_destroy,-u,pthread_cond_broadcast,-u,pthread_cancel")
   endif()
-elseif(NOT WIN32)
+endif()
+
+if(NOT WIN32)
   # TODO: Consider separate compilation for COMMON_SRC for library.
   # No need in -fPIC overhead for binary if not interested in library
   # HINT: revert c266cff CMakeLists.txt: compilation speed up
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-else() # Not a static build
-  add_definitions(-DBOOST_ALL_DYN_LINK)
-  add_definitions(-DBOOST_LOG_DYN_LINK)
-endif()
-  
-if(WITH_BOOST_LOG)
-  find_package(
-    Boost COMPONENTS
-    chrono log
-    program_options date_time thread
-    system filesystem regex
-    REQUIRED)
-  if(NOT WITH_STATIC)
-    add_definitions(-DBOOST_ALL_DYN_LINK)
-    add_definitions(-DBOOST_LOG_DYN_LINK)
-  endif()
-else()
-  find_package(
-    Boost COMPONENTS
-    system filesystem regex
-    program_options date_time
-    thread chrono
-    REQUIRED)
-  if(NOT WITH_STATIC)
-    add_definitions(-DBOOST_ALL_DYN_LINK)
-  endif()
 endif()
 
-if(NOT DEFINED Boost_INCLUDE_DIRS)
+find_package(
+  Boost
+  COMPONENTS
+    chrono log
+    program_options date_time
+    thread system
+    filesystem regex
+  REQUIRED)
+
+if(NOT Boost_FOUND)
   message(SEND_ERROR "Boost not found, or version below 1.46. Please download Boost!")
+else()
+  add_definitions(-DBOOST_ALL_DYN_LINK)
 endif()
 
 find_package(CryptoPP REQUIRED)
@@ -155,6 +141,16 @@ endif()
 find_package(OpenSSL REQUIRED)
 if(NOT DEFINED OPENSSL_INCLUDE_DIR)
   message(SEND_ERROR "Could not find OpenSSL. Please download and install it first!")
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  # If we're on OS X check for Homebrew's copy of OpenSSL instead of Apple's
+  if(NOT OpenSSL_DIR)
+    execute_process (
+      COMMAND brew --prefix openssl
+      OUTPUT_VARIABLE OPENSSL_ROOT_DIR
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+  endif()
 endif()
 
 find_package(MiniUPnPc)
@@ -195,7 +191,6 @@ message(STATUS "Options:")
 message(STATUS "  AESNI            : ${WITH_AESNI}")
 message(STATUS "  BENCHMARKS       : ${WITH_BENCHMARKS}")
 message(STATUS "  BINARY           : ${WITH_BINARY}")
-message(STATUS "  BOOST LOG        : ${WITH_BOOST_LOG}")
 message(STATUS "  DOXYGEN          : ${WITH_DOXYGEN}")
 message(STATUS "  HARDENING        : ${WITH_HARDENING}")
 message(STATUS "  LIBRARY          : ${WITH_LIBRARY}")
@@ -208,8 +203,7 @@ message(STATUS "---------------------------------------")
 # Handle paths nicely
 include(GNUInstallDirs)
 
-set(MAIN_NAME "${PROJECT_NAME}-main")
-set(API_NAME "${PROJECT_NAME}-api")
+set(APP_NAME "${PROJECT_NAME}-app")
 set(CLIENT_NAME "${PROJECT_NAME}-client")
 set(CORE_NAME "${PROJECT_NAME}-core")
 set(TESTS_NAME "${PROJECT_NAME}-tests")

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include "SSU.h"
@@ -38,6 +40,7 @@
 #include <vector>
 #include <set>
 
+#include "crypto/Rand.h"
 #include "NetworkDatabase.h"
 #include "RouterContext.h"
 #include "util/Log.h"
@@ -481,10 +484,11 @@ std::shared_ptr<SSUSession> SSUServer::GetRandomSession(
     if (filter (s.second))
       filteredSessions.push_back(s.second);
   if (filteredSessions.size() > 0) {
-    auto ind =
-      i2p::context.GetRandomNumberGenerator().GenerateWord32(
-          0,
-          filteredSessions.size() - 1);
+    size_t s = filteredSessions.size();
+    size_t ind =
+      i2p::crypto::RandInRange<size_t>(
+          size_t{0},
+          s - 1);
     return filteredSessions[ind];
   }
   return nullptr;

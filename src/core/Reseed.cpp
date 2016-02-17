@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include "Reseed.h"
@@ -36,6 +38,22 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/regex.hpp>
 
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <vector>
+
+#include "Identity.h"
+#include "NetworkDatabase.h"
+#include "crypto/Rand.h"
+#include "crypto/CryptoConst.h"
+#include "crypto/Signature.h"
+#include "util/HTTP.h"
+#include "util/I2PEndian.h"
+#include "util/Filesystem.h"
+#include "util/Log.h"
+
+// do this AFTER other includes
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
 #include <cryptopp/arc4.h>
 #include <cryptopp/asn.h>
@@ -44,42 +62,27 @@
 #include <cryptopp/hmac.h>
 #include <cryptopp/zinflate.h>
 
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <vector>
-
-#include "Identity.h"
-#include "NetworkDatabase.h"
-#include "client/util/Filesystem.h"
-#include "crypto/CryptoConst.h"
-#include "crypto/Signature.h"
-#include "util/HTTP.h"
-#include "util/I2PEndian.h"
-#include "util/Log.h"
-
 namespace i2p {
 namespace data {
 
 static std::vector<std::string> reseedHosts = {
+  //"https://download.xxlspeed.com/",  // Requires SNI
+  //"https://i2pseed.zarrenspry.info/", // Host not found (authoritative)
   "https://i2p.mooo.com/netDb/",
-  // "https://i2pseed.zarrenspry.info/", // Host not found (authoritative)
-  "https://ieb9oopo.mooo.com/",
-  // "https://netdb.i2p2.no/", // certificate verify failed
+  //"https://netdb.i2p2.no/",  // Requires SNI
   "https://reseed.i2p-projekt.de/",
   "https://reseed.i2p.vzaws.com:8443/",
   "https://uk.reseed.i2p2.no:444/",
   "https://us.reseed.i2p2.no:444/",
   "https://user.mx24.eu/",
-  // "https://www.torontocrypto.org:8443/",// tlsv1 alert internal error
 };
 
 Reseeder::Reseeder() {}
 Reseeder::~Reseeder() {}
 
 int Reseeder::ReseedNowSU3() {
-  CryptoPP::AutoSeededRandomPool rnd;
-  int ind = rnd.GenerateWord32(0, reseedHosts.size() - 1);
+  size_t s = reseedHosts.size();
+  size_t ind = i2p::crypto::RandInRange<size_t>(size_t{0}, s - size_t{1});
   std::string& reseedHost = reseedHosts[ind];
   return ReseedFromSU3(reseedHost);
 }
@@ -211,6 +214,11 @@ int Reseeder::ProcessSU3Stream(
       uint16_t fileNameLength, extraFieldLength;
       s.read(reinterpret_cast<char *>(&fileNameLength), 2);
       fileNameLength = le16toh(fileNameLength);
+      if (fileNameLength > 255) {
+        // TODO: avoid overflow with longer filenames
+        LogPrint(eLogError, "Reseed: SU3 fileNameLength too large: ", int(fileNameLength));
+        return numFiles;
+      }
       s.read(reinterpret_cast<char *>(&extraFieldLength), 2);
       extraFieldLength = le16toh(extraFieldLength);
       char localFileName[255];
@@ -308,18 +316,15 @@ bool Reseeder::FindZipDataDescriptor(
 }
 
 bool Reseeder::LoadSU3Certs() {
-  // TODO(anonimal): do not use namespace using-directives
-  using namespace std;
-  using namespace boost::filesystem;
-  path certsPath = i2p::util::filesystem::GetSU3CertsPath();
+  boost::filesystem::path certsPath = i2p::util::filesystem::GetSU3CertsPath();
   if (!exists(certsPath)) {
     LogPrint(eLogError, "Reseed certificates ", certsPath, " don't exist");
     return false;
   }
   int numCerts = 0;
-  directory_iterator iter(certsPath), end;
-  BOOST_FOREACH(path const& cert, make_pair(iter, end)) {
-    if (is_regular_file(cert)) {
+  boost::filesystem::directory_iterator iter(certsPath), end;
+  BOOST_FOREACH(boost::filesystem::path const& cert, std::make_pair(iter, end)) {
+    if (boost::filesystem::is_regular_file(cert)) {
       if (ProcessSU3Cert(cert.string()))
         numCerts++;
       else

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include "SSUData.h"
@@ -180,7 +182,7 @@ void SSUData::ProcessFragments(
     memcpy(frag + 1, buf, 3);
     buf += 3;
     uint32_t fragmentInfo = bufbe32toh(frag);  // fragment info
-    uint16_t fragmentSize = fragmentInfo & 0x1FFF;  // bits 0 - 13
+    uint16_t fragmentSize = fragmentInfo & 0x3FFF;  // bits 0 - 13
     bool isLast = fragmentInfo & 0x010000;  // bit 16
     uint8_t fragmentNum = fragmentInfo >> 17;  // bits 23 - 17
     if (fragmentSize >= SSU_V4_MAX_PACKET_SIZE) {

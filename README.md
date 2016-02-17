@@ -1,9 +1,10 @@
 # **ˈKɔːvrɪ**
 
 1. To cover, veil, wrap *[(Esperanto)](https://en.wikipedia.org/wiki/Esperanto)*
-2. The secure, private, untraceable C++ [I2P router](https://geti2p.net), forked from [i2pd](https://github.com/PurpleI2P/i2pd/tree/master).
+2. The secure, private, untraceable C++ router implementation of the [I2P](https://geti2p.net) anonymous network,
 
 [![Build Status](https://travis-ci.org/monero-project/kovri.svg?branch=master)](https://travis-ci.org/monero-project/kovri)
+[![Documentation](https://codedocs.xyz/monero-project/kovri.svg)](https://codedocs.xyz/monero-project/kovri/)
 
 ## Disclaimer
 - Currently pre-alpha software; under heavy overhaul and development! Stick to branch ```master``` for stability.
@@ -15,13 +16,14 @@
 2. Open port ```12345``` in your NAT/Firewall to allow incoming TCP/UDP connections.
 3. Clone, build, and run Kovri with one line:
 ```bash
-$ git clone https://github.com/monero-project/kovri && cd kovri/build && cmake ../ && make && ./kovri --port 12345
+$ git clone https://github.com/monero-project/kovri && cd kovri/build && cmake ../ && make && ./kovri -p 12345
 ```
 
 ## Build. Contribute. Ask questions!
-- See [BUILDING.md](https://github.com/monero-project/kovri/blob/master/BUILDING.md) for more options and instructions for your favourite OS.
-- See [CONTRIBUTING.md](https://github.com/monero-project/kovri/blob/master/CONTRIBUTING.md) and send us a PR. All developers welcome!
-- See [FAQ.md](https://github.com/monero-project/kovri/blob/master/FAQ.md) or join us in ```#kovri``` or ```#kovri-dev``` on Irc2P or Freenode.
+- See [BUILDING.md](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md) for more options and instructions for your favourite OS.
+- See [CONTRIBUTING.md](https://github.com/monero-project/kovri/blob/master/doc/CONTRIBUTING.md) and send us a PR. All developers welcome!
+- See [FAQ.md](https://github.com/monero-project/kovri/blob/master/doc/FAQ.md) or join us in ```#kovri``` or ```#kovri-dev``` on Irc2P or Freenode.
+- All documentation is on our ./doc directory
 
 ## Vulnerability Response
 - Please, submit a report via [HackerOne](https://hackerone.com/kovri)
@@ -33,6 +35,7 @@ PGP fingerprint: 1218 6272 CD48 E253 9E2D D29B 66A7 6ECF 9144 09F1
 Note: our future VRP will be inline with [I2P's VRP](https://trac.i2p2.de/ticket/1119).
 
 ## Acknowledgments
-- **orion** and **EinMByte** for providing the [first](http://git.repo.i2p.xyz/w/i2pcpp.git) C++ implementation of I2P.
-- **orignal** and **EinMByte** for providing a [mostly-working](https://github.com/PurpleI2P/i2pd/issues) C++ implementation of I2P.
+- **orion** and **EinMByte** for providing ```i2pcpp```: the [original](http://git.repo.i2p.xyz/w/i2pcpp.git) C++ implementation of I2P.
+- **orignal** for providing ```i2pd```: an insecure and issue-ridden (but mostly-working) C++ implementation of I2P for [us to fork from](https://github.com/purplei2p/i2pd/commit/45d27f8ddc43e220a9eea42de41cb67d5627a7d3).
+- **EinMByte** for improving *both* implementations.
 - The ed25519/ folder is based on the [ref10 implementation from SUPERCOP](http://bench.cr.yp.to/supercop.html).

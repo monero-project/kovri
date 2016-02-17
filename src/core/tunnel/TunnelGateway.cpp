@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include <cryptopp/sha.h>
@@ -34,6 +36,7 @@
 
 #include "RouterContext.h"
 #include "TunnelGateway.h"
+#include "crypto/Rand.h"
 #include "transport/Transports.h"
 #include "util/I2PEndian.h"
 #include "util/Log.h"
@@ -46,7 +49,7 @@ TunnelGatewayBuffer::TunnelGatewayBuffer(
     : m_TunnelID(tunnelID),
       m_CurrentTunnelDataMsg(nullptr),
       m_RemainingSize(0) {
-  context.GetRandomNumberGenerator().GenerateBlock(
+  i2p::crypto::RandBytes(
       m_NonZeroRandomBuffer,
       TUNNEL_DATA_MAX_PAYLOAD_SIZE);
   for (size_t i = 0; i < TUNNEL_DATA_MAX_PAYLOAD_SIZE; i++)
@@ -193,19 +196,18 @@ void TunnelGatewayBuffer::CompleteCurrentTunnelDataMessage() {
     m_CurrentTunnelDataMsg->len - TUNNEL_DATA_MSG_SIZE - I2NP_HEADER_SIZE;
   uint8_t* buf = m_CurrentTunnelDataMsg->GetPayload();
   htobe32buf(buf, m_TunnelID);
-  CryptoPP::RandomNumberGenerator& rnd =
-    i2p::context.GetRandomNumberGenerator();
-  rnd.GenerateBlock(buf + 4, 16);  // original IV
+  i2p::crypto::RandBytes(buf + 4, 16);  // original IV
   memcpy(payload + size, buf + 4, 16);  // copy IV for checksum
   uint8_t hash[32];
   CryptoPP::SHA256().CalculateDigest(hash, payload, size + 16);
   memcpy(buf + 20, hash, 4);  // checksum
+  // XXX: WTF?!
   payload[-1] = 0;  // zero
   ptrdiff_t paddingSize = payload - buf - 25;  // 25  = 24 + 1
   if (paddingSize > 0) {
     // non-zero padding
-    auto randomOffset =
-      rnd.GenerateWord32(
+    uint32_t randomOffset =
+      i2p::crypto::RandInRange<uint32_t>(
         0,
         TUNNEL_DATA_MAX_PAYLOAD_SIZE - paddingSize);
     memcpy(

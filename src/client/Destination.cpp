@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include "Destination.h"
@@ -43,6 +45,7 @@
 #include "AddressBook.h"
 #include "NetworkDatabase.h"
 #include "crypto/ElGamal.h"
+#include "crypto/Rand.h"
 #include "util/Log.h"
 #include "util/Timestamp.h"
 
@@ -63,7 +66,6 @@ ClientDestination::ClientDestination(
       m_PublishConfirmationTimer(m_Service),
       m_CleanupTimer(m_Service) {
   i2p::crypto::GenerateElGamalKeyPair(
-      i2p::context.GetRandomNumberGenerator(),
       m_EncryptionPrivateKey,
       m_EncryptionPublicKey);
   int inboundTunnelLen = DEFAULT_INBOUND_TUNNEL_LENGTH,
@@ -449,8 +451,7 @@ void ClientDestination::Publish() {
   m_ExcludedFloodfills.insert(floodfill->GetIdentHash());
   LogPrint(eLogDebug,
       "Publish LeaseSet of ", GetIdentHash().ToBase32());
-  m_PublishReplyToken =
-    i2p::context.GetRandomNumberGenerator().GenerateWord32();
+  m_PublishReplyToken = i2p::crypto::Rand<uint32_t>();
   auto msg =
     WrapMessage(
         floodfill,

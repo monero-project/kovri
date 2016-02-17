@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #define BOOST_TEST_DYN_LINK
@@ -36,15 +38,12 @@
 
 BOOST_AUTO_TEST_SUITE(Base64and32Tests)
 
-// TODO(unassigned): don't use namespace using-directives.
-using namespace i2p::util;
-
 BOOST_AUTO_TEST_CASE(Base64EncodeEmpty) {
-  BOOST_CHECK_EQUAL(ByteStreamToBase64(nullptr, 0, nullptr, 0), 0);
+  BOOST_CHECK_EQUAL(i2p::util::ByteStreamToBase64(nullptr, 0, nullptr, 0), 0);
 }
 
 BOOST_AUTO_TEST_CASE(Base64DecodeEmpty) {
-  BOOST_CHECK_EQUAL(Base64ToByteStream(nullptr, 0, nullptr, 0), 0);
+  BOOST_CHECK_EQUAL(i2p::util::Base64ToByteStream(nullptr, 0, nullptr, 0), 0);
 }
 
 BOOST_AUTO_TEST_CASE(Base64Encode) {
@@ -55,7 +54,7 @@ BOOST_AUTO_TEST_CASE(Base64Encode) {
   };
   const char* output = "U9Ng-vlY0F5BqWzxn8QOI5vKsWGnM88fMA==";
   char result[36];
-  const size_t size = ByteStreamToBase64(input, 25, result, 36);
+  const size_t size = i2p::util::ByteStreamToBase64(input, 25, result, 36);
 
   BOOST_CHECK_EQUAL_COLLECTIONS(result, result + 36, output, output + 36);
   BOOST_CHECK_EQUAL(size, 36);
@@ -69,7 +68,7 @@ BOOST_AUTO_TEST_CASE(Base64Decode) {
     0x1f, 0x30
   };
   uint8_t result[25];
-  const size_t size = Base64ToByteStream(input, 36, result, 25);
+  const size_t size = i2p::util::Base64ToByteStream(input, 36, result, 25);
 
   BOOST_CHECK_EQUAL_COLLECTIONS(result, result + 25, output, output + 25);
   BOOST_CHECK_EQUAL(size, 25);
@@ -78,21 +77,21 @@ BOOST_AUTO_TEST_CASE(Base64Decode) {
 BOOST_AUTO_TEST_CASE(Base64EncodeBufferTooSmall) {
   const uint8_t input[] = {0x53, 0xd3};
   char result[3];
-  BOOST_CHECK_EQUAL(ByteStreamToBase64(input, 2, result, 3), 0);
+  BOOST_CHECK_EQUAL(i2p::util::ByteStreamToBase64(input, 2, result, 3), 0);
 }
 
 BOOST_AUTO_TEST_CASE(Base64DecodeBufferTooSmall) {
   const char* input = "U9M=";
   uint8_t result[1];
-  BOOST_CHECK_EQUAL(Base64ToByteStream(input, 4, result, 1), 0);
+  BOOST_CHECK_EQUAL(i2p::util::Base64ToByteStream(input, 4, result, 1), 0);
 }
 
 BOOST_AUTO_TEST_CASE(Base32EncodeEmpty) {
-  BOOST_CHECK_EQUAL(ByteStreamToBase32(nullptr, 0, nullptr, 0), 0);
+  BOOST_CHECK_EQUAL(i2p::util::ByteStreamToBase32(nullptr, 0, nullptr, 0), 0);
 }
 
 BOOST_AUTO_TEST_CASE(Base32DecodeEmpty) {
-  BOOST_CHECK_EQUAL(Base32ToByteStream(nullptr, 0, nullptr, 0), 0);
+  BOOST_CHECK_EQUAL(i2p::util::Base32ToByteStream(nullptr, 0, nullptr, 0), 0);
 }
 
 BOOST_AUTO_TEST_CASE(Base32Encode) {
@@ -103,7 +102,7 @@ BOOST_AUTO_TEST_CASE(Base32Encode) {
   };
   const char* output = "kpjwb6xzldif4qnjntyz7raoeon4vmlbu4z46hzq";
   char result[40];
-  const size_t size = ByteStreamToBase32(input, 25, result, 40);
+  const size_t size = i2p::util::ByteStreamToBase32(input, 25, result, 40);
 
   BOOST_CHECK_EQUAL_COLLECTIONS(result, result + 40, output, output + 40);
   BOOST_CHECK_EQUAL(size, 40);
@@ -117,7 +116,7 @@ BOOST_AUTO_TEST_CASE(Base32Decode) {
     0x1f, 0x30
   };
   uint8_t result[25];
-  const size_t size = Base32ToByteStream(input, 40, result, 25);
+  const size_t size = i2p::util::Base32ToByteStream(input, 40, result, 25);
 
   BOOST_CHECK_EQUAL_COLLECTIONS(result, result + 25, output, output + 25);
   BOOST_CHECK_EQUAL(size, 25);
@@ -127,14 +126,14 @@ BOOST_AUTO_TEST_CASE(Base32EncodeBufferTooSmall) {
   const uint8_t input[] = {0x53, 0xd3};
   char result[3];
 
-  BOOST_CHECK_EQUAL(ByteStreamToBase64(input, 2, result, 3), 0);
+  BOOST_CHECK_EQUAL(i2p::util::ByteStreamToBase64(input, 2, result, 3), 0);
 }
 
 BOOST_AUTO_TEST_CASE(Base32DecodeBufferTooSmall) {
   const char* input = "kpjq";
   uint8_t result[1];
 
-  BOOST_CHECK_EQUAL(Base64ToByteStream(input, 4, result, 1), 0);
+  BOOST_CHECK_EQUAL(i2p::util::Base64ToByteStream(input, 4, result, 1), 0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

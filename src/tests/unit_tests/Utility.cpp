@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include <boost/test/unit_test.hpp>
@@ -34,15 +36,12 @@
 
 BOOST_AUTO_TEST_SUITE(UtilityTests)
 
-// TODO(unassigned): don't use namespace using-directives.
-using namespace i2p::util::http;
-
 BOOST_AUTO_TEST_CASE(DecodeEmptyUri) {
-  BOOST_CHECK_EQUAL(DecodeURI(""), "");
+  BOOST_CHECK_EQUAL(i2p::util::http::DecodeURI(""), "");
 }
 
 BOOST_AUTO_TEST_CASE(DecodeUri) {
-  BOOST_CHECK_EQUAL(DecodeURI("%20"), " ");
+  BOOST_CHECK_EQUAL(i2p::util::http::DecodeURI("%20"), " ");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

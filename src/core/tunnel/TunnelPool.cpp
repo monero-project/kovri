@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include "TunnelPool.h"
@@ -37,9 +39,11 @@
 #include "NetworkDatabase.h"
 #include "Tunnel.h"
 #include "crypto/CryptoConst.h"
+#include "crypto/Rand.h"
 #include "transport/Transports.h"
 #include "util/I2PEndian.h"
 #include "util/Timestamp.h"
+#include "util/Log.h"
 
 namespace i2p {
 namespace tunnel {
@@ -180,10 +184,8 @@ typename TTunnels::value_type TunnelPool::GetNextTunnel(
     typename TTunnels::value_type excluded) const {
   if (tunnels.empty ())
     return nullptr;
-  CryptoPP::RandomNumberGenerator& rnd =
-    i2p::context.GetRandomNumberGenerator();
-  uint32_t ind = rnd.GenerateWord32(0, tunnels.size() / 2),
-             i = 0;
+  uint32_t ind = i2p::crypto::RandInRange<uint32_t>(0, tunnels.size() / 2);
+  uint32_t i = 0;
   typename TTunnels::value_type tunnel = nullptr;
   for (auto it : tunnels) {
     if (it->IsEstablished() && it != excluded) {
@@ -240,7 +242,6 @@ void TunnelPool::CreateTunnels() {
 }
 
 void TunnelPool::TestTunnels() {
-  auto& rnd = i2p::context.GetRandomNumberGenerator();
   for (auto it : m_Tests) {
     LogPrint("Tunnel test ", static_cast<int>(it.first), " failed");
     // if test failed again with another tunnel we consider it failed
@@ -282,7 +283,7 @@ void TunnelPool::TestTunnels() {
       it2++;
     }
     if (!failed) {
-      uint32_t msgID = rnd.GenerateWord32();
+      uint32_t msgID = i2p::crypto::Rand<uint32_t>();
       m_Tests[msgID] = std::make_pair(*it1, *it2);
       (*it1)->SendTunnelDataMsg(
           (*it2)->GetNextIdentHash(),

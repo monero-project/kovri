@@ -15,11 +15,11 @@
 1. Read [BUILDING.md](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md) and build instructions and minimum version requirements
 1. Choose a port between ```9111``` and ```30777```.
 2. Open your chosen port in your NAT/Firewall to allow incoming TCP/UDP connections (or optional UPnP, see [BUILDING.md](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md))
-3. Clone, build, and run Kovri. **Replace port ```12345``` with your chosen port**:
+3. Clone, build, and run Kovri:
 ```bash
 $ git clone https://github.com/monero-project/kovri
 $ cd kovri/build && cmake ../ && make
-$ ./kovri -p 12345
+$ ./kovri -p [your chosen port number]
 ```
 
 ## Developers

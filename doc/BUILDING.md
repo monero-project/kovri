@@ -94,7 +94,7 @@ $ make doc && firefox ./doc/html/index.html  ## or use browser of choice
 
 ### Run Kovri!
 ```bash
-$ ./kovri -p (your chosen port)
+$ ./kovri -p [your chosen port]
 ```
 
 or set your port in kovri.conf

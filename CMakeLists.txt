@@ -211,7 +211,6 @@ add_subdirectory(src)
 
 # Copy resources
 if(WITH_BINARY)
-  file(MAKE_DIRECTORY "${KOVRI_DATA_DIR}/pkg/resources/certificates")
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/pkg/resources/certificates" DESTINATION "${KOVRI_DATA_DIR}/resources/")
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/pkg/resources/kovri.conf" DESTINATION "${KOVRI_DATA_DIR}/")
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/pkg/resources/tunnels.cfg" DESTINATION "${KOVRI_DATA_DIR}/")

@@ -17,7 +17,7 @@ To contribute a patch, please execute the following:
 - Do a quick search in the codebase for ```TODO(unassigned):``` and/or pick a ticket and start patching!
 - If you create a TODO, assign it to yourself or write in ```TODO(unassigned):```
 
-# Code of Conduct (22/C4.1)
+# [Code of Conduct (22/C4.1)](http://rfc.zeromq.org/spec:22)
 
 ## License
 

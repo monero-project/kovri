@@ -209,11 +209,11 @@ set(TESTS_NAME "${PROJECT_NAME}-tests")
 set(BENCHMARKS_NAME "${PROJECT_NAME}-benchmarks")
 add_subdirectory(src)
 
-# Copy resources
+# Copy needed resources
 if(WITH_BINARY)
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/pkg/certificates" DESTINATION "${KOVRI_DATA_DIR}/")
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/pkg/kovri.conf" DESTINATION "${KOVRI_DATA_DIR}/")
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/pkg/tunnels.cfg" DESTINATION "${KOVRI_DATA_DIR}/")
+  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/pkg/tunnels.conf" DESTINATION "${KOVRI_DATA_DIR}/")
 endif()
 
 # vim: noai:ts=2:sw=2

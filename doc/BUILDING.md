@@ -117,7 +117,7 @@ kovri.conf:
     v6 = 0
     ircdest = irc.dg.i2p
 
-tunnels.cfg:
+tunnels.conf:
 
     [IRC]
     type = client

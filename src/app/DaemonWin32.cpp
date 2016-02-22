@@ -43,10 +43,11 @@ namespace i2p {
 namespace util {
 
 bool DaemonWin32::Init() {
-  setlocale(LC_CTYPE, "");
-  SetConsoleCP(1251);
-  SetConsoleOutputCP(1251);
-  setlocale(LC_ALL, "Russian");  // TODO(unassigned) set different locale
+  // TODO(unassigned): use Boost.Locale
+  setlocale(LC_CTYPE, "");  // "" uses environment's default locale
+  SetConsoleCP(65001);  // UTF-8
+  SetConsoleOutputCP(65001);
+  setlocale(LC_ALL, "");
   if (!Daemon_Singleton::Init())
     return false;
   if (I2PService::isService())
@@ -87,9 +88,9 @@ bool DaemonWin32::Init() {
 
 bool DaemonWin32::Start() {
   setlocale(LC_CTYPE, "");
-  SetConsoleCP(1251);
-  SetConsoleOutputCP(1251);
-  setlocale(LC_ALL, "Russian");  // TODO(unassigned) set different locale
+  SetConsoleCP(65001);
+  SetConsoleOutputCP(65001);
+  setlocale(LC_ALL, "");
   return Daemon_Singleton::Start();
 }
 

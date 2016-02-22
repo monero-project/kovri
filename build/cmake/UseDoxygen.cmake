@@ -95,7 +95,7 @@ if(DOXYGEN_FOUND)
 endif()
 
 if(DOXYGEN_FOUND AND DOXYFILE_IN_FOUND)
-  usedoxygen_set_default(DOXYFILE_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/doc"
+  usedoxygen_set_default(DOXYFILE_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/doc/Doxygen"
     PATH "Doxygen output directory")
   usedoxygen_set_default(DOXYFILE_HTML_DIR "."
     STRING "Doxygen HTML output directory")

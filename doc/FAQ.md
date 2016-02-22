@@ -1,18 +1,20 @@
 # FAQ
 
 ## What is Kovri?
-Kovri is a secure, private, untraceable C++ router implementation of the [I2P](https://geti2p.net) anonymous network, forked from i2pd.
+Kovri is a secure, private, untraceable C++ router implementation of the [I2P](https://geti2p.net) anonymous network. It was originally forked from i2pd.
+
+## When is your first release?
+Once essential QA has been resolved and I2CP is implemented, we will bring-forth a beta release.
 
 ## What are the biggest differences between Kovri and i2pd?
 As we are currently in pre-alpha, we are working on following:
 
-- We provide both end-users and developers a [quality assurance](https://github.com/monero-project/kovri/issues/58) and [development model](https://github.com/monero-project/kovri/blob/master/CONTRIBUTING.md) in order to provide better software for everyone.
+- We provide both end-users and developers a [quality assurance](https://github.com/monero-project/kovri/issues/58) and [development model](https://github.com/monero-project/kovri/blob/master/doc/CONTRIBUTING.md) in order to provide better software for everyone.
 - We focus on implementing an [I2CP](https://geti2p.net/en/docs/spec/i2cp) server for any application to connect to and use the I2P network; this includes Monero.
 - We focus on creating a ["secure by default"](http://www.openbsd.org/security.html), easily maintainable, more-likely-to-be-reviewed I2P router. This will come with the cost of dropping lesser-used features found in the other routers, but core functionality and I2CP will be fully intact. By creating a smaller, efficient, "bare-bones" router, we will provide developers and researchers more time for security auditing and more time to question the I2P design and specifications.
+- We will provide a Forum Funding System for features/development and vulnerability disclosures.
 - We will implement alternative reseeding options so users can use [Pluggable Transports](https://www.torproject.org/docs/pluggable-transports.html.en) instead of HTTPS for reseed.
 - We will implement extended functionality *(hidden mode + disabled inbound)* to provide anonymity for those who live in countries with extreme conditions or those firewalled by carrier-grade NAT or DS-Lite.
-- We will provide bounty for vulnerability disclosures.
-- We will provide bounty for features/development.
 - We will always create a welcome environment for collaboration.
 - We will always listen to your feedback and do our best to improve Kovri!
 
@@ -37,12 +39,6 @@ Along came anonimal who, not wanting to see everyone's work to go to waste, revi
 
 Seeing that this sort of behavior would only hurt the I2P network, the remaining developers had [several important meetings](https://github.com/monero-project/kovri/issues/47) and Kovri was born.
 
-## I found a bug or vulnerability. What do I do?
-See our [CONTRIBUTING.md](https://github.com/monero-project/kovri/blob/master/CONTRIBUTING.md) guide for bugs.
-See our [README.md](https://github.com/monero-project/kovri/blob/master/README.md) for reporting vulnerabilities.
-
-## What is your development cycle?
-As we are in the midst of triage, we haven't fine-tuned our strategy. Given our presently available human-power, we do our best to provide (at the very least) an open collaboration model - though we aim to adhere to our present [development model](https://github.com/monero-project/kovri/blob/master/CONTRIBUTING.md).
-
-## When is your first release?
-Our release cycle has not yet been defined. Once I2CP is implemented and essential QA has been resolved, we will bring-forth a beta release.
+## I found a vulnerability and/or bug. What do I do?
+See our [README.md](https://github.com/monero-project/kovri/blob/master/doc/README.md) for reporting vulnerabilities.
+See our [CONTRIBUTING.md](https://github.com/monero-project/kovri/blob/master/doc/CONTRIBUTING.md) guide for bugs.

@@ -109,7 +109,7 @@ if(DOXYGEN_FOUND AND DOXYFILE_IN_FOUND)
     "${DOXYFILE_SOURCE_DIR}/app ${DOXYFILE_SOURCE_DIR}/app/util"
     STRING "Application source files")
   usedoxygen_set_default(DOXYFILE_SOURCE_CLIENT
-    "${DOXYFILE_SOURCE_DIR}/client ${DOXYFILE_SOURCE_DIR}/client/util ${DOXYFILE_SOURCE_DIR}/client/I2PControl ${DOXYFILE_SOURCE_DIR}/client/I2PTunnel"
+    "${DOXYFILE_SOURCE_DIR}/client ${DOXYFILE_SOURCE_DIR}/client/I2PControl ${DOXYFILE_SOURCE_DIR}/client/I2PTunnel"
     STRING "Client source files")
   usedoxygen_set_default(DOXYFILE_SOURCE_CORE
     "${DOXYFILE_SOURCE_DIR}/core ${DOXYFILE_SOURCE_DIR}/core/crypto ${DOXYFILE_SOURCE_DIR}/core/crypto/ed25519 ${DOXYFILE_SOURCE_DIR}/core/transport ${DOXYFILE_SOURCE_DIR}/core/tunnel ${DOXYFILE_SOURCE_DIR}/core/util"

@@ -68,11 +68,11 @@ bfs::path GetTunnelsConfigFile() {
 }
 
 bfs::path GetSU3CertsPath() {
-  return GetDataPath() / "resources" / "certificates" / "su3";
+  return GetDataPath() / "certificates" / "su3";
 }
 
 bfs::path GetSSLCertsPath() {
-  return GetDataPath() / "resources" / "certificates" / "ssl";
+  return GetDataPath() / "certificates" / "ssl";
 }
 
 std::string GetFullPath(

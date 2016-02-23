@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include "Daemon.h"
@@ -167,7 +169,7 @@ bool Daemon_Singleton::Stop() {
 void Daemon_Singleton::Reload() {
   // TODO(unassigned): do we want to add locking?
   LogPrint("Reloading configuration");
-  // reload tunnels.cfg
+  // reload tunnels.conf
   ReloadTunnels();
   // TODO(anonimal): reload kovri.conf
 }
@@ -313,7 +315,7 @@ void Daemon_Singleton::ReloadTunnels() {
   // Make sure the default IRC and eepsite tunnels do not get removed
   std::vector<std::string> updatedTunnels;
 
-  // Iterate over tunnels' ident hashes for what's in tunnels.cfg now
+  // Iterate over tunnels' ident hashes for what's in tunnels.conf now
   for (auto& section : pt) {
     // TODO(unassigned): what if we switch a server from client to tunnel
     // or vice versa?

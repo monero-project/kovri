@@ -67,7 +67,7 @@ bool ParseArgs(
 
       "$ pkill -HUP kovri\n\n"
 
-      "Read kovri.conf and tunnels.cfg for more options\n\n")
+      "Read kovri.conf and tunnels.conf for more options\n\n")
 
     ("help-with,w", bpo::value<std::string>(),
 
@@ -163,13 +163,13 @@ bool ParseArgs(
 
   bpo::options_description config("\nConfiguration");
   config.add_options()
-    ("config,c", bpo::value<std::string>(&kovri_config)->default_value(
+    ("kovriconf,c", bpo::value<std::string>(&kovri_config)->default_value(
         i2p::util::filesystem::GetFullPath("kovri.conf")),
      "Options specified on the command line take"
      "precedence over those in the config file.\n")
 
-    ("tunnelscfg,t", bpo::value<std::string>(&tunnels_config)->default_value(
-        i2p::util::filesystem::GetFullPath("tunnels.cfg")),
+    ("tunnelsconf,t", bpo::value<std::string>(&tunnels_config)->default_value(
+        i2p::util::filesystem::GetFullPath("tunnels.conf")),
      "Tunnels Config file\n");
   // Default visible option
   bpo::options_description kovri(

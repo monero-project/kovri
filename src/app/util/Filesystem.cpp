@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include "Filesystem.h"
@@ -51,7 +53,7 @@ std::string GetAppName() {
 
 bfs::path GetConfigFile() {
   bfs::path pathConfigFile(
-      i2p::util::config::var_map["config"].as<std::string>());
+      i2p::util::config::var_map["kovriconf"].as<std::string>());
   if (!pathConfigFile.is_complete())
         pathConfigFile = GetDataPath() / pathConfigFile;
   return pathConfigFile;
@@ -59,18 +61,18 @@ bfs::path GetConfigFile() {
 
 bfs::path GetTunnelsConfigFile() {
   bfs::path pathTunnelsConfigFile(
-      i2p::util::config::var_map["tunnelscfg"].as<std::string>());
+      i2p::util::config::var_map["tunnelsconf"].as<std::string>());
   if (!pathTunnelsConfigFile.is_complete())
     pathTunnelsConfigFile = GetDataPath() / pathTunnelsConfigFile;
   return pathTunnelsConfigFile;
 }
 
 bfs::path GetSU3CertsPath() {
-  return GetDataPath() / "resources" / "certificates" / "su3";
+  return GetDataPath() / "certificates" / "su3";
 }
 
 bfs::path GetSSLCertsPath() {
-  return GetDataPath() / "resources" / "certificates" / "ssl";
+  return GetDataPath() / "certificates" / "ssl";
 }
 
 std::string GetFullPath(

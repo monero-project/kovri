@@ -1,10 +1,25 @@
 # FAQ
 
 ## What is Kovri?
-Kovri is a secure, private, untraceable C++ router implementation of the [I2P](https://geti2p.net) anonymous network. It was originally forked from i2pd.
+Kovri is a secure, private, untraceable C++ router implementation of the [I2P](https://geti2p.net) anonymous network. It was originally forked from i2pd but has undergone many distinct changes & improvements and will continue to do so throughout development.
 
 ## When is your first release?
 Once essential QA has been resolved and I2CP is implemented, we will bring-forth a beta release.
+
+## Kovri contact information?
+- ```#kovri``` or ```#kovri-dev``` on Freenode or Irc2P
+- Media inquieries, helpline, and website questions, email:
+
+```
+Riccardo Spagni [ric @ spagni.net]
+Key fingerprint = BDA6 BD70 42B7 21C4 67A9  759D 7455 C5E3 C0CD CEB9
+```
+- Project development, security and vulnerability response:
+```
+anonimal [anonimal @ mail.i2p] or [anonimal @ i2pmail.org]
+Key fingerprint = 1218 6272 CD48 E253 9E2D  D29B 66A7 6ECF 9144 09F1
+```
+- https://forum.getmonero.org/
 
 ## What are the biggest differences between Kovri and i2pd?
 As we are currently in pre-alpha, we are working on following:

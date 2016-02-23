@@ -26,15 +26,15 @@ $ ./kovri -p [your chosen port number]
 - See [CONTRIBUTING.md](https://github.com/monero-project/kovri/blob/master/doc/CONTRIBUTING.md) before sending PR.
 
 ## Documentation
-- See [FAQ.md](https://github.com/monero-project/kovri/blob/master/doc/FAQ.md) or join us in ```#kovri``` or ```#kovri-dev``` on Irc2P or Freenode.
+- See [FAQ.md](https://github.com/monero-project/kovri/blob/master/doc/FAQ.md) or join us in ```#kovri``` or ```#kovri-dev``` on Freenode or Irc2P.
 - All other documentation is on our ./doc directory
 
 ## Vulnerability Response
 - Please, submit a report via [HackerOne](https://hackerone.com/kovri)
 - If you're having trouble using HackerOne, email us *(please, use PGP)*:
 ```
-anonimal@mail.i2p (or @i2pmail.org if you're not on the I2P network)
-PGP fingerprint: 1218 6272 CD48 E253 9E2D D29B 66A7 6ECF 9144 09F1
+anonimal [anonimal @ mail.i2p] or [anonimal @ i2pmail.org]
+Key fingerprint = 1218 6272 CD48 E253 9E2D  D29B 66A7 6ECF 9144 09F1
 ```
 Note: our future VRP will be inline with [I2P's VRP](https://trac.i2p2.de/ticket/1119).
 

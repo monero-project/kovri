@@ -5,7 +5,6 @@ build/CMakeCache.txt
 build/CMakeFiles/*
 build/Doxyfile
 build/cmake_install.cmake
-build/doc
 build/kovri
 build/kovri-benchmarks
 build/kovri-tests
@@ -24,6 +23,9 @@ config.sub
 
 # Monero-specific
 github-merge.sh
+
+# Doxygen
+doc/Doxygen
 
 #################
 ## Eclipse

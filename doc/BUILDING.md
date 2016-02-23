@@ -70,26 +70,22 @@ $ cmake ../
 $ make
 ```
 
+For all other builds, be sure you ```cd kovri/build``` before executing ```make```
+
 ### For UPnP support:
 - Install [MiniUPnP](http://miniupnp.free.fr/files/) or use your package manager (see above)
 ```bash
-$ cd kovri/build
-$ cmake -DWITH_UPNP=ON ../
-$ make
+$ cmake -DWITH_UPNP=ON ../ && make
 ```
 
 ### To build tests:
 ```bash
-$ cd kovri/build
-$ cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON ../
-$ make
+$ cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON ../ && make
 ```
 
 ### To produce Doxygen
 ```bash
-$ cd kovri/build
-$ cmake -DWITH_DOXYGEN=ON ../
-$ make doc && firefox ./doc/html/index.html  ## or use browser of choice
+$ cmake -DWITH_DOXYGEN=ON ../ && make doc  # output will be in ./doc/Doxygen/
 ```
 
 ### Run Kovri!
@@ -117,7 +113,7 @@ kovri.conf:
     v6 = 0
     ircdest = irc.dg.i2p
 
-tunnels.cfg:
+tunnels.conf:
 
     [IRC]
     type = client

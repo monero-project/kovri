@@ -53,7 +53,7 @@ std::string GetAppName() {
 
 bfs::path GetConfigFile() {
   bfs::path pathConfigFile(
-      i2p::util::config::var_map["config"].as<std::string>());
+      i2p::util::config::var_map["kovriconf"].as<std::string>());
   if (!pathConfigFile.is_complete())
         pathConfigFile = GetDataPath() / pathConfigFile;
   return pathConfigFile;
@@ -61,18 +61,18 @@ bfs::path GetConfigFile() {
 
 bfs::path GetTunnelsConfigFile() {
   bfs::path pathTunnelsConfigFile(
-      i2p::util::config::var_map["tunnelscfg"].as<std::string>());
+      i2p::util::config::var_map["tunnelsconf"].as<std::string>());
   if (!pathTunnelsConfigFile.is_complete())
     pathTunnelsConfigFile = GetDataPath() / pathTunnelsConfigFile;
   return pathTunnelsConfigFile;
 }
 
 bfs::path GetSU3CertsPath() {
-  return GetDataPath() / "resources" / "certificates" / "su3";
+  return GetDataPath() / "certificates" / "su3";
 }
 
 bfs::path GetSSLCertsPath() {
-  return GetDataPath() / "resources" / "certificates" / "ssl";
+  return GetDataPath() / "certificates" / "ssl";
 }
 
 std::string GetFullPath(

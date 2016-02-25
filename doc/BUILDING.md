@@ -1,4 +1,4 @@
-## 1. Satisfy minimum requirements
+## Step 1. Minimum requirements
 
 - [CMake](https://cmake.org/) 2.8.12
 - [Boost](http://www.boost.org/) 1.54
@@ -22,14 +22,14 @@ Optional
 ### Windows
 - [VS2013](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx) (last known to work with 12.0.21005.1)
 
-### Open your NAT/Firewall
+## Step 2. Open your NAT/Firewall
 1. Choose a port between ```9111``` and ```30777```.
 2. Poke a hole in your NAT/Firewall to allow incoming TCP/UDP connections to that port.
 3. Don't share this number with anyone as it will effect your anonymity!
 
 If you do not choose a port via cli or ```kovri.conf```, Kovri will randomly generate a new one on each startup. If you do not have access to your NAT, you can instead install and build with [MiniUPnP](http://miniupnp.free.fr/files/) support
 
-## 2. Install dependencies
+## Step 3. Install dependencies
 
 ### Debian (Jessie) / Ubuntu (Trusty, Vivid, Wily)
 ```bash
@@ -55,7 +55,7 @@ $ brew install cmake boost cryptopp openssl
 $ brew install miniupnpc doxygen  ## (optional)
 ```
 
-## 3. Building
+## Step 4. Build
 
 ### To view CMake options:
 ```bash
@@ -85,10 +85,10 @@ $ cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON ../ && make
 
 ### To produce Doxygen
 ```bash
-$ cmake -DWITH_DOXYGEN=ON ../ && make doc  # output will be in ./doc/Doxygen/
+$ cmake -DWITH_DOXYGEN=ON ../ && make doc  # output will be in kovri/doc/Doxygen/
 ```
 
-### Run Kovri!
+### Steap 4. Run Kovri!
 ```bash
 $ ./kovri -p [your chosen port]
 ```
@@ -102,7 +102,7 @@ For a full list of options:
 $ ./kovri -h
 ```
 
-## 4. Configuration files *(optional)*
+## Step 5. Configuration files *(optional)*
 
 Configuration files has INI-like syntax: <key> = <value>.
 All command-line parameters are allowed as keys, for example:

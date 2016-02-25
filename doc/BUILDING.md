@@ -88,7 +88,7 @@ $ cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON ../ && make
 $ cmake -DWITH_DOXYGEN=ON ../ && make doc  # output will be in kovri/doc/Doxygen/
 ```
 
-### Steap 4. Run Kovri!
+### Steap 5. Run Kovri!
 ```bash
 $ ./kovri -p [your chosen port]
 ```
@@ -102,7 +102,7 @@ For a full list of options:
 $ ./kovri -h
 ```
 
-## Step 5. Configuration files *(optional)*
+## Step 6. Configuration files *(optional)*
 
 Configuration files has INI-like syntax: <key> = <value>.
 All command-line parameters are allowed as keys, for example:

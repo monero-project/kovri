@@ -43,7 +43,7 @@ Ask yourself one question: do you trust your anonymity with i2pd's [attitude](ht
 ```
 Our answer? **...No, we don't!**
 
-## Why are there two i2pd repositories; one on Bitbucket and one on GitHub?
+## Why did you fork from i2pd and why are there two i2pd repositories; one on Bitbucket and one on GitHub?
 So begins the drama of i2pd.
 
 One of the developers with push privileges on GitHub pushed a commit(s) that orignal did not like. Instead of working together to resolve the issue, orignal took i2pd to Bitbucket, deleted all existing git history, and made himself sole 'contributor' of the software. He then vowed to never return to Irc2P.

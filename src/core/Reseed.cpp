@@ -248,11 +248,15 @@ int Reseeder::ProcessSU3Stream(
         LogPrint(eLogWarning, "Unexpected size 0. Skipped");
         continue;
       }
-      uint8_t* compressed = new uint8_t[compressedSize];
-      s.read(reinterpret_cast<char *>(compressed), compressedSize);
-      if (compressionMethod) {  // we assume Deflate
+      std::vector<uint8_t> compressed(compressedSize);
+      s.read(reinterpret_cast<char *>(compressed.data()), compressed.size());
+      // TODO(anonimal): don't assume deflate.
+      if (compressionMethod) {
         CryptoPP::Inflator decompressor;
-        decompressor.Put(compressed, compressedSize);
+        // For the reasoning behind why we need to append a null byte, see #141.
+        decompressor.Put(
+            compressed.data() + '\0',
+            compressed.size() + 1);
         decompressor.MessageEnd();
         if (decompressor.MaxRetrievable() <= uncompressedSize) {
           uint8_t* uncompressed = new uint8_t[uncompressedSize];
@@ -277,11 +281,10 @@ int Reseeder::ProcessSU3Stream(
               " exceeds ", uncompressedSize, " from header");
           return -1;
         }
-      } else {  // no compression
-        i2p::data::netdb.AddRouterInfo(compressed, compressedSize);
+      } else {  // Contained, but not compressed
+        i2p::data::netdb.AddRouterInfo(compressed.data(), compressed.size());
         numFiles++;
       }
-      delete[] compressed;
       if (bitFlag & ZIP_BIT_FLAG_DATA_DESCRIPTOR)
         // skip data descriptor section if presented (12 = 16 - 4)
         s.seekg(12, std::ios::cur);

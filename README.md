@@ -1,7 +1,7 @@
 # **ˈKɔːvrɪ**
 
 1. To cover, veil, wrap *[(Esperanto)](https://en.wikipedia.org/wiki/Esperanto)*.
-2. The secure, private, untraceable C++ implementation of the [I2P](https://geti2p.net) anonymous network.
+2. The secure, private, untraceable fork of the [Purple I2P](https://github.com/PurpleI2P/i2pd.git) - C++ implementation of the [I2P](https://geti2p.net) anonymous network.
 
 [![Build Status](https://travis-ci.org/monero-project/kovri.svg?branch=master)](https://travis-ci.org/monero-project/kovri)
 [![Documentation](https://codedocs.xyz/monero-project/kovri.svg)](https://codedocs.xyz/monero-project/kovri/)
@@ -39,7 +39,8 @@ Key fingerprint = 1218 6272 CD48 E253 9E2D  D29B 66A7 6ECF 9144 09F1
 Note: our future VRP will be inline with [I2P's VRP](https://trac.i2p2.de/ticket/1119).
 
 ## Acknowledgments
-- **orion** for providing ```i2pcpp```: the [original](http://git.repo.i2p.xyz/w/i2pcpp.git) C++ implementation of I2P.
 - **orignal** for providing ```i2pd```: an insecure/issue-ridden but mostly-working C++ implementation of I2P for [us to fork from](https://github.com/purplei2p/i2pd/commit/45d27f8ddc43e220a9eea42de41cb67d5627a7d3).
+- **orion** for providing ```i2pcpp```: the [original](http://git.repo.i2p.xyz/w/i2pcpp.git) C++ implementation of I2P.
 - **EinMByte** for improving *both* implementations.
+
 - The ed25519/ folder is based on the [ref10 implementation from SUPERCOP](http://bench.cr.yp.to/supercop.html).

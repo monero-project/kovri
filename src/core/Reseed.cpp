@@ -32,13 +32,12 @@
 
 #include "Reseed.h"
 
-#include <string.h>
-
 #include <boost/filesystem.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/regex.hpp>
 
 #include <fstream>
+#include <limits>
+#include <memory>
+#include <regex>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -46,403 +45,406 @@
 #include "Identity.h"
 #include "NetworkDatabase.h"
 #include "crypto/Rand.h"
-#include "crypto/CryptoConst.h"
 #include "crypto/Signature.h"
+#include "util/Filesystem.h"
 #include "util/HTTP.h"
 #include "util/I2PEndian.h"
-#include "util/Filesystem.h"
 #include "util/Log.h"
-
-// do this AFTER other includes
-#define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
-#include <cryptopp/arc4.h>
-#include <cryptopp/asn.h>
-#include <cryptopp/base64.h>
-#include <cryptopp/crc.h>
-#include <cryptopp/hmac.h>
-#include <cryptopp/zinflate.h>
+#include "util/ZIP.h"
 
 namespace i2p {
 namespace data {
 
-static std::vector<std::string> reseedHosts = {
-  "https://i2p.mooo.com/netDb/",
-  "https://reseed.i2p-projekt.de/",
-  "https://reseed.i2p.vzaws.com:8443/",
-  "https://uk.reseed.i2p2.no:444/",
-  "https://us.reseed.i2p2.no:444/",
-  "https://user.mx24.eu/",
-  //"https://download.xxlspeed.com/",  // Requires SNI
-  //"https://i2p-0.manas.ca:8443/",  // Requires SNI
-  //"https://i2pseed.zarrenspry.info/", // Host not found (authoritative)
-  //"https://netdb.i2p2.no/",  // Requires SNI
-};
-
-Reseeder::Reseeder() {}
-Reseeder::~Reseeder() {}
-
-int Reseeder::ReseedNowSU3() {
-  size_t s = reseedHosts.size();
-  size_t ind = i2p::crypto::RandInRange<size_t>(size_t{0}, s - size_t{1});
-  std::string& reseedHost = reseedHosts[ind];
-  return ReseedFromSU3(reseedHost);
-}
-
-int Reseeder::ReseedFromSU3(
-    const std::string& host) {
-  LogPrint(eLogInfo, "Downloading SU3 from ", host);
-  std::string url = host + "i2pseeds.su3";
-  std::string su3 = i2p::util::http::HttpsDownload(url);
-  if (su3.length() > 0) {
-    std::stringstream ss(su3);
-    return ProcessSU3Stream(ss);
-  } else {
-    LogPrint(eLogWarning, "SU3 download failed");
-    return -1;
+/**
+ *
+ * Reseed implementation
+ *
+ * 1. Load/process SU3 certificates
+ * 2. Fetches SU3 stream
+ * 3. Implements SU3
+ * 4. Inserts extracted RI's into NetDb
+ *
+ */
+bool Reseed::ReseedImpl() {
+  // Load SU3 (not SSL) certificates
+  LogPrint(eLogDebug, "Reseed: processing certificates...");
+  if (!ProcessCerts()) {
+    LogPrint(eLogError, "Reseed: failed to load certificates");
+    return false;
   }
-}
-
-int Reseeder::ProcessSU3Stream(
-    std::istream& s) {
-  char magicNumber[7];
-  s.read(magicNumber, 7);  // magic number and zero byte 6
-  if (strcmp(magicNumber, SU3_MAGIC_NUMBER)) {
-    LogPrint(eLogError, "Unexpected SU3 magic number");
-    return -1;
-  }
-  // su3 file format version
-  s.seekg(1, std::ios::cur);
-  // signature type
-  SigningKeyType signatureType;
-  s.read(reinterpret_cast<char *>(&signatureType), 2);
-  signatureType = be16toh(signatureType);
-  // signature length
-  uint16_t signatureLength;
-  s.read(reinterpret_cast<char *>(&signatureLength), 2);
-  signatureLength = be16toh(signatureLength);
-  // unused
-  s.seekg(1, std::ios::cur);
-  // version length
-  uint8_t versionLength;
-  s.read(reinterpret_cast<char *>(&versionLength), 1);
-  // unused
-  s.seekg(1, std::ios::cur);
-  // signer ID length
-  uint8_t signerIDLength;
-  s.read(reinterpret_cast<char *>(&signerIDLength), 1);
-  // content length
-  uint64_t contentLength;
-  s.read(reinterpret_cast<char *>(&contentLength), 8);
-  contentLength = be64toh(contentLength);
-  // unused
-  s.seekg(1, std::ios::cur);
-  // file type
-  uint8_t fileType;
-  s.read(reinterpret_cast<char *>(&fileType), 1);
-  if (fileType != 0x00) {  // zip file
-    LogPrint(eLogError, "Can't handle file type ", static_cast<int>(fileType));
-    return -1;
-  }
-  s.seekg(1, std::ios::cur);  // unused
-  uint8_t contentType;
-  s.read(reinterpret_cast<char *>(&contentType), 1);  // content type
-  if (contentType != 0x03) {  // reseed data
-    LogPrint(eLogError,
-        "Unexpected content type ", static_cast<int>(contentType));
-    return -1;
-  }
-  s.seekg(12, std::ios::cur);  // unused
-  s.seekg(versionLength, std::ios::cur);  // skip version
-  char signerID[256];
-  s.read(signerID, signerIDLength);  // signerID
-  signerID[signerIDLength] = 0;
-  // try to verify signature
-  auto it = m_SigningKeys.find(signerID);
-  if (it != m_SigningKeys.end()) {
-    // TODO(unassigned): implement all signature types
-    if (signatureType == SIGNING_KEY_TYPE_RSA_SHA512_4096) {
-      size_t pos = s.tellg();
-      size_t tbsLen = pos + contentLength;
-      uint8_t* tbs = new uint8_t[tbsLen];
-      s.seekg(0, std::ios::beg);
-      s.read(reinterpret_cast<char *>(tbs), tbsLen);
-      uint8_t* signature = new uint8_t[signatureLength];
-      s.read(reinterpret_cast<char *>(signature), signatureLength);
-      // RSA-raw
-      i2p::crypto::RSASHA5124096RawVerifier verifier(it->second);
-      verifier.Update(tbs, tbsLen);
-      bool good = verifier.Verify(signature);
-      delete[] signature;
-      delete[] tbs;
-      s.seekg(pos, std::ios::beg);
-      if (!good) {
-        LogPrint(eLogError, "SU3 Signature failed");
-        return -1;
-      }
-    } else {
+  // Fetch SU3 stream for reseed
+  std::size_t attempts = 0;
+  const std::size_t max_attempts = 6;
+  while (attempts != max_attempts) {
+    // With default reseed, we won't break until 6 attempts are made.
+    // With CLI reseed, we'll break after first failed attempt.
+    if (!FetchStream()) {
+      attempts++;
       LogPrint(eLogError,
-          "Signature type ", signatureType, " is not supported");
-      return -1;
-    }
-  } else {
-    LogPrint(eLogError, "Certificate for ", signerID, " not loaded");
-    return -1;
-  }
-  // handle content
-  int numFiles = 0;
-  size_t contentPos = s.tellg();
-  while (!s.eof()) {
-    uint32_t signature;
-    s.read(reinterpret_cast<char *>(&signature), 4);
-    signature = le32toh(signature);
-    if (signature == ZIP_HEADER_SIGNATURE) {
-      // next local file
-      s.seekg(2, std::ios::cur);  // version
-      uint16_t bitFlag;
-      s.read(reinterpret_cast<char *>(&bitFlag), 2);
-      bitFlag = le16toh(bitFlag);
-      uint16_t compressionMethod;
-      s.read(reinterpret_cast<char *>(&compressionMethod), 2);
-      compressionMethod = le16toh(compressionMethod);
-      s.seekg(4, std::ios::cur);  // skip fields we don't care about
-      uint32_t compressedSize, uncompressedSize;
-      uint8_t crc32[4];
-      s.read(reinterpret_cast<char *>(crc32), 4);
-      s.read(reinterpret_cast<char *>(&compressedSize), 4);
-      compressedSize = le32toh(compressedSize);
-      s.read(reinterpret_cast<char *>(&uncompressedSize), 4);
-      uncompressedSize = le32toh(uncompressedSize);
-      uint16_t fileNameLength, extraFieldLength;
-      s.read(reinterpret_cast<char *>(&fileNameLength), 2);
-      fileNameLength = le16toh(fileNameLength);
-      if (fileNameLength > 255) {
-        // TODO: avoid overflow with longer filenames
-        LogPrint(eLogError, "Reseed: SU3 fileNameLength too large: ", int(fileNameLength));
-        return numFiles;
-      }
-      s.read(reinterpret_cast<char *>(&extraFieldLength), 2);
-      extraFieldLength = le16toh(extraFieldLength);
-      char localFileName[255];
-      s.read(localFileName, fileNameLength);
-      localFileName[fileNameLength] = 0;
-      s.seekg(extraFieldLength, std::ios::cur);
-      // take care about data descriptor if presented
-      if (bitFlag & ZIP_BIT_FLAG_DATA_DESCRIPTOR) {
-        size_t pos = s.tellg();
-        if (!FindZipDataDescriptor(s)) {
-          LogPrint(eLogError, "SU3 archive data descriptor not found");
-          return -1;
-        }
-        s.read(reinterpret_cast<char *>(crc32), 4);
-        s.read(reinterpret_cast<char *>(&compressedSize), 4);
-        // ??? we must consider signature as part of compressed data
-        compressedSize = le32toh(compressedSize) + 4;
-        s.read(reinterpret_cast<char *>(&uncompressedSize), 4);
-        uncompressedSize = le32toh(uncompressedSize);
-        // now we know compressed and uncompressed size
-        s.seekg(pos, std::ios::beg);  // back to compressed data
-      }
-      LogPrint(eLogDebug,
-          "Processing file ", localFileName, " ", compressedSize, " bytes");
-      if (!compressedSize) {
-        LogPrint(eLogWarning, "Unexpected size 0. Skipped");
-        continue;
-      }
-      std::vector<uint8_t> compressed(compressedSize);
-      s.read(reinterpret_cast<char *>(compressed.data()), compressed.size());
-      // TODO(anonimal): don't assume deflate.
-      if (compressionMethod) {
-        CryptoPP::Inflator decompressor;
-        // For the reasoning behind why we need to append a null byte, see #141.
-        decompressor.Put(
-            compressed.data() + '\0',
-            compressed.size() + 1);
-        decompressor.MessageEnd();
-        if (decompressor.MaxRetrievable() <= uncompressedSize) {
-          uint8_t* uncompressed = new uint8_t[uncompressedSize];
-          decompressor.Get(uncompressed, uncompressedSize);
-          bool good =
-            CryptoPP::CRC32().VerifyDigest(
-              crc32,
-              uncompressed,
-              uncompressedSize);
-          if (good) {
-            i2p::data::netdb.AddRouterInfo(uncompressed, uncompressedSize);
-            numFiles++;
-          }
-          delete[] uncompressed;
-          if (!good) {
-            LogPrint(eLogError, "CRC32 Failed");
-            return -1;
-          }
-        } else {
-          LogPrint(eLogError,
-              "Actual uncompressed size ", decompressor.MaxRetrievable(),
-              " exceeds ", uncompressedSize, " from header");
-          return -1;
-        }
-      } else {  // Contained, but not compressed
-        i2p::data::netdb.AddRouterInfo(compressed.data(), compressed.size());
-        numFiles++;
-      }
-      if (bitFlag & ZIP_BIT_FLAG_DATA_DESCRIPTOR)
-        // skip data descriptor section if presented (12 = 16 - 4)
-        s.seekg(12, std::ios::cur);
+          "Reseed: fetch failed after ",
+          attempts, " of ", max_attempts, " attempts");
+      if (!m_Stream.empty() || attempts == max_attempts)
+        return false;
     } else {
-      if (signature != ZIP_CENTRAL_DIRECTORY_HEADER_SIGNATURE) {
-        LogPrint(eLogWarning, "Missing zip central directory header");
-        return -1;
-      }
-      break;  // no more files
+      LogPrint(eLogInfo, "Reseed: fetch successful");
+      break;
     }
-    size_t end = s.tellg();
-    if (end - contentPos >= contentLength)
-      break;  // we are beyond contentLength
   }
-  return numFiles;
+  // Implement SU3
+  SU3 su3(m_Stream, m_SigningKeys);
+  if (!su3.SU3Impl()) {
+    LogPrint(eLogError, "Reseed: SU3 implementation failed");
+    return false;
+  }
+  // Insert extracted RI's into NetDb
+  for (auto const& router : su3.m_RouterInfos)
+    if (!i2p::data::netdb.AddRouterInfo(
+          router.second.data(),
+          router.second.size()))
+      return false;
+  LogPrint(eLogInfo, "Reseed: implementation successful");
+  return true;
 }
 
-bool Reseeder::FindZipDataDescriptor(
-    std::istream& s) {
-  size_t nextInd = 0;
-  while (!s.eof()) {
-    uint8_t nextByte;
-    s.read(reinterpret_cast<char *>(&nextByte), 1);
-    if (nextByte == ZIP_DATA_DESCRIPTOR_SIGNATURE[nextInd]) {
-      nextInd++;
-      if (nextInd >= sizeof(ZIP_DATA_DESCRIPTOR_SIGNATURE))
-        return true;
-    } else {
-      nextInd = 0;
+bool Reseed::ProcessCerts() {
+  // Test if directory exists
+  boost::filesystem::path path = i2p::util::filesystem::GetSU3CertsPath();
+  boost::filesystem::directory_iterator it(path), end;
+  if (!boost::filesystem::exists(path)) {
+    LogPrint(eLogError, "Reseed: certificates ", path, " don't exist");
+    return false;
+  }
+  // Instantiate X.509 object
+  i2p::crypto::X509 x509;
+  // Iterate through directory and get signing key from each certificate
+  std::uint8_t num_certs = 0;
+  BOOST_FOREACH(boost::filesystem::path const& cert, std::make_pair(it, end)) {
+    if (boost::filesystem::is_regular_file(cert)) {
+      LogPrint(eLogDebug, "Reseed: acquiring signing key from ", cert);
+      std::ifstream ifs(cert.string(), std::ifstream::binary);
+      if (ifs) {
+        try {
+          // Prepare stream
+          std::stringstream ss;
+          ss << ifs.rdbuf();
+          // Get signing key
+          m_SigningKeys = x509.GetSigningKey(ss);
+          // Close stream
+          ifs.close();
+        } catch (const std::exception& e) {
+          LogPrint(eLogError,
+              "Reseed: exception '", e.what(),
+              "' caught when processing certificate", cert);
+          return false;
+        }
+      } else {
+        LogPrint(eLogError, "Reseed: ", cert, " does not exist");
+        return false;
+      }
+      if (m_SigningKeys.empty()) {
+        LogPrint(eLogError, "Reseed: failed to get signing key from ", cert);
+        return false;
+      }
+      if (num_certs < std::numeric_limits<std::uint8_t>::max()) {
+        num_certs++;
+      }
     }
+  }
+  LogPrint(eLogInfo,
+      "Reseed: successfuly loaded ",
+      static_cast<std::size_t>(num_certs), " certificates");
+  return (num_certs > 0);
+}
+
+
+bool Reseed::FetchStream() {
+  /**
+   * If user-supplied stream was given, fetch accordingly.
+   * Else, fetch a random host and, on failure, clear the stream.
+   */
+  if (!m_Stream.empty()) {
+    // TODO(unassigned): abstract downloading mechanism (see #149)
+    std::regex exp("^https?://");  // We currently only support http/s
+    if (std::regex_search(m_Stream, exp)) {
+      return FetchStream(m_Stream);
+    } else {
+      // Either a local file or unsupported protocol
+      std::ifstream ifs(m_Stream);
+      return FetchStream(ifs);
+    }
+  } else {
+    m_Stream =
+      m_Hosts.at(
+          i2p::crypto::RandInRange<std::size_t>(0, m_Hosts.size() - 1)) +
+      m_Filename;
+    if (FetchStream(m_Stream))
+      return true;
+    m_Stream.clear();
   }
   return false;
 }
 
-bool Reseeder::LoadSU3Certs() {
-  boost::filesystem::path certsPath = i2p::util::filesystem::GetSU3CertsPath();
-  if (!exists(certsPath)) {
-    LogPrint(eLogError, "Reseed certificates ", certsPath, " don't exist");
+bool Reseed::FetchStream(
+    const std::string& url) {
+  LogPrint(eLogInfo, "Reseed: fetching stream from ", url);
+  // TODO(unassigned): abstract our downloading mechanism (see #149)
+  i2p::util::http::HTTP http;
+  if (!http.Download(url))
     return false;
-  }
-  int numCerts = 0;
-  boost::filesystem::directory_iterator iter(certsPath), end;
-  BOOST_FOREACH(boost::filesystem::path const& cert, std::make_pair(iter, end)) {
-    if (boost::filesystem::is_regular_file(cert)) {
-      if (ProcessSU3Cert(cert.string()))
-        numCerts++;
-      else
-        return false;
-    }
-  }
-  LogPrint(eLogInfo, numCerts, " certificates loaded");
-  return numCerts > 0;
+  // Replace our stream with downloaded stream
+  m_Stream = http.m_Stream;
+  return ((m_Stream.size() > 0) &&
+          (m_Stream.size() <= 128 * 1024) &&  // Arbitrary size in bytes
+          (http.m_Status == 200)) ? true : false;  // 200 OK
 }
 
-bool Reseeder::ProcessSU3Cert(
-    const std::string& filename) {
-  std::ifstream s(filename, std::ifstream::binary);
-  if (s.is_open()) {
-    s.seekg(0, std::ios::end);
-    size_t CERT_LEN = s.tellg();
-    s.seekg(0, std::ios::beg);
-    char buf[CERT_LEN];
-    s.read(buf, CERT_LEN);
-    std::string cert(buf, CERT_LEN);
-    // assume file in pem format
-    auto pos1 = cert.find(CERTIFICATE_HEADER);
-    auto pos2 = cert.find(CERTIFICATE_FOOTER);
-    if (pos1 == std::string::npos || pos2 == std::string::npos) {
-      LogPrint(eLogError, "Malformed certificate file");
+bool Reseed::FetchStream(
+    std::ifstream& ifs) {
+  LogPrint(eLogInfo, "Reseed: fetching stream from file ", m_Stream);
+  if (ifs) {
+    try {
+      // Assign file contents to stream
+      m_Stream.assign(
+          (std::istreambuf_iterator<char>(ifs)),
+           std::istreambuf_iterator<char>());
+      ifs.close();
+    } catch (const std::exception& e) {
+      LogPrint(eLogError,
+          "Reseed: exception '", e.what(),
+          "' caught when processing ", m_Stream);
       return false;
     }
-    pos1 += strlen(CERTIFICATE_HEADER);
-    pos2 -= pos1;
-    std::string base64 = cert.substr(pos1, pos2);
-    CryptoPP::ByteQueue queue;
-    CryptoPP::Base64Decoder decoder;  // regular base64 rather than I2P
-    decoder.Attach(new CryptoPP::Redirector(queue));
-    decoder.Put((const uint8_t *)base64.data(), base64.length());
-    decoder.MessageEnd();
-    ProcessSU3Cert(queue);
-  } else {
-    LogPrint(eLogError, "Can't open certificate file ", filename);
+    return true;
+  }
+  LogPrint(eLogError, "Reseed: ", m_Stream, " does not exist");
+  return false;
+}
+
+/**
+ *
+ * SU3 implementation
+ *
+ * 1. Prepares stream
+ *   - Set endianness where needed
+ *   - Get/set data
+ *   - Perform sanity tests
+ * 2. Verifies signature of stream
+ *   - Verify SU3 against certs
+ * 3. Unzips stream
+ *   - Extract RI's for Reseed
+ *
+ */
+bool SU3::SU3Impl() {
+  /**
+   * TODO(unassigned): when the --reseed-from file is a .zip, (or non-su3 type),
+   * it would be nice to skip su3 all-together, decompress as appropriate, and
+   * validate for RI type - then insert into NetDb.
+   */
+  LogPrint(eLogDebug, "SU3: preparing stream...");
+  if (!PrepareStream()) {
+    LogPrint(eLogError, "SU3: preparation failed");
+    return false;
+  }
+  LogPrint(eLogDebug, "SU3: verifying stream...");
+  if (!VerifySignature()) {
+    LogPrint(eLogError, "SU3: verification failed");
+    return false;
+  }
+  LogPrint(eLogDebug, "SU3: extracting content...");
+  if (!ExtractContent()) {
+    LogPrint(eLogError, "SU3: extraction failed");
     return false;
   }
   return true;
 }
 
-std::string Reseeder::ProcessSU3Cert(
-    CryptoPP::ByteQueue& queue) {
-  // extract X.509
-  CryptoPP::BERSequenceDecoder x509Cert(queue);
-  CryptoPP::BERSequenceDecoder tbsCert(x509Cert);
-  // version
-  uint32_t ver;
-  CryptoPP::BERGeneralDecoder context(
-      tbsCert, CryptoPP::CONTEXT_SPECIFIC | CryptoPP::CONSTRUCTED);
-  CryptoPP::BERDecodeUnsigned<uint32_t>(context, ver, CryptoPP::INTEGER);
-  // serial
-  CryptoPP::Integer serial;
-  serial.BERDecode(tbsCert);
-  // signature
-  CryptoPP::BERSequenceDecoder signature(tbsCert);
-  signature.SkipAll();
-
-  // issuer
-  std::string name;
-  CryptoPP::BERSequenceDecoder issuer(tbsCert); {
-    CryptoPP::BERSetDecoder c(issuer);
-    c.SkipAll();
-    CryptoPP::BERSetDecoder st(issuer);
-    st.SkipAll();
-    CryptoPP::BERSetDecoder l(issuer);
-    l.SkipAll();
-    CryptoPP::BERSetDecoder o(issuer);
-    o.SkipAll();
-    CryptoPP::BERSetDecoder ou(issuer);
-    ou.SkipAll();
-    CryptoPP::BERSetDecoder cn(issuer); {
-      CryptoPP::BERSequenceDecoder attributes(cn); {
-        CryptoPP::BERGeneralDecoder ident(
-            attributes,
-            CryptoPP::OBJECT_IDENTIFIER);
-        ident.SkipAll();
-        CryptoPP::BERDecodeTextString(
-            attributes,
-            name,
-            CryptoPP::UTF8_STRING);
+bool SU3::PrepareStream() {
+  try {
+    // Validate stream as an SU3
+    m_Stream.Read(*m_Data->magic_number.data(), Size::magic_number);
+    if (m_Data->magic_number.data() != m_MagicValue) {
+      LogPrint(eLogError, "SU3: invalid magic value");
+      return false;
+    }
+    // File format version offset (spec defines it as 0, so we don't need it)
+    m_Stream.Seekg(Offset::version, std::ios::cur);
+    // Prepare signature type
+    m_Stream.Read(m_Data->signature_type, Size::signature_type);
+    m_Data->signature_type = be16toh(m_Data->signature_type);
+    if (m_Data->signature_type != SIGNING_KEY_TYPE_RSA_SHA512_4096) {  // Temporary (see #160)
+      LogPrint(eLogError, "SU3: signature type not supported");
+      return false;
+    }
+    // Prepare signature length
+    m_Stream.Read(m_Data->signature_length, Size::signature_length);
+    m_Data->signature_length = be16toh(m_Data->signature_length);
+    if (m_Data->signature_length != sizeof(i2p::crypto::PublicKey)) {  // Temporary (see #160)
+      LogPrint(eLogError, "SU3: invalid signature length");
+      return false;
+    }
+    // Unused offset
+    m_Stream.Seekg(Offset::unused, std::ios::cur);
+    // Get version length
+    m_Stream.Read(m_Data->version_length, Size::version_length);
+    if (m_Data->version_length <
+        static_cast<std::size_t>(Size::minimal_version)) {
+      LogPrint(eLogError, "SU3: version length too short");
+      return false;
+    }
+    // Unused offset
+    m_Stream.Seekg(Offset::unused, std::ios::cur);
+    // Get signer ID length
+    m_Stream.Read(m_Data->signer_id_length, Size::signer_id_length);
+    if (!m_Data->signer_id_length) {
+      LogPrint(eLogError, "SU3: invalid signer ID length");
+      return false;
+    }
+    // Prepare content length
+    m_Stream.Read(m_Data->content_length, Size::content_length);
+    m_Data->content_length = be64toh(m_Data->content_length);
+    if (!m_Data->content_length) {
+      LogPrint(eLogError, "SU3: invalid content length");
+      return false;
+    }
+    // Unused offset
+    m_Stream.Seekg(Offset::unused, std::ios::cur);
+    // Get file type that contains non-su3 data
+    m_Stream.Read(m_Data->file_type, Size::file_type);
+    switch (m_Data->file_type) {
+      case static_cast<std::size_t>(FileType::zip_file): {
+        break;
+      }
+      case static_cast<std::size_t>(FileType::xml_file): {
+        LogPrint(eLogError, "SU3: XML not supported");
+        return false;
+      }
+      case static_cast<std::size_t>(FileType::html_file): {
+        LogPrint(eLogError, "SU3: HTML not supported");
+        return false;
+      }
+      case static_cast<std::size_t>(FileType::xml_gz_file): {
+        LogPrint(eLogError, "SU3: Gzip compressed XML not supported");
+        return false;
+      }
+      default: {
+        LogPrint(eLogError,
+            "SU3: invalid file type ",
+            static_cast<std::size_t>(m_Data->file_type));
+        return false;
       }
     }
-  }
-  issuer.SkipAll();
-  // validity
-  CryptoPP::BERSequenceDecoder validity(tbsCert);
-  validity.SkipAll();
-  // subject
-  CryptoPP::BERSequenceDecoder subject(tbsCert);
-  subject.SkipAll();
-  // public key
-  CryptoPP::BERSequenceDecoder publicKey(tbsCert); {
-    CryptoPP::BERSequenceDecoder ident(publicKey);
-    ident.SkipAll();
-    CryptoPP::BERGeneralDecoder key(publicKey, CryptoPP::BIT_STRING);
-    key.Skip(1);  // TODO(unassigned): FIXME: possibly a bug in crypto++?
-    CryptoPP::BERSequenceDecoder keyPair(key);
-    CryptoPP::Integer n;
-    n.BERDecode(keyPair);
-    if (name.length() > 0) {
-      PublicKey value;
-      n.Encode(value, 512);
-      m_SigningKeys[name] = value;
-    } else {
-      LogPrint(eLogError, "Unknown issuer. Skipped");
+    // Unused offset
+    m_Stream.Seekg(Offset::unused, std::ios::cur);
+    // Get content type that contains the RI's
+    m_Stream.Read(m_Data->content_type, Size::content_type);
+    switch (m_Data->content_type) {
+      case static_cast<std::size_t>(ContentType::unknown): {
+        break;
+      }
+      case static_cast<std::size_t>(ContentType::router_update): {
+        LogPrint(eLogError, "SU3: Router Update not yet supported");
+        return false;
+      }
+      case static_cast<std::size_t>(ContentType::plugin_related): {
+        LogPrint(eLogError, "SU3: Plugins not yet supported");
+        return false;
+      }
+      case static_cast<std::size_t>(ContentType::reseed_data): {
+        LogPrint(eLogDebug, "SU3: found reseed data");
+        break;
+      }
+      case static_cast<std::size_t>(ContentType::news_feed): {
+        LogPrint(eLogError, "SU3: News Feed not yet supported");
+        return false;
+      }
+      default: {
+        LogPrint(eLogError,
+            "SU3: invalid content type ",
+            static_cast<std::size_t>(m_Data->content_type));
+        return false;
+      }
     }
+    // Unused offset
+    m_Stream.Seekg(static_cast<std::size_t>(Offset::unused) * 12, std::ios::cur);
+    // Skip SU3 version (we *could* test against this if we want)
+    m_Stream.Seekg(m_Data->version_length, std::ios::cur);
+    // Get signer ID
+    m_Stream.Read(*m_Data->signer_id.data(), m_Data->signer_id_length);
+    // Currently enforces signer ID as an email address (not spec-defined)
+    std::regex regex("([-a-z0-9+._']{1,254})@((?:[-a-z0-9]+.)+[a-z|(i2p)]{2,})");
+    if (!std::regex_search(m_Data->signer_id.data(), regex)) {
+      LogPrint(eLogError, "SU3: invalid signer ID");
+      return false;
+    }
+    // Save position
+    m_Data->signature_position = m_Stream.Tellg();
+    // Prepare to read in both content length + signature length
+    m_Data->content_length += m_Data->signature_position;
+    m_Data->content.resize(m_Data->content_length);
+    m_Data->signature.resize(m_Data->signature_length);
+    // Read in content and signature for verification against signer ID
+    m_Stream.Seekg(0, std::ios::beg);
+    m_Stream.Read(*m_Data->content.data(), m_Data->content.size());
+    m_Stream.Read(*m_Data->signature.data(), m_Data->signature.size());
+    // Go back to prepare for RI extraction
+    m_Stream.Seekg(m_Data->signature_position, std::ios::beg);
+    // Our content position is the same as signature position
+    m_Data->content_position = m_Data->signature_position;
+  } catch (const std::exception& e) {
+    LogPrint(eLogError,
+        "SU3: caught exception '", e.what(), "' during preparation");
+    return false;
   }
-  publicKey.SkipAll();
-  tbsCert.SkipAll();
-  x509Cert.SkipAll();
-  return name;
+  LogPrint(eLogDebug, "SU3: preparation successful");
+  return true;
+}
+
+bool SU3::VerifySignature() {
+  // Get signing keys from extracted/processed SU3 certs
+  auto signing_key_it = m_SigningKeys.find(m_Data->signer_id.data());
+  if (signing_key_it == m_SigningKeys.end()) {
+    LogPrint(eLogError,
+        "SU3: certificate for ", m_Data->signer_id.data(), " not loaded");
+    return false;
+  }
+  // Verify hash of content data and signature
+  switch (m_Data->signature_type) {
+    case SIGNING_KEY_TYPE_RSA_SHA512_4096: {
+      i2p::crypto::RSASHA5124096RawVerifier verifier(signing_key_it->second);
+      verifier.Update(m_Data->content.data(), m_Data->content.size());
+      if (!verifier.Verify(m_Data->signature.data())) {
+        LogPrint(eLogError, "SU3: signature failed");
+        return false;
+      }
+      break;
+    }
+    // TODO(unassigned): see #160
+    // Note: this is currently redundant since signature type was
+    // tested during stream preparation. We'll leave this here
+    // because it will eventually be useful.
+    default:
+      LogPrint(eLogError,
+          "SU3: signature type ", m_Data->signature_type, " is not supported");
+      return false;
+  }
+  LogPrint(eLogDebug, "SU3: verification successful");
+  return true;
+}
+
+bool SU3::ExtractContent() {
+  LogPrint(eLogDebug, "SU3: unzipping stream");
+  i2p::util::ZIP zip(
+      m_Stream.Str(),
+      m_Data->content_length,
+      m_Data->content_position);
+  if (!zip.Unzip()) {
+    LogPrint(eLogError, "SU3: unzip failed");
+    return false;
+  }
+  // Get unzipped RI's for Reseed
+  m_RouterInfos = zip.m_Contents;
+  LogPrint(eLogDebug, "SU3: extraction successful");
+  return true;
 }
 
 }  // namespace data

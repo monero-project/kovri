@@ -30,18 +30,57 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
-#include <boost/test/unit_test.hpp>
+#ifndef SRC_CORE_CRYPTO_ZIP_H_
+#define SRC_CORE_CRYPTO_ZIP_H_
 
-#include "util/HTTP.h"
+#include <memory>
+#include <cstdint>
 
-BOOST_AUTO_TEST_SUITE(UtilityTests)
+namespace i2p {
+namespace crypto {
 
-BOOST_AUTO_TEST_CASE(DecodeEmptyUri) {
-  BOOST_CHECK_EQUAL(i2p::util::http::DecodeURI(""), "");
-}
+/**
+ * @brief Public decompressing implemention
+ * @class Decompressor
+ */
+class Decompressor {
+ public:
+  Decompressor();
+  ~Decompressor();
 
-BOOST_AUTO_TEST_CASE(DecodeUri) {
-  BOOST_CHECK_EQUAL(i2p::util::http::DecodeURI("%20"), " ");
-}
+  /// @brief Data to decompress
+  /// @param Data buffer
+  /// @param Data length
+  void Put(
+      std::uint8_t* buffer,
+      std::size_t length);
 
-BOOST_AUTO_TEST_SUITE_END()
+  /// @brief Uncompressed data to retrieve
+  /// @param Uncompressed data buffer
+  /// @param Uncompressed data length
+  void Get(
+      std::uint8_t* buffer,
+      std::size_t length);
+
+  /// @brief Provides the number of bytes ready for retrieval
+  /// @returns The number of bytes ready for retrieval
+  std::size_t MaxRetrievable();
+
+  /// @brief Verifies uncompressed data using CRC-32
+  /// @param A pointer to an existing hash
+  /// @param A pointer to input as buffer
+  /// @param Length the size of the buffer
+  bool Verify(
+      std::uint8_t* hash,
+      std::uint8_t* data,
+      std::size_t length);
+
+ private:
+  class DecompressorImpl;
+  std::unique_ptr<DecompressorImpl> m_DecompressorPimpl;
+};
+
+}  // namespace util
+}  // namespace i2p
+
+#endif  // SRC_CORE_UTIL_ZIP_H_

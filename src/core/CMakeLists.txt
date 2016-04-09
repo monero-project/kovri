@@ -33,7 +33,12 @@ set(CORE_SRC
   "util/HTTP.cpp"
   "util/Log.cpp"
   "util/MTU.cpp"
-  "util/Filesystem.cpp")
+  "util/Filesystem.cpp"
+  "util/ZIP.cpp")
+
+set(CRYPTO_PIMPL_SRC
+  "crypto/pimpl/cryptopp/ZIP.cpp"
+  "crypto/pimpl/cryptopp/X509.cpp")
 
 set(EDDSA_SRC
   "crypto/ed25519/fe_0.cpp"
@@ -89,7 +94,7 @@ add_subdirectory(crypto/ed25519)
 
 # Library building
 if(WITH_LIBRARY)
-  add_library(${CORE_NAME} ${CORE_SRC} ${EDDSA_SRC})
+  add_library(${CORE_NAME} ${CORE_SRC} ${CRYPTO_PIMPL_SRC} ${EDDSA_SRC})
   target_link_libraries(
     ${CORE_NAME}
     ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${OPENSSL_LIBRARIES}

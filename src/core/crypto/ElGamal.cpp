@@ -38,7 +38,7 @@
 #include <cryptopp/sha.h>
 
 #include "CryptoConst.h"
-#include "CryptoPP_Rand.h"
+#include "pimpl/cryptopp/Rand.h"
 #include "Rand.h"
 #include "util/Log.h"
 

@@ -622,10 +622,12 @@ void SSUSession::SendSessionConfirmed(
   htobe32buf(payload, signedOnTime);  // signed on time
   payload += 4;
   auto signatureLen = i2p::context.GetIdentity().GetSignatureLen();
+  // Add N bytes padding, currently uninterpreted
   size_t paddingSize = ((payload - buf) + signatureLen)%16;
-  if (paddingSize > 0)
+  if (paddingSize > 0) {
     paddingSize = 16 - paddingSize;
-  // TODO(unassigned): fill padding
+    i2p::crypto::RandBytes(payload, paddingSize);
+  }
   payload += paddingSize;  // padding size
   // signature
   // x,y, our IP, our port, remote IP, remote port,

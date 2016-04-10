@@ -23,8 +23,8 @@ Optional
 - [VS2013](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx) (last known to work with 12.0.21005.1)
 
 ## Step 2. Open your NAT/Firewall
-1. Choose a port between ```9111``` and ```30777```.
-2. Poke a hole in your NAT/Firewall to allow incoming TCP/UDP connections to that port.
+1. Choose a port between ```9111``` and ```30777```
+2. Poke a hole in your NAT/Firewall to allow incoming TCP/UDP connections to that port
 3. Don't share this number with anyone as it will effect your anonymity!
 
 If you do not choose a port via cli or ```kovri.conf```, Kovri will randomly generate a new one on each startup. If you do not have access to your NAT, you can instead install and build with [MiniUPnP](http://miniupnp.free.fr/files/) support

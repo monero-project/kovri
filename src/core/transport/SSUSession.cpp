@@ -163,7 +163,9 @@ SSUSession::SSUSession(
 SSUSession::~SSUSession() {}
 
 boost::asio::io_service& SSUSession::GetService() {
-  return IsV6 () ? m_Server.GetServiceV6 () : m_Server.GetService();
+  return IsV6 () ?
+    m_Server.GetServiceV6 () :
+    m_Server.GetService();
 }
 
 void SSUSession::CreateAESandMacKey(
@@ -173,14 +175,14 @@ void SSUSession::CreateAESandMacKey(
       i2p::crypto::elgg);
   uint8_t sharedKey[256];
   if (!dh.Agree(
-        sharedKey,
-        m_DHKeysPair->privateKey,
-        pubKey)) {
+          sharedKey,
+          m_DHKeysPair->privateKey,
+          pubKey)) {
     LogPrint(eLogError, "Couldn't create shared key");
     return;
   }
-  uint8_t* sessionKey = m_SessionKey,
-              *macKey = m_MacKey;
+  uint8_t* sessionKey = m_SessionKey;
+  uint8_t* macKey = m_MacKey;
   if (sharedKey[0] & 0x80) {
     sessionKey[0] = 0;
     memcpy(sessionKey + 1, sharedKey, 31);
@@ -208,6 +210,12 @@ void SSUSession::CreateAESandMacKey(
   m_SessionKeyEncryption.SetKey(m_SessionKey);
   m_SessionKeyDecryption.SetKey(m_SessionKey);
 }
+
+/**
+ *
+ * Process encrypted/decrypted SSU messages
+ *
+ */
 
 void SSUSession::ProcessNextMessage(
     uint8_t* buf,
@@ -266,8 +274,8 @@ void SSUSession::ProcessDecryptedMessage(
   if (len <= SSU_HEADER_SIZE_MIN)
     return;  // too small
   SSUSessionPacket pkt(buf, len);
+  // Invalid SSU header
   if (!pkt.ParseHeader()) {
-    // invalid ssu header
     LogPrint(eLogError,
         "Invalid SSU session packet header from ", senderEndpoint);
     return;
@@ -314,6 +322,30 @@ void SSUSession::ProcessDecryptedMessage(
   }
 }
 
+/**
+ * SSU messages (payload types)
+ * ------------------------
+ *
+ *  There are 10 defined SSU messages:
+ *
+ *  0 SessionRequest
+ *  1 SessionCreated
+ *  2 SessionConfirmed
+ *  3 RelayRequest
+ *  4 RelayResponse
+ *  5 RelayIntro
+ *  6 Data
+ *  7 PeerTest
+ *  8 SessionDestroyed (implemented as of 0.8.9)
+ *  n/a HolePunch
+ */
+
+/**
+ *
+ * Payload type 0: SessionRequest
+ *
+ */
+
 void SSUSession::ProcessSessionRequest(
     SSUSessionPacket& pkt,
     const boost::asio::ip::udp::endpoint& senderEndpoint) {
@@ -329,8 +361,52 @@ void SSUSession::ProcessSessionRequest(
   SendSessionCreated(pkt.bodyptr);
 }
 
+void SSUSession::SendSessionRequest() {
+  auto introKey = GetIntroKey();
+  if (!introKey) {
+    LogPrint(eLogError, "SSU is not supported");
+    return;
+  }
+  uint8_t buf[320 + 18] = {};  // 304 bytes for ipv4, 320 for ipv6, all set to 0
+  uint8_t* payload = buf + SSU_HEADER_SIZE_MIN;
+  memcpy(payload, m_DHKeysPair->publicKey, 256);  // x
+  bool isV4 = m_RemoteEndpoint.address().is_v4();
+  if (isV4) {
+    payload[256] = 4;
+    memcpy(
+        payload + 257,
+        m_RemoteEndpoint.address().to_v4().to_bytes().data(),
+        4);
+  } else {
+    payload[256] = 16;
+    memcpy(
+        payload + 257,
+        m_RemoteEndpoint.address().to_v6().to_bytes().data(),
+        16);
+  }
+  uint8_t iv[16];
+  i2p::crypto::RandBytes(iv, 16);
+  FillHeaderAndEncrypt(
+      PAYLOAD_TYPE_SESSION_REQUEST,
+      buf,
+      isV4 ? 304 : 320,
+      introKey,
+      iv,
+      introKey);
+  m_Server.Send(
+      buf,
+      isV4 ? 304 : 320,
+      m_RemoteEndpoint);
+}
+
+/**
+ *
+ * Payload type 1: SessionCreated
+ *
+ */
+
 void SSUSession::ProcessSessionCreated(
-    SSUSessionPacket & pkt) {
+    SSUSessionPacket& pkt) {
   if (!m_RemoteRouter || !m_DHKeysPair) {
     LogPrint(eLogWarning, "Unsolicited session created message");
     return;
@@ -365,13 +441,14 @@ void SSUSession::ProcessSessionCreated(
   payload += 2;  // port
   LogPrint("Our external address is ", ourIP.to_string(), ":", ourPort);
   i2p::context.UpdateAddress(ourIP);
-  if (m_RemoteEndpoint.address().is_v4())
+  if (m_RemoteEndpoint.address().is_v4()) {
     // remote IP v4
     s.Insert(m_RemoteEndpoint.address().to_v4().to_bytes().data(), 4);
-  else
+  } else {
     // remote IP v6
     s.Insert(m_RemoteEndpoint.address().to_v6().to_bytes().data(), 16);
-  s.Insert<uint16_t> (htobe16(m_RemoteEndpoint.port()));  // remote port
+  }
+  s.Insert<uint16_t>(htobe16(m_RemoteEndpoint.port()));  // remote port
   s.Insert(payload, 8);  // relayTag and signed on time
   m_RelayTag = bufbe32toh(payload);
   payload += 4;  // relayTag
@@ -390,126 +467,6 @@ void SSUSession::ProcessSessionCreated(
   } else {  // invalid signature
     LogPrint(eLogError, "SSU signature verification failed in session created");
   }
-}
-
-void SSUSession::ProcessSessionConfirmed(
-    SSUSessionPacket & pkt) {
-  if (m_SessionConfirmData == nullptr) {
-    // no session confirm data wtf?
-    LogPrint(eLogError, "SSU Unsolicited Session Confirm");
-    return;
-  }
-  LogPrint(eLogDebug, "Session confirmed received");
-  uint8_t* buf = pkt.dataptr;
-  uint8_t* payload = pkt.bodyptr;
-  payload++;  // identity fragment info
-  uint16_t identitySize = bufbe16toh(payload);
-  payload += 2;  // size of identity fragment
-  m_RemoteIdentity.FromBuffer(payload, identitySize);
-  m_Data.UpdatePacketSize(m_RemoteIdentity.GetIdentHash());
-  payload += identitySize;  // identity
-  m_SessionConfirmData->Insert(
-      payload,
-      4);  // signature time
-  payload += 4;  // signed-on time
-  size_t paddingSize = (payload - buf) +
-    m_RemoteIdentity.GetSignatureLen();
-  paddingSize &= 0x0F;  // %16
-  if (paddingSize > 0)
-    paddingSize = 16 - paddingSize;
-  payload += paddingSize;
-  if (m_SessionConfirmData->Verify(m_RemoteIdentity, payload)) {
-    // verified
-    Established();
-    return;
-  }
-  // bad state or verification failed
-  LogPrint(eLogError, "SSU Session Confirm Failed");
-}
-
-void SSUSession::SendSessionRequest() {
-  auto introKey = GetIntroKey();
-  if (!introKey) {
-    LogPrint(eLogError, "SSU is not supported");
-    return;
-  }
-  uint8_t buf[320 + 18] = {};  // 304 bytes for ipv4, 320 for ipv6, all set to 0
-  uint8_t* payload = buf + SSU_HEADER_SIZE_MIN;
-  memcpy(payload, m_DHKeysPair->publicKey, 256);  // x
-  bool isV4 = m_RemoteEndpoint.address().is_v4();
-  if (isV4) {
-    payload[256] = 4;
-    memcpy(
-        payload + 257,
-        m_RemoteEndpoint.address().to_v4().to_bytes().data(),
-        4);
-  } else {
-    payload[256] = 16;
-    memcpy(
-        payload + 257,
-        m_RemoteEndpoint.address().to_v6().to_bytes().data(),
-        16);
-  }
-  uint8_t iv[16];
-  i2p::crypto::RandBytes(iv, 16);
-
-  FillHeaderAndEncrypt(
-      PAYLOAD_TYPE_SESSION_REQUEST,
-      buf,
-      isV4 ? 304 : 320,
-      introKey,
-      iv,
-      introKey);
-  m_Server.Send(
-      buf,
-      isV4 ? 304 : 320,
-      m_RemoteEndpoint);
-}
-
-void SSUSession::SendRelayRequest(
-    uint32_t iTag,
-    const uint8_t* iKey) {
-  auto address = i2p::context.GetRouterInfo().GetSSUAddress();
-  if (!address) {
-    LogPrint(eLogError, "SSU is not supported");
-    return;
-  }
-  uint8_t buf[96 + 18] = {};
-  uint8_t* payload = buf + SSU_HEADER_SIZE_MIN;
-  htobe32buf(payload, iTag);
-  payload += 4;
-  *payload = 0;  // no address
-  payload++;
-  htobuf16(payload, 0);  // port = 0
-  payload += 2;
-  *payload = 0;  // challenge
-  payload++;
-  memcpy(payload, (const uint8_t *)address->key, 32);
-  payload += 32;
-  htobe32buf(payload, i2p::crypto::Rand<uint32_t>());  // nonce
-  uint8_t iv[16];
-  i2p::crypto::RandBytes(iv, 16);
-  if (m_State == eSessionStateEstablished) {
-    FillHeaderAndEncrypt(
-        PAYLOAD_TYPE_RELAY_REQUEST,
-        buf,
-        96,
-        m_SessionKey,
-        iv,
-        m_MacKey);
-  } else {
-    FillHeaderAndEncrypt(
-        PAYLOAD_TYPE_RELAY_REQUEST,
-        buf,
-        96,
-        iKey,
-        iv,
-        iKey);
-  }
-  m_Server.Send(
-      buf,
-      96,
-      m_RemoteEndpoint);
 }
 
 void SSUSession::SendSessionCreated(
@@ -605,6 +562,47 @@ void SSUSession::SendSessionCreated(
   }
 }
 
+/**
+ *
+ * Payload type 2: SessionConfirmed
+ *
+ */
+
+void SSUSession::ProcessSessionConfirmed(
+    SSUSessionPacket & pkt) {
+  if (m_SessionConfirmData == nullptr) {
+    // no session confirm data wtf?
+    LogPrint(eLogError, "SSU Unsolicited Session Confirm");
+    return;
+  }
+  LogPrint(eLogDebug, "Session confirmed received");
+  uint8_t* buf = pkt.dataptr;
+  uint8_t* payload = pkt.bodyptr;
+  payload++;  // identity fragment info
+  uint16_t identitySize = bufbe16toh(payload);
+  payload += 2;  // size of identity fragment
+  m_RemoteIdentity.FromBuffer(payload, identitySize);
+  m_Data.UpdatePacketSize(m_RemoteIdentity.GetIdentHash());
+  payload += identitySize;  // identity
+  m_SessionConfirmData->Insert(
+      payload,
+      4);  // signature time
+  payload += 4;  // signed-on time
+  size_t paddingSize =
+    (payload - buf) + m_RemoteIdentity.GetSignatureLen();
+  paddingSize &= 0x0F;  // %16
+  if (paddingSize > 0)
+    paddingSize = 16 - paddingSize;
+  payload += paddingSize;
+  if (m_SessionConfirmData->Verify(m_RemoteIdentity, payload)) {
+    // verified
+    Established();
+    return;
+  }
+  // bad state or verification failed
+  LogPrint(eLogError, "SSU Session Confirm Failed");
+}
+
 void SSUSession::SendSessionConfirmed(
     const uint8_t* y,
     const uint8_t* ourAddress,
@@ -635,13 +633,17 @@ void SSUSession::SendSessionConfirmed(
   SignedData s;
   s.Insert(m_DHKeysPair->publicKey, 256);  // x
   s.Insert(y, 256);  // y
-  s.Insert(ourAddress, ourAddressLen);  // our address/port as seem by party
+  s.Insert(ourAddress, ourAddressLen);  // our address/port as seen by party
   if (m_RemoteEndpoint.address().is_v4())
     // remote IP V4
-    s.Insert(m_RemoteEndpoint.address().to_v4().to_bytes().data(), 4);
+    s.Insert(
+        m_RemoteEndpoint.address().to_v4().to_bytes().data(),
+        4);
   else
     // remote IP V6
-    s.Insert(m_RemoteEndpoint.address().to_v6().to_bytes().data(), 16);
+    s.Insert(
+        m_RemoteEndpoint.address().to_v6().to_bytes().data(),
+        16);
   s.Insert<uint16_t> (htobe16(m_RemoteEndpoint.port()));  // remote port
   s.Insert(htobe32(m_RelayTag));  // relay tag
   s.Insert(htobe32(signedOnTime));  // signed on time
@@ -660,6 +662,12 @@ void SSUSession::SendSessionConfirmed(
       m_MacKey);
   Send(buf, msgLen);
 }
+
+/**
+ *
+ * Payload type 3: RelayRequest
+ *
+ */
 
 void SSUSession::ProcessRelayRequest(
     SSUSessionPacket& pkt,
@@ -686,6 +694,87 @@ void SSUSession::ProcessRelayRequest(
         session->m_RemoteEndpoint);
     SendRelayIntro(session.get(), from);
   }
+}
+
+void SSUSession::SendRelayRequest(
+    uint32_t iTag,
+    const uint8_t* iKey) {
+  auto address = i2p::context.GetRouterInfo().GetSSUAddress();
+  if (!address) {
+    LogPrint(eLogError, "SSU is not supported");
+    return;
+  }
+  uint8_t buf[96 + 18] = {};
+  uint8_t* payload = buf + SSU_HEADER_SIZE_MIN;
+  htobe32buf(payload, iTag);
+  payload += 4;
+  *payload = 0;  // no address
+  payload++;
+  htobuf16(payload, 0);  // port = 0
+  payload += 2;
+  *payload = 0;  // challenge
+  payload++;
+  memcpy(payload, (const uint8_t *)address->key, 32);
+  payload += 32;
+  htobe32buf(payload, i2p::crypto::Rand<uint32_t>());  // nonce
+  uint8_t iv[16];
+  i2p::crypto::RandBytes(iv, 16);
+  if (m_State == eSessionStateEstablished) {
+    FillHeaderAndEncrypt(
+        PAYLOAD_TYPE_RELAY_REQUEST,
+        buf,
+        96,
+        m_SessionKey,
+        iv,
+        m_MacKey);
+  } else {
+    FillHeaderAndEncrypt(
+        PAYLOAD_TYPE_RELAY_REQUEST,
+        buf,
+        96,
+        iKey,
+        iv,
+        iKey);
+  }
+  m_Server.Send(
+      buf,
+      96,
+      m_RemoteEndpoint);
+}
+
+/**
+ *
+ * Payload type 4: RelayResponse
+ *
+ */
+
+void SSUSession::ProcessRelayResponse(
+    SSUSessionPacket & pkt) {
+  LogPrint(eLogDebug, "Relay response received");
+  uint8_t* payload = pkt.bodyptr;
+  uint8_t remoteSize = *payload;
+  payload++;  // remote size
+  // boost::asio::ip::address_v4 remoteIP (bufbe32toh (payload));
+  payload += remoteSize;  // remote address
+  // uint16_t remotePort = bufbe16toh (payload);
+  payload += 2;  // remote port
+  uint8_t ourSize = *payload;
+  payload++;  // our size
+  boost::asio::ip::address ourIP;
+  if (ourSize == 4) {
+    boost::asio::ip::address_v4::bytes_type bytes;
+    memcpy(bytes.data(), payload, 4);
+    ourIP = boost::asio::ip::address_v4(bytes);
+  } else {
+    boost::asio::ip::address_v6::bytes_type bytes;
+    memcpy(bytes.data(), payload, 16);
+    ourIP = boost::asio::ip::address_v6(bytes);
+  }
+  payload += ourSize;  // our address
+  uint16_t ourPort = bufbe16toh(payload);
+  payload += 2;  // our port
+  LogPrint("Our external address is ", ourIP.to_string(), ":", ourPort);
+  i2p::context.UpdateAddress(ourIP);
 }
 
 void SSUSession::SendRelayResponse(
@@ -752,6 +841,34 @@ void SSUSession::SendRelayResponse(
   LogPrint(eLogDebug, "SSU relay response sent");
 }
 
+/**
+ *
+ * Payload type 5: RelayIntro
+ *
+ */
+
+void SSUSession::ProcessRelayIntro(
+    SSUSessionPacket & pkt) {
+  uint8_t* buf = pkt.bodyptr;
+  uint8_t size = *buf;
+  if (size == 4) {
+    buf++;  // size
+    boost::asio::ip::address_v4 address(bufbe32toh(buf));
+    buf += 4;  // address
+    uint16_t port = bufbe16toh(buf);
+    // send hole punch of 1 byte
+    m_Server.Send(
+        buf,
+        0,
+        boost::asio::ip::udp::endpoint(
+            address,
+            port));
+  } else {
+    LogPrint(eLogWarning,
+        "Address size ", static_cast<int>(size), " is not supported");
+  }
+}
+
 void SSUSession::SendRelayIntro(
     SSUSession* session,
     const boost::asio::ip::udp::endpoint& from) {
@@ -787,54 +904,259 @@ void SSUSession::SendRelayIntro(
   LogPrint(eLogDebug, "SSU relay intro sent");
 }
 
-void SSUSession::ProcessRelayResponse(
+/**
+ *
+ * Payload type 6: Data
+ *
+ */
+
+void SSUSession::ProcessData(
     SSUSessionPacket & pkt) {
-  LogPrint(eLogDebug, "Relay response received");
-  uint8_t* payload = pkt.bodyptr;
-  uint8_t remoteSize = *payload;
-  payload++;  // remote size
-  // boost::asio::ip::address_v4 remoteIP (bufbe32toh (payload));
-  payload += remoteSize;  // remote address
-  // uint16_t remotePort = bufbe16toh (payload);
-  payload += 2;  // remote port
-  uint8_t ourSize = *payload;
-  payload++;  // our size
-  boost::asio::ip::address ourIP;
-  if (ourSize == 4) {
-    boost::asio::ip::address_v4::bytes_type bytes;
-    memcpy(bytes.data(), payload, 4);
-    ourIP = boost::asio::ip::address_v4(bytes);
-  } else {
-    boost::asio::ip::address_v6::bytes_type bytes;
-    memcpy(bytes.data(), payload, 16);
-    ourIP = boost::asio::ip::address_v6(bytes);
-  }
-  payload += ourSize;  // our address
-  uint16_t ourPort = bufbe16toh(payload);
-  payload += 2;  // our port
-  LogPrint("Our external address is ", ourIP.to_string(), ":", ourPort);
-  i2p::context.UpdateAddress(ourIP);
+  m_Data.ProcessMessage(pkt.bodyptr, pkt.bodylen);
+  m_IsDataReceived = true;
 }
 
-void SSUSession::ProcessRelayIntro(
-    SSUSessionPacket & pkt) {
+void SSUSession::FlushData() {
+  if (m_IsDataReceived) {
+    m_Data.FlushReceivedMessage();
+    m_IsDataReceived = false;
+  }
+}
+
+/**
+ *
+ * Payload type 7: PeerTest
+ *
+ */
+
+void SSUSession::ProcessPeerTest(
+    SSUSessionPacket& pkt,
+    const boost::asio::ip::udp::endpoint& senderEndpoint) {
   uint8_t* buf = pkt.bodyptr;
-  uint8_t size = *buf;
-  if (size == 4) {
-    buf++;  // size
-    boost::asio::ip::address_v4 address(bufbe32toh(buf));
-    buf += 4;  // address
-    uint16_t port = bufbe16toh(buf);
-    // send hole punch of 1 byte
-    m_Server.Send(
-        buf,
-        0,
-        boost::asio::ip::udp::endpoint(
-          address,
-          port));
+  size_t len = pkt.bodylen;
+  uint32_t nonce = bufbe32toh(buf);  // 4 bytes
+  uint8_t size = buf[4];  // 1 byte
+  uint32_t address = (size == 4) ?
+    buf32toh(buf + 5) :
+    0;  // big endian, size bytes
+  uint16_t port = buf16toh(buf + size + 5);  // big endian, 2 bytes
+  const uint8_t* introKey = buf + size + 7;
+  if (port && !address) {
+    LogPrint(eLogWarning, "Address of ", static_cast<int>(size), " bytes not supported");
+    return;
+  }
+  switch (m_Server.GetPeerTestParticipant(nonce)) {
+    // existing test
+    case ePeerTestParticipantAlice1: {
+      if (m_State == eSessionStateEstablished) {
+        LogPrint(eLogDebug, "SSU peer test from Bob. We are Alice");
+        if (i2p::context.GetStatus() == eRouterStatusTesting)  // still not OK
+          i2p::context.SetStatus(eRouterStatusFirewalled);
+      } else {
+        LogPrint(eLogDebug, "SSU first peer test from Charlie. We are Alice");
+        i2p::context.SetStatus(eRouterStatusOK);
+        m_Server.UpdatePeerTest(
+            nonce,
+            ePeerTestParticipantAlice2);
+        SendPeerTest(
+            nonce,
+            senderEndpoint.address().to_v4().to_ulong(),
+            senderEndpoint.port(),
+            introKey,
+            true,
+            false);  // to Charlie
+      }
+      break;
+    }
+    case ePeerTestParticipantAlice2: {
+      if (m_State == eSessionStateEstablished) {
+        LogPrint(eLogDebug, "SSU peer test from Bob. We are Alice");
+      } else {
+        // peer test successive
+        LogPrint(eLogDebug, "SSU second peer test from Charlie. We are Alice");
+        i2p::context.SetStatus(eRouterStatusOK);
+        m_Server.RemovePeerTest(nonce);
+      }
+      break;
+    }
+    case ePeerTestParticipantBob: {
+      LogPrint(eLogDebug, "SSU peer test from Charlie. We are Bob");
+      // session with Alice from PeerTest
+      auto session = m_Server.GetPeerTestSession(nonce);
+      if (session && session->m_State == eSessionStateEstablished)
+        session->Send(  // back to Alice
+            PAYLOAD_TYPE_PEER_TEST,
+            buf,
+            len);
+      m_Server.RemovePeerTest(nonce);  // nonce has been used
+      break;
+    }
+    case ePeerTestParticipantCharlie: {
+      LogPrint(eLogDebug, "SSU peer test from Alice. We are Charlie");
+      SendPeerTest(
+          nonce,
+          senderEndpoint.address().to_v4().to_ulong(),
+          senderEndpoint.port(),
+          introKey);  // to Alice with her actual address
+      m_Server.RemovePeerTest(nonce);  // nonce has been used
+      break;
+    }
+    // test not found
+    case ePeerTestParticipantUnknown: {
+      if (m_State == eSessionStateEstablished) {
+        // new test
+        if (port) {
+          LogPrint(eLogDebug, "SSU peer test from Bob. We are Charlie");
+          m_Server.NewPeerTest(nonce, ePeerTestParticipantCharlie);
+          Send(  // back to Bob
+              PAYLOAD_TYPE_PEER_TEST,
+              buf,
+              len);
+          SendPeerTest(  // to Alice with her address received from Bob
+              nonce,
+              be32toh(address),
+              be16toh(port),
+              introKey);
+        } else {
+          LogPrint(eLogDebug, "SSU peer test from Alice. We are Bob");
+          auto session =
+            m_Server.GetRandomEstablishedSession(
+                shared_from_this());  // Charlie
+          if (session) {
+            m_Server.NewPeerTest(
+                nonce,
+                ePeerTestParticipantBob,
+                shared_from_this());
+            session->SendPeerTest(
+                nonce,
+                senderEndpoint.address().to_v4().to_ulong(),
+                senderEndpoint.port(),
+                introKey,
+                false);  // to Charlie with Alice's actual address
+          }
+        }
+      } else {
+        LogPrint(eLogError, "SSU unexpected peer test");
+      }
+    }
+  }
+}
+
+void SSUSession::SendPeerTest(
+    uint32_t nonce,
+    uint32_t address,
+    uint16_t port,
+    const uint8_t* introKey,
+    bool toAddress,  // is true for Alice<->Charlie communications only
+    bool sendAddress) {  // is false if message comes from Alice
+  uint8_t buf[80 + 18] = {};
+  uint8_t* payload = buf + SSU_HEADER_SIZE_MIN;
+  htobe32buf(payload, nonce);
+  payload += 4;  // nonce
+  // address and port
+  if (sendAddress && address) {
+    *payload = 4;
+    payload++;  // size
+    htobe32buf(payload, address);
+    payload += 4;  // address
   } else {
-    LogPrint(eLogWarning,
-        "Address size ", static_cast<int>(size), " is not supported");
+    *payload = 0;
+    payload++;  // size
+  }
+  htobe16buf(payload, port);
+  payload += 2;  // port
+  // intro key
+  if (toAddress) {
+    // send our intro key to address instead it's own
+    auto addr = i2p::context.GetRouterInfo().GetSSUAddress();
+    if (addr)
+      memcpy(payload, addr->key, 32);  // intro key
+    else
+      LogPrint(eLogError, "SSU is not supported. Can't send peer test");
+  } else {
+    memcpy(payload, introKey, 32);  // intro key
+  }
+  // send
+  uint8_t iv[16];
+  i2p::crypto::RandBytes(iv, 16);
+  if (toAddress) {
+    // encrypt message with specified intro key
+    FillHeaderAndEncrypt(
+        PAYLOAD_TYPE_PEER_TEST,
+        buf,
+        80,
+        introKey,
+        iv,
+        introKey);
+    boost::asio::ip::udp::endpoint e(
+        boost::asio::ip::address_v4(
+            address),
+        port);
+    m_Server.Send(buf, 80, e);
+  } else {
+    // encrypt message with session key
+    FillHeaderAndEncrypt(
+        PAYLOAD_TYPE_PEER_TEST,
+        buf,
+        80);
+    Send(buf, 80);
+  }
+}
+
+void SSUSession::SendPeerTest() {
+  // we are Alice
+  LogPrint(eLogDebug, "SSU sending peer test");
+  auto address = i2p::context.GetRouterInfo().GetSSUAddress();
+  if (!address) {
+    LogPrint(eLogError, "SSU is not supported. Can't send peer test");
+    return;
+  }
+  uint32_t nonce = i2p::crypto::Rand<uint32_t>();
+  if (!nonce)
+    nonce = 1;
+  m_PeerTest = false;
+  m_Server.NewPeerTest(nonce, ePeerTestParticipantAlice1);
+  SendPeerTest(
+      nonce,
+      0,  // address and port always zero for Alice
+      0,  // ^
+      address->key,
+      false,
+      false);
+}
+
+/**
+ *
+ * Payload type 8: SessionDestroyed
+ *
+ */
+
+void SSUSession::SendSesionDestroyed() {
+  if (m_IsSessionKey) {
+    uint8_t buf[48 + 18] = {};
+    // encrypt message with session key
+    FillHeaderAndEncrypt(PAYLOAD_TYPE_SESSION_DESTROYED, buf, 48);
+    try {
+      Send(buf, 48);
+    } catch(std::exception& ex) {
+      LogPrint(eLogError, "SSU send session destroyed exception ", ex.what());
+    }
+    LogPrint(eLogDebug, "SSU session destroyed sent");
+  }
+}
+
+void SSUSession::SendKeepAlive() {
+  if (m_State == eSessionStateEstablished) {
+    uint8_t buf[48 + 18] = {};
+    uint8_t* payload = buf + SSU_HEADER_SIZE_MIN;
+    *payload = 0;  // flags
+    payload++;
+    *payload = 0;  // num fragments
+    // encrypt message with session key
+    FillHeaderAndEncrypt(PAYLOAD_TYPE_DATA, buf, 48);
+    Send(buf, 48);
+    LogPrint(eLogDebug, "SSU keep-alive sent");
+    ScheduleTermination();
   }
 }
 
@@ -1117,244 +1439,6 @@ void SSUSession::PostI2NPMessages(
     for (auto it : msgs)
       if (it)
         m_Data.Send(it);
-  }
-}
-
-void SSUSession::ProcessData(
-    SSUSessionPacket & pkt) {
-  m_Data.ProcessMessage(pkt.bodyptr, pkt.bodylen);
-  m_IsDataReceived = true;
-}
-
-void SSUSession::FlushData() {
-  if (m_IsDataReceived) {
-    m_Data.FlushReceivedMessage();
-    m_IsDataReceived = false;
-  }
-}
-
-void SSUSession::ProcessPeerTest(
-    SSUSessionPacket& pkt,
-    const boost::asio::ip::udp::endpoint& senderEndpoint) {
-  uint8_t * buf = pkt.bodyptr;
-  size_t len = pkt.bodylen;
-  uint32_t nonce = bufbe32toh(buf);  // 4 bytes
-  uint8_t size = buf[4];  // 1 byte
-  uint32_t address = (size == 4) ?
-    buf32toh(buf + 5) :
-    0;  // big endian, size bytes
-  uint16_t port = buf16toh(buf + size + 5);  // big endian, 2 bytes
-  const uint8_t* introKey = buf + size + 7;
-  if (port && !address) {
-    LogPrint(eLogWarning, "Address of ", size, " bytes not supported");
-    return;
-  }
-  switch (m_Server.GetPeerTestParticipant(nonce)) {
-    // existing test
-    case ePeerTestParticipantAlice1: {
-      if (m_State == eSessionStateEstablished) {
-        LogPrint(eLogDebug, "SSU peer test from Bob. We are Alice");
-        if (i2p::context.GetStatus() == eRouterStatusTesting)  // still not OK
-          i2p::context.SetStatus(eRouterStatusFirewalled);
-      } else {
-        LogPrint(eLogDebug, "SSU first peer test from Charlie. We are Alice");
-        i2p::context.SetStatus(eRouterStatusOK);
-        m_Server.UpdatePeerTest(
-            nonce,
-            ePeerTestParticipantAlice2);
-        SendPeerTest(
-            nonce,
-            senderEndpoint.address().to_v4().to_ulong(),
-            senderEndpoint.port(),
-            introKey,
-            true,
-            false);  // to Charlie
-      }
-      break;
-    }
-    case ePeerTestParticipantAlice2: {
-      if (m_State == eSessionStateEstablished) {
-        LogPrint(eLogDebug, "SSU peer test from Bob. We are Alice");
-      } else {
-        // peer test successive
-        LogPrint(eLogDebug, "SSU second peer test from Charlie. We are Alice");
-        i2p::context.SetStatus(eRouterStatusOK);
-        m_Server.RemovePeerTest(nonce);
-      }
-      break;
-    }
-    case ePeerTestParticipantBob: {
-      LogPrint(eLogDebug, "SSU peer test from Charlie. We are Bob");
-      // session with Alice from PeerTest
-      auto session = m_Server.GetPeerTestSession(nonce);
-      if (session && session->m_State == eSessionStateEstablished)
-        session->Send(  // back to Alice
-            PAYLOAD_TYPE_PEER_TEST,
-            buf,
-            len);
-      m_Server.RemovePeerTest(nonce);  // nonce has been used
-      break;
-    }
-    case ePeerTestParticipantCharlie: {
-      LogPrint(eLogDebug, "SSU peer test from Alice. We are Charlie");
-      SendPeerTest(
-          nonce,
-          senderEndpoint.address().to_v4().to_ulong(),
-          senderEndpoint.port(),
-          introKey);  // to Alice with her actual address
-      m_Server.RemovePeerTest(nonce);  // nonce has been used
-      break;
-    }
-    // test not found
-    case ePeerTestParticipantUnknown: {
-      if (m_State == eSessionStateEstablished) {
-        // new test
-        if (port) {
-          LogPrint(eLogDebug, "SSU peer test from Bob. We are Charlie");
-          m_Server.NewPeerTest(nonce, ePeerTestParticipantCharlie);
-          Send(  // back to Bob
-              PAYLOAD_TYPE_PEER_TEST,
-              buf,
-              len);
-          SendPeerTest(  // to Alice with her address received from Bob
-              nonce,
-              be32toh(address),
-              be16toh(port),
-              introKey);
-        } else {
-          LogPrint(eLogDebug, "SSU peer test from Alice. We are Bob");
-          auto session =
-            m_Server.GetRandomEstablishedSession(
-                shared_from_this());  // Charlie
-          if (session) {
-            m_Server.NewPeerTest(
-                nonce,
-                ePeerTestParticipantBob,
-                shared_from_this());
-            session->SendPeerTest(
-                nonce,
-                senderEndpoint.address().to_v4().to_ulong(),
-                senderEndpoint.port(),
-                introKey,
-                false);  // to Charlie with Alice's actual address
-          }
-        }
-      } else {
-        LogPrint(eLogError, "SSU unexpected peer test");
-      }
-    }
-  }
-}
-
-void SSUSession::SendPeerTest(
-    uint32_t nonce,
-    uint32_t address,
-    uint16_t port,
-    const uint8_t* introKey,
-    bool toAddress,  // is true for Alice<->Charlie communications only
-    bool sendAddress) {  // is false if message comes from Alice
-  uint8_t buf[80 + 18] = {};
-  uint8_t* payload = buf + SSU_HEADER_SIZE_MIN;
-  htobe32buf(payload, nonce);
-  payload += 4;  // nonce
-  // address and port
-  if (sendAddress && address) {
-    *payload = 4;
-    payload++;  // size
-    htobe32buf(payload, address);
-    payload += 4;  // address
-  } else {
-    *payload = 0;
-    payload++;  // size
-  }
-  htobe16buf(payload, port);
-  payload += 2;  // port
-  // intro key
-  if (toAddress) {
-    // send our intro key to address instead it's own
-    auto addr = i2p::context.GetRouterInfo().GetSSUAddress();
-    if (addr)
-      memcpy(payload, addr->key, 32);  // intro key
-    else
-      LogPrint(eLogError, "SSU is not supported. Can't send peer test");
-  } else {
-    memcpy(payload, introKey, 32);  // intro key
-  }
-  // send
-  uint8_t iv[16];
-  i2p::crypto::RandBytes(iv, 16);
-  if (toAddress) {
-    // encrypt message with specified intro key
-    FillHeaderAndEncrypt(
-        PAYLOAD_TYPE_PEER_TEST,
-        buf,
-        80,
-        introKey,
-        iv,
-        introKey);
-    boost::asio::ip::udp::endpoint e(
-        boost::asio::ip::address_v4(
-          address),
-        port);
-    m_Server.Send(buf, 80, e);
-  } else {
-    // encrypt message with session key
-    FillHeaderAndEncrypt(
-        PAYLOAD_TYPE_PEER_TEST,
-        buf,
-        80);
-    Send(buf, 80);
-  }
-}
-
-void SSUSession::SendPeerTest() {
-  // we are Alice
-  LogPrint(eLogDebug, "SSU sending peer test");
-  auto address = i2p::context.GetRouterInfo().GetSSUAddress();
-  if (!address) {
-    LogPrint(eLogError, "SSU is not supported. Can't send peer test");
-    return;
-  }
-  uint32_t nonce = i2p::crypto::Rand<uint32_t>();
-  if (!nonce)
-    nonce = 1;
-  m_PeerTest = false;
-  m_Server.NewPeerTest(nonce, ePeerTestParticipantAlice1);
-  SendPeerTest(
-      nonce,
-      0,  // address and port always zero for Alice
-      0,  // ^
-      address->key,
-      false,
-      false);
-}
-
-void SSUSession::SendKeepAlive() {
-  if (m_State == eSessionStateEstablished) {
-    uint8_t buf[48 + 18] = {};
-    uint8_t* payload = buf + SSU_HEADER_SIZE_MIN;
-    *payload = 0;  // flags
-    payload++;
-    *payload = 0;  // num fragments
-    // encrypt message with session key
-    FillHeaderAndEncrypt(PAYLOAD_TYPE_DATA, buf, 48);
-    Send(buf, 48);
-    LogPrint(eLogDebug, "SSU keep-alive sent");
-    ScheduleTermination();
-  }
-}
-
-void SSUSession::SendSesionDestroyed() {
-  if (m_IsSessionKey) {
-    uint8_t buf[48 + 18] = {};
-    // encrypt message with session key
-    FillHeaderAndEncrypt(PAYLOAD_TYPE_SESSION_DESTROYED, buf, 48);
-    try {
-      Send(buf, 48);
-    } catch(std::exception& ex) {
-      LogPrint(eLogError, "SSU send session destroyed exception ", ex.what());
-    }
-    LogPrint(eLogDebug, "SSU session destroyed sent");
   }
 }
 

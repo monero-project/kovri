@@ -53,7 +53,7 @@ namespace crypto {
 class X509::X509Impl {
  public:
   /// @brief Retrieves signing key from processed X.509 certificate
-  /// @param Certificate to extract public signing key from
+  /// @param certificate Certificate to extract public signing key from
   /// @return Map of signer id to public signing key
   const std::map<std::string, PublicKey> GetSigningKey(
       std::stringstream& certificate) {
@@ -69,7 +69,7 @@ class X509::X509Impl {
 
  private:
   /// @brief Processes an X.509 certificate
-  /// @param Certificate to process, as string
+  /// @param certificate Certificate to process, as string
   /// @return False on failure
   bool ProcessCert(
       std::stringstream& certificate) {
@@ -104,8 +104,8 @@ class X509::X509Impl {
   }
 
   /// @brief Decodes a PEM Base64 string, stores signing key in map
-  /// @param A pointer to the byte buffer to process
-  /// @param Length the size of the string, in bytes
+  /// @param buffer A pointer to the byte buffer to process
+  /// @param length Length the size of the string, in bytes
   bool PEMDecode(
       const char* buffer,
       std::size_t length) {

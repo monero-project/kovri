@@ -41,8 +41,8 @@ namespace i2p {
 namespace util {
 namespace filesystem {
 
-/// @class StringStream: stream abstraction
-/// @defailts A wrapper for casting and and strongly-typed classes
+/// @class StringStream
+/// @details A wrapper for casting and and strongly-typed classes
 /// @param String to be treated as stream
 class StringStream {
   std::stringstream m_Stream;

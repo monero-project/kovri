@@ -88,7 +88,7 @@ class ClientContext {
   std::shared_ptr<ClientDestination> FindLocalDestination(
       const i2p::data::IdentHash& destination) const;
 
-  /// Loads the private keys from the given file
+  /// @brief Loads the private keys from the given file
   /// @param file the relative name of the private key file
   /// @return the loaded private keys
   i2p::data::PrivateKeys LoadPrivateKeys(const std::string& file);
@@ -98,15 +98,15 @@ class ClientContext {
 
   AddressBook& GetAddressBook() { return m_AddressBook; }
 
-  /// Removes all server unnels satisfying the given predicate
+  /// @brief Removes all server unnels satisfying the given predicate
   /// @param predicate a unary predicate used to filter server tunnels
   void RemoveServerTunnels(std::function<bool(I2PServerTunnel*)> predicate);
 
-  /// Removes all client tunnels satisfying the given predicate
+  /// @brief Removes all client tunnels satisfying the given predicate
   /// @param predicate a unary predicate used to filter client tunnels
   void RemoveClientTunnels(std::function<bool(I2PClientTunnel*)> predicate);
 
-  /// Updates or creates the specified server tunnel
+  /// @brief Updates or creates the specified server tunnel
   /// @param keyfile the relative filename of the key file
   /// @param http true if server tunnel is an HTTP tunnel
   void UpdateServerTunnel(
@@ -118,7 +118,7 @@ class ClientContext {
     int inPort,
     bool http);
 
-  /// Updates or creates the specified client tunnel
+  /// @brief Updates or creates the specified client tunnel
   /// @param tunnelName the name of the client tunnel
   /// @param keyfile the relative filename of the key file
   void UpdateClientTunnel(
@@ -129,11 +129,11 @@ class ClientContext {
     int port,
     int destPort);
 
-  /// Registers a shutdown handler, called by ClientContext::RequestShutdown.
-  /// @param the handler to be called on shutdown
+  /// @brief Registers a shutdown handler, called by ClientContext::RequestShutdown.
+  /// @param handler The handler to be called on shutdown
   void RegisterShutdownHandler(std::function<void(void)> handler);
 
-  /// Inserts a client tunnel.
+  /// @brief Inserts a client tunnel.
   /// @return true if the tunnel was inserted, false otherwise
   /// @note takes ownership of the given pointer
   bool InsertClientTunnel(int port, I2PClientTunnel* tunnel);

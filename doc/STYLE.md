@@ -4,37 +4,11 @@ Please run [cpplint](https://github.com/google/styleguide/tree/gh-pages/cpplint)
 
 In addition to the aforementioned, please consider the following:
 
-- Please keep in line with codebase's present style for consistency.
-- Why a vertical style? It's easy to code things fast but doing things slower tends to reduce human error (slows the eye down + easier to count and compare datatypes + easier to maintain).
-- But why this specific style? Anonymity. Doing things here that wouldn't be done elsewhere helps reduce the chance of programmer correlation. This allows any contributor to *blend-in* as long as they adhere to specifics.
-- Lines should be <=80 spaces unless impossible to do so (see [cpplint](https://github.com/google/styleguide/tree/gh-pages/cpplint)).
-- ```XXX``` and any unassigned ```TODO```'s should be marked instead as ```TODO(unassigned):``` so Doxygen can catch them.
-- Always use three-slash ```/// C++ comments``` for Doxygen unless the comments span more than 10 lines (give or take). When that happens, a traditional
-```c
-  /**
-   * should suffice
-   */
-```
-- ``if/else`` statements should never one-liner. Nothing bracketed should one-liner unless it is empty (see vertical theory above).
-- Please remove EOL whitespace: ```'s/ *$//g'``` (see [cpplint](https://github.com/google/styleguide/tree/gh-pages/cpplint)).
-- New files should maintain consistency with other filename case, e.g., CryptoPP_rand.h instead of cryptopp_rand.h
-- Pointers: reference/dereference operators on the left (attached to datatype) when possible.
-- Class member variables are prepended with m_
-- Enumerators are prepended with e_
-- Abstain from datatype declaration redundancy (e.g., use commas instead of repeating the datatype).
-```cpp
-uint32_t tunnelID,
-         nextTunnelID;
-
-uint8_t layerKey[32],
-        ivKey[32],
-        replyKey[32],
-        replyIV[16],
-        randPad[29];
-
-bool isGateway,
-     isEndpoint;
-```
+- Please keep in line with codebase's present (vertical) style for consistency
+- If anonymity is a concern, try to blend in with a present contributor's style
+- Lines should be <=80 spaces unless impossible to do so (see [cpplint](https://github.com/google/styleguide/tree/gh-pages/cpplint))
+- Pointers: reference/dereference operators on the left (attached to datatype) when possible
+- Class member variables should be prepended with m_
 - If function args newline break, ensure that *every* indent is 4 spaces (and not 2).
 ```cpp
 if (clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x40) {
@@ -62,3 +36,11 @@ if (clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x40) {
                   clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET))));
 }
 ```
+- TODO's should me marked as ```TODO(unassigned):``` (replace unassigned with your name) so Doxygen can catch them
+- Use three-slash ```/// C++ comments``` for Doxygen unless the comments span more than 10 lines (give or take). When that happens, a traditional
+```c
+  /**
+   * should suffice
+   */
+```
+- New files should maintain consistency with other filename case

@@ -52,10 +52,9 @@ class Verifier;
 
 namespace data {
 template<int SZ>
-class Tag {
+class Tag {  // TODO(anonimal): review/consider moving this class into core/util
  public:
-  Tag(
-      const uint8_t * buf) {
+  Tag(const uint8_t* buf) {
     memcpy(m_Buf, buf, SZ);
   }
   Tag(const Tag<SZ>&) = default;

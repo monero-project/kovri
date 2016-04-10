@@ -64,23 +64,20 @@ NetDb netdb;
 NetDb::NetDb()
     : m_IsRunning(false),
       m_Thread(nullptr),
-      m_Reseeder(nullptr) {}
+      m_Reseed(nullptr) {}
 
 NetDb::~NetDb() {
   Stop();
-  if (m_Reseeder) {
-    delete m_Reseeder;
-    m_Reseeder = nullptr;
+  if (m_Reseed) {
+    delete m_Reseed;
+    m_Reseed = nullptr;
   }
 }
 
 bool NetDb::Start() {
   Load();
   if (m_RouterInfos.size() < 25) {  // reseed if # of router less than 50
-    // try SU3 first
     if (!Reseed()) {
-      // reseed failed
-      LogPrint(eLogError, "Reseed failed");
       return false;
     }
   }
@@ -132,8 +129,8 @@ void NetDb::Run() {
               LogPrint("DatabaseLookup");
               HandleDatabaseLookupMsg(msg);
             break;
-            default:  // WTF?
-              // TODO(unassigned): ???
+            default:
+              // TODO(unassigned): error handling
               LogPrint(eLogError,
                   "NetDb: unexpected message type ", msg->GetTypeID());
               // i2p::HandleI2NPMessage(msg);
@@ -185,12 +182,16 @@ void NetDb::Run() {
   }
 }
 
-void NetDb::AddRouterInfo(
+bool NetDb::AddRouterInfo(
     const uint8_t* buf,
     int len) {
   IdentityEx identity;
-  if (identity.FromBuffer(buf, len))
-    AddRouterInfo(identity.GetIdentHash(), buf, len);
+  if (!identity.FromBuffer(buf, len)) {
+    LogPrint(eLogError, "NetDb: unable to add router info");
+    return false;
+  }
+  AddRouterInfo(identity.GetIdentHash(), buf, len);
+  return true;
 }
 
 void NetDb::AddRouterInfo(
@@ -202,9 +203,9 @@ void NetDb::AddRouterInfo(
     auto ts = r->GetTimestamp();
     r->Update(buf, len);
     if (r->GetTimestamp() > ts)
-      LogPrint("RouterInfo updated");
+      LogPrint("NetDb: RouterInfo updated");
   } else {
-    LogPrint("New RouterInfo added");
+    LogPrint(eLogDebug, "NetDb: new RouterInfo added");
     r = std::make_shared<RouterInfo> (buf, len); {
       std::unique_lock<std::mutex> l(m_RouterInfosMutex);
       m_RouterInfos[r->GetIdentHash()] = r;
@@ -299,34 +300,24 @@ bool NetDb::CreateNetDb(
 }
 
 bool NetDb::Reseed() {
-  if (m_Reseeder == nullptr) {
-    m_Reseeder = new Reseeder();
-    if (!m_Reseeder->LoadSU3Certs()) {
-      delete m_Reseeder;
-      m_Reseeder = nullptr;
-      LogPrint(eLogError, "Failed to load reseed certificates");
-      // we need to die hard if this happens
+  if (m_Reseed == nullptr) {
+    m_Reseed = new i2p::data::Reseed(i2p::context.ReseedFrom());
+    if (!m_Reseed->ReseedImpl()) {
+      delete m_Reseed;
+      m_Reseed = nullptr;
+      LogPrint(eLogError, "NetDb: reseed failed");
       return false;
     }
   }
-  int reseedRetries = 0;
-  while (reseedRetries < 10) {
-    int result = m_Reseeder->ReseedNowSU3();
-    if (result <= 0)
-      reseedRetries++;
-    else
-      break;
-  }
-  if (reseedRetries >= 10)
-    LogPrint(eLogWarning, "Failed to reseed after 10 attempts");
-  return reseedRetries < 10;
+  return true;
 }
 
 void NetDb::Load() {
   boost::filesystem::path p(i2p::context.GetDataPath() / m_NetDbPath);
   if (!boost::filesystem::exists(p)) {
     // seems netDb doesn't exist yet
-    if (!CreateNetDb(p)) return;
+    if (!CreateNetDb(p))
+      return;
   }
   // make sure we cleanup netDb from previous attempts
   m_RouterInfos.clear();

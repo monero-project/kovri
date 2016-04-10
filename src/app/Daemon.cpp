@@ -74,7 +74,6 @@ bool Daemon_Singleton::Init() {
       i2p::util::config::var_map["host"].as<std::string>(),
       i2p::util::config::var_map["port"].as<int>(),
       i2p::util::filesystem::GetDataPath());
-
   m_IsDaemon = i2p::util::config::var_map["daemon"].as<bool>();
   m_IsLogging = i2p::util::config::var_map["log"].as<bool>();
   int port = i2p::util::config::var_map["port"].as<int>();
@@ -93,6 +92,11 @@ bool Daemon_Singleton::Init() {
     else
       i2p::context.SetLowBandwidth();
   }
+  // Set reseed options
+  i2p::context.ReseedFrom(
+      i2p::util::config::var_map["reseed-from"].as<std::string>());
+  i2p::context.ReseedSkipSSLCheck(
+    i2p::util::config::var_map["reseed-skip-ssl-check"].as<bool>());
   // Initialize the ClientContext
   InitClientContext();
   return true;

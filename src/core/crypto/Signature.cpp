@@ -33,7 +33,7 @@
 #include "Signature.h"
 
 #include "CryptoConst.h"
-#include "CryptoPP_Impl.h"
+#include "pimpl/cryptopp/Signature.h"
 #include "Rand.h"
 
 #include <memory>

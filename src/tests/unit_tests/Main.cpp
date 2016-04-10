@@ -28,20 +28,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "Rand.h"
+#define BOOST_TEST_MAIN
+#include <boost/test/unit_test.hpp>
 
-#include "pimpl/cryptopp/Rand.h"
-
-// implementation of crypto::Rand* functions
-
-namespace i2p {
-namespace crypto {
-
-void RandBytes(
-    uint8_t* dataptr,
-    size_t datalen) {
-  prng.GenerateBlock(dataptr, datalen);
-}
-
-}  // namespace crypto
-}  // namespace i2p
+// Skeleton Main for TEST_DYN_LINK tests

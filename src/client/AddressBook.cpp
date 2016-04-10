@@ -505,13 +505,14 @@ void AddressBookSubscription::Request() {
     }
     if (leaseSet) {
       std::stringstream request, response;
-      // standard header
-      request << i2p::util::http::HttpHeader(uri.m_Path, uri.m_Host, "1.1");
+      // Standard header
+      i2p::util::http::HTTP http;
+      request << http.Header(uri.m_Path, uri.m_Host, "1.1");
       if (m_Etag.length () > 0)  // etag
-        request << i2p::util::http::IF_NONE_MATCH
+        request << http.IF_NONE_MATCH
         << ": \"" << m_Etag << "\"\r\n";
       if (m_LastModified.length () > 0)  // if modified since
-        request << i2p::util::http::IF_MODIFIED_SINCE
+        request << http.IF_MODIFIED_SINCE
         << ": " << m_LastModified << "\r\n";
       request << "\r\n";  // end of header
       auto stream =
@@ -562,11 +563,11 @@ void AddressBookSubscription::Request() {
           if (colon != std::string::npos) {
             std::string field = header.substr(0, colon);
             header.resize(header.length() - 1);  // delete \r
-            if (field == i2p::util::http::ETAG)
+            if (field == http.ETAG)
               m_Etag = header.substr(colon + 1);
-            else if (field == i2p::util::http::LAST_MODIFIED)
+            else if (field == http.LAST_MODIFIED)
               m_LastModified = header.substr(colon + 1);
-            else if (field == i2p::util::http::TRANSFER_ENCODING)
+            else if (field == http.TRANSFER_ENCODING)
               isChunked =
                 !header.compare(colon + 1, std::string::npos, "chunked");
           }
@@ -582,7 +583,7 @@ void AddressBookSubscription::Request() {
           } else {
             // merge chunks
             std::stringstream merged;
-            i2p::util::http::MergeChunkedResponse(response, merged);
+            http.MergeChunkedResponse(response, merged);
             m_Book.LoadHostsFromStream(merged);
           }
         }

@@ -34,11 +34,11 @@
 #define SRC_CORE_VERSION_H_
 
 // Used purely for aesthetics
-#define KOVRI_VERSION "0.1.0"
+#define KOVRI_VERSION "0.1.0-pre-alpha"
 #define CODENAME ""  // If we ever use codenames for releases
 
 // I2NP/NetDb RI properties
-#define I2P_VERSION "0.9.24"
+#define I2P_VERSION "0.9.25"
 #define NETWORK_ID "2"  // I2P version < 0.6.1.10 used "1"
 
 #endif  // SRC_CORE_VERSION_H_

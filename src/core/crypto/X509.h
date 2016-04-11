@@ -35,7 +35,7 @@
 
 #include <map>
 #include <memory>
-#include <sstream>
+#include <iosfwd>
 #include <string>
 
 #include "Identity.h"  // i2p::data::Tag

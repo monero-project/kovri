@@ -35,8 +35,6 @@
 
 #include <array>
 #include <cstdint>
-#include <iostream>
-#include <istream>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -57,13 +55,15 @@ namespace util {
 /**
  * @class ZIP
  * @brief ZIP implementation
- * @param String in ZIP file format
+ * @param zip String in ZIP file format
+ * @param length Content length (length of zip)
+ * @param pos Starting position (optional)
  */
 class ZIP {
  public:
-  ZIP(const std::string& zip,  // ZIP file
-      std::size_t len,         // Content length (length of zip)
-      std::size_t pos = 0)     // Starting position (optional)
+  ZIP(const std::string& zip,
+      std::size_t len,
+      std::size_t pos = 0)
       : m_Stream(zip),
         m_Data(new Data()) {
           m_Data->content_length = len;

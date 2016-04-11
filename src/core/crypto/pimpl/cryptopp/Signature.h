@@ -30,10 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
-#ifndef SRC_CORE_CRYPTO_CRYPTOPP_IMPL_H_
-#define SRC_CORE_CRYPTO_CRYPTOPP_IMPL_H_
-
-// CryptoPP Pimpl definitions
+#ifndef SRC_CORE_CRYPTO_PIMPL_CRYPTOPP_SIGNATURE_H_
+#define SRC_CORE_CRYPTO_PIMPL_CRYPTOPP_SIGNATURE_H_
 
 #include <cryptopp/asn.h>
 #include <cryptopp/dsa.h>
@@ -42,8 +40,8 @@
 #include <cryptopp/oids.h>
 #include <cryptopp/rsa.h>
 
-#include "CryptoPP_Rand.h"
-#include "Signature.h"
+#include "Rand.h"
+#include "crypto/Signature.h"
 
 namespace i2p {
 namespace crypto {
@@ -385,4 +383,4 @@ class RSASHA5124096RawVerifier_Pimpl
 }  // namespace crypto
 }  // namespace i2p
 
-#endif  // SRC_CORE_CRYPTO_CRYPTOPP_IMPL_H_
+#endif  // SRC_CORE_CRYPTO_PIMPL_CRYPTOPP_SIGNATURE_H_

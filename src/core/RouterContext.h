@@ -69,8 +69,8 @@ class RouterContext : public i2p::garlic::GarlicDestination {
   RouterContext();
 
   /// Initializes the router context, must be called before use
-  /// @param host the external address of this router
-  /// @param port the port to be used (for both SSU and NTCP)
+  /// @param host The external address of this router
+  /// @param dataPath port the port to be used (for both SSU and NTCP)
   void Init(
       const std::string& host,
       int port,
@@ -246,7 +246,38 @@ class RouterContext : public i2p::garlic::GarlicDestination {
 
   /// @return the full path of a file within m_DataPath
   // TODO(EinMByte): Eventually use this everywhere instead of util::filesystem
-  std::string GetFullPath(const std::string& file);
+  std::string GetFullPath(
+      const std::string& file);
+
+  /**
+   * Note: these reseed functions are not ideal but
+   * they fit into our current design. We need to initialize
+   * here because we cannot (should not/don't need to) link
+   * unit-tests to executables (src/app) so, without these,
+   * current reseed tests won't compile.
+   */
+
+  /// @brief Sets user-supplied reseed stream
+  void ReseedFrom(
+      const std::string& stream) {
+    m_ReseedFrom = stream;
+  }
+
+  /// @return User-supplied reseed stream
+  std::string ReseedFrom() {
+    return m_ReseedFrom;
+  }
+
+  /// @brief Sets user-supplied reseed SSL option
+  void ReseedSkipSSLCheck(
+      bool option) {
+    m_ReseedSkipSSLCheck = option;
+  }
+
+  /// @return User-supplied option to skip SSL
+  bool ReseedSkipSSLCheck() {
+    return m_ReseedSkipSSLCheck;
+  }
 
  private:
   void CreateNewRouter();
@@ -266,6 +297,8 @@ class RouterContext : public i2p::garlic::GarlicDestination {
   std::string m_Host;
   int m_Port;
   boost::filesystem::path m_DataPath;
+  std::string m_ReseedFrom;
+  bool m_ReseedSkipSSLCheck;
 };
 
 extern RouterContext context;

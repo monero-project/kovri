@@ -45,7 +45,7 @@
 #include "Identity.h"
 #include "RouterContext.h"
 #include "crypto/CryptoConst.h"
-#include "crypto/CryptoPP_Rand.h"
+#include "crypto/pimpl/cryptopp/Rand.h"
 #include "crypto/ElGamal.h"
 #include "crypto/Rand.h"
 #include "crypto/Signature.h"

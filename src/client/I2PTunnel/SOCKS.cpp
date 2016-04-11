@@ -405,7 +405,7 @@ void SOCKSHandler::EnterState(
 
 bool SOCKSHandler::ValidateSOCKSRequest() {
   if ( m_cmd != CMD_CONNECT ) {
-    // TODO(unassigned): we need to support binds and other shit!
+    // TODO(unassigned): we need to support binds and other features!
     LogPrint(eLogError, "--- SOCKS unsupported command: ", m_cmd);
     SocksRequestFailed(SOCKS5_CMD_UNSUP);
     return false;

@@ -28,20 +28,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_CORE_CRYPTO_CRYPTOPP_RAND_H_
-#define SRC_CORE_CRYPTO_CRYPTOPP_RAND_H_
+#define BOOST_TEST_MAIN
+#include <boost/test/unit_test.hpp>
 
-// CryptoPP specific PRNG header
-
-#include <cryptopp/osrng.h>
-
-namespace i2p {
-namespace crypto {
-
-typedef CryptoPP::AutoSeededRandomPool PRNG;
-static PRNG prng;
-
-}  // namespace crypto
-}  // namespace i2p
-
-#endif  // SRC_CORE_CRYPTO_CRYPTOPP_RAND_H_
+// Skeleton Main for TEST_DYN_LINK tests

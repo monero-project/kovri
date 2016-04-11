@@ -45,8 +45,8 @@ namespace crypto {
 class Decompressor::DecompressorImpl {
  public:
   /// @brief Puts data into decompressor (inflator)
-  /// @param A pointer to the byte buffer to process
-  /// @param Length of the size of string (in bytes)
+  /// @param buffer A pointer to the byte buffer to process
+  /// @param length Length of the size of string (in bytes)
   /// @return False on failure
   bool Put(
       std::uint8_t* buffer,
@@ -67,8 +67,8 @@ class Decompressor::DecompressorImpl {
   }
 
   /// @brief Retrieve a block of uncompressed bytes
-  /// @param A pointer to a block of bytes
-  /// @param The number of bytes to Get
+  /// @param buffer A pointer to a block of bytes
+  /// @param length The number of bytes to Get
   /// @return False on failure
   bool Get(
       std::uint8_t* buffer,
@@ -98,10 +98,9 @@ class Decompressor::DecompressorImpl {
   }
 
   /// @brief Verifies uncompressed data using CRC-32
-  /// @param A pointer to an existing hash
-  /// @param A pointer to input as buffer
-  /// @param Length the size of the buffer, in bytes
-  /// @param Length of the size of buffer (in bytes)
+  /// @param hash A pointer to an existing hash
+  /// @param data A pointer to input as buffer
+  /// @param length Length of the size of buffer (in bytes)
   /// @return False on failure
   bool Verify(
       std::uint8_t* hash,

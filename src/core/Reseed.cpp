@@ -117,7 +117,7 @@ bool Reseed::ProcessCerts() {
   // Instantiate X.509 object
   i2p::crypto::X509 x509;
   // Iterate through directory and get signing key from each certificate
-  std::uint8_t num_certs = 0;
+  std::size_t num_certs = 0;
   BOOST_FOREACH(boost::filesystem::path const& cert, std::make_pair(it, end)) {
     if (boost::filesystem::is_regular_file(cert)) {
       LogPrint(eLogDebug, "Reseed: acquiring signing key from ", cert);
@@ -151,8 +151,7 @@ bool Reseed::ProcessCerts() {
     }
   }
   LogPrint(eLogInfo,
-      "Reseed: successfuly loaded ",
-      static_cast<std::size_t>(num_certs), " certificates");
+      "Reseed: successfuly loaded ", num_certs, " certificates");
   return (num_certs > 0);
 }
 
@@ -187,12 +186,13 @@ bool Reseed::FetchStream() {
 bool Reseed::FetchStream(
     const std::string& url) {
   LogPrint(eLogInfo, "Reseed: fetching stream from ", url);
-  // TODO(unassigned): abstract our downloading mechanism (see #149)
+  // TODO(unassigned): abstract our downloading mechanism (see #168)
   i2p::util::http::HTTP http;
   if (!http.Download(url))
     return false;
   // Replace our stream with downloaded stream
   m_Stream = http.m_Stream;
+  // TODO(unassigned): replace with constants if this isn't rewritten by #155/#168
   return ((m_Stream.size() > 0) &&
           (m_Stream.size() <= 128 * 1024) &&  // Arbitrary size in bytes
           (http.m_Status == 200)) ? true : false;  // 200 OK
@@ -311,58 +311,47 @@ bool SU3::PrepareStream() {
     // Get file type that contains non-su3 data
     m_Stream.Read(m_Data->file_type, Size::file_type);
     switch (m_Data->file_type) {
-      case static_cast<std::size_t>(FileType::zip_file): {
+      case static_cast<std::size_t>(FileType::zip_file):
         break;
-      }
-      case static_cast<std::size_t>(FileType::xml_file): {
+      case static_cast<std::size_t>(FileType::xml_file):
         LogPrint(eLogError, "SU3: XML not supported");
         return false;
-      }
-      case static_cast<std::size_t>(FileType::html_file): {
+      case static_cast<std::size_t>(FileType::html_file):
         LogPrint(eLogError, "SU3: HTML not supported");
         return false;
-      }
-      case static_cast<std::size_t>(FileType::xml_gz_file): {
+      case static_cast<std::size_t>(FileType::xml_gz_file):
         LogPrint(eLogError, "SU3: Gzip compressed XML not supported");
         return false;
-      }
-      default: {
+      default:
         LogPrint(eLogError,
             "SU3: invalid file type ",
             static_cast<std::size_t>(m_Data->file_type));
         return false;
-      }
     }
     // Unused offset
     m_Stream.Seekg(Offset::unused, std::ios::cur);
     // Get content type that contains the RI's
     m_Stream.Read(m_Data->content_type, Size::content_type);
     switch (m_Data->content_type) {
-      case static_cast<std::size_t>(ContentType::unknown): {
+      case static_cast<std::size_t>(ContentType::unknown):
         break;
-      }
-      case static_cast<std::size_t>(ContentType::router_update): {
+      case static_cast<std::size_t>(ContentType::router_update):
         LogPrint(eLogError, "SU3: Router Update not yet supported");
         return false;
-      }
-      case static_cast<std::size_t>(ContentType::plugin_related): {
+      case static_cast<std::size_t>(ContentType::plugin_related):
         LogPrint(eLogError, "SU3: Plugins not yet supported");
         return false;
-      }
-      case static_cast<std::size_t>(ContentType::reseed_data): {
+      case static_cast<std::size_t>(ContentType::reseed_data):
         LogPrint(eLogDebug, "SU3: found reseed data");
         break;
-      }
-      case static_cast<std::size_t>(ContentType::news_feed): {
+      case static_cast<std::size_t>(ContentType::news_feed):
         LogPrint(eLogError, "SU3: News Feed not yet supported");
         return false;
-      }
-      default: {
+      default:
         LogPrint(eLogError,
             "SU3: invalid content type ",
             static_cast<std::size_t>(m_Data->content_type));
         return false;
-      }
     }
     // Unused offset
     m_Stream.Seekg(static_cast<std::size_t>(Offset::unused) * 12, std::ios::cur);

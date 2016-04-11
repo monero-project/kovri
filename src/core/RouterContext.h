@@ -69,8 +69,8 @@ class RouterContext : public i2p::garlic::GarlicDestination {
   RouterContext();
 
   /// Initializes the router context, must be called before use
-  /// @param host the external address of this router
-  /// @param port the port to be used (for both SSU and NTCP)
+  /// @param host The external address of this router
+  /// @param dataPath port the port to be used (for both SSU and NTCP)
   void Init(
       const std::string& host,
       int port,

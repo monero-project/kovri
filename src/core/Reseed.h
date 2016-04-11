@@ -116,7 +116,7 @@ class Reseed {
     "https://user.mx24.eu/",
     // "https://download.xxlspeed.com/",  // Requires SNI
     // "https://i2p-0.manas.ca:8443/",  // Requires SNI
-    // "https://i2pseed.zarrenspry.info/", // Host not found (authoritative)
+    // "https://i2p.manas.ca:8443/",  // Requires SNI
     // "https://netdb.i2p2.no/",  // Requires SNI
   };
 };

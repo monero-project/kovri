@@ -35,7 +35,7 @@
 
 #include <map>
 #include <memory>
-#include <sstream>
+#include <iosfwd>
 #include <string>
 
 #include "Identity.h"  // i2p::data::Tag
@@ -49,7 +49,7 @@ typedef i2p::data::Tag<512> PublicKey;
 /**
  * @class X509
  * @brief Processes X.509 certificate
- * @defailts Currently only PEM is supported
+ * @details Currently only PEM is supported
  */
 class X509 {
  public:

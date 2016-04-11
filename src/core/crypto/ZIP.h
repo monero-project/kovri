@@ -49,15 +49,15 @@ class Decompressor {
   ~Decompressor();
 
   /// @brief Data to decompress
-  /// @param Data buffer
-  /// @param Data length
+  /// @param buffer Data buffer
+  /// @param length Data length
   void Put(
       std::uint8_t* buffer,
       std::size_t length);
 
   /// @brief Uncompressed data to retrieve
-  /// @param Uncompressed data buffer
-  /// @param Uncompressed data length
+  /// @param buffer Uncompressed data buffer
+  /// @param length Uncompressed data length
   void Get(
       std::uint8_t* buffer,
       std::size_t length);
@@ -67,9 +67,9 @@ class Decompressor {
   std::size_t MaxRetrievable();
 
   /// @brief Verifies uncompressed data using CRC-32
-  /// @param A pointer to an existing hash
-  /// @param A pointer to input as buffer
-  /// @param Length the size of the buffer
+  /// @param hash A pointer to an existing hash
+  /// @param data A pointer to input as buffer
+  /// @param length Length the size of the buffer
   bool Verify(
       std::uint8_t* hash,
       std::uint8_t* data,

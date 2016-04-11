@@ -186,12 +186,13 @@ bool Reseed::FetchStream() {
 bool Reseed::FetchStream(
     const std::string& url) {
   LogPrint(eLogInfo, "Reseed: fetching stream from ", url);
-  // TODO(unassigned): abstract our downloading mechanism (see #149)
+  // TODO(unassigned): abstract our downloading mechanism (see #168)
   i2p::util::http::HTTP http;
   if (!http.Download(url))
     return false;
   // Replace our stream with downloaded stream
   m_Stream = http.m_Stream;
+  // TODO(unassigned): replace with constants if this isn't rewritten by #155/#168
   return ((m_Stream.size() > 0) &&
           (m_Stream.size() <= 128 * 1024) &&  // Arbitrary size in bytes
           (http.m_Status == 200)) ? true : false;  // 200 OK

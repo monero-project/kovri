@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,22 +26,50 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
-#include "Rand.h"
+#ifndef SRC_CORE_CRYPTO_X509_H_
+#define SRC_CORE_CRYPTO_X509_H_
 
-#include "pimpl/cryptopp/Rand.h"
+#include <map>
+#include <memory>
+#include <iosfwd>
+#include <string>
 
-// implementation of crypto::Rand* functions
+#include "Identity.h"  // i2p::data::Tag
 
 namespace i2p {
 namespace crypto {
 
-void RandBytes(
-    uint8_t* dataptr,
-    size_t datalen) {
-  prng.GenerateBlock(dataptr, datalen);
-}
+// Placed here to use across implementations
+typedef i2p::data::Tag<512> PublicKey;
+
+/**
+ * @class X509
+ * @brief Processes X.509 certificate
+ * @details Currently only PEM is supported
+ */
+class X509 {
+ public:
+  X509();
+  ~X509();
+
+  /// @brief Signing keys to return
+  std::map<std::string, PublicKey> m_SigningKeys;
+
+  /// @brief Acquires public signing key from PEM formatted X.509
+  /// @return Signing key
+  const std::map<std::string, PublicKey> GetSigningKey(
+      std::stringstream& certificate);
+
+ private:
+  class X509Impl;
+  std::unique_ptr<X509Impl> m_X509Pimpl;
+};
 
 }  // namespace crypto
 }  // namespace i2p
+
+#endif  // SRC_CORE_CRYPTO_X509_H_

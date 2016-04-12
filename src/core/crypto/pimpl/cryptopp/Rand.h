@@ -28,20 +28,18 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "Rand.h"
+#ifndef SRC_CORE_CRYPTO_PIMPL_CRYPTOPP_RAND_H_
+#define SRC_CORE_CRYPTO_PIMPL_CRYPTOPP_RAND_H_
 
-#include "pimpl/cryptopp/Rand.h"
-
-// implementation of crypto::Rand* functions
+#include <cryptopp/osrng.h>
 
 namespace i2p {
 namespace crypto {
 
-void RandBytes(
-    uint8_t* dataptr,
-    size_t datalen) {
-  prng.GenerateBlock(dataptr, datalen);
-}
+typedef CryptoPP::AutoSeededRandomPool PRNG;
+static PRNG prng;
 
 }  // namespace crypto
 }  // namespace i2p
+
+#endif  // SRC_CORE_CRYPTO_PIMPL_CRYPTOPP_RAND_H_

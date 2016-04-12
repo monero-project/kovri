@@ -222,7 +222,8 @@ void HTTPProxyHandler::HandleJumpServices() {
   }
   auto base64 = m_path.substr(addressHelperPos + strlen(helpermark1));
   // Some of the symbols may be urlencoded
-  base64 = i2p::util::http::DecodeURI(base64);
+  i2p::util::http::URI uri;
+  base64 = uri.Decode(base64);
   LogPrint(eLogDebug, "Jump service for ", m_address,
       " found at ", base64, ". Inserting to address book");
   // TODO(anonimal): this is very dangerous and broken.

@@ -78,7 +78,7 @@ bool ParseArgs(
 
       "all     | basic | system\n"
       "network | proxy | i2pcs\n"
-      "config\n\n"
+      "reseed  | config\n\n"
 
       "Examples\n"
       "========\n\n"
@@ -161,6 +161,27 @@ bool ParseArgs(
     ("i2pcontrolpassword", bpo::value<std::string>()->default_value("itoopie"),
      "I2P control service password\n");
 
+  bpo::options_description reseed("\nReseed");
+  reseed.add_options()
+    ("reseed-from,r", bpo::value<std::string>()->default_value(""),
+     "File or URL from which to reseed\n"
+     "Examples:\n"
+     "./kovri -r ~/local/path/to/i2pseeds.su3\n"
+     "./kovri -r https://my.server.tld/i2pseeds.su3\n"
+     "Note: if the server in your URL is not one of the "
+     "hard-coded reseed servers, either use --reseed-skip-ssl-check"
+     "or put your server's certificate in with the others. "
+     "They are located in the .kovri data directory\n")
+
+    ("reseed-skip-ssl-check", bpo::value<bool>()->default_value(false),
+     "Skip SSL check for reseed host. Useful for custom reseed servers\n"
+     "Examples:\n"
+     "./kovri --reseed-skip-ssl-check -r https://my.server.tld/i2pseeds.su3\n");
+
+    //("reseed-to", bpo::value<std::string>()->default_value(""),
+    // "Creates a reseed file for you to share\n"
+    // "Example: ~/path/to/new/i2pseeds.su3\n")
+
   bpo::options_description config("\nConfiguration");
   config.add_options()
     ("kovriconf,c", bpo::value<std::string>(&kovri_config)->default_value(
@@ -196,6 +217,7 @@ bool ParseArgs(
     .add(network)
     .add(proxy)
     .add(i2pcs)
+    .add(reseed)
     .add(config);
   // Map and store cli options
   bpo::store(bpo::parse_command_line(argc, argv, cli_options), var_map);
@@ -223,6 +245,8 @@ bool ParseArgs(
       std::cout << proxy;
     } else if (s == "i2pcs") {
       std::cout << i2pcs;
+    } else if (s == "reseed") {
+      std::cout << reseed;
     } else if (s == "config") {
       std::cout << config;
     } else {

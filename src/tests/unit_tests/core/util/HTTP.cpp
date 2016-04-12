@@ -30,13 +30,20 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
 #include <boost/test/unit_test.hpp>
 
-#include "Identity.h"
+#include "util/HTTP.h"
 
-BOOST_AUTO_TEST_SUITE(IdentityTests)
+BOOST_AUTO_TEST_SUITE(UtilityTests)
+
+i2p::util::http::URI uri;
+
+BOOST_AUTO_TEST_CASE(DecodeEmptyUri) {
+  BOOST_CHECK_EQUAL(uri.Decode(""), "");
+}
+
+BOOST_AUTO_TEST_CASE(DecodeUri) {
+  BOOST_CHECK_EQUAL(uri.Decode("%20"), " ");
+}
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -35,6 +35,7 @@
 #include <chrono>
 #include <iostream>
 
+#include "crypto/EdDSA25519.h"
 #include "crypto/Rand.h"
 #include "crypto/Signature.h"
 

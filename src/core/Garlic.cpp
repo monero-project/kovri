@@ -39,11 +39,12 @@
 #include "I2NPProtocol.h"
 #include "RouterContext.h"
 #include "client/Destination.h"
+#include "crypto/Rand.h"
 #include "tunnel/Tunnel.h"
 #include "tunnel/TunnelPool.h"
 #include "util/I2PEndian.h"
-#include "util/Timestamp.h"
 #include "util/Log.h"
+#include "util/Timestamp.h"
 
 namespace i2p {
 namespace garlic {
@@ -59,7 +60,7 @@ GarlicRoutingSession::GarlicRoutingSession(
       m_LeaseSetUpdateStatus(
           attachLeaseSet ? eLeaseSetUpdated : eLeaseSetDoNotSend) {
   // create new session tags and session key
-  m_Rnd.GenerateBlock(m_SessionKey, 32);
+  i2p::crypto::RandBytes(m_SessionKey, 32);
   m_Encryption.SetKey(m_SessionKey);
 }
 
@@ -87,7 +88,7 @@ GarlicRoutingSession::GenerateSessionTags() {
   auto tags = new UnconfirmedTags(m_NumTags);
   tags->tagsCreationTime = i2p::util::GetSecondsSinceEpoch();
   for (int i = 0; i < m_NumTags; i++) {
-    m_Rnd.GenerateBlock(tags->sessionTags[i], 32);
+    i2p::crypto::RandBytes(tags->sessionTags[i], 32);
     tags->sessionTags[i].creationTime = tags->tagsCreationTime;
   }
   return tags;
@@ -173,7 +174,7 @@ std::shared_ptr<I2NPMessage> GarlicRoutingSession::WrapSingleMessage(
     // create ElGamal block
     ElGamalBlock elGamal;
     memcpy(elGamal.sessionKey, m_SessionKey, 32);
-    m_Rnd.GenerateBlock(elGamal.preIV, 32);  // Pre-IV
+    i2p::crypto::RandBytes(elGamal.preIV, 32);  // Pre-IV
     uint8_t iv[32];  // IV is first 16 bytes
     CryptoPP::SHA256().CalculateDigest(iv, elGamal.preIV, 32);
     m_Destination->GetElGamalEncryption()->Encrypt(
@@ -236,9 +237,9 @@ size_t GarlicRoutingSession::CreateGarlicPayload(
     std::shared_ptr<const I2NPMessage> msg,
     UnconfirmedTags* newTags) {
   uint64_t ts = i2p::util::GetMillisecondsSinceEpoch() + 5000;  // 5 sec
-  uint32_t msgID = m_Rnd.GenerateWord32();
+  uint32_t msgID = i2p::crypto::Rand<std::uint32_t>();
   size_t size = 0;
-  uint8_t * numCloves = payload + size;
+  uint8_t* numCloves = payload + size;
   *numCloves = 0;
   size++;
   if (m_Owner) {
@@ -307,7 +308,8 @@ size_t GarlicRoutingSession::CreateGarlicClove(
   }
   memcpy(buf + size, msg->GetBuffer(), msg->GetLength());
   size += msg->GetLength();
-  htobe32buf(buf + size, m_Rnd.GenerateWord32());  // CloveID
+  // CloveID
+  htobe32buf(buf + size, i2p::crypto::Rand<std::uint32_t>());
   size += 4;
   htobe64buf(buf + size, ts);  // Expiration of clove
   size += 8;
@@ -336,8 +338,8 @@ size_t GarlicRoutingSession::CreateDeliveryStatusClove(
       if (m_Owner) {
         // encrypt
         uint8_t key[32], tag[32];
-        m_Rnd.GenerateBlock(key, 32);  // random session key
-        m_Rnd.GenerateBlock(tag, 32);  // random session tag
+        i2p::crypto::RandBytes(key, 32);  // random session key
+        i2p::crypto::RandBytes(tag, 32);  // random session tag
         m_Owner->SubmitSessionKey(key, tag);
         GarlicRoutingSession garlic(key, tag);
         msg = garlic.WrapSingleMessage(msg);
@@ -346,7 +348,8 @@ size_t GarlicRoutingSession::CreateDeliveryStatusClove(
       size += msg->GetLength();
       // fill clove
       uint64_t ts = i2p::util::GetMillisecondsSinceEpoch() + 5000;  // 5 sec
-      htobe32buf(buf + size, m_Rnd.GenerateWord32());  // CloveID
+      // CloveID
+      htobe32buf(buf + size, i2p::crypto::Rand<std::uint32_t>());
       size += 4;
       htobe64buf(buf + size, ts);  // Expiration of clove
       size += 8;
@@ -411,8 +414,10 @@ void GarlicDestination::HandleGarlicMessage(
     ElGamalBlock elGamal;
     if (length >= 514 &&
         i2p::crypto::ElGamalDecrypt(
-          GetEncryptionPrivateKey(), buf,
-          reinterpret_cast<uint8_t *>(&elGamal), true)) {
+            GetEncryptionPrivateKey(),
+            buf,
+            reinterpret_cast<std::uint8_t *>(&elGamal),
+            true)) {
       auto decryption = std::make_shared<i2p::crypto::CBCDecryption>();
       decryption->SetKey(elGamal.sessionKey);
       uint8_t iv[32];  // IV is first 16 bytes

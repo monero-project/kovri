@@ -33,39 +33,39 @@
 #ifndef SRC_CORE_CRYPTO_ELGAMAL_H_
 #define SRC_CORE_CRYPTO_ELGAMAL_H_
 
-#include <inttypes.h>
-#include <cstdlib>
+#include <cstdint>
+#include <memory>
 
 namespace i2p {
 namespace crypto {
 
-class ElGamalEncryption_Pimpl;
-
+class ElGamalEncryptionImpl;
 class ElGamalEncryption {
  public:
   ElGamalEncryption(
-      const uint8_t* key);
+      const std::uint8_t* key);
   ~ElGamalEncryption();
 
   void Encrypt(
-      const uint8_t* data,
-      size_t len,
-      uint8_t* encrypted,
+      const std::uint8_t* data,
+      std::size_t len,
+      std::uint8_t* encrypted,
       bool zeroPadding = false) const;
 
  private:
-  ElGamalEncryption_Pimpl* m_Impl;
+  // Pointer to implementation
+  std::unique_ptr<ElGamalEncryptionImpl> m_ElGamalEncryptionPimpl;
 };
 
 bool ElGamalDecrypt(
-    const uint8_t* key,
-    const uint8_t* encrypted,
-    uint8_t* data,
+    const std::uint8_t* key,
+    const std::uint8_t* encrypted,
+    std::uint8_t* data,
     bool zeroPadding = false);
 
 void GenerateElGamalKeyPair(
-    uint8_t* priv,
-    uint8_t* pub);
+    std::uint8_t* priv,
+    std::uint8_t* pub);
 
 }  // namespace crypto
 }  // namespace i2p

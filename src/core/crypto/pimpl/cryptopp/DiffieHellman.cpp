@@ -28,18 +28,76 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_CORE_CRYPTO_PIMPL_CRYPTOPP_RAND_H_
-#define SRC_CORE_CRYPTO_PIMPL_CRYPTOPP_RAND_H_
+#include "crypto/DiffieHellman.h"
 
+#include <cryptopp/dh.h>
 #include <cryptopp/osrng.h>
+
+#include <cstdint>
+
+#include "CryptoConst.h"
 
 namespace i2p {
 namespace crypto {
 
-typedef CryptoPP::AutoSeededRandomPool PRNG;
-static PRNG prng;
+class DiffieHellman::DiffieHellmanImpl {
+ public:
+  /// @brief Initializes with ElGamal constants on construction
+  DiffieHellmanImpl()
+      : dh(i2p::crypto::elgp, i2p::crypto::elgg) {}
+
+  /// @brief Generate private/public key pair
+  /// @param private_key Private key
+  /// @param public_key Public key
+  void GenerateKeyPair(
+      std::uint8_t* private_key,
+      std::uint8_t* public_key) {
+    dh.GenerateKeyPair(
+        prng,
+        private_key,
+        public_key);
+  }
+
+  /// @brief Agreed value from your private key and other party's public key
+  /// @param agreed_value Agreed upon value
+  /// @param private_key Your private key
+  /// @param other_public_key Other party's public key
+  /// @return False on failure
+  bool Agree(
+      std::uint8_t* agreed_value,
+      const std::uint8_t* private_key,
+      const std::uint8_t* other_public_key) {
+    return dh.Agree(
+        agreed_value,
+        private_key,
+        other_public_key);
+  }
+
+ private:
+  CryptoPP::DH dh;
+  CryptoPP::AutoSeededRandomPool prng;
+};
+
+DiffieHellman::DiffieHellman() : m_DiffieHellmanPimpl(new DiffieHellmanImpl()) {}
+DiffieHellman::~DiffieHellman() {}
+
+void DiffieHellman::GenerateKeyPair(
+    std::uint8_t* private_key,
+    std::uint8_t* public_key) {
+  m_DiffieHellmanPimpl->GenerateKeyPair(
+      private_key,
+      public_key);
+}
+
+bool DiffieHellman::Agree(
+    std::uint8_t* agreed_value,
+    const std::uint8_t* private_key,
+    const std::uint8_t* other_public_key) {
+  return m_DiffieHellmanPimpl->Agree(
+      agreed_value,
+      private_key,
+      other_public_key);
+}
 
 }  // namespace crypto
 }  // namespace i2p
-
-#endif  // SRC_CORE_CRYPTO_PIMPL_CRYPTOPP_RAND_H_

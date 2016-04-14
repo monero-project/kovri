@@ -36,16 +36,16 @@
 
 #include <cryptopp/filters.h>
 #include <cryptopp/hex.h>
-#include <cryptopp/osrng.h>
 
 #include <iomanip>
 #include <sstream>
 #include <string>
 
-#include "core/RouterContext.h"
-#include "core/NetworkDatabase.h"
 #include "client/ClientContext.h"
+#include "core/NetworkDatabase.h"
+#include "core/RouterContext.h"
 #include "core/Version.h"
+#include "crypto/Rand.h"
 #include "transport/Transports.h"
 #include "tunnel/Tunnel.h"
 #include "util/Log.h"
@@ -346,8 +346,7 @@ bool I2PControlSession::Authenticate(
 
 std::string I2PControlSession::GenerateToken() const {
   byte random_data[constants::TOKEN_SIZE] = {};
-  CryptoPP::AutoSeededRandomPool rng;
-  rng.GenerateBlock(random_data, constants::TOKEN_SIZE);
+  i2p::crypto::RandBytes(random_data, constants::TOKEN_SIZE);
   std::string token;
   CryptoPP::StringSource ss(
       random_data,

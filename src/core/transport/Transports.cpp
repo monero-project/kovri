@@ -32,8 +32,6 @@
 
 #include "Transports.h"
 
-#include <cryptopp/dh.h>
-
 #include <algorithm>
 #include <string>
 #include <vector>
@@ -41,7 +39,7 @@
 #include "I2NPProtocol.h"
 #include "NetworkDatabase.h"
 #include "RouterContext.h"
-#include "crypto/CryptoConst.h"
+#include "crypto/DiffieHellman.h"
 #include "crypto/Rand.h"
 #include "util/Log.h"
 
@@ -90,14 +88,11 @@ void DHKeysPairSupplier::Run() {
 void DHKeysPairSupplier::CreateDHKeysPairs(
     int num) {
   if (num > 0) {
-    CryptoPP::DH dh(
-        i2p::crypto::elgp,
-        i2p::crypto::elgg);
+    i2p::crypto::DiffieHellman dh;
     for (int i = 0; i < num; i++) {
       i2p::transport::DHKeysPair* pair =
         new i2p::transport::DHKeysPair();
       dh.GenerateKeyPair(
-          m_Rnd,
           pair->privateKey,
           pair->publicKey);
       std::unique_lock<std::mutex>  l(m_AcquiredMutex);
@@ -118,11 +113,8 @@ DHKeysPair* DHKeysPairSupplier::Acquire() {
 
   // queue is empty, create new key pair
   DHKeysPair* pair = new DHKeysPair();
-  CryptoPP::DH dh(
-      i2p::crypto::elgp,
-      i2p::crypto::elgg);
+  i2p::crypto::DiffieHellman dh;
   dh.GenerateKeyPair(
-      m_Rnd,
       pair->privateKey,
       pair->publicKey);
   return pair;

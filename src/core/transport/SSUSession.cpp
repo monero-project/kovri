@@ -34,7 +34,6 @@
 
 #include <boost/bind.hpp>
 
-#include <cryptopp/dh.h>
 #include <cryptopp/sha.h>
 
 #include <vector>
@@ -42,8 +41,8 @@
 #include "RouterContext.h"
 #include "SSU.h"
 #include "Transports.h"
+#include "crypto/DiffieHellman.h"
 #include "crypto/Rand.h"
-#include "crypto/CryptoConst.h"
 #include "util/Log.h"
 #include "util/Timestamp.h"
 
@@ -170,14 +169,9 @@ boost::asio::io_service& SSUSession::GetService() {
 
 void SSUSession::CreateAESandMacKey(
     const uint8_t* pubKey) {
-  CryptoPP::DH dh(
-      i2p::crypto::elgp,
-      i2p::crypto::elgg);
+  i2p::crypto::DiffieHellman dh;
   uint8_t sharedKey[256];
-  if (!dh.Agree(
-          sharedKey,
-          m_DHKeysPair->privateKey,
-          pubKey)) {
+  if (!dh.Agree(sharedKey, m_DHKeysPair->privateKey, pubKey)) {
     LogPrint(eLogError, "Couldn't create shared key");
     return;
   }

@@ -42,6 +42,8 @@
 namespace i2p {
 namespace crypto {
 
+// TODO(unassigned): we should create a base class to interface Put()/Get(), etc.
+
 class Decompressor::DecompressorImpl {
  public:
   /// @brief Puts data into decompressor (inflator)
@@ -60,7 +62,7 @@ class Decompressor::DecompressorImpl {
       m_Inflator.MessageEnd();
     } catch (CryptoPP::Exception& e) {
       LogPrint(eLogError,
-          "Decompressor: could not put data. Exception: '", e.what(), "'");
+          "Decompressor: could not put data. '", e.what(), "'");
       return false;
     }
     return true;
@@ -77,7 +79,7 @@ class Decompressor::DecompressorImpl {
       m_Inflator.Get(buffer, length);
     } catch (CryptoPP::Exception& e) {
       LogPrint(eLogError,
-          "Decompressor: could not get data. Exception: '", e.what(), "'");
+          "Decompressor: could not get data. '", e.what(), "'");
       return false;
     }
     return true;
@@ -91,7 +93,7 @@ class Decompressor::DecompressorImpl {
       max = m_Inflator.MaxRetrievable();
     } catch (CryptoPP::Exception& e) {
       LogPrint(eLogError,
-          "Decompressor: could not get max. Exception: '", e.what(), "'");
+          "Decompressor: could not get max. '", e.what(), "'");
       max = 0;
     }
     return max;
@@ -111,7 +113,7 @@ class Decompressor::DecompressorImpl {
       verify = CryptoPP::CRC32().VerifyDigest(hash, data, length);
     } catch (CryptoPP::Exception& e) {
       LogPrint(eLogError,
-          "Decompressor: could not verify digest. Exception: '", e.what(), "'");
+          "Decompressor: could not verify digest. '", e.what(), "'");
       return false;
     }
     return verify;

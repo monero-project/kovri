@@ -34,6 +34,7 @@
 #include "Rand.h"
 
 #include <cstring>
+#include <cstdint>
 
 #include "ed25519/ed25519_ref10.h"
 
@@ -41,7 +42,7 @@ namespace i2p {
 namespace crypto {
 
 EDDSA25519Verifier::EDDSA25519Verifier(
-    const uint8_t* signingKey) {
+    const std::uint8_t* signingKey) {
   std::memcpy(
       m_PublicKey,
       signingKey,
@@ -49,9 +50,9 @@ EDDSA25519Verifier::EDDSA25519Verifier(
 }
 
 bool EDDSA25519Verifier::Verify(
-    const uint8_t* buf,
-    size_t len,
-    const uint8_t* signature) const {
+    const std::uint8_t* buf,
+    std::size_t len,
+    const std::uint8_t* signature) const {
   return ed25519_ref10_open(
       signature,
       buf,
@@ -60,8 +61,8 @@ bool EDDSA25519Verifier::Verify(
 }
 
 EDDSA25519Signer::EDDSA25519Signer(
-    const uint8_t* signingPrivateKey,
-    const uint8_t* signingPublicKey) {
+    const std::uint8_t* signingPrivateKey,
+    const std::uint8_t* signingPublicKey) {
   std::memcpy(
       m_PrivateKey,
       signingPrivateKey,
@@ -73,7 +74,7 @@ EDDSA25519Signer::EDDSA25519Signer(
 }
 
 EDDSA25519Signer::EDDSA25519Signer(
-    const uint8_t* signingPrivateKey) {
+    const std::uint8_t* signingPrivateKey) {
   std::memcpy(
       m_PrivateKey,
       signingPrivateKey,
@@ -82,9 +83,9 @@ EDDSA25519Signer::EDDSA25519Signer(
 }
 
 void EDDSA25519Signer::Sign(
-    const uint8_t* buf,
-    size_t len,
-    uint8_t* signature) const {
+    const std::uint8_t* buf,
+    std::size_t len,
+    std::uint8_t* signature) const {
   ed25519_ref10_sign(
       signature,
       buf,
@@ -94,8 +95,8 @@ void EDDSA25519Signer::Sign(
 }
 
 void CreateEDDSARandomKeys(
-    uint8_t* privateKey,
-    uint8_t* publicKey) {
+    std::uint8_t* privateKey,
+    std::uint8_t* publicKey) {
   i2p::crypto::RandBytes(
       privateKey,
       EDDSA25519_PRIVATE_KEY_LENGTH);

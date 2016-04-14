@@ -33,66 +33,70 @@
 #ifndef SRC_CORE_CRYPTO_EDDSA25519_H_
 #define SRC_CORE_CRYPTO_EDDSA25519_H_
 
+#include <cstdint>
+
 #include "SignatureBase.h"
 
 namespace i2p {
 namespace crypto {
 
-// EdDSA
-const size_t EDDSA25519_PUBLIC_KEY_LENGTH = 32;
-const size_t EDDSA25519_SIGNATURE_LENGTH = 64;
-const size_t EDDSA25519_PRIVATE_KEY_LENGTH = 32;
+const std::size_t EDDSA25519_PUBLIC_KEY_LENGTH = 32;
+const std::size_t EDDSA25519_SIGNATURE_LENGTH = 64;
+const std::size_t EDDSA25519_PRIVATE_KEY_LENGTH = 32;
 
+// Verifier
 class EDDSA25519Verifier : public Verifier {
  public:
   EDDSA25519Verifier(
-      const uint8_t* signingKey);
+      const std::uint8_t* signingKey);
 
   bool Verify(
-      const uint8_t* buf,
-      size_t len,
-      const uint8_t* signature) const;
+      const std::uint8_t* buf,
+      std::size_t len,
+      const std::uint8_t* signature) const;
 
-  size_t GetPublicKeyLen() const {
+  std::size_t GetPublicKeyLen() const {
     return EDDSA25519_PUBLIC_KEY_LENGTH;
   }
 
-  size_t GetSignatureLen() const {
+  std::size_t GetSignatureLen() const {
     return EDDSA25519_SIGNATURE_LENGTH;
   }
 
-  size_t GetPrivateKeyLen() const {
+  std::size_t GetPrivateKeyLen() const {
     return EDDSA25519_PRIVATE_KEY_LENGTH;
   }
 
  private:
-  uint8_t m_PublicKey[EDDSA25519_PUBLIC_KEY_LENGTH];
+  std::uint8_t m_PublicKey[EDDSA25519_PUBLIC_KEY_LENGTH];
 };
 
+// Signer
 class EDDSA25519Signer : public Signer {
  public:
-  // Construct from a key pair.
+  /// @brief Construct from a key pair.
   EDDSA25519Signer(
-      const uint8_t* signingPrivateKey,
-      const uint8_t* signingPublicKey);
+      const std::uint8_t* signingPrivateKey,
+      const std::uint8_t* signingPublicKey);
 
-  // Construct from a private key.
-  // The corresponding public key will be computed from it.
+  // @brief Construct from a private key.
+  // @details The corresponding public key will be computed from it.
   EDDSA25519Signer(
-      const uint8_t* signingPrivateKey);
+      const std::uint8_t* signingPrivateKey);
 
   void Sign(
-      const uint8_t* buf,
-      size_t len,
-      uint8_t* signature) const;
+      const std::uint8_t* buf,
+      std::size_t len,
+      std::uint8_t* signature) const;
 
-  uint8_t m_PrivateKey[EDDSA25519_PRIVATE_KEY_LENGTH];
-  uint8_t m_PublicKey[EDDSA25519_PUBLIC_KEY_LENGTH];
+  std::uint8_t m_PrivateKey[EDDSA25519_PRIVATE_KEY_LENGTH];
+  std::uint8_t m_PublicKey[EDDSA25519_PUBLIC_KEY_LENGTH];
 };
 
+// Create keys
 void CreateEDDSARandomKeys(
-    uint8_t* privateKey,
-    uint8_t* publicKey);
+    std::uint8_t* privateKey,
+    std::uint8_t* publicKey);
 
 }  // namespace crypto
 }  // namespace i2p

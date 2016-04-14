@@ -30,13 +30,6 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
-// TODO(unassigned): use crypto/DSA.h
-#include <cryptopp/dsa.h>
-// TODO(unassigned): use crypto/SHA.h
-#include <cryptopp/sha.h>
-
-#include <cryptopp/dh.h>
-
 #include <stdio.h>
 #include <time.h>
 
@@ -44,8 +37,7 @@
 
 #include "Identity.h"
 #include "RouterContext.h"
-#include "crypto/CryptoConst.h"
-#include "crypto/pimpl/cryptopp/Rand.h"
+#include "crypto/EdDSA25519.h"
 #include "crypto/ElGamal.h"
 #include "crypto/Rand.h"
 #include "crypto/Signature.h"

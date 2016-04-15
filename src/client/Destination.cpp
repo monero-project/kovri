@@ -669,11 +669,9 @@ bool ClientDestination::SendLeaseSetRequest(
     request->excluded.insert(nextFloodfill->GetIdentHash());
     request->requestTime = i2p::util::GetSecondsSinceEpoch();
     request->requestTimeoutTimer.cancel();
-    CryptoPP::AutoSeededRandomPool rnd;
-    uint8_t replyKey[32],
-            replyTag[32];
-    rnd.GenerateBlock(replyKey, 32);  // random session key
-    rnd.GenerateBlock(replyTag, 32);  // random session tag
+    uint8_t replyKey[32], replyTag[32];
+    i2p::crypto::RandBytes(replyKey, 32);  // random session key
+    i2p::crypto::RandBytes(replyTag, 32);  // random session tag
     AddSessionKey(replyKey, replyTag);
     auto msg =
       WrapMessage(

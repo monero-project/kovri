@@ -35,8 +35,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 
-#include <cryptopp/osrng.h>
-
 #include <inttypes.h>
 #include <string.h>
 #include <string>
@@ -49,6 +47,7 @@
 #include "Destination.h"
 #include "Identity.h"
 #include "NetworkDatabase.h"
+#include "crypto/Rand.h"
 #include "util/HTTP.h"
 #include "util/Log.h"
 
@@ -446,8 +445,8 @@ void AddressBook::HandleSubscriptionsUpdateTimer(
     if (m_IsLoaded && !m_IsDownloading &&
         m_SharedLocalDestination->IsReady()) {
       // pick random subscription
-      CryptoPP::AutoSeededRandomPool rnd;
-      auto ind = rnd.GenerateWord32(0, m_Subscriptions.size() - 1);
+      auto ind =
+        i2p::crypto::RandInRange<std::size_t>(0, m_Subscriptions.size() - 1);
       m_IsDownloading = true;
       m_Subscriptions[ind]->CheckSubscription();
     } else {

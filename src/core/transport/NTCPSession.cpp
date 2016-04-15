@@ -33,7 +33,6 @@
 #include "NTCPSession.h"
 
 #include <cryptopp/adler32.h>
-#include <cryptopp/dh.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -45,8 +44,8 @@
 #include "NetworkDatabase.h"
 #include "RouterContext.h"
 #include "Transports.h"
+#include "crypto/DiffieHellman.h"
 #include "crypto/Rand.h"
-#include "crypto/CryptoConst.h"
 #include "util/Base64.h"
 #include "util/I2PEndian.h"
 #include "util/Log.h"
@@ -78,9 +77,7 @@ NTCPSession::~NTCPSession() {
 void NTCPSession::CreateAESKey(
     std::uint8_t* pubKey,
     i2p::crypto::AESKey& key) {
-  CryptoPP::DH dh(
-      i2p::crypto::elgp,
-      i2p::crypto::elgg);
+  i2p::crypto::DiffieHellman dh;
   std::uint8_t sharedKey[NTCP_PUBKEY_SIZE];
   if (!dh.Agree(sharedKey, m_DHKeysPair->privateKey, pubKey)) {
     LogPrint(eLogError, "Couldn't create shared key");

@@ -43,7 +43,6 @@
 #include "I2NPProtocol.h"
 #include "NetworkDatabase.h"
 #include "Version.h"
-#include "crypto/CryptoConst.h"
 #include "util/MTU.h"
 #include "util/Timestamp.h"
 #include "util/Filesystem.h"

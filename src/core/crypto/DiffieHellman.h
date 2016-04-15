@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,63 +26,51 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
-#ifndef SRC_CORE_CRYPTO_RAND_H_
-#define SRC_CORE_CRYPTO_RAND_H_
+#ifndef SRC_CORE_CRYPTO_DIFFIEHELLMAN_H_
+#define SRC_CORE_CRYPTO_DIFFIEHELLMAN_H_
 
-#include <cinttypes>  // imaxabs()
+#include <memory>
 #include <cstdint>
-#include <cstdlib>
-#include <stdexcept>
 
 namespace i2p {
 namespace crypto {
 
-  /// @brief Generates CSPRNG bytes
-  /// @param data Buffer to store result
-  /// @param length Size of buffer
-  void RandBytes(
-      std::uint8_t* data,
-      std::size_t length);
+/**
+ * @brief Diffie-Hellman implemention
+ * @class Diffie-Hellman
+ */
+class DiffieHellman {
+ public:
+  DiffieHellman();
+  ~DiffieHellman();
 
-  /// @brief Generates a random of type T
-  /// @return
-  template<class T>
-  T Rand() {
-    T ret;
-    // TODO(unassigned): alignment
-    RandBytes(
-        reinterpret_cast<std::uint8_t *>(&ret),
-        sizeof(ret));
-    return ret;
-  }
+  /// @brief Generate private/public key pair
+  /// @param private_key Private key
+  /// @param public_key Public key
+  void GenerateKeyPair(
+      std::uint8_t* private_key,
+      std::uint8_t* public_key);
 
-  /// @brief Generates a random integer in range (signed or unsigned) of type T.
-  /// @param T Integer type
-  /// @param min Lowerbound
-  /// @param max Upperbound
-  /// @return Random number in range [min, max]
-  /// (if (min < 0), results are undefined)
-  template<class T>
-  T RandInRange(T min, T max) {
-    if ((min > max) || (max < 0)) {
-      throw std::logic_error("RandInRange(): logic error");
-    } else if (min == max) {
-      return min;
-    }
-    T dlt = max - min;
-    // We never want a negative if T is signed
-    T ret = imaxabs(Rand<T>());
-    // If 0, use dlt
-    if (!(ret %= dlt)) {
-      ret = dlt;
-    }
-    ret += min;
-    return ret;
-  }
+  /// @brief Agreed value from your private key and other party's public key
+  /// @param agreed_value Agreed upon value
+  /// @param private_key Your private key
+  /// @param other_public_key Other party's public key
+  /// @return False on failure
+  bool Agree(
+      std::uint8_t* agreed_value,
+      const std::uint8_t* private_key,
+      const std::uint8_t* other_public_key);
+
+ private:
+  class DiffieHellmanImpl;
+  std::unique_ptr<DiffieHellmanImpl> m_DiffieHellmanPimpl;
+};
 
 }  // namespace crypto
 }  // namespace i2p
 
-#endif  // SRC_CORE_CRYPTO_RAND_H_
+#endif  // SRC_CORE_CRYPTO_DIFFIEHELLMAN_H_

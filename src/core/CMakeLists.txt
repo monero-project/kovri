@@ -1,5 +1,4 @@
 set(CORE_SRC
-  "tunnel/TunnelConfig.cpp"
   "Garlic.cpp"
   "I2NPProtocol.cpp"
   "Identity.cpp"
@@ -11,11 +10,7 @@ set(CORE_SRC
   "RouterContext.cpp"
   "RouterInfo.cpp"
   "crypto/AES.cpp"
-  "crypto/CryptoConst.cpp"
   "crypto/EdDSA25519.cpp"
-  "crypto/ElGamal.cpp"
-  "crypto/Rand.cpp"
-  "crypto/Signature.cpp"
   "crypto/Tunnel.cpp"
   "transport/NTCP.cpp"
   "transport/NTCPSession.cpp"
@@ -26,6 +21,7 @@ set(CORE_SRC
   "transport/UPnP.cpp"
   "tunnel/TransitTunnel.cpp"
   "tunnel/Tunnel.cpp"
+  "tunnel/TunnelConfig.cpp"
   "tunnel/TunnelEndpoint.cpp"
   "tunnel/TunnelGateway.cpp"
   "tunnel/TunnelPool.cpp"
@@ -36,9 +32,18 @@ set(CORE_SRC
   "util/Filesystem.cpp"
   "util/ZIP.cpp")
 
+if(WITH_CRYPTOPP)
+  set(CRYPTO_PIMPL_DIR "crypto/pimpl/cryptopp")
+endif()
+
 set(CRYPTO_PIMPL_SRC
-  "crypto/pimpl/cryptopp/ZIP.cpp"
-  "crypto/pimpl/cryptopp/X509.cpp")
+  "${CRYPTO_PIMPL_DIR}/CryptoConst.cpp"
+  "${CRYPTO_PIMPL_DIR}/DiffieHellman.cpp"
+  "${CRYPTO_PIMPL_DIR}/ElGamal.cpp"
+  "${CRYPTO_PIMPL_DIR}/Rand.cpp"
+  "${CRYPTO_PIMPL_DIR}/Signature.cpp"
+  "${CRYPTO_PIMPL_DIR}/X509.cpp"
+  "${CRYPTO_PIMPL_DIR}/ZIP.cpp")
 
 set(EDDSA_SRC
   "crypto/ed25519/fe_0.cpp"

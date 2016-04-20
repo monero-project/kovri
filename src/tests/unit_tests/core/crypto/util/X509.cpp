@@ -36,7 +36,7 @@
 #include <sstream>
 #include <string>
 
-#include "crypto/X509.h"
+#include "crypto/util/X509.h"
 
 struct X509Fixture {
   const std::string cert =
@@ -83,7 +83,7 @@ class X509FixtureImpl : X509Fixture {
       : ss(cert) {}
 
   bool GetSigningKey() {
-    i2p::crypto::X509 x509;
+    i2p::crypto::util::X509 x509;
     auto key = x509.GetSigningKey(ss);
     return key.empty();
   }

@@ -51,21 +51,21 @@ class Verifier;
 }
 
 namespace data {
-template<int SZ>
+template<int Size>
 class Tag {  // TODO(anonimal): review/consider moving this class into core/util
  public:
   Tag(const uint8_t* buf) {
-    memcpy(m_Buf, buf, SZ);
+    memcpy(m_Buf, buf, Size);
   }
-  Tag(const Tag<SZ>&) = default;
+  Tag(const Tag<Size>&) = default;
 #ifndef _WIN32  // TODO(unassigned): FIXME!!! msvs 2013 can't compile it
-  Tag(Tag<SZ>&&) = default;
+  Tag(Tag<Size>&&) = default;
 #endif
   Tag() = default;
 
-  Tag<SZ>& operator= (const Tag<SZ>&) = default;
+  Tag<Size>& operator= (const Tag<Size>&) = default;
 #ifndef _WIN32
-  Tag<SZ>& operator= (Tag<SZ>&&) = default;
+  Tag<Size>& operator= (Tag<Size>&&) = default;
 #endif
 
   uint8_t* operator()() { return m_Buf; }
@@ -76,49 +76,49 @@ class Tag {  // TODO(anonimal): review/consider moving this class into core/util
 
   const uint64_t* GetLL() const { return ll; }
 
-  bool operator== (const Tag<SZ>& other) const {
-    return !memcmp(m_Buf, other.m_Buf, SZ);
+  bool operator== (const Tag<Size>& other) const {
+    return !memcmp(m_Buf, other.m_Buf, Size);
   }
 
-  bool operator< (const Tag<SZ>& other) const {
-    return memcmp(m_Buf, other.m_Buf, SZ) < 0;
+  bool operator< (const Tag<Size>& other) const {
+    return memcmp(m_Buf, other.m_Buf, Size) < 0;
   }
 
   bool IsZero() const {
-    for (int i = 0; i < SZ / 8; i++)
+    for (int i = 0; i < Size / 8; i++)
     if (ll[i])
       return false;
     return true;
   }
 
   std::string ToBase64() const {
-    char str[SZ * 2];
-    int l = i2p::util::ByteStreamToBase64(m_Buf, SZ, str, SZ * 2);
+    char str[Size * 2];
+    int l = i2p::util::ByteStreamToBase64(m_Buf, Size, str, Size * 2);
     str[l] = 0;
     return std::string(str);
   }
 
   std::string ToBase32() const {
-    char str[SZ * 2];
-    int l = i2p::util::ByteStreamToBase32(m_Buf, SZ, str, SZ * 2);
+    char str[Size * 2];
+    int l = i2p::util::ByteStreamToBase32(m_Buf, Size, str, Size * 2);
     str[l] = 0;
     return std::string(str);
   }
 
   void FromBase32(
       const std::string& s) {
-    i2p::util::Base32ToByteStream(s.c_str(), s.length(), m_Buf, SZ);
+    i2p::util::Base32ToByteStream(s.c_str(), s.length(), m_Buf, Size);
   }
 
   void FromBase64(
       const std::string& s) {
-    i2p::util::Base64ToByteStream(s.c_str(), s.length(), m_Buf, SZ);
+    i2p::util::Base64ToByteStream(s.c_str(), s.length(), m_Buf, Size);
   }
 
  private:
   union {  // 8 bytes alignment
-    uint8_t m_Buf[SZ];
-    uint64_t ll[SZ / 8];
+    uint8_t m_Buf[Size];
+    uint64_t ll[Size / 8];
   };
 };
 typedef Tag<32> IdentHash;

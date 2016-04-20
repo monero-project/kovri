@@ -36,15 +36,18 @@
 #include <cstdint>
 
 #include "CryptoConst.h"
+#include "util/Log.h"
 
 namespace i2p {
 namespace crypto {
 
+/// @class DiffieHellmanImpl
+/// @brief Diffie-Hellman implementation
 class DiffieHellman::DiffieHellmanImpl {
  public:
   /// @brief Initializes with ElGamal constants on construction
   DiffieHellmanImpl()
-      : dh(i2p::crypto::elgp, i2p::crypto::elgg) {}
+      : m_DH(i2p::crypto::elgp, i2p::crypto::elgg) {}
 
   /// @brief Generate private/public key pair
   /// @param private_key Private key
@@ -52,10 +55,15 @@ class DiffieHellman::DiffieHellmanImpl {
   void GenerateKeyPair(
       std::uint8_t* private_key,
       std::uint8_t* public_key) {
-    dh.GenerateKeyPair(
-        prng,
-        private_key,
-        public_key);
+    try {
+      m_DH.GenerateKeyPair(
+          m_PRNG,
+          private_key,
+          public_key);
+    } catch (CryptoPP::Exception e) {
+      LogPrint(eLogError,
+          "DiffieHellman: GenerateKeyPair() caught exception '", e.what(), "'");
+    }
   }
 
   /// @brief Agreed value from your private key and other party's public key
@@ -67,18 +75,20 @@ class DiffieHellman::DiffieHellmanImpl {
       std::uint8_t* agreed_value,
       const std::uint8_t* private_key,
       const std::uint8_t* other_public_key) {
-    return dh.Agree(
+    return m_DH.Agree(
         agreed_value,
         private_key,
         other_public_key);
   }
 
  private:
-  CryptoPP::DH dh;
-  CryptoPP::AutoSeededRandomPool prng;
+  CryptoPP::DH m_DH;
+  CryptoPP::AutoSeededRandomPool m_PRNG;
 };
 
-DiffieHellman::DiffieHellman() : m_DiffieHellmanPimpl(new DiffieHellmanImpl()) {}
+DiffieHellman::DiffieHellman()
+    : m_DiffieHellmanPimpl(new DiffieHellmanImpl()) {}
+
 DiffieHellman::~DiffieHellman() {}
 
 void DiffieHellman::GenerateKeyPair(

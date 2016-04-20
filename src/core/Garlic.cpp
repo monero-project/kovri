@@ -39,6 +39,7 @@
 #include "I2NPProtocol.h"
 #include "RouterContext.h"
 #include "client/Destination.h"
+#include "crypto/Hash.h"
 #include "crypto/Rand.h"
 #include "tunnel/Tunnel.h"
 #include "tunnel/TunnelPool.h"
@@ -176,7 +177,7 @@ std::shared_ptr<I2NPMessage> GarlicRoutingSession::WrapSingleMessage(
     memcpy(elGamal.sessionKey, m_SessionKey, 32);
     i2p::crypto::RandBytes(elGamal.preIV, 32);  // Pre-IV
     uint8_t iv[32];  // IV is first 16 bytes
-    CryptoPP::SHA256().CalculateDigest(iv, elGamal.preIV, 32);
+    i2p::crypto::SHA256().CalculateDigest(iv, elGamal.preIV, 32);
     m_Destination->GetElGamalEncryption()->Encrypt(
         reinterpret_cast<uint8_t *>(&elGamal), sizeof(elGamal), buf, true);
     m_Encryption.SetIV(iv);
@@ -186,7 +187,7 @@ std::shared_ptr<I2NPMessage> GarlicRoutingSession::WrapSingleMessage(
     // session tag
     memcpy(buf, tag, 32);
     uint8_t iv[32];  // IV is first 16 bytes
-    CryptoPP::SHA256().CalculateDigest(iv, tag, 32);
+    i2p::crypto::SHA256().CalculateDigest(iv, tag, 32);
     m_Encryption.SetIV(iv);
     buf += 32;
     len += 32;
@@ -223,7 +224,7 @@ size_t GarlicRoutingSession::CreateAESBlock(
   blockSize++;
   size_t len = CreateGarlicPayload(buf + blockSize, msg, newTags);
   htobe32buf(payloadSize, len);
-  CryptoPP::SHA256().CalculateDigest(payloadHash, buf + blockSize, len);
+  i2p::crypto::SHA256().CalculateDigest(payloadHash, buf + blockSize, len);
   blockSize += len;
   size_t rem = blockSize % 16;
   if (rem)
@@ -400,7 +401,7 @@ void GarlicDestination::HandleGarlicMessage(
     // tag found. Use AES
     if (length >= 32) {
       uint8_t iv[32];  // IV is first 16 bytes
-      CryptoPP::SHA256().CalculateDigest(iv, buf, 32);
+      i2p::crypto::SHA256().CalculateDigest(iv, buf, 32);
       it->second->SetIV(iv);
       it->second->Decrypt(buf + 32, length - 32, buf + 32);
       HandleAESBlock(buf + 32, length - 32, it->second, msg->from);
@@ -421,7 +422,7 @@ void GarlicDestination::HandleGarlicMessage(
       auto decryption = std::make_shared<i2p::crypto::CBCDecryption>();
       decryption->SetKey(elGamal.sessionKey);
       uint8_t iv[32];  // IV is first 16 bytes
-      CryptoPP::SHA256().CalculateDigest(iv, elGamal.preIV, 32);
+      i2p::crypto::SHA256().CalculateDigest(iv, elGamal.preIV, 32);
       decryption->SetIV(iv);
       decryption->Decrypt(buf + 514, length - 514, buf + 514);
       HandleAESBlock(buf + 514, length - 514, decryption, msg->from);
@@ -478,7 +479,7 @@ void GarlicDestination::HandleAESBlock(
     buf += 32;  // new session key
   buf++;  // flag
   // payload
-  if (!CryptoPP::SHA256().VerifyDigest(payloadHash, buf, payloadSize)) {
+  if (!i2p::crypto::SHA256().VerifyDigest(payloadHash, buf, payloadSize)) {
     // payload hash doesn't match
     LogPrint("Wrong payload hash");
     return;

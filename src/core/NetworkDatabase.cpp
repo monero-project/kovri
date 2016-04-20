@@ -34,8 +34,6 @@
 
 #include <boost/asio.hpp>
 
-#include <cryptopp/gzip.h>
-
 #include <string.h>
 
 #include <fstream>
@@ -47,6 +45,7 @@
 #include "I2NPProtocol.h"
 #include "RouterContext.h"
 #include "crypto/Rand.h"
+#include "crypto/util/Compression.h"
 #include "transport/Transports.h"
 #include "tunnel/Tunnel.h"
 #include "util/Base64.h"
@@ -528,10 +527,10 @@ void NetDb::HandleDatabaseStoreMsg(
     if (size > 2048 || size > len - offset) {
       LogPrint("Invalid RouterInfo length ", static_cast<int>(size));
       return;
-    } try {
-      CryptoPP::Gunzip decompressor;
+    }
+    try {
+      i2p::crypto::util::Gunzip decompressor;
       decompressor.Put(buf + offset, size);
-      decompressor.MessageEnd();
       uint8_t uncompressed[2048];
       size_t uncomressedSize = decompressor.MaxRetrievable();
       if (uncomressedSize <= 2048) {
@@ -541,8 +540,8 @@ void NetDb::HandleDatabaseStoreMsg(
         LogPrint("Invalid RouterInfo uncompressed length ",
             static_cast<int>(uncomressedSize));
       }
-    } catch (CryptoPP::Exception& ex) {
-      LogPrint(eLogError, "DatabaseStore: ", ex.what());
+    } catch (...) {
+      LogPrint(eLogError, "NetDb: HandleDatabaseStoreMsg() caught exception ");
     }
   }
 }

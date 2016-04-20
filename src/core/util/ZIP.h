@@ -40,7 +40,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "crypto/ZIP.h"
 #include "util/Filesystem.h"
 
 namespace i2p {

@@ -30,12 +30,9 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
-#include <cryptopp/osrng.h>
-
 #include <chrono>
 #include <iostream>
 
-#include "crypto/EdDSA25519.h"
 #include "crypto/Rand.h"
 #include "crypto/Signature.h"
 
@@ -71,8 +68,8 @@ void benchmark(
       TimePoint end2 = std::chrono::high_resolution_clock::now();
       verify_duration +=
         std::chrono::duration_cast<std::chrono::nanoseconds>(end2 - begin2);
-    } catch (CryptoPP::Exception& ex) {
-      std::cout << "!!! " << ex.what() << std::endl;
+    } catch (...) {  // Crypto-specific exceptions are (should be) caught internally
+      std::cout << "!!! benchmark() caught exception" << std::endl;
       break;
     }
   }

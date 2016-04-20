@@ -51,6 +51,7 @@ const std::size_t DSA_PUBLIC_KEY_LENGTH = 128;
 const std::size_t DSA_SIGNATURE_LENGTH = 40;
 const std::size_t DSA_PRIVATE_KEY_LENGTH = DSA_SIGNATURE_LENGTH / 2;
 
+/// @class DSAVerifier
 class DSAVerifier : public Verifier {
  public:
   DSAVerifier(
@@ -79,6 +80,7 @@ class DSAVerifier : public Verifier {
   std::unique_ptr<DSAVerifierImpl> m_DSAVerifierPimpl;
 };
 
+/// @class DSASigner
 class DSASigner : public Signer {
  public:
   explicit DSASigner(
@@ -107,7 +109,7 @@ void CreateDSARandomKeys(
 
 const std::size_t ECDSAP256_KEY_LENGTH = 64;
 
-class ECDSAP256VerifierImpl;
+/// @class ECDSAP256Verifier
 class ECDSAP256Verifier : public Verifier {
  public:
   ECDSAP256Verifier(
@@ -132,10 +134,11 @@ class ECDSAP256Verifier : public Verifier {
   }
 
  private:
+  class ECDSAP256VerifierImpl;
   std::unique_ptr<ECDSAP256VerifierImpl> m_ECDSAP256VerifierPimpl;
 };
 
-class ECDSAP256SignerImpl;
+/// @class ECDSAP256Signer
 class ECDSAP256Signer : public Signer {
  public:
   explicit ECDSAP256Signer(
@@ -148,6 +151,7 @@ class ECDSAP256Signer : public Signer {
       std::uint8_t* signature) const;
 
  private:
+  class ECDSAP256SignerImpl;
   std::unique_ptr<ECDSAP256SignerImpl> m_ECDSAP256SignerPimpl;
 };
 
@@ -163,11 +167,11 @@ void CreateECDSAP256RandomKeys(
 
 const std::size_t ECDSAP384_KEY_LENGTH = 96;
 
-class ECDSAP384VerifierImpl;
+/// @class ECDSAP384Verifier
 class ECDSAP384Verifier : public Verifier {
  public:
   ECDSAP384Verifier(
-      const std::uint8_t * signing_key);
+      const std::uint8_t* signing_key);
   ~ECDSAP384Verifier();
 
   bool Verify(
@@ -188,10 +192,11 @@ class ECDSAP384Verifier : public Verifier {
   }
 
  private:
+  class ECDSAP384VerifierImpl;
   std::unique_ptr<ECDSAP384VerifierImpl> m_ECDSAP384VerifierPimpl;
 };
 
-class ECDSAP384SignerImpl;
+/// @class ECDSAP384Signer
 class ECDSAP384Signer : public Signer {
  public:
   explicit ECDSAP384Signer(
@@ -204,6 +209,7 @@ class ECDSAP384Signer : public Signer {
       std::uint8_t* signature) const;
 
  private:
+  class ECDSAP384SignerImpl;
   std::unique_ptr<ECDSAP384SignerImpl> m_ECDSAP384SignerPimpl;
 };
 
@@ -219,7 +225,7 @@ void CreateECDSAP384RandomKeys(
 
 const std::size_t ECDSAP521_KEY_LENGTH = 132;
 
-class ECDSAP521VerifierImpl;
+/// @class ECDSAP521Verifier
 class ECDSAP521Verifier : public Verifier {
  public:
   ECDSAP521Verifier(
@@ -244,11 +250,13 @@ class ECDSAP521Verifier : public Verifier {
   }
 
  private:
+  class ECDSAP521VerifierImpl;
   std::unique_ptr<ECDSAP521VerifierImpl> m_ECDSAP521VerifierPimpl;
 };
 
-class ECDSAP521SignerImpl;
-struct ECDSAP521Signer : public Signer {
+/// @class ECDSAP521Signer
+class ECDSAP521Signer : public Signer {
+ public:
   explicit ECDSAP521Signer(
       const uint8_t* private_signing_key);
   ~ECDSAP521Signer();
@@ -259,6 +267,7 @@ struct ECDSAP521Signer : public Signer {
       std::uint8_t* signature) const;
 
  private:
+  class ECDSAP521SignerImpl;
   std::unique_ptr<ECDSAP521SignerImpl> m_ECDSAP521SignerPimpl;
 };
 
@@ -274,7 +283,7 @@ void CreateECDSAP521RandomKeys(
 
 const std::size_t RSASHA2562048_KEY_LENGTH = 256;
 
-class RSASHA2562048VerifierImpl;
+/// @class RSASHA2562048Verifier
 class RSASHA2562048Verifier : public Verifier {
  public:
     explicit RSASHA2562048Verifier(
@@ -299,10 +308,11 @@ class RSASHA2562048Verifier : public Verifier {
       const std::uint8_t* signature) const;
 
  private:
+  class RSASHA2562048VerifierImpl;
   std::unique_ptr<RSASHA2562048VerifierImpl> m_RSASHA2562048VerifierPimpl;
 };
 
-class RSASHA2562048SignerImpl;
+/// @class RSASHA2562048Signer
 class RSASHA2562048Signer : public Signer {
  public:
   explicit RSASHA2562048Signer(
@@ -315,6 +325,7 @@ class RSASHA2562048Signer : public Signer {
       std::uint8_t* signature) const;
 
  private:
+  class RSASHA2562048SignerImpl;
   std::unique_ptr<RSASHA2562048SignerImpl> m_RSASHA2562048SignerPimpl;
 };
 
@@ -326,7 +337,7 @@ class RSASHA2562048Signer : public Signer {
 
 const std::size_t RSASHA3843072_KEY_LENGTH = 384;
 
-class RSASHA3843072VerifierImpl;
+/// @class RSASHA3843072Verifier
 class RSASHA3843072Verifier : public Verifier {
  public:
   explicit RSASHA3843072Verifier(
@@ -351,10 +362,11 @@ class RSASHA3843072Verifier : public Verifier {
       const std::uint8_t* signature) const;
 
  private:
+  class RSASHA3843072VerifierImpl;
   std::unique_ptr<RSASHA3843072VerifierImpl> m_RSASHA3843072VerifierPimpl;
 };
 
-class RSASHA3843072SignerImpl;
+/// @class RSASHA3843072Signer
 class RSASHA3843072Signer : public Signer {
  public:
   explicit RSASHA3843072Signer(
@@ -367,6 +379,7 @@ class RSASHA3843072Signer : public Signer {
       std::uint8_t* signature) const;
 
  private:
+  class RSASHA3843072SignerImpl;
   std::unique_ptr<RSASHA3843072SignerImpl> m_RSASHA3843072SignerPimpl;
 };
 
@@ -378,7 +391,7 @@ class RSASHA3843072Signer : public Signer {
 
 const std::size_t RSASHA5124096_KEY_LENGTH = 512;
 
-class RSASHA5124096VerifierImpl;
+/// @class RSASHA5124096Verifier
 class RSASHA5124096Verifier : public Verifier {
  public:
   explicit RSASHA5124096Verifier(
@@ -403,10 +416,11 @@ class RSASHA5124096Verifier : public Verifier {
       const std::uint8_t* signature) const;
 
  private:
+  class RSASHA5124096VerifierImpl;
   std::unique_ptr<RSASHA5124096VerifierImpl> m_RSASHA5124096VerifierPimpl;
 };
 
-class RSASHA5124096SignerImpl;
+/// @class RSASHA5124096Signer
 class RSASHA5124096Signer : public Signer {
  public:
   explicit RSASHA5124096Signer(
@@ -419,6 +433,7 @@ class RSASHA5124096Signer : public Signer {
       std::uint8_t* signature) const;
 
  private:
+  class RSASHA5124096SignerImpl;
   std::unique_ptr<RSASHA5124096SignerImpl> m_RSASHA5124096SignerPimpl;
 };
 
@@ -433,7 +448,7 @@ void CreateRSARandomKeys(
  *
  */
 
-class RSASHA5124096RawVerifierImpl;
+/// @class RSASHA5124096RawVerifier
 class RSASHA5124096RawVerifier : public RawVerifier {
  public:
   explicit RSASHA5124096RawVerifier(
@@ -448,8 +463,78 @@ class RSASHA5124096RawVerifier : public RawVerifier {
       std::size_t len);
 
  private:
+  class RSASHA5124096RawVerifierImpl;
   std::unique_ptr<RSASHA5124096RawVerifierImpl> m_RSASHA5124096RawVerifierPimpl;
 };
+
+/**
+ *
+ * Ed25519
+ *
+ */
+
+const std::size_t EDDSA25519_PUBLIC_KEY_LENGTH = 32;
+const std::size_t EDDSA25519_SIGNATURE_LENGTH = 64;
+const std::size_t EDDSA25519_PRIVATE_KEY_LENGTH = 32;
+
+/// @class EDDSA25519Verifier
+class EDDSA25519Verifier : public Verifier {
+ public:
+  EDDSA25519Verifier(
+      const std::uint8_t* signingKey);
+  ~EDDSA25519Verifier();
+
+  bool Verify(
+      const std::uint8_t* buf,
+      std::size_t len,
+      const std::uint8_t* signature) const;
+
+  std::size_t GetPublicKeyLen() const {
+    return EDDSA25519_PUBLIC_KEY_LENGTH;
+  }
+
+  std::size_t GetSignatureLen() const {
+    return EDDSA25519_SIGNATURE_LENGTH;
+  }
+
+  std::size_t GetPrivateKeyLen() const {
+    return EDDSA25519_PRIVATE_KEY_LENGTH;
+  }
+
+ private:
+  class EDDSA25519VerifierImpl;
+  std::unique_ptr<EDDSA25519VerifierImpl> m_EDDSA25519VerifierPimpl;
+};
+
+/// @class EDDSA25519Signer
+class EDDSA25519Signer : public Signer {
+ public:
+  /// @brief Construct from a key pair.
+  EDDSA25519Signer(
+      const std::uint8_t* signingPrivateKey,
+      const std::uint8_t* signingPublicKey);
+
+  // @brief Construct from a private key.
+  // @details The corresponding public key will be computed from it.
+  EDDSA25519Signer(
+      const std::uint8_t* signingPrivateKey);
+  ~EDDSA25519Signer();
+
+  void Sign(
+      const std::uint8_t* buf,
+      std::size_t len,
+      std::uint8_t* signature) const;
+
+ private:
+  class EDDSA25519SignerImpl;
+  std::unique_ptr<EDDSA25519SignerImpl> m_EDDSA25519SignerPimpl;
+};
+
+// Create keys
+void CreateEDDSARandomKeys(
+    std::uint8_t* privateKey,
+    std::uint8_t* publicKey);
+
 
 }  // namespace crypto
 }  // namespace i2p

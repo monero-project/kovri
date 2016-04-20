@@ -118,7 +118,10 @@ if(DOXYGEN_FOUND AND DOXYFILE_IN_FOUND)
     ${DOXYFILE_SOURCE_DIR}/core/crypto \
     ${DOXYFILE_SOURCE_DIR}/core/crypto/pimpl \
     ${DOXYFILE_SOURCE_DIR}/core/crypto/pimpl/cryptopp/ \
-    ${DOXYFILE_SOURCE_DIR}/core/crypto/ed25519 \
+    ${DOXYFILE_SOURCE_DIR}/core/crypto/pimpl/cryptopp/util/ \
+    ${DOXYFILE_SOURCE_DIR}/core/crypto/pimpl/supercop/ \
+    ${DOXYFILE_SOURCE_DIR}/core/crypto/pimpl/supercop/ed25519 \
+    ${DOXYFILE_SOURCE_DIR}/core/crypto/util \
     ${DOXYFILE_SOURCE_DIR}/core/transport \
     ${DOXYFILE_SOURCE_DIR}/core/tunnel \
     ${DOXYFILE_SOURCE_DIR}/core/util"

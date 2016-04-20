@@ -39,7 +39,7 @@
 namespace i2p {
 namespace crypto {
 
-class ElGamalEncryptionImpl;
+/// @class ElGamalEncryption
 class ElGamalEncryption {
  public:
   ElGamalEncryption(
@@ -53,7 +53,7 @@ class ElGamalEncryption {
       bool zeroPadding = false) const;
 
  private:
-  // Pointer to implementation
+  class ElGamalEncryptionImpl;
   std::unique_ptr<ElGamalEncryptionImpl> m_ElGamalEncryptionPimpl;
 };
 

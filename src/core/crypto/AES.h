@@ -33,10 +33,10 @@
 #ifndef SRC_CORE_CRYPTO_AES_H_
 #define SRC_CORE_CRYPTO_AES_H_
 
-#include <cryptopp/modes.h>
-#include <cryptopp/aes.h>
-
 #include <inttypes.h>
+
+#include <cstdint>
+#include <memory>
 
 #include "Identity.h"
 
@@ -66,117 +66,128 @@ struct CipherBlock {
 
 typedef i2p::data::Tag<32> AESKey;
 
-template<size_t SZ>
+template<std::size_t Size>
 class AESAlignedBuffer {  // 16 bytes alignment
  public:
   AESAlignedBuffer() {
     m_Buf = m_UnalignedBuffer;
-    uint8_t rem = ((size_t)m_Buf) & 0x0f;
+    std::uint8_t rem = ((std::size_t)m_Buf) & 0x0f;
     if (rem)
       m_Buf += (16 - rem);
   }
-  operator uint8_t * () { return m_Buf; }
-  operator const uint8_t * () const { return m_Buf; }
+
+  operator std::uint8_t* () {
+    return m_Buf;
+  }
+
+  operator const std::uint8_t* () const {
+    return m_Buf;
+  }
 
  private:
-  uint8_t m_UnalignedBuffer[SZ + 15];  // up to 15 bytes alignment
-  uint8_t* m_Buf;
+  std::uint8_t m_UnalignedBuffer[Size + 15];  // up to 15 bytes alignment
+  std::uint8_t* m_Buf;
 };
-
 
 #ifdef AESNI
-class ECBCryptoAESNI {
+/// @class ECBEncryptionAESNI
+class ECBEncryptionAESNI {
  public:
-  uint8_t* GetKeySchedule() { return m_KeySchedule; }
+  ECBEncryptionAESNI();
+  ~ECBEncryptionAESNI();
 
- protected:
-  void ExpandKey(const AESKey& key);
+  std::uint8_t* GetKeySchedule();
 
- private:
-  AESAlignedBuffer<240> m_KeySchedule;  // 14 rounds for AES-256, 240 bytes
-};
-
-class ECBEncryptionAESNI : public ECBCryptoAESNI {
- public:
   void SetKey(
-      const AESKey& key) {
-    ExpandKey(key);
-  }
+      const AESKey& key);
+
   void Encrypt(
       const CipherBlock* in,
       CipherBlock* out);
+
+ private:
+  class ECBEncryptionAESNIImpl;
+  std::unique_ptr<ECBEncryptionAESNIImpl> m_ECBEncryptionAESNIPimpl;
 };
 
-class ECBDecryptionAESNI : public ECBCryptoAESNI {
+/// @class ECBDecryptionAESNI
+class ECBDecryptionAESNI {
  public:
+  ECBDecryptionAESNI();
+  ~ECBDecryptionAESNI();
+
+  std::uint8_t* GetKeySchedule();
+
   void SetKey(
       const AESKey& key);
+
   void Decrypt(
       const CipherBlock* in,
-      CipherBlock * out);
+      CipherBlock* out);
+
+ private:
+  class ECBDecryptionAESNIImpl;
+  std::unique_ptr<ECBDecryptionAESNIImpl> m_ECBDecryptionAESNIPimpl;
 };
 
 typedef ECBEncryptionAESNI ECBEncryption;
 typedef ECBDecryptionAESNI ECBDecryption;
 
-#else  // use crypto++
-
+#else  // Use library
+/// @class ECBEncryption
 class ECBEncryption {
  public:
+  ECBEncryption();
+  ~ECBEncryption();
+
   void SetKey(
-      const AESKey& key) {
-    m_Encryption.SetKey(key, 32);
-  }
+      const AESKey& key);
+
   void Encrypt(
       const CipherBlock* in,
-      CipherBlock * out) {
-    m_Encryption.ProcessData(out->buf, in->buf, 16);
-  }
+      CipherBlock* out);
 
  private:
-  CryptoPP::ECB_Mode<CryptoPP::AES>::Encryption m_Encryption;
+  class ECBEncryptionImpl;
+  std::unique_ptr<ECBEncryptionImpl> m_ECBEncryptionPimpl;
 };
 
+/// @class ECBDecryption
 class ECBDecryption {
  public:
+  ECBDecryption();
+  ~ECBDecryption();
+
   void SetKey(
-      const AESKey& key) {
-    m_Decryption.SetKey(key, 32);
-  }
+      const AESKey& key);
+
   void Decrypt(
       const CipherBlock* in,
-      CipherBlock* out) {
-    m_Decryption.ProcessData(out->buf, in->buf, 16);
-  }
+      CipherBlock* out);
 
  private:
-  CryptoPP::ECB_Mode<CryptoPP::AES>::Decryption m_Decryption;
+  class ECBDecryptionImpl;
+  std::unique_ptr<ECBDecryptionImpl> m_ECBDecryptionPimpl;
 };
-
 #endif
 
+/// @class CBCEncryption
 class CBCEncryption {
  public:
-  CBCEncryption() {
-    memset(m_LastBlock.buf, 0, 16);
-  }
+  CBCEncryption();
+  ~CBCEncryption();
+
   CBCEncryption(
       const AESKey& key,
-      const uint8_t* iv)
-      : CBCEncryption() {
-    SetKey(key);
-    SetIV(iv);
-  }
+      const std::uint8_t* iv);
 
-  void SetKey(  // 32 bytes
-      const AESKey& key) {
-    m_ECBEncryption.SetKey(key);
-  }
+  // 32 bytes
+  void SetKey(
+      const AESKey& key);
 
-  void SetIV(  // 16 bytes
-      const uint8_t* iv) {
-    memcpy(m_LastBlock.buf, iv, 16);
-  }
+  // 16 bytes
+  void SetIV(
+      const std::uint8_t* iv);
 
   void Encrypt(
       int numBlocks,
@@ -184,61 +195,56 @@ class CBCEncryption {
       CipherBlock* out);
 
   void Encrypt(
-      const uint8_t* in,
+      const std::uint8_t* in,
       std::size_t len,
-      uint8_t* out);
+      std::uint8_t* out);
 
-  // one block
+  // One block
   void Encrypt(
       const uint8_t* in,
-      uint8_t* out);
+      std::uint8_t* out);
 
  private:
-  CipherBlock m_LastBlock;
-  ECBEncryption m_ECBEncryption;
+  class CBCEncryptionImpl;
+  std::unique_ptr<CBCEncryptionImpl> m_CBCEncryptionPimpl;
 };
 
+/// @class CBCDecryption
 class CBCDecryption {
  public:
-  CBCDecryption() {
-    memset(m_IV.buf, 0, 16);
-  }
+  CBCDecryption();
+  ~CBCDecryption();
+
   CBCDecryption(
       const AESKey& key,
-      const uint8_t* iv)
-      : CBCDecryption() {
-    SetKey(key);
-    SetIV(iv);
-  }
+      const std::uint8_t* iv);
 
   // 32 bytes
   void SetKey(
-      const AESKey& key) {
-    m_ECBDecryption.SetKey(key);
-  }
+      const AESKey& key);
 
   // 16 bytes
   void SetIV(
-      const uint8_t* iv) {
-    memcpy(m_IV.buf, iv, 16);
-  }
+      const std::uint8_t* iv);
 
   void Decrypt(
       int numBlocks,
       const CipherBlock* in,
-      CipherBlock * out);
+      CipherBlock* out);
+
   void Decrypt(
-      const uint8_t* in,
+      const std::uint8_t* in,
       std::size_t len,
-      uint8_t* out);
-  // one block
+      std::uint8_t* out);
+
+  // One block
   void Decrypt(
-      const uint8_t* in,
-      uint8_t* out);
+      const std::uint8_t* in,
+      std::uint8_t* out);
 
  private:
-  CipherBlock m_IV;
-  ECBDecryption m_ECBDecryption;
+  class CBCDecryptionImpl;
+  std::unique_ptr<CBCDecryptionImpl> m_CBCDecryptionPimpl;
 };
 
 }  // namespace crypto

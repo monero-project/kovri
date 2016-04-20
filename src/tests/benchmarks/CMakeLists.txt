@@ -1,5 +1,5 @@
 set(BENCHMARKS_SRC
-  "Crypto.cpp")
+  "Signature.cpp")
 
 include_directories("../../core/")
 

@@ -36,6 +36,7 @@
 #include <string>
 #include <vector>
 
+#include "crypto/util/Compression.h"
 #include "Log.h"
 
 namespace i2p {
@@ -195,7 +196,7 @@ bool ZIP::DecompressLocalFile() {
       case static_cast<std::size_t>(Method::deflate): {
         LogPrint(eLogDebug, "ZIP: file uses compression method 'deflate'");
         // Instantiate decompressor
-        i2p::crypto::Decompressor decompressor;
+        i2p::crypto::util::DeflateDecompressor decompressor;
         // Put in data to decompress
         decompressor.Put(
             m_Data->compressed.data(),
@@ -239,9 +240,8 @@ bool ZIP::DecompressLocalFile() {
             "ZIP: file uses an unsupported compression method");
         return false;
     }
-  } catch (const std::exception& e) {
-    LogPrint(eLogError,
-        "ZIP: caught exception '", e.what(), "' during decompression");
+  } catch (...) {
+    LogPrint(eLogError, "ZIP: caught exception during decompression");
     return false;
   }
   LogPrint(eLogDebug, "ZIP: successfully processed file");

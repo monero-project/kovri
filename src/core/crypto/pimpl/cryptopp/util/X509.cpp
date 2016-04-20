@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
-#include "crypto/X509.h"
+#include "crypto/util/X509.h"
 
 #include <cryptopp/base64.h>
 #include <cryptopp/filters.h>
@@ -49,7 +49,10 @@
 
 namespace i2p {
 namespace crypto {
+namespace util {
 
+/// @class X509Impl
+/// @brief X.509 implementation
 class X509::X509Impl {
  public:
   /// @brief Retrieves signing key from processed X.509 certificate
@@ -199,13 +202,17 @@ class X509::X509Impl {
   std::map<std::string, PublicKey> m_SigningKeys;
 };
 
-X509::X509() : m_X509Pimpl(new X509Impl()) {}
+X509::X509()
+    : m_X509Pimpl(
+          new X509Impl()) {}
+
 X509::~X509() {}
 
 const std::map<std::string, PublicKey> X509::GetSigningKey(
     std::stringstream& certificate) {
-  return (m_SigningKeys = m_X509Pimpl->GetSigningKey(certificate));
+  return m_SigningKeys = m_X509Pimpl->GetSigningKey(certificate);
 }
 
+}  // namespace util
 }  // namespace crypto
 }  // namespace i2p

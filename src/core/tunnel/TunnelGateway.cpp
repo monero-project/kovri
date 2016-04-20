@@ -30,12 +30,11 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
-#include <cryptopp/sha.h>
-
 #include <string.h>
 
 #include "RouterContext.h"
 #include "TunnelGateway.h"
+#include "crypto/Hash.h"
 #include "crypto/Rand.h"
 #include "transport/Transports.h"
 #include "util/I2PEndian.h"
@@ -199,7 +198,7 @@ void TunnelGatewayBuffer::CompleteCurrentTunnelDataMessage() {
   i2p::crypto::RandBytes(buf + 4, 16);  // original IV
   memcpy(payload + size, buf + 4, 16);  // copy IV for checksum
   uint8_t hash[32];
-  CryptoPP::SHA256().CalculateDigest(hash, payload, size + 16);
+  i2p::crypto::SHA256().CalculateDigest(hash, payload, size + 16);
   memcpy(buf + 20, hash, 4);  // checksum
   // XXX: WTF?!
   payload[-1] = 0;  // zero

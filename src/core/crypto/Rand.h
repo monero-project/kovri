@@ -58,13 +58,13 @@ namespace crypto {
     return ret;
   }
 
-  /// @brief Generates a random integer in range (signed or unsigned) of type T.
+  /// @brief Generates a random integer in range of type T (signed or unsigned).
   /// @param T Integer type
   /// @param min Lowerbound
   /// @param max Upperbound
   /// @return Random number in range [min, max]
   /// (if (min < 0), results are undefined)
-  template<class T>
+  template<class T = std::size_t>
   T RandInRange(T min, T max) {
     if ((min > max) || (max < 0)) {
       throw std::logic_error("RandInRange(): logic error");

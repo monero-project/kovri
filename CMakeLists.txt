@@ -12,6 +12,7 @@ option(WITH_HARDENING  "Use hardening compiler flags" OFF)
 option(WITH_LIBRARY    "Build library" ON)
 option(WITH_OPTIMIZE   "Optimization flags" OFF)
 option(WITH_STATIC     "Static build" OFF)
+option(WITH_SUPERCOP   "Build Ed25519 using the ref10 implementation from SUPERCOP" ON)  # Default ON unless we switch implementations
 option(WITH_TESTS      "Build unit tests" OFF)
 option(WITH_UPNP       "Include support for UPnP client" OFF)
 
@@ -132,6 +133,7 @@ if(NOT Boost_FOUND)
   message(SEND_ERROR "Boost not found, or version below 1.46. Please download Boost!")
 else()
   add_definitions(-DBOOST_ALL_DYN_LINK)
+  include_directories(${Boost_INCLUDE_DIRS})
 endif()
 
 if(WITH_CRYPTOPP)
@@ -139,6 +141,7 @@ if(WITH_CRYPTOPP)
   if(NOT DEFINED CRYPTO++_INCLUDE_DIR)
     message(SEND_ERROR "Could not find Crypto++. Please download and install it first!")
   endif()
+  include_directories(${CRYPTO++_INCLUDE_DIR})
 endif()
 
 if(APPLE)
@@ -153,6 +156,8 @@ endif()
 find_package(OpenSSL REQUIRED)
 if(NOT DEFINED OPENSSL_INCLUDE_DIR)
   message(SEND_ERROR "Could not find OpenSSL. Please download and install it first!")
+else()
+  include_directories(${OPENSSL_INCLUDE_DIR})
 endif()
 
 find_package(MiniUPnPc)
@@ -165,8 +170,8 @@ if(WITH_DOXYGEN)
   include(UseDoxygen)
 endif()
 
-# Load includes
-include_directories(${CMAKE_SOURCE_DIR} ${Boost_INCLUDE_DIRS} ${CRYPTO++_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR})
+# Load remaining includes
+include_directories(${CMAKE_SOURCE_DIR})
 
 # Set default path
 if(KOVRI_DATA_PATH)
@@ -199,6 +204,7 @@ message(STATUS "  HARDENING        : ${WITH_HARDENING}")
 message(STATUS "  LIBRARY          : ${WITH_LIBRARY}")
 message(STATUS "  OPTIMIZATION     : ${WITH_OPTIMIZE}")
 message(STATUS "  STATIC BUILD     : ${WITH_STATIC}")
+message(STATUS "  SUPERCOP         : ${WITH_SUPERCOP}")
 message(STATUS "  TESTS            : ${WITH_TESTS}")
 message(STATUS "  UPnP             : ${WITH_UPNP}")
 message(STATUS "---------------------------------------")

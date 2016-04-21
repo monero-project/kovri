@@ -42,7 +42,7 @@
 #include <string>
 #include <vector>
 
-#include "crypto/X509.h"
+#include "crypto/util/X509.h"
 #include "util/Filesystem.h"
 #include "util/ZIP.h"
 
@@ -95,10 +95,10 @@ class Reseed {
 
  private:
   // X.509 object used for SU3 verification
-  i2p::crypto::X509 m_X509;
+  i2p::crypto::util::X509 m_X509;
 
   // X.509 signing keys for SU3 verification
-  std::map<std::string, i2p::crypto::PublicKey> m_SigningKeys;
+  std::map<std::string, i2p::crypto::util::PublicKey> m_SigningKeys;
 
   // The URI which will be the SU3
   std::string m_Stream;
@@ -129,7 +129,7 @@ class Reseed {
 class SU3 {
  public:
   SU3(const std::string& su3,
-      std::map<std::string, i2p::crypto::PublicKey>& keys)
+      std::map<std::string, i2p::crypto::util::PublicKey>& keys)
       : m_Stream(su3),
         m_SigningKeys(keys),
         m_Data(new Data()) {}
@@ -207,7 +207,7 @@ class SU3 {
   i2p::util::filesystem::StringStream m_Stream;
 
   // X.509 signing keys for SU3 verification
-  std::map<std::string, i2p::crypto::PublicKey> m_SigningKeys;
+  std::map<std::string, i2p::crypto::util::PublicKey> m_SigningKeys;
 
   // Spec-defined data
   std::unique_ptr<Data> m_Data;

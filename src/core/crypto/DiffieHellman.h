@@ -39,10 +39,8 @@
 namespace i2p {
 namespace crypto {
 
-/**
- * @brief Diffie-Hellman implemention
- * @class Diffie-Hellman
- */
+/// @class DiffieHellman
+/// @brief Diffie-Hellman
 class DiffieHellman {
  public:
   DiffieHellman();

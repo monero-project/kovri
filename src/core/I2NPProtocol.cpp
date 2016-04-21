@@ -32,24 +32,24 @@
 
 #include "I2NPProtocol.h"
 
-#include <cryptopp/gzip.h>
-
 #include <string.h>
 
 #include <atomic>
 #include <vector>
 #include <set>
 
-#include "crypto/Rand.h"
 #include "Garlic.h"
 #include "NetworkDatabase.h"
 #include "RouterContext.h"
 #include "crypto/ElGamal.h"
+#include "crypto/Hash.h"
+#include "crypto/Rand.h"
+#include "crypto/util/Compression.h"
 #include "transport/Transports.h"
 #include "tunnel/Tunnel.h"
 #include "util/I2PEndian.h"
-#include "util/Timestamp.h"
 #include "util/Log.h"
+#include "util/Timestamp.h"
 
 #ifndef NETWORK_ID
 #define NETWORK_ID 2
@@ -273,9 +273,8 @@ std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg(
     memcpy(buf, router->GetIdentHash(), 32);
     buf += 32;
   }
-  CryptoPP::Gzip compressor;
+  i2p::crypto::util::Gzip compressor;
   compressor.Put(router->GetBuffer(), router->GetBufferLen());
-  compressor.MessageEnd();
   auto size = compressor.MaxRetrievable();
   htobe16buf(buf, size);  // size
   buf += 2;
@@ -412,7 +411,7 @@ bool HandleBuildRequestRecords(
           record + BUILD_RESPONSE_RECORD_RANDPAD_OFFSET,
           BUILD_RESPONSE_RECORD_RANDPAD_SIZE);
       // Get SHA256 of complete record
-      CryptoPP::SHA256().CalculateDigest(
+      i2p::crypto::SHA256().CalculateDigest(
           record + BUILD_RESPONSE_RECORD_SHA256HASH_OFFSET,
           record + BUILD_RESPONSE_RECORD_RANDPAD_OFFSET,
           BUILD_RESPONSE_RECORD_RANDPAD_SIZE + 1);  // + 1 byte for status/reply

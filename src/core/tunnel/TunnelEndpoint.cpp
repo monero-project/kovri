@@ -39,6 +39,7 @@
 #include "I2NPProtocol.h"
 #include "NetworkDatabase.h"
 #include "RouterContext.h"
+#include "crypto/Hash.h"
 #include "transport/Transports.h"
 #include "util/I2PEndian.h"
 #include "util/Log.h"
@@ -67,7 +68,7 @@ void TunnelEndpoint::HandleDecryptedTunnelDataMsg(
         msg->GetPayload() + 4,
         16);
     uint8_t hash[32];
-    CryptoPP::SHA256().CalculateDigest(
+    i2p::crypto::SHA256().CalculateDigest(
         hash,
         fragment,
         // payload + iv

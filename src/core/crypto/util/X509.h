@@ -30,75 +30,46 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
-#ifndef SRC_CORE_CRYPTO_EDDSA25519_H_
-#define SRC_CORE_CRYPTO_EDDSA25519_H_
+#ifndef SRC_CORE_CRYPTO_UTIL_X509_H_
+#define SRC_CORE_CRYPTO_UTIL_X509_H_
 
-#include <cstdint>
+#include <map>
+#include <memory>
+#include <iosfwd>
+#include <string>
 
-#include "SignatureBase.h"
+#include "Identity.h"  // i2p::data::Tag
 
 namespace i2p {
 namespace crypto {
+namespace util {
 
-const std::size_t EDDSA25519_PUBLIC_KEY_LENGTH = 32;
-const std::size_t EDDSA25519_SIGNATURE_LENGTH = 64;
-const std::size_t EDDSA25519_PRIVATE_KEY_LENGTH = 32;
+// Placed here for use across implementations
+typedef i2p::data::Tag<512> PublicKey;
 
-// Verifier
-class EDDSA25519Verifier : public Verifier {
+/// @class X509
+/// @brief Processes X.509 certificate
+/// @details Currently only PEM is supported
+class X509 {
  public:
-  EDDSA25519Verifier(
-      const std::uint8_t* signingKey);
+  X509();
+  ~X509();
 
-  bool Verify(
-      const std::uint8_t* buf,
-      std::size_t len,
-      const std::uint8_t* signature) const;
+  /// @brief Signing keys to return
+  std::map<std::string, PublicKey> m_SigningKeys;
 
-  std::size_t GetPublicKeyLen() const {
-    return EDDSA25519_PUBLIC_KEY_LENGTH;
-  }
-
-  std::size_t GetSignatureLen() const {
-    return EDDSA25519_SIGNATURE_LENGTH;
-  }
-
-  std::size_t GetPrivateKeyLen() const {
-    return EDDSA25519_PRIVATE_KEY_LENGTH;
-  }
+  /// @brief Acquires public signing key from PEM formatted X.509
+  /// @return Signing key
+  const std::map<std::string, PublicKey> GetSigningKey(
+      std::stringstream& certificate);
 
  private:
-  std::uint8_t m_PublicKey[EDDSA25519_PUBLIC_KEY_LENGTH];
+  class X509Impl;
+  std::unique_ptr<X509Impl> m_X509Pimpl;
 };
 
-// Signer
-class EDDSA25519Signer : public Signer {
- public:
-  /// @brief Construct from a key pair.
-  EDDSA25519Signer(
-      const std::uint8_t* signingPrivateKey,
-      const std::uint8_t* signingPublicKey);
-
-  // @brief Construct from a private key.
-  // @details The corresponding public key will be computed from it.
-  EDDSA25519Signer(
-      const std::uint8_t* signingPrivateKey);
-
-  void Sign(
-      const std::uint8_t* buf,
-      std::size_t len,
-      std::uint8_t* signature) const;
-
-  std::uint8_t m_PrivateKey[EDDSA25519_PRIVATE_KEY_LENGTH];
-  std::uint8_t m_PublicKey[EDDSA25519_PUBLIC_KEY_LENGTH];
-};
-
-// Create keys
-void CreateEDDSARandomKeys(
-    std::uint8_t* privateKey,
-    std::uint8_t* publicKey);
-
+}  // namespace util
 }  // namespace crypto
 }  // namespace i2p
 
-#endif  // SRC_CORE_CRYPTO_EDDSA25519_H_
+#endif  // SRC_CORE_CRYPTO_UTIL_X509_H_

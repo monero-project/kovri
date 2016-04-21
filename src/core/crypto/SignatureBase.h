@@ -41,10 +41,12 @@ namespace crypto {
 class Verifier {
  public:
   virtual ~Verifier() {}
+
   virtual bool Verify(
       const std::uint8_t* buf,
       std::size_t len,
       const std::uint8_t* signature) const = 0;
+
   virtual std::size_t GetPublicKeyLen() const = 0;
   virtual std::size_t GetSignatureLen() const = 0;
   virtual std::size_t GetPrivateKeyLen() const = 0;
@@ -53,6 +55,7 @@ class Verifier {
 class Signer {
  public:
   virtual ~Signer() {}
+
   virtual void Sign(
       const std::uint8_t* buf,
       std::size_t len,

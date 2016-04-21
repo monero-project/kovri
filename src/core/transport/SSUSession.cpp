@@ -34,14 +34,13 @@
 
 #include <boost/bind.hpp>
 
-#include <cryptopp/sha.h>
-
 #include <vector>
 
 #include "RouterContext.h"
 #include "SSU.h"
 #include "Transports.h"
 #include "crypto/DiffieHellman.h"
+#include "crypto/Hash.h"
 #include "crypto/Rand.h"
 #include "util/Log.h"
 #include "util/Timestamp.h"
@@ -195,7 +194,7 @@ void SSUSession::CreateAESandMacKey(
       }
     }
     memcpy(sessionKey, nonZero, 32);
-    CryptoPP::SHA256().CalculateDigest(
+    i2p::crypto::SHA256().CalculateDigest(
         macKey,
         nonZero,
         64 - (nonZero - sharedKey));

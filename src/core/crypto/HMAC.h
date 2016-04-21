@@ -33,12 +33,10 @@
 #ifndef SRC_CORE_CRYPTO_HMAC_H_
 #define SRC_CORE_CRYPTO_HMAC_H_
 
-#define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
-#include <cryptopp/md5.h>
-
 #include <inttypes.h>
 #include <string.h>
 
+#include "Hash.h"
 #include "Identity.h"
 
 namespace i2p {
@@ -71,7 +69,7 @@ inline void HMACMD5Digest(
   memcpy(buf + 8, msg, len);
   // calculate first hash
   uint8_t hash[16];  // MD5
-  CryptoPP::Weak1::MD5().CalculateDigest(
+  i2p::crypto::MD5().CalculateDigest(
       hash,
       reinterpret_cast<uint8_t *>(buf),
       len + 64);
@@ -89,7 +87,7 @@ inline void HMACMD5Digest(
   // fill next 16 bytes with zeros (first hash size assumed 32 bytes in I2P)
   memset(buf + 10, 0, 16);
   // calculate digest
-  CryptoPP::Weak1::MD5().CalculateDigest(
+  i2p::crypto::MD5().CalculateDigest(
       digest,
       reinterpret_cast<uint8_t *>(buf),
       96);

@@ -30,70 +30,129 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
-#include "EdDSA25519.h"
-#include "Rand.h"
+#include "crypto/Signature.h"
 
 #include <cstring>
 #include <cstdint>
 
 #include "ed25519/ed25519_ref10.h"
+#include "crypto/Rand.h"
 
 namespace i2p {
 namespace crypto {
 
+/**
+ *
+ * Ed25519
+ *
+ */
+
+/// @class EDDSA25519VerifierImpl
+class EDDSA25519Verifier::EDDSA25519VerifierImpl {
+ public:
+  EDDSA25519VerifierImpl(
+      const std::uint8_t* signingKey) {
+    std::memcpy(
+        m_PublicKey,
+        signingKey,
+        EDDSA25519_PUBLIC_KEY_LENGTH);
+  }
+
+  bool Verify(
+      const std::uint8_t* buf,
+      std::size_t len,
+      const std::uint8_t* signature) const {
+    return ed25519_ref10_open(
+        signature,
+        buf,
+        len,
+        m_PublicKey) >= 0;
+  }
+
+ private:
+  std::uint8_t m_PublicKey[EDDSA25519_PUBLIC_KEY_LENGTH];
+};
+
 EDDSA25519Verifier::EDDSA25519Verifier(
-    const std::uint8_t* signingKey) {
-  std::memcpy(
-      m_PublicKey,
-      signingKey,
-      EDDSA25519_PUBLIC_KEY_LENGTH);
-}
+    const std::uint8_t* signing_key)
+    : m_EDDSA25519VerifierPimpl(
+          new EDDSA25519VerifierImpl(signing_key)) {}
+
+EDDSA25519Verifier::~EDDSA25519Verifier() {}
 
 bool EDDSA25519Verifier::Verify(
     const std::uint8_t* buf,
     std::size_t len,
     const std::uint8_t* signature) const {
-  return ed25519_ref10_open(
-      signature,
-      buf,
-      len,
-      m_PublicKey) >= 0;
+  return m_EDDSA25519VerifierPimpl->Verify(buf, len, signature);
 }
 
-EDDSA25519Signer::EDDSA25519Signer(
-    const std::uint8_t* signingPrivateKey,
-    const std::uint8_t* signingPublicKey) {
-  std::memcpy(
-      m_PrivateKey,
-      signingPrivateKey,
-      EDDSA25519_PRIVATE_KEY_LENGTH);
-  std::memcpy(
-      m_PublicKey,
-      signingPublicKey,
-      EDDSA25519_PUBLIC_KEY_LENGTH);
-}
+/// @class EDDSA25519SignerImpl
+class EDDSA25519Signer::EDDSA25519SignerImpl {
+ public:
+  EDDSA25519SignerImpl(
+      const std::uint8_t* private_signing_key,
+      const std::uint8_t* public_signing_key) {
+    std::memcpy(
+        m_PrivateKey,
+        private_signing_key,
+        EDDSA25519_PRIVATE_KEY_LENGTH);
+    std::memcpy(
+        m_PublicKey,
+        public_signing_key,
+        EDDSA25519_PUBLIC_KEY_LENGTH);
+  }
+
+  EDDSA25519SignerImpl(
+      const std::uint8_t* private_signing_key) {
+    std::memcpy(
+        m_PrivateKey,
+        private_signing_key,
+        EDDSA25519_PRIVATE_KEY_LENGTH);
+    ed25519_ref10_pubkey(m_PublicKey, m_PrivateKey);
+  }
+
+  void Sign(
+      const std::uint8_t* buf,
+      std::size_t len,
+      std::uint8_t* signature) const {
+    ed25519_ref10_sign(
+        signature,
+        buf,
+        len,
+        m_PrivateKey,
+        m_PublicKey);
+  }
+
+ private:
+  std::uint8_t m_PrivateKey[EDDSA25519_PRIVATE_KEY_LENGTH];
+  std::uint8_t m_PublicKey[EDDSA25519_PUBLIC_KEY_LENGTH];
+};
 
 EDDSA25519Signer::EDDSA25519Signer(
-    const std::uint8_t* signingPrivateKey) {
-  std::memcpy(
-      m_PrivateKey,
-      signingPrivateKey,
-      EDDSA25519_PRIVATE_KEY_LENGTH);
-  ed25519_ref10_pubkey(m_PublicKey, m_PrivateKey);
-}
+    const std::uint8_t* private_signing_key)
+    : m_EDDSA25519SignerPimpl(
+          new EDDSA25519SignerImpl(
+              private_signing_key)) {}
+
+EDDSA25519Signer::EDDSA25519Signer(
+    const std::uint8_t* private_signing_key,
+    const std::uint8_t* public_signing_key)
+    : m_EDDSA25519SignerPimpl(
+          new EDDSA25519SignerImpl(
+              private_signing_key,
+              public_signing_key)) {}
+
+EDDSA25519Signer::~EDDSA25519Signer() {}
 
 void EDDSA25519Signer::Sign(
     const std::uint8_t* buf,
     std::size_t len,
     std::uint8_t* signature) const {
-  ed25519_ref10_sign(
-      signature,
-      buf,
-      len,
-      m_PrivateKey,
-      m_PublicKey);
+  m_EDDSA25519SignerPimpl->Sign(buf, len, signature);
 }
 
+// Create keys
 void CreateEDDSARandomKeys(
     std::uint8_t* privateKey,
     std::uint8_t* publicKey) {

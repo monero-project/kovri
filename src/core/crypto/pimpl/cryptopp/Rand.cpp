@@ -36,8 +36,8 @@ namespace i2p {
 namespace crypto {
 
 void RandBytes(
-    uint8_t* dataptr,
-    size_t datalen) {
+    std::uint8_t* dataptr,
+    std::size_t datalen) {
   CryptoPP::AutoSeededRandomPool prng;
   prng.GenerateBlock(dataptr, datalen);
 }

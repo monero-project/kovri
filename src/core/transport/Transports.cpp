@@ -88,11 +88,10 @@ void DHKeysPairSupplier::Run() {
 void DHKeysPairSupplier::CreateDHKeysPairs(
     int num) {
   if (num > 0) {
-    i2p::crypto::DiffieHellman dh;
     for (int i = 0; i < num; i++) {
       i2p::transport::DHKeysPair* pair =
         new i2p::transport::DHKeysPair();
-      dh.GenerateKeyPair(
+      i2p::crypto::DiffieHellman().GenerateKeyPair(
           pair->privateKey,
           pair->publicKey);
       std::unique_lock<std::mutex>  l(m_AcquiredMutex);
@@ -113,8 +112,7 @@ DHKeysPair* DHKeysPairSupplier::Acquire() {
 
   // queue is empty, create new key pair
   DHKeysPair* pair = new DHKeysPair();
-  i2p::crypto::DiffieHellman dh;
-  dh.GenerateKeyPair(
+  i2p::crypto::DiffieHellman().GenerateKeyPair(
       pair->privateKey,
       pair->publicKey);
   return pair;

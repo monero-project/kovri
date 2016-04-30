@@ -47,19 +47,18 @@ struct CipherBlock {
   uint8_t buf[16];
   void operator^=(const CipherBlock& other) {  // XOR
 #if defined(__x86_64__)  // for Intel x64
-  __asm__(
-    "movups (%[buf]), %%xmm0 \n"
-    "movups (%[other]), %%xmm1 \n"
-    "pxor %%xmm1, %%xmm0 \n"
-    "movups %%xmm0, (%[buf]) \n"
-    :
-    : [buf]"r"(buf), [other]"r"(other.buf)
-    : "%xmm0", "%xmm1", "memory"
-  );
+    __asm__(
+        "movups (%[buf]), %%xmm0 \n"
+        "movups (%[other]), %%xmm1 \n"
+        "pxor %%xmm1, %%xmm0 \n"
+        "movups %%xmm0, (%[buf]) \n"
+        :
+        : [buf]"r"(buf), [other]"r"(other.buf)
+        : "%xmm0", "%xmm1", "memory");
 #else
-  // TODO(unassigned): implement it better
-  for (int i = 0; i < 16; i++)
-    buf[i] ^= other.buf[i];
+    // TODO(unassigned): implement it better
+    for (int i = 0; i < 16; i++)
+      buf[i] ^= other.buf[i];
 #endif
   }
 };
@@ -89,56 +88,29 @@ class AESAlignedBuffer {  // 16 bytes alignment
   std::uint8_t* m_Buf;
 };
 
-#ifdef AESNI
-/// @class ECBEncryptionAESNI
-class ECBEncryptionAESNI {
- public:
-  ECBEncryptionAESNI();
-  ~ECBEncryptionAESNI();
+/// @brief Checks for AES-NI support in Intel/AMD processors
+/// @note https://en.wikipedia.org/wiki/CPUID
+/// @return True if supported, false if not
+bool AESNIExists();
 
-  std::uint8_t* GetKeySchedule();
+/// @brief Returns result of AESNIExists()
+/// @note Used for runtime AES-NI implementation
+/// @return True we are using AES-NI, false if not
+bool UsingAESNI();
 
-  void SetKey(
-      const AESKey& key);
+/**
+ *
+ * ECB
+ *
+ */
 
-  void Encrypt(
-      const CipherBlock* in,
-      CipherBlock* out);
-
- private:
-  class ECBEncryptionAESNIImpl;
-  std::unique_ptr<ECBEncryptionAESNIImpl> m_ECBEncryptionAESNIPimpl;
-};
-
-/// @class ECBDecryptionAESNI
-class ECBDecryptionAESNI {
- public:
-  ECBDecryptionAESNI();
-  ~ECBDecryptionAESNI();
-
-  std::uint8_t* GetKeySchedule();
-
-  void SetKey(
-      const AESKey& key);
-
-  void Decrypt(
-      const CipherBlock* in,
-      CipherBlock* out);
-
- private:
-  class ECBDecryptionAESNIImpl;
-  std::unique_ptr<ECBDecryptionAESNIImpl> m_ECBDecryptionAESNIPimpl;
-};
-
-typedef ECBEncryptionAESNI ECBEncryption;
-typedef ECBDecryptionAESNI ECBDecryption;
-
-#else  // Use library
 /// @class ECBEncryption
 class ECBEncryption {
  public:
   ECBEncryption();
   ~ECBEncryption();
+
+  std::uint8_t* GetKeySchedule();  // Only for AES-NI
 
   void SetKey(
       const AESKey& key);
@@ -158,6 +130,8 @@ class ECBDecryption {
   ECBDecryption();
   ~ECBDecryption();
 
+  std::uint8_t* GetKeySchedule();  // Only for AES-NI
+
   void SetKey(
       const AESKey& key);
 
@@ -169,7 +143,12 @@ class ECBDecryption {
   class ECBDecryptionImpl;
   std::unique_ptr<ECBDecryptionImpl> m_ECBDecryptionPimpl;
 };
-#endif
+
+/**
+ *
+ * CBC
+ *
+ */
 
 /// @class CBCEncryption
 class CBCEncryption {

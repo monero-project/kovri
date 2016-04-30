@@ -35,6 +35,7 @@
 #include <cstdint>
 
 #include "AESNIMacros.h"
+#include "crypto/AES.h"
 #include "tunnel/TunnelBase.h"
 
 namespace i2p {
@@ -50,60 +51,60 @@ class TunnelEncryption::TunnelEncryptionImpl {
   void SetKeys(
       const AESKey& layer_key,
       const AESKey& iv_key) {
-    m_LayerEncryption.SetKey(layer_key);
+    if (UsingAESNI())
+      m_ECBLayerEncryption.SetKey(layer_key);
+    else
+      m_CBCLayerEncryption.SetKey(layer_key);
     m_IVEncryption.SetKey(iv_key);
   }
 
   void Encrypt(
       const std::uint8_t* in,
       std::uint8_t* out) {
-  #ifdef AESNI
-    __asm__(
-      // encrypt IV
-      "movups (%[in]), %%xmm0 \n"
-      EncryptAES256(sched_iv)
-      "movaps %%xmm0, %%xmm1 \n"
-      // double IV encryption
-      EncryptAES256(sched_iv)
-      "movups %%xmm0, (%[out]) \n"
-      // encrypt data, IV is xmm1
-      "1: \n"
-      "add $16, %[in] \n"
-      "add $16, %[out] \n"
-      "movups (%[in]), %%xmm0 \n"
-      "pxor %%xmm1, %%xmm0 \n"
-      EncryptAES256(sched_l)
-      "movaps %%xmm0, %%xmm1 \n"
-      "movups %%xmm0, (%[out]) \n"
-      "dec %[num] \n"
-      "jnz 1b \n"
-      :
-      : [sched_iv]"r"(m_IVEncryption.GetKeySchedule()), [sched_l]"r"(m_LayerEncryption.GetKeySchedule()),
-        [in]"r"(in), [out]"r"(out), [num]"r"(63)  // 63 blocks = 1008 bytes
-      : "%xmm0", "%xmm1", "cc", "memory"
-    );
-  #else
-    m_IVEncryption.Encrypt(  // iv
-        (const CipherBlock *)in,
-        reinterpret_cast<CipherBlock *>(out));
-    m_LayerEncryption.SetIV(out);
-    m_LayerEncryption.Encrypt(  // data
-        in + 16,
-        i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE,
-        out + 16);
-    m_IVEncryption.Encrypt(  // double iv
-        reinterpret_cast<CipherBlock *>(out),
-        reinterpret_cast<CipherBlock *>(out));
-  #endif
+    if (UsingAESNI()) {
+      __asm__(
+          // encrypt IV
+          "movups (%[in]), %%xmm0 \n"
+          EncryptAES256(sched_iv)
+          "movaps %%xmm0, %%xmm1 \n"
+          // double IV encryption
+          EncryptAES256(sched_iv)
+          "movups %%xmm0, (%[out]) \n"
+          // encrypt data, IV is xmm1
+          "1: \n"
+          "add $16, %[in] \n"
+          "add $16, %[out] \n"
+          "movups (%[in]), %%xmm0 \n"
+          "pxor %%xmm1, %%xmm0 \n"
+          EncryptAES256(sched_l)
+          "movaps %%xmm0, %%xmm1 \n"
+          "movups %%xmm0, (%[out]) \n"
+          "dec %[num] \n"
+          "jnz 1b \n"
+          :
+          : [sched_iv]"r"(m_IVEncryption.GetKeySchedule()),
+            [sched_l]"r"(m_ECBLayerEncryption.GetKeySchedule()),
+            [in]"r"(in), [out]"r"(out), [num]"r"(63)  // 63 blocks = 1008 bytes
+          : "%xmm0", "%xmm1", "cc", "memory");
+    } else {
+      m_IVEncryption.Encrypt(  // iv
+          (const CipherBlock *)in,
+          reinterpret_cast<CipherBlock *>(out));
+      m_CBCLayerEncryption.SetIV(out);
+      m_CBCLayerEncryption.Encrypt(  // data
+          in + 16,
+          i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE,
+          out + 16);
+      m_IVEncryption.Encrypt(  // double iv
+          reinterpret_cast<CipherBlock *>(out),
+          reinterpret_cast<CipherBlock *>(out));
+    }
   }
 
  private:
   ECBEncryption m_IVEncryption;
-#ifdef AESNI
-  ECBEncryption m_LayerEncryption;
-#else
-  CBCEncryption m_LayerEncryption;
-#endif
+  ECBEncryption m_ECBLayerEncryption;  // For AES-NI
+  CBCEncryption m_CBCLayerEncryption;
 };
 
 TunnelEncryption::TunnelEncryption()
@@ -133,61 +134,61 @@ class TunnelDecryption::TunnelDecryptionImpl {
   void SetKeys(
       const AESKey& layer_key,
       const AESKey& iv_key) {
-    m_LayerDecryption.SetKey(layer_key);
+    if (UsingAESNI())
+      m_ECBLayerDecryption.SetKey(layer_key);
+    else
+      m_CBCLayerDecryption.SetKey(layer_key);
     m_IVDecryption.SetKey(iv_key);
   }
 
   void Decrypt(
       const std::uint8_t* in,
       std::uint8_t* out) {
-  #ifdef AESNI
-    __asm__(
-      // decrypt IV
-      "movups (%[in]), %%xmm0 \n"
-      DecryptAES256(sched_iv)
-      "movaps %%xmm0, %%xmm1 \n"
-      // double IV encryption
-      DecryptAES256(sched_iv)
-      "movups %%xmm0, (%[out]) \n"
-      // decrypt data, IV is xmm1
-      "1: \n"
-      "add $16, %[in] \n"
-      "add $16, %[out] \n"
-      "movups (%[in]), %%xmm0 \n"
-      "movaps %%xmm0, %%xmm2 \n"
-      DecryptAES256(sched_l)
-      "pxor %%xmm1, %%xmm0 \n"
-      "movups %%xmm0, (%[out]) \n"
-      "movaps %%xmm2, %%xmm1 \n"
-      "dec %[num] \n"
-      "jnz 1b \n"
-      :
-      : [sched_iv]"r"(m_IVDecryption.GetKeySchedule()), [sched_l]"r"(m_LayerDecryption.GetKeySchedule()),
-        [in]"r"(in), [out]"r"(out), [num]"r"(63)  // 63 blocks = 1008 bytes
-      : "%xmm0", "%xmm1", "%xmm2", "cc", "memory"
-    );
-  #else
-    m_IVDecryption.Decrypt(
-        (const CipherBlock *)in,
-        reinterpret_cast<CipherBlock *>(out));  // iv
-    m_LayerDecryption.SetIV(out);
-    m_LayerDecryption.Decrypt(  // data
-        in + 16,
-        i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE,
-        out + 16);
-    m_IVDecryption.Decrypt(  // double iv
-        reinterpret_cast<CipherBlock *>(out),
-        reinterpret_cast<CipherBlock *>(out));
-  #endif
+    if (UsingAESNI()) {
+      __asm__(
+          // decrypt IV
+          "movups (%[in]), %%xmm0 \n"
+          DecryptAES256(sched_iv)
+          "movaps %%xmm0, %%xmm1 \n"
+          // double IV encryption
+          DecryptAES256(sched_iv)
+          "movups %%xmm0, (%[out]) \n"
+          // decrypt data, IV is xmm1
+          "1: \n"
+          "add $16, %[in] \n"
+          "add $16, %[out] \n"
+          "movups (%[in]), %%xmm0 \n"
+          "movaps %%xmm0, %%xmm2 \n"
+          DecryptAES256(sched_l)
+          "pxor %%xmm1, %%xmm0 \n"
+          "movups %%xmm0, (%[out]) \n"
+          "movaps %%xmm2, %%xmm1 \n"
+          "dec %[num] \n"
+          "jnz 1b \n"
+          :
+          : [sched_iv]"r"(m_IVDecryption.GetKeySchedule()),
+            [sched_l]"r"(m_ECBLayerDecryption.GetKeySchedule()),
+            [in]"r"(in), [out]"r"(out), [num]"r"(63)  // 63 blocks = 1008 bytes
+          : "%xmm0", "%xmm1", "%xmm2", "cc", "memory");
+    } else {
+      m_IVDecryption.Decrypt(
+          (const CipherBlock *)in,
+          reinterpret_cast<CipherBlock *>(out));  // iv
+      m_CBCLayerDecryption.SetIV(out);
+      m_CBCLayerDecryption.Decrypt(  // data
+          in + 16,
+          i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE,
+          out + 16);
+      m_IVDecryption.Decrypt(  // double iv
+          reinterpret_cast<CipherBlock *>(out),
+          reinterpret_cast<CipherBlock *>(out));
+    }
   }
 
  private:
   ECBDecryption m_IVDecryption;
-#ifdef AESNI
-  ECBDecryption m_LayerDecryption;
-#else
-  CBCDecryption m_LayerDecryption;
-#endif
+  ECBDecryption m_ECBLayerDecryption;  // For AES-NI
+  CBCDecryption m_CBCLayerDecryption;
 };
 
 TunnelDecryption::TunnelDecryption()

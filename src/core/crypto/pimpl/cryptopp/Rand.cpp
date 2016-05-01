@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2013-2016, The Kovri I2P Router Project
+ * Copyright (c) 2015-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,82 +26,20 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
-#include "EdDSA25519.h"
-#include "Rand.h"
+#include "crypto/Rand.h"
 
-#include <cstring>
-
-#include "ed25519/ed25519_ref10.h"
+#include <cryptopp/osrng.h>
 
 namespace i2p {
 namespace crypto {
 
-EDDSA25519Verifier::EDDSA25519Verifier(
-    const uint8_t* signingKey) {
-  std::memcpy(
-      m_PublicKey,
-      signingKey,
-      EDDSA25519_PUBLIC_KEY_LENGTH);
-}
-
-bool EDDSA25519Verifier::Verify(
-    const uint8_t* buf,
-    size_t len,
-    const uint8_t* signature) const {
-  return ed25519_ref10_open(
-      signature,
-      buf,
-      len,
-      m_PublicKey) >= 0;
-}
-
-EDDSA25519Signer::EDDSA25519Signer(
-    const uint8_t* signingPrivateKey,
-    const uint8_t* signingPublicKey) {
-  std::memcpy(
-      m_PrivateKey,
-      signingPrivateKey,
-      EDDSA25519_PRIVATE_KEY_LENGTH);
-  std::memcpy(
-      m_PublicKey,
-      signingPublicKey,
-      EDDSA25519_PUBLIC_KEY_LENGTH);
-}
-
-EDDSA25519Signer::EDDSA25519Signer(
-    const uint8_t* signingPrivateKey) {
-  std::memcpy(
-      m_PrivateKey,
-      signingPrivateKey,
-      EDDSA25519_PRIVATE_KEY_LENGTH);
-  ed25519_ref10_pubkey(m_PublicKey, m_PrivateKey);
-}
-
-void EDDSA25519Signer::Sign(
-    const uint8_t* buf,
-    size_t len,
-    uint8_t* signature) const {
-  ed25519_ref10_sign(
-      signature,
-      buf,
-      len,
-      m_PrivateKey,
-      m_PublicKey);
-}
-
-void CreateEDDSARandomKeys(
-    uint8_t* privateKey,
-    uint8_t* publicKey) {
-  i2p::crypto::RandBytes(
-      privateKey,
-      EDDSA25519_PRIVATE_KEY_LENGTH);
-  ed25519_ref10_pubkey(
-      publicKey,
-      privateKey);
+void RandBytes(
+    std::uint8_t* dataptr,
+    std::size_t datalen) {
+  CryptoPP::AutoSeededRandomPool prng;
+  prng.GenerateBlock(dataptr, datalen);
 }
 
 }  // namespace crypto

@@ -6,7 +6,7 @@ set(TESTS_SRC
   "core/crypto/EdDSA25519.cpp"
   "core/crypto/ElGamal.cpp"
   "core/crypto/Rand.cpp"
-  "core/crypto/X509.cpp"
+  "core/crypto/util/X509.cpp"
   "core/util/Base64.cpp"
   "core/util/HTTP.cpp"
   "core/util/ZIP.cpp")

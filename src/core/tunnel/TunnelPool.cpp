@@ -38,7 +38,6 @@
 #include "Garlic.h"
 #include "NetworkDatabase.h"
 #include "Tunnel.h"
-#include "crypto/CryptoConst.h"
 #include "crypto/Rand.h"
 #include "transport/Transports.h"
 #include "util/I2PEndian.h"

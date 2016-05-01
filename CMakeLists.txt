@@ -3,14 +3,15 @@ project("kovri")
 
 # Configurable options
 option(KOVRI_DATA_PATH "The path to the kovri data folder")
-option(WITH_AESNI      "Use AES-NI instructions set" OFF)
 option(WITH_BENCHMARKS "Build with benchmarks" OFF)
 option(WITH_BINARY     "Build binary" ON)
+option(WITH_CRYPTOPP   "Build with Crypto++" ON)  # Default ON unless we switch libraries
 option(WITH_DOXYGEN    "Enable support for Doxygen" OFF)
 option(WITH_HARDENING  "Use hardening compiler flags" OFF)
 option(WITH_LIBRARY    "Build library" ON)
 option(WITH_OPTIMIZE   "Optimization flags" OFF)
 option(WITH_STATIC     "Static build" OFF)
+option(WITH_SUPERCOP   "Build Ed25519 using the ref10 implementation from SUPERCOP" ON)  # Default ON unless we switch implementations
 option(WITH_TESTS      "Build unit tests" OFF)
 option(WITH_UPNP       "Include support for UPnP client" OFF)
 
@@ -26,7 +27,7 @@ endif()
 
 # Compiler flags customization (by vendor)
 if(NOT MSVC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Winvalid-pch")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Winvalid-pch -maes")
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -pedantic")
   # TODO: The following is incompatible with static build and enabled hardening
   #  for OpenWRT.
@@ -79,10 +80,6 @@ if(WITH_UPNP)
   endif()
 endif()
 
-if(WITH_AESNI)
-  add_definitions("-maes -DAESNI")
-endif()
-
 if(WITH_OPTIMIZE AND (NOT MSVC))
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 endif()
@@ -131,11 +128,15 @@ if(NOT Boost_FOUND)
   message(SEND_ERROR "Boost not found, or version below 1.46. Please download Boost!")
 else()
   add_definitions(-DBOOST_ALL_DYN_LINK)
+  include_directories(${Boost_INCLUDE_DIRS})
 endif()
 
-find_package(CryptoPP REQUIRED)
-if(NOT DEFINED CRYPTO++_INCLUDE_DIR)
-  message(SEND_ERROR "Could not find Crypto++. Please download and install it first!")
+if(WITH_CRYPTOPP)
+  find_package(CryptoPP REQUIRED)
+  if(NOT DEFINED CRYPTO++_INCLUDE_DIR)
+    message(SEND_ERROR "Could not find Crypto++. Please download and install it first!")
+  endif()
+  include_directories(${CRYPTO++_INCLUDE_DIR})
 endif()
 
 if(APPLE)
@@ -150,6 +151,8 @@ endif()
 find_package(OpenSSL REQUIRED)
 if(NOT DEFINED OPENSSL_INCLUDE_DIR)
   message(SEND_ERROR "Could not find OpenSSL. Please download and install it first!")
+else()
+  include_directories(${OPENSSL_INCLUDE_DIR})
 endif()
 
 find_package(MiniUPnPc)
@@ -162,8 +165,8 @@ if(WITH_DOXYGEN)
   include(UseDoxygen)
 endif()
 
-# Load includes
-include_directories(${CMAKE_SOURCE_DIR} ${Boost_INCLUDE_DIRS} ${CRYPTO++_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR})
+# Load remaining includes
+include_directories(${CMAKE_SOURCE_DIR})
 
 # Set default path
 if(KOVRI_DATA_PATH)
@@ -187,14 +190,15 @@ message(STATUS "Compiler path      : ${CMAKE_CXX_COMPILER}")
 message(STATUS "Install prefix:    : ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "Kovri data directory: ${KOVRI_DATA_DIR}")
 message(STATUS "Options:")
-message(STATUS "  AESNI            : ${WITH_AESNI}")
 message(STATUS "  BENCHMARKS       : ${WITH_BENCHMARKS}")
 message(STATUS "  BINARY           : ${WITH_BINARY}")
+message(STATUS "  CRYPTOPP         : ${WITH_CRYPTOPP}")
 message(STATUS "  DOXYGEN          : ${WITH_DOXYGEN}")
 message(STATUS "  HARDENING        : ${WITH_HARDENING}")
 message(STATUS "  LIBRARY          : ${WITH_LIBRARY}")
 message(STATUS "  OPTIMIZATION     : ${WITH_OPTIMIZE}")
 message(STATUS "  STATIC BUILD     : ${WITH_STATIC}")
+message(STATUS "  SUPERCOP         : ${WITH_SUPERCOP}")
 message(STATUS "  TESTS            : ${WITH_TESTS}")
 message(STATUS "  UPnP             : ${WITH_UPNP}")
 message(STATUS "---------------------------------------")

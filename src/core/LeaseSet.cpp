@@ -33,14 +33,13 @@
 #include "LeaseSet.h"
 
 #include <cryptopp/dsa.h>
-#include <cryptopp/osrng.h>
 
 #include <string.h>
 
 #include <vector>
 
 #include "NetworkDatabase.h"
-#include "crypto/CryptoConst.h"
+#include "crypto/Rand.h"
 #include "tunnel/TunnelPool.h"
 #include "util/I2PEndian.h"
 #include "util/Log.h"
@@ -88,7 +87,6 @@ LeaseSet::LeaseSet(
   m_Buffer[m_BufferLen] = tunnels.size();  // num leases
   m_BufferLen++;
   // leases
-  CryptoPP::AutoSeededRandomPool rnd;
   for (auto it : tunnels) {
     memcpy(m_Buffer + m_BufferLen, it->GetNextIdentHash(), 32);
     m_BufferLen += 32;  // gateway id
@@ -99,7 +97,7 @@ LeaseSet::LeaseSet(
       i2p::tunnel::TUNNEL_EXPIRATION_TIMEOUT -
       i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD;  // 1 minute before expiration
     ts *= 1000;  // in milliseconds
-    ts += rnd.GenerateWord32(0, 5);  // + random milliseconds
+    ts += i2p::crypto::RandInRange<std::size_t>(0, 5);  // + random milliseconds
     htobe64buf(m_Buffer + m_BufferLen, ts);
     m_BufferLen += 8;  // end date
   }

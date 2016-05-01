@@ -32,9 +32,6 @@
 
 #include "NTCPSession.h"
 
-#include <cryptopp/adler32.h>
-#include <cryptopp/dh.h>
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -45,8 +42,10 @@
 #include "NetworkDatabase.h"
 #include "RouterContext.h"
 #include "Transports.h"
+#include "crypto/DiffieHellman.h"
+#include "crypto/Hash.h"
 #include "crypto/Rand.h"
-#include "crypto/CryptoConst.h"
+#include "crypto/util/Checksum.h"
 #include "util/Base64.h"
 #include "util/I2PEndian.h"
 #include "util/Log.h"
@@ -78,9 +77,7 @@ NTCPSession::~NTCPSession() {
 void NTCPSession::CreateAESKey(
     std::uint8_t* pubKey,
     i2p::crypto::AESKey& key) {
-  CryptoPP::DH dh(
-      i2p::crypto::elgp,
-      i2p::crypto::elgg);
+  i2p::crypto::DiffieHellman dh;
   std::uint8_t sharedKey[NTCP_PUBKEY_SIZE];
   if (!dh.Agree(sharedKey, m_DHKeysPair->privateKey, pubKey)) {
     LogPrint(eLogError, "Couldn't create shared key");
@@ -150,7 +147,7 @@ void NTCPSession::ClientLogin() {
       m_Establisher->phase1.pubKey,
       x,
       NTCP_PUBKEY_SIZE);
-  CryptoPP::SHA256().CalculateDigest(
+  i2p::crypto::SHA256().CalculateDigest(
       m_Establisher->phase1.HXxorHI,
       x,
       NTCP_PUBKEY_SIZE);
@@ -226,7 +223,7 @@ void NTCPSession::HandlePhase1Received(
   } else {
     // verify ident
     std::uint8_t digest[NTCP_HASH_SIZE];
-    CryptoPP::SHA256().CalculateDigest(
+    i2p::crypto::SHA256().CalculateDigest(
         digest,
         m_Establisher->phase1.pubKey,
         NTCP_PUBKEY_SIZE);
@@ -250,7 +247,7 @@ void NTCPSession::SendPhase2() {
   std::uint8_t xy[NTCP_PUBKEY_SIZE * 2];  // Combined DH key size for hxy
   memcpy(xy, m_Establisher->phase1.pubKey, NTCP_PUBKEY_SIZE);
   memcpy(xy + NTCP_PUBKEY_SIZE, y, NTCP_PUBKEY_SIZE);
-  CryptoPP::SHA256().CalculateDigest(
+  i2p::crypto::SHA256().CalculateDigest(
       m_Establisher->phase2.encrypted.hxy,
       xy,
       NTCP_PUBKEY_SIZE * 2);
@@ -344,7 +341,7 @@ void NTCPSession::HandlePhase2Received(
         xy + NTCP_PUBKEY_SIZE,
         m_Establisher->phase2.pubKey,
         NTCP_PUBKEY_SIZE);
-    if (!CryptoPP::SHA256().VerifyDigest(
+    if (!i2p::crypto::SHA256().VerifyDigest(
           m_Establisher->phase2.encrypted.hxy,
           xy,
           NTCP_PUBKEY_SIZE * 2)) {
@@ -715,7 +712,7 @@ bool NTCPSession::DecryptNextBlock(
   }
   if (m_NextMessageOffset >= m_NextMessage->len + NTCP_ADLER32_SIZE) {
     // we have a complete I2NP message
-    if (CryptoPP::Adler32().VerifyDigest(
+    if (i2p::crypto::util::Adler32().VerifyDigest(
           m_NextMessage->buf + m_NextMessageOffset - NTCP_ADLER32_SIZE,
           m_NextMessage->buf,
           m_NextMessageOffset - NTCP_ADLER32_SIZE))
@@ -770,7 +767,7 @@ boost::asio::const_buffers_1 NTCPSession::CreateMsgBuffer(
         sendBuffer + len + NTCP_PHASE3_ALICE_TS_SIZE,
         padding);
   }
-  CryptoPP::Adler32().CalculateDigest(
+  i2p::crypto::util::Adler32().CalculateDigest(
       sendBuffer + len + NTCP_PHASE3_ALICE_RI_SIZE + padding,
       sendBuffer, len + NTCP_PHASE3_ALICE_RI_SIZE + padding);
   int l = len + padding + 6;

@@ -36,16 +36,16 @@
 
 #include <cryptopp/filters.h>
 #include <cryptopp/hex.h>
-#include <cryptopp/osrng.h>
 
 #include <iomanip>
 #include <sstream>
 #include <string>
 
-#include "core/RouterContext.h"
-#include "core/NetworkDatabase.h"
 #include "client/ClientContext.h"
+#include "core/NetworkDatabase.h"
+#include "core/RouterContext.h"
 #include "core/Version.h"
+#include "crypto/Rand.h"
 #include "transport/Transports.h"
 #include "tunnel/Tunnel.h"
 #include "util/Log.h"
@@ -324,7 +324,8 @@ I2PControlSession::Response I2PControlSession::HandleRequest(
 }
 
 bool I2PControlSession::Authenticate(
-    const ptree& pt, Response& response) {
+    const ptree& pt,
+    Response& response) {
   try {
     std::string token = pt.get<std::string>(constants::PARAM_TOKEN);
     std::lock_guard<std::mutex> lock(m_TokensMutex);
@@ -345,18 +346,16 @@ bool I2PControlSession::Authenticate(
 }
 
 std::string I2PControlSession::GenerateToken() const {
-  byte random_data[constants::TOKEN_SIZE] = {};
-  CryptoPP::AutoSeededRandomPool rng;
-  rng.GenerateBlock(random_data, constants::TOKEN_SIZE);
-  std::string token;
-  CryptoPP::StringSource ss(
-      random_data,
-      constants::TOKEN_SIZE,
-      true,
-      new CryptoPP::HexEncoder(
-        new CryptoPP::StringSink(
-          token)));
-  return token;
+  // Generate random data for token
+  std::array<std::uint8_t, constants::TOKEN_SIZE> rand = {};
+  i2p::crypto::RandBytes(rand.data(), constants::TOKEN_SIZE);
+  // Create base16 token from random data
+  std::stringstream token;
+  for (std::size_t i(0); i < rand.size(); i++)
+    token << std::hex << std::setfill('0') << std::setw(2)
+    << std::uppercase << static_cast<std::size_t>(rand.at(i));
+  // Return string
+  return token.str();
 }
 
 void I2PControlSession::HandleAuthenticate(

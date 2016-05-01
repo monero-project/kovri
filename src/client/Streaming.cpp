@@ -30,8 +30,6 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
-#include <cryptopp/gzip.h>
-
 #include <algorithm>
 #include <vector>
 
@@ -40,6 +38,7 @@
 #include "Streaming.h"
 #include "client/Destination.h"
 #include "crypto/Rand.h"
+#include "crypto/util/Compression.h"
 #include "tunnel/Tunnel.h"
 #include "util/Log.h"
 #include "util/Timestamp.h"
@@ -815,17 +814,16 @@ std::shared_ptr<I2NPMessage> Stream::CreateDataMessage(
     const uint8_t* payload,
     size_t len) {
   auto msg = ToSharedI2NPMessage(NewI2NPShortMessage());
-  CryptoPP::Gzip compressor;
+  i2p::crypto::util::Gzip compressor;
   if (len <= i2p::stream::COMPRESSION_THRESHOLD_SIZE)
     compressor.SetDeflateLevel(
-        CryptoPP::Gzip::MIN_DEFLATE_LEVEL);
+        compressor.GetMinDeflateLevel());
   else
     compressor.SetDeflateLevel(
-        CryptoPP::Gzip::DEFAULT_DEFLATE_LEVEL);
+        compressor.GetDefaultDeflateLevel());
   compressor.Put(
       payload,
       len);
-  compressor.MessageEnd();
   int size = compressor.MaxRetrievable();
   uint8_t* buf = msg->GetPayload();
   // length
@@ -919,10 +917,9 @@ void StreamingDestination::DeleteStream(
 void StreamingDestination::HandleDataMessagePayload(
     const uint8_t* buf,
     size_t len) {
-  // unzip it
-  CryptoPP::Gunzip decompressor;
+  // Gunzip it
+  i2p::crypto::util::Gunzip decompressor;
   decompressor.Put(buf, len);
-  decompressor.MessageEnd();
   Packet* uncompressed = new Packet;
   uncompressed->offset = 0;
   uncompressed->len = decompressor.MaxRetrievable();

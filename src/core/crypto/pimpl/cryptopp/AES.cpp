@@ -32,26 +32,47 @@
 
 #include "crypto/AES.h"
 
-// TODO(unassigned): All AESNI should be resolved by #73
-// We're currently keeping all AESNI code with cryptopp because of ECB.
-// This is not ideal but #73 will require a rewrite anyway.
-#ifdef AESNI
-#include "AESNIMacros.h"
-#endif
-
 #include <cryptopp/aes.h>
 #include <cryptopp/modes.h>
 
 #include <stdlib.h>
 
+#include "AESNIMacros.h"
 #include "util/Log.h"
 
 namespace i2p {
 namespace crypto {
 
-#ifdef AESNI
+/// TODO(unassigned): if we switch libraries, we should move AES-NI elsewhere.
+/// TODO(unassigned): MSVC x86-64 support?
+bool AESNIExists() {
+  unsigned int eax, ecx;  // We only need ECX
+  const unsigned int flag = (1 << 25);  // ECX bit 25 for AES-NI
+  LogPrint(eLogInfo, "Crypto: checking for AES-NI...");
+  __asm__ __volatile__(
+      "cpuid"
+      : "=a"(eax), "=c"(ecx)  // 0x2000000;
+      : "a"(1), "c"(0)
+      : "%ebx", "%edx");
+  if ((ecx & flag) == flag) {
+    LogPrint(eLogInfo, "Crypto: AES-NI is available!");
+  } else {
+    LogPrint(eLogInfo, "Crypto: AES-NI is not available. Using library.");
+    return false;
+  }
+  return true;
+}
+
+// Initialize once to avoid repeated tests for AES-NI
+bool aesni(AESNIExists());
+
+// For runtime AES-NI
+bool UsingAESNI() {
+  return aesni;
+}
+
 /// @class ECBCryptoAESNI
-/// @brief AESNI base clase for ECB
+/// @brief AES-NI base class for ECB
 class ECBCryptoAESNI {
  public:
   std::uint8_t* GetKeySchedule() {
@@ -90,15 +111,14 @@ class ECBCryptoAESNI {
         "pxor %%xmm4, %%xmm1 \n"
         "pxor %%xmm2, %%xmm1 \n"
         "movups %%xmm1, 224(%[sched]) \n"
-        : // output
-        : [key]"r"((const std::uint8_t *)key), [sched]"r"(GetKeySchedule()) // input
-        : "%xmm1", "%xmm2", "%xmm3", "%xmm4", "memory"); // clogged
+        : // Output
+        : [key]"r"((const std::uint8_t *)key), [sched]"r"(GetKeySchedule()) // Input
+        : "%xmm1", "%xmm2", "%xmm3", "%xmm4", "memory"); // Clobbered
   }
 
  private:
   AESAlignedBuffer<240> m_KeySchedule;  // 14 rounds for AES-256, 240 bytes
 };
-#endif
 
 /**
  *
@@ -106,14 +126,12 @@ class ECBCryptoAESNI {
  *
  */
 
-#ifdef AESNI
-/// @class ECBEncryptionAESNIImpl
-/// @brief AESNI ECB encryption implementation
-class ECBEncryptionAESNI::ECBEncryptionAESNIImpl
-    : public ECBCryptoAESNI {
+/// @class ECBEncryptionImpl
+/// @brief ECB encryption implementation
+class ECBEncryption::ECBEncryptionImpl : public ECBCryptoAESNI {
  public:
-  ECBEncryptionAESNIImpl() {}
-  ~ECBEncryptionAESNIImpl() {}
+  ECBEncryptionImpl() {}
+  ~ECBEncryptionImpl() {}
 
   std::uint8_t* GetKeySchedule() {
     return ECBCryptoAESNI::GetKeySchedule();
@@ -121,66 +139,36 @@ class ECBEncryptionAESNI::ECBEncryptionAESNIImpl
 
   void SetKey(
       const AESKey& key) {
-    ExpandKey(key);
-  }
-
-  void Encrypt(
-      const CipherBlock* in,
-      CipherBlock * out) {
-    __asm__(
-        "movups (%[in]), %%xmm0 \n"
-        EncryptAES256(sched)
-        "movups %%xmm0, (%[out]) \n"
-        : : [sched]"r"(GetKeySchedule()), [in]"r"(in), [out]"r"(out) : "%xmm0", "memory");
-  }
-};
-
-ECBEncryptionAESNI::ECBEncryptionAESNI()
-    : m_ECBEncryptionAESNIPimpl(new ECBEncryptionAESNIImpl()) {}
-
-ECBEncryptionAESNI::~ECBEncryptionAESNI() {}
-
-std::uint8_t* ECBEncryptionAESNI::GetKeySchedule() {
-  return m_ECBEncryptionAESNIPimpl->GetKeySchedule();
-}
-
-void ECBEncryptionAESNI::ECBEncryptionAESNI::SetKey(
-    const AESKey& key) {
-  m_ECBEncryptionAESNIPimpl->SetKey(key);
-}
-
-void ECBEncryptionAESNI::Encrypt(
-    const CipherBlock* in,
-    CipherBlock* out) {
-  m_ECBEncryptionAESNIPimpl->Encrypt(in, out);
-}
-
-#else
-/// @class ECBEncryptionImpl
-/// @brief ECB encryption implementation
-class ECBEncryption::ECBEncryptionImpl {
- public:
-  ECBEncryptionImpl() {}
-  ~ECBEncryptionImpl() {}
-
-  void SetKey(
-      const AESKey& key) {
-    try {
-      m_Encryption.SetKey(key, 32);
-    } catch (CryptoPP::Exception e) {
-      LogPrint(eLogError,
-          "ECBEncryptionImpl: SetKey() caught exception '", e.what(), "'");
+    if (UsingAESNI()) {
+      ExpandKey(key);
+    } else {
+      try {
+        m_Encryption.SetKey(key, 32);
+      } catch (CryptoPP::Exception e) {
+        LogPrint(eLogError,
+            "ECBEncryptionImpl: SetKey() caught exception '", e.what(), "'");
+      }
     }
   }
 
   void Encrypt(
       const CipherBlock* in,
       CipherBlock* out) {
-    try {
-      m_Encryption.ProcessData(out->buf, in->buf, 16);
-    } catch (CryptoPP::Exception e) {
-      LogPrint(eLogError,
-          "ECBEncryptionImpl: Encrypt() caught exception '", e.what(), "'");
+    if (UsingAESNI()) {
+      __asm__(
+          "movups (%[in]), %%xmm0 \n"
+          EncryptAES256(sched)
+          "movups %%xmm0, (%[out]) \n"
+          :
+          : [sched]"r"(GetKeySchedule()), [in]"r"(in), [out]"r"(out)
+          : "%xmm0", "memory");
+    } else {
+      try {
+        m_Encryption.ProcessData(out->buf, in->buf, 16);
+      } catch (CryptoPP::Exception e) {
+        LogPrint(eLogError,
+            "ECBEncryptionImpl: Encrypt() caught exception '", e.what(), "'");
+      }
     }
   }
 
@@ -193,6 +181,10 @@ ECBEncryption::ECBEncryption()
 
 ECBEncryption::~ECBEncryption() {}
 
+std::uint8_t* ECBEncryption::GetKeySchedule() {
+  return m_ECBEncryptionPimpl->GetKeySchedule();
+}
+
 void ECBEncryption::ECBEncryption::SetKey(
     const AESKey& key) {
   m_ECBEncryptionPimpl->SetKey(key);
@@ -203,7 +195,6 @@ void ECBEncryption::Encrypt(
     CipherBlock* out) {
   m_ECBEncryptionPimpl->Encrypt(in, out);
 }
-#endif
 
 /**
  *
@@ -211,14 +202,12 @@ void ECBEncryption::Encrypt(
  *
  */
 
-#ifdef AESNI
-/// @class ECBDecryptionAESNIImpl
-/// @brief AESNI ECB decryption implementation
-class ECBDecryptionAESNI::ECBDecryptionAESNIImpl
-    : public ECBCryptoAESNI {
+/// @class ECBDecryptionImpl
+/// @brief ECB decryption implementation
+class ECBDecryption::ECBDecryptionImpl : public ECBCryptoAESNI {
  public:
-  ECBDecryptionAESNIImpl() {}
-  ~ECBDecryptionAESNIImpl() {}
+  ECBDecryptionImpl() {}
+  ~ECBDecryptionImpl() {}
 
   std::uint8_t* GetKeySchedule() {
     return ECBCryptoAESNI::GetKeySchedule();
@@ -226,82 +215,54 @@ class ECBDecryptionAESNI::ECBDecryptionAESNIImpl
 
   void SetKey(
       const AESKey& key) {
+    if (UsingAESNI()) {
       ExpandKey(key);  // expand encryption key first
-    // then invert it using aesimc
-    __asm__(
-        CallAESIMC(16)
-        CallAESIMC(32)
-        CallAESIMC(48)
-        CallAESIMC(64)
-        CallAESIMC(80)
-        CallAESIMC(96)
-        CallAESIMC(112)
-        CallAESIMC(128)
-        CallAESIMC(144)
-        CallAESIMC(160)
-        CallAESIMC(176)
-        CallAESIMC(192)
-        CallAESIMC(208)
-        : : [shed]"r"(GetKeySchedule()) : "%xmm0", "memory");
-  }
-
-  void Decrypt(
-      const CipherBlock* in,
-      CipherBlock* out) {
-    __asm__(
-        "movups (%[in]), %%xmm0 \n"
-        DecryptAES256(sched)
-        "movups %%xmm0, (%[out]) \n"
-        : : [sched]"r"(GetKeySchedule()), [in]"r"(in), [out]"r"(out) : "%xmm0", "memory");
-  }
-};
-
-ECBDecryptionAESNI::ECBDecryptionAESNI()
-    : m_ECBDecryptionAESNIPimpl(new ECBDecryptionAESNIImpl()) {}
-
-ECBDecryptionAESNI::~ECBDecryptionAESNI() {}
-
-std::uint8_t* ECBDecryptionAESNI::GetKeySchedule() {
-  return m_ECBDecryptionAESNIPimpl->GetKeySchedule();
-}
-
-void ECBDecryptionAESNI::SetKey(
-    const AESKey& key) {
-  m_ECBDecryptionAESNIPimpl->SetKey(key);
-}
-
-void ECBDecryptionAESNI::Decrypt(
-    const CipherBlock* in,
-    CipherBlock* out) {
-  m_ECBDecryptionAESNIPimpl->Decrypt(in, out);
-}
-
-#else
-/// @class ECBDecryptionImpl
-/// @brief ECB decryption implementation
-class ECBDecryption::ECBDecryptionImpl {
- public:
-  ECBDecryptionImpl() {}
-  ~ECBDecryptionImpl() {}
-
-  void SetKey(
-      const AESKey& key) {
-    try {
-      m_Decryption.SetKey(key, 32);
-    } catch (CryptoPP::Exception e) {
-      LogPrint(eLogError,
-          "ECBDecryptionImpl: SetKey() caught exception '", e.what(), "'");
+      // then invert it using aesimc
+      __asm__(
+          CallAESIMC(16)
+          CallAESIMC(32)
+          CallAESIMC(48)
+          CallAESIMC(64)
+          CallAESIMC(80)
+          CallAESIMC(96)
+          CallAESIMC(112)
+          CallAESIMC(128)
+          CallAESIMC(144)
+          CallAESIMC(160)
+          CallAESIMC(176)
+          CallAESIMC(192)
+          CallAESIMC(208)
+          :
+          : [shed]"r"(GetKeySchedule())
+          : "%xmm0", "memory");
+    } else {
+      try {
+        m_Decryption.SetKey(key, 32);
+      } catch (CryptoPP::Exception e) {
+        LogPrint(eLogError,
+            "ECBDecryptionImpl: SetKey() caught exception '", e.what(), "'");
+      }
     }
   }
 
   void Decrypt(
       const CipherBlock* in,
       CipherBlock* out) {
-    try {
-      m_Decryption.ProcessData(out->buf, in->buf, 16);
-    } catch (CryptoPP::Exception e) {
-      LogPrint(eLogError,
-          "ECBDecryptionImpl: Decrypt() caught exception '", e.what(), "'");
+    if (UsingAESNI()) {
+      __asm__(
+          "movups (%[in]), %%xmm0 \n"
+          DecryptAES256(sched)
+          "movups %%xmm0, (%[out]) \n"
+          :
+          : [sched]"r"(GetKeySchedule()), [in]"r"(in), [out]"r"(out)
+          : "%xmm0", "memory");
+    } else {
+      try {
+        m_Decryption.ProcessData(out->buf, in->buf, 16);
+      } catch (CryptoPP::Exception e) {
+        LogPrint(eLogError,
+            "ECBDecryptionImpl: Decrypt() caught exception '", e.what(), "'");
+      }
     }
   }
 
@@ -314,6 +275,10 @@ ECBDecryption::ECBDecryption()
 
 ECBDecryption::~ECBDecryption() {}
 
+std::uint8_t* ECBDecryption::GetKeySchedule() {
+  return m_ECBDecryptionPimpl->GetKeySchedule();
+}
+
 void ECBDecryption::SetKey(
     const AESKey& key) {
   m_ECBDecryptionPimpl->SetKey(key);
@@ -324,7 +289,6 @@ void ECBDecryption::Decrypt(
     CipherBlock* out) {
   m_ECBDecryptionPimpl->Decrypt(in, out);
 }
-#endif
 
 /**
  *
@@ -362,31 +326,32 @@ class CBCEncryption::CBCEncryptionImpl {
       int num_blocks,
       const CipherBlock* in,
       CipherBlock* out) {
-  #ifdef AESNI
-    __asm__(
-      "movups (%[iv]), %%xmm1 \n"
-      "1: \n"
-      "movups (%[in]), %%xmm0 \n"
-      "pxor %%xmm1, %%xmm0 \n"
-      EncryptAES256(sched)
-      "movaps %%xmm0, %%xmm1 \n"
-      "movups %%xmm0, (%[out]) \n"
-      "add $16, %[in] \n"
-      "add $16, %[out] \n"
-      "dec %[num] \n"
-      "jnz 1b \n"
-      "movups %%xmm1, (%[iv]) \n"
-      :
-      : [iv]"r"(&m_LastBlock), [sched]"r"(m_ECBEncryption.GetKeySchedule()),
-        [in]"r"(in), [out]"r"(out), [num]"r"(num_blocks)
-      : "%xmm0", "%xmm1", "cc", "memory");
-  #else
-    for (int i = 0; i < num_blocks; i++) {
-      m_LastBlock ^= in[i];
-      m_ECBEncryption.Encrypt(&m_LastBlock, &m_LastBlock);
-      out[i] = m_LastBlock;
+    if (UsingAESNI()) {
+      __asm__(
+          "movups (%[iv]), %%xmm1 \n"
+          "1: \n"
+          "movups (%[in]), %%xmm0 \n"
+          "pxor %%xmm1, %%xmm0 \n"
+          EncryptAES256(sched)
+          "movaps %%xmm0, %%xmm1 \n"
+          "movups %%xmm0, (%[out]) \n"
+          "add $16, %[in] \n"
+          "add $16, %[out] \n"
+          "dec %[num] \n"
+          "jnz 1b \n"
+          "movups %%xmm1, (%[iv]) \n"
+          :
+          : [iv]"r"(&m_LastBlock),
+            [sched]"r"(m_ECBEncryption.GetKeySchedule()),
+            [in]"r"(in), [out]"r"(out), [num]"r"(num_blocks)
+          : "%xmm0", "%xmm1", "cc", "memory");
+    } else {
+      for (int i = 0; i < num_blocks; i++) {
+        m_LastBlock ^= in[i];
+        m_ECBEncryption.Encrypt(&m_LastBlock, &m_LastBlock);
+        out[i] = m_LastBlock;
+      }
     }
-  #endif
   }
 
   void Encrypt(
@@ -403,27 +368,27 @@ class CBCEncryption::CBCEncryptionImpl {
   }
 
   void Encrypt(
-    const std::uint8_t* in,
-    std::uint8_t* out) {
-  #ifdef AESNI
-    __asm__(
-      "movups (%[iv]), %%xmm1 \n"
-      "movups (%[in]), %%xmm0 \n"
-      "pxor %%xmm1, %%xmm0 \n"
-      EncryptAES256(sched)
-      "movups %%xmm0, (%[out]) \n"
-      "movups %%xmm0, (%[iv]) \n"
-      :
-      : [iv]"r"(&m_LastBlock), [sched]"r"(m_ECBEncryption.GetKeySchedule()),
-      [in]"r"(in), [out]"r"(out)
-      : "%xmm0", "%xmm1", "memory"
-    );
-  #else
-    Encrypt(
-        1,
-        reinterpret_cast<const CipherBlock *>(in),
-        reinterpret_cast<CipherBlock *>(out));
-  #endif
+      const std::uint8_t* in,
+      std::uint8_t* out) {
+    if (UsingAESNI()) {
+      __asm__(
+          "movups (%[iv]), %%xmm1 \n"
+          "movups (%[in]), %%xmm0 \n"
+          "pxor %%xmm1, %%xmm0 \n"
+          EncryptAES256(sched)
+          "movups %%xmm0, (%[out]) \n"
+          "movups %%xmm0, (%[iv]) \n"
+          :
+          : [iv]"r"(&m_LastBlock),
+            [sched]"r"(m_ECBEncryption.GetKeySchedule()),
+            [in]"r"(in), [out]"r"(out)
+          : "%xmm0", "%xmm1", "memory");
+    } else {
+      Encrypt(
+          1,
+          reinterpret_cast<const CipherBlock *>(in),
+          reinterpret_cast<CipherBlock *>(out));
+    }
   }
 
  private:
@@ -493,50 +458,47 @@ class CBCDecryption::CBCDecryptionImpl {
     SetIV(iv);
   }
 
-  // 32 bytes
-  void SetKey(
+  void SetKey(  // 32 bytes
       const AESKey& key) {
     m_ECBDecryption.SetKey(key);
   }
 
-  // 16 bytes
-  void SetIV(
+  void SetIV(  // 16 bytes
       const std::uint8_t* iv) {
     memcpy(m_IV.buf, iv, 16);
   }
 
   void Decrypt(
-    int num_blocks,
-    const CipherBlock* in,
-    CipherBlock* out) {
-  #ifdef AESNI
-    __asm__(
-      "movups (%[iv]), %%xmm1 \n"
-      "1: \n"
-      "movups (%[in]), %%xmm0 \n"
-      "movaps %%xmm0, %%xmm2 \n"
-      DecryptAES256(sched)
-      "pxor %%xmm1, %%xmm0 \n"
-      "movups %%xmm0, (%[out]) \n"
-      "movaps %%xmm2, %%xmm1 \n"
-      "add $16, %[in] \n"
-      "add $16, %[out] \n"
-      "dec %[num] \n"
-      "jnz 1b \n"
-      "movups %%xmm1, (%[iv]) \n"
-      :
-      : [iv]"r"(&m_IV), [sched]"r"(m_ECBDecryption.GetKeySchedule ()),
-        [in]"r"(in), [out]"r"(out), [num]"r"(num_blocks)
-      : "%xmm0", "%xmm1", "%xmm2", "cc", "memory"
-    );
-  #else
-    for (int i = 0; i < num_blocks; i++) {
-      CipherBlock tmp = in[i];
-      m_ECBDecryption.Decrypt(in + i, out + i);
-      out[i] ^= m_IV;
-      m_IV = tmp;
+      int num_blocks,
+      const CipherBlock* in,
+      CipherBlock* out) {
+    if (UsingAESNI()) {
+      __asm__(
+        "movups (%[iv]), %%xmm1 \n"
+        "1: \n"
+        "movups (%[in]), %%xmm0 \n"
+        "movaps %%xmm0, %%xmm2 \n"
+        DecryptAES256(sched)
+        "pxor %%xmm1, %%xmm0 \n"
+        "movups %%xmm0, (%[out]) \n"
+        "movaps %%xmm2, %%xmm1 \n"
+        "add $16, %[in] \n"
+        "add $16, %[out] \n"
+        "dec %[num] \n"
+        "jnz 1b \n"
+        "movups %%xmm1, (%[iv]) \n"
+        :
+        : [iv]"r"(&m_IV), [sched]"r"(m_ECBDecryption.GetKeySchedule ()),
+          [in]"r"(in), [out]"r"(out), [num]"r"(num_blocks)
+        : "%xmm0", "%xmm1", "%xmm2", "cc", "memory");
+    } else {
+      for (int i = 0; i < num_blocks; i++) {
+        CipherBlock tmp = in[i];
+        m_ECBDecryption.Decrypt(in + i, out + i);
+        out[i] ^= m_IV;
+        m_IV = tmp;
+      }
     }
-  #endif
   }
 
   void Decrypt(
@@ -553,27 +515,26 @@ class CBCDecryption::CBCDecryptionImpl {
 
   // One block
   void Decrypt(
-    const std::uint8_t* in,
-    std::uint8_t* out) {
-  #ifdef AESNI
-    __asm__(
-      "movups (%[iv]), %%xmm1 \n"
-      "movups (%[in]), %%xmm0 \n"
-      "movups %%xmm0, (%[iv]) \n"
-      DecryptAES256(sched)
-      "pxor %%xmm1, %%xmm0 \n"
-      "movups %%xmm0, (%[out]) \n"
-      :
-      : [iv]"r"(&m_IV), [sched]"r"(m_ECBDecryption.GetKeySchedule()),
-        [in]"r"(in), [out]"r"(out)
-      : "%xmm0", "%xmm1", "memory"
-    );
-  #else
-    Decrypt(
-      1,
-      reinterpret_cast<const CipherBlock *>(in),
-      reinterpret_cast<CipherBlock *>(out));
-  #endif
+      const std::uint8_t* in,
+      std::uint8_t* out) {
+    if (UsingAESNI()) {
+      __asm__(
+        "movups (%[iv]), %%xmm1 \n"
+        "movups (%[in]), %%xmm0 \n"
+        "movups %%xmm0, (%[iv]) \n"
+        DecryptAES256(sched)
+        "pxor %%xmm1, %%xmm0 \n"
+        "movups %%xmm0, (%[out]) \n"
+        :
+        : [iv]"r"(&m_IV), [sched]"r"(m_ECBDecryption.GetKeySchedule()),
+          [in]"r"(in), [out]"r"(out)
+        : "%xmm0", "%xmm1", "memory");
+    } else {
+      Decrypt(
+          1,
+          reinterpret_cast<const CipherBlock *>(in),
+          reinterpret_cast<CipherBlock *>(out));
+    }
   }
 
  private:

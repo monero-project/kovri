@@ -3,7 +3,6 @@ project("kovri")
 
 # Configurable options
 option(KOVRI_DATA_PATH "The path to the kovri data folder")
-option(WITH_AESNI      "Use AES-NI instructions set" OFF)
 option(WITH_BENCHMARKS "Build with benchmarks" OFF)
 option(WITH_BINARY     "Build binary" ON)
 option(WITH_CRYPTOPP   "Build with Crypto++" ON)  # Default ON unless we switch libraries
@@ -28,7 +27,7 @@ endif()
 
 # Compiler flags customization (by vendor)
 if(NOT MSVC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Winvalid-pch")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Winvalid-pch -maes")
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -pedantic")
   # TODO: The following is incompatible with static build and enabled hardening
   #  for OpenWRT.
@@ -79,10 +78,6 @@ if(WITH_UPNP)
   if(NOT MSVC)
     set(DL_LIB ${CMAKE_DL_LIBS})
   endif()
-endif()
-
-if(WITH_AESNI)
-  add_definitions("-maes -DAESNI")
 endif()
 
 if(WITH_OPTIMIZE AND (NOT MSVC))
@@ -195,7 +190,6 @@ message(STATUS "Compiler path      : ${CMAKE_CXX_COMPILER}")
 message(STATUS "Install prefix:    : ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "Kovri data directory: ${KOVRI_DATA_DIR}")
 message(STATUS "Options:")
-message(STATUS "  AESNI            : ${WITH_AESNI}")
 message(STATUS "  BENCHMARKS       : ${WITH_BENCHMARKS}")
 message(STATUS "  BINARY           : ${WITH_BINARY}")
 message(STATUS "  CRYPTOPP         : ${WITH_CRYPTOPP}")

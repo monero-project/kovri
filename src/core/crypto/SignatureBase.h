@@ -33,7 +33,7 @@
 #ifndef SRC_CORE_CRYPTO_SIGNATUREBASE_H_
 #define SRC_CORE_CRYPTO_SIGNATUREBASE_H_
 
-#include <cryptopp/osrng.h>
+#include <cstdint>
 
 namespace i2p {
 namespace crypto {
@@ -41,22 +41,25 @@ namespace crypto {
 class Verifier {
  public:
   virtual ~Verifier() {}
+
   virtual bool Verify(
-      const uint8_t* buf,
-      size_t len,
-      const uint8_t* signature) const = 0;
-  virtual size_t GetPublicKeyLen() const = 0;
-  virtual size_t GetSignatureLen() const = 0;
-  virtual size_t GetPrivateKeyLen() const = 0;
+      const std::uint8_t* buf,
+      std::size_t len,
+      const std::uint8_t* signature) const = 0;
+
+  virtual std::size_t GetPublicKeyLen() const = 0;
+  virtual std::size_t GetSignatureLen() const = 0;
+  virtual std::size_t GetPrivateKeyLen() const = 0;
 };
 
 class Signer {
  public:
   virtual ~Signer() {}
+
   virtual void Sign(
-      const uint8_t* buf,
-      size_t len,
-      uint8_t* signature) const = 0;
+      const std::uint8_t* buf,
+      std::size_t len,
+      std::uint8_t* signature) const = 0;
 };
 
 class RawVerifier {
@@ -64,11 +67,11 @@ class RawVerifier {
   virtual ~RawVerifier() {}
 
   virtual void Update(
-      const uint8_t* buf,
-      size_t len) = 0;
+      const std::uint8_t* buf,
+      std::size_t len) = 0;
 
   virtual bool Verify(
-      const uint8_t* signature) = 0;
+      const std::uint8_t* signature) = 0;
 };
 
 }  // namespace crypto

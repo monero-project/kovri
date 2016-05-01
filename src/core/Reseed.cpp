@@ -115,7 +115,7 @@ bool Reseed::ProcessCerts() {
     return false;
   }
   // Instantiate X.509 object
-  i2p::crypto::X509 x509;
+  i2p::crypto::util::X509 x509;
   // Iterate through directory and get signing key from each certificate
   std::size_t num_certs = 0;
   BOOST_FOREACH(boost::filesystem::path const& cert, std::make_pair(it, end)) {
@@ -278,7 +278,7 @@ bool SU3::PrepareStream() {
     // Prepare signature length
     m_Stream.Read(m_Data->signature_length, Size::signature_length);
     m_Data->signature_length = be16toh(m_Data->signature_length);
-    if (m_Data->signature_length != sizeof(i2p::crypto::PublicKey)) {  // Temporary (see #160)
+    if (m_Data->signature_length != sizeof(i2p::crypto::util::PublicKey)) {  // Temporary (see #160)
       LogPrint(eLogError, "SU3: invalid signature length");
       return false;
     }

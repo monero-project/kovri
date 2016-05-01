@@ -35,8 +35,6 @@
 
 #include <boost/asio.hpp>
 
-#include <cryptopp/osrng.h>
-
 #include <atomic>
 #include <condition_variable>
 #include <functional>
@@ -92,7 +90,6 @@ class DHKeysPairSupplier {
   std::thread* m_Thread;
   std::condition_variable m_Acquired;
   std::mutex m_AcquiredMutex;
-  CryptoPP::AutoSeededRandomPool m_Rnd;
 };
 
 struct Peer {

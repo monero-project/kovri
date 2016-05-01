@@ -45,7 +45,6 @@
 #include <vector>
 
 #include "RouterContext.h"
-#include "crypto/CryptoConst.h"
 #include "util/Base64.h"
 #include "util/I2PEndian.h"
 #include "util/Log.h"

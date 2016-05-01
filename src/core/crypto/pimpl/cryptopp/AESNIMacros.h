@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
-#ifndef SRC_CORE_CRYPTO_AESNIMACROS_H_
-#define SRC_CORE_CRYPTO_AESNIMACROS_H_
+#ifndef SRC_CORE_CRYPTO_PIMPL_CRYPTOPP_AESNIMACROS_H_
+#define SRC_CORE_CRYPTO_PIMPL_CRYPTOPP_AESNIMACROS_H_
 
 #define KeyExpansion256(round0, round1) \
   "pshufd $0xff, %%xmm2, %%xmm2 \n" \
@@ -95,4 +95,4 @@
   "aesimc %%xmm0, %%xmm0 \n" \
   "movaps %%xmm0, "#offset"(%[shed]) \n"
 
-#endif  // SRC_CORE_CRYPTO_AESNIMACROS_H_
+#endif  // SRC_CORE_CRYPTO_PIMPL_CRYPTOPP_AESNIMACROS_H_

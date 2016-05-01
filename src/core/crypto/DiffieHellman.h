@@ -30,71 +30,45 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
-#ifndef SRC_CORE_CRYPTO_EDDSA25519_H_
-#define SRC_CORE_CRYPTO_EDDSA25519_H_
+#ifndef SRC_CORE_CRYPTO_DIFFIEHELLMAN_H_
+#define SRC_CORE_CRYPTO_DIFFIEHELLMAN_H_
 
-#include "SignatureBase.h"
+#include <memory>
+#include <cstdint>
 
 namespace i2p {
 namespace crypto {
 
-// EdDSA
-const size_t EDDSA25519_PUBLIC_KEY_LENGTH = 32;
-const size_t EDDSA25519_SIGNATURE_LENGTH = 64;
-const size_t EDDSA25519_PRIVATE_KEY_LENGTH = 32;
-
-class EDDSA25519Verifier : public Verifier {
+/// @class DiffieHellman
+/// @brief Diffie-Hellman
+class DiffieHellman {
  public:
-  EDDSA25519Verifier(
-      const uint8_t* signingKey);
+  DiffieHellman();
+  ~DiffieHellman();
 
-  bool Verify(
-      const uint8_t* buf,
-      size_t len,
-      const uint8_t* signature) const;
+  /// @brief Generate private/public key pair
+  /// @param private_key Private key
+  /// @param public_key Public key
+  void GenerateKeyPair(
+      std::uint8_t* private_key,
+      std::uint8_t* public_key);
 
-  size_t GetPublicKeyLen() const {
-    return EDDSA25519_PUBLIC_KEY_LENGTH;
-  }
-
-  size_t GetSignatureLen() const {
-    return EDDSA25519_SIGNATURE_LENGTH;
-  }
-
-  size_t GetPrivateKeyLen() const {
-    return EDDSA25519_PRIVATE_KEY_LENGTH;
-  }
+  /// @brief Agreed value from your private key and other party's public key
+  /// @param agreed_value Agreed upon value
+  /// @param private_key Your private key
+  /// @param other_public_key Other party's public key
+  /// @return False on failure
+  bool Agree(
+      std::uint8_t* agreed_value,
+      const std::uint8_t* private_key,
+      const std::uint8_t* other_public_key);
 
  private:
-  uint8_t m_PublicKey[EDDSA25519_PUBLIC_KEY_LENGTH];
+  class DiffieHellmanImpl;
+  std::unique_ptr<DiffieHellmanImpl> m_DiffieHellmanPimpl;
 };
-
-class EDDSA25519Signer : public Signer {
- public:
-  // Construct from a key pair.
-  EDDSA25519Signer(
-      const uint8_t* signingPrivateKey,
-      const uint8_t* signingPublicKey);
-
-  // Construct from a private key.
-  // The corresponding public key will be computed from it.
-  EDDSA25519Signer(
-      const uint8_t* signingPrivateKey);
-
-  void Sign(
-      const uint8_t* buf,
-      size_t len,
-      uint8_t* signature) const;
-
-  uint8_t m_PrivateKey[EDDSA25519_PRIVATE_KEY_LENGTH];
-  uint8_t m_PublicKey[EDDSA25519_PUBLIC_KEY_LENGTH];
-};
-
-void CreateEDDSARandomKeys(
-    uint8_t* privateKey,
-    uint8_t* publicKey);
 
 }  // namespace crypto
 }  // namespace i2p
 
-#endif  // SRC_CORE_CRYPTO_EDDSA25519_H_
+#endif  // SRC_CORE_CRYPTO_DIFFIEHELLMAN_H_

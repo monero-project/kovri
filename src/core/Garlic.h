@@ -33,8 +33,6 @@
 #ifndef SRC_CORE_GARLIC_H_
 #define SRC_CORE_GARLIC_H_
 
-#include <cryptopp/osrng.h>
-
 #include <inttypes.h>
 
 #include <list>
@@ -168,7 +166,6 @@ class GarlicRoutingSession
   uint64_t m_LeaseSetSubmissionTime;  // in milliseconds
 
   i2p::crypto::CBCEncryption m_Encryption;
-  CryptoPP::AutoSeededRandomPool m_Rnd;
 };
 
 class GarlicDestination : public i2p::data::LocalDestination {

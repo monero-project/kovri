@@ -32,16 +32,15 @@
 
 #include "Datagram.h"
 
-#include <cryptopp/gzip.h>
-#include <cryptopp/sha.h>
-
 #include <string.h>
 
 #include <vector>
 
 #include "RouterContext.h"
 #include "client/Destination.h"
-#include "core/crypto/Rand.h"
+#include "crypto/Hash.h"
+#include "crypto/Rand.h"
+#include "crypto/util/Compression.h"
 #include "tunnel/TunnelBase.h"
 #include "util/Log.h"
 
@@ -70,7 +69,7 @@ void DatagramDestination::SendDatagramTo(
   if (m_Owner.GetIdentity().GetSigningKeyType() ==
       i2p::data::SIGNING_KEY_TYPE_DSA_SHA1) {
     uint8_t hash[32];
-    CryptoPP::SHA256().CalculateDigest(hash, buf1, len);
+    i2p::crypto::SHA256().CalculateDigest(hash, buf1, len);
     m_Owner.Sign(hash, 32, signature);
   } else {
     m_Owner.Sign(buf1, len, signature);
@@ -136,7 +135,7 @@ void DatagramDestination::HandleDatagram(
   bool verified = false;
   if (identity.GetSigningKeyType() == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1) {
     uint8_t hash[32];
-    CryptoPP::SHA256().CalculateDigest(hash, buf + headerLen, len - headerLen);
+    i2p::crypto::SHA256().CalculateDigest(hash, buf + headerLen, len - headerLen);
     verified = identity.Verify(hash, 32, signature);
   } else {
     verified =
@@ -162,10 +161,9 @@ void DatagramDestination::HandleDataMessagePayload(
     uint16_t toPort,
     const uint8_t* buf,
     size_t len) {
-  // unzip it
-  CryptoPP::Gunzip decompressor;
+  // Gunzip it
+  i2p::crypto::util::Gunzip decompressor;
   decompressor.Put(buf, len);
-  decompressor.MessageEnd();
   uint8_t uncompressed[MAX_DATAGRAM_SIZE];
   auto uncompressedLen = decompressor.MaxRetrievable();
   if (uncompressedLen <= MAX_DATAGRAM_SIZE) {
@@ -182,10 +180,9 @@ I2NPMessage* DatagramDestination::CreateDataMessage(
     uint16_t fromPort,
     uint16_t toPort) {
   I2NPMessage* msg = NewI2NPMessage();
-  CryptoPP::Gzip compressor;  // default level
+  i2p::crypto::util::Gzip compressor;  // default level
   compressor.Put(payload, len);
-  compressor.MessageEnd();
-  int size = compressor.MaxRetrievable();
+  std::size_t size = compressor.MaxRetrievable();
   uint8_t* buf = msg->GetPayload();
   htobe32buf(buf, size);  // length
   buf += 4;

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2013-2016, The Kovri I2P Router Project
+ * Copyright (c) 2015-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,61 +26,57 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
-#ifndef SRC_CORE_CRYPTO_ZIP_H_
-#define SRC_CORE_CRYPTO_ZIP_H_
+#ifndef SRC_CORE_CRYPTO_UTIL_CHECKSUM_H_
+#define SRC_CORE_CRYPTO_UTIL_CHECKSUM_H_
 
-#include <memory>
 #include <cstdint>
+#include <memory>
 
 namespace i2p {
 namespace crypto {
+namespace util {
 
-/**
- * @brief Public decompressing implemention
- * @class Decompressor
- */
-class Decompressor {
+/// @class Adler32
+/// @brief Adler-32
+class Adler32 {
  public:
-  Decompressor();
-  ~Decompressor();
+  Adler32();
+  ~Adler32();
 
-  /// @brief Data to decompress
-  /// @param buffer Data buffer
-  /// @param length Data length
-  void Put(
-      std::uint8_t* buffer,
+  /// @brief Updates the hash with additional input and
+  ///   computes the hash of the current message
+  /// @details Only use this if your input is in one piece
+  /// @details CalculateDigest() restarts the hash for the next message
+  /// @param digest A pointer to the buffer to receive the hash
+  /// @param input The additional input as a buffer
+  /// @param length The size of the buffer, in bytes
+  void CalculateDigest(
+      std::uint8_t* digest,
+      const std::uint8_t* input,
       std::size_t length);
 
-  /// @brief Uncompressed data to retrieve
-  /// @param buffer Uncompressed data buffer
-  /// @param length Uncompressed data length
-  void Get(
-      std::uint8_t* buffer,
-      std::size_t length);
-
-  /// @brief Provides the number of bytes ready for retrieval
-  /// @returns The number of bytes ready for retrieval
-  std::size_t MaxRetrievable();
-
-  /// @brief Verifies uncompressed data using CRC-32
-  /// @param hash A pointer to an existing hash
-  /// @param data A pointer to input as buffer
-  /// @param length Length the size of the buffer
-  bool Verify(
-      std::uint8_t* hash,
-      std::uint8_t* data,
+  /// @brief Updates the hash with additional input and
+  ///   verifies the hash of the current message
+  /// @details Only use this if your input is in one piece
+  /// @details Restarts the hash for the next nmessage.
+  /// @param digest A pointer to the buffer of an existing hash
+  /// @param input The additional input as a buffer
+  /// @param length The size of the buffer, in bytes
+  /// @returns True if the existing hash matches the computed hash
+  std::size_t VerifyDigest(
+      std::uint8_t* digest,
+      const std::uint8_t* input,
       std::size_t length);
 
  private:
-  class DecompressorImpl;
-  std::unique_ptr<DecompressorImpl> m_DecompressorPimpl;
+  class Adler32Impl;
+  std::unique_ptr<Adler32Impl> m_Adler32Pimpl;
 };
 
 }  // namespace util
+}  // namespace crypto
 }  // namespace i2p
 
-#endif  // SRC_CORE_UTIL_ZIP_H_
+#endif  // SRC_CORE_CRYPTO_UTIL_CHECKSUM_H_

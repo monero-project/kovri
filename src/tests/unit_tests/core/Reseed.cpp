@@ -40,7 +40,7 @@
 #include <vector>
 
 #include "Reseed.h"
-#include "crypto/X509.h"
+#include "crypto/util/X509.h"
 
 BOOST_AUTO_TEST_SUITE(SU3);
 
@@ -216,8 +216,8 @@ struct SU3Fixture {
   };
 
   // Map the signature for verification
-  i2p::crypto::PublicKey pubkey = signing_key.data();
-  std::map<std::string, i2p::crypto::PublicKey> x509 {
+  i2p::crypto::util::PublicKey pubkey = signing_key.data();
+  std::map<std::string, i2p::crypto::util::PublicKey> x509 {
     { "anonimal@mail.i2p", pubkey },
   };
 };

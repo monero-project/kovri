@@ -33,7 +33,8 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
-#include "crypto/EdDSA25519.h"
+
+#include "crypto/Signature.h"
 
 BOOST_AUTO_TEST_SUITE(EdDSA25519Tests)
 

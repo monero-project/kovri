@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2013-2016, The Kovri I2P Router Project
+ * Copyright (c) 2015-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,44 +26,76 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
-#ifndef SRC_CORE_CRYPTO_CRYPTOCONST_H_
-#define SRC_CORE_CRYPTO_CRYPTOCONST_H_
+#include "crypto/util/Checksum.h"
 
-#include <cryptopp/integer.h>
+#include <cryptopp/adler32.h>
+
+#include <cstdint>
+
+#include "util/Log.h"
 
 namespace i2p {
 namespace crypto {
+namespace util {
 
-struct CryptoConstants {
-  // DH/ElGamal
-  const CryptoPP::Integer elgp;
-  const CryptoPP::Integer elgg;
+/// @class Adler32Impl
+/// @brief Adler-32 implementation
+class Adler32::Adler32Impl {
+ public:
+  Adler32Impl() {}
+  ~Adler32Impl() {}
 
-  // DSA
-  const CryptoPP::Integer dsap;
-  const CryptoPP::Integer dsaq;
-  const CryptoPP::Integer dsag;
+  void CalculateDigest(
+      std::uint8_t* digest,
+      const std::uint8_t* input,
+      std::size_t length) {
+    try {
+      m_Adler32.CalculateDigest(
+          digest,
+          input,
+          length);
+    } catch (CryptoPP::Exception e) {
+      LogPrint(eLogError,
+          "Adler32: CalculateDigest() caught exception '", e.what(), "'");
+    }
+  }
+
+  std::size_t VerifyDigest(
+      std::uint8_t* digest,
+      const std::uint8_t* input,
+      std::size_t length) {
+    return m_Adler32.VerifyDigest(
+          digest,
+          input,
+          length);
+  }
+
+ private:
+  CryptoPP::Adler32 m_Adler32;
 };
 
-const CryptoConstants& GetCryptoConstants();
+Adler32::Adler32()
+    : m_Adler32Pimpl(
+          new Adler32Impl()) {}
 
-// DH/ElGamal
-#define elgp GetCryptoConstants().elgp
-#define elgg GetCryptoConstants().elgg
+Adler32::~Adler32() {}
 
-// DSA
-#define dsap GetCryptoConstants().dsap
-#define dsaq GetCryptoConstants().dsaq
-#define dsag GetCryptoConstants().dsag
+void Adler32::CalculateDigest(
+    std::uint8_t* digest,
+    const std::uint8_t* input,
+    std::size_t length) {
+  m_Adler32Pimpl->CalculateDigest(digest, input, length);
+}
 
-// RSA
-const int rsae = 65537;
+std::size_t Adler32::VerifyDigest(
+    std::uint8_t* digest,
+    const std::uint8_t* input,
+    std::size_t length) {
+  return m_Adler32Pimpl->VerifyDigest(digest, input, length);
+}
 
+}  // namespace util
 }  // namespace crypto
 }  // namespace i2p
-
-#endif  // SRC_CORE_CRYPTO_CRYPTOCONST_H_

@@ -36,8 +36,9 @@
 #include <string>
 #include <vector>
 
-#include "crypto/util/Compression.h"
 #include "Log.h"
+#include "crypto/util/Compression.h"
+#include "util/I2PEndian.h"
 
 namespace i2p {
 namespace util {

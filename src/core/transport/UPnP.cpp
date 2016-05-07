@@ -272,7 +272,7 @@ void UPnP::Discover() {
 void UPnP::TryPortMapping(
     int type,
     int port) {
-  std::string strType,
+  std::string strType;
   std::string strPort(std::to_string(port));
   switch (type) {
     case I2P_UPNP_TCP:
@@ -311,7 +311,7 @@ void UPnP::TryPortMapping(
           "0");
 #endif
       if (r != UPNPCOMMAND_SUCCESS) {
-        LogPrint(eLogError
+        LogPrint(eLogError,
             "UPnP: AddPortMapping (", strPort.c_str(),
             ", ", strPort.c_str(),
             ", ", m_NetworkAddr,

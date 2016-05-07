@@ -126,7 +126,8 @@ F GetKnownProcAddressImpl(
     F) {
   auto proc = reinterpret_cast<F>(dlsym(hmod, name));
   if (!proc) {
-    LogPrint("Error resolving ", name,
+    LogPrint(eLogError,
+        "UPnP: error resolving ", name,
         " from UPNP library. This often happens if there is version mismatch!");
   }
   return proc;
@@ -159,7 +160,8 @@ void UPnP::Start() {
     m_Module = dlopen("libminiupnpc.so", RTLD_LAZY);
 #endif
     if (m_Module == NULL) {
-      LogPrint("Error loading UPNP library.",
+      LogPrint(eLogError,
+          "UPnP: error loading UPNP library.",
           "This often happens if there is version mismatch!");
       return;
     } else {
@@ -248,17 +250,19 @@ void UPnP::Discover() {
         m_upnpData.first.servicetype,
         m_externalIPAddress);
     if (r != UPNPCOMMAND_SUCCESS) {
-      LogPrint("UPnP: UPNP_GetExternalIPAddress () returned ", r);
+      LogPrint(eLogError,
+          "UPnP: UPNP_GetExternalIPAddressFunc() returned ", r);
       return;
     } else {
       if (m_externalIPAddress[0]) {
-        LogPrint("UPnP: ExternalIPAddress = ", m_externalIPAddress);
+        LogPrint(eLogInfo,
+            "UPnP: external IP address: ", m_externalIPAddress);
         i2p::context.UpdateAddress(
             boost::asio::ip::address::from_string(
               m_externalIPAddress));
         return;
       } else {
-        LogPrint("UPnP: GetExternalIPAddress failed.");
+        LogPrint(eLogError, "UPnP: GetExternalIPAddress failed.");
         return;
       }
     }
@@ -269,9 +273,7 @@ void UPnP::TryPortMapping(
     int type,
     int port) {
   std::string strType,
-              strPort(
-                  std::to_string(
-                    port));
+  std::string strPort(std::to_string(port));
   switch (type) {
     case I2P_UPNP_TCP:
       strType = "TCP";
@@ -309,13 +311,15 @@ void UPnP::TryPortMapping(
           "0");
 #endif
       if (r != UPNPCOMMAND_SUCCESS) {
-        LogPrint("AddPortMapping (", strPort.c_str(),
+        LogPrint(eLogError
+            "UPnP: AddPortMapping (", strPort.c_str(),
             ", ", strPort.c_str(),
             ", ", m_NetworkAddr,
             ") failed with code ", r);
         return;
       } else {
-        LogPrint("UPnP Port Mapping successful. (", m_NetworkAddr,
+        LogPrint(eLogInfo,
+            "UPnP: port mapping successful. (", m_NetworkAddr,
             ":", strPort.c_str(),
             " type ", strType.c_str() ,
             " -> ", m_externalIPAddress,
@@ -355,7 +359,8 @@ void UPnP::CloseMapping(
       strPort.c_str(),
       strType.c_str(),
       0);
-  LogPrint("UPNP_DeletePortMapping() returned : ", r, "\n");
+  LogPrint(eLogInfo,
+      "UPnP: UPNP_DeletePortMappingFunc() returned : ", r, "\n");
 }
 
 void UPnP::Close() {

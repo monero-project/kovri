@@ -149,7 +149,7 @@ Transports::~Transports() {
 void Transports::Start() {
 #ifdef USE_UPNP
   m_UPnP.Start();
-  LogPrint(eLogInfo, "UPnP started");
+  LogPrint(eLogInfo, "Transports: UPnP started");
 #endif
   m_DHKeysPairSupplier.Start();
   m_IsRunning = true;
@@ -170,11 +170,11 @@ void Transports::Start() {
         address.host.is_v4()) {
       if (!m_SSUServer) {
         m_SSUServer = new SSUServer(address.port);
-        LogPrint("Start listening UDP port ", address.port);
+        LogPrint("Transports: UDP listening on port ", address.port);
         m_SSUServer->Start();
         DetectExternalIP();
       } else {
-        LogPrint("SSU server already exists");
+        LogPrint("Transports: SSU server already exists");
       }
     }
   }
@@ -191,7 +191,7 @@ void Transports::Start() {
 void Transports::Stop() {
 #ifdef USE_UPNP
   m_UPnP.Stop();
-  LogPrint(eLogInfo, "UPnP stopped");
+  LogPrint(eLogInfo, "Transports: UPnP stopped");
 #endif
   m_PeerCleanupTimer.cancel();
   m_Peers.clear();
@@ -220,7 +220,7 @@ void Transports::Run() {
     try {
       m_Service.run();
     } catch (std::exception& ex) {
-      LogPrint("Transports: ", ex.what());
+      LogPrint("Transports::Run(): ", ex.what());
     }
   }
 }
@@ -284,7 +284,7 @@ void Transports::PostMessages(
             Peer{ 0, r, {}, i2p::util::GetSecondsSinceEpoch(), {} })).first;
       connected = ConnectToPeer(ident, it->second);
     } catch (std::exception& ex) {
-      LogPrint(eLogError, "Transports::PostMessages ", ex.what());
+      LogPrint(eLogError, "Transports::PostMessages() ", ex.what());
     }
     if (!connected) return;
   }
@@ -321,7 +321,7 @@ bool Transports::ConnectToPeer(
           }
         } else {  // we don't have address
           if (address->addressString.length() > 0) {  // trying to resolve
-            LogPrint(eLogInfo, "Resolving ", address->addressString);
+            LogPrint(eLogInfo, "Transports: resolving ", address->addressString);
             NTCPResolve(address->addressString, ident);
             return true;
           }
@@ -334,12 +334,12 @@ bool Transports::ConnectToPeer(
           return true;
       }
     }
-    LogPrint(eLogError, "No NTCP and SSU addresses available");
+    LogPrint(eLogError, "Transports: no NTCP or SSU addresses available");
     peer.Done();
     m_Peers.erase(ident);
     return false;
   } else {  // otherwise request RI
-    LogPrint("Router not found. Requested");
+    LogPrint("Transports: router not found, requesting");
     i2p::data::netdb.RequestDestination(
         ident,
         std::bind(
@@ -368,11 +368,11 @@ void Transports::HandleRequestComplete(
   auto it = m_Peers.find(ident);
   if (it != m_Peers.end()) {
     if (r) {
-      LogPrint("Router found. Trying to connect");
+      LogPrint("Transports: router found, trying to connect");
       it->second.router = r;
       ConnectToPeer(ident, it->second);
     } else {
-      LogPrint("Router not found. Failed to send messages");
+      LogPrint("Transports: router not found, failed to send messages");
       m_Peers.erase(it);
     }
   }
@@ -406,7 +406,9 @@ void Transports::HandleNTCPResolve(
     auto& peer = it1->second;
     if (!ecode && peer.router) {
       auto address = (*it).endpoint().address();
-      LogPrint(eLogInfo, (*it).host_name(), " has been resolved to ", address);
+      LogPrint(eLogInfo,
+          "Transports: ", (*it).host_name(),
+          " has been resolved to ", address);
       auto addr = peer.router->GetNTCPAddress();
       if (addr) {
         auto s = std::make_shared<NTCPSession> (*m_NTCPServer, peer.router);
@@ -414,7 +416,8 @@ void Transports::HandleNTCPResolve(
         return;
       }
     }
-    LogPrint(eLogError, "Unable to resolve NTCP address: ", ecode.message());
+    LogPrint(eLogError,
+        "Transports: unable to resolve NTCP address: ", ecode.message());
     m_Peers.erase(it1);
   }
 }
@@ -437,7 +440,7 @@ void Transports::PostCloseSession(
   // try SSU first
   if (ssuSession) {
     m_SSUServer->DeleteSession(ssuSession);
-    LogPrint("SSU session closed");
+    LogPrint("Transports: SSU session closed");
   }
   // TODO(unassigned): delete NTCP
 }
@@ -457,7 +460,8 @@ void Transports::DetectExternalIP() {
       }
     }
   } else {
-    LogPrint(eLogError, "Can't detect external IP. SSU is not available");
+    LogPrint(eLogError,
+        "Transports: can't detect external IP, SSU is not available");
   }
 }
 
@@ -519,7 +523,7 @@ void Transports::HandlePeerCleanupTimer(
       if (it->second.sessions.empty () &&
           ts > it->second.creationTime + SESSION_CREATION_TIMEOUT) {
         LogPrint(eLogError,
-            "Session to peer ", it->first.ToBase64(),
+            "Transports: session to peer ", it->first.ToBase64(),
             " has not been created in ", SESSION_CREATION_TIMEOUT, " seconds");
         it = m_Peers.erase(it);
       } else {

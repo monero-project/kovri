@@ -68,7 +68,7 @@ void NTCPServer::Start() {
             boost::asio::ip::tcp::endpoint(
               boost::asio::ip::tcp::v4(),
               address.port));
-        LogPrint(eLogInfo, "Start listening TCP port ", address.port);
+        LogPrint(eLogInfo, "NTCPServer: listening on port ", address.port);
         auto conn = std::make_shared<NTCPSession>(*this);
         m_NTCPAcceptor->async_accept(
             conn->GetSocket(),
@@ -85,7 +85,7 @@ void NTCPServer::Start() {
                 boost::asio::ip::tcp::v6(),
                 address.port));
           m_NTCPV6Acceptor->listen();
-          LogPrint(eLogInfo, "Started listening V6 on TCP port ", address.port);
+          LogPrint(eLogInfo, "NTCPServer: listening V6 on port ", address.port);
           auto conn = std::make_shared<NTCPSession> (*this);
           m_NTCPV6Acceptor->async_accept(
               conn->GetSocket(),
@@ -122,7 +122,7 @@ void NTCPServer::Run() {
     try {
       m_Service.run();
     } catch (std::exception& ex) {
-      LogPrint("NTCP server: ", ex.what());
+      LogPrint("NTCPServer: Run(): ", ex.what());
     }
   }
 }
@@ -159,13 +159,14 @@ void NTCPServer::HandleAccept(
     boost::system::error_code ec;
     auto ep = conn->GetSocket().remote_endpoint(ec);
     if (!ec) {
-      LogPrint(eLogInfo, "Connected from ", ep);
+      LogPrint(eLogInfo, "NTCPServer: connected from ", ep);
       auto it = m_BanList.find(ep.address());
       if (it != m_BanList.end()) {
         uint32_t ts = i2p::util::GetSecondsSinceEpoch();
         if (ts < it->second) {
           LogPrint(eLogInfo,
-              ep.address(), " is banned for ", it->second - ts, " more seconds");
+              "NTCPServer: ", ep.address(), " is banned for ",
+              it->second - ts, " more seconds");
           conn = nullptr;
         } else {
           m_BanList.erase(it);
@@ -174,7 +175,8 @@ void NTCPServer::HandleAccept(
       if (conn)
         conn->ServerLogin();
     } else {
-      LogPrint(eLogError, "Connected from error ", ec.message());
+      LogPrint(eLogError,
+          "NTCPServer: HandleAccept(): ", ec.message());
     }
   }
   if (error != boost::asio::error::operation_aborted) {
@@ -196,13 +198,15 @@ void NTCPServer::HandleAcceptV6(
     boost::system::error_code ec;
     auto ep = conn->GetSocket().remote_endpoint(ec);
     if (!ec) {
-      LogPrint(eLogInfo, "Connected from ", ep);
+      LogPrint(eLogInfo,
+          "NTCPServer: V6 connected from ", ep);
       auto it = m_BanList.find(ep.address());
       if (it != m_BanList.end()) {
         uint32_t ts = i2p::util::GetSecondsSinceEpoch();
         if (ts < it->second) {
           LogPrint(eLogInfo,
-              ep.address(), " is banned for ", it->second - ts, " more seconds");
+              "NTCPServer: ", ep.address(), " is banned for ",
+              it->second - ts, " more seconds");
           conn = nullptr;
         } else {
           m_BanList.erase(it);
@@ -211,7 +215,7 @@ void NTCPServer::HandleAcceptV6(
       if (conn)
         conn->ServerLogin();
     } else {
-      LogPrint(eLogError, "Connected from error ", ec.message());
+      LogPrint(eLogError, "NTCPServer: HandleAcceptV6(): ", ec.message());
     }
   }
   if (error != boost::asio::error::operation_aborted) {
@@ -230,7 +234,8 @@ void NTCPServer::Connect(
     const boost::asio::ip::address& address,
     int port,
     std::shared_ptr<NTCPSession> conn) {
-  LogPrint(eLogInfo, "Connecting to ", address , ":",  port);
+  LogPrint(eLogInfo,
+      "NTCPServer: connecting to ", address , ":",  port);
   m_Service.post([conn, this]() {
       this->AddNTCPSession(conn);
     });
@@ -249,14 +254,15 @@ void NTCPServer::HandleConnect(
     const boost::system::error_code& ecode,
     std::shared_ptr<NTCPSession> conn) {
   if (ecode) {
-    LogPrint(eLogError, "Connect error: ", ecode.message());
+    LogPrint(eLogError, "NTCPServer: connect error: ", ecode.message());
     if (ecode != boost::asio::error::operation_aborted)
       i2p::data::netdb.SetUnreachable(
           conn->GetRemoteIdentity().GetIdentHash(),
           true);
     conn->Terminate();
   } else {
-    LogPrint(eLogInfo, "Connected to ",  conn->GetSocket().remote_endpoint());
+    LogPrint(eLogInfo,
+        "NTCPServer: connected to ",  conn->GetSocket().remote_endpoint());
     if (conn->GetSocket().local_endpoint().protocol () ==
         boost::asio::ip::tcp::v6())  // ipv6
       context.UpdateNTCPV6Address(
@@ -270,7 +276,8 @@ void NTCPServer::Ban(
   uint32_t ts = i2p::util::GetSecondsSinceEpoch();
   m_BanList[addr] = ts + NTCP_BAN_EXPIRATION_TIMEOUT;
   LogPrint(eLogInfo,
-      addr, " has been banned for ", NTCP_BAN_EXPIRATION_TIMEOUT, " seconds");
+      "NTCPServer: ", addr, " has been banned for ",
+      NTCP_BAN_EXPIRATION_TIMEOUT, " seconds");
 }
 
 }  // namespace transport

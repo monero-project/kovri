@@ -138,7 +138,7 @@ void SSUServer::Run() {
       m_Service.run();
     }
     catch (std::exception& ex) {
-      LogPrint(eLogError, "SSU server: ", ex.what());
+      LogPrint(eLogError, "SSUServer::Run(): ", ex.what());
     }
   }
 }
@@ -149,7 +149,7 @@ void SSUServer::RunV6() {
       m_ServiceV6.run();
     }
     catch (std::exception& ex) {
-      LogPrint(eLogError, "SSU V6 server: ", ex.what());
+      LogPrint(eLogError, "SSUServer::RunV6(): ", ex.what());
     }
   }
 }
@@ -160,7 +160,7 @@ void SSUServer::RunReceivers() {
       m_ReceiversService.run();
     }
     catch (std::exception& ex) {
-      LogPrint(eLogError, "SSU receivers: ", ex.what());
+      LogPrint(eLogError, "SSUServer:RunReceivers(): ", ex.what());
     }
   }
 }
@@ -191,7 +191,7 @@ void SSUServer::Send(
             len),
           to);
     } catch (const std::exception& ex) {
-      LogPrint(eLogError, "SSUServer send error: ", ex.what());
+      LogPrint(eLogError, "SSUServer: send error: ", ex.what());
     }
   } else {
       try {
@@ -201,7 +201,7 @@ void SSUServer::Send(
               len),
             to);
       } catch (const std::exception& ex) {
-        LogPrint(eLogError, "SSUServer V6 send error: ", ex.what());
+        LogPrint(eLogError, "SSUServer: V6 send error: ", ex.what());
       }
     }
 }
@@ -263,7 +263,7 @@ void SSUServer::HandleReceivedFrom(
           packets));
     Receive();
   } else {
-    LogPrint("SSU receive error: ", ecode.message());
+    LogPrint("SSUServer: receive error: ", ecode.message());
     delete packet;
   }
 }
@@ -294,7 +294,7 @@ void SSUServer::HandleReceivedFromV6(
           packets));
     ReceiveV6();
   } else {
-    LogPrint("SSU V6 receive error: ", ecode.message());
+    LogPrint("SSUServer: V6 receive error: ", ecode.message());
     delete packet;
   }
 }
@@ -318,13 +318,13 @@ void SSUServer::HandleReceivedPackets(
             m_Sessions[packet->from] = session;
           }
           LogPrint(eLogInfo,
-              "New SSU session from ", packet->from.address().to_string(),
+              "SSUServer: new SSU session from ", packet->from.address().to_string(),
               ":", packet->from.port(), " created");
         }
       }
       session->ProcessNextMessage(packet->buf, packet->len, packet->from);
     } catch (std::exception& ex) {
-      LogPrint(eLogError, "SSU: HandleReceivedPackets ", ex.what());
+      LogPrint(eLogError, "SSUServer::HandleReceivedPackets(): ", ex.what());
       if (session)
         session->FlushData();
       session = nullptr;
@@ -392,7 +392,7 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
         }
         if (!router->UsesIntroducer()) {
           // connect directly
-          LogPrint("Creating new SSU session to [",
+          LogPrint("SSUServer: creating new SSU session to [",
               router->GetIdentHashAbbreviation(), "] ",
               remoteEndpoint.address().to_string(), ":",
               remoteEndpoint.port());
@@ -416,9 +416,9 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
               }
             }
             if (introducerSession) {  // session found
-              LogPrint("Session to introducer already exists");
+              LogPrint("SSUServer: session to introducer already exists");
             } else {  // create new
-              LogPrint("Creating new session to introducer");
+              LogPrint("SSUServer: creating new session to introducer");
               introducer = &(address->introducers[0]);  // TODO(unassigned): ???
               boost::asio::ip::udp::endpoint introducerEndpoint(
                   introducer->iHost,
@@ -431,7 +431,7 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
               m_Sessions[introducerEndpoint] = introducerSession;
             }
             // introduce
-            LogPrint("Introduce new SSU session to [",
+            LogPrint("SSUServer: introducing new SSU session to [",
                 router->GetIdentHashAbbreviation(), "] through introducer ",
                 introducer->iHost, ":",
                 introducer->iPort);
@@ -444,7 +444,8 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
             introducerSession->Introduce(introducer->iTag, introducer->iKey);
           } else {
             LogPrint(eLogWarning,
-                "Can't connect to unreachable router. No introducers presented");
+                "SSUServer: can't connect to unreachable router."
+                "No introducers presented");
             std::unique_lock<std::mutex> l(m_SessionsMutex);
             m_Sessions.erase(remoteEndpoint);
             session.reset();
@@ -453,7 +454,7 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
       }
     } else {
       LogPrint(eLogWarning,
-          "Router ", router->GetIdentHashAbbreviation(),
+          "SSUServer: router ", router->GetIdentHashAbbreviation(),
           " doesn't have SSU address");
     }
   }
@@ -655,7 +656,8 @@ void SSUServer::HandlePeerTestsCleanupTimer(
       }
     }
     if (numDeleted > 0)
-      LogPrint(eLogInfo, numDeleted, " peer tests have been expired");
+      LogPrint(eLogInfo,
+          "SSUServer: ", numDeleted, " peer tests have been expired");
     SchedulePeerTestsCleanupTimer();
   }
 }

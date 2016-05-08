@@ -8,11 +8,11 @@ dist: trusty
 language: cpp
 compiler:
 - gcc
-# Uncomment when we can actually build with clang
-#- clang
 addons:
   apt:
     packages:
+    - gcc-5
+    - g++-5
     - libboost-all-dev
     - libcrypto++-dev
     - libssl-dev
@@ -24,9 +24,10 @@ coverity_scan:
     name: "monero-project/kovri"
     description: "The Kovri I2P Router Project"
   notification_email: anonimal@i2pmail.org
-  build_command: "cd build && cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON -DWITH_UPNP=ON -DWITH_DOXYGEN=ON ../ && make"
+  build_command: "cd build && cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON -DWITH_UPNP=ON -DWITH_DOXYGEN=ON ../ && make -j2"
   branch_pattern: coverity_scan
-script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then cd build && cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON -DWITH_UPNP=ON -DWITH_DOXYGEN=ON ../ && make doc && make ; fi
+before_script: export CC=gcc-5 CXX=g++-5
+script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then cd build && cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON -DWITH_UPNP=ON -DWITH_DOXYGEN=ON ../ && make doc && make -j2 ; fi
 notifications:
   email: false
   irc:

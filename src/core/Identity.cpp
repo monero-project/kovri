@@ -153,7 +153,9 @@ IdentityEx::IdentityEx(
         break;
       }
       default:
-        LogPrint("Signing key type ", static_cast<int>(type), " is not supported");
+        LogPrint(eLogWarning,
+            "IdentityEx: signing key type ",
+            static_cast<int>(type), " is not supported");
     }
     m_ExtendedLen = 4 + excessLen;  // 4 bytes extra + excess length
     // fill certificate
@@ -242,7 +244,7 @@ size_t IdentityEx::FromBuffer(
     const uint8_t* buf,
     size_t len) {
   if (len < DEFAULT_IDENTITY_SIZE) {
-    LogPrint(eLogError, "Identity buffer length ", len, " is too small");
+    LogPrint(eLogError, "IdentityEx: identity buffer length ", len, " is too small");
     return 0;
   }
   memcpy(&m_StandardIdentity, buf, DEFAULT_IDENTITY_SIZE);
@@ -254,7 +256,7 @@ size_t IdentityEx::FromBuffer(
       memcpy(m_ExtendedBuffer, buf + DEFAULT_IDENTITY_SIZE, m_ExtendedLen);
     } else {
       LogPrint(eLogError,
-          "Certificate length ", m_ExtendedLen,
+          "IdentityEx: certificate length ", m_ExtendedLen,
           " exceeds buffer length ", len - DEFAULT_IDENTITY_SIZE);
       return 0;
     }
@@ -398,7 +400,9 @@ void IdentityEx::CreateVerifier() const  {
       break;
     }
     default:
-      LogPrint("Signing key type ", static_cast<int>(keyType), " is not supported");
+      LogPrint(eLogWarning,
+          "IdentityEx: signing key type ",
+          static_cast<int>(keyType), " is not supported");
   }
 }
 
@@ -525,9 +529,9 @@ void PrivateKeys::CreateSigner() {
       m_Signer = new i2p::crypto::EDDSA25519Signer(m_SigningPrivateKey);
     break;
     default:
-      LogPrint("Signing key type ",
-          static_cast<int>(m_Public.GetSigningKeyType()),
-          " is not supported");
+      LogPrint(eLogWarning,
+          "IdentityEx: Signing key type ",
+          static_cast<int>(m_Public.GetSigningKeyType()), " is not supported");
   }
 }
 
@@ -571,8 +575,9 @@ PrivateKeys PrivateKeys::CreateRandomKeys(SigningKeyType type) {
             signingPublicKey);
       break;
       default:
-        LogPrint("Signing key type ",
-            static_cast<int>(type), " is not supported. Create DSA-SHA1");
+        LogPrint(eLogWarning,
+            "IdentityEx: Signing key type ",
+            static_cast<int>(type), " is not supported, creating DSA-SHA1");
         return PrivateKeys(i2p::data::CreateRandomKeys());  // DSA-SHA1
     }
     // encryption

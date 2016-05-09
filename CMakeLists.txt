@@ -38,16 +38,13 @@ if(NOT MSVC)
   set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "-Wl,--gc-sections")
 endif()
 
-# Check for c++11 support
+# Check for c++14 support
 include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++11" CXX11_SUPPORTED)
-CHECK_CXX_COMPILER_FLAG("-std=c++0x" CXX0X_SUPPORTED)
-if(CXX11_SUPPORTED)
-  add_definitions("-std=c++11")
-elseif(CXX0X_SUPPORTED) # gcc 4.6
-  add_definitions("-std=c++0x")
+CHECK_CXX_COMPILER_FLAG("-std=c++14" CXX14_SUPPORTED)
+if(CXX14_SUPPORTED)
+  add_definitions("-std=c++14")
 elseif(NOT MSVC)
-  message(SEND_ERROR "C++11 standard not supported by compiler. Version too old?")
+  message(SEND_ERROR "C++14 standard not supported by compiler. See building instructions for minimum requirements.")
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -59,18 +56,13 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
       "${CMAKE_CXX_FLAGS} -fstack-protector-strong -fPIE --param ssp-buffer-size=4 -z relro -z now")
     endif()
   elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    # Uncomment for verbose output
-    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -v")
+    message(SEND_ERROR "Clang is currently not supported. See building instructions for minimum requirements.")
 endif()
 
 # Compiler flags customization (by system)
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
   # "'sleep_for' is not a member of 'std::this_thread'" in gcc 4.7/4.8
   add_definitions("-D_GLIBCXX_USE_NANOSLEEP=1")
-endif()
-
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 endif()
 
 if(WITH_UPNP)

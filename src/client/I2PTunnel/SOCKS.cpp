@@ -212,7 +212,7 @@ class SOCKSHandler
 };
 
 void SOCKSHandler::AsyncSockRead() {
-  LogPrint(eLogDebug, "--- SOCKS async sock read");
+  LogPrint(eLogDebug, "SOCKSHandler: async sock read");
   if (m_sock)
     m_sock->async_receive(
         boost::asio::buffer(
@@ -224,18 +224,18 @@ void SOCKSHandler::AsyncSockRead() {
           std::placeholders::_1,
           std::placeholders::_2));
   else
-    LogPrint(eLogError, "--- SOCKS no socket for read");
+    LogPrint(eLogError, "SOCKSHandler: no socket for read");
 }
 
 void SOCKSHandler::Terminate() {
   if (Kill()) return;
   if (m_sock) {
-    LogPrint(eLogDebug, "--- SOCKS close sock");
+    LogPrint(eLogDebug, "SOCKSHandler: close sock");
     m_sock->close();
     m_sock = nullptr;
   }
   if (m_stream) {
-    LogPrint(eLogDebug, "--- SOCKS close stream");
+    LogPrint(eLogDebug, "SOCKSHandler: close stream");
     m_stream.reset();
   }
   Done(shared_from_this());
@@ -288,7 +288,8 @@ bool SOCKSHandler::Socks5ChooseAuth() {
   m_response[1] = m_authchosen;  // Response code
   boost::asio::const_buffers_1 response(m_response, 2);
   if (m_authchosen == AUTH_UNACCEPTABLE) {
-    LogPrint(eLogWarning, "--- SOCKS5 authentication negotiation failed");
+    LogPrint(eLogWarning,
+        "SOCKSHandler: SOCKS5 authentication negotiation failed");
     boost::asio::async_write(
         *m_sock,
         response,
@@ -299,7 +300,7 @@ bool SOCKSHandler::Socks5ChooseAuth() {
     return false;
   } else {
     LogPrint(eLogDebug,
-        "--- SOCKS5 choosing authentication method: ", m_authchosen);
+        "SOCKSHandler: SOCKS5 choosing authentication method: ", m_authchosen);
     boost::asio::async_write(
         *m_sock,
         response,
@@ -318,7 +319,7 @@ void SOCKSHandler::SocksRequestFailed(
   assert(error != SOCKS4_OK && error != SOCKS5_OK);
   switch (m_socksv) {
     case SOCKS4:
-      LogPrint(eLogWarning, "--- SOCKS4 failed: ", error);
+      LogPrint(eLogWarning, "SOCKSHandler: SOCKS4 failed: ", error);
       // Transparently map SOCKS5 errors
       if (error < SOCKS4_OK) error = SOCKS4_FAIL;
       response = GenerateSOCKS4Response(
@@ -327,7 +328,7 @@ void SOCKSHandler::SocksRequestFailed(
           m_port);
     break;
     case SOCKS5:
-      LogPrint(eLogWarning, "--- SOCKS5 failed: ", error);
+      LogPrint(eLogWarning, "SOCKSHandler: SOCKS5 failed: ", error);
       response = GenerateSOCKS5Response(
           error,
           m_addrtype,
@@ -350,11 +351,11 @@ void SOCKSHandler::SocksRequestSuccess() {
   // this should depend on things like the command type and callbacks may change
   switch (m_socksv) {
     case SOCKS4:
-      LogPrint(eLogInfo, "--- SOCKS4 connection success");
+      LogPrint(eLogInfo, "SOCKSHandler: SOCKS4 connection success");
       response = GenerateSOCKS4Response(SOCKS4_OK, m_4aip, m_port);
     break;
     case SOCKS5:
-      LogPrint(eLogInfo, "--- SOCKS5 connection success");
+      LogPrint(eLogInfo, "SOCKSHandler: SOCKS5 connection success");
       auto s = i2p::client::context.GetAddressBook().ToAddress(
           GetOwner()->GetLocalDestination()->GetIdentHash());
       address ad;
@@ -406,7 +407,7 @@ void SOCKSHandler::EnterState(
 bool SOCKSHandler::ValidateSOCKSRequest() {
   if ( m_cmd != CMD_CONNECT ) {
     // TODO(unassigned): we need to support binds and other features!
-    LogPrint(eLogError, "--- SOCKS unsupported command: ", m_cmd);
+    LogPrint(eLogError, "SOCKSHandler: unsupported command: ", m_cmd);
     SocksRequestFailed(SOCKS5_CMD_UNSUP);
     return false;
   }
@@ -414,11 +415,11 @@ bool SOCKSHandler::ValidateSOCKSRequest() {
   if ( m_addrtype != ADDR_DNS ) {
     switch (m_socksv) {
       case SOCKS5:
-        LogPrint(eLogError, "--- SOCKS5 unsupported address type: ",
+        LogPrint(eLogError, "SOCKSHandler: SOCKS5 unsupported address type: ",
             m_addrtype);
       break;
       case SOCKS4:
-        LogPrint(eLogError, "--- SOCKS4a rejected because it's actually SOCKS4");
+        LogPrint(eLogError, "SOCKSHandler: SOCKS4a rejected because it's actually SOCKS4");
       break;
     }
     SocksRequestFailed(SOCKS5_ADDR_UNSUP);
@@ -427,8 +428,8 @@ bool SOCKSHandler::ValidateSOCKSRequest() {
   // TODO(unassigned): we may want to support other domains
   if (m_addrtype == ADDR_DNS &&
       m_address.dns.ToString().find(".i2p") == std::string::npos) {
-    LogPrint(eLogError, "--- SOCKS invalid hostname: ",
-        m_address.dns.ToString());
+    LogPrint(eLogError,
+        "SOCKSHandler: invalid hostname: ", m_address.dns.ToString());
     SocksRequestFailed(SOCKS5_ADDR_UNSUP);
     return false;
   }
@@ -454,7 +455,7 @@ bool SOCKSHandler::HandleData(
             EnterState(GET5_AUTHNUM);
           break;
           default:
-            LogPrint(eLogError, "--- SOCKS rejected invalid version: ",
+            LogPrint(eLogError, "SOCKSHandler: rejected invalid version: ",
                 (static_cast<int>(*sock_buff)));
             Terminate();
             return false;
@@ -481,7 +482,7 @@ bool SOCKSHandler::HandleData(
             if (m_socksv == SOCKS5)
               break;
           default:
-            LogPrint(eLogError, "--- SOCKS invalid command: ",
+            LogPrint(eLogError, "SOCKSHandler: invalid command: ",
                 (static_cast<int>(*sock_buff)));
             SocksRequestFailed(SOCKS5_GEN_FAIL);
             return false;
@@ -539,7 +540,7 @@ bool SOCKSHandler::HandleData(
           break;
         }
         if (m_address.dns.size >= MAX_SOCKS_HOSTNAME_SIZE) {
-          LogPrint(eLogError, "--- SOCKS4a destination is too large");
+          LogPrint(eLogError, "SOCKSHandler: SOCKS4a destination is too large");
           SocksRequestFailed(SOCKS4_FAIL);
           return false;
         }
@@ -547,7 +548,8 @@ bool SOCKSHandler::HandleData(
       break;
       case GET5_REQUESTV:
         if (*sock_buff != SOCKS5) {
-          LogPrint(eLogError, "--- SOCKS5 rejected unknown request version: ",
+          LogPrint(eLogError,
+              "SOCKSHandler: SOCKS5 rejected unknown request version: ",
               (static_cast<int>(*sock_buff)));
           SocksRequestFailed(SOCKS5_GEN_FAIL);
           return false;
@@ -556,7 +558,8 @@ bool SOCKSHandler::HandleData(
       break;
       case GET5_GETRSV:
         if (*sock_buff != 0) {
-          LogPrint(eLogError, "--- SOCKS5 unknown reserved field: ",
+          LogPrint(eLogError,
+              "SOCKSHandler: SOCKS5 unknown reserved field: ",
               (static_cast<int>(*sock_buff)));
           SocksRequestFailed(SOCKS5_GEN_FAIL);
           return false;
@@ -575,7 +578,8 @@ bool SOCKSHandler::HandleData(
             EnterState(GET5_HOST_SIZE);
             break;
           default:
-            LogPrint(eLogError, "--- SOCKS5 unknown address type: ",
+            LogPrint(eLogError,
+                "SOCKSHandler: SOCKS5 unknown address type: ",
                 (static_cast<int>(*sock_buff)));
             SocksRequestFailed(SOCKS5_GEN_FAIL);
             return false;
@@ -595,7 +599,7 @@ bool SOCKSHandler::HandleData(
         if (m_parseleft == 0) EnterState(GET_PORT);
       break;
       default:
-        LogPrint(eLogError, "--- SOCKS parse state?? ", m_state);
+        LogPrint(eLogError, "SOCKSHandler: parse state?? ", m_state);
         Terminate();
         return false;
     }
@@ -613,15 +617,15 @@ bool SOCKSHandler::HandleData(
 void SOCKSHandler::HandleSockRecv(
     const boost::system::error_code& ecode,
     std::size_t len) {
-  LogPrint(eLogDebug, "--- SOCKS sock recv: ", len);
+  LogPrint(eLogDebug, "SOCKSHandler: sock recv: ", len);
   if (ecode) {
-    LogPrint(eLogWarning, " --- SOCKS sock recv got error: ", ecode);
+    LogPrint(eLogError, "SOCKSHandler: sock recv got error: ", ecode);
     Terminate();
     return;
   }
   if (HandleData(m_sock_buff, len)) {
     if (m_state == DONE) {
-      LogPrint(eLogInfo, "--- SOCKS requested ",
+      LogPrint(eLogInfo, "SOCKSHandler: SOCKS requested ",
           m_address.dns.ToString(), ":" , m_port);
       GetOwner()->CreateStream(
           std::bind(
@@ -641,7 +645,8 @@ void SOCKSHandler::SentSocksFailed(
   if (!ecode) {
     Terminate();
   } else {
-    LogPrint(eLogError, "--- SOCKS Closing socket after sending failure: ",
+    LogPrint(eLogError,
+        "SOCKSHandler: closing socket after sending failure: ",
         ecode.message());
     Terminate();
   }
@@ -652,7 +657,7 @@ void SOCKSHandler::SentSocksDone(
   if (!ecode) {
     if (Kill())
       return;
-    LogPrint(eLogInfo, "--- SOCKS New I2PTunnel connection");
+    LogPrint(eLogInfo, "SOCKSHandler: new I2PTunnel connection");
     auto connection =
       std::make_shared<i2p::client::I2PTunnelConnection>(
           GetOwner(),
@@ -664,7 +669,8 @@ void SOCKSHandler::SentSocksDone(
         m_remaining_data_len);
     Done(shared_from_this());
   } else {
-    LogPrint(eLogError, "--- SOCKS Closing socket after completion reply: ",
+    LogPrint(eLogError,
+        "SOCKSHandler: closing socket after completion reply: ",
         ecode.message());
     Terminate();
   }
@@ -673,7 +679,8 @@ void SOCKSHandler::SentSocksDone(
 void SOCKSHandler::SentSocksResponse(
     const boost::system::error_code & ecode) {
   if (ecode) {
-    LogPrint(eLogError, "--- SOCKS Closing socket after sending reply: ",
+    LogPrint(eLogError,
+        "SOCKSHandler: closing socket after sending reply: ",
         ecode.message());
     Terminate();
   }
@@ -685,8 +692,9 @@ void SOCKSHandler::HandleStreamRequestComplete(
     m_stream = stream;
     SocksRequestSuccess();
   } else {
-    LogPrint(eLogError, "--- SOCKS Issue when creating the stream.",
-        "Check the previous warnings for details.");
+    LogPrint(eLogError,
+        "SOCKSHandler: issue when creating the stream,",
+        "check the previous warnings for details.");
     SocksRequestFailed(SOCKS5_HOST_UNREACH);
   }
 }

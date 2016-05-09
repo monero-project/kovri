@@ -81,7 +81,7 @@ void TransitTunnelParticipant::FlushTunnelDataMsgs() {
     auto num = m_TunnelDataMsgs.size();
     if (num > 1)
       LogPrint(eLogDebug,
-          "TransitTunnel: ", GetTunnelID(),
+          "TransitTunnelParticipant: ", GetTunnelID(),
           "->", GetNextTunnelID(),
           " ", num);
     i2p::transport::transports.SendMessages(
@@ -93,12 +93,16 @@ void TransitTunnelParticipant::FlushTunnelDataMsgs() {
 
 void TransitTunnel::SendTunnelDataMsg(
     std::shared_ptr<i2p::I2NPMessage>) {
-  LogPrint(eLogError, "We are not a gateway for transit tunnel ", m_TunnelID);
+  LogPrint(eLogError,
+      "TransitTunnel: we are not a gateway for transit tunnel: ",
+      m_TunnelID);
 }
 
 void TransitTunnel::HandleTunnelDataMsg(
     std::shared_ptr<const i2p::I2NPMessage>) {
-  LogPrint(eLogError, "Incoming tunnel message is not supported  ", m_TunnelID);
+  LogPrint(eLogError,
+      "TransitTunnel: incoming tunnel message is not supported: ",
+      m_TunnelID);
 }
 
 void TransitTunnelGateway::SendTunnelDataMsg(
@@ -119,7 +123,8 @@ void TransitTunnelEndpoint::HandleTunnelDataMsg(
     std::shared_ptr<const i2p::I2NPMessage> tunnelMsg) {
   auto newMsg = CreateEmptyTunnelDataMsg();
   EncryptTunnelMsg(tunnelMsg, newMsg);
-  LogPrint(eLogDebug, "TransitTunnel endpoint for ", GetTunnelID());
+  LogPrint(eLogDebug,
+      "TransitTunnelEndpoint: endpoint for ", GetTunnelID());
   m_Endpoint.HandleDecryptedTunnelDataMsg(newMsg);
 }
 
@@ -133,7 +138,7 @@ TransitTunnel* CreateTransitTunnel(
     bool isEndpoint) {
   if (isEndpoint) {
     LogPrint(eLogInfo,
-        "TransitTunnel endpoint: ", receiveTunnelID, " created");
+        "TransitTunnel: endpoint ", receiveTunnelID, " created");
     return new TransitTunnelEndpoint(
         receiveTunnelID,
         nextIdent,
@@ -142,7 +147,7 @@ TransitTunnel* CreateTransitTunnel(
         ivKey);
   } else if (isGateway) {
     LogPrint(eLogInfo,
-        "TransitTunnel gateway: ", receiveTunnelID, " created");
+        "TransitTunnel: gateway: ", receiveTunnelID, " created");
     return new TransitTunnelGateway(
         receiveTunnelID,
         nextIdent,

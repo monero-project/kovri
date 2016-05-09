@@ -200,7 +200,7 @@ class TCPIPAcceptor : public I2PService {
       std::shared_ptr<boost::asio::ip::tcp::socket> socket) = 0;
 
   virtual std::string GetName() {
-    return "Generic TCP/IP accepting daemon";
+    return "generic TCP/IP accepting daemon";
   }
 
  protected:

@@ -112,7 +112,7 @@ Stream::~Stream() {
   for (auto it : m_SavedPackets)
     delete it;
   m_SavedPackets.clear();
-  LogPrint(eLogDebug, "Stream deleted");
+  LogPrint(eLogDebug, "Stream: stream deleted");
 }
 
 void Stream::Terminate() {
@@ -139,11 +139,11 @@ void Stream::HandleNextPacket(
   bool isSyn = packet->IsSYN();
   if (!receivedSeqn && !isSyn) {
     // plain ack
-    LogPrint(eLogDebug, "Plain ACK received");
+    LogPrint(eLogDebug, "Stream: plain ACK received");
     delete packet;
     return;
   }
-  LogPrint(eLogDebug, "Received seqn=", receivedSeqn);
+  LogPrint(eLogDebug, "Stream: received seqn=", receivedSeqn);
   if (isSyn || receivedSeqn == m_LastReceivedSequenceNumber + 1) {
     // we have received next in sequence message
     ProcessPacket(packet);
@@ -176,11 +176,12 @@ void Stream::HandleNextPacket(
   } else {
     if (receivedSeqn <= m_LastReceivedSequenceNumber) {
       // we have received duplicate
-      LogPrint(eLogWarning, "Duplicate message ", receivedSeqn, " received");
+      LogPrint(eLogWarning,
+          "Stream: duplicate message ", receivedSeqn, " received");
       SendQuickAck();  // resend ack for previous message again
       delete packet;  // packet dropped
     } else {
-      LogPrint(eLogWarning, "Missing messages from ",
+      LogPrint(eLogWarning, "Stream: missing messages from ",
           m_LastReceivedSequenceNumber + 1, " to ", receivedSeqn - 1);
       // save message and wait for missing message again
       SavePacket(packet);
@@ -217,29 +218,32 @@ void Stream::ProcessPacket(
   // process flags
   uint32_t receivedSeqn = packet->GetSeqn();
   uint16_t flags = packet->GetFlags();
-  LogPrint(eLogDebug, "Process seqn=", receivedSeqn, ", flags=", flags);
+  LogPrint(eLogDebug,
+      "Stream: process seqn=", receivedSeqn, ", flags=", flags);
   const uint8_t* optionData = packet->GetOptionData();
   if (flags & PACKET_FLAG_SYNCHRONIZE)
-    LogPrint(eLogDebug, "Synchronize");
+    LogPrint(eLogDebug, "Stream: synchronize");
   if (flags & PACKET_FLAG_DELAY_REQUESTED) {
     optionData += 2;
   }
   if (flags & PACKET_FLAG_FROM_INCLUDED) {
     optionData += m_RemoteIdentity.FromBuffer(
         optionData, packet->GetOptionSize());
-    LogPrint(eLogInfo, "From identity ",
+    LogPrint(eLogInfo,
+        "Stream: from identity ",
         m_RemoteIdentity.GetIdentHash().ToBase64());
     if (!m_RemoteLeaseSet)
-      LogPrint(eLogDebug, "Incoming stream from ",
+      LogPrint(eLogDebug,
+          "Stream: incoming stream from ",
           m_RemoteIdentity.GetIdentHash().ToBase64());
   }
   if (flags & PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED) {
     uint16_t maxPacketSize = bufbe16toh(optionData);
-    LogPrint(eLogDebug, "Max packet size ", maxPacketSize);
+    LogPrint(eLogDebug, "Stream: max packet size ", maxPacketSize);
     optionData += 2;
   }
   if (flags & PACKET_FLAG_SIGNATURE_INCLUDED) {
-    LogPrint(eLogDebug, "Signature");
+    LogPrint(eLogDebug, "Stream: signature");
     uint8_t signature[256];
     auto signatureLen = m_RemoteIdentity.GetSignatureLen();
     memcpy(signature, optionData, signatureLen);
@@ -248,7 +252,7 @@ void Stream::ProcessPacket(
           packet->GetBuffer(),
           packet->GetLength(),
           signature)) {
-      LogPrint(eLogError, "Signature verification failed");
+      LogPrint(eLogError, "Stream: signature verification failed");
       Close();
       flags |= PACKET_FLAG_CLOSE;
     }
@@ -264,7 +268,8 @@ void Stream::ProcessPacket(
   }
   m_LastReceivedSequenceNumber = receivedSeqn;
   if (flags & (PACKET_FLAG_CLOSE | PACKET_FLAG_RESET)) {
-    LogPrint(eLogInfo, (flags & PACKET_FLAG_RESET) ? "Reset" : "Closed");
+    LogPrint(eLogInfo,
+        "Stream: ", (flags & PACKET_FLAG_RESET) ? "reset" : "closed");
     m_Status = eStreamStatusReset;
     Close();
   }
@@ -287,7 +292,7 @@ void Stream::ProcessAck(
             break;
           }
         if (nacked) {
-          LogPrint(eLogDebug, "Packet ", seqn, " NACK");
+          LogPrint(eLogDebug, "Stream: packet ", seqn, " NACK");
           it++;
           continue;
         }
@@ -296,7 +301,7 @@ void Stream::ProcessAck(
       uint64_t rtt = ts - sentPacket->sendTime;
       m_RTT = (m_RTT * seqn + rtt) / (seqn + 1);
       m_RTO = m_RTT * 1.5;  // TODO(anonimal): implement this better
-      LogPrint(eLogDebug, "Packet ", seqn, " acknowledged rtt=", rtt);
+      LogPrint(eLogDebug, "Stream: packet ", seqn, " acknowledged rtt=", rtt);
       m_SentPackets.erase(it++);
       delete sentPacket;
       acknowledged = true;
@@ -461,7 +466,7 @@ void Stream::SendQuickAck() {
       lastReceivedSeqn = seqn;
   }
   if (lastReceivedSeqn < 0) {
-    LogPrint(eLogError, "No packets have been received yet");
+    LogPrint(eLogError, "Stream: no packets have been received yet");
     return;
   }
   Packet p;
@@ -484,7 +489,8 @@ void Stream::SendQuickAck() {
     for (auto it : m_SavedPackets) {
       auto seqn = it->GetSeqn();
       if (numNacks + (seqn - nextSeqn) >= 256) {
-        LogPrint(eLogError, "Number of NACKs exceeds 256. seqn=",
+        LogPrint(eLogError,
+            "Stream: number of NACKs exceeds 256. seqn=",
             seqn, " nextSeqn=", nextSeqn);
         htobe32buf(packet + 12, nextSeqn);  // change ack Through
         break;
@@ -513,7 +519,7 @@ void Stream::SendQuickAck() {
   size += 2;  // options size
   p.len = size;
   SendPackets(std::vector<Packet *> { &p });
-  LogPrint("Quick Ack sent. ", static_cast<int>(numNacks), " NACKs");
+  LogPrint(eLogInfo, "Stream: quick Ack sent. ", static_cast<int>(numNacks), " NACKs");
 }
 
 void Stream::Close() {
@@ -522,7 +528,7 @@ void Stream::Close() {
       m_Status = eStreamStatusClosing;
       Close();  // recursion
       if (m_Status == eStreamStatusClosing)  // still closing
-        LogPrint(eLogInfo, "Trying to send stream data before closing");
+        LogPrint(eLogInfo, "Stream: trying to send stream data before closing");
     break;
     case eStreamStatusReset:
       SendClose();
@@ -543,7 +549,8 @@ void Stream::Close() {
       m_LocalDestination.DeleteStream(shared_from_this());
     break;
     default:
-      LogPrint(eLogWarning, "Unexpected stream status ",
+      LogPrint(eLogWarning,
+          "Stream: unexpected stream status ",
           static_cast<int>(m_Status));
   }
 }
@@ -586,7 +593,7 @@ void Stream::SendClose() {
   m_LocalDestination.GetOwner().Sign(packet, size, signature);
   p->len = size;
   m_Service.post(std::bind(&Stream::SendPacket, shared_from_this(), p));
-  LogPrint("FIN sent");
+  LogPrint(eLogInfo, "Stream: FIN sent");
 }
 
 size_t Stream::ConcatenatePackets(
@@ -634,7 +641,8 @@ void Stream::SendPackets(
   if (!m_RemoteLeaseSet) {
     UpdateCurrentRemoteLease();
     if (!m_RemoteLeaseSet) {
-      LogPrint(eLogError, "Can't send packets. Missing remote LeaseSet");
+      LogPrint(eLogError,
+          "Stream: can't send packets, missing remote LeaseSet");
       return;
     }
   }
@@ -643,7 +651,7 @@ void Stream::SendPackets(
       m_LocalDestination.GetOwner().GetTunnelPool()->GetNewOutboundTunnel(
           m_CurrentOutboundTunnel);
   if (!m_CurrentOutboundTunnel) {
-    LogPrint(eLogError, "No outbound tunnels in the pool");
+    LogPrint(eLogError, "Stream: no outbound tunnels in the pool");
     return;
   }
   auto ts = i2p::util::GetMillisecondsSinceEpoch();
@@ -668,7 +676,7 @@ void Stream::SendPackets(
     }
     m_CurrentOutboundTunnel->SendTunnelDataMsg(msgs);
   } else {
-    LogPrint(eLogWarning, "All leases are expired");
+    LogPrint(eLogWarning, "Stream: all leases are expired");
   }
 }
 
@@ -689,7 +697,8 @@ void Stream::HandleResendTimer(
   if (ecode != boost::asio::error::operation_aborted) {
     // check for resend attempts
     if (m_NumResendAttempts >= MAX_NUM_RESEND_ATTEMPTS) {
-      LogPrint(eLogWarning, "Stream packet was not ACKed after ",
+      LogPrint(eLogWarning,
+          "Stream: packet was not ACKed after ",
           MAX_NUM_RESEND_ATTEMPTS,  " attempts. Terminate");
       m_Status = eStreamStatusReset;
       Close();
@@ -721,7 +730,7 @@ void Stream::HandleResendTimer(
         case 4:
           UpdateCurrentRemoteLease();  // pick another lease
           LogPrint(eLogWarning,
-              "Another remote lease has been selected for stream");
+              "Stream: another remote lease has been selected for stream");
         break;
         case 3:
           // pick another outbound tunnel
@@ -729,7 +738,7 @@ void Stream::HandleResendTimer(
             m_LocalDestination.GetOwner().GetTunnelPool()->GetNextOutboundTunnel(
                 m_CurrentOutboundTunnel);
           LogPrint(eLogWarning,
-              "Another outbound tunnel has been selected for stream");
+              "Stream: another outbound tunnel has been selected for stream");
         break;
         default: {}
       }
@@ -743,8 +752,9 @@ void Stream::HandleAckSendTimer(
     const boost::system::error_code&) {
   if (m_IsAckSendScheduled) {
     if (m_LastReceivedSequenceNumber < 0) {
-      LogPrint(eLogWarning, "SYN has not been received after ",
-          ACK_SEND_TIMEOUT, " milliseconds after follow on. Terminate");
+      LogPrint(eLogWarning,
+          "Stream: SYN has not been received after ",
+          ACK_SEND_TIMEOUT, " milliseconds after follow on, terminating");
       m_Status = eStreamStatusReset;
       Close();
       return;
@@ -762,7 +772,8 @@ void Stream::UpdateCurrentRemoteLease(
       m_LocalDestination.GetOwner().FindLeaseSet(
         m_RemoteIdentity.GetIdentHash());
     if (!m_RemoteLeaseSet)
-      LogPrint("LeaseSet ",
+      LogPrint(eLogInfo,
+          "Stream: LeaseSet ",
           m_RemoteIdentity.GetIdentHash().ToBase64(), " not found");
   }
   if (m_RemoteLeaseSet) {
@@ -860,7 +871,8 @@ void StreamingDestination::HandleNextPacket(
       it->second->HandleNextPacket(
           packet);
     } else {
-      LogPrint("Unknown stream sendStreamID=", sendStreamID);
+      LogPrint(eLogWarning,
+          "StreamingDestination: unknown stream ", sendStreamID);
       delete packet;
     }
   } else {
@@ -870,7 +882,8 @@ void StreamingDestination::HandleNextPacket(
       if (m_Acceptor != nullptr) {
         m_Acceptor(incomingStream);
       } else {
-        LogPrint("Acceptor for incoming stream is not set");
+        LogPrint(eLogWarning,
+            "StreamingDestination: acceptor for incoming stream is not set");
         DeleteStream(incomingStream);
       }
     } else {  // follow on packet without SYN
@@ -882,7 +895,8 @@ void StreamingDestination::HandleNextPacket(
           return;
         }
       // TODO(unassigned): should queue it up
-      LogPrint("Unknown stream receiveStreamID=", receiveStreamID);
+      LogPrint(eLogWarning,
+          "StreamingDestination: Unknown stream ", receiveStreamID);
       delete packet;
     }
   }
@@ -927,7 +941,8 @@ void StreamingDestination::HandleDataMessagePayload(
     decompressor.Get(uncompressed->buf, uncompressed->len);
     HandleNextPacket(uncompressed);
   } else {
-    LogPrint("Received packet size ",
+    LogPrint(eLogInfo,
+        "StreamingDestination: received packet size ",
         uncompressed->len, " exceeds max packet size. Skipped");
     delete uncompressed;
   }

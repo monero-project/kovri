@@ -116,9 +116,11 @@ void DatagramDestination::SendMsg(
     outboundTunnel->SendTunnelDataMsg(msgs);
   } else {
     if (outboundTunnel)
-      LogPrint(eLogWarning, "Failed to send datagram. All leases expired");
+      LogPrint(eLogWarning,
+          "DatagramDestination: failed to send datagram: all leases expired");
     else
-      LogPrint(eLogWarning, "Failed to send datagram. No outbound tunnels");
+      LogPrint(eLogWarning,
+          "DatagramDestination: failed to send datagram: no outbound tunnels");
     DeleteI2NPMessage(msg);
   }
 }
@@ -150,9 +152,11 @@ void DatagramDestination::HandleDatagram(
         m_Receiver(
             identity, fromPort, toPort, buf + headerLen, len - headerLen);
     else
-        LogPrint(eLogWarning, "Receiver for datagram is not set");
+        LogPrint(eLogWarning,
+            "DatagramDestination: receiver for datagram is not set");
   } else {
-    LogPrint(eLogWarning, "Datagram signature verification failed");
+    LogPrint(eLogWarning,
+        "DatagramDestination: datagram signature verification failed");
   }
 }
 
@@ -170,7 +174,9 @@ void DatagramDestination::HandleDataMessagePayload(
     decompressor.Get(uncompressed, uncompressedLen);
     HandleDatagram(fromPort, toPort, uncompressed, uncompressedLen);
   } else {
-    LogPrint("Received datagram size ", uncompressedLen,  " exceeds max size");
+    LogPrint(eLogWarning,
+        "DatagramDestination: the received datagram size ",
+        uncompressedLen, " exceeds max size");
   }
 }
 

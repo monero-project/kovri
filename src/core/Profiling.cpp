@@ -99,14 +99,14 @@ void RouterProfile::Save() {
   if (!boost::filesystem::exists(path)) {
     // Create directory is necessary
     if (!boost::filesystem::create_directory(path)) {
-      LogPrint(eLogError, "Failed to create directory ", path);
+      LogPrint(eLogError, "RouterProfile: failed to create directory ", path);
       return;
     }
     const char* chars = i2p::util::GetBase64SubstitutionTable();  // 64 bytes
     for (int i = 0; i < 64; i++) {
       auto path1 = path / (std::string("p") + chars[i]);
       if (!boost::filesystem::create_directory(path1)) {
-        LogPrint(eLogError, "Failed to create directory ", path1);
+        LogPrint(eLogError, "RouterProfile: failed to create directory ", path1);
         return;
       }
     }
@@ -117,7 +117,7 @@ void RouterProfile::Save() {
   try {
     boost::property_tree::write_ini(filename.string(), pt);
   } catch (std::exception& ex) {
-    LogPrint(eLogError, "Can't write ", filename, ": ", ex.what());
+    LogPrint(eLogError, "RouterProfile: can't write ", filename, ": ", ex.what());
   }
 }
 
@@ -131,7 +131,7 @@ void RouterProfile::Load() {
     try {
       boost::property_tree::read_ini(filename.string(), pt);
     } catch (std::exception& ex) {
-      LogPrint(eLogError, "Can't read ", filename, ": ", ex.what());
+      LogPrint(eLogError, "RouterProfile: can't read ", filename, ": ", ex.what());
       return;
     }
     try {
@@ -155,7 +155,8 @@ void RouterProfile::Load() {
               0);
         } catch (boost::property_tree::ptree_bad_path& ex) {
           LogPrint(eLogWarning,
-              "Missing section ", PEER_PROFILE_SECTION_PARTICIPATION);
+              "RouterProfile: Missing section ",
+              PEER_PROFILE_SECTION_PARTICIPATION);
         }
         try {
           // read usage
@@ -163,13 +164,15 @@ void RouterProfile::Load() {
           m_NumTimesTaken = usage.get(PEER_PROFILE_USAGE_TAKEN, 0);
           m_NumTimesRejected = usage.get(PEER_PROFILE_USAGE_REJECTED, 0);
         } catch (boost::property_tree::ptree_bad_path& ex) {
-          LogPrint(eLogWarning, "Missing section ", PEER_PROFILE_SECTION_USAGE);
+          LogPrint(eLogWarning,
+              "RouterProfile: missing section ", PEER_PROFILE_SECTION_USAGE);
         }
       } else {
         *this = RouterProfile(m_IdentHash);
       }
     } catch (std::exception& ex) {
-      LogPrint(eLogError, "Can't read profile ", base64, " :", ex.what());
+      LogPrint(eLogError,
+          "RouterProfile: can't read profile ", base64, " :", ex.what());
     }
   }
 }
@@ -245,7 +248,7 @@ void DeleteObsoleteProfiles() {
       }
     }
   }
-  LogPrint(eLogInfo, num, " obsolete profiles deleted");
+  LogPrint(eLogInfo, "Profiling: ", num, " obsolete profiles deleted");
 }
 
 }  // namespace data

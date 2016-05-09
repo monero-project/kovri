@@ -193,11 +193,7 @@ bool ParseArgs(
         i2p::util::filesystem::GetFullPath("tunnels.conf")),
      "Tunnels Config file\n");
   // Default visible option
-  bpo::options_description kovri(
-      ":----------------------------------------------------:\n"
-      "|              The Kovri I2P Router Project          |\n"
-      "|                    version " KOVRI_VERSION "                   |\n"
-      ":----------------------------------------------------");
+  bpo::options_description kovri("");
   kovri.add(help);
   // Available config file options
   bpo::options_description config_options;

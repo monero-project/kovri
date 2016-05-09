@@ -71,11 +71,11 @@ void ClientContext::Start() {
 
   // HTTP proxy
   m_HttpProxy->Start();
-  LogPrint("HTTP Proxy started");
+  LogPrint(eLogInfo, "ClientContext: HTTP Proxy started");
 
   // SOCKS proxy
     m_SocksProxy->Start();
-  LogPrint("SOCKS Proxy Started");
+  LogPrint(eLogInfo, "ClientContext: SOCKS Proxy Started");
 
   // Start all client tunnels
   for (auto& pair : m_ClientTunnels)
@@ -87,7 +87,7 @@ void ClientContext::Start() {
 
   // I2P Control
   if (m_I2PControlService) {
-    LogPrint("Starting I2PControlService ...");
+    LogPrint(eLogInfo, "ClientContext: starting I2PControlService");
     m_I2PControlService->Start();
   }
   m_AddressBook.Start(m_SharedLocalDestination.get());
@@ -102,29 +102,30 @@ void ClientContext::Stop() {
     m_HttpProxy->Stop();
     delete m_HttpProxy;
     m_HttpProxy = nullptr;
-    LogPrint("HTTP Proxy stopped");
+    LogPrint(eLogInfo, "ClientContext: HTTP Proxy stopped");
   }
   if (m_SocksProxy) {
     m_SocksProxy->Stop();
     delete m_SocksProxy;
     m_SocksProxy = nullptr;
-    LogPrint("SOCKS Proxy stopped");
+    LogPrint(eLogInfo, "ClientContext: SOCKS Proxy stopped");
   }
   for (auto& it : m_ClientTunnels) {
     it.second->Stop();
-    LogPrint("I2P client tunnel on port ", it.first, " stopped");
+    LogPrint(eLogInfo,
+        "ClientContext: I2P client tunnel on port ", it.first, " stopped");
   }
   m_ClientTunnels.clear();
   for (auto& it : m_ServerTunnels) {
     it.second->Stop();
-    LogPrint("I2P server tunnel stopped");
+    LogPrint(eLogInfo, "ClientContext: I2P server tunnel stopped");
   }
   m_ServerTunnels.clear();
   if (m_I2PControlService) {
     m_I2PControlService->Stop();
     delete m_I2PControlService;
     m_I2PControlService = nullptr;
-    LogPrint("I2PControl stopped");
+    LogPrint(eLogInfo, "ClientContext: I2PControl stopped");
   }
   m_AddressBook.Stop();
   for (auto it : m_Destinations)
@@ -154,8 +155,9 @@ i2p::data::PrivateKeys ClientContext::LoadPrivateKeys(const std::string& file) {
   keys.FromBuffer(buf, len);
   delete[] buf;
 
-  LogPrint("Local address ", m_AddressBook.ToAddress(
-        keys.GetPublic().GetIdentHash()), " loaded");
+  LogPrint(eLogInfo,
+      "ClientContext: local address ",
+      m_AddressBook.ToAddress(keys.GetPublic().GetIdentHash()), " loaded");
   return keys;
 }
 
@@ -167,7 +169,8 @@ std::shared_ptr<ClientDestination> ClientContext::LoadLocalDestination(
     keys = LoadPrivateKeys(filename);
   } catch(std::ios_base::failure&) {
     std::string fullPath = i2p::util::filesystem::GetFullPath(filename);
-    LogPrint("Can't open file ", fullPath, ", creating new one");
+    LogPrint(eLogError,
+        "ClientContext: can't open file ", fullPath, ", creating new one");
     keys = i2p::data::PrivateKeys::CreateRandomKeys(
         i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
     std::ofstream f(fullPath, std::ofstream::binary | std::ofstream::out);
@@ -176,7 +179,8 @@ std::shared_ptr<ClientDestination> ClientContext::LoadLocalDestination(
     len = keys.ToBuffer(buf, len);
     f.write(reinterpret_cast<char *>(buf), len);
     delete[] buf;
-    LogPrint("New private keys file ", fullPath,
+    LogPrint(eLogInfo,
+        "ClientContext: new private keys file ", fullPath,
         " for ", m_AddressBook.ToAddress(keys.GetPublic().GetIdentHash()),
         " created");
   }
@@ -184,9 +188,10 @@ std::shared_ptr<ClientDestination> ClientContext::LoadLocalDestination(
   std::unique_lock<std::mutex> l(m_DestinationsMutex);
   auto it = m_Destinations.find(keys.GetPublic().GetIdentHash());
   if (it != m_Destinations.end()) {
-    LogPrint(eLogWarning, "Local destination ",
-        m_AddressBook.ToAddress(
-          keys.GetPublic().GetIdentHash()), " already exists");
+    LogPrint(eLogWarning,
+        "ClientContext: local destination ",
+        m_AddressBook.ToAddress(keys.GetPublic().GetIdentHash()),
+        " already exists");
     localDestination = it->second;
   } else {
     localDestination = std::make_shared<ClientDestination>(keys, isPublic);
@@ -230,8 +235,10 @@ std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination(
     std::string>* params) {
   auto it = m_Destinations.find(keys.GetPublic().GetIdentHash());
   if (it != m_Destinations.end()) {
-    LogPrint("Local destination ",
-        m_AddressBook.ToAddress(keys.GetPublic().GetIdentHash()), " exists");
+    LogPrint(eLogInfo,
+        "ClientContext: local destination ",
+        m_AddressBook.ToAddress(keys.GetPublic().GetIdentHash()),
+        " already exists");
     if (!it->second->IsRunning()) {
       it->second->Start();
       return it->second;
@@ -371,7 +378,8 @@ void ClientContext::UpdateClientTunnel(
       try {
         clientTunnel->Rebind(hostStr, port);
       } catch (std::exception& err) {
-        LogPrint(eLogError, "Failed to rebind ", tunnelName, ": ", err.what());
+        LogPrint(eLogError,
+            "ClientContext: failed to rebind ", tunnelName, ": ", err.what());
       }
     }
   }

@@ -68,7 +68,7 @@ LeaseSet::LeaseSet(
     m_Buffer = nullptr;
     m_BufferLen = 0;
     m_IsValid = false;
-    LogPrint(eLogError, "Destination for local LeaseSet doesn't exist");
+    LogPrint(eLogError, "LeaseSet: destination for local LeaseSet doesn't exist");
     return;
   }
   m_Buffer = new uint8_t[MAX_LS_BUFFER_SIZE];
@@ -104,7 +104,8 @@ LeaseSet::LeaseSet(
   // signature
   localDestination->Sign(m_Buffer, m_BufferLen, m_Buffer + m_BufferLen);
   m_BufferLen += localDestination->GetIdentity().GetSignatureLen();
-  LogPrint("Local LeaseSet of ", tunnels.size(), " leases created");
+  LogPrint(eLogInfo,
+      "LeaseSet: local LeaseSet of ", tunnels.size(), " leases created");
   ReadFromBuffer();
 }
 
@@ -129,7 +130,7 @@ void LeaseSet::ReadFromBuffer() {
   size += m_Identity.GetSigningPublicKeyLen();  // unused signing key
   uint8_t num = m_Buffer[size];
   size++;  // num
-  LogPrint("LeaseSet num=", static_cast<int>(num));
+  LogPrint(eLogDebug, "LeaseSet: num=", static_cast<int>(num));
   if (!num)
     m_IsValid = false;
   // process leases
@@ -146,13 +147,13 @@ void LeaseSet::ReadFromBuffer() {
     // check if lease's gateway is in our netDb
     if (!netdb.FindRouter(lease.tunnelGateway)) {
       // if not found request it
-      LogPrint(eLogInfo, "Lease's tunnel gateway not found. Requested");
+      LogPrint(eLogInfo, "LeaseSet: lease's tunnel gateway not found, requesting");
       netdb.RequestDestination(lease.tunnelGateway);
     }
   }
   // verify
   if (!m_Identity.Verify(m_Buffer, leases - m_Buffer, leases)) {
-    LogPrint(eLogWarning, "LeaseSet verification failed");
+    LogPrint(eLogWarning, "LeaseSet: verification failed");
     m_IsValid = false;
   }
 }

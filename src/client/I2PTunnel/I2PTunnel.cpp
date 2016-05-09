@@ -131,7 +131,8 @@ void I2PTunnelConnection::HandleReceived(
     const boost::system::error_code& ecode,
     std::size_t bytes_transferred) {
   if (ecode) {
-    LogPrint("I2PTunnel read error: ", ecode.message());
+    LogPrint(eLogError,
+        "I2PTunnelConnection: read error: ", ecode.message());
     if (ecode != boost::asio::error::operation_aborted)
       Terminate();
   } else {
@@ -153,7 +154,8 @@ void I2PTunnelConnection::HandleReceived(
 void I2PTunnelConnection::HandleWrite(
     const boost::system::error_code& ecode) {
   if (ecode) {
-    LogPrint("I2PTunnel write error: ", ecode.message());
+    LogPrint(eLogError,
+        "I2PTunnelConnection: write error: ", ecode.message());
     if (ecode != boost::asio::error::operation_aborted)
       Terminate();
   } else {
@@ -179,7 +181,8 @@ void I2PTunnelConnection::HandleStreamReceive(
     const boost::system::error_code& ecode,
     std::size_t bytes_transferred) {
   if (ecode) {
-    LogPrint("I2PTunnel stream read error: ", ecode.message());
+    LogPrint(eLogError,
+        "I2PTunnelConnection: stream read error: ", ecode.message());
     if (ecode != boost::asio::error::operation_aborted)
       Terminate();
   } else {
@@ -203,10 +206,11 @@ void I2PTunnelConnection::Write(
 void I2PTunnelConnection::HandleConnect(
     const boost::system::error_code& ecode) {
   if (ecode) {
-    LogPrint("I2PTunnel connect error: ", ecode.message());
+    LogPrint(eLogError,
+        "I2PTunnelConnection: connect error: ", ecode.message());
     Terminate();
   } else {
-    LogPrint("I2PTunnel connected");
+    LogPrint(eLogInfo, "I2PTunnelConnection: connected");
     if (m_IsQuiet) {
       StreamReceive();
     } else {
@@ -312,7 +316,7 @@ void I2PClientTunnelHandler::HandleStreamRequestComplete(
   if (stream) {
     if (Kill())
       return;
-    LogPrint(eLogInfo, "New I2PTunnel connection");
+    LogPrint(eLogInfo, "I2PClientTunnelHandler: new I2PTunnel connection");
     auto connection =
       std::make_shared<I2PTunnelConnection>(
           GetOwner(),
@@ -323,6 +327,7 @@ void I2PClientTunnelHandler::HandleStreamRequestComplete(
     Done(shared_from_this());
   } else {
     LogPrint(eLogError,
+        "I2PClientTunnelHandler: ",
         "I2P Client Tunnel Issue when creating the stream.",
         "Check the previous warnings for details.");
     Terminate();
@@ -375,7 +380,8 @@ const i2p::data::IdentHash* I2PClientTunnel::GetIdentHash() {
           m_Destination, identHash))
       m_DestinationIdentHash = new i2p::data::IdentHash(identHash);
     else
-      LogPrint(eLogWarning, "Remote destination ", m_Destination, " not found");
+      LogPrint(eLogWarning,
+          "I2PClientTunnel: remote destination ", m_Destination, " not found");
   }
   return m_DestinationIdentHash;
 }
@@ -467,7 +473,8 @@ void I2PServerTunnel::HandleResolve(
     bool acceptAfter) {
   if (!ecode) {
     auto addr = (*it).endpoint().address();
-    LogPrint(eLogInfo, "server tunnel ",
+    LogPrint(eLogInfo,
+        "I2PServerTunnel: server tunnel ",
         (*it).host_name(), " has been resolved to ", addr);
     m_Endpoint.address(addr);
     if (acceptAfter) {
@@ -475,7 +482,8 @@ void I2PServerTunnel::HandleResolve(
     }
   } else {
     LogPrint(eLogError,
-        "Unable to resolve server tunnel address: ", ecode.message());
+        "I2PServerTunnel: unable to resolve server tunnel address: ",
+        ecode.message());
   }
 }
 
@@ -549,7 +557,7 @@ void I2PServerTunnel::Accept() {
             this,
             std::placeholders::_1));
   } else {
-    LogPrint("Local destination not set for server tunnel");
+    LogPrint("I2PServerTunnel: local destination not set for server tunnel");
   }
 }
 
@@ -558,9 +566,10 @@ void I2PServerTunnel::HandleAccept(
   if (stream) {
     if (m_IsAccessList) {
       if (!m_AccessList.count(stream->GetRemoteIdentity().GetIdentHash())) {
-        LogPrint(eLogWarning, "Address ",
+        LogPrint(eLogWarning,
+            "I2PServerTunnel: address ",
             stream->GetRemoteIdentity().GetIdentHash().ToBase32(),
-            " is not in white list. Incoming connection dropped");
+            " is not in white list, incoming connection dropped");
         stream->Close();
         return;
       }

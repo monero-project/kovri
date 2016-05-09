@@ -73,15 +73,16 @@ bool DaemonWin32::Init() {
     printf(" --service=remove   to remove the service.\n");
   }
   if (m_isDaemon == 1) {
-    LogPrint("Service session");
+    LogPrint(eLogInfo, "DaemonWin32: service session");
     I2PService service(SERVICE_NAME);
     if (!I2PService::Run(service)) {
-      LogPrint("Service failed to run w/err 0x%08lx\n", GetLastError());
+      LogPrint(eLogErorr,
+          "DaemonWin32: service failed to run w/err 0x%08lx\n", GetLastError());
       exit(EXIT_FAILURE);
     }
     exit(EXIT_SUCCESS);
   } else {
-    LogPrint("User session");
+    LogPrint(eLogInfo, "DaemonWin32: user session");
   }
   return true;
 }

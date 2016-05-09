@@ -64,6 +64,7 @@ bool AESNIExists() {
 }
 
 // Initialize once to avoid repeated tests for AES-NI
+// TODO(unassigned): better place to initialize?
 bool aesni(AESNIExists());
 
 // For runtime AES-NI

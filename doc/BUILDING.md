@@ -1,61 +1,48 @@
 ## Step 1. Minimum requirements
 
-- [CMake](https://cmake.org/) 2.8.12
+### Linux / MacOSX (Mavericks 10.9.4) / FreeBSD 10 / Windows (Cygwin)
 - [Boost](http://www.boost.org/) 1.54
+- [CMake](https://cmake.org/) 2.8.12
 - [Crypto++](https://cryptopp.com/) 5.6.2
+- [GCC](https://gcc.gnu.org/) 5.3.0
 - [OpenSSL](https://openssl.org/) (always the latest stable version)
 
-Optional
+Optional: [Doxygen](http://www.doxygen.org/) (for Doxygen documentation)
 
-- [Doxygen](http://www.doxygen.org/) (for Doxygen documentation)
-
-### Linux
-- [GCC](https://gcc.gnu.org/) 4.8.2
-
-### FreeBSD 10
-- [Clang](http://clang.llvm.org/) 3.4.1
-
-### MacOSX 10.9.4 (Mavericks)
-- [Apple LLVM](https://developer.apple.com/library/mac/documentation/CompilerTools/Conceptual/LLVMCompilerOverview/) 5.1
+### MacOSX (Mavericks 10.9.4)
 - [Homebrew](http://brew.sh/)
 
-### Windows
-- [VS2013](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx) (last known to work with 12.0.21005.1)
+Note: We've dropped clang support on all platforms in an effort to streamline development. Regular clang users are welcome to bring back support!
 
-## Step 2. Open your NAT/Firewall
-1. Choose a port between ```9111``` and ```30777```
-2. Poke a hole in your NAT/Firewall to allow incoming TCP/UDP connections to that port
-3. Don't share this number with anyone as it will effect your anonymity!
+Note: the MacOSX and FreeBSD build need love! See [#175](https://github.com/monero-project/kovri/issues/175) and [#176](https://github.com/monero-project/kovri/issues/176)
 
-If you do not choose a port via cli or ```kovri.conf```, Kovri will randomly generate a new one on each startup. If you do not have access to your NAT, you can instead install and build with [MiniUPnP](http://miniupnp.free.fr/files/) support
+## Step 2. Install dependencies
 
-## Step 3. Install dependencies
-
-### Debian (Jessie) / Ubuntu (Trusty, Vivid, Wily)
+### Debian / Ubuntu
 ```bash
-$ sudo apt-get install g++ cmake libboost-all-dev libcrypto++-dev libssl-dev libssl1.0.0
-$ sudo apt-get install libminiupnpc-dev doxygen  ## (optional)
+$ sudo apt-get install g++-5 cmake libboost-all-dev libcrypto++-dev libssl-dev libssl1.0.0
+$ sudo apt-get install libminiupnpc-dev doxygen  # optional
 ```
 
 ### Arch Linux
 ```bash
-$ sudo pacman -Syu cmake boost crypto++  ## gcc and openssl installed by default
-$ sudo pacman -S miniupnpc doxygen  ## (optional)
+$ sudo pacman -Syu cmake boost crypto++  # gcc/g++ and openssl installed by default
+$ sudo pacman -S miniupnpc doxygen  # optional
 ```
 
 ### FreeBSD 10
 ```bash
-$ sudo pkg install cmake boost-libs cryptopp openssl
-$ sudo pkg install miniupnpc doxygen  ## (optional)
+$ sudo pkg install gcc5 cmake boost-libs cryptopp openssl
+$ sudo pkg install miniupnpc doxygen  # optional
 ```
 
 ### MacOSX (Mavericks)
 ```bash
-$ brew install cmake boost cryptopp openssl
-$ brew install miniupnpc doxygen  ## (optional)
+$ brew install gcc5 cmake boost cryptopp openssl
+$ brew install miniupnpc doxygen  # optional
 ```
 
-## Step 4. Build
+## Step 3. Build
 
 ### To view CMake options:
 ```bash
@@ -70,7 +57,7 @@ $ cmake ../
 $ make
 ```
 
-For all other builds, be sure you ```cd kovri/build``` before executing ```make```
+Note: all builds require building out of the ```build``` directory as described above
 
 ### For UPnP support:
 - Install [MiniUPnP](http://miniupnp.free.fr/files/) or use your package manager (see above)
@@ -88,11 +75,17 @@ $ cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON ../ && make
 $ cmake -DWITH_DOXYGEN=ON ../ && make doc  # output will be in kovri/doc/Doxygen/
 ```
 
-### Steap 5. Run Kovri!
+## Step 4. Open your NAT/Firewall
+1. Choose a port between ```9111``` and ```30777```
+2. Poke a hole in your NAT/Firewall to allow incoming TCP/UDP connections to that port
+3. Don't share this number with anyone as it will effect your anonymity!
+
+If you do not choose a port via cli or ```kovri.conf```, Kovri will randomly generate a new one on each startup. If you do not have access to your NAT, you can instead install and build with [MiniUPnP](http://miniupnp.free.fr/files/) support
+
+## Step 5. Run Kovri
 ```bash
 $ ./kovri -p [your chosen port]
 ```
-
 or set your port in kovri.conf
 
 

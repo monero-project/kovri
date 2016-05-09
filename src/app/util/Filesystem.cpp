@@ -93,7 +93,7 @@ const bfs::path& GetDataPath() {
   if (!exists(path)) {
     // Create data directory
     if (!create_directory(path)) {
-      LogPrint("Failed to create data directory!");
+      LogPrint(eLogError, "Filesystem: failed to create data directory!");
       path = "";
       return path;
     }

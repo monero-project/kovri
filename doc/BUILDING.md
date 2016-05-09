@@ -12,6 +12,10 @@ Optional: [Doxygen](http://www.doxygen.org/) (for Doxygen documentation)
 ### MacOSX (Mavericks 10.9.4)
 - [Homebrew](http://brew.sh/)
 
+Note: We've dropped clang support on all platforms in an effort to streamline development. Regular clang users are welcome to bring back support!
+
+Note: the MacOSX and FreeBSD build need love! See [#175](https://github.com/monero-project/kovri/issues/175) and [#176](https://github.com/monero-project/kovri/issues/176)
+
 ## Step 2. Install dependencies
 
 ### Debian / Ubuntu

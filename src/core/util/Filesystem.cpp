@@ -42,11 +42,11 @@ namespace filesystem {
 namespace bfs = boost::filesystem;
 
 bfs::path GetSU3CertsPath() {
-  return i2p::context.GetDataPath() / "resources" / "certificates" / "su3";
+  return i2p::context.GetDataPath() / "certificates" / "su3";
 }
 
 bfs::path GetSSLCertsPath() {
-  return i2p::context.GetDataPath() / "resources" / "certificates" / "ssl";
+  return i2p::context.GetDataPath() / "certificates" / "ssl";
 }
 
 std::string GetFullPath(const std::string& filename) {

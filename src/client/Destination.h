@@ -49,7 +49,6 @@
 #include "NetworkDatabase.h"
 #include "Datagram.h"
 #include "Streaming.h"
-#include "crypto/CryptoConst.h"
 #include "tunnel/TunnelPool.h"
 
 namespace i2p {

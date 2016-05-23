@@ -39,11 +39,13 @@
 #include "I2NPProtocol.h"
 #include "RouterContext.h"
 #include "client/Destination.h"
+#include "crypto/Hash.h"
+#include "crypto/Rand.h"
 #include "tunnel/Tunnel.h"
 #include "tunnel/TunnelPool.h"
 #include "util/I2PEndian.h"
-#include "util/Timestamp.h"
 #include "util/Log.h"
+#include "util/Timestamp.h"
 
 namespace i2p {
 namespace garlic {
@@ -59,7 +61,7 @@ GarlicRoutingSession::GarlicRoutingSession(
       m_LeaseSetUpdateStatus(
           attachLeaseSet ? eLeaseSetUpdated : eLeaseSetDoNotSend) {
   // create new session tags and session key
-  m_Rnd.GenerateBlock(m_SessionKey, 32);
+  i2p::crypto::RandBytes(m_SessionKey, 32);
   m_Encryption.SetKey(m_SessionKey);
 }
 
@@ -87,7 +89,7 @@ GarlicRoutingSession::GenerateSessionTags() {
   auto tags = new UnconfirmedTags(m_NumTags);
   tags->tagsCreationTime = i2p::util::GetSecondsSinceEpoch();
   for (int i = 0; i < m_NumTags; i++) {
-    m_Rnd.GenerateBlock(tags->sessionTags[i], 32);
+    i2p::crypto::RandBytes(tags->sessionTags[i], 32);
     tags->sessionTags[i].creationTime = tags->tagsCreationTime;
   }
   return tags;
@@ -97,7 +99,7 @@ void GarlicRoutingSession::MessageConfirmed(uint32_t msgID) {
   TagsConfirmed(msgID);
   if (msgID == m_LeaseSetUpdateMsgID) {
     m_LeaseSetUpdateStatus = eLeaseSetUpToDate;
-    LogPrint(eLogInfo, "LeaseSet update confirmed");
+    LogPrint(eLogInfo, "GarlicRoutingSession: leaseSet update confirmed");
   } else {
     CleanupExpiredTags();
   }
@@ -165,17 +167,19 @@ std::shared_ptr<I2NPMessage> GarlicRoutingSession::WrapSingleMessage(
   }
   // create message
   if (!tagFound) {  // new session
-    LogPrint("No garlic tags available. Use ElGamal");
+    LogPrint(eLogWarning,
+        "GarlicRoutingSession: no garlic tags available, using ElGamal");
     if (!m_Destination) {
-      LogPrint("Can't use ElGamal for unknown destination");
+      LogPrint(eLogWarning,
+          "GarlicRoutingSession: can't use ElGamal for unknown destination");
       return nullptr;
     }
     // create ElGamal block
     ElGamalBlock elGamal;
     memcpy(elGamal.sessionKey, m_SessionKey, 32);
-    m_Rnd.GenerateBlock(elGamal.preIV, 32);  // Pre-IV
+    i2p::crypto::RandBytes(elGamal.preIV, 32);  // Pre-IV
     uint8_t iv[32];  // IV is first 16 bytes
-    CryptoPP::SHA256().CalculateDigest(iv, elGamal.preIV, 32);
+    i2p::crypto::SHA256().CalculateDigest(iv, elGamal.preIV, 32);
     m_Destination->GetElGamalEncryption()->Encrypt(
         reinterpret_cast<uint8_t *>(&elGamal), sizeof(elGamal), buf, true);
     m_Encryption.SetIV(iv);
@@ -185,7 +189,7 @@ std::shared_ptr<I2NPMessage> GarlicRoutingSession::WrapSingleMessage(
     // session tag
     memcpy(buf, tag, 32);
     uint8_t iv[32];  // IV is first 16 bytes
-    CryptoPP::SHA256().CalculateDigest(iv, tag, 32);
+    i2p::crypto::SHA256().CalculateDigest(iv, tag, 32);
     m_Encryption.SetIV(iv);
     buf += 32;
     len += 32;
@@ -222,7 +226,7 @@ size_t GarlicRoutingSession::CreateAESBlock(
   blockSize++;
   size_t len = CreateGarlicPayload(buf + blockSize, msg, newTags);
   htobe32buf(payloadSize, len);
-  CryptoPP::SHA256().CalculateDigest(payloadHash, buf + blockSize, len);
+  i2p::crypto::SHA256().CalculateDigest(payloadHash, buf + blockSize, len);
   blockSize += len;
   size_t rem = blockSize % 16;
   if (rem)
@@ -236,9 +240,9 @@ size_t GarlicRoutingSession::CreateGarlicPayload(
     std::shared_ptr<const I2NPMessage> msg,
     UnconfirmedTags* newTags) {
   uint64_t ts = i2p::util::GetMillisecondsSinceEpoch() + 5000;  // 5 sec
-  uint32_t msgID = m_Rnd.GenerateWord32();
+  uint32_t msgID = i2p::crypto::Rand<std::uint32_t>();
   size_t size = 0;
-  uint8_t * numCloves = payload + size;
+  uint8_t* numCloves = payload + size;
   *numCloves = 0;
   size++;
   if (m_Owner) {
@@ -259,7 +263,8 @@ size_t GarlicRoutingSession::CreateGarlicPayload(
           m_UnconfirmedTagsMsgs[msgID] = newTags;
         m_Owner->DeliveryStatusSent(shared_from_this(), msgID);
       } else {
-        LogPrint("DeliveryStatus clove was not created");
+        LogPrint(eLogWarning,
+            "GarlicRoutingSession: DeliveryStatus clove was not created");
       }
     }
     // attach LeaseSet
@@ -307,7 +312,8 @@ size_t GarlicRoutingSession::CreateGarlicClove(
   }
   memcpy(buf + size, msg->GetBuffer(), msg->GetLength());
   size += msg->GetLength();
-  htobe32buf(buf + size, m_Rnd.GenerateWord32());  // CloveID
+  // CloveID
+  htobe32buf(buf + size, i2p::crypto::Rand<std::uint32_t>());
   size += 4;
   htobe64buf(buf + size, ts);  // Expiration of clove
   size += 8;
@@ -336,8 +342,8 @@ size_t GarlicRoutingSession::CreateDeliveryStatusClove(
       if (m_Owner) {
         // encrypt
         uint8_t key[32], tag[32];
-        m_Rnd.GenerateBlock(key, 32);  // random session key
-        m_Rnd.GenerateBlock(tag, 32);  // random session tag
+        i2p::crypto::RandBytes(key, 32);  // random session key
+        i2p::crypto::RandBytes(tag, 32);  // random session tag
         m_Owner->SubmitSessionKey(key, tag);
         GarlicRoutingSession garlic(key, tag);
         msg = garlic.WrapSingleMessage(msg);
@@ -346,17 +352,19 @@ size_t GarlicRoutingSession::CreateDeliveryStatusClove(
       size += msg->GetLength();
       // fill clove
       uint64_t ts = i2p::util::GetMillisecondsSinceEpoch() + 5000;  // 5 sec
-      htobe32buf(buf + size, m_Rnd.GenerateWord32());  // CloveID
+      // CloveID
+      htobe32buf(buf + size, i2p::crypto::Rand<std::uint32_t>());
       size += 4;
       htobe64buf(buf + size, ts);  // Expiration of clove
       size += 8;
       memset(buf + size, 0, 3);  // certificate of clove
       size += 3;
     } else {
-      LogPrint(eLogError, "No inbound tunnels in the pool for DeliveryStatus");
+      LogPrint(eLogError,
+          "GarlicRoutingSession: no inbound tunnels in the pool for DeliveryStatus");
     }
   } else {
-    LogPrint("Missing local LeaseSet");
+    LogPrint(eLogWarning, "GarlicRoutingSession: missing local LeaseSet");
   }
   return size;
 }
@@ -387,7 +395,7 @@ void GarlicDestination::HandleGarlicMessage(
   uint32_t length = bufbe32toh(buf);
   if (length > msg->GetLength()) {
     LogPrint(eLogError,
-        "Garlic message length ", length,
+        "GarlicDestination: message length ", length,
         " exceeds I2NP message length ", msg->GetLength());
     return;
   }
@@ -397,13 +405,14 @@ void GarlicDestination::HandleGarlicMessage(
     // tag found. Use AES
     if (length >= 32) {
       uint8_t iv[32];  // IV is first 16 bytes
-      CryptoPP::SHA256().CalculateDigest(iv, buf, 32);
+      i2p::crypto::SHA256().CalculateDigest(iv, buf, 32);
       it->second->SetIV(iv);
       it->second->Decrypt(buf + 32, length - 32, buf + 32);
       HandleAESBlock(buf + 32, length - 32, it->second, msg->from);
     } else {
       LogPrint(eLogError,
-          "Garlic message length ", length, " is less than 32 bytes");
+          "GarlicDestination: message length ",
+          length, " is less than 32 bytes");
     }
     m_Tags.erase(it);  // tag might be used only once
   } else {
@@ -411,17 +420,19 @@ void GarlicDestination::HandleGarlicMessage(
     ElGamalBlock elGamal;
     if (length >= 514 &&
         i2p::crypto::ElGamalDecrypt(
-          GetEncryptionPrivateKey(), buf,
-          reinterpret_cast<uint8_t *>(&elGamal), true)) {
+            GetEncryptionPrivateKey(),
+            buf,
+            reinterpret_cast<std::uint8_t *>(&elGamal),
+            true)) {
       auto decryption = std::make_shared<i2p::crypto::CBCDecryption>();
       decryption->SetKey(elGamal.sessionKey);
       uint8_t iv[32];  // IV is first 16 bytes
-      CryptoPP::SHA256().CalculateDigest(iv, elGamal.preIV, 32);
+      i2p::crypto::SHA256().CalculateDigest(iv, elGamal.preIV, 32);
       decryption->SetIV(iv);
       decryption->Decrypt(buf + 514, length - 514, buf + 514);
       HandleAESBlock(buf + 514, length - 514, decryption, msg->from);
     } else {
-      LogPrint(eLogError, "Failed to decrypt garlic");
+      LogPrint(eLogError, "GarlicDestination: failed to decrypt garlic");
     }
   }
   // cleanup expired tags
@@ -437,7 +448,9 @@ void GarlicDestination::HandleGarlicMessage(
           it++;
         }
       }
-      LogPrint(numExpiredTags, " tags expired for ", GetIdentHash().ToBase64());
+      LogPrint(eLogInfo,
+          "GarlicDestination: ", numExpiredTags,
+          " tags expired for ", GetIdentHash().ToBase64());
     }
     m_LastTagsCleanupTime = ts;
   }
@@ -452,7 +465,8 @@ void GarlicDestination::HandleAESBlock(
   buf += 2; len -= 2;
   if (tagCount > 0) {
     if (tagCount*32 > len) {
-      LogPrint(eLogError, "Tag count ", tagCount, " exceeds length ", len);
+      LogPrint(eLogError,
+          "GarlicDestination: tag count ", tagCount, " exceeds length ", len);
       return;
     }
     uint32_t ts = i2p::util::GetSecondsSinceEpoch();
@@ -463,7 +477,8 @@ void GarlicDestination::HandleAESBlock(
   len -= tagCount*32;
   uint32_t payloadSize = bufbe32toh(buf);
   if (payloadSize > len) {
-    LogPrint(eLogError, "Unexpected payload size ", payloadSize);
+    LogPrint(eLogError,
+        "GarlicDestination: unexpected payload size ", payloadSize);
     return;
   }
   buf += 4;
@@ -473,9 +488,9 @@ void GarlicDestination::HandleAESBlock(
     buf += 32;  // new session key
   buf++;  // flag
   // payload
-  if (!CryptoPP::SHA256().VerifyDigest(payloadHash, buf, payloadSize)) {
+  if (!i2p::crypto::SHA256().VerifyDigest(payloadHash, buf, payloadSize)) {
     // payload hash doesn't match
-    LogPrint("Wrong payload hash");
+    LogPrint(eLogError, "GarlicDestination: wrong payload hash");
     return;
   }
   HandleGarlicPayload(buf, payloadSize, from);
@@ -487,7 +502,7 @@ void GarlicDestination::HandleGarlicPayload(
     std::shared_ptr<i2p::tunnel::InboundTunnel> from) {
   const uint8_t* buf1 = buf;
   int numCloves = buf[0];
-  LogPrint(numCloves, " cloves");
+  LogPrint(eLogDebug, "GarlicDestination: ", numCloves, " cloves");
   buf++;
   for (int i = 0; i < numCloves; i++) {
     // delivery instructions
@@ -495,22 +510,22 @@ void GarlicDestination::HandleGarlicPayload(
     buf++;  // flag
     if (flag & 0x80) {  // encrypted?
       // TODO(unassigned): implement
-      LogPrint("Clove encrypted");
+      LogPrint(eLogDebug, "GarlicDestination: clove encrypted");
       buf += 32;
     }
     GarlicDeliveryType deliveryType = (GarlicDeliveryType)((flag >> 5) & 0x03);
     switch (deliveryType) {
       case eGarlicDeliveryTypeLocal:
-        LogPrint("Garlic type local");
+        LogPrint(eLogDebug, "GarlicDestination: Garlic type local");
         HandleI2NPMessage(buf, len, from);
       break;
       case eGarlicDeliveryTypeDestination:
-        LogPrint("Garlic type destination");
+        LogPrint(eLogDebug, "GarlicDestination: Garlic type destination");
         buf += 32;  // destination. check it later or for multiple destinations
         HandleI2NPMessage(buf, len, from);
       break;
       case eGarlicDeliveryTypeTunnel: {
-        LogPrint("Garlic type tunnel");
+        LogPrint(eLogDebug, "GarlicDestination: Garlic type tunnel");
         // gwHash and gwTunnel sequence is reverted
         uint8_t* gwHash = buf;
         buf += 32;
@@ -523,16 +538,19 @@ void GarlicDestination::HandleGarlicPayload(
           auto msg = CreateI2NPMessage(buf, GetI2NPMessageLength(buf), from);
           tunnel->SendTunnelDataMsg(gwHash, gwTunnel, msg);
         } else {
-          LogPrint("No outbound tunnels available for garlic clove");
+          LogPrint(eLogInfo,
+              "GarlicDestination: no outbound tunnels available for garlic clove");
         }
         break;
       }
       case eGarlicDeliveryTypeRouter:
-        LogPrint("Garlic type router not supported");
+        LogPrint(eLogWarning,
+            "GarlicDestination: Garlic type router not supported");
         buf += 32;
       break;
       default:
-        LogPrint("Unknow garlic delivery type ",
+        LogPrint(eLogError,
+            "GarlicDestination: unknown garlic delivery type ",
             static_cast<int>(deliveryType));
     }
     buf += GetI2NPMessageLength(buf);  // I2NP
@@ -540,7 +558,7 @@ void GarlicDestination::HandleGarlicPayload(
     buf += 8;  // Date
     buf += 3;  // Certificate
     if (buf - buf1  > static_cast<int>(len)) {
-      LogPrint(eLogError, "Garlic clove is too long");
+      LogPrint(eLogError, "GarlicDestination: clove is too long");
       break;
     }
   }
@@ -579,7 +597,8 @@ void GarlicDestination::CleanupRoutingSessions() {
   for (auto it = m_Sessions.begin(); it != m_Sessions.end();) {
     if (!it->second->CleanupExpiredTags()) {
       LogPrint(eLogInfo,
-          "Routing session to ", it->first.ToBase32(), " deleted");
+          "GarlicDestination: routing session to ",
+          it->first.ToBase32(), " deleted");
       it = m_Sessions.erase(it);
     } else {
       it++;
@@ -604,7 +623,7 @@ void GarlicDestination::HandleDeliveryStatusMessage(
     if (it != m_CreatedSessions.end()) {
       it->second->MessageConfirmed(msgID);
       m_CreatedSessions.erase(it);
-      LogPrint(eLogInfo, "Garlic message ", msgID, " acknowledged");
+      LogPrint(eLogInfo, "GarlicDestination: message ", msgID, " acknowledged");
     }
   }
 }

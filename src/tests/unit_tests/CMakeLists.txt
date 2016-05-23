@@ -1,24 +1,29 @@
 set(TESTS_SRC
-  "Base64.cpp"
-  "Identity.cpp"
-  "Utility.cpp"
-  "crypto/AES.cpp"
-  "crypto/DSA.cpp"
-  "crypto/EdDSA25519.cpp"
-  "crypto/ElGamal.cpp"
-  "crypto/Rand.cpp")
+  "Main.cpp"
+  "core/Reseed.cpp"
+  "core/crypto/AES.cpp"
+  "core/crypto/DSA.cpp"
+  "core/crypto/EdDSA25519.cpp"
+  "core/crypto/ElGamal.cpp"
+  "core/crypto/Rand.cpp"
+  "core/crypto/util/X509.cpp"
+  "core/util/Base64.cpp"
+  "core/util/HTTP.cpp"
+  "core/util/ZIP.cpp")
 
 include_directories(
   "../../"
+  "../../app/"
   "../../core/"
   "../../client/")
 
 if(WITH_TESTS)
   find_package(
     Boost COMPONENTS
-    chrono unit_test_framework
-    program_options date_time thread
-    system filesystem regex
+    unit_test_framework
+    chrono program_options
+    date_time thread system
+    filesystem regex
     REQUIRED)
   add_executable(${TESTS_NAME} ${TESTS_SRC})
   target_link_libraries(

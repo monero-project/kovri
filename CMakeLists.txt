@@ -3,14 +3,15 @@ project("kovri")
 
 # Configurable options
 option(KOVRI_DATA_PATH "The path to the kovri data folder")
-option(WITH_AESNI      "Use AES-NI instructions set" OFF)
 option(WITH_BENCHMARKS "Build with benchmarks" OFF)
 option(WITH_BINARY     "Build binary" ON)
+option(WITH_CRYPTOPP   "Build with Crypto++" ON)  # Default ON unless we switch libraries
 option(WITH_DOXYGEN    "Enable support for Doxygen" OFF)
 option(WITH_HARDENING  "Use hardening compiler flags" OFF)
 option(WITH_LIBRARY    "Build library" ON)
 option(WITH_OPTIMIZE   "Optimization flags" OFF)
 option(WITH_STATIC     "Static build" OFF)
+option(WITH_SUPERCOP   "Build Ed25519 using the ref10 implementation from SUPERCOP" ON)  # Default ON unless we switch implementations
 option(WITH_TESTS      "Build unit tests" OFF)
 option(WITH_UPNP       "Include support for UPnP client" OFF)
 
@@ -26,7 +27,7 @@ endif()
 
 # Compiler flags customization (by vendor)
 if(NOT MSVC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Winvalid-pch")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Winvalid-pch -maes")
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -pedantic")
   # TODO: The following is incompatible with static build and enabled hardening
   #  for OpenWRT.
@@ -37,16 +38,13 @@ if(NOT MSVC)
   set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "-Wl,--gc-sections")
 endif()
 
-# Check for c++11 support
+# Check for c++14 support
 include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++11" CXX11_SUPPORTED)
-CHECK_CXX_COMPILER_FLAG("-std=c++0x" CXX0X_SUPPORTED)
-if(CXX11_SUPPORTED)
-  add_definitions("-std=c++11")
-elseif(CXX0X_SUPPORTED) # gcc 4.6
-  add_definitions("-std=c++0x")
+CHECK_CXX_COMPILER_FLAG("-std=c++14" CXX14_SUPPORTED)
+if(CXX14_SUPPORTED)
+  add_definitions("-std=c++14")
 elseif(NOT MSVC)
-  message(SEND_ERROR "C++11 standard not supported by compiler. Version too old?")
+  message(SEND_ERROR "C++14 standard not supported by compiler. See building instructions for minimum requirements.")
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -58,8 +56,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
       "${CMAKE_CXX_FLAGS} -fstack-protector-strong -fPIE --param ssp-buffer-size=4 -z relro -z now")
     endif()
   elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    # Uncomment for verbose output
-    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -v")
+    message(SEND_ERROR "Clang is currently not supported. See building instructions for minimum requirements.")
 endif()
 
 # Compiler flags customization (by system)
@@ -68,19 +65,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
   add_definitions("-D_GLIBCXX_USE_NANOSLEEP=1")
 endif()
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-endif()
-
 if(WITH_UPNP)
   add_definitions(-DUSE_UPNP)
   if(NOT MSVC)
     set(DL_LIB ${CMAKE_DL_LIBS})
   endif()
-endif()
-
-if(WITH_AESNI)
-  add_definitions("-maes -DAESNI")
 endif()
 
 if(WITH_OPTIMIZE AND (NOT MSVC))
@@ -131,26 +120,31 @@ if(NOT Boost_FOUND)
   message(SEND_ERROR "Boost not found, or version below 1.46. Please download Boost!")
 else()
   add_definitions(-DBOOST_ALL_DYN_LINK)
+  include_directories(${Boost_INCLUDE_DIRS})
 endif()
 
-find_package(CryptoPP REQUIRED)
-if(NOT DEFINED CRYPTO++_INCLUDE_DIR)
-  message(SEND_ERROR "Could not find Crypto++. Please download and install it first!")
+if(WITH_CRYPTOPP)
+  find_package(CryptoPP REQUIRED)
+  if(NOT DEFINED CRYPTO++_INCLUDE_DIR)
+    message(SEND_ERROR "Could not find Crypto++. Please download and install it first!")
+  endif()
+  include_directories(${CRYPTO++_INCLUDE_DIR})
+endif()
+
+if(APPLE)
+  # If we're on OS X check for Homebrew's copy of OpenSSL instead of Apple's
+  if (NOT OpenSSL_DIR)
+    execute_process (COMMAND brew --prefix openssl
+      OUTPUT_VARIABLE OPENSSL_ROOT_DIR
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+  endif()
 endif()
 
 find_package(OpenSSL REQUIRED)
 if(NOT DEFINED OPENSSL_INCLUDE_DIR)
   message(SEND_ERROR "Could not find OpenSSL. Please download and install it first!")
-endif()
-
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  # If we're on OS X check for Homebrew's copy of OpenSSL instead of Apple's
-  if(NOT OpenSSL_DIR)
-    execute_process (
-      COMMAND brew --prefix openssl
-      OUTPUT_VARIABLE OPENSSL_ROOT_DIR
-      OUTPUT_STRIP_TRAILING_WHITESPACE)
-  endif()
+else()
+  include_directories(${OPENSSL_INCLUDE_DIR})
 endif()
 
 find_package(MiniUPnPc)
@@ -163,8 +157,8 @@ if(WITH_DOXYGEN)
   include(UseDoxygen)
 endif()
 
-# Load includes
-include_directories(${CMAKE_SOURCE_DIR} ${Boost_INCLUDE_DIRS} ${CRYPTO++_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR})
+# Load remaining includes
+include_directories(${CMAKE_SOURCE_DIR})
 
 # Set default path
 if(KOVRI_DATA_PATH)
@@ -188,14 +182,15 @@ message(STATUS "Compiler path      : ${CMAKE_CXX_COMPILER}")
 message(STATUS "Install prefix:    : ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "Kovri data directory: ${KOVRI_DATA_DIR}")
 message(STATUS "Options:")
-message(STATUS "  AESNI            : ${WITH_AESNI}")
 message(STATUS "  BENCHMARKS       : ${WITH_BENCHMARKS}")
 message(STATUS "  BINARY           : ${WITH_BINARY}")
+message(STATUS "  CRYPTOPP         : ${WITH_CRYPTOPP}")
 message(STATUS "  DOXYGEN          : ${WITH_DOXYGEN}")
 message(STATUS "  HARDENING        : ${WITH_HARDENING}")
 message(STATUS "  LIBRARY          : ${WITH_LIBRARY}")
 message(STATUS "  OPTIMIZATION     : ${WITH_OPTIMIZE}")
 message(STATUS "  STATIC BUILD     : ${WITH_STATIC}")
+message(STATUS "  SUPERCOP         : ${WITH_SUPERCOP}")
 message(STATUS "  TESTS            : ${WITH_TESTS}")
 message(STATUS "  UPnP             : ${WITH_UPNP}")
 message(STATUS "---------------------------------------")
@@ -210,12 +205,11 @@ set(TESTS_NAME "${PROJECT_NAME}-tests")
 set(BENCHMARKS_NAME "${PROJECT_NAME}-benchmarks")
 add_subdirectory(src)
 
-# Copy resources
+# Copy needed resources
 if(WITH_BINARY)
-  file(MAKE_DIRECTORY "${KOVRI_DATA_DIR}/pkg/resources/certificates")
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/pkg/resources/certificates" DESTINATION "${KOVRI_DATA_DIR}/resources/")
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/pkg/resources/kovri.conf" DESTINATION "${KOVRI_DATA_DIR}/")
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/pkg/resources/tunnels.cfg" DESTINATION "${KOVRI_DATA_DIR}/")
+  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/pkg/certificates" DESTINATION "${KOVRI_DATA_DIR}/")
+  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/pkg/kovri.conf" DESTINATION "${KOVRI_DATA_DIR}/")
+  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/pkg/tunnels.conf" DESTINATION "${KOVRI_DATA_DIR}/")
 endif()
 
 # vim: noai:ts=2:sw=2

@@ -1,3 +1,24 @@
+# Contributing
+
+## Workflow
+To contribute a patch, please execute the following:
+
+1. Fork Kovri
+2. Read [STYLE.md](https://github.com/monero-project/kovri/blob/master/doc/STYLE.md)
+3. Create a topic branch
+4. [**Sign**](https://git-scm.com/book/en/v2/Git-Tools-Signing-Your-Work) your commit(s)
+5. PR to branch ```development```
+   - In general, commits should be [atomic](https://en.wikipedia.org/wiki/Atomic_commit#Atomic_commit_convention) and diffs should be easy to read. For this reason, please try to not mix formatting fixes with non-formatting commits.
+   - Commit messages should be verbose by default, consisting of a short subject line (50 chars max), a blank line, and detailed explanatory text as separate paragraph(s) - unless the title alone is self-explanatory.
+   - If a particular commit references another issue, please add a reference. For example "See #123", or "Fixes #123". This will help us resolve tickets when we merge into ```master```.
+   - The body of the pull request should contain an accurate description of what the patch does and provide justification/reasoning for the patch (when appropriate). You should include references to any discussions such as other tickets or chats on IRC.
+
+## TODO's
+- Do a quick search in the codebase for ```TODO(unassigned):``` and/or pick a ticket and start patching!
+- If you create a TODO, assign it to yourself or write in ```TODO(unassigned):```
+
+# [Code of Conduct (22/C4.1)](http://rfc.zeromq.org/spec:22)
+
 ## License
 
 Copyright (c) 2009-2015 Pieter Hintjens.
@@ -106,3 +127,7 @@ C4 is meant to provide a reusable optimal collaboration model for open source so
 - A new Contributor who makes a correct patch SHALL be invited to become a Maintainer.
 - Administrators MAY remove Maintainers who are inactive for an extended period of time, or who repeatedly fail to apply this process accurately.
 - Administrators SHOULD block or ban "bad actors" who cause stress and pain to others in the project. This should be done after public discussion, with a chance for all parties to speak. A bad actor is someone who repeatedly ignores the rules and culture of the project, who is needlessly argumentative or hostile, or who is offensive, and who is unable to self-correct their behavior when asked to do so by others.
+
+# Governance Process
+
+![Governance Process](https://getmonero.org/blog/assets/2015-year-in-review/governance-process.jpg)

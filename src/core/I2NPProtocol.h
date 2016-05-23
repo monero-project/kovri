@@ -33,8 +33,6 @@
 #ifndef SRC_CORE_I2NPPROTOCOL_H_
 #define SRC_CORE_I2NPPROTOCOL_H_
 
-#include <cryptopp/sha.h>
-
 #include <inttypes.h>
 #include <string.h>
 
@@ -45,6 +43,7 @@
 #include "Identity.h"
 #include "LeaseSet.h"
 #include "RouterInfo.h"
+#include "crypto/Hash.h"
 #include "util/I2PEndian.h"
 
 namespace i2p {
@@ -206,7 +205,7 @@ struct I2NPMessage {
 
   void UpdateChks() {
     uint8_t hash[32];
-    CryptoPP::SHA256().CalculateDigest(hash, GetPayload(), GetPayloadLength());
+    i2p::crypto::SHA256().CalculateDigest(hash, GetPayload(), GetPayloadLength());
     GetHeader()[I2NP_HEADER_CHKS_OFFSET] = hash[0];
   }
 

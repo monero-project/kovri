@@ -71,7 +71,7 @@ void I2PService::CreateStream(
         port);
   } else {
     LogPrint(eLogWarning,
-        "Remote destination ", dest, " not found");
+        "I2PService: remote destination ", dest, " not found");
     streamRequestComplete(nullptr);
   }
 }
@@ -91,7 +91,7 @@ void TCPIPAcceptor::Rebind(
     const std::string& addr,
     uint16_t port) {
   LogPrint(eLogInfo,
-      "Rebind ", GetName(), " to ", addr, ":", port);
+      "I2PService: re-bind ", GetName(), " to ", addr, ":", port);
   // stop everything with us
   m_Acceptor.cancel();
   Stop();
@@ -124,7 +124,7 @@ void TCPIPAcceptor::HandleAccept(
     std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
   if (!ecode) {
     LogPrint(eLogDebug,
-        "--- ", GetName(), " accepted");
+        "I2PService: ", GetName(), " accepted");
     auto handler = CreateHandler(socket);
     if (handler) {
       AddHandler(handler);
@@ -136,8 +136,8 @@ void TCPIPAcceptor::HandleAccept(
   } else {
     if (ecode != boost::asio::error::operation_aborted)
       LogPrint(eLogError,
-          "--- ", GetName(),
-          " Closing socket on accept because: ", ecode.message());
+          "I2PService: ", GetName(),
+          " closing socket on accept because: ", ecode.message());
   }
 }
 

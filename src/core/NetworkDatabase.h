@@ -67,9 +67,11 @@ class NetDb {
   bool Start();
   void Stop();
 
-  void AddRouterInfo(
+  /// @return False on failure
+  bool AddRouterInfo(
       const uint8_t* buf,
       int len);
+
   void AddRouterInfo(
       const IdentHash& ident,
       const uint8_t* buf,
@@ -170,7 +172,7 @@ class NetDb {
   // of I2NPDatabaseStoreMsg
   i2p::util::Queue<std::shared_ptr<const I2NPMessage> > m_Queue;
 
-  Reseeder* m_Reseeder;
+  i2p::data::Reseed* m_Reseed;
 
   friend class NetDbRequests;
   NetDbRequests m_Requests;

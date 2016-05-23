@@ -30,13 +30,6 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
-// TODO(unassigned): use crypto/DSA.h
-#include <cryptopp/dsa.h>
-// TODO(unassigned): use crypto/SHA.h
-#include <cryptopp/sha.h>
-
-#include <cryptopp/dh.h>
-
 #include <stdio.h>
 #include <time.h>
 
@@ -44,9 +37,8 @@
 
 #include "Identity.h"
 #include "RouterContext.h"
-#include "crypto/CryptoConst.h"
-#include "crypto/CryptoPP_Rand.h"
 #include "crypto/ElGamal.h"
+#include "crypto/Hash.h"
 #include "crypto/Rand.h"
 #include "crypto/Signature.h"
 #include "util/Base64.h"
@@ -72,7 +64,7 @@ size_t Identity::FromBuffer(
 
 IdentHash Identity::Hash() const {
   IdentHash hash;
-  CryptoPP::SHA256().CalculateDigest(
+  i2p::crypto::SHA256().CalculateDigest(
       hash,
       publicKey,
       DEFAULT_IDENTITY_SIZE);
@@ -94,7 +86,7 @@ IdentityEx::IdentityEx(
       sizeof(m_StandardIdentity.publicKey));
   if (type != SIGNING_KEY_TYPE_DSA_SHA1) {
     size_t excessLen = 0;
-    uint8_t * excessBuf = nullptr;
+    uint8_t* excessBuf = nullptr;
     switch (type) {
       case SIGNING_KEY_TYPE_ECDSA_SHA256_P256: {
         size_t padding =
@@ -161,7 +153,9 @@ IdentityEx::IdentityEx(
         break;
       }
       default:
-        LogPrint("Signing key type ", static_cast<int>(type), " is not supported");
+        LogPrint(eLogWarning,
+            "IdentityEx: signing key type ",
+            static_cast<int>(type), " is not supported");
     }
     m_ExtendedLen = 4 + excessLen;  // 4 bytes extra + excess length
     // fill certificate
@@ -178,8 +172,7 @@ IdentityEx::IdentityEx(
     // calculate ident hash
     uint8_t* buf = new uint8_t[GetFullLen()];
     ToBuffer(buf, GetFullLen());
-    // TODO(unassigned): use i2p::crypto::SHA256()
-    CryptoPP::SHA256().CalculateDigest(m_IdentHash, buf, GetFullLen());
+    i2p::crypto::SHA256().CalculateDigest(m_IdentHash, buf, GetFullLen());
     delete[] buf;
   } else {  // DSA-SHA1
     memcpy(
@@ -251,7 +244,7 @@ size_t IdentityEx::FromBuffer(
     const uint8_t* buf,
     size_t len) {
   if (len < DEFAULT_IDENTITY_SIZE) {
-    LogPrint(eLogError, "Identity buffer length ", len, " is too small");
+    LogPrint(eLogError, "IdentityEx: identity buffer length ", len, " is too small");
     return 0;
   }
   memcpy(&m_StandardIdentity, buf, DEFAULT_IDENTITY_SIZE);
@@ -263,7 +256,7 @@ size_t IdentityEx::FromBuffer(
       memcpy(m_ExtendedBuffer, buf + DEFAULT_IDENTITY_SIZE, m_ExtendedLen);
     } else {
       LogPrint(eLogError,
-          "Certificate length ", m_ExtendedLen,
+          "IdentityEx: certificate length ", m_ExtendedLen,
           " exceeds buffer length ", len - DEFAULT_IDENTITY_SIZE);
       return 0;
     }
@@ -271,7 +264,7 @@ size_t IdentityEx::FromBuffer(
     m_ExtendedLen = 0;
     m_ExtendedBuffer = nullptr;
   }
-  CryptoPP::SHA256().CalculateDigest(m_IdentHash, buf, GetFullLen());
+  i2p::crypto::SHA256().CalculateDigest(m_IdentHash, buf, GetFullLen());
   delete m_Verifier;
   m_Verifier = nullptr;
   return GetFullLen();
@@ -381,7 +374,7 @@ void IdentityEx::CreateVerifier() const  {
       memcpy(signingKey, m_StandardIdentity.signingKey, 128);
       size_t excessLen = i2p::crypto::RSASHA2562048_KEY_LENGTH - 128;  // 128 = 256- 128
       memcpy(signingKey + 128, m_ExtendedBuffer + 4, excessLen);
-      m_Verifier = new i2p::crypto:: RSASHA2562048Verifier (signingKey);
+      m_Verifier = new i2p::crypto::RSASHA2562048Verifier(signingKey);
       break;
     }
     case SIGNING_KEY_TYPE_RSA_SHA384_3072: {
@@ -389,7 +382,7 @@ void IdentityEx::CreateVerifier() const  {
       memcpy(signingKey, m_StandardIdentity.signingKey, 128);
       size_t excessLen = i2p::crypto::RSASHA3843072_KEY_LENGTH - 128;  // 256 = 384- 128
       memcpy(signingKey + 128, m_ExtendedBuffer + 4, excessLen);
-      m_Verifier = new i2p::crypto:: RSASHA3843072Verifier (signingKey);
+      m_Verifier = new i2p::crypto::RSASHA3843072Verifier(signingKey);
       break;
     }
     case SIGNING_KEY_TYPE_RSA_SHA512_4096: {
@@ -397,7 +390,7 @@ void IdentityEx::CreateVerifier() const  {
       memcpy(signingKey, m_StandardIdentity.signingKey, 128);
       size_t excessLen = i2p::crypto::RSASHA5124096_KEY_LENGTH - 128;  // 384 = 512- 128
       memcpy(signingKey + 128, m_ExtendedBuffer + 4, excessLen);
-      m_Verifier = new i2p::crypto:: RSASHA5124096Verifier(signingKey);
+      m_Verifier = new i2p::crypto::RSASHA5124096Verifier(signingKey);
       break;
     }
     case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519: {
@@ -407,7 +400,9 @@ void IdentityEx::CreateVerifier() const  {
       break;
     }
     default:
-      LogPrint("Signing key type ", static_cast<int>(keyType), " is not supported");
+      LogPrint(eLogWarning,
+          "IdentityEx: signing key type ",
+          static_cast<int>(keyType), " is not supported");
   }
 }
 
@@ -534,9 +529,9 @@ void PrivateKeys::CreateSigner() {
       m_Signer = new i2p::crypto::EDDSA25519Signer(m_SigningPrivateKey);
     break;
     default:
-      LogPrint("Signing key type ",
-          static_cast<int>(m_Public.GetSigningKeyType()),
-          " is not supported");
+      LogPrint(eLogWarning,
+          "IdentityEx: Signing key type ",
+          static_cast<int>(m_Public.GetSigningKeyType()), " is not supported");
   }
 }
 
@@ -580,8 +575,9 @@ PrivateKeys PrivateKeys::CreateRandomKeys(SigningKeyType type) {
             signingPublicKey);
       break;
       default:
-        LogPrint("Signing key type ",
-            static_cast<int>(type), " is not supported. Create DSA-SHA1");
+        LogPrint(eLogWarning,
+            "IdentityEx: Signing key type ",
+            static_cast<int>(type), " is not supported, creating DSA-SHA1");
         return PrivateKeys(i2p::data::CreateRandomKeys());  // DSA-SHA1
     }
     // encryption
@@ -634,7 +630,7 @@ IdentHash CreateRoutingKey(
       tm.tm_mday);
 #endif
   IdentHash key;
-  CryptoPP::SHA256().CalculateDigest((uint8_t *)key, buf, 40);
+  i2p::crypto::SHA256().CalculateDigest((uint8_t *)key, buf, 40);
   return key;
 }
 

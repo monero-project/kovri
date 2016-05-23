@@ -32,9 +32,6 @@
 
 #include "NTCPSession.h"
 
-#include <cryptopp/adler32.h>
-#include <cryptopp/dh.h>
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -45,8 +42,10 @@
 #include "NetworkDatabase.h"
 #include "RouterContext.h"
 #include "Transports.h"
+#include "crypto/DiffieHellman.h"
+#include "crypto/Hash.h"
 #include "crypto/Rand.h"
-#include "crypto/CryptoConst.h"
+#include "crypto/util/Checksum.h"
 #include "util/Base64.h"
 #include "util/I2PEndian.h"
 #include "util/Log.h"
@@ -78,12 +77,10 @@ NTCPSession::~NTCPSession() {
 void NTCPSession::CreateAESKey(
     std::uint8_t* pubKey,
     i2p::crypto::AESKey& key) {
-  CryptoPP::DH dh(
-      i2p::crypto::elgp,
-      i2p::crypto::elgg);
+  i2p::crypto::DiffieHellman dh;
   std::uint8_t sharedKey[NTCP_PUBKEY_SIZE];
   if (!dh.Agree(sharedKey, m_DHKeysPair->privateKey, pubKey)) {
-    LogPrint(eLogError, "Couldn't create shared key");
+    LogPrint(eLogError, "NTCPSession: couldn't create shared key");
     Terminate();
     return;
   }
@@ -100,7 +97,7 @@ void NTCPSession::CreateAESKey(
       nonZero++;
       if (nonZero - sharedKey > (std::uint8_t)NTCP_SESSIONKEY_SIZE) {
         LogPrint(eLogWarning,
-            "First 32 bytes of shared key is all zeros. Ignored");
+            "NTCPSession: first 32 bytes of shared key is all zeros. Ignored");
         return;
       }
     }
@@ -125,7 +122,7 @@ void NTCPSession::Terminate() {
     m_SendQueue.clear();
     m_NextMessage = nullptr;
     m_TerminationTimer.cancel();
-    LogPrint(eLogInfo, "NTCP session terminated");
+    LogPrint(eLogInfo, "NTCPSession: session terminated");
   }
 }
 
@@ -150,7 +147,7 @@ void NTCPSession::ClientLogin() {
       m_Establisher->phase1.pubKey,
       x,
       NTCP_PUBKEY_SIZE);
-  CryptoPP::SHA256().CalculateDigest(
+  i2p::crypto::SHA256().CalculateDigest(
       m_Establisher->phase1.HXxorHI,
       x,
       NTCP_PUBKEY_SIZE);
@@ -197,7 +194,7 @@ void NTCPSession::HandlePhase1Sent(
     std::size_t) {
   if (ecode) {
     LogPrint(eLogError,
-        "Couldn't send Phase 1 message: ", ecode.message());
+        "NTCPSession: couldn't send phase 1 message: ", ecode.message());
     if (ecode != boost::asio::error::operation_aborted)
       Terminate();
   } else {
@@ -220,20 +217,20 @@ void NTCPSession::HandlePhase1Received(
     std::size_t) {
   if (ecode) {
     LogPrint(eLogError,
-        "Phase 1 read error: ", ecode.message());
+        "NTCPSession: phase 1 read error '", ecode.message(), "'");
     if (ecode != boost::asio::error::operation_aborted)
       Terminate();
   } else {
     // verify ident
     std::uint8_t digest[NTCP_HASH_SIZE];
-    CryptoPP::SHA256().CalculateDigest(
+    i2p::crypto::SHA256().CalculateDigest(
         digest,
         m_Establisher->phase1.pubKey,
         NTCP_PUBKEY_SIZE);
     const std::uint8_t* ident = i2p::context.GetRouterInfo().GetIdentHash();
     for (std::size_t i = 0; i < NTCP_HASH_SIZE; i++) {
       if ((m_Establisher->phase1.HXxorHI[i] ^ ident[i]) != digest[i]) {
-        LogPrint(eLogError, "Wrong ident");
+        LogPrint(eLogError, "NTCPSession: wrong ident");
         Terminate();
         return;
       }
@@ -250,7 +247,7 @@ void NTCPSession::SendPhase2() {
   std::uint8_t xy[NTCP_PUBKEY_SIZE * 2];  // Combined DH key size for hxy
   memcpy(xy, m_Establisher->phase1.pubKey, NTCP_PUBKEY_SIZE);
   memcpy(xy + NTCP_PUBKEY_SIZE, y, NTCP_PUBKEY_SIZE);
-  CryptoPP::SHA256().CalculateDigest(
+  i2p::crypto::SHA256().CalculateDigest(
       m_Establisher->phase2.encrypted.hxy,
       xy,
       NTCP_PUBKEY_SIZE * 2);
@@ -289,7 +286,7 @@ void NTCPSession::HandlePhase2Sent(
     std::uint32_t tsB) {
   if (ecode) {
     LogPrint(eLogError,
-        "Couldn't send Phase 2 message: ", ecode.message());
+        "NTCPSession: couldn't send phase 2 message: ", ecode.message());
     if (ecode != boost::asio::error::operation_aborted)
       Terminate();
   } else {
@@ -313,7 +310,8 @@ void NTCPSession::HandlePhase2Received(
     std::size_t) {
   if (ecode) {
     LogPrint(eLogError,
-        "Phase 2 read error: ", ecode.message(), ". Wrong ident assumed");
+        "NTCPSession: phase 2 read error '", ecode.message(),
+        "', wrong ident assumed");
     if (ecode != boost::asio::error::operation_aborted) {
       // this RI is not valid
       i2p::data::netdb.SetUnreachable(
@@ -344,11 +342,11 @@ void NTCPSession::HandlePhase2Received(
         xy + NTCP_PUBKEY_SIZE,
         m_Establisher->phase2.pubKey,
         NTCP_PUBKEY_SIZE);
-    if (!CryptoPP::SHA256().VerifyDigest(
+    if (!i2p::crypto::SHA256().VerifyDigest(
           m_Establisher->phase2.encrypted.hxy,
           xy,
           NTCP_PUBKEY_SIZE * 2)) {
-      LogPrint(eLogError, "Incorrect hash");
+      LogPrint(eLogError, "NTCPSession: incorrect hash");
       transports.ReuseDHKeysPair(m_DHKeysPair);
       m_DHKeysPair = nullptr;
       Terminate();
@@ -407,7 +405,7 @@ void NTCPSession::HandlePhase3Sent(
     std::uint32_t tsA) {
   if (ecode) {
     LogPrint(eLogError,
-        "Couldn't send Phase 3 message: ", ecode.message());
+        "NTCPSession: couldn't send phase 3 message: ", ecode.message());
     if (ecode != boost::asio::error::operation_aborted)
       Terminate();
   } else {
@@ -436,7 +434,8 @@ void NTCPSession::HandlePhase3Received(
     std::size_t bytes_transferred,
     std::uint32_t tsB) {
   if (ecode) {
-    LogPrint(eLogError, "Phase 3 read error: ", ecode.message());
+    LogPrint(eLogError,
+        "NTCPSession: phase 3 read error '", ecode.message(), "'");
     if (ecode != boost::asio::error::operation_aborted)
       Terminate();
   } else {
@@ -448,7 +447,7 @@ void NTCPSession::HandlePhase3Received(
     uint16_t size = bufbe16toh(buf);
     m_RemoteIdentity.FromBuffer(buf + NTCP_PHASE3_ALICE_RI_SIZE, size);
     if (m_Server.FindNTCPSession(m_RemoteIdentity.GetIdentHash())) {
-      LogPrint(eLogError, "NTCP session already exists");
+      LogPrint(eLogError, "NTCPSession: session already exists");
       Terminate();
     }
     size_t expectedSize = size +
@@ -487,7 +486,7 @@ void NTCPSession::HandlePhase3ExtraReceived(
     std::size_t paddingLen) {
   if (ecode) {
     LogPrint(eLogError,
-        "Phase 3 extra read error: ", ecode.message());
+        "NTCPSession: phase 3 extra read error '", ecode.message(), "'");
     if (ecode != boost::asio::error::operation_aborted)
       Terminate();
   } else {
@@ -516,7 +515,7 @@ void NTCPSession::HandlePhase3(
   s.Insert(tsA);
   s.Insert(tsB);
   if (!s.Verify(m_RemoteIdentity, buf)) {
-    LogPrint(eLogError, "signature verification failed");
+    LogPrint(eLogError, "NTCPSession: phase 3 signature verification failed");
     Terminate();
     return;
   }
@@ -561,12 +560,13 @@ void NTCPSession::HandlePhase4Sent(
     std::size_t) {
   if (ecode) {
     LogPrint(eLogWarning,
-        "Couldn't send Phase 4 message: ", ecode.message());
+        "NTCPSession: couldn't send phase 4 message '", ecode.message(), "'");
     if (ecode != boost::asio::error::operation_aborted)
       Terminate();
   } else {
     LogPrint(eLogInfo,
-        "NTCP server session from ", m_Socket.remote_endpoint(), " connected");
+        "NTCPSession: server session from ",
+        m_Socket.remote_endpoint(), " connected");
     m_Server.AddNTCPSession(shared_from_this());
     Connected();
     m_ReceiveBufferOffset = 0;
@@ -581,7 +581,8 @@ void NTCPSession::HandlePhase4Received(
     std::uint32_t tsA) {
   if (ecode) {
     LogPrint(eLogError,
-        "Phase 4 read error: ", ecode.message(), ". Check your clock");
+        "NTCPSession: phase 4 read error '", ecode.message(),
+        "', check your clock");
     if (ecode != boost::asio::error::operation_aborted) {
        // this router doesn't like us
       i2p::data::netdb.SetUnreachable(GetRemoteIdentity().GetIdentHash(), true);
@@ -597,13 +598,13 @@ void NTCPSession::HandlePhase4Received(
     s.Insert(tsA);  // timestamp Alice
     s.Insert(m_Establisher->phase2.encrypted.timestamp);  // timestamp Bob
     if (!s.Verify(m_RemoteIdentity, m_ReceiveBuffer)) {
-      LogPrint(eLogError, "signature verification failed");
+      LogPrint(eLogError, "NTCPSession: phase 4 signature verification failed");
       Terminate();
       return;
     }
     m_RemoteIdentity.DropVerifier();
     LogPrint(eLogInfo,
-        "NTCP session to ", m_Socket.remote_endpoint(), " connected");
+        "NTCPSession: session to ", m_Socket.remote_endpoint(), " connected");
     Connected();
     m_ReceiveBufferOffset = 0;
     m_NextMessage = nullptr;
@@ -627,7 +628,7 @@ void NTCPSession::HandleReceived(
     const boost::system::error_code& ecode,
     std::size_t bytes_transferred) {
   if (ecode) {
-    LogPrint(eLogError, "Read error: ", ecode.message());
+    LogPrint(eLogError, "NTCPSession: HandleReceived(): ", ecode.message());
     if (!m_NumReceivedBytes)
       m_Server.Ban(m_ConnectedFrom);
     // if (ecode != boost::asio::error::operation_aborted)
@@ -662,7 +663,9 @@ void NTCPSession::HandleReceived(
                   m_ReceiveBuffer + m_ReceiveBufferOffset,
                   moreBytes));
             if (ec) {
-              LogPrint(eLogError, "Read more bytes error: ", ec.message());
+              LogPrint(eLogError,
+                  "NTCPSession: HandleReceived(): read more bytes error: ",
+                  ec.message());
               Terminate();
               return;
             }
@@ -690,7 +693,8 @@ bool NTCPSession::DecryptNextBlock(
     if (dataSize) {
       // new message
       if (dataSize > NTCP_MAX_MESSAGE_SIZE) {
-        LogPrint(eLogError, "NTCP data size ", dataSize, " exceeds max size");
+        LogPrint(eLogError,
+            "NTCPSession: data size ", dataSize, " exceeds max size");
         return false;
       }
       auto msg =
@@ -704,7 +708,7 @@ bool NTCPSession::DecryptNextBlock(
       m_NextMessage->len = dataSize + NTCP_PHASE3_ALICE_RI_SIZE;
     } else {
       // timestamp
-      LogPrint("Timestamp");
+      LogPrint("NTCPSession: timestamp");
       return true;
     }
   } else {  // message continues
@@ -715,14 +719,14 @@ bool NTCPSession::DecryptNextBlock(
   }
   if (m_NextMessageOffset >= m_NextMessage->len + NTCP_ADLER32_SIZE) {
     // we have a complete I2NP message
-    if (CryptoPP::Adler32().VerifyDigest(
+    if (i2p::crypto::util::Adler32().VerifyDigest(
           m_NextMessage->buf + m_NextMessageOffset - NTCP_ADLER32_SIZE,
           m_NextMessage->buf,
           m_NextMessageOffset - NTCP_ADLER32_SIZE))
       m_Handler.PutNextMessage(m_NextMessage);
     else
       LogPrint(eLogWarning,
-          "Incorrect Adler checksum of NTCP message. Dropped");
+          "NTCPSession: incorrect Adler checksum of NTCP message. Dropped");
     m_NextMessage = nullptr;
   }
   return true;
@@ -751,7 +755,7 @@ boost::asio::const_buffers_1 NTCPSession::CreateMsgBuffer(
     // regular I2NP
     if (msg->offset < NTCP_PHASE3_ALICE_RI_SIZE)
       LogPrint(eLogError,
-          "Malformed I2NP message");  // TODO(unassigned): Error handling
+          "NTCPSession: malformed I2NP message");  // TODO(unassigned): Error handling
     sendBuffer = msg->GetBuffer() - NTCP_PHASE3_ALICE_RI_SIZE;
     len = msg->GetLength();
     htobe16buf(sendBuffer, len);
@@ -770,7 +774,7 @@ boost::asio::const_buffers_1 NTCPSession::CreateMsgBuffer(
         sendBuffer + len + NTCP_PHASE3_ALICE_TS_SIZE,
         padding);
   }
-  CryptoPP::Adler32().CalculateDigest(
+  i2p::crypto::util::Adler32().CalculateDigest(
       sendBuffer + len + NTCP_PHASE3_ALICE_RI_SIZE + padding,
       sendBuffer, len + NTCP_PHASE3_ALICE_RI_SIZE + padding);
   int l = len + padding + 6;
@@ -801,7 +805,7 @@ void NTCPSession::HandleSent(
     std::vector<std::shared_ptr<I2NPMessage> >) {
   m_IsSending = false;
   if (ecode) {
-    LogPrint(eLogWarning, "Couldn't send msgs: ", ecode.message());
+    LogPrint(eLogWarning, "NTCPSession: couldn't send msgs: ", ecode.message());
     // TODO(unassigned):
     // we shouldn't call Terminate () here, because HandleReceive takes care
     // 'delete this' statement in Terminate() must be eliminated later
@@ -857,7 +861,8 @@ void NTCPSession::ScheduleTermination() {
 void NTCPSession::HandleTerminationTimer(
     const boost::system::error_code& ecode) {
   if (ecode != boost::asio::error::operation_aborted) {
-    LogPrint("No activity for ", NTCP_TERMINATION_TIMEOUT, " seconds");
+    LogPrint(eLogError,
+        "NTCPSession: No activity for ", NTCP_TERMINATION_TIMEOUT, " seconds");
     // Terminate();
     m_Socket.close();  // invoke Terminate() from HandleReceive
   }

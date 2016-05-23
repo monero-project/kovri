@@ -22,6 +22,8 @@ $ git clone https://github.com/monero-project/kovri
 $ cd kovri/build && cmake ../ && make
 $ ./kovri -p [your chosen port number]
 ```
+- For quick help options: ```$ ./kovri --help```
+- For a detailed listing of options: ```$ ./kovri --help-with all```
 
 ## Documentation
 - Read our [FAQ](https://github.com/monero-project/kovri/blob/master/doc/FAQ.md) or join us in ```#kovri``` or ```#kovri-dev``` on Freenode or Irc2P

@@ -45,7 +45,6 @@
 #include <vector>
 
 #include "RouterContext.h"
-#include "crypto/CryptoConst.h"
 #include "util/Base64.h"
 #include "util/I2PEndian.h"
 #include "util/Log.h"
@@ -111,7 +110,7 @@ bool RouterInfo::LoadFile() {
     s.seekg(0, std::ios::end);
     m_BufferLen = s.tellg();
     if (m_BufferLen < 40) {
-      LogPrint(eLogError, "File", m_FullPath, " is malformed");
+      LogPrint(eLogError, "RouterInfo: file", m_FullPath, " is malformed");
       return false;
     }
     s.seekg(0, std::ios::beg);
@@ -119,7 +118,7 @@ bool RouterInfo::LoadFile() {
       m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
     s.read(reinterpret_cast<char *>(m_Buffer), m_BufferLen);
   } else {
-    LogPrint(eLogError, "Can't open file ", m_FullPath);
+    LogPrint(eLogError, "RouterInfo: can't open file ", m_FullPath);
     return false;
   }
   return true;
@@ -145,7 +144,7 @@ void RouterInfo::ReadFromBuffer(
           reinterpret_cast<uint8_t *>(m_Buffer),
           len,
           reinterpret_cast<uint8_t *>(m_Buffer + len))) {
-      LogPrint(eLogError, "signature verification failed");
+      LogPrint(eLogError, "RouterInfo: signature verification failed");
       m_IsUnreachable = true;
     }
     m_RouterIdentity.DropVerifier();
@@ -195,7 +194,7 @@ void RouterInfo::ReadFromStream(
             address.addressString = value;
           } else {
             // TODO(unassigned): resolve address for SSU
-            LogPrint(eLogWarning, "Unexpected SSU address ", value);
+            LogPrint(eLogWarning, "RouterInfo: unexpected SSU address ", value);
             isValidAddress = false;
           }
         } else {
@@ -454,7 +453,9 @@ void RouterInfo::WriteToStream(
 const uint8_t* RouterInfo::LoadBuffer() {
   if (!m_Buffer) {
     if (LoadFile())
-      LogPrint("Buffer for ", GetIdentHashAbbreviation(), " loaded from file");
+      LogPrint(eLogInfo,
+          "RouterInfo: buffer for ",
+          GetIdentHashAbbreviation(), " loaded from file");
   }
   return m_Buffer;
 }
@@ -486,9 +487,9 @@ void RouterInfo::SaveToFile(
     if (f.is_open())
       f.write(reinterpret_cast<char *>(m_Buffer), m_BufferLen);
     else
-      LogPrint(eLogError, "Can't save RouterInfo to ", fullPath);
+      LogPrint(eLogError, "RouterInfo: can't save RouterInfo to ", fullPath);
   } else {
-    LogPrint(eLogError, "Can't save RouterInfo m_Buffer==NULL");
+    LogPrint(eLogError, "RouterInfo: can't save RouterInfo m_Buffer==NULL");
   }
 }
 

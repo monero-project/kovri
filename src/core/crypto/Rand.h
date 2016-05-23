@@ -31,38 +31,40 @@
 #ifndef SRC_CORE_CRYPTO_RAND_H_
 #define SRC_CORE_CRYPTO_RAND_H_
 
-#include <cstdlib>
 #include <cinttypes>  // imaxabs()
+#include <cstdint>
+#include <cstdlib>
 #include <stdexcept>
 
 namespace i2p {
 namespace crypto {
 
-  /// Generate random bytes
-  /// @param dataptr buffer to store result
-  /// @param datalen size of buffer
+  /// @brief Generates CSPRNG bytes
+  /// @param data Buffer to store result
+  /// @param length Size of buffer
   void RandBytes(
-      uint8_t* dataptr,
-      size_t datalen);
+      std::uint8_t* data,
+      std::size_t length);
 
-  /// Generate random of type T
+  /// @brief Generates a random of type T
+  /// @return
   template<class T>
   T Rand() {
     T ret;
     // TODO(unassigned): alignment
-    RandBytes((uint8_t*)&ret, sizeof(ret));
+    RandBytes(
+        reinterpret_cast<std::uint8_t *>(&ret),
+        sizeof(ret));
     return ret;
   }
 
-  /// Returns a random integer of type T from
-  /// a range of integers (signed or unsigned).
-  ///
-  /// @param T   : integer type
-  /// @param min : lowerbound
-  /// @param max : upperbound
-  /// @return    : random number in range [min, max]
-  ///              (if (min < 0), results are undefined)
-  template<class T>
+  /// @brief Generates a random integer in range of type T (signed or unsigned).
+  /// @param T Integer type
+  /// @param min Lowerbound
+  /// @param max Upperbound
+  /// @return Random number in range [min, max]
+  /// (if (min < 0), results are undefined)
+  template<class T = std::size_t>
   T RandInRange(T min, T max) {
     if ((min > max) || (max < 0)) {
       throw std::logic_error("RandInRange(): logic error");

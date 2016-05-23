@@ -43,7 +43,6 @@
 #include "I2NPProtocol.h"
 #include "NetworkDatabase.h"
 #include "Version.h"
-#include "crypto/CryptoConst.h"
 #include "util/MTU.h"
 #include "util/Timestamp.h"
 #include "util/Filesystem.h"
@@ -264,7 +263,7 @@ void RouterContext::UpdateNTCPV6Address(
     m_RouterInfo.AddNTCPAddress(host.to_string().c_str(), port);
     auto mtu = i2p::util::mtu::GetMTU(host);
     if (mtu) {
-      LogPrint("Our v6 MTU=", mtu);
+      LogPrint(eLogDebug, "RouterContext: our v6 MTU=", mtu);
       if (mtu > 1472)
         mtu = 1472;
     }

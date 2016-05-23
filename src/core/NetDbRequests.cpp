@@ -144,7 +144,8 @@ void NetDbRequests::ManageRequests() {
       // no response for 5 seconds
       if (ts > dest->GetCreationTime() + 5)  {
         auto count = dest->GetExcludedPeers().size();
-        if (!dest->IsExploratory() && count < 7) {
+        std::size_t attempts(7);
+        if (!dest->IsExploratory() && count < attempts) {
           auto pool = i2p::tunnel::tunnels.GetExploratoryPool();
           auto outbound = pool->GetNextOutboundTunnel();
           auto inbound = pool->GetNextInboundTunnel();
@@ -161,17 +162,17 @@ void NetDbRequests::ManageRequests() {
           } else {
             done = true;
             if (!inbound)
-              LogPrint(eLogWarning, "No inbound tunnels");
+              LogPrint(eLogWarning, "NetDbRequests: no inbound tunnels");
             if (!outbound)
-              LogPrint(eLogWarning, "No outbound tunnels");
+              LogPrint(eLogWarning, "NetDbRequests: no outbound tunnels");
             if (!nextFloodfill)
-              LogPrint(eLogWarning, "No more floodfills");
+              LogPrint(eLogWarning, "NetDbRequests: no more floodfills");
           }
         } else {
           if (!dest->IsExploratory())
             LogPrint(eLogWarning,
-                dest->GetDestination().ToBase64(),
-                " not found after 7 attempts");
+                "NetDbRequests: ", dest->GetDestination().ToBase64(),
+                " not found after ", attempts, " attempts");
           done = true;
         }
       }

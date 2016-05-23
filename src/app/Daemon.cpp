@@ -70,11 +70,11 @@ bool Daemon_Singleton::IsService() const {
 
 // TODO(anonimal): find a better way to initialize
 bool Daemon_Singleton::Init() {
+  LogPrint(eLogInfo, "Daemon_Singleton: initializing");
   i2p::context.Init(
       i2p::util::config::var_map["host"].as<std::string>(),
       i2p::util::config::var_map["port"].as<int>(),
       i2p::util::filesystem::GetDataPath());
-
   m_IsDaemon = i2p::util::config::var_map["daemon"].as<bool>();
   m_IsLogging = i2p::util::config::var_map["log"].as<bool>();
   int port = i2p::util::config::var_map["port"].as<int>();
@@ -93,15 +93,20 @@ bool Daemon_Singleton::Init() {
     else
       i2p::context.SetLowBandwidth();
   }
+  // Set reseed options
+  i2p::context.ReseedFrom(
+      i2p::util::config::var_map["reseed-from"].as<std::string>());
+  i2p::context.ReseedSkipSSLCheck(
+    i2p::util::config::var_map["reseed-skip-ssl-check"].as<bool>());
   // Initialize the ClientContext
   InitClientContext();
   return true;
 }
 
 bool Daemon_Singleton::Start() {
-  LogPrint("The Kovri I2P Router Project");
-  LogPrint("Version ", KOVRI_VERSION);
-  LogPrint("Listening on port ", i2p::util::config::var_map["port"].as<int>());
+  LogPrint(eLogInfo,
+      "Daemon_Singleton: listening on port ",
+      i2p::util::config::var_map["port"].as<int>());
   if (m_IsLogging) {
     if (m_IsDaemon) {
       std::string logfile_path = IsService() ? "/var/log" :
@@ -119,57 +124,42 @@ bool Daemon_Singleton::Start() {
     m_log->Stop();
   }
   try {
-    LogPrint("Starting NetDB...");
-    if (i2p::data::netdb.Start()) {
-      LogPrint("NetDB started");
-    } else {
-      LogPrint("NetDB failed to start");
+    LogPrint(eLogInfo, "Daemon_Singleton: starting NetDb");
+    if (!i2p::data::netdb.Start()) {
+      LogPrint(eLogError, "Daemon_Singleton: NetDb failed to start");
       return false;
     }
-    LogPrint("Starting transports...");
+    LogPrint(eLogInfo, "Daemon_Singleton: starting transports");
     i2p::transport::transports.Start();
-    LogPrint("Transports started");
-
-    LogPrint("Starting tunnels...");
+    LogPrint(eLogInfo, "Daemon_Singleton: starting tunnels");
     i2p::tunnel::tunnels.Start();
-    LogPrint("Tunnels started");
-
-    LogPrint("Starting client...");
+    LogPrint(eLogInfo, "Daemon_Singleton: starting client");
     i2p::client::context.Start();
-    LogPrint("Client started");
   } catch (std::runtime_error& e) {
-    LogPrint(eLogError, e.what());
+    LogPrint(eLogError, "Daemon_Singleton: exception: ", e.what());
     return false;
   }
   return true;
 }
 
 bool Daemon_Singleton::Stop() {
-  LogPrint("Stopping client...");
+  LogPrint(eLogInfo, "Daemon_Singleton: stopping client");
   i2p::client::context.Stop();
-  LogPrint("Client stopped");
-
-  LogPrint("Stopping tunnels...");
+  LogPrint(eLogInfo, "Daemon_Singleton: stopping tunnels");
   i2p::tunnel::tunnels.Stop();
-  LogPrint("Tunnels stopped");
-
-  LogPrint("Stopping transports...");
+  LogPrint(eLogInfo, "Daemon_Singleton: stopping transports");
   i2p::transport::transports.Stop();
-  LogPrint("Transports stopped");
-
-  LogPrint("Stopping NetDB...");
+  LogPrint(eLogInfo, "Daemon_Singleton: stopping NetDb");
   i2p::data::netdb.Stop();
-  LogPrint("NetDB stopped");
-
-  LogPrint("Goodbye!");
+  LogPrint(eLogInfo, "Goodbye!");
   StopLog();
   return true;
 }
 
 void Daemon_Singleton::Reload() {
   // TODO(unassigned): do we want to add locking?
-  LogPrint("Reloading configuration");
-  // reload tunnels.cfg
+  LogPrint(eLogInfo, "Daemon_Singleton: reloading configuration");
+  // reload tunnels.conf
   ReloadTunnels();
   // TODO(anonimal): reload kovri.conf
 }
@@ -218,7 +208,8 @@ void Daemon_Singleton::SetupTunnels() {
   try {
     boost::property_tree::read_ini(pathTunnelsConfigFile, pt);
   } catch(const std::exception& ex) {
-    LogPrint(eLogWarning, "Can't read ",
+    LogPrint(eLogWarning,
+        "Daemon_Singleton: can't read ",
         pathTunnelsConfigFile, ": ", ex.what());
     return;
   }
@@ -256,7 +247,8 @@ void Daemon_Singleton::SetupTunnels() {
         if (result)
           ++numClientTunnels;
         else
-          LogPrint(eLogError, "I2P client tunnel with port ",
+          LogPrint(eLogError,
+              "Daemon_Singleton: I2P client tunnel with port ",
               port, " already exists");
 
       } else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER ||
@@ -284,19 +276,25 @@ void Daemon_Singleton::SetupTunnels() {
         if (result)
           ++numServerTunnels;
         else
-          LogPrint(eLogError, "I2P server tunnel for destination ",
+          LogPrint(eLogError,
+              "Daemon_Singleton: I2P server tunnel for destination ",
               i2p::client::context.GetAddressBook().ToAddress(
-                localDestination->GetIdentHash()), " already exists");
+                  localDestination->GetIdentHash()),
+              " already exists");
       } else {
-        LogPrint(eLogWarning, "Unknown section type=", type,
-            " of ", name, " in ", pathTunnelsConfigFile);
+        LogPrint(eLogWarning,
+            "Daemon_Singleton: unknown section type=",
+            type, " of ", name, " in ", pathTunnelsConfigFile);
       }
     } catch(const std::exception& ex) {
-      LogPrint(eLogError, "Can't read tunnel ", name, " params: ", ex.what());
+      LogPrint(eLogError,
+          "Daemon_Singleton: can't read tunnel ", name, " params: ", ex.what());
     }
   }
-  LogPrint(eLogInfo, numClientTunnels, " I2P client tunnels created");
-  LogPrint(eLogInfo, numServerTunnels, " I2P server tunnels created");
+  LogPrint(eLogInfo,
+      "Daemon_Singleton: ", numClientTunnels, " I2P client tunnels created");
+  LogPrint(eLogInfo,
+      "Daemon_Singleton: ", numServerTunnels, " I2P server tunnels created");
 }
 
 void Daemon_Singleton::ReloadTunnels() {
@@ -306,8 +304,9 @@ void Daemon_Singleton::ReloadTunnels() {
   try {
     boost::property_tree::read_ini(tunnelsConfigFile, pt);
   } catch (const std::exception& ex) {
-    LogPrint(eLogWarning, "Can't read ", tunnelsConfigFile,
-             ": ", ex.what());
+    LogPrint(eLogWarning,
+        "Daemon_Singleton: can't read ",
+        tunnelsConfigFile, ": ", ex.what());
     return;
   }
 
@@ -315,7 +314,7 @@ void Daemon_Singleton::ReloadTunnels() {
   // Make sure the default IRC and eepsite tunnels do not get removed
   std::vector<std::string> updatedTunnels;
 
-  // Iterate over tunnels' ident hashes for what's in tunnels.cfg now
+  // Iterate over tunnels' ident hashes for what's in tunnels.conf now
   for (auto& section : pt) {
     // TODO(unassigned): what if we switch a server from client to tunnel
     // or vice versa?
@@ -355,7 +354,8 @@ void Daemon_Singleton::ReloadTunnels() {
         // TODO(unassigned): what if we interchange two client tunnels' ports?
         // TODO(EinMByte): the addresses could differ
         LogPrint(eLogError,
-            tunnelName, " will not be updated, Conflicting Port");
+            "Daemon_Singleton: ",
+            tunnelName, " will not be updated, conflicting port");
         continue;
       }
 

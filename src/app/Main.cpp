@@ -34,13 +34,17 @@
 
 #include "Daemon.h"
 #include "util/Config.h"
+#include "util/Log.h"
 
 int main(int argc, char* argv[]) {
+  LogPrint("The Kovri I2P Router Project");
+  LogPrint("Version ", KOVRI_VERSION);
   try {
     if (!i2p::util::config::ParseArgs(argc, argv))
       return EXIT_FAILURE;
   } catch(const std::exception& ex) {
-      std::cout << ex.what() << "\nTry using --help" << std::endl;
+      LogPrint(eLogError,
+          "Main: ", ex.what(), "\nTry using --help instead");
       return EXIT_FAILURE;
   }
   if (!Daemon.Init())

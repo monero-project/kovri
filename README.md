@@ -13,9 +13,9 @@
 - See branch ```development``` for most recent activity
 
 ## Quickstart
-1. Read [BUILDING.md](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md) and build instructions and minimum version requirements
+1. Read [Build Instructions](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md) for instructions and minimum version requirements
 1. Choose a port between ```9111``` and ```30777```
-2. Open your NAT/Firewall to allow incoming TCP/UDP connections to your chosen port (UPnP optional; see [BUILDING.md](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md))
+2. Open your NAT/Firewall to allow incoming TCP/UDP connections to your chosen port (UPnP optional; see [Build Instructions](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md))
 3. Clone, build, and run Kovri:
 ```bash
 $ git clone https://github.com/monero-project/kovri
@@ -24,11 +24,15 @@ $ ./kovri -p [your chosen port number]
 ```
 
 ## Documentation
-- See [FAQ.md](https://github.com/monero-project/kovri/blob/master/doc/FAQ.md) or join us in ```#kovri``` or ```#kovri-dev``` on Freenode or Irc2P
+- Read our [FAQ](https://github.com/monero-project/kovri/blob/master/doc/FAQ.md) or join us in ```#kovri``` or ```#kovri-dev``` on Freenode or Irc2P
 - All other documentation is on our [doc](https://github.com/monero-project/kovri/tree/master/doc) directory
 
 ## Developers
-- See [CONTRIBUTING.md](https://github.com/monero-project/kovri/blob/master/doc/CONTRIBUTING.md) before sending PR
+- Visit our [Forum Funding System](https://forum.getmonero.org/8/funding-required) to get funded for your work
+- Read our [Contributing Guide](https://github.com/monero-project/kovri/blob/master/doc/CONTRIBUTING.md) before sending PR
+
+## Donations
+- Visit our [Donations Page](https://getmonero.org/getting-started/donate/) help Kovri with your donations
 
 ## Vulnerability Response
 - Please, submit a report via [HackerOne](https://hackerone.com/kovri)

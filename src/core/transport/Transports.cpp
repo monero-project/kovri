@@ -33,6 +33,8 @@
 #include "Transports.h"
 
 #include <algorithm>
+#include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -47,37 +49,40 @@ namespace i2p {
 namespace transport {
 
 DHKeysPairSupplier::DHKeysPairSupplier(
-    int size)
+    std::size_t size)
     : m_QueueSize(size),
       m_IsRunning(false),
       m_Thread(nullptr) {}
 
 DHKeysPairSupplier::~DHKeysPairSupplier() {
+  LogPrint(eLogDebug, "DHKeysPairSupplier: destroying");
   Stop();
 }
 
 void DHKeysPairSupplier::Start() {
+  LogPrint(eLogDebug, "DHKeysPairSupplier: starting");
   m_IsRunning = true;
   m_Thread =
-    new std::thread(
+    std::make_unique<std::thread>(
         std::bind(
-          &DHKeysPairSupplier::Run,
-          this));
+            &DHKeysPairSupplier::Run,
+            this));
 }
 
 void DHKeysPairSupplier::Stop() {
+  LogPrint(eLogDebug, "DHKeysPairSupplier: stopping");
   m_IsRunning = false;
   m_Acquired.notify_one();
   if (m_Thread) {
     m_Thread->join();
-    delete m_Thread;
-    m_Thread = 0;
+    m_Thread.reset(nullptr);
   }
 }
 
 void DHKeysPairSupplier::Run() {
+  LogPrint(eLogDebug, "DHKeysPairSupplier: running");
   while (m_IsRunning) {
-    int num;
+    std::size_t num;
     while ((num = m_QueueSize - m_Queue.size ()) > 0)
       CreateDHKeysPairs(num);
     std::unique_lock<std::mutex> l(m_AcquiredMutex);
@@ -86,14 +91,14 @@ void DHKeysPairSupplier::Run() {
 }
 
 void DHKeysPairSupplier::CreateDHKeysPairs(
-    int num) {
+    std::size_t num) {
+  LogPrint(eLogDebug, "DHKeysPairSupplier: creating");
   if (num > 0) {
-    for (int i = 0; i < num; i++) {
-      i2p::transport::DHKeysPair* pair =
-        new i2p::transport::DHKeysPair();
+    for (std::size_t i = 0; i < num; i++) {
+      i2p::transport::DHKeysPair* pair = new i2p::transport::DHKeysPair();
       i2p::crypto::DiffieHellman().GenerateKeyPair(
-          pair->privateKey,
-          pair->publicKey);
+          pair->private_key.data(),
+          pair->public_key.data());
       std::unique_lock<std::mutex>  l(m_AcquiredMutex);
       m_Queue.push(pair);
     }
@@ -101,6 +106,7 @@ void DHKeysPairSupplier::CreateDHKeysPairs(
 }
 
 DHKeysPair* DHKeysPairSupplier::Acquire() {
+  LogPrint(eLogDebug, "DHKeysPairSupplier: acquiring");
   std::unique_lock<std::mutex> l(m_AcquiredMutex);
   if (!m_Queue.empty()) {
     auto pair = m_Queue.front();
@@ -109,18 +115,18 @@ DHKeysPair* DHKeysPairSupplier::Acquire() {
     return pair;
   }
   l.unlock();
-
   // queue is empty, create new key pair
   DHKeysPair* pair = new DHKeysPair();
   i2p::crypto::DiffieHellman().GenerateKeyPair(
-      pair->privateKey,
-      pair->publicKey);
+      pair->private_key.data(),
+      pair->public_key.data());
   return pair;
 }
 
 void DHKeysPairSupplier::Return(
     DHKeysPair* pair) {
-  std::unique_lock<std::mutex>  l(m_AcquiredMutex);
+  LogPrint(eLogDebug, "DHKeysPairSupplier: returning");
+  std::unique_lock<std::mutex> l(m_AcquiredMutex);
   m_Queue.push(pair);
 }
 
@@ -143,52 +149,54 @@ Transports::Transports()
       m_LastBandwidthUpdateTime(0) {}
 
 Transports::~Transports() {
+  LogPrint(eLogDebug, "Transports: destroying");
   Stop();
 }
 
 void Transports::Start() {
+  LogPrint(eLogDebug, "Transports: starting");
 #ifdef USE_UPNP
   m_UPnP.Start();
   LogPrint(eLogInfo, "Transports: UPnP started");
 #endif
   m_DHKeysPairSupplier.Start();
   m_IsRunning = true;
-  m_Thread =
-    new std::thread(
-      std::bind(
-        &Transports::Run,
-        this));
+  m_Thread = std::make_unique<std::thread>(std::bind(&Transports::Run, this));
   // create acceptors
   auto addresses = context.GetRouterInfo().GetAddresses();
   for (auto& address : addresses) {
+    LogPrint("Transports: creating servers for address ", address.host);
     if (!m_NTCPServer) {
-      m_NTCPServer = new NTCPServer(address.port);
+      LogPrint(eLogInfo, "Transports: TCP listening on port ", address.port);
+      m_NTCPServer = std::make_unique<NTCPServer>(address.port);
       m_NTCPServer->Start();
+    } else {
+      LogPrint(eLogError, "Transports: TCP server already exists");
     }
     if (address.transportStyle ==
-        i2p::data::RouterInfo::eTransportSSU &&
-        address.host.is_v4()) {
+        i2p::data::RouterInfo::eTransportSSU && address.host.is_v4()) {
       if (!m_SSUServer) {
-        m_SSUServer = new SSUServer(address.port);
-        LogPrint("Transports: UDP listening on port ", address.port);
+        LogPrint(eLogInfo, "Transports: UDP listening on port ", address.port);
+        m_SSUServer = std::make_unique<SSUServer>(address.port);
         m_SSUServer->Start();
         DetectExternalIP();
       } else {
-        LogPrint("Transports: SSU server already exists");
+        LogPrint(eLogError, "Transports: SSU server already exists");
       }
     }
   }
   m_PeerCleanupTimer.expires_from_now(
       boost::posix_time::seconds(
-        5 * SESSION_CREATION_TIMEOUT));
+          5 * SESSION_CREATION_TIMEOUT));   // TODO(unassigned): why 5 seconds
   m_PeerCleanupTimer.async_wait(
       std::bind(
-        &Transports::HandlePeerCleanupTimer,
-        this,
-        std::placeholders::_1));
+          &Transports::HandlePeerCleanupTimer,
+          this,
+          std::placeholders::_1));
 }
 
 void Transports::Stop() {
+  LogPrint(eLogDebug, "Transports: stopping");
 #ifdef USE_UPNP
   m_UPnP.Stop();
   LogPrint(eLogInfo, "Transports: UPnP stopped");
@@ -197,35 +205,34 @@ void Transports::Stop() {
   m_Peers.clear();
   if (m_SSUServer) {
     m_SSUServer->Stop();
-    delete m_SSUServer;
-    m_SSUServer = nullptr;
+    m_SSUServer.reset(nullptr);
   }
   if (m_NTCPServer) {
     m_NTCPServer->Stop();
-    delete m_NTCPServer;
-    m_NTCPServer = nullptr;
+    m_NTCPServer.reset(nullptr);
   }
   m_DHKeysPairSupplier.Stop();
   m_IsRunning = false;
   m_Service.stop();
   if (m_Thread) {
     m_Thread->join();
-    delete m_Thread;
-    m_Thread = nullptr;
+    m_Thread.reset(nullptr);
   }
 }
 
 void Transports::Run() {
+  LogPrint(eLogDebug, "Transports: running");
   while (m_IsRunning) {
     try {
       m_Service.run();
     } catch (std::exception& ex) {
-      LogPrint("Transports::Run(): ", ex.what());
+      LogPrint("Transports: Run(): '", ex.what(), "'");
     }
   }
 }
 
 void Transports::UpdateBandwidth() {
+  LogPrint(eLogDebug, "Transports: updating bandwidth");
   uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
   if (m_LastBandwidthUpdateTime > 0) {
     auto delta = ts - m_LastBandwidthUpdateTime;
@@ -242,57 +249,65 @@ void Transports::UpdateBandwidth() {
 }
 
 bool Transports::IsBandwidthExceeded() const {
+  if (std::max(m_InBandwidth, m_OutBandwidth) > LOW_BANDWIDTH_LIMIT) {
+    LogPrint(eLogDebug, "Transports: bandwidth has been exceeded");
+    return true;
+  }
   if (i2p::context.GetRouterInfo().IsHighBandwidth())
-    return false;
-  return std::max(m_InBandwidth, m_OutBandwidth) > LOW_BANDWIDTH_LIMIT;
+    LogPrint(eLogDebug, "Transports: bandwidth has not been exceeded");
+  return false;
 }
 
 void Transports::SendMessage(
     const i2p::data::IdentHash& ident,
     std::shared_ptr<i2p::I2NPMessage> msg) {
-  SendMessages(ident, std::vector<std::shared_ptr<i2p::I2NPMessage> > {msg});
+  LogPrint(eLogDebug, "Transports: sending messages");
+  SendMessages(
+      ident,
+      std::vector<std::shared_ptr<i2p::I2NPMessage>> {msg});
 }
 
 void Transports::SendMessages(
     const i2p::data::IdentHash& ident,
-    const std::vector<std::shared_ptr<i2p::I2NPMessage> >& msgs) {
+    const std::vector<std::shared_ptr<i2p::I2NPMessage>>& msgs) {
   m_Service.post(
       std::bind(
-        &Transports::PostMessages,
-        this,
-        ident,
-        msgs));
+          &Transports::PostMessages,
+          this,
+          ident,
+          msgs));
 }
 
 void Transports::PostMessages(
     i2p::data::IdentHash ident,
-    std::vector<std::shared_ptr<i2p::I2NPMessage> > msgs) {
+    std::vector<std::shared_ptr<i2p::I2NPMessage>> msgs) {
+  LogPrint(eLogDebug, "Transports: posting messages");
   if (ident == i2p::context.GetRouterInfo().GetIdentHash()) {
     // we send it to ourself
-    for (auto it : msgs)
-      i2p::HandleI2NPMessage(it);
+    for (auto msg : msgs)
+      i2p::HandleI2NPMessage(msg);
     return;
   }
   auto it = m_Peers.find(ident);
   if (it == m_Peers.end()) {
     bool connected = false;
     try {
-      auto r = i2p::data::netdb.FindRouter(ident);
+      auto router = i2p::data::netdb.FindRouter(ident);
       it = m_Peers.insert(
           std::make_pair(
-            ident,
-            Peer{ 0, r, {}, i2p::util::GetSecondsSinceEpoch(), {} })).first;
+              ident,
+              Peer{ 0, router, {}, i2p::util::GetSecondsSinceEpoch(), {} })).first;
       connected = ConnectToPeer(ident, it->second);
     } catch (std::exception& ex) {
-      LogPrint(eLogError, "Transports::PostMessages() ", ex.what());
+      LogPrint(eLogError, "Transports: PostMessages(): '", ex.what(), "'");
     }
     if (!connected) return;
   }
   if (!it->second.sessions.empty()) {
     it->second.sessions.front()->SendI2NPMessages(msgs);
   } else {
-    for (auto it1 : msgs)
-      it->second.delayedMessages.push_back(it1);
+    for (auto msg : msgs)
+      it->second.delayed_messages.push_back(msg);
   }
 }
 
@@ -301,9 +316,15 @@ bool Transports::ConnectToPeer(
     Peer& peer) {
   // we have RI already
   if (peer.router) {
+    LogPrint(eLogDebug,
+        "Transports: connecting to peer",
+        GetFormattedSessionInfo(peer.router));
     // NTCP
-    if (!peer.numAttempts) {
-      peer.numAttempts++;
+    if (!peer.num_attempts) {
+      LogPrint(eLogDebug,
+          "Transports: attempting NTCP for peer",
+          GetFormattedSessionInfo(peer.router));
+      peer.num_attempts++;
       auto address = peer.router->GetNTCPAddress(!context.SupportsV6());
       if (address) {
 #if BOOST_VERSION >= 104900
@@ -315,61 +336,69 @@ bool Transports::ConnectToPeer(
 #endif
         {
           if (!peer.router->UsesIntroducer() && !peer.router->IsUnreachable()) {
-            auto s = std::make_shared<NTCPSession> (*m_NTCPServer, peer.router);
+            auto s = std::make_shared<NTCPSession>(*m_NTCPServer, peer.router);
             m_NTCPServer->Connect(address->host, address->port, s);
             return true;
           }
         } else {  // we don't have address
           if (address->addressString.length() > 0) {  // trying to resolve
-            LogPrint(eLogInfo, "Transports: resolving ", address->addressString);
+            LogPrint(eLogInfo,
+                "Transports: NTCP resolving ", address->addressString);
             NTCPResolve(address->addressString, ident);
             return true;
           }
         }
       }
-    } else if (peer.numAttempts == 1) {  // SSU
-      peer.numAttempts++;
+    } else if (peer.num_attempts == 1) {  // SSU
+      LogPrint(eLogDebug,
+         "Transports: attempting SSU for peer",
+          GetFormattedSessionInfo(peer.router));
+      peer.num_attempts++;
       if (m_SSUServer) {
         if (m_SSUServer->GetSession(peer.router))
           return true;
       }
     }
-    LogPrint(eLogError, "Transports: no NTCP or SSU addresses available");
+    LogPrint(eLogError,
+        "Transports:", GetFormattedSessionInfo(peer.router),
+        "no NTCP/SSU address available");
     peer.Done();
     m_Peers.erase(ident);
     return false;
   } else {  // otherwise request RI
-    LogPrint("Transports: router not found, requesting");
+    LogPrint(eLogDebug, "Transports: RI not found, requesting");
     i2p::data::netdb.RequestDestination(
         ident,
         std::bind(
-          &Transports::RequestComplete,
-          this,
-          std::placeholders::_1,
-          ident));
+            &Transports::RequestComplete,
+            this,
+            std::placeholders::_1,
+            ident));
   }
   return true;
 }
 
 void Transports::RequestComplete(
-    std::shared_ptr<const i2p::data::RouterInfo> r,
+    std::shared_ptr<const i2p::data::RouterInfo> router,
     const i2p::data::IdentHash& ident) {
   m_Service.post(
       std::bind(
-        &Transports::HandleRequestComplete,
-        this,
-        r,
-        ident));
+          &Transports::HandleRequestComplete,
+          this,
+          router,
+          ident));
 }
 
 void Transports::HandleRequestComplete(
-    std::shared_ptr<const i2p::data::RouterInfo> r,
+    std::shared_ptr<const i2p::data::RouterInfo> router,
     const i2p::data::IdentHash& ident) {
   auto it = m_Peers.find(ident);
   if (it != m_Peers.end()) {
-    if (r) {
-      LogPrint("Transports: router found, trying to connect");
-      it->second.router = r;
+    if (router) {
+      LogPrint(eLogInfo,
+          "Transports: router ", router->GetIdentHashAbbreviation(),
+          " found, trying to connect");
+      it->second.router = router;
       ConnectToPeer(ident, it->second);
     } else {
       LogPrint("Transports: router not found, failed to send messages");
@@ -385,15 +414,15 @@ void Transports::NTCPResolve(
     std::make_shared<boost::asio::ip::tcp::resolver>(m_Service);
   resolver->async_resolve(
       boost::asio::ip::tcp::resolver::query(
-        addr,
-        ""),
+          addr,
+          ""),
       std::bind(
-        &Transports::HandleNTCPResolve,
-        this,
-        std::placeholders::_1,
-        std::placeholders::_2,
-        ident,
-        resolver));
+          &Transports::HandleNTCPResolve,
+          this,
+          std::placeholders::_1,
+          std::placeholders::_2,
+          ident,
+          resolver));
 }
 
 void Transports::HandleNTCPResolve(
@@ -426,11 +455,14 @@ void Transports::CloseSession(
     std::shared_ptr<const i2p::data::RouterInfo> router) {
   if (!router)
     return;
+  LogPrint(eLogDebug,
+      "Transports: closing session for [",
+      router->GetIdentHashAbbreviation(), "]");
   m_Service.post(
       std::bind(
-        &Transports::PostCloseSession,
-        this,
-        router));
+          &Transports::PostCloseSession,
+          this,
+          router));
 }
 
 void Transports::PostCloseSession(
@@ -440,12 +472,15 @@ void Transports::PostCloseSession(
   // try SSU first
   if (ssuSession) {
     m_SSUServer->DeleteSession(ssuSession);
-    LogPrint("Transports: SSU session closed");
+    LogPrint(eLogInfo,
+        "Transports: SSU session [",
+        router->GetIdentHashAbbreviation(), "] closed");
   }
   // TODO(unassigned): delete NTCP
 }
 
 void Transports::DetectExternalIP() {
+  LogPrint(eLogDebug, "Transports: detecting external IP");
   if (m_SSUServer) {
     i2p::context.SetStatus(eRouterStatusTesting);
     for (int i = 0; i < 5; i++) {
@@ -466,41 +501,47 @@ void Transports::DetectExternalIP() {
 }
 
 DHKeysPair* Transports::GetNextDHKeysPair() {
+  LogPrint(eLogDebug, "Transports: getting next DH keys pair");
   return m_DHKeysPairSupplier.Acquire();
 }
 
 void Transports::ReuseDHKeysPair(DHKeysPair* pair) {
+  LogPrint(eLogDebug, "Transports: reusing DH keys pair");
   m_DHKeysPairSupplier.Return(pair);
 }
 
 void Transports::PeerConnected(
     std::shared_ptr<TransportSession> session) {
+  auto router = session->GetRemoteRouter();
+  LogPrint(eLogDebug,
+      "Transports:", GetFormattedSessionInfo(router), "connecting");
   m_Service.post([session, this]() {
     auto ident = session->GetRemoteIdentity().GetIdentHash();
     auto it = m_Peers.find(ident);
     if (it != m_Peers.end()) {
       it->second.sessions.push_back(session);
-      session->SendI2NPMessages(it->second.delayedMessages);
-      it->second.delayedMessages.clear();
+      session->SendI2NPMessages(it->second.delayed_messages);
+      it->second.delayed_messages.clear();
     } else {  // incoming connection
       m_Peers.insert(
           std::make_pair(
-            ident,
-            Peer{ 0, nullptr, { session },
-            i2p::util::GetSecondsSinceEpoch(), {} }));
+              ident,
+              Peer{ 0, nullptr, { session },
+              i2p::util::GetSecondsSinceEpoch(), {} }));
     }
   });
 }
 
 void Transports::PeerDisconnected(
     std::shared_ptr<TransportSession> session) {
+  LogPrint(eLogDebug, "Transports: disconnecting peer");
   m_Service.post([session, this]() {
     auto ident = session->GetRemoteIdentity().GetIdentHash();
     auto it = m_Peers.find(ident);
     if (it != m_Peers.end()) {
       it->second.sessions.remove(session);
       if (it->second.sessions.empty()) {  // TODO(unassigned): why?
-        if (it->second.delayedMessages.size() > 0)
+        if (it->second.delayed_messages.size() > 0)
           ConnectToPeer(ident, it->second);
         else
           m_Peers.erase(it);
@@ -511,41 +552,50 @@ void Transports::PeerDisconnected(
 
 bool Transports::IsConnected(
     const i2p::data::IdentHash& ident) const {
+  LogPrint(eLogDebug, "Transports: testing if connected");
   auto it = m_Peers.find(ident);
-  return it != m_Peers.end();
+  if (it != m_Peers.end()) {
+    LogPrint(eLogDebug, "Transports: we are connected");
+    return true;
+  }
+  LogPrint(eLogDebug, "Transports: we are not connected");
+  return false;
 }
 
 void Transports::HandlePeerCleanupTimer(
     const boost::system::error_code& ecode) {
+  LogPrint(eLogDebug, "Transports: handling peer cleanup timer");
   if (ecode != boost::asio::error::operation_aborted) {
     auto ts = i2p::util::GetSecondsSinceEpoch();
     for (auto it = m_Peers.begin(); it != m_Peers.end();) {
-      if (it->second.sessions.empty () &&
-          ts > it->second.creationTime + SESSION_CREATION_TIMEOUT) {
+      if (it->second.sessions.empty() &&
+          ts > it->second.creation_time + SESSION_CREATION_TIMEOUT) {
         LogPrint(eLogError,
-            "Transports: session to peer ", it->first.ToBase64(),
-            " has not been created in ", SESSION_CREATION_TIMEOUT, " seconds");
+            "Transports: session to peer",
+            GetFormattedSessionInfo(it->second.router),
+            "has not been created in ", SESSION_CREATION_TIMEOUT, " seconds");
         it = m_Peers.erase(it);
       } else {
         it++;
       }
     }
     UpdateBandwidth();  // TODO(unassigned): use separate timer(s) for it
-    // if still testing,  repeat peer test
+    // if still testing, repeat peer test
     if (i2p::context.GetStatus() == eRouterStatusTesting)
       DetectExternalIP();
     m_PeerCleanupTimer.expires_from_now(
         boost::posix_time::seconds(
-          5 * SESSION_CREATION_TIMEOUT));
+            5 * SESSION_CREATION_TIMEOUT));
     m_PeerCleanupTimer.async_wait(
         std::bind(
-          &Transports::HandlePeerCleanupTimer,
-          this,
-          std::placeholders::_1));
+            &Transports::HandlePeerCleanupTimer,
+            this,
+            std::placeholders::_1));
   }
 }
 
 std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRandomPeer() const {
+  LogPrint(eLogDebug, "Transports: getting random peer");
   if (m_Peers.empty())  // ensure m.Peers.size() >= 1
     return nullptr;
   size_t s = m_Peers.size();
@@ -553,7 +603,6 @@ std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRandomPeer() const {
   std::advance(
       it,
       i2p::crypto::RandInRange<size_t>(0, s - 1));
-
   return it->second.router;
 }
 

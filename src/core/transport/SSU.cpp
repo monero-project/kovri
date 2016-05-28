@@ -686,7 +686,7 @@ void SSUServer::SchedulePeerTestsCleanupTimer() {
 
 void SSUServer::HandlePeerTestsCleanupTimer(
     const boost::system::error_code& ecode) {
-  LogPrint(eLogDebug, "SSUServer: handling PeerTests cleanup timer()");
+  LogPrint(eLogDebug, "SSUServer: handling PeerTests cleanup timer");
   if (ecode != boost::asio::error::operation_aborted) {
     int numDeleted = 0;
     uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();

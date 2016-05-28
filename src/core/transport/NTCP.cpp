@@ -47,10 +47,12 @@ namespace i2p {
 namespace transport {
 
 NTCPServer::NTCPServer(
-    std::size_t /*port*/)
+    std::size_t port)
     : m_IsRunning(false),
       m_Thread(nullptr),
       m_Work(m_Service),
+      m_NTCPEndpoint(boost::asio::ip::tcp::v4(), port),
+      m_NTCPEndpointV6(boost::asio::ip::tcp::v6(), port),
       m_NTCPAcceptor(nullptr),
       m_NTCPV6Acceptor(nullptr) {
   LogPrint(eLogDebug, "NTCPServer: initializing");
@@ -67,43 +69,34 @@ void NTCPServer::Start() {
     m_IsRunning = true;
     m_Thread = std::make_unique<std::thread>(std::bind(&NTCPServer::Run, this));
     // Create acceptors
-    auto addresses = context.GetRouterInfo().GetAddresses();
-    for (auto& address : addresses) {
-      if (address.transportStyle ==
-          i2p::data::RouterInfo::eTransportNTCP && address.host.is_v4()) {
-        m_NTCPAcceptor =
-          std::make_unique<boost::asio::ip::tcp::acceptor>(
-              m_Service,
-              boost::asio::ip::tcp::endpoint(
-                  boost::asio::ip::tcp::v4(),
-                  address.port));
-        auto conn = std::make_shared<NTCPSession>(*this);
-        m_NTCPAcceptor->async_accept(
-            conn->GetSocket(),
-            std::bind(
-                &NTCPServer::HandleAccept,
-                this,
-                conn,
-                std::placeholders::_1));
-        if (context.SupportsV6()) {
-          m_NTCPV6Acceptor =
-            std::make_unique<boost::asio::ip::tcp::acceptor>(m_Service);
-          m_NTCPV6Acceptor->open(boost::asio::ip::tcp::v6());
-          m_NTCPV6Acceptor->set_option(boost::asio::ip::v6_only(true));
-          m_NTCPV6Acceptor->bind(boost::asio::ip::tcp::endpoint(
-                boost::asio::ip::tcp::v6(),
-                address.port));
-          m_NTCPV6Acceptor->listen();
-          auto conn = std::make_shared<NTCPSession>(*this);
-          m_NTCPV6Acceptor->async_accept(
-              conn->GetSocket(),
-              std::bind(
-                  &NTCPServer::HandleAcceptV6,
-                  this,
-                  conn,
-                  std::placeholders::_1));
-        }
-      }
+    m_NTCPAcceptor =
+      std::make_unique<boost::asio::ip::tcp::acceptor>(
+          m_Service,
+          m_NTCPEndpoint);
+    auto conn = std::make_shared<NTCPSession>(*this);
+    m_NTCPAcceptor->async_accept(
+        conn->GetSocket(),
+        std::bind(
+            &NTCPServer::HandleAccept,
+            this,
+            conn,
+            std::placeholders::_1));
+    // If IPv6 is enabled, create IPv6 acceptor
+    if (context.SupportsV6()) {
+      m_NTCPV6Acceptor =
+        std::make_unique<boost::asio::ip::tcp::acceptor>(m_Service);
+      m_NTCPV6Acceptor->open(boost::asio::ip::tcp::v6());
+      m_NTCPV6Acceptor->set_option(boost::asio::ip::v6_only(true));
+      m_NTCPV6Acceptor->bind(m_NTCPEndpointV6);
+      m_NTCPV6Acceptor->listen();
+      auto conn = std::make_shared<NTCPSession>(*this);
+      m_NTCPV6Acceptor->async_accept(
+          conn->GetSocket(),
+          std::bind(
+              &NTCPServer::HandleAcceptV6,
+              this,
+              conn,
+              std::placeholders::_1));
     }
   }
 }

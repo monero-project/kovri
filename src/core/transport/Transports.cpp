@@ -166,12 +166,15 @@ void Transports::Start() {
   auto addresses = context.GetRouterInfo().GetAddresses();
   for (auto& address : addresses) {
     LogPrint("Transports: creating servers for address ", address.host);
-    if (!m_NTCPServer) {
-      LogPrint(eLogInfo, "Transports: TCP listening on port ", address.port);
-      m_NTCPServer = std::make_unique<NTCPServer>(address.port);
-      m_NTCPServer->Start();
-    } else {
-      LogPrint(eLogError, "Transports: TCP server already exists");
+    if (address.transportStyle ==
+        i2p::data::RouterInfo::eTransportNTCP && address.host.is_v4()) {
+      if (!m_NTCPServer) {
+        LogPrint(eLogInfo, "Transports: TCP listening on port ", address.port);
+        m_NTCPServer = std::make_unique<NTCPServer>(address.port);
+        m_NTCPServer->Start();
+      } else {
+        LogPrint(eLogError, "Transports: TCP server already exists");
+      }
     }
     if (address.transportStyle ==
         i2p::data::RouterInfo::eTransportSSU && address.host.is_v4()) {
@@ -440,7 +443,7 @@ void Transports::HandleNTCPResolve(
           " has been resolved to ", address);
       auto addr = peer.router->GetNTCPAddress();
       if (addr) {
-        auto s = std::make_shared<NTCPSession> (*m_NTCPServer, peer.router);
+        auto s = std::make_shared<NTCPSession>(*m_NTCPServer, peer.router);
         m_NTCPServer->Connect(address, addr->port, s);
         return;
       }

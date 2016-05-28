@@ -105,6 +105,7 @@ class NTCPServer {
   boost::asio::io_service m_Service;
   boost::asio::io_service::work m_Work;
 
+  boost::asio::ip::tcp::endpoint m_NTCPEndpoint, m_NTCPEndpointV6;
   std::unique_ptr<boost::asio::ip::tcp::acceptor> m_NTCPAcceptor, m_NTCPV6Acceptor;
 
   std::mutex m_NTCPSessionsMutex;

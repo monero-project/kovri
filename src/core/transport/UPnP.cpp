@@ -144,8 +144,7 @@ UPnP::UPnP()
 void UPnP::Stop() {
   if (m_Thread) {
     m_Thread->join();
-    delete m_Thread;
-    m_Thread = nullptr;
+    m_Thread.reset(nullptr);
   }
 }
 
@@ -197,10 +196,10 @@ void UPnP::Start() {
     }
   }
   m_Thread =
-    new std::thread(
+    std::make_unique<std::thread>(
         std::bind(
-          &UPnP::Run,
-          this));
+            &UPnP::Run,
+            this));
 }
 
 UPnP::~UPnP() {}

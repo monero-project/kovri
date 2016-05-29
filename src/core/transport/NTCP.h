@@ -35,9 +35,11 @@
 
 #include <boost/asio.hpp>
 
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -51,8 +53,9 @@ namespace transport {
 
 class NTCPServer {
  public:
-  NTCPServer(
-      int port);
+  explicit NTCPServer(
+      std::size_t port);
+
   ~NTCPServer();
 
   void Start();
@@ -70,7 +73,7 @@ class NTCPServer {
 
   void Connect(
       const boost::asio::ip::address& address,
-      int port,
+      std::size_t port,
       std::shared_ptr<NTCPSession> conn);
 
   boost::asio::io_service& GetService() {
@@ -78,37 +81,41 @@ class NTCPServer {
   }
 
   void Ban(
-      const boost::asio::ip::address& addr);
+      const std::shared_ptr<NTCPSession>& session);
 
  private:
   void Run();
 
   void HandleAccept(
       std::shared_ptr<NTCPSession> conn,
-      const boost::system::error_code& error);
+      const boost::system::error_code& ecode);
 
   void HandleAcceptV6(
       std::shared_ptr<NTCPSession> conn,
-      const boost::system::error_code& error);
+      const boost::system::error_code& ecode);
 
   void HandleConnect(
-      const boost::system::error_code& ecode,
-      std::shared_ptr<NTCPSession> conn);
+      std::shared_ptr<NTCPSession> conn,
+      const boost::system::error_code& ecode);
 
  private:
   bool m_IsRunning;
-  std::thread* m_Thread;
+  std::unique_ptr<std::thread> m_Thread;
+
   boost::asio::io_service m_Service;
   boost::asio::io_service::work m_Work;
-  boost::asio::ip::tcp::acceptor* m_NTCPAcceptor,
-                                  *m_NTCPV6Acceptor;
+
+  boost::asio::ip::tcp::endpoint m_NTCPEndpoint, m_NTCPEndpointV6;
+  std::unique_ptr<boost::asio::ip::tcp::acceptor> m_NTCPAcceptor, m_NTCPV6Acceptor;
+
   std::mutex m_NTCPSessionsMutex;
-  std::map<i2p::data::IdentHash, std::shared_ptr<NTCPSession> > m_NTCPSessions;
+  std::map<i2p::data::IdentHash, std::shared_ptr<NTCPSession>> m_NTCPSessions;
+
   // IP -> ban expiration time in seconds
   std::map<boost::asio::ip::address, uint32_t> m_BanList;
 
  public:
-  // for HTTP/I2PControl
+  // for I2PControl
   const decltype(m_NTCPSessions)& GetNTCPSessions() const {
     return m_NTCPSessions;
   }

@@ -33,10 +33,10 @@
 #ifndef SRC_CORE_TRANSPORT_TRANSPORTSESSION_H_
 #define SRC_CORE_TRANSPORT_TRANSPORTSESSION_H_
 
-#include <inttypes.h>
-
+#include <cstdint>
 #include <iostream>
 #include <memory>
+#include <sstream>
 #include <vector>
 
 #include "I2NPProtocol.h"
@@ -47,8 +47,8 @@ namespace i2p {
 namespace transport {
 
 struct DHKeysPair {  // transient keys for transport sessions
-  uint8_t publicKey[256];
-  uint8_t privateKey[256];
+  std::array<std::uint8_t, 256> public_key;
+  std::array<std::uint8_t, 256> private_key;
 };
 
 class SignedData {
@@ -60,30 +60,30 @@ class SignedData {
   }
 
   void Insert(
-      const uint8_t* buf,
-      size_t len) {
-    m_Stream.write((char *)buf, len);
+      const std::uint8_t* buf,
+      std::size_t len) {
+    m_Stream.write(reinterpret_cast<const char *>(buf), len);
   }
   template<typename T>
   void Insert(
-      T t) {
-    m_Stream.write((char *)&t, sizeof(T));
+      T type) {
+    m_Stream.write(reinterpret_cast<char *>(&type), sizeof(T));
   }
 
   bool Verify(
       const i2p::data::IdentityEx& ident,
-      const uint8_t* signature) const {
+      const std::uint8_t* signature) const {
     return ident.Verify(
-        (const uint8_t *)m_Stream.str().c_str(),
+        (const std::uint8_t *)m_Stream.str().c_str(),
         m_Stream.str().size(),
         signature);
   }
 
   void Sign(
       const i2p::data::PrivateKeys& keys,
-      uint8_t* signature) const {
+      std::uint8_t* signature) const {
     keys.Sign(
-        (const uint8_t *)m_Stream.str().c_str(),
+        (const std::uint8_t *)m_Stream.str().c_str(),
         m_Stream.str().size(),
         signature);
   }
@@ -119,11 +119,11 @@ class TransportSession {
     return m_RemoteIdentity;
   }
 
-  size_t GetNumSentBytes() const {
+  std::size_t GetNumSentBytes() const {
     return m_NumSentBytes;
   }
 
-  size_t GetNumReceivedBytes() const {
+  std::size_t GetNumReceivedBytes() const {
     return m_NumReceivedBytes;
   }
 
@@ -138,8 +138,7 @@ class TransportSession {
   std::shared_ptr<const i2p::data::RouterInfo> m_RemoteRouter;
   i2p::data::IdentityEx m_RemoteIdentity;
   DHKeysPair* m_DHKeysPair;  // X - for client and Y - for server
-  size_t m_NumSentBytes,
-         m_NumReceivedBytes;
+  std::size_t m_NumSentBytes, m_NumReceivedBytes;
   bool m_IsOutbound;
 };
 

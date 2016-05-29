@@ -37,15 +37,17 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <cstdint>
 #include <functional>
+#include <list>
 #include <map>
 #include <memory>
 #include <mutex>
+#include <ostream>
 #include <queue>
 #include <string>
 #include <thread>
 #include <vector>
-#include <list>
 
 #include "I2NPProtocol.h"
 #include "Identity.h"
@@ -65,7 +67,8 @@ namespace transport {
 class DHKeysPairSupplier {
  public:
   DHKeysPairSupplier(
-      int size);
+      std::size_t size);
+
   ~DHKeysPairSupplier();
 
   void Start();
@@ -81,31 +84,31 @@ class DHKeysPairSupplier {
   void Run();
 
   void CreateDHKeysPairs(
-      int num);
+      std::size_t num);
 
  private:
   const int m_QueueSize;
-  std::queue<DHKeysPair *> m_Queue;
   bool m_IsRunning;
-  std::thread* m_Thread;
+  std::queue<DHKeysPair *> m_Queue;
+  std::unique_ptr<std::thread> m_Thread;
   std::condition_variable m_Acquired;
   std::mutex m_AcquiredMutex;
 };
 
 struct Peer {
-  int numAttempts;
+  std::size_t num_attempts;
   std::shared_ptr<const i2p::data::RouterInfo> router;
-  std::list<std::shared_ptr<TransportSession> > sessions;
-  uint64_t creationTime;
-  std::vector<std::shared_ptr<i2p::I2NPMessage> > delayedMessages;
+  std::list<std::shared_ptr<TransportSession>> sessions;
+  std::uint64_t creation_time;
+  std::vector<std::shared_ptr<i2p::I2NPMessage>> delayed_messages;
   void Done() {
     for (auto it : sessions)
       it->Done();
   }
 };
 
-const size_t SESSION_CREATION_TIMEOUT = 10;  // in seconds
-const uint32_t LOW_BANDWIDTH_LIMIT = 32*1024;  // 32KBs
+const std::size_t SESSION_CREATION_TIMEOUT = 10;  // in seconds
+const std::uint32_t LOW_BANDWIDTH_LIMIT = 32 * 1024;  // 32KBs
 
 class Transports {
  public:
@@ -131,7 +134,7 @@ class Transports {
 
   void SendMessages(
       const i2p::data::IdentHash& ident,
-      const std::vector<std::shared_ptr<i2p::I2NPMessage> >& msgs);
+      const std::vector<std::shared_ptr<i2p::I2NPMessage>>& msgs);
 
   void CloseSession(
       std::shared_ptr<const i2p::data::RouterInfo> router);
@@ -146,55 +149,65 @@ class Transports {
       const i2p::data::IdentHash& ident) const;
 
   void UpdateSentBytes(
-      uint64_t numBytes) {
+      std::uint64_t numBytes) {
     m_TotalSentBytes += numBytes;
   }
 
   void UpdateReceivedBytes(
-      uint64_t numBytes) {
+      std::uint64_t numBytes) {
     m_TotalReceivedBytes += numBytes;
   }
 
-  uint64_t GetTotalSentBytes() const {
+  std::uint64_t GetTotalSentBytes() const {
     return m_TotalSentBytes;
   }
 
-  uint64_t GetTotalReceivedBytes() const {
+  std::uint64_t GetTotalReceivedBytes() const {
     return m_TotalReceivedBytes;
   }
 
   // bytes per second
-  uint32_t GetInBandwidth() const {
+  std::uint32_t GetInBandwidth() const {
     return m_InBandwidth;
   }
 
   // bytes per second
-  uint32_t GetOutBandwidth() const {
+  std::uint32_t GetOutBandwidth() const {
     return m_OutBandwidth;
   }
 
   bool IsBandwidthExceeded() const;
 
-  size_t GetNumPeers() const {
+  std::size_t GetNumPeers() const {
     return m_Peers.size();
   }
 
   std::shared_ptr<const i2p::data::RouterInfo> GetRandomPeer() const;
 
+  const std::string GetFormattedSessionInfo(
+      std::shared_ptr<const i2p::data::RouterInfo>& router) {
+    if (router) {
+      std::ostringstream info;
+      info << " [" << router->GetIdentHashAbbreviation() << "] ";
+      return info.str();
+    }
+    return "[hash unavailable]";
+  }
+
  private:
   void Run();
 
   void RequestComplete(
-      std::shared_ptr<const i2p::data::RouterInfo> r,
+      std::shared_ptr<const i2p::data::RouterInfo> router,
       const i2p::data::IdentHash& ident);
 
   void HandleRequestComplete(
-      std::shared_ptr<const i2p::data::RouterInfo> r,
+      std::shared_ptr<const i2p::data::RouterInfo> router,
       const i2p::data::IdentHash& ident);
 
   void PostMessages(
       i2p::data::IdentHash ident,
-      std::vector<std::shared_ptr<i2p::I2NPMessage> > msgs);
+      std::vector<std::shared_ptr<i2p::I2NPMessage>> msgs);
 
   void PostCloseSession(
       std::shared_ptr<const i2p::data::RouterInfo> router);
@@ -221,39 +234,30 @@ class Transports {
 
  private:
   bool m_IsRunning;
-  std::thread * m_Thread;
+
+  std::unique_ptr<std::thread> m_Thread;
   boost::asio::io_service m_Service;
   boost::asio::io_service::work m_Work;
   boost::asio::deadline_timer m_PeerCleanupTimer;
 
-  NTCPServer* m_NTCPServer;
-  SSUServer* m_SSUServer;
+  std::unique_ptr<NTCPServer> m_NTCPServer;
+  std::unique_ptr<SSUServer> m_SSUServer;
+
   std::map<i2p::data::IdentHash, Peer> m_Peers;
 
   DHKeysPairSupplier m_DHKeysPairSupplier;
 
-  std::atomic<uint64_t> m_TotalSentBytes,
-                        m_TotalReceivedBytes;
-  uint32_t m_InBandwidth,
-           m_OutBandwidth;
+  std::atomic<uint64_t> m_TotalSentBytes, m_TotalReceivedBytes;
 
-  uint64_t m_LastInBandwidthUpdateBytes,
-           m_LastOutBandwidthUpdateBytes;
-
-  uint64_t m_LastBandwidthUpdateTime;
+  std::uint32_t m_InBandwidth, m_OutBandwidth;
+  std::uint64_t m_LastInBandwidthUpdateBytes, m_LastOutBandwidthUpdateBytes;
+  std::uint64_t m_LastBandwidthUpdateTime;
 
 #ifdef USE_UPNP
   UPnP m_UPnP;
 #endif
 
  public:
-  // for HTTP only
-  const NTCPServer* GetNTCPServer() const {
-    return m_NTCPServer;
-  }
-  const SSUServer* GetSSUServer() const {
-    return m_SSUServer;
-  }
   const decltype(m_Peers)& GetPeers() const {
     return m_Peers;
   }

@@ -42,6 +42,7 @@
 #include <miniupnpc/upnpcommands.h>
 #include <miniupnpc/upnperrors.h>
 
+#include <memory>
 #include <string>
 #include <thread>
 
@@ -75,7 +76,7 @@ class UPnP {
  private:
   void Run();
 
-  std::thread* m_Thread;
+  std::unique_ptr<std::thread> m_Thread;
   struct UPNPUrls m_upnpUrls;
   struct IGDdatas m_upnpData;
 

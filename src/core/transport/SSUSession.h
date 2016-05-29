@@ -36,7 +36,9 @@
 #include <inttypes.h>
 
 #include <memory>
+#include <ostream>
 #include <set>
+#include <string>
 #include <vector>
 
 #include "I2NPProtocol.h"
@@ -197,16 +199,12 @@ class SSUSession
 
   void Done();
 
-  boost::asio::ip::udp::endpoint& GetRemoteEndpoint() {
-    return m_RemoteEndpoint;
-  }
-
   bool IsV6() const {
     return m_RemoteEndpoint.address().is_v6();
   }
 
   void SendI2NPMessages(
-      const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
+      const std::vector<std::shared_ptr<I2NPMessage>>& msgs);
 
   void SendPeerTest();  // Alice
 
@@ -232,6 +230,36 @@ class SSUSession
     return m_CreationTime;
   }
 
+  /// @brief Sets peer abbreviated ident hash
+  void SetRemoteIdentHashAbbreviation() {
+    m_RemoteIdentHashAbbreviation =
+      GetRemoteRouter()->GetIdentHashAbbreviation();
+  }
+
+  /// @brief Set current session's endpoint address/port
+  void SetRemoteEndpoint(
+      const boost::asio::ip::udp::endpoint& ep) {
+    m_RemoteEndpoint = ep;
+  }
+
+  /// @return Log-formatted string of session info
+  const std::string GetFormattedSessionInfo() {
+    std::ostringstream info;
+    info << " [" << GetRemoteIdentHashAbbreviation() << "] "
+         << GetRemoteEndpoint() << " ";
+    return info.str();
+  }
+
+  /// @return Current session's peer's ident hash
+  const std::string& GetRemoteIdentHashAbbreviation() {
+    return m_RemoteIdentHashAbbreviation;
+  }
+
+  /// @return Current session's endpoint address/port
+  const boost::asio::ip::udp::endpoint& GetRemoteEndpoint() {
+    return m_RemoteEndpoint;
+  }
+
   void FlushData();
 
  private:
@@ -241,7 +269,7 @@ class SSUSession
       const uint8_t* pubKey);
 
   void PostI2NPMessages(
-      std::vector<std::shared_ptr<I2NPMessage> > msgs);
+      std::vector<std::shared_ptr<I2NPMessage>> msgs);
 
   /// @brief Call for established session
   void ProcessDecryptedMessage(
@@ -386,6 +414,7 @@ class SSUSession
 
  private:
   friend class SSUData;  // TODO(unassigned): change in later
+  std::string m_RemoteIdentHashAbbreviation;
   SSUServer& m_Server;
   boost::asio::ip::udp::endpoint m_RemoteEndpoint;
   boost::asio::deadline_timer m_Timer;

@@ -328,7 +328,7 @@ void I2PClientTunnelHandler::HandleStreamRequestComplete(
   } else {
     LogPrint(eLogError,
         "I2PClientTunnelHandler: ",
-        "I2P Client Tunnel Issue when creating the stream.",
+        "I2P Client Tunnel Issue when creating the stream. ",
         "Check the previous warnings for details.");
     Terminate();
   }

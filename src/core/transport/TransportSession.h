@@ -62,7 +62,7 @@ class SignedData {
   void Insert(
       const std::uint8_t* buf,
       std::size_t len) {
-    m_Stream.write(reinterpret_cast<char *>(&buf), len);
+    m_Stream.write(reinterpret_cast<const char *>(buf), len);
   }
   template<typename T>
   void Insert(

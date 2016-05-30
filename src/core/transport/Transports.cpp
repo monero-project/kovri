@@ -55,7 +55,6 @@ DHKeysPairSupplier::DHKeysPairSupplier(
       m_Thread(nullptr) {}
 
 DHKeysPairSupplier::~DHKeysPairSupplier() {
-  LogPrint(eLogDebug, "DHKeysPairSupplier: destroying");
   Stop();
 }
 
@@ -70,7 +69,6 @@ void DHKeysPairSupplier::Start() {
 }
 
 void DHKeysPairSupplier::Stop() {
-  LogPrint(eLogDebug, "DHKeysPairSupplier: stopping");
   m_IsRunning = false;
   m_Acquired.notify_one();
   if (m_Thread) {
@@ -149,7 +147,6 @@ Transports::Transports()
       m_LastBandwidthUpdateTime(0) {}
 
 Transports::~Transports() {
-  LogPrint(eLogDebug, "Transports: destroying");
   Stop();
 }
 
@@ -199,10 +196,8 @@ void Transports::Start() {
 }
 
 void Transports::Stop() {
-  LogPrint(eLogDebug, "Transports: stopping");
 #ifdef USE_UPNP
   m_UPnP.Stop();
-  LogPrint(eLogInfo, "Transports: UPnP stopped");
 #endif
   m_PeerCleanupTimer.cancel();
   m_Peers.clear();

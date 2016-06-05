@@ -93,28 +93,28 @@ void DHKeysPairSupplier::CreateDHKeysPairs(
   LogPrint(eLogDebug, "DHKeysPairSupplier: creating");
   if (num > 0) {
     for (std::size_t i = 0; i < num; i++) {
-      i2p::transport::DHKeysPair* pair = new i2p::transport::DHKeysPair();
+      auto pair = std::make_unique<i2p::transport::DHKeysPair>();
       i2p::crypto::DiffieHellman().GenerateKeyPair(
           pair->private_key.data(),
           pair->public_key.data());
       std::unique_lock<std::mutex>  l(m_AcquiredMutex);
-      m_Queue.push(pair);
+      m_Queue.push(std::move(pair));
     }
   }
 }
 
-DHKeysPair* DHKeysPairSupplier::Acquire() {
+std::unique_ptr<DHKeysPair> DHKeysPairSupplier::Acquire() {
   LogPrint(eLogDebug, "DHKeysPairSupplier: acquiring");
   std::unique_lock<std::mutex> l(m_AcquiredMutex);
   if (!m_Queue.empty()) {
-    auto pair = m_Queue.front();
+    auto pair = std::move(m_Queue.front());
     m_Queue.pop();
     m_Acquired.notify_one();
     return pair;
   }
   l.unlock();
   // queue is empty, create new key pair
-  DHKeysPair* pair = new DHKeysPair();
+  auto pair = std::make_unique<DHKeysPair>();
   i2p::crypto::DiffieHellman().GenerateKeyPair(
       pair->private_key.data(),
       pair->public_key.data());
@@ -122,10 +122,10 @@ DHKeysPair* DHKeysPairSupplier::Acquire() {
 }
 
 void DHKeysPairSupplier::Return(
-    DHKeysPair* pair) {
+    std::unique_ptr<DHKeysPair> pair) {
   LogPrint(eLogDebug, "DHKeysPairSupplier: returning");
   std::unique_lock<std::mutex> l(m_AcquiredMutex);
-  m_Queue.push(pair);
+  m_Queue.push(std::move(pair));
 }
 
 Transports transports;
@@ -498,14 +498,15 @@ void Transports::DetectExternalIP() {
   }
 }
 
-DHKeysPair* Transports::GetNextDHKeysPair() {
+std::unique_ptr<DHKeysPair> Transports::GetNextDHKeysPair() {
   LogPrint(eLogDebug, "Transports: getting next DH keys pair");
   return m_DHKeysPairSupplier.Acquire();
 }
 
-void Transports::ReuseDHKeysPair(DHKeysPair* pair) {
+void Transports::ReuseDHKeysPair(
+    std::unique_ptr<DHKeysPair> pair) {
   LogPrint(eLogDebug, "Transports: reusing DH keys pair");
-  m_DHKeysPairSupplier.Return(pair);
+  m_DHKeysPairSupplier.Return(std::move(pair));
 }
 
 void Transports::PeerConnected(

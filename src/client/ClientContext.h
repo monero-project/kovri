@@ -135,43 +135,38 @@ class ClientContext {
 
   /// @brief Inserts a client tunnel.
   /// @return true if the tunnel was inserted, false otherwise
-  /// @note takes ownership of the given pointer
-  bool InsertClientTunnel(int port, I2PClientTunnel* tunnel);
+  bool InsertClientTunnel(int port, std::unique_ptr<I2PClientTunnel> tunnel);
 
   /// Inserts a server tunnel.
   /// @return true if the tunnel was inserted, false otherwise
-  /// @note takes ownership of the given pointer
   bool InsertServerTunnel(
       const i2p::data::IdentHash& id,
-      I2PServerTunnel* tunnel);
+      std::unique_ptr<I2PServerTunnel> tunnel);
 
   /// Sets the I2PControl service
   /// @param service a pointer to the I2PControlService
-  /// @note takes ownership of the given pointer
   void SetI2PControlService(
-      i2p::client::i2pcontrol::I2PControlService* service);
+      std::unique_ptr<i2p::client::i2pcontrol::I2PControlService> service);
 
   /// Sets the HTTP proxy.
   /// @param proxy a pointer to the HTTPProxy
-  /// @note takes ownership of the given pointer
-  void SetHTTPProxy(i2p::proxy::HTTPProxy* proxy);
+  void SetHTTPProxy(std::unique_ptr<i2p::proxy::HTTPProxy> proxy);
 
   /// Sets the SOCKS proxy.
   /// @param proxy a pointer to the SOCKSProxy
-  /// @note takes ownership of the given pointer
-  void SetSOCKSProxy(i2p::proxy::SOCKSProxy* proxy);
+  void SetSOCKSProxy(std::unique_ptr<i2p::proxy::SOCKSProxy> proxy);
 
   /// @return the client tunnel with the given name, or nullptr
-  I2PServerTunnel* GetServerTunnel(const std::string& name);
+  std::unique_ptr<I2PServerTunnel> GetServerTunnel(const std::string& name);
 
   /// @return the server tunnel with the given identity hash, or nullptr
-  I2PServerTunnel* GetServerTunnel(const i2p::data::IdentHash& id);
+  std::unique_ptr<I2PServerTunnel> GetServerTunnel(const i2p::data::IdentHash& id);
 
   /// @return the client tunnel with the given name, or nullptr
-  I2PClientTunnel* GetClientTunnel(const std::string& name);
+  std::unique_ptr<I2PClientTunnel> GetClientTunnel(const std::string& name);
 
   /// @return the client tunnel with the given (local) port
-  I2PClientTunnel* GetClientTunnel(int port);
+  std::unique_ptr<I2PClientTunnel> GetClientTunnel(int port);
 
   boost::asio::io_service& GetIoService();
 
@@ -183,8 +178,8 @@ class ClientContext {
 
   AddressBook m_AddressBook;
 
-  i2p::proxy::HTTPProxy* m_HttpProxy;
-  i2p::proxy::SOCKSProxy* m_SocksProxy;
+  std::unique_ptr<i2p::proxy::HTTPProxy> m_HttpProxy;
+  std::unique_ptr<i2p::proxy::SOCKSProxy> m_SocksProxy;
 
   std::mutex m_ClientMutex;
   std::map<int, std::unique_ptr<I2PClientTunnel> >
@@ -205,7 +200,7 @@ class ClientContext {
 
   boost::asio::io_service m_Service;
 
-  i2pcontrol::I2PControlService* m_I2PControlService;
+  std::unique_ptr<i2pcontrol::I2PControlService> m_I2PControlService;
 
   std::function<void(void)> m_ShutdownHandler;
 

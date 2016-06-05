@@ -35,7 +35,10 @@
 
 #include <inttypes.h>
 #include <string.h>
+
+#include <memory>
 #include <vector>
+
 #include "Identity.h"
 
 namespace i2p {
@@ -65,7 +68,7 @@ class LeaseSet : public RoutingDestination {
       size_t len);
   explicit LeaseSet(
       const i2p::tunnel::TunnelPool& pool);
-  ~LeaseSet() { delete[] m_Buffer; }
+  ~LeaseSet() {}
 
   void Update(
       const uint8_t* buf,
@@ -76,7 +79,8 @@ class LeaseSet : public RoutingDestination {
   }
 
   const uint8_t* GetBuffer() const {
-    return m_Buffer;
+    const auto buf = m_Buffer.get();
+    return buf;
   }
 
   size_t GetBufferLen() const {
@@ -119,7 +123,7 @@ class LeaseSet : public RoutingDestination {
   std::vector<Lease> m_Leases;
   IdentityEx m_Identity;
   uint8_t m_EncryptionKey[256];
-  uint8_t* m_Buffer;
+  std::unique_ptr<std::uint8_t[]> m_Buffer;
   size_t m_BufferLen;
 };
 

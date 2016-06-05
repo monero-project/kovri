@@ -383,8 +383,7 @@ std::shared_ptr<SSUSession> SSUServer::FindSession(
 
 std::shared_ptr<SSUSession> SSUServer::FindSession(
     const boost::asio::ip::udp::endpoint& ep) const {
-  LogPrint(eLogDebug,
-      "SSUServer: finding session from endpoint)");
+  LogPrint(eLogDebug, "SSUServer: finding session from endpoint");
   auto it = m_Sessions.find(ep);
   if (it != m_Sessions.end())
     return it->second;

@@ -132,7 +132,7 @@ class SU3 {
       std::map<std::string, i2p::crypto::util::PublicKey>& keys)
       : m_Stream(su3),
         m_SigningKeys(keys),
-        m_Data(new Data()) {}
+        m_Data(std::make_unique<Data>()) {}
 
   // Extracted RI's (map of router info files)
   std::unordered_map<std::size_t, std::vector<std::uint8_t>> m_RouterInfos;

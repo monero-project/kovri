@@ -242,7 +242,7 @@ class ClientDestination : public i2p::garlic::GarlicDestination {
 
  private:
   volatile bool m_IsRunning;
-  std::thread* m_Thread;
+  std::unique_ptr<std::thread> m_Thread;
   boost::asio::io_service m_Service;
   boost::asio::io_service::work m_Work;
   i2p::data::PrivateKeys m_Keys;

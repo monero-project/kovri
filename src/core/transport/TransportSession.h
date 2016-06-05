@@ -105,9 +105,7 @@ class TransportSession {
       m_RemoteIdentity = m_RemoteRouter->GetRouterIdentity();
   }
 
-  virtual ~TransportSession() {
-    delete m_DHKeysPair;
-  }
+  virtual ~TransportSession() {}
 
   virtual void Done() = 0;
 
@@ -137,7 +135,7 @@ class TransportSession {
  protected:
   std::shared_ptr<const i2p::data::RouterInfo> m_RemoteRouter;
   i2p::data::IdentityEx m_RemoteIdentity;
-  DHKeysPair* m_DHKeysPair;  // X - for client and Y - for server
+  std::unique_ptr<DHKeysPair> m_DHKeysPair;  // X - for client and Y - for server
   std::size_t m_NumSentBytes, m_NumReceivedBytes;
   bool m_IsOutbound;
 };

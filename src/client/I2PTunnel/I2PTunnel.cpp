@@ -33,6 +33,7 @@
 #include "I2PTunnel.h"
 
 #include <cassert>
+#include <memory>
 #include <set>
 #include <string>
 
@@ -367,23 +368,21 @@ void I2PClientTunnel::Start() {
 
 void I2PClientTunnel::Stop() {
   TCPIPAcceptor::Stop();
-  auto *originalIdentHash = m_DestinationIdentHash;
-  m_DestinationIdentHash = nullptr;
-  delete originalIdentHash;
+  m_DestinationIdentHash.reset(nullptr);
 }
 
 /* HACK: maybe we should create a caching IdentHash provider in AddressBook */
-const i2p::data::IdentHash* I2PClientTunnel::GetIdentHash() {
+std::unique_ptr<const i2p::data::IdentHash> I2PClientTunnel::GetIdentHash() {
   if (!m_DestinationIdentHash) {
     i2p::data::IdentHash identHash;
     if (i2p::client::context.GetAddressBook().GetIdentHash(
           m_Destination, identHash))
-      m_DestinationIdentHash = new i2p::data::IdentHash(identHash);
+      m_DestinationIdentHash = std::make_unique<i2p::data::IdentHash>(identHash);
     else
       LogPrint(eLogWarning,
           "I2PClientTunnel: remote destination ", m_Destination, " not found");
   }
-  return m_DestinationIdentHash;
+  return std::move(m_DestinationIdentHash);
 }
 
 std::string I2PClientTunnel::GetName() {
@@ -392,7 +391,7 @@ std::string I2PClientTunnel::GetName() {
 
 std::shared_ptr<I2PServiceHandler> I2PClientTunnel::CreateHandler(
     std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
-  const i2p::data::IdentHash *identHash = GetIdentHash();
+  auto identHash = GetIdentHash();
   if (identHash)
     return std::make_shared<I2PClientTunnelHandler>(
         this,

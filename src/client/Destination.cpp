@@ -37,6 +37,7 @@
 #include <algorithm>
 #include <cassert>
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <utility>
@@ -169,7 +170,7 @@ void ClientDestination::Start() {
     m_Pool->SetLocalDestination(this);
     m_Pool->SetActive(true);
     m_Thread =
-      new std::thread(
+      std::make_unique<std::thread>(
           std::bind(
             &ClientDestination::Run,
             this));
@@ -206,8 +207,7 @@ void ClientDestination::Stop() {
     m_Service.stop();
     if (m_Thread) {
       m_Thread->join();
-      delete m_Thread;
-      m_Thread = 0;
+      m_Thread.reset(0);
     }
   }
 }

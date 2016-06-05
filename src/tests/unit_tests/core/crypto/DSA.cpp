@@ -32,6 +32,8 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <memory>
+
 #include "crypto/Rand.h"
 #include "crypto/Signature.h"
 
@@ -41,16 +43,12 @@ struct DSAFixture {
   DSAFixture() {
     // TODO(unassigned): generate static test keys
     i2p::crypto::CreateDSARandomKeys(privateKey, publicKey);
-    verifier = new i2p::crypto::DSAVerifier(publicKey);
-    signer = new i2p::crypto::DSASigner(privateKey);
-  }
-  ~DSAFixture() {
-    delete verifier;
-    delete signer;
+    verifier = std::make_unique<i2p::crypto::DSAVerifier>(publicKey);
+    signer = std::make_unique<i2p::crypto::DSASigner>(privateKey);
   }
   uint8_t privateKey[20], publicKey[128];
-  i2p::crypto::DSAVerifier* verifier;
-  i2p::crypto::DSASigner* signer;
+  std::unique_ptr<i2p::crypto::DSAVerifier> verifier;
+  std::unique_ptr<i2p::crypto::DSASigner> signer;
   static constexpr size_t kMessageLen = 1024;
 };
 

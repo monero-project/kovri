@@ -34,13 +34,11 @@
 
 #include <boost/lexical_cast.hpp>
 
-#include <cryptopp/dsa.h>
-#include <cryptopp/sha.h>
-
 #include <stdio.h>
 #include <string.h>
 
 #include <fstream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -60,7 +58,7 @@ RouterInfo::RouterInfo(
       m_IsUnreachable(false),
       m_SupportedTransports(0),
       m_Caps(0) {
-  m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
+  m_Buffer = std::make_unique<std::uint8_t[]>(MAX_RI_BUFFER_SIZE);
   ReadFromFile();
 }
 
@@ -71,28 +69,26 @@ RouterInfo::RouterInfo(
       m_IsUnreachable(false),
       m_SupportedTransports(0),
       m_Caps(0) {
-  m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
-  memcpy(m_Buffer, buf, len);
+  m_Buffer = std::make_unique<std::uint8_t[]>(MAX_RI_BUFFER_SIZE);
+  memcpy(m_Buffer.get(), buf, len);
   m_BufferLen = len;
   ReadFromBuffer(true);
 }
 
-RouterInfo::~RouterInfo() {
-  delete[] m_Buffer;
-}
+RouterInfo::~RouterInfo() {}
 
 void RouterInfo::Update(
     const uint8_t* buf,
     int len) {
   if (!m_Buffer)
-    m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
+    m_Buffer = std::make_unique<std::uint8_t[]>(MAX_RI_BUFFER_SIZE);
   m_IsUpdated = true;
   m_IsUnreachable = false;
   m_SupportedTransports = 0;
   m_Caps = 0;
   m_Addresses.clear();
   m_Properties.clear();
-  memcpy(m_Buffer, buf, len);
+  memcpy(m_Buffer.get(), buf, len);
   m_BufferLen = len;
   ReadFromBuffer(true);
   // don't delete buffer until saved to file
@@ -115,8 +111,8 @@ bool RouterInfo::LoadFile() {
     }
     s.seekg(0, std::ios::beg);
     if (!m_Buffer)
-      m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
-    s.read(reinterpret_cast<char *>(m_Buffer), m_BufferLen);
+      m_Buffer = std::make_unique<std::uint8_t[]>(MAX_RI_BUFFER_SIZE);
+    s.read(reinterpret_cast<char *>(m_Buffer.get()), m_BufferLen);
   } else {
     LogPrint(eLogError, "RouterInfo: can't open file ", m_FullPath);
     return false;
@@ -131,19 +127,19 @@ void RouterInfo::ReadFromFile() {
 
 void RouterInfo::ReadFromBuffer(
     bool verifySignature) {
-  size_t identityLen = m_RouterIdentity.FromBuffer(m_Buffer, m_BufferLen);
+  size_t identityLen = m_RouterIdentity.FromBuffer(m_Buffer.get(), m_BufferLen);
   std::stringstream str(
       std::string(
-        reinterpret_cast<char *>(m_Buffer) + identityLen,
+        reinterpret_cast<char *>(m_Buffer.get()) + identityLen,
         m_BufferLen - identityLen));
   ReadFromStream(str);
   if (verifySignature) {
     // verify signature
     int len = m_BufferLen - m_RouterIdentity.GetSignatureLen();
     if (!m_RouterIdentity.Verify(
-          reinterpret_cast<uint8_t *>(m_Buffer),
+          reinterpret_cast<uint8_t *>(m_Buffer.get()),
           len,
-          reinterpret_cast<uint8_t *>(m_Buffer + len))) {
+          reinterpret_cast<uint8_t *>(m_Buffer.get() + len))) {
       LogPrint(eLogError, "RouterInfo: signature verification failed");
       m_IsUnreachable = true;
     }
@@ -457,7 +453,7 @@ const uint8_t* RouterInfo::LoadBuffer() {
           "RouterInfo: buffer for ",
           GetIdentHashAbbreviation(), " loaded from file");
   }
-  return m_Buffer;
+  return m_Buffer.get();
 }
 
 void RouterInfo::CreateBuffer(const PrivateKeys& privateKeys) {
@@ -469,13 +465,13 @@ void RouterInfo::CreateBuffer(const PrivateKeys& privateKeys) {
   WriteToStream(s);
   m_BufferLen = s.str().size();
   if (!m_Buffer)
-    m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
-  memcpy(m_Buffer, s.str().c_str(), m_BufferLen);
+    m_Buffer = std::make_unique<std::uint8_t[]>(MAX_RI_BUFFER_SIZE);
+  memcpy(m_Buffer.get(), s.str().c_str(), m_BufferLen);
   // signature
   privateKeys.Sign(
-    reinterpret_cast<uint8_t *>(m_Buffer),
+    reinterpret_cast<uint8_t *>(m_Buffer.get()),
     m_BufferLen,
-    reinterpret_cast<uint8_t *>(m_Buffer) + m_BufferLen);
+    reinterpret_cast<uint8_t *>(m_Buffer.get()) + m_BufferLen);
   m_BufferLen += privateKeys.GetPublic().GetSignatureLen();
 }
 
@@ -485,11 +481,11 @@ void RouterInfo::SaveToFile(
   if (m_Buffer) {
     std::ofstream f(fullPath, std::ofstream::binary | std::ofstream::out);
     if (f.is_open())
-      f.write(reinterpret_cast<char *>(m_Buffer), m_BufferLen);
+      f.write(reinterpret_cast<char *>(m_Buffer.get()), m_BufferLen);
     else
       LogPrint(eLogError, "RouterInfo: can't save RouterInfo to ", fullPath);
   } else {
-    LogPrint(eLogError, "RouterInfo: can't save RouterInfo m_Buffer==NULL");
+    LogPrint(eLogError, "RouterInfo: can't save RouterInfo, buffer is empty");
   }
 }
 

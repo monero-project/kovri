@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
-#ifndef SRC_API_I2PTUNNEL_I2PTUNNEL_H_
-#define SRC_API_I2PTUNNEL_I2PTUNNEL_H_
+#ifndef SRC_CLIENT_I2PTUNNEL_I2PTUNNEL_H_
+#define SRC_CLIENT_I2PTUNNEL_I2PTUNNEL_H_
 
 #include <boost/asio.hpp>
 
@@ -160,10 +160,10 @@ class I2PClientTunnel : public TCPIPAcceptor {
   std::string GetName();
 
  private:
-  const i2p::data::IdentHash* GetIdentHash();
+  std::unique_ptr<const i2p::data::IdentHash> GetIdentHash();
   std::string m_TunnelName;
   std::string m_Destination;
-  const i2p::data::IdentHash* m_DestinationIdentHash;
+  std::unique_ptr<const i2p::data::IdentHash> m_DestinationIdentHash;
   int m_DestinationPort;
 };
 
@@ -255,4 +255,4 @@ class I2PServerTunnelHTTP: public I2PServerTunnel {
 }  // namespace client
 }  // namespace i2p
 
-#endif  // SRC_API_I2PTUNNEL_I2PTUNNEL_H_
+#endif  // SRC_CLIENT_I2PTUNNEL_I2PTUNNEL_H_

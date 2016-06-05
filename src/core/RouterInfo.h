@@ -39,6 +39,7 @@
 
 #include <iostream>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -241,7 +242,8 @@ class RouterInfo : public RoutingDestination {
   }
 
   const uint8_t* GetBuffer() const {
-    return m_Buffer;
+    auto buf = m_Buffer.get();
+    return buf;
   }
 
   const uint8_t* LoadBuffer();  // load if necessary
@@ -277,8 +279,7 @@ class RouterInfo : public RoutingDestination {
       int len);
 
   void DeleteBuffer() {
-    delete[] m_Buffer;
-    m_Buffer = nullptr;
+    m_Buffer.reset(nullptr);
   }
 
   // implements RoutingDestination
@@ -327,7 +328,7 @@ class RouterInfo : public RoutingDestination {
  private:
   std::string m_FullPath;
   IdentityEx m_RouterIdentity;
-  uint8_t * m_Buffer;
+  std::unique_ptr<std::uint8_t[]> m_Buffer;
   int m_BufferLen;
   uint64_t m_Timestamp;
   std::vector<Address> m_Addresses;

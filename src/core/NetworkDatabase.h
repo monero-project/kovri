@@ -41,6 +41,7 @@
 
 #include <list>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <set>
 #include <string>
@@ -168,11 +169,11 @@ class NetDb {
   std::list<std::shared_ptr<RouterInfo> > m_Floodfills;
 
   bool m_IsRunning;
-  std::thread * m_Thread;
+  std::unique_ptr<std::thread> m_Thread;
   // of I2NPDatabaseStoreMsg
   i2p::util::Queue<std::shared_ptr<const I2NPMessage> > m_Queue;
 
-  i2p::data::Reseed* m_Reseed;
+  std::unique_ptr<i2p::data::Reseed> m_Reseed;
 
   friend class NetDbRequests;
   NetDbRequests m_Requests;

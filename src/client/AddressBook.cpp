@@ -43,6 +43,7 @@
 #include <condition_variable>
 #include <fstream>
 #include <map>
+#include <memory>
 
 #include "Destination.h"
 #include "Identity.h"
@@ -104,10 +105,9 @@ bool AddressBookFilesystemStorage::GetAddress(
       return false;
     }
     f.seekg(0, std::ios::beg);
-    uint8_t* buf = new uint8_t[len];
-    f.read(reinterpret_cast<char *>(buf), len);
-    address.FromBuffer(buf, len);
-    delete[] buf;
+    auto buf = std::make_unique<std::uint8_t[]>(len);
+    f.read(reinterpret_cast<char *>(buf.get()), len);
+    address.FromBuffer(buf.get(), len);
     return true;
   } else {
     return false;
@@ -120,10 +120,9 @@ void AddressBookFilesystemStorage::AddAddress(
   std::ofstream f(filename.c_str(), std::ofstream::binary | std::ofstream::out);
   if (f.is_open()) {
     size_t len = address.GetFullLen();
-    uint8_t* buf = new uint8_t[len];
-    address.ToBuffer(buf, len);
-    f.write(reinterpret_cast<char *>(buf), len);
-    delete[] buf;
+    auto buf = std::make_unique<std::uint8_t[]>(len);
+    address.ToBuffer(buf.get(), len);
+    f.write(reinterpret_cast<char *>(buf.get()), len);
   } else {
     LogPrint(eLogError,
         "AddressBookFilesystemStorage: can't open file ", filename);
@@ -201,7 +200,7 @@ AddressBook::~AddressBook() {
 }
 
 void AddressBook::Start(
-    ClientDestination* local_destination) {
+    std::shared_ptr<ClientDestination> local_destination) {
   m_SharedLocalDestination = local_destination;
   StartSubscriptions();
 }
@@ -209,8 +208,7 @@ void AddressBook::Start(
 void AddressBook::Stop() {
   StopSubscriptions();
   if (m_SubscriptionsUpdateTimer) {
-    delete m_SubscriptionsUpdateTimer;
-    m_SubscriptionsUpdateTimer = nullptr;
+    m_SubscriptionsUpdateTimer.reset(nullptr);
   }
   if (m_IsDownloading) {
     LogPrint(eLogInfo,
@@ -227,20 +225,16 @@ void AddressBook::Stop() {
   }
   if (m_Storage) {
     m_Storage->Save(m_Addresses);
-    delete m_Storage;
-    m_Storage = nullptr;
+    m_Storage.reset(nullptr);
   }
   if (m_DefaultSubscription) {
-    delete m_DefaultSubscription;
-    m_DefaultSubscription = nullptr;
+    m_DefaultSubscription.reset(nullptr);
   }
-  for (auto it : m_Subscriptions)
-    delete it;
   m_Subscriptions.clear();
 }
 
-AddressBookStorage* AddressBook::CreateStorage() {
-  return new AddressBookFilesystemStorage();
+std::unique_ptr<AddressBookStorage> AddressBook::CreateStorage() {
+  return std::make_unique<AddressBookFilesystemStorage>();
 }
 
 bool AddressBook::GetIdentHash(
@@ -271,19 +265,20 @@ bool AddressBook::GetIdentHash(
   return true;
 }
 
-const i2p::data::IdentHash* AddressBook::FindAddress(
+std::unique_ptr<const i2p::data::IdentHash> AddressBook::FindAddress(
     const std::string& address) {
   if (!m_IsLoaded)
     LoadHosts();
   if (m_IsLoaded) {
     auto it = m_Addresses.find(address);
-    if (it != m_Addresses.end())
-      return &it->second;
+    if (it != m_Addresses.end()) {
+      return std::make_unique<const i2p::data::IdentHash>(it->second);
+    }
   }
   return nullptr;
 }
 
-ClientDestination* AddressBook::getSharedLocalDestination() const {
+std::shared_ptr<ClientDestination> AddressBook::getSharedLocalDestination() const {
   return m_SharedLocalDestination;
 }
 
@@ -341,7 +336,7 @@ void AddressBook::LoadHosts() {
       m_IsDownloading = true;
       if (!m_DefaultSubscription)
         m_DefaultSubscription =
-          new AddressBookSubscription(*this, DEFAULT_SUBSCRIPTION_ADDRESS);
+          std::make_unique<AddressBookSubscription>(*this, DEFAULT_SUBSCRIPTION_ADDRESS);
       m_DefaultSubscription->CheckSubscription();
     }
   }
@@ -390,7 +385,7 @@ void AddressBook::LoadSubscriptions() {
         getline(f, s);
         if (!s.length())
           continue;  // skip empty line
-        m_Subscriptions.push_back(new AddressBookSubscription(*this, s));
+        m_Subscriptions.push_back(std::make_unique<AddressBookSubscription>(*this, s));
       }
       LogPrint(eLogInfo,
           "AddressBook: ", m_Subscriptions.size(), " subscriptions loaded");
@@ -424,8 +419,8 @@ void AddressBook::StartSubscriptions() {
 
   if (m_SharedLocalDestination) {
     m_SubscriptionsUpdateTimer =
-      new boost::asio::deadline_timer(
-      m_SharedLocalDestination->GetService());
+      std::make_unique<boost::asio::deadline_timer>(
+          m_SharedLocalDestination->GetService());
     m_SubscriptionsUpdateTimer->expires_from_now(
         boost::posix_time::minutes(
           INITIAL_SUBSCRIPTION_UPDATE_TIMEOUT));

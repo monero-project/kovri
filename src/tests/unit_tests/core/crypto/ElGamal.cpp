@@ -32,6 +32,8 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <memory>
+
 #include "crypto/ElGamal.h"
 #include "crypto/Rand.h"
 
@@ -39,17 +41,14 @@ BOOST_AUTO_TEST_SUITE(ElgamalTests)
 
 struct ElgamalFixture {
   uint8_t privateKey[256], publicKey[256];
-  i2p::crypto::ElGamalEncryption* enc;
+  std::unique_ptr<i2p::crypto::ElGamalEncryption> enc;
   static constexpr size_t kMessageLen = 222;
   static constexpr size_t kCipherTextLen = 512;
   static constexpr size_t kZpCipherTextLen = kCipherTextLen + 2;
   ElgamalFixture() {
     // TODO(unassigned): use static keys
     i2p::crypto::GenerateElGamalKeyPair(privateKey, publicKey);
-    enc = new i2p::crypto::ElGamalEncryption(publicKey);
-  }
-  ~ElgamalFixture() {
-    delete enc;
+    enc = std::make_unique<i2p::crypto::ElGamalEncryption>(publicKey);
   }
 };
 

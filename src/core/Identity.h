@@ -40,17 +40,12 @@
 #include <string>
 
 #include "crypto/ElGamal.h"
+#include "crypto/SignatureBase.h"
 #include "util/Base64.h"
 
 namespace i2p {
-
-// Forward declaration to avoid include
-namespace crypto {
-class Signer;
-class Verifier;
-}
-
 namespace data {
+
 template<int Size>
 class Tag {  // TODO(anonimal): review/consider moving this class into core/util
  public:
@@ -243,15 +238,14 @@ class IdentityEx {
  private:
   Identity m_StandardIdentity;
   IdentHash m_IdentHash;
-  mutable i2p::crypto::Verifier* m_Verifier;
+  mutable std::unique_ptr<i2p::crypto::Verifier> m_Verifier;
   size_t m_ExtendedLen;
-  uint8_t* m_ExtendedBuffer;
+  std::unique_ptr<std::uint8_t[]> m_ExtendedBuffer;
 };
 
 class PrivateKeys {  // for eepsites
  public:
-  PrivateKeys()
-      : m_Signer(nullptr) {}
+  PrivateKeys();
   PrivateKeys(
       const PrivateKeys& other)
       : m_Signer(nullptr) {
@@ -311,7 +305,7 @@ class PrivateKeys {  // for eepsites
   uint8_t m_PrivateKey[256];
   // assume private key doesn't exceed 1024 bytes
   uint8_t m_SigningPrivateKey[1024];
-  i2p::crypto::Signer* m_Signer;
+  std::unique_ptr<i2p::crypto::Signer> m_Signer;
 };
 
 // kademlia
@@ -352,8 +346,7 @@ class RoutingDestination {
   std::unique_ptr<const i2p::crypto::ElGamalEncryption>& GetElGamalEncryption() const {
     if (!m_ElGamalEncryption)
       m_ElGamalEncryption.reset(
-          new i2p::crypto::ElGamalEncryption(
-            GetEncryptionPublicKey()));
+          new i2p::crypto::ElGamalEncryption(GetEncryptionPublicKey()));
     return m_ElGamalEncryption;
   }
 

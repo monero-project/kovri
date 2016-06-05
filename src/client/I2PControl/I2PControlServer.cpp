@@ -72,7 +72,7 @@ void I2PControlService::Start() {
     Accept();
     m_Session->Start();
     m_IsRunning = true;
-    m_Thread = new std::thread(
+    m_Thread = std::make_unique<std::thread>(
         std::bind(
           &I2PControlService::Run,
           this));
@@ -88,8 +88,7 @@ void I2PControlService::Stop() {
     m_Session.reset();
     if (m_Thread) {
       m_Thread->join();
-      delete m_Thread;
-      m_Thread = nullptr;
+      m_Thread.reset(nullptr);
     }
   }
 }

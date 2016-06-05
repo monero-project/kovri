@@ -37,6 +37,7 @@
 #include <string.h>
 
 #include <fstream>
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
@@ -68,8 +69,7 @@ NetDb::NetDb()
 NetDb::~NetDb() {
   Stop();
   if (m_Reseed) {
-    delete m_Reseed;
-    m_Reseed = nullptr;
+    m_Reseed.reset(nullptr);
   }
 }
 
@@ -81,7 +81,7 @@ bool NetDb::Start() {
     }
   }
   m_IsRunning = true;
-  m_Thread = new std::thread(std::bind(&NetDb::Run, this));
+  m_Thread = std::make_unique<std::thread>(std::bind(&NetDb::Run, this));
   return true;
 }
 
@@ -96,8 +96,7 @@ void NetDb::Stop() {
       m_IsRunning = false;
       m_Queue.WakeUp();
       m_Thread->join();
-      delete m_Thread;
-      m_Thread = nullptr;
+      m_Thread.reset(nullptr);
     }
     m_LeaseSets.clear();
     m_Requests.Stop();
@@ -300,10 +299,9 @@ bool NetDb::CreateNetDb(
 
 bool NetDb::Reseed() {
   if (m_Reseed == nullptr) {
-    m_Reseed = new i2p::data::Reseed(i2p::context.ReseedFrom());
+    m_Reseed = std::make_unique<i2p::data::Reseed>(i2p::context.ReseedFrom());
     if (!m_Reseed->ReseedImpl()) {
-      delete m_Reseed;
-      m_Reseed = nullptr;
+      m_Reseed.reset(nullptr);
       LogPrint(eLogError, "NetDb: reseed failed");
       return false;
     }

@@ -35,6 +35,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
@@ -54,9 +55,6 @@ ClientContext::ClientContext()
       m_I2PControlService(nullptr) {}
 
 ClientContext::~ClientContext() {
-  delete m_HttpProxy;
-  delete m_SocksProxy;
-  delete m_I2PControlService;
   m_Service.stop();
 }
 
@@ -90,7 +88,7 @@ void ClientContext::Start() {
     LogPrint(eLogInfo, "ClientContext: starting I2PControlService");
     m_I2PControlService->Start();
   }
-  m_AddressBook.Start(m_SharedLocalDestination.get());
+  m_AddressBook.Start(m_SharedLocalDestination);
 }
 
 void ClientContext::Stop() {
@@ -100,14 +98,12 @@ void ClientContext::Stop() {
 
   if (m_HttpProxy) {
     m_HttpProxy->Stop();
-    delete m_HttpProxy;
-    m_HttpProxy = nullptr;
+    m_HttpProxy.reset(nullptr);
     LogPrint(eLogInfo, "ClientContext: HTTP Proxy stopped");
   }
   if (m_SocksProxy) {
     m_SocksProxy->Stop();
-    delete m_SocksProxy;
-    m_SocksProxy = nullptr;
+    m_SocksProxy.reset(nullptr);
     LogPrint(eLogInfo, "ClientContext: SOCKS Proxy stopped");
   }
   for (auto& it : m_ClientTunnels) {
@@ -123,8 +119,7 @@ void ClientContext::Stop() {
   m_ServerTunnels.clear();
   if (m_I2PControlService) {
     m_I2PControlService->Stop();
-    delete m_I2PControlService;
-    m_I2PControlService = nullptr;
+    m_I2PControlService.reset(nullptr);
     LogPrint(eLogInfo, "ClientContext: I2PControl stopped");
   }
   m_AddressBook.Stop();
@@ -150,10 +145,9 @@ i2p::data::PrivateKeys ClientContext::LoadPrivateKeys(const std::string& file) {
   s.seekg(0, std::ios::end);
   size_t len = s.tellg();
   s.seekg(0, std::ios::beg);
-  uint8_t* buf = new uint8_t[len];
-  s.read(reinterpret_cast<char *>(buf), len);
-  keys.FromBuffer(buf, len);
-  delete[] buf;
+  auto buf = std::make_unique<std::uint8_t[]>(len);
+  s.read(reinterpret_cast<char *>(buf.get()), len);
+  keys.FromBuffer(buf.get(), len);
 
   LogPrint(eLogInfo,
       "ClientContext: local address ",
@@ -175,10 +169,9 @@ std::shared_ptr<ClientDestination> ClientContext::LoadLocalDestination(
         i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
     std::ofstream f(fullPath, std::ofstream::binary | std::ofstream::out);
     size_t len = keys.GetFullLen();
-    uint8_t* buf = new uint8_t[len];
-    len = keys.ToBuffer(buf, len);
-    f.write(reinterpret_cast<char *>(buf), len);
-    delete[] buf;
+    auto buf = std::make_unique<std::uint8_t[]>(len);
+    len = keys.ToBuffer(buf.get(), len);
+    f.write(reinterpret_cast<char *>(buf.get()), len);
     LogPrint(eLogInfo,
         "ClientContext: new private keys file ", fullPath,
         " for ", m_AddressBook.ToAddress(keys.GetPublic().GetIdentHash()),
@@ -296,7 +289,7 @@ void ClientContext::UpdateServerTunnel(
     i2p::data::PrivateKeys keys = LoadPrivateKeys(keyfile);
     i2p::data::IdentHash i = keys.GetPublic().GetIdentHash();
     // check if it exists in existing local servers
-    I2PServerTunnel* tunnel = GetServerTunnel(i);
+    auto tunnel = GetServerTunnel(i);
     if (tunnel == nullptr) {
       // Server with this name does not exist, create it later
       createTunnel = true;
@@ -320,14 +313,14 @@ void ClientContext::UpdateServerTunnel(
       // Create the server tunnel
       auto localDestination = i2p::client::context.LoadLocalDestination(
           keyfile, true);
-      I2PServerTunnel* serverTunnel = http ?
-          new I2PServerTunnelHTTP(
+      auto serverTunnel = http ?
+          std::make_unique<I2PServerTunnelHTTP>(
               tunnelName,
               hostStr,
               port,
               localDestination,
               inPort) :
-          new I2PServerTunnel(
+          std::make_unique<I2PServerTunnel>(
               tunnelName,
               hostStr,
               port,
@@ -335,7 +328,7 @@ void ClientContext::UpdateServerTunnel(
               inPort);
       serverTunnel->SetAccessListString(accessList);
       // Add the server tunnel
-      InsertServerTunnel(localDestination->GetIdentHash(), serverTunnel);
+      InsertServerTunnel(localDestination->GetIdentHash(), std::move(serverTunnel));
       // Start the new server tunnel
       serverTunnel->Start();
   }
@@ -348,18 +341,18 @@ void ClientContext::UpdateClientTunnel(
     const std::string& hostStr,
     int port,
     int destPort) {
-  I2PClientTunnel* clientTunnel = GetClientTunnel(tunnelName);
+  auto clientTunnel = GetClientTunnel(tunnelName);
   if (clientTunnel == nullptr) {
     // Client tunnel does not exist yet, create it
     auto localDestination = LoadLocalDestination(keyfile, true);
-    clientTunnel = new I2PClientTunnel(
+    clientTunnel = std::make_unique<I2PClientTunnel>(
           tunnelName,
           destination,
           hostStr,
           port,
           localDestination,
           destPort);
-    InsertClientTunnel(port, clientTunnel);
+    InsertClientTunnel(port, std::move(clientTunnel));
     clientTunnel->Start();
   } else {
     // Client with this name is already locally running, update settings
@@ -389,63 +382,63 @@ void ClientContext::RegisterShutdownHandler(std::function<void(void)> handler) {
   m_ShutdownHandler = handler;
 }
 
-bool ClientContext::InsertClientTunnel(int port, I2PClientTunnel* tunnel) {
+bool ClientContext::InsertClientTunnel(int port, std::unique_ptr<I2PClientTunnel> tunnel) {
   std::lock_guard<std::mutex> lock(m_ClientMutex);
   return m_ClientTunnels.insert(
-      std::make_pair(port, std::unique_ptr<I2PClientTunnel>(tunnel))).second;
+      std::make_pair(port, std::move(tunnel))).second;
 }
 
 bool ClientContext::InsertServerTunnel(const i2p::data::IdentHash& id,
-    I2PServerTunnel* tunnel) {
+    std::unique_ptr<I2PServerTunnel> tunnel) {
   std::lock_guard<std::mutex> lock(m_ServerMutex);
   return m_ServerTunnels.insert(
-      std::make_pair(id, std::unique_ptr<I2PServerTunnel>(tunnel))).second;
+      std::make_pair(id, std::move(tunnel))).second;
 }
 
 void ClientContext::SetI2PControlService(
-    i2p::client::i2pcontrol::I2PControlService* service) {
-  m_I2PControlService = service;
+    std::unique_ptr<i2p::client::i2pcontrol::I2PControlService> service) {
+  m_I2PControlService = std::move(service);
 }
 
-void ClientContext::SetHTTPProxy(i2p::proxy::HTTPProxy* proxy) {
-  m_HttpProxy = proxy;
+void ClientContext::SetHTTPProxy(std::unique_ptr<i2p::proxy::HTTPProxy> proxy) {
+  m_HttpProxy = std::move(proxy);
 }
 
-void ClientContext::SetSOCKSProxy(i2p::proxy::SOCKSProxy* proxy) {
-  m_SocksProxy = proxy;
+void ClientContext::SetSOCKSProxy(std::unique_ptr<i2p::proxy::SOCKSProxy> proxy) {
+  m_SocksProxy = std::move(proxy);
 }
 
-I2PServerTunnel* ClientContext::GetServerTunnel(const std::string& name) {
+std::unique_ptr<I2PServerTunnel> ClientContext::GetServerTunnel(const std::string& name) {
   std::lock_guard<std::mutex> lock(m_ServerMutex);
   auto it = std::find_if(
       m_ServerTunnels.begin(), m_ServerTunnels.end(),
       [&name](ServerTunnelEntry & e) -> bool {
         return e.second->GetName() == name;
       });
-  return it == m_ServerTunnels.end() ? nullptr : it->second.get();
+  return it == m_ServerTunnels.end() ? nullptr : std::move(it->second);
 }
 
-I2PServerTunnel* ClientContext::GetServerTunnel(
+std::unique_ptr<I2PServerTunnel> ClientContext::GetServerTunnel(
     const i2p::data::IdentHash& id) {
   std::lock_guard<std::mutex> lock(m_ServerMutex);
   auto it = m_ServerTunnels.find(id);
-  return it == m_ServerTunnels.end() ? nullptr : it->second.get();
+  return it == m_ServerTunnels.end() ? nullptr : std::move(it->second);
 }
 
-I2PClientTunnel* ClientContext::GetClientTunnel(const std::string& name) {
+std::unique_ptr<I2PClientTunnel> ClientContext::GetClientTunnel(const std::string& name) {
   std::lock_guard<std::mutex> lock(m_ClientMutex);
   auto it = std::find_if(
       m_ClientTunnels.begin(), m_ClientTunnels.end(),
       [&name](ClientTunnelEntry & e) -> bool {
         return e.second->GetName() == name;
       });
-  return it == m_ClientTunnels.end() ? nullptr : it->second.get();
+  return it == m_ClientTunnels.end() ? nullptr : std::move(it->second);
 }
 
-I2PClientTunnel* ClientContext::GetClientTunnel(int port) {
+std::unique_ptr<I2PClientTunnel> ClientContext::GetClientTunnel(int port) {
   std::lock_guard<std::mutex> lock(m_ClientMutex);
   auto it = m_ClientTunnels.find(port);
-  return it == m_ClientTunnels.end() ? nullptr : it->second.get();
+  return it == m_ClientTunnels.end() ? nullptr : std::move(it->second);
 }
 
 boost::asio::io_service& ClientContext::GetIoService() {

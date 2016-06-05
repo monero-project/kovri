@@ -35,6 +35,7 @@
 
 #include <windows.h>
 #define WIN32_LEAN_AND_MEAN
+#include <memory>
 #include <thread>
 
 #ifdef _WIN32
@@ -105,7 +106,7 @@ class I2PService {
   BOOL m_fStopping;
   HANDLE m_hStoppedEvent;
 
-  std::thread* _worker;
+  std::unique_ptr<std::thread> _worker;
 };
 
 void InstallService(

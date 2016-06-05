@@ -38,6 +38,8 @@
 #include <strsafe.h>
 #include <windows.h>
 
+#include <memory>
+
 #include "Daemon.h"
 #include "Win32Service.h"
 #include "core/util/Log.h"
@@ -151,7 +153,7 @@ void I2PService::OnStart(
   LogPrint(eLogInfo, "I2PServiceWin32: Service in OnStart()",
     EVENTLOG_INFORMATION_TYPE);
   Daemon.Start();
-  _worker = new std::thread(
+  _worker = std::make_unique<std::thread>(
       std::bind(
         &I2PService::WorkerThread,
         this));
@@ -192,7 +194,7 @@ void I2PService::OnStop() {
     throw GetLastError();
   }
   _worker->join();
-  delete _worker;
+  _worker.reset(nullptr);
 }
 
 void I2PService::Pause() {

@@ -32,11 +32,13 @@
 
 #include "Daemon.h"
 
-#include <string>
-#include <vector>
-#include <thread>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
+
+#include <memory>
+#include <string>
+#include <thread>
+#include <vector>
 
 #include "client/ClientContext.h"
 #include "Destination.h"
@@ -176,13 +178,13 @@ void Daemon_Singleton::InitClientContext() {
   if (proxyKeys.length() > 0)
     localDestination = i2p::client::context.LoadLocalDestination(
         proxyKeys, false);
-  i2p::client::context.SetHTTPProxy(new i2p::proxy::HTTPProxy(
+  i2p::client::context.SetHTTPProxy(std::make_unique<i2p::proxy::HTTPProxy>(
       "HTTP Proxy",  // TODO(unassigned): what if we want to change the name?
       i2p::util::config::var_map["httpproxyaddress"].as<std::string>(),
       i2p::util::config::var_map["httpproxyport"].as<int>(),
       localDestination));
 
-  i2p::client::context.SetSOCKSProxy(new i2p::proxy::SOCKSProxy(
+  i2p::client::context.SetSOCKSProxy(std::make_unique<i2p::proxy::SOCKSProxy>(
       i2p::util::config::var_map["socksproxyaddress"].as<std::string>(),
       i2p::util::config::var_map["socksproxyport"].as<int>(),
       localDestination));
@@ -190,7 +192,7 @@ void Daemon_Singleton::InitClientContext() {
   int i2pcontrolPort = i2p::util::config::var_map["i2pcontrolport"].as<int>();
   if (i2pcontrolPort) {
     i2p::client::context.SetI2PControlService(
-        new i2p::client::i2pcontrol::I2PControlService(
+        std::make_unique<i2p::client::i2pcontrol::I2PControlService>(
           i2p::client::context.GetIoService(),
           i2p::util::config::var_map["i2pcontroladdress"].as<std::string>(),
           i2pcontrolPort,
@@ -236,7 +238,7 @@ void Daemon_Singleton::SetupTunnels() {
               keys, false);
 
         bool result = i2p::client::context.InsertClientTunnel(port,
-            new i2p::client::I2PClientTunnel(
+            std::make_unique<i2p::client::I2PClientTunnel>(
               name,
               dest,
               address,
@@ -262,16 +264,16 @@ void Daemon_Singleton::SetupTunnels() {
         std::string accessList = value.get(I2P_SERVER_TUNNEL_ACCESS_LIST, "");
         auto localDestination = i2p::client::context.LoadLocalDestination(
             keys, true);
-        i2p::client::I2PServerTunnel* serverTunnel =
+        auto serverTunnel =
           (type == I2P_TUNNELS_SECTION_TYPE_HTTP) ?
-          new i2p::client::I2PServerTunnelHTTP(
+          std::make_unique<i2p::client::I2PServerTunnelHTTP>(
               name, host, port, localDestination, inPort) :
-          new i2p::client::I2PServerTunnel(
+          std::make_unique<i2p::client::I2PServerTunnel>(
               name, host, port, localDestination, inPort);
         serverTunnel->SetAccessListString(accessList);
 
         bool result = i2p::client::context.InsertServerTunnel(
-            localDestination->GetIdentHash(), serverTunnel);
+            localDestination->GetIdentHash(), std::move(serverTunnel));
 
         if (result)
           ++numServerTunnels;
@@ -346,7 +348,7 @@ void Daemon_Singleton::ReloadTunnels() {
       int port = value.get<int>(I2P_CLIENT_TUNNEL_PORT, 0);
       int destPort = value.get(I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
 
-      i2p::client::I2PClientTunnel* tunnel =
+      auto tunnel =
           i2p::client::context.GetClientTunnel(port);
 
       if (tunnel && tunnel->GetName() != tunnelName) {

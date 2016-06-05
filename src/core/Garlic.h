@@ -100,11 +100,11 @@ class GarlicRoutingSession
     explicit UnconfirmedTags(int n)
         : numTags(n),
           tagsCreationTime(0) {
-            sessionTags = new SessionTag[numTags];
+            sessionTags = std::make_unique<SessionTag[]>(numTags);
           }
-    ~UnconfirmedTags() { delete[] sessionTags; }
+    ~UnconfirmedTags() {}
     int numTags;
-    SessionTag * sessionTags;
+    std::unique_ptr<SessionTag[]> sessionTags;
     uint32_t tagsCreationTime;
   };
 
@@ -154,7 +154,7 @@ class GarlicRoutingSession
   UnconfirmedTags* GenerateSessionTags();
 
  private:
-  GarlicDestination* m_Owner;
+  std::unique_ptr<GarlicDestination> m_Owner;
   std::shared_ptr<const i2p::data::RoutingDestination> m_Destination;
   i2p::crypto::AESKey m_SessionKey;
   std::list<SessionTag> m_SessionTags;

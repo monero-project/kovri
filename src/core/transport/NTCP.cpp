@@ -60,7 +60,6 @@ NTCPServer::NTCPServer(
 
 NTCPServer::~NTCPServer() {
   LogPrint(eLogDebug, "NTCPServer: destroying");
-  Stop();
 }
 
 void NTCPServer::Start() {

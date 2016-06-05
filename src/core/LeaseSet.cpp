@@ -36,6 +36,7 @@
 
 #include <string.h>
 
+#include <memory>
 #include <vector>
 
 #include "NetworkDatabase.h"
@@ -52,8 +53,8 @@ LeaseSet::LeaseSet(
     const uint8_t* buf,
     size_t len)
     : m_IsValid(true) {
-  m_Buffer = new uint8_t[len];
-  memcpy(m_Buffer, buf, len);
+  m_Buffer = std::make_unique<std::uint8_t[]>(len);
+  memcpy(m_Buffer.get(), buf, len);
   m_BufferLen = len;
   ReadFromBuffer();
 }
@@ -65,32 +66,32 @@ LeaseSet::LeaseSet(
   const i2p::data::LocalDestination* localDestination =
     pool.GetLocalDestination();
   if (!localDestination) {
-    m_Buffer = nullptr;
+    m_Buffer.reset(nullptr);
     m_BufferLen = 0;
     m_IsValid = false;
     LogPrint(eLogError, "LeaseSet: destination for local LeaseSet doesn't exist");
     return;
   }
-  m_Buffer = new uint8_t[MAX_LS_BUFFER_SIZE];
+  m_Buffer = std::make_unique<std::uint8_t[]>(MAX_LS_BUFFER_SIZE);
   m_BufferLen = localDestination->GetIdentity().ToBuffer(
-      m_Buffer,
+      m_Buffer.get(),
       MAX_LS_BUFFER_SIZE);
   memcpy(
-      m_Buffer + m_BufferLen,
+      m_Buffer.get() + m_BufferLen,
       localDestination->GetEncryptionPublicKey(),
       256);
   m_BufferLen += 256;
   auto signingKeyLen = localDestination->GetIdentity().GetSigningPublicKeyLen();
-  memset(m_Buffer + m_BufferLen, 0, signingKeyLen);
+  memset(m_Buffer.get() + m_BufferLen, 0, signingKeyLen);
   m_BufferLen += signingKeyLen;
   auto tunnels = pool.GetInboundTunnels(5);  // 5 tunnels maximum
   m_Buffer[m_BufferLen] = tunnels.size();  // num leases
   m_BufferLen++;
   // leases
   for (auto it : tunnels) {
-    memcpy(m_Buffer + m_BufferLen, it->GetNextIdentHash(), 32);
+    memcpy(m_Buffer.get() + m_BufferLen, it->GetNextIdentHash(), 32);
     m_BufferLen += 32;  // gateway id
-    htobe32buf(m_Buffer + m_BufferLen, it->GetNextTunnelID());
+    htobe32buf(m_Buffer.get() + m_BufferLen, it->GetNextTunnelID());
     m_BufferLen += 4;  // tunnel id
     uint64_t ts =
       it->GetCreationTime() +
@@ -98,11 +99,11 @@ LeaseSet::LeaseSet(
       i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD;  // 1 minute before expiration
     ts *= 1000;  // in milliseconds
     ts += i2p::crypto::RandInRange<std::size_t>(0, 5);  // + random milliseconds
-    htobe64buf(m_Buffer + m_BufferLen, ts);
+    htobe64buf(m_Buffer.get() + m_BufferLen, ts);
     m_BufferLen += 8;  // end date
   }
   // signature
-  localDestination->Sign(m_Buffer, m_BufferLen, m_Buffer + m_BufferLen);
+  localDestination->Sign(m_Buffer.get(), m_BufferLen, m_Buffer.get() + m_BufferLen);
   m_BufferLen += localDestination->GetIdentity().GetSignatureLen();
   LogPrint(eLogInfo,
       "LeaseSet: local LeaseSet of ", tunnels.size(), " leases created");
@@ -114,18 +115,16 @@ void LeaseSet::Update(
     size_t len) {
   m_Leases.clear();
   if (len > m_BufferLen) {
-    auto oldBuffer = m_Buffer;
-    m_Buffer = new uint8_t[len];
-    delete[] oldBuffer;
+    m_Buffer = std::make_unique<std::uint8_t[]>(len);
   }
-  memcpy(m_Buffer, buf, len);
+  memcpy(m_Buffer.get(), buf, len);
   m_BufferLen = len;
   ReadFromBuffer();
 }
 
 void LeaseSet::ReadFromBuffer() {
-  size_t size = m_Identity.FromBuffer(m_Buffer, m_BufferLen);
-  memcpy(m_EncryptionKey, m_Buffer + size, 256);
+  size_t size = m_Identity.FromBuffer(m_Buffer.get(), m_BufferLen);
+  memcpy(m_EncryptionKey, m_Buffer.get() + size, 256);
   size += 256;  // encryption key
   size += m_Identity.GetSigningPublicKeyLen();  // unused signing key
   uint8_t num = m_Buffer[size];
@@ -134,39 +133,39 @@ void LeaseSet::ReadFromBuffer() {
   if (!num)
     m_IsValid = false;
   // process leases
-  const uint8_t* leases = m_Buffer + size;
+  const uint8_t* leases = m_Buffer.get() + size;
   for (int i = 0; i < num; i++) {
     Lease lease;
-    lease.tunnelGateway = leases;
+    lease.tunnel_gateway = leases;
     leases += 32;  // gateway
-    lease.tunnelID = bufbe32toh(leases);
+    lease.tunnel_ID = bufbe32toh(leases);
     leases += 4;  // tunnel ID
-    lease.endDate = bufbe64toh(leases);
+    lease.end_date = bufbe64toh(leases);
     leases += 8;  // end date
     m_Leases.push_back(lease);
     // check if lease's gateway is in our netDb
-    if (!netdb.FindRouter(lease.tunnelGateway)) {
+    if (!netdb.FindRouter(lease.tunnel_gateway)) {
       // if not found request it
       LogPrint(eLogInfo, "LeaseSet: lease's tunnel gateway not found, requesting");
-      netdb.RequestDestination(lease.tunnelGateway);
+      netdb.RequestDestination(lease.tunnel_gateway);
     }
   }
   // verify
-  if (!m_Identity.Verify(m_Buffer, leases - m_Buffer, leases)) {
+  if (!m_Identity.Verify(m_Buffer.get(), leases - m_Buffer.get(), leases)) {
     LogPrint(eLogWarning, "LeaseSet: verification failed");
     m_IsValid = false;
   }
 }
 
 const std::vector<Lease> LeaseSet::GetNonExpiredLeases(
-    bool withThreshold) const {
+    bool with_threshold) const {
   auto ts = i2p::util::GetMillisecondsSinceEpoch();
   std::vector<Lease> leases;
   for (auto& it : m_Leases) {
-    auto endDate = it.endDate;
-    if (!withThreshold)
-      endDate -= i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD * 1000;
-    if (ts < endDate)
+    auto end_date = it.end_date;
+    if (!with_threshold)
+      end_date -= i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD * 1000;
+    if (ts < end_date)
       leases.push_back(it);
   }
   return leases;
@@ -175,7 +174,7 @@ const std::vector<Lease> LeaseSet::GetNonExpiredLeases(
 bool LeaseSet::HasExpiredLeases() const {
   auto ts = i2p::util::GetMillisecondsSinceEpoch();
   for (auto& it : m_Leases)
-    if (ts >= it.endDate)
+    if (ts >= it.end_date)
       return true;
   return false;
 }
@@ -183,7 +182,7 @@ bool LeaseSet::HasExpiredLeases() const {
 bool LeaseSet::HasNonExpiredLeases() const {
   auto ts = i2p::util::GetMillisecondsSinceEpoch();
   for (auto& it : m_Leases)
-    if (ts < it.endDate)
+    if (ts < it.end_date)
       return true;
   return false;
 }

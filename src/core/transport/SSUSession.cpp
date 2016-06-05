@@ -552,7 +552,8 @@ void SSUSession::SendSessionCreated(
   payload += 4;
   s.Insert(payload - 8, 4);  // put relayTag
   // store for session confirmation
-  m_SessionConfirmData = std::unique_ptr<SignedData>(new SignedData(s));
+  m_SessionConfirmData =
+    std::unique_ptr<SignedData>(std::make_unique<SignedData>(s));
   s.Insert(payload - 4, 4);  // put timestamp
   s.Sign(i2p::context.GetPrivateKeys(), payload);  // DSA signature
   uint8_t iv[16];
@@ -1452,8 +1453,7 @@ void SSUSession::Established() {
   m_SessionConfirmData.reset(nullptr);
   m_State = eSessionStateEstablished;
   if (m_DHKeysPair) {
-    delete m_DHKeysPair;
-    m_DHKeysPair = nullptr;
+    m_DHKeysPair.reset(nullptr);
   }
   m_Data.Start();
   // send delivery status

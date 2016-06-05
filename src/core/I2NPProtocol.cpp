@@ -310,9 +310,9 @@ std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg(
   if (replyToken) {
     auto leases = leaseSet->GetNonExpiredLeases();
     if (leases.size() > 0) {
-      htobe32buf(payload + size, leases[0].tunnelID);
+      htobe32buf(payload + size, leases[0].tunnel_ID);
       size += 4;  // reply tunnelID
-      memcpy(payload + size, leases[0].tunnelGateway, 32);
+      memcpy(payload + size, leases[0].tunnel_gateway, 32);
       size += 32;  // reply tunnel gateway
     } else {
       htobe32buf(payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0);

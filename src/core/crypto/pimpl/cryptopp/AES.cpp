@@ -178,7 +178,8 @@ class ECBEncryption::ECBEncryptionImpl : public ECBCryptoAESNI {
 };
 
 ECBEncryption::ECBEncryption()
-    : m_ECBEncryptionPimpl(new ECBEncryptionImpl()) {}
+    : m_ECBEncryptionPimpl(
+          std::make_unique<ECBEncryptionImpl>()) {}
 
 ECBEncryption::~ECBEncryption() {}
 
@@ -272,7 +273,8 @@ class ECBDecryption::ECBDecryptionImpl : public ECBCryptoAESNI {
 };
 
 ECBDecryption::ECBDecryption()
-    : m_ECBDecryptionPimpl(new ECBDecryptionImpl()) {}
+    : m_ECBDecryptionPimpl(
+          std::make_unique<ECBDecryptionImpl>()) {}
 
 ECBDecryption::~ECBDecryption() {}
 
@@ -398,12 +400,14 @@ class CBCEncryption::CBCEncryptionImpl {
 };
 
 CBCEncryption::CBCEncryption()
-    : m_CBCEncryptionPimpl(new CBCEncryptionImpl()) {}
+    : m_CBCEncryptionPimpl(
+          std::make_unique<CBCEncryptionImpl>()) {}
 
 CBCEncryption::CBCEncryption(
     const AESKey& key,
     const std::uint8_t* iv)
-    : m_CBCEncryptionPimpl(new CBCEncryptionImpl(key, iv)) {}
+    : m_CBCEncryptionPimpl(
+          std::make_unique<CBCEncryptionImpl>(key, iv)) {}
 
 CBCEncryption::~CBCEncryption() {}
 
@@ -544,12 +548,14 @@ class CBCDecryption::CBCDecryptionImpl {
 };
 
 CBCDecryption::CBCDecryption()
-    : m_CBCDecryptionPimpl(new CBCDecryptionImpl()) {}
+    : m_CBCDecryptionPimpl(
+          std::make_unique<CBCDecryptionImpl>()) {}
 
 CBCDecryption::CBCDecryption(
     const AESKey& key,
     const std::uint8_t* iv)
-    : m_CBCDecryptionPimpl(new CBCDecryptionImpl(key, iv)) {}
+    : m_CBCDecryptionPimpl(
+          std::make_unique<CBCDecryptionImpl>(key, iv)) {}
 
 CBCDecryption::~CBCDecryption() {}
 

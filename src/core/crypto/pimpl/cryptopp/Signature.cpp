@@ -87,7 +87,7 @@ class DSAVerifier::DSAVerifierImpl {
 DSAVerifier::DSAVerifier(
     const std::uint8_t* signing_key)
     : m_DSAVerifierPimpl(
-          new DSAVerifierImpl(signing_key)) {}
+          std::make_unique<DSAVerifierImpl>(signing_key)) {}
 
 DSAVerifier::~DSAVerifier() {}
 
@@ -133,7 +133,7 @@ class DSASigner::DSASignerImpl {
 DSASigner::DSASigner(
     const std::uint8_t* private_signing_key)
     : m_DSASignerPimpl(
-          new DSASignerImpl(private_signing_key)) {}
+          std::make_unique<DSASignerImpl>(private_signing_key)) {}
 
 DSASigner::~DSASigner() {}
 
@@ -296,7 +296,7 @@ class ECDSAP256Verifier::ECDSAP256VerifierImpl
 ECDSAP256Verifier::ECDSAP256Verifier(
     const std::uint8_t* signing_key)
     : m_ECDSAP256VerifierPimpl(
-          new ECDSAP256VerifierImpl(signing_key)) {}
+          std::make_unique<ECDSAP256VerifierImpl>(signing_key)) {}
 
 ECDSAP256Verifier::~ECDSAP256Verifier() {}
 
@@ -323,7 +323,7 @@ class ECDSAP256Signer::ECDSAP256SignerImpl
 ECDSAP256Signer::ECDSAP256Signer(
     const std::uint8_t* private_signing_key)
     : m_ECDSAP256SignerPimpl(
-          new ECDSAP256SignerImpl(private_signing_key)) {}
+          std::make_unique<ECDSAP256SignerImpl>(private_signing_key)) {}
 
 ECDSAP256Signer::~ECDSAP256Signer() {}
 
@@ -366,7 +366,7 @@ class ECDSAP384Verifier::ECDSAP384VerifierImpl
 ECDSAP384Verifier::ECDSAP384Verifier(
     const std::uint8_t* signing_key)
     : m_ECDSAP384VerifierPimpl(
-          new ECDSAP384VerifierImpl(signing_key)) {}
+          std::make_unique<ECDSAP384VerifierImpl>(signing_key)) {}
 
 ECDSAP384Verifier::~ECDSAP384Verifier() {}
 
@@ -393,7 +393,7 @@ class ECDSAP384Signer::ECDSAP384SignerImpl
 ECDSAP384Signer::ECDSAP384Signer(
     const std::uint8_t* private_signing_key)
     : m_ECDSAP384SignerPimpl(
-          new ECDSAP384SignerImpl(private_signing_key)) {}
+          std::make_unique<ECDSAP384SignerImpl>(private_signing_key)) {}
 
 ECDSAP384Signer::~ECDSAP384Signer() {}
 
@@ -435,7 +435,7 @@ class ECDSAP521Verifier::ECDSAP521VerifierImpl
 ECDSAP521Verifier::ECDSAP521Verifier(
     const std::uint8_t* signing_key)
     : m_ECDSAP521VerifierPimpl(
-          new ECDSAP521VerifierImpl(signing_key)) {}
+          std::make_unique<ECDSAP521VerifierImpl>(signing_key)) {}
 
 ECDSAP521Verifier::~ECDSAP521Verifier() {}
 
@@ -462,7 +462,7 @@ class ECDSAP521Signer::ECDSAP521SignerImpl
 ECDSAP521Signer::ECDSAP521Signer(
     const std::uint8_t* private_signing_key)
     : m_ECDSAP521SignerPimpl(
-          new ECDSAP521SignerImpl(private_signing_key)) {}
+          std::make_unique<ECDSAP521SignerImpl>(private_signing_key)) {}
 
 ECDSAP521Signer::~ECDSAP521Signer() {}
 
@@ -602,7 +602,7 @@ class RSASHA2562048Verifier::RSASHA2562048VerifierImpl
 RSASHA2562048Verifier::RSASHA2562048Verifier(
     const std::uint8_t* pubKey)
     : m_RSASHA2562048VerifierPimpl(
-          new RSASHA2562048VerifierImpl(pubKey)) {}
+          std::make_unique<RSASHA2562048VerifierImpl>(pubKey)) {}
 
 RSASHA2562048Verifier::~RSASHA2562048Verifier() {}
 
@@ -626,7 +626,7 @@ class RSASHA2562048Signer::RSASHA2562048SignerImpl
 RSASHA2562048Signer::RSASHA2562048Signer(
     const std::uint8_t* private_key)
     : m_RSASHA2562048SignerPimpl(
-          new RSASHA2562048SignerImpl(private_key)) {}
+          std::make_unique<RSASHA2562048SignerImpl>(private_key)) {}
 
 RSASHA2562048Signer::~RSASHA2562048Signer() {}
 
@@ -656,7 +656,7 @@ class RSASHA3843072Verifier::RSASHA3843072VerifierImpl
 RSASHA3843072Verifier::RSASHA3843072Verifier(
     const std::uint8_t* pubKey)
     : m_RSASHA3843072VerifierPimpl(
-          new RSASHA3843072VerifierImpl(pubKey)) {}
+          std::make_unique<RSASHA3843072VerifierImpl>(pubKey)) {}
 
 RSASHA3843072Verifier::~RSASHA3843072Verifier() {}
 
@@ -677,8 +677,10 @@ class RSASHA3843072Signer::RSASHA3843072SignerImpl
       : RSASigner<CryptoPP::SHA384>(privkey, RSASHA3843072_KEY_LENGTH * 2) {}
 };
 
-RSASHA3843072Signer::RSASHA3843072Signer(const std::uint8_t* private_key)
-    : m_RSASHA3843072SignerPimpl(new RSASHA3843072SignerImpl(private_key)) {}
+RSASHA3843072Signer::RSASHA3843072Signer(
+    const std::uint8_t* private_key)
+    : m_RSASHA3843072SignerPimpl(
+          std::make_unique<RSASHA3843072SignerImpl>(private_key)) {}
 
 RSASHA3843072Signer::~RSASHA3843072Signer() {}
 
@@ -705,8 +707,10 @@ class RSASHA5124096Verifier::RSASHA5124096VerifierImpl
       : RSAVerifier<CryptoPP::SHA512, RSASHA5124096_KEY_LENGTH>(public_key) {}
 };
 
-RSASHA5124096Verifier::RSASHA5124096Verifier(const std::uint8_t* pubKey)
-    : m_RSASHA5124096VerifierPimpl(new RSASHA5124096VerifierImpl(pubKey)) {}
+RSASHA5124096Verifier::RSASHA5124096Verifier(
+    const std::uint8_t* pubKey)
+    : m_RSASHA5124096VerifierPimpl(
+        std::make_unique<RSASHA5124096VerifierImpl>(pubKey)) {}
 
 RSASHA5124096Verifier::~RSASHA5124096Verifier() {}
 
@@ -730,7 +734,7 @@ class RSASHA5124096Signer::RSASHA5124096SignerImpl
 RSASHA5124096Signer::RSASHA5124096Signer(
     const std::uint8_t* private_key)
     : m_RSASHA5124096SignerPimpl(
-          new RSASHA5124096SignerImpl(private_key)) {}
+          std::make_unique<RSASHA5124096SignerImpl>(private_key)) {}
 
 RSASHA5124096Signer::~RSASHA5124096Signer() {}
 
@@ -810,7 +814,7 @@ class RSASHA5124096RawVerifier::RSASHA5124096RawVerifierImpl
 RSASHA5124096RawVerifier::RSASHA5124096RawVerifier(
     const std::uint8_t* signing_key)
     : m_RSASHA5124096RawVerifierPimpl(
-          new RSASHA5124096RawVerifierImpl(signing_key)) {}
+          std::make_unique<RSASHA5124096RawVerifierImpl>(signing_key)) {}
 
 RSASHA5124096RawVerifier::~RSASHA5124096RawVerifier() {}
 

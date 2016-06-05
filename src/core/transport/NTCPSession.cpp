@@ -329,8 +329,8 @@ void NTCPSession::HandlePhase2Received(
       i2p::data::netdb.SetUnreachable(
           GetRemoteIdentity().GetIdentHash(),
           true);
-      transports.ReuseDHKeysPair(m_DHKeysPair);
-      m_DHKeysPair = nullptr;
+      transports.ReuseDHKeysPair(std::move(m_DHKeysPair));
+      m_DHKeysPair.reset(nullptr);
       Terminate();
     }
   } else {
@@ -367,8 +367,8 @@ void NTCPSession::HandlePhase2Received(
       LogPrint(eLogError,
           "NTCPSession:", GetFormattedSessionInfo(),
           "!!! Phase2, incorrect hash");
-      transports.ReuseDHKeysPair(m_DHKeysPair);
-      m_DHKeysPair = nullptr;
+      transports.ReuseDHKeysPair(std::move(m_DHKeysPair));
+      m_DHKeysPair.reset(nullptr);
       Terminate();
       return;
     }
@@ -772,8 +772,7 @@ void NTCPSession::Connected() {
       "*** processing connected session");
   m_IsEstablished = true;
   m_Establisher.reset(nullptr);
-  delete m_DHKeysPair;
-  m_DHKeysPair = nullptr;
+  m_DHKeysPair.reset(nullptr);
   SendTimeSyncMessage();
   // We tell immediately who we are
   m_SendQueue.push_back(CreateDatabaseStoreMsg());
@@ -803,7 +802,7 @@ void NTCPSession::HandleReceivedPayload(
   if (ecode) {
     LogPrint(eLogError,
         "NTCPSession:", GetFormattedSessionInfo(),
-        "!!! HandleReceived(): '", ecode.message(), "'");
+        "!!! HandleReceivedPayload(): '", ecode.message(), "'");
     if (!m_NumReceivedBytes) {
       // Ban peer
       LogPrint(eLogInfo,
@@ -850,7 +849,7 @@ void NTCPSession::HandleReceivedPayload(
             if (ec) {
               LogPrint(eLogError,
                   "NTCPSession:", GetFormattedSessionInfo(),
-                  "!!! HandleReceived(): read more bytes error '",
+                  "!!! HandleReceivedPayload(): read more bytes error '",
                   ec.message(), "'");
               Terminate();
               return;
@@ -1120,7 +1119,7 @@ void NTCPSession::Terminate() {
     transports.PeerDisconnected(shared_from_this());
     m_Server.RemoveNTCPSession(shared_from_this());
     m_SendQueue.clear();
-    m_NextMessage.reset();
+    m_NextMessage = nullptr;
     m_TerminationTimer.cancel();
     LogPrint(eLogInfo,
         "NTCPSession:", GetFormattedSessionInfo(), "*** session terminated");

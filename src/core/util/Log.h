@@ -137,7 +137,7 @@ class LogStreamImpl : public std::streambuf {
 
  private:
   void Flush();
-  std::stringbuf* m_Str;
+  std::unique_ptr<std::stringbuf> m_Str;
   std::mutex& m_Access;
   log_t& m_Log;
   LogLevel m_Level;

@@ -75,7 +75,7 @@ GarlicRoutingSession::GarlicRoutingSession(
   memcpy(m_SessionKey, sessionKey, 32);
   m_Encryption.SetKey(m_SessionKey);
   m_SessionTags.push_back(sessionTag);
-  m_SessionTags.back().creationTime = i2p::util::GetSecondsSinceEpoch();
+  m_SessionTags.back().creation_time = i2p::util::GetSecondsSinceEpoch();
 }
 
 GarlicRoutingSession::~GarlicRoutingSession() {
@@ -87,10 +87,10 @@ GarlicRoutingSession::~GarlicRoutingSession() {
 GarlicRoutingSession::UnconfirmedTags*
 GarlicRoutingSession::GenerateSessionTags() {
   auto tags = new UnconfirmedTags(m_NumTags);
-  tags->tagsCreationTime = i2p::util::GetSecondsSinceEpoch();
+  tags->tags_creation_time = i2p::util::GetSecondsSinceEpoch();
   for (int i = 0; i < m_NumTags; i++) {
-    i2p::crypto::RandBytes(tags->sessionTags[i], 32);
-    tags->sessionTags[i].creationTime = tags->tagsCreationTime;
+    i2p::crypto::RandBytes(tags->session_tags[i], 32);
+    tags->session_tags[i].creation_time = tags->tags_creation_time;
   }
   return tags;
 }
@@ -110,9 +110,9 @@ void GarlicRoutingSession::TagsConfirmed(uint32_t msgID) {
   if (it != m_UnconfirmedTagsMsgs.end()) {
     uint32_t ts = i2p::util::GetSecondsSinceEpoch();
     UnconfirmedTags * tags = it->second;
-    if (ts < tags->tagsCreationTime + OUTGOING_TAGS_EXPIRATION_TIMEOUT) {
-      for (int i = 0; i < tags->numTags; i++)
-        m_SessionTags.push_back(tags->sessionTags[i]);
+    if (ts < tags->tags_creation_time + OUTGOING_TAGS_EXPIRATION_TIMEOUT) {
+      for (int i = 0; i < tags->num_tags; i++)
+        m_SessionTags.push_back(tags->session_tags[i]);
     }
     m_UnconfirmedTagsMsgs.erase(it);
     delete tags;
@@ -122,7 +122,7 @@ void GarlicRoutingSession::TagsConfirmed(uint32_t msgID) {
 bool GarlicRoutingSession::CleanupExpiredTags() {
   uint32_t ts = i2p::util::GetSecondsSinceEpoch();
   for (auto it = m_SessionTags.begin(); it != m_SessionTags.end();) {
-    if (ts >= it->creationTime + OUTGOING_TAGS_EXPIRATION_TIMEOUT)
+    if (ts >= it->creation_time + OUTGOING_TAGS_EXPIRATION_TIMEOUT)
       it = m_SessionTags.erase(it);
     else
       it++;
@@ -130,7 +130,7 @@ bool GarlicRoutingSession::CleanupExpiredTags() {
   // delete expired unconfirmed tags
   for (auto it = m_UnconfirmedTagsMsgs.begin();
       it != m_UnconfirmedTagsMsgs.end();) {
-    if (ts >= it->second->tagsCreationTime + OUTGOING_TAGS_EXPIRATION_TIMEOUT) {
+    if (ts >= it->second->tags_creation_time + OUTGOING_TAGS_EXPIRATION_TIMEOUT) {
       if (m_Owner)
         m_Owner->RemoveCreatedSession(it->first);
       delete it->second;
@@ -154,7 +154,7 @@ std::shared_ptr<I2NPMessage> GarlicRoutingSession::WrapSingleMessage(
   if (m_NumTags > 0) {
     uint32_t ts = i2p::util::GetSecondsSinceEpoch();
     while (!m_SessionTags.empty()) {
-      if (ts < m_SessionTags.front().creationTime +
+      if (ts < m_SessionTags.front().creation_time +
           OUTGOING_TAGS_EXPIRATION_TIMEOUT) {
         tag = m_SessionTags.front();
         m_SessionTags.pop_front();  // use same tag only once
@@ -176,10 +176,10 @@ std::shared_ptr<I2NPMessage> GarlicRoutingSession::WrapSingleMessage(
     }
     // create ElGamal block
     ElGamalBlock elGamal;
-    memcpy(elGamal.sessionKey, m_SessionKey, 32);
-    i2p::crypto::RandBytes(elGamal.preIV, 32);  // Pre-IV
+    memcpy(elGamal.session_key, m_SessionKey, 32);
+    i2p::crypto::RandBytes(elGamal.pre_IV, 32);  // Pre-IV
     uint8_t iv[32];  // IV is first 16 bytes
-    i2p::crypto::SHA256().CalculateDigest(iv, elGamal.preIV, 32);
+    i2p::crypto::SHA256().CalculateDigest(iv, elGamal.pre_IV, 32);
     m_Destination->GetElGamalEncryption()->Encrypt(
         reinterpret_cast<uint8_t *>(&elGamal), sizeof(elGamal), buf, true);
     m_Encryption.SetIV(iv);
@@ -210,11 +210,11 @@ size_t GarlicRoutingSession::CreateAESBlock(
     m_Owner && m_NumTags &&
     (static_cast<int>(m_SessionTags.size()) <= m_NumTags*2/3);
   UnconfirmedTags* newTags = createNewTags ? GenerateSessionTags() : nullptr;
-  htobuf16(buf, newTags ? htobe16(newTags->numTags) : 0);  // tag count
+  htobuf16(buf, newTags ? htobe16(newTags->num_tags) : 0);  // tag count
   blockSize += 2;
   if (newTags) {  // session tags recreated
-    for (int i = 0; i < newTags->numTags; i++) {
-      memcpy(buf + blockSize, newTags->sessionTags[i], 32);  // tags
+    for (int i = 0; i < newTags->num_tags; i++) {
+      memcpy(buf + blockSize, newTags->session_tags[i], 32);  // tags
       blockSize += 32;
     }
   }
@@ -425,9 +425,9 @@ void GarlicDestination::HandleGarlicMessage(
             reinterpret_cast<std::uint8_t *>(&elGamal),
             true)) {
       auto decryption = std::make_shared<i2p::crypto::CBCDecryption>();
-      decryption->SetKey(elGamal.sessionKey);
+      decryption->SetKey(elGamal.session_key);
       uint8_t iv[32];  // IV is first 16 bytes
-      i2p::crypto::SHA256().CalculateDigest(iv, elGamal.preIV, 32);
+      i2p::crypto::SHA256().CalculateDigest(iv, elGamal.pre_IV, 32);
       decryption->SetIV(iv);
       decryption->Decrypt(buf + 514, length - 514, buf + 514);
       HandleAESBlock(buf + 514, length - 514, decryption, msg->from);
@@ -441,7 +441,7 @@ void GarlicDestination::HandleGarlicMessage(
     if (m_LastTagsCleanupTime) {
       int numExpiredTags = 0;
       for (auto it = m_Tags.begin(); it != m_Tags.end();) {
-        if (ts > it->first.creationTime + INCOMING_TAGS_EXPIRATION_TIMEOUT) {
+        if (ts > it->first.creation_time + INCOMING_TAGS_EXPIRATION_TIMEOUT) {
           numExpiredTags++;
           it = m_Tags.erase(it);
         } else {

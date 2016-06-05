@@ -191,7 +191,7 @@ void RouterContext::SetUnreachable() {
   // remove NTCP address
   auto& addresses = m_RouterInfo.GetAddresses();
   for (size_t i = 0; i < addresses.size(); i++) {
-    if (addresses[i].transportStyle == i2p::data::RouterInfo::eTransportNTCP) {
+    if (addresses[i].transport_style == i2p::data::RouterInfo::eTransportNTCP) {
       addresses.erase(addresses.begin() + i);
       break;
     }
@@ -216,7 +216,7 @@ void RouterContext::SetReachable() {
   // insert NTCP back
   auto& addresses = m_RouterInfo.GetAddresses();
   for (size_t i = 0; i < addresses.size(); i++) {
-    if (addresses[i].transportStyle == i2p::data::RouterInfo::eTransportSSU) {
+    if (addresses[i].transport_style == i2p::data::RouterInfo::eTransportSSU) {
       // insert NTCP address with host/port form SSU
       m_RouterInfo.AddNTCPAddress(
           addresses[i].host.to_string().c_str(),
@@ -248,7 +248,7 @@ void RouterContext::UpdateNTCPV6Address(
   auto& addresses = m_RouterInfo.GetAddresses();
   for (auto& addr : addresses) {
     if (addr.host.is_v6() &&
-        addr.transportStyle == i2p::data::RouterInfo::eTransportNTCP) {
+        addr.transport_style == i2p::data::RouterInfo::eTransportNTCP) {
       if (addr.host != host) {
         addr.host = host;
         updated = true;
@@ -319,22 +319,22 @@ void RouterContext::SaveKeys() {
       std::ofstream::binary | std::ofstream::out);
   i2p::data::Keys keys;
   memcpy(
-      keys.privateKey,
+      keys.private_key,
       m_Keys.GetPrivateKey(),
-      sizeof(keys.privateKey));
+      sizeof(keys.private_key));
   memcpy(
-      keys.signingPrivateKey,
+      keys.signing_private_key,
       m_Keys.GetSigningPrivateKey(),
-      sizeof(keys.signingPrivateKey));
+      sizeof(keys.signing_private_key));
   auto& ident = GetIdentity().GetStandardIdentity();
   memcpy(
-      keys.publicKey,
-      ident.publicKey,
-      sizeof(keys.publicKey));
+      keys.public_key,
+      ident.public_key,
+      sizeof(keys.public_key));
   memcpy(
-      keys.signingKey,
-      ident.signingKey,
-      sizeof(keys.signingKey));
+      keys.signing_key,
+      ident.signing_key,
+      sizeof(keys.signing_key));
   fk.write(reinterpret_cast<char *>(&keys), sizeof(keys));
 }
 

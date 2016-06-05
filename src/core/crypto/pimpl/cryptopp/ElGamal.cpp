@@ -108,7 +108,8 @@ class ElGamalEncryption::ElGamalEncryptionImpl {
 
 ElGamalEncryption::ElGamalEncryption(
     const std::uint8_t* key)
-    : m_ElGamalEncryptionPimpl(new ElGamalEncryptionImpl(key)) {}
+    : m_ElGamalEncryptionPimpl(
+          std::make_unique<ElGamalEncryptionImpl>(key)) {}
 
 ElGamalEncryption::~ElGamalEncryption() {}
 

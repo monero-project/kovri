@@ -35,24 +35,25 @@
 
 #include <inttypes.h>
 #include <string.h>
+
+#include <memory>
 #include <vector>
+
 #include "Identity.h"
 
 namespace i2p {
-namespace tunnel {
-class TunnelPool;
-}
+namespace tunnel { class TunnelPool; }
 namespace data {
 
 struct Lease {
-  IdentHash tunnelGateway;
-  uint32_t tunnelID;
-  uint64_t endDate;
-  bool operator< (const Lease& other) const {
-    if (endDate != other.endDate)
-      return endDate > other.endDate;
+  IdentHash tunnel_gateway;
+  uint32_t tunnel_ID;
+  uint64_t end_date;
+  bool operator<(const Lease& other) const {
+    if (end_date != other.end_date)
+      return end_date > other.end_date;
     else
-      return tunnelID < other.tunnelID;
+      return tunnel_ID < other.tunnel_ID;
   }
 };
 
@@ -63,9 +64,11 @@ class LeaseSet : public RoutingDestination {
   LeaseSet(
       const uint8_t* buf,
       size_t len);
+
   explicit LeaseSet(
       const i2p::tunnel::TunnelPool& pool);
-  ~LeaseSet() { delete[] m_Buffer; }
+
+  ~LeaseSet() {}
 
   void Update(
       const uint8_t* buf,
@@ -76,7 +79,8 @@ class LeaseSet : public RoutingDestination {
   }
 
   const uint8_t* GetBuffer() const {
-    return m_Buffer;
+    const auto buf = m_Buffer.get();
+    return buf;
   }
 
   size_t GetBufferLen() const {
@@ -97,7 +101,7 @@ class LeaseSet : public RoutingDestination {
   }
 
   const std::vector<Lease> GetNonExpiredLeases(
-      bool withThreshold = true) const;
+      bool with_threshold = true) const;
 
   bool HasExpiredLeases() const;
 
@@ -119,7 +123,7 @@ class LeaseSet : public RoutingDestination {
   std::vector<Lease> m_Leases;
   IdentityEx m_Identity;
   uint8_t m_EncryptionKey[256];
-  uint8_t* m_Buffer;
+  std::unique_ptr<std::uint8_t[]> m_Buffer;
   size_t m_BufferLen;
 };
 

@@ -226,7 +226,7 @@ void SSUData::ProcessFragments(
           std::make_pair(
             msgID,
             std::unique_ptr<IncompleteMessage>(
-              new IncompleteMessage(msg)))).first;
+                std::make_unique<IncompleteMessage>(msg)))).first;
     }
     std::unique_ptr<IncompleteMessage>& incompleteMessage = it->second;
     // handle current fragment
@@ -269,9 +269,9 @@ void SSUData::ProcessFragments(
             static_cast<int>(incompleteMessage->nextFragmentNum),
             " to ", fragmentNum - 1, " of message ", msgID);
         auto savedFragment =
-          new Fragment(fragmentNum, buf, fragmentSize, isLast);
+          std::make_unique<Fragment>(fragmentNum, buf, fragmentSize, isLast);
         if (incompleteMessage->savedFragments.insert(
-              std::unique_ptr<Fragment>(savedFragment)).second)
+              std::unique_ptr<Fragment>(std::move(savedFragment))).second)
           incompleteMessage->lastFragmentInsertTime =
             i2p::util::GetSecondsSinceEpoch();
         else
@@ -383,7 +383,7 @@ void SSUData::Send(
   auto ret = m_SentMessages.insert(
       std::make_pair(
         msgID,
-        std::unique_ptr<SentMessage>(new SentMessage)));
+        std::unique_ptr<SentMessage>(std::make_unique<SentMessage>())));
   std::unique_ptr<SentMessage>& sentMessage = ret.first->second;
   if (ret.second) {
     sentMessage->nextResendTime =
@@ -397,7 +397,7 @@ void SSUData::Send(
   uint8_t* msgBuf = msg->GetSSUHeader();
   uint32_t fragmentNum = 0;
   while (len > 0) {
-    Fragment* fragment = new Fragment;
+    auto fragment = std::make_unique<Fragment>();
     fragment->fragmentNum = fragmentNum;
     uint8_t* buf = fragment->buf;
     uint8_t* payload = buf + SSU_HEADER_SIZE_MIN;
@@ -421,7 +421,7 @@ void SSUData::Send(
     if (size & 0x0F)  // make sure 16 bytes boundary
       size = ((size >> 4) + 1) << 4;  // (/16 + 1)*16
     fragment->len = size;
-    fragments.push_back(std::unique_ptr<Fragment> (fragment));
+    fragments.push_back(std::unique_ptr<Fragment>(std::move(fragment)));
     // encrypt message with session key
     m_Session.FillHeaderAndEncrypt(PAYLOAD_TYPE_DATA, buf, size);
     try {

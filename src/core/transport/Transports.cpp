@@ -449,6 +449,7 @@ void Transports::HandleNTCPResolve(
   }
 }
 
+// TODO(unassigned): why is this never called anywhere?
 void Transports::CloseSession(
     std::shared_ptr<const i2p::data::RouterInfo> router) {
   if (!router)
@@ -474,7 +475,14 @@ void Transports::PostCloseSession(
         "Transports: SSU session [",
         router->GetIdentHashAbbreviation(), "] closed");
   }
-  // TODO(unassigned): delete NTCP
+  auto ntcp_session =
+    m_NTCPServer ? m_NTCPServer->FindNTCPSession(router->GetIdentHash()) : nullptr;
+  if (ntcp_session) {
+    m_NTCPServer->RemoveNTCPSession(ntcp_session);
+    LogPrint(eLogInfo,
+        "Transports: NTCP session [",
+        router->GetIdentHashAbbreviation(), "] closed");
+  }
 }
 
 void Transports::DetectExternalIP() {

@@ -111,7 +111,7 @@ class AddressBook {
   std::unique_ptr<const i2p::data::IdentHash> FindAddress(
       const std::string& address);
 
-  std::shared_ptr<ClientDestination> getSharedLocalDestination() const;
+  std::shared_ptr<ClientDestination> GetSharedLocalDestination() const;
 
   // for jump service
   void InsertAddress(
@@ -121,8 +121,11 @@ class AddressBook {
   void InsertAddress(
       const i2p::data::IdentityEx& address);
 
-  void LoadHostsFromStream(std::istream& f);
-  void DownloadComplete(bool success);
+  void LoadHostsFromStream(
+      std::istream& f);
+
+  void DownloadComplete(
+      bool success);
 
   // This method returns the ".b32.i2p" address
   std::string ToAddress(

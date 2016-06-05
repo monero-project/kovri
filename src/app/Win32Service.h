@@ -66,6 +66,7 @@ class I2PService {
       BOOL fCanStop = TRUE,
       BOOL fCanShutdown = TRUE,
       BOOL fCanPauseContinue = FALSE);
+
   virtual ~I2PService(void);
 
   static BOOL isService();
@@ -98,15 +99,15 @@ class I2PService {
   void Pause();
   void Continue();
   void Shutdown();
-  static I2PService* s_service;
-  PSTR m_name;
-  SERVICE_STATUS m_status;
-  SERVICE_STATUS_HANDLE m_statusHandle;
+  static I2PService* m_Service;
+  PSTR m_Name;
+  SERVICE_STATUS m_Status;
+  SERVICE_STATUS_HANDLE m_StatusHandle;
 
-  BOOL m_fStopping;
-  HANDLE m_hStoppedEvent;
+  BOOL m_Stopping;
+  HANDLE m_StoppedEvent;
 
-  std::unique_ptr<std::thread> _worker;
+  std::unique_ptr<std::thread> m_Worker;
 };
 
 void InstallService(

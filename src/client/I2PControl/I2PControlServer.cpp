@@ -52,20 +52,19 @@ I2PControlService::I2PControlService(
   const std::string& address,
   int port,
   const std::string& password)
-    : m_Session(
-        std::make_shared<I2PControlSession>(
-          service,
-          password)),
+    : m_Session(std::make_shared<I2PControlSession>(service, password)),
       m_IsRunning(false),
       m_Thread(nullptr),
       m_Service(service),
       m_Acceptor(
-          service, boost::asio::ip::tcp::endpoint(
-              boost::asio::ip::address::from_string(
-                  address),
+          service,
+          boost::asio::ip::tcp::endpoint(
+              boost::asio::ip::address::from_string(address),
               port)) {}
 
-I2PControlService::~I2PControlService() { Stop(); }
+I2PControlService::~I2PControlService() {
+  Stop();
+}
 
 void I2PControlService::Start() {
   if (!m_IsRunning) {
@@ -74,8 +73,8 @@ void I2PControlService::Start() {
     m_IsRunning = true;
     m_Thread = std::make_unique<std::thread>(
         std::bind(
-          &I2PControlService::Run,
-          this));
+            &I2PControlService::Run,
+            this));
   }
 }
 
@@ -104,16 +103,15 @@ void I2PControlService::Run() {
 }
 
 void I2PControlService::Accept() {
-  auto newSocket =
-    std::make_shared<boost::asio::ip::tcp::socket>(
-        m_Service);
+  auto new_socket =
+    std::make_shared<boost::asio::ip::tcp::socket>(m_Service);
   m_Acceptor.async_accept(
-      *newSocket,
+      *new_socket,
       std::bind(
-        &I2PControlService::HandleAccept,
-        this,
-        std::placeholders::_1,
-        newSocket));
+          &I2PControlService::HandleAccept,
+          this,
+          std::placeholders::_1,
+          new_socket));
 }
 
 void I2PControlService::HandleAccept(
@@ -143,12 +141,12 @@ void I2PControlService::ReadRequest(
   boost::asio::buffer(request->data(), request->size()),
 #endif
   std::bind(
-    &I2PControlService::HandleRequestReceived,
-    this,
-    std::placeholders::_1,
-    std::placeholders::_2,
-    socket,
-    request));
+      &I2PControlService::HandleRequestReceived,
+      this,
+      std::placeholders::_1,
+      std::placeholders::_2,
+      socket,
+      request));
 }
 
 void I2PControlService::HandleRequestReceived(
@@ -161,10 +159,10 @@ void I2PControlService::HandleRequestReceived(
     return;
   }
   try {
-    bool isHtml = !memcmp(buf->data(), "POST", 4);
+    bool is_html = !memcmp(buf->data(), "POST", 4);
     std::stringstream ss;
     ss.write(buf->data(), bytes_transferred);
-    if (isHtml) {
+    if (is_html) {
       std::string header;
       while (!ss.eof() && header != "\r")
         std::getline(ss, header);
@@ -177,7 +175,7 @@ void I2PControlService::HandleRequestReceived(
     }
     I2PControlSession::Response response =
       m_Session->HandleRequest(ss);
-    SendResponse(socket, buf, response.ToJsonString(), isHtml);
+    SendResponse(socket, buf, response.ToJsonString(), is_html);
   } catch (const std::exception& ex) {
     LogPrint(eLogError,
         "I2PControlService: handle request exception: ", ex.what());
@@ -191,22 +189,19 @@ void I2PControlService::SendResponse(
     std::shared_ptr<boost::asio::ip::tcp::socket> socket,
     std::shared_ptr<I2PControlBuffer> buf,
     const std::string& response,
-    bool isHtml) {
+    bool is_html) {
   size_t len = response.length(), offset = 0;
-  if (isHtml) {
+  if (is_html) {
     std::ostringstream header;
     header << "HTTP/1.1 200 OK\r\n";
     header << "Connection: close\r\n";
     header << "Content-Length: "
-      << boost::lexical_cast<std::string>(len) << "\r\n";
+           << boost::lexical_cast<std::string>(len) << "\r\n";
     header << "Content-Type: application/json\r\n";
     header << "Date: ";
     auto facet = new boost::local_time::local_time_facet(
         "%a, %d %b %Y %H:%M:%S GMT");
-    header.imbue(
-        std::locale(
-          header.getloc(),
-          facet));
+    header.imbue(std::locale(header.getloc(), facet));
     header << boost::posix_time::second_clock::local_time() << "\r\n";
     header << "\r\n";
     offset = header.str().size();
@@ -216,16 +211,16 @@ void I2PControlService::SendResponse(
   boost::asio::async_write(
       *socket,
       boost::asio::buffer(
-        buf->data(),
-        offset + len),
+          buf->data(),
+          offset + len),
       boost::asio::transfer_all(),
       std::bind(
-        &I2PControlService::HandleResponseSent,
-        this,
-        std::placeholders::_1,
-        std::placeholders::_2,
-        socket,
-        buf));
+          &I2PControlService::HandleResponseSent,
+          this,
+          std::placeholders::_1,
+          std::placeholders::_2,
+          socket,
+          buf));
 }
 
 void I2PControlService::HandleResponseSent(

@@ -163,7 +163,7 @@ void Transports::Start() {
   auto addresses = context.GetRouterInfo().GetAddresses();
   for (auto& address : addresses) {
     LogPrint("Transports: creating servers for address ", address.host);
-    if (address.transportStyle ==
+    if (address.transport_style ==
         i2p::data::RouterInfo::eTransportNTCP && address.host.is_v4()) {
       if (!m_NTCPServer) {
         LogPrint(eLogInfo, "Transports: TCP listening on port ", address.port);
@@ -173,7 +173,7 @@ void Transports::Start() {
         LogPrint(eLogError, "Transports: TCP server already exists");
       }
     }
-    if (address.transportStyle ==
+    if (address.transport_style ==
         i2p::data::RouterInfo::eTransportSSU && address.host.is_v4()) {
       if (!m_SSUServer) {
         LogPrint(eLogInfo, "Transports: UDP listening on port ", address.port);
@@ -339,10 +339,10 @@ bool Transports::ConnectToPeer(
             return true;
           }
         } else {  // we don't have address
-          if (address->addressString.length() > 0) {  // trying to resolve
+          if (address->address_string.length() > 0) {  // trying to resolve
             LogPrint(eLogInfo,
-                "Transports: NTCP resolving ", address->addressString);
-            NTCPResolve(address->addressString, ident);
+                "Transports: NTCP resolving ", address->address_string);
+            NTCPResolve(address->address_string, ident);
             return true;
           }
         }

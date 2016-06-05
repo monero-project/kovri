@@ -59,6 +59,7 @@ class I2PControlService {
       const std::string& address,
       int port,
       const std::string& password);
+
   ~I2PControlService();
 
   void Start();

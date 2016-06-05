@@ -71,16 +71,14 @@ class ClientContext {
   }
 
   std::shared_ptr<ClientDestination> CreateNewLocalDestination(
-      bool isPublic = false,
+      bool is_public = false,
       i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_DSA_SHA1,
-      const std::map<std::string,
-      std::string>* params = nullptr);  // transient
+      const std::map<std::string, std::string>* params = nullptr);  // transient
 
   std::shared_ptr<ClientDestination> CreateNewLocalDestination(
       const i2p::data::PrivateKeys& keys,
-      bool isPublic = true,
-      const std::map<std::string,
-      std::string>* params = nullptr);
+      bool is_public = true,
+      const std::map<std::string, std::string>* params = nullptr);
 
   void DeleteLocalDestination(
       std::shared_ptr<ClientDestination> destination);
@@ -91,20 +89,26 @@ class ClientContext {
   /// @brief Loads the private keys from the given file
   /// @param file the relative name of the private key file
   /// @return the loaded private keys
-  i2p::data::PrivateKeys LoadPrivateKeys(const std::string& file);
+  i2p::data::PrivateKeys LoadPrivateKeys(
+      const std::string& file);
 
   std::shared_ptr<ClientDestination> LoadLocalDestination(
-      const std::string& filename, bool isPublic);
+      const std::string& filename,
+      bool is_public);
 
-  AddressBook& GetAddressBook() { return m_AddressBook; }
+  AddressBook& GetAddressBook() {
+    return m_AddressBook;
+  }
 
   /// @brief Removes all server unnels satisfying the given predicate
   /// @param predicate a unary predicate used to filter server tunnels
-  void RemoveServerTunnels(std::function<bool(I2PServerTunnel*)> predicate);
+  void RemoveServerTunnels(
+      std::function<bool(I2PServerTunnel*)> predicate);
 
   /// @brief Removes all client tunnels satisfying the given predicate
   /// @param predicate a unary predicate used to filter client tunnels
-  void RemoveClientTunnels(std::function<bool(I2PClientTunnel*)> predicate);
+  void RemoveClientTunnels(
+      std::function<bool(I2PClientTunnel*)> predicate);
 
   /// @brief Updates or creates the specified server tunnel
   /// @param keyfile the relative filename of the key file
@@ -135,45 +139,50 @@ class ClientContext {
 
   /// @brief Inserts a client tunnel.
   /// @return true if the tunnel was inserted, false otherwise
-  bool InsertClientTunnel(int port, std::unique_ptr<I2PClientTunnel> tunnel);
+  bool InsertClientTunnel(
+      int port,
+      std::unique_ptr<I2PClientTunnel> tunnel);
 
-  /// Inserts a server tunnel.
+  /// @brief Inserts a server tunnel.
   /// @return true if the tunnel was inserted, false otherwise
   bool InsertServerTunnel(
       const i2p::data::IdentHash& id,
       std::unique_ptr<I2PServerTunnel> tunnel);
 
-  /// Sets the I2PControl service
+  /// @brief Sets the I2PControl service
   /// @param service a pointer to the I2PControlService
   void SetI2PControlService(
       std::unique_ptr<i2p::client::i2pcontrol::I2PControlService> service);
 
-  /// Sets the HTTP proxy.
+  /// @brief Sets the HTTP proxy.
   /// @param proxy a pointer to the HTTPProxy
   void SetHTTPProxy(std::unique_ptr<i2p::proxy::HTTPProxy> proxy);
 
-  /// Sets the SOCKS proxy.
+  /// @brief Sets the SOCKS proxy.
   /// @param proxy a pointer to the SOCKSProxy
   void SetSOCKSProxy(std::unique_ptr<i2p::proxy::SOCKSProxy> proxy);
 
   /// @return the client tunnel with the given name, or nullptr
-  std::unique_ptr<I2PServerTunnel> GetServerTunnel(const std::string& name);
+  std::unique_ptr<I2PServerTunnel> GetServerTunnel(
+      const std::string& name);
 
   /// @return the server tunnel with the given identity hash, or nullptr
-  std::unique_ptr<I2PServerTunnel> GetServerTunnel(const i2p::data::IdentHash& id);
+  std::unique_ptr<I2PServerTunnel> GetServerTunnel(
+      const i2p::data::IdentHash& id);
 
   /// @return the client tunnel with the given name, or nullptr
-  std::unique_ptr<I2PClientTunnel> GetClientTunnel(const std::string& name);
+  std::unique_ptr<I2PClientTunnel> GetClientTunnel(
+      const std::string& name);
 
   /// @return the client tunnel with the given (local) port
-  std::unique_ptr<I2PClientTunnel> GetClientTunnel(int port);
+  std::unique_ptr<I2PClientTunnel> GetClientTunnel(
+      int port);
 
   boost::asio::io_service& GetIoService();
 
  private:
   std::mutex m_DestinationsMutex;
-  std::map<i2p::data::IdentHash, std::shared_ptr<ClientDestination> >
-    m_Destinations;
+  std::map<i2p::data::IdentHash, std::shared_ptr<ClientDestination>> m_Destinations;
   std::shared_ptr<ClientDestination> m_SharedLocalDestination;
 
   AddressBook m_AddressBook;
@@ -182,33 +191,25 @@ class ClientContext {
   std::unique_ptr<i2p::proxy::SOCKSProxy> m_SocksProxy;
 
   std::mutex m_ClientMutex;
-  std::map<int, std::unique_ptr<I2PClientTunnel> >
-    m_ClientTunnels;  // port->tunnel
+  // port->tunnel
+  std::map<int, std::unique_ptr<I2PClientTunnel>> m_ClientTunnels;
 
   std::mutex m_ServerMutex;
-  std::map<i2p::data::IdentHash, std::unique_ptr<I2PServerTunnel> >
-    m_ServerTunnels;  // destination->tunnel
+  // destination->tunnel
+  std::map<i2p::data::IdentHash, std::unique_ptr<I2PServerTunnel>> m_ServerTunnels;
 
 
   // types for accessing client / server tunnel map entries
-  typedef std::pair<const int, std::unique_ptr<I2PClientTunnel> >
-    ClientTunnelEntry;
-  typedef std::pair<
-      const i2p::data::IdentHash,
-      std::unique_ptr<I2PServerTunnel>
-    >ServerTunnelEntry;
+  typedef std::pair<const int,
+                    std::unique_ptr<I2PClientTunnel>> ClientTunnelEntry;
+
+  typedef std::pair<const i2p::data::IdentHash,
+                    std::unique_ptr<I2PServerTunnel>> ServerTunnelEntry;
 
   boost::asio::io_service m_Service;
-
   std::unique_ptr<i2pcontrol::I2PControlService> m_I2PControlService;
 
   std::function<void(void)> m_ShutdownHandler;
-
- public:
-  // for HTTP
-  const decltype(m_Destinations)& GetDestinations() const {
-    return m_Destinations;
-  }
 };
 
 extern ClientContext context;

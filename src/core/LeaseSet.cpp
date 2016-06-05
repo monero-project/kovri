@@ -136,18 +136,18 @@ void LeaseSet::ReadFromBuffer() {
   const uint8_t* leases = m_Buffer.get() + size;
   for (int i = 0; i < num; i++) {
     Lease lease;
-    lease.tunnelGateway = leases;
+    lease.tunnel_gateway = leases;
     leases += 32;  // gateway
-    lease.tunnelID = bufbe32toh(leases);
+    lease.tunnel_ID = bufbe32toh(leases);
     leases += 4;  // tunnel ID
-    lease.endDate = bufbe64toh(leases);
+    lease.end_date = bufbe64toh(leases);
     leases += 8;  // end date
     m_Leases.push_back(lease);
     // check if lease's gateway is in our netDb
-    if (!netdb.FindRouter(lease.tunnelGateway)) {
+    if (!netdb.FindRouter(lease.tunnel_gateway)) {
       // if not found request it
       LogPrint(eLogInfo, "LeaseSet: lease's tunnel gateway not found, requesting");
-      netdb.RequestDestination(lease.tunnelGateway);
+      netdb.RequestDestination(lease.tunnel_gateway);
     }
   }
   // verify
@@ -158,14 +158,14 @@ void LeaseSet::ReadFromBuffer() {
 }
 
 const std::vector<Lease> LeaseSet::GetNonExpiredLeases(
-    bool withThreshold) const {
+    bool with_threshold) const {
   auto ts = i2p::util::GetMillisecondsSinceEpoch();
   std::vector<Lease> leases;
   for (auto& it : m_Leases) {
-    auto endDate = it.endDate;
-    if (!withThreshold)
-      endDate -= i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD * 1000;
-    if (ts < endDate)
+    auto end_date = it.end_date;
+    if (!with_threshold)
+      end_date -= i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD * 1000;
+    if (ts < end_date)
       leases.push_back(it);
   }
   return leases;
@@ -174,7 +174,7 @@ const std::vector<Lease> LeaseSet::GetNonExpiredLeases(
 bool LeaseSet::HasExpiredLeases() const {
   auto ts = i2p::util::GetMillisecondsSinceEpoch();
   for (auto& it : m_Leases)
-    if (ts >= it.endDate)
+    if (ts >= it.end_date)
       return true;
   return false;
 }
@@ -182,7 +182,7 @@ bool LeaseSet::HasExpiredLeases() const {
 bool LeaseSet::HasNonExpiredLeases() const {
   auto ts = i2p::util::GetMillisecondsSinceEpoch();
   for (auto& it : m_Leases)
-    if (ts < it.endDate)
+    if (ts < it.end_date)
       return true;
   return false;
 }

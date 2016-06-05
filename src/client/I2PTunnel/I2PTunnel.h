@@ -62,13 +62,15 @@ class I2PTunnelConnection
   I2PTunnelConnection(
       I2PService* owner,
       std::shared_ptr<boost::asio::ip::tcp::socket> socket,
-      std::shared_ptr<const i2p::data::LeaseSet> leaseSet,
+      std::shared_ptr<const i2p::data::LeaseSet> lease_set,
       int port = 0);
+
   // To I2P using simplified API
   I2PTunnelConnection(
       I2PService* owner,
       std::shared_ptr<boost::asio::ip::tcp::socket> socket,
       std::shared_ptr<i2p::stream::Stream> stream);
+
   // From I2P
   I2PTunnelConnection(
       I2PService* owner,
@@ -76,6 +78,7 @@ class I2PTunnelConnection
       std::shared_ptr<boost::asio::ip::tcp::socket> socket,
       const boost::asio::ip::tcp::endpoint& target,
       bool quiet = true);
+
   ~I2PTunnelConnection();
 
   void I2PConnect(
@@ -130,7 +133,9 @@ class I2PTunnelConnectionHTTP: public I2PTunnelConnection {
       const std::string& host);
 
  protected:
-  void Write(const uint8_t * buf, size_t len);
+  void Write(
+      const uint8_t* buf,
+      size_t len);
 
  private:
   std::string m_Host;

@@ -46,36 +46,52 @@
 namespace i2p {
 namespace data {
 
+// TODO(anonimal): review/consider moving this class into core/util
 template<int Size>
-class Tag {  // TODO(anonimal): review/consider moving this class into core/util
+class Tag {
  public:
   Tag(const uint8_t* buf) {
     memcpy(m_Buf, buf, Size);
   }
   Tag(const Tag<Size>&) = default;
-#ifndef _WIN32  // TODO(unassigned): FIXME!!! msvs 2013 can't compile it
+
+#ifndef _WIN32
   Tag(Tag<Size>&&) = default;
 #endif
+
   Tag() = default;
 
   Tag<Size>& operator= (const Tag<Size>&) = default;
+
 #ifndef _WIN32
   Tag<Size>& operator= (Tag<Size>&&) = default;
 #endif
 
-  uint8_t* operator()() { return m_Buf; }
-  const uint8_t* operator()() const { return m_Buf; }
+  uint8_t* operator()() {
+    return m_Buf;
+  }
 
-  operator uint8_t* () { return m_Buf; }
-  operator const uint8_t* () const { return m_Buf; }
+  const uint8_t* operator()() const {
+    return m_Buf;
+  }
 
-  const uint64_t* GetLL() const { return ll; }
+  operator uint8_t* () {
+    return m_Buf;
+  }
 
-  bool operator== (const Tag<Size>& other) const {
+  operator const uint8_t* () const {
+    return m_Buf;
+  }
+
+  const uint64_t* GetLL() const {
+    return ll;
+  }
+
+  bool operator==(const Tag<Size>& other) const {
     return !memcmp(m_Buf, other.m_Buf, Size);
   }
 
-  bool operator< (const Tag<Size>& other) const {
+  bool operator<(const Tag<Size>& other) const {
     return memcmp(m_Buf, other.m_Buf, Size) < 0;
   }
 
@@ -120,10 +136,10 @@ typedef Tag<32> IdentHash;
 
 #pragma pack(1)
 struct Keys {
-  uint8_t privateKey[256];
-  uint8_t signingPrivateKey[20];
-  uint8_t publicKey[256];
-  uint8_t signingKey[128];
+  uint8_t private_key[256];
+  uint8_t signing_private_key[20];
+  uint8_t public_key[256];
+  uint8_t signing_key[128];
 };
 
 const uint8_t CERTIFICATE_TYPE_NULL = 0;
@@ -134,8 +150,8 @@ const uint8_t CERTIFICATE_TYPE_MULTIPLE = 4;
 const uint8_t CERTIFICATE_TYPE_KEY = 5;
 
 struct Identity {
-  uint8_t publicKey[256];
-  uint8_t signingKey[128];
+  uint8_t public_key[256];
+  uint8_t signing_key[128];
 
   struct {
     uint8_t type;
@@ -171,23 +187,29 @@ const uint16_t SIGNING_KEY_TYPE_RSA_SHA256_2048 = 4;
 const uint16_t SIGNING_KEY_TYPE_RSA_SHA384_3072 = 5;
 const uint16_t SIGNING_KEY_TYPE_RSA_SHA512_4096 = 6;
 const uint16_t SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519 = 7;
+
 typedef uint16_t SigningKeyType;
 typedef uint16_t CryptoKeyType;
 
 class IdentityEx {
  public:
   IdentityEx();
+  ~IdentityEx();
+
   IdentityEx(
-      const uint8_t* publicKey,
-      const uint8_t* signingKey,
+      const uint8_t* public_key,
+      const uint8_t* signing_key,
       SigningKeyType type = SIGNING_KEY_TYPE_DSA_SHA1);
+
   IdentityEx(
       const uint8_t* buf,
       size_t len);
+
   IdentityEx(
       const IdentityEx& other);
-  ~IdentityEx();
+
   IdentityEx& operator=(const IdentityEx& other);
+
   IdentityEx& operator=(const Identity& standard);
 
   size_t FromBuffer(
@@ -246,19 +268,23 @@ class IdentityEx {
 class PrivateKeys {  // for eepsites
  public:
   PrivateKeys();
+  ~PrivateKeys();
+
   PrivateKeys(
       const PrivateKeys& other)
       : m_Signer(nullptr) {
         *this = other;
       }
+
   explicit PrivateKeys(
       const Keys& keys)
       : m_Signer(nullptr) {
         *this = keys;
       }
+
   PrivateKeys& operator=(const Keys& keys);
+
   PrivateKeys& operator=(const PrivateKeys& other);
-  ~PrivateKeys();
 
   const IdentityEx& GetPublic() const {
     return m_Public;
@@ -315,11 +341,15 @@ struct XORMetric {
     uint64_t metric_ll[4];
   };
 
-  void SetMin() { memset(metric, 0, 32); }
+  void SetMin() {
+    memset(metric, 0, 32);
+  }
 
-  void SetMax() { memset(metric, 0xFF, 32); }
+  void SetMax() {
+    memset(metric, 0xFF, 32);
+  }
 
-  bool operator< (const XORMetric& other) const {
+  bool operator<(const XORMetric& other) const {
     return memcmp(metric, other.metric, 32) < 0;
   }
 };

@@ -314,7 +314,7 @@ class Tunnels {
 
  private:
   bool m_IsRunning;
-  std::thread* m_Thread;
+  std::unique_ptr<std::thread> m_Thread;
 
   // by replyMsgID
   std::map<uint32_t, std::shared_ptr<InboundTunnel> > m_PendingInboundTunnels;

@@ -64,7 +64,7 @@ class ZIP {
       std::size_t len,
       std::size_t pos = 0)
       : m_Stream(zip),
-        m_Data(new Data()) {
+        m_Data(std::make_unique<Data>()) {
           m_Data->content_length = len;
           m_Data->content_position = pos;
           m_Data->local_file_count = 0;

@@ -72,7 +72,7 @@ Stream::Stream(
       m_NumResendAttempts(0) {
         m_RecvStreamID = i2p::crypto::Rand<uint32_t>();
         m_RemoteIdentity = remote->GetIdentity();
-        m_CurrentRemoteLease.endDate = 0;
+        m_CurrentRemoteLease.end_date = 0;
 }
 
 Stream::Stream(
@@ -655,11 +655,11 @@ void Stream::SendPackets(
     return;
   }
   auto ts = i2p::util::GetMillisecondsSinceEpoch();
-  if (!m_CurrentRemoteLease.endDate ||
-      ts >= m_CurrentRemoteLease.endDate -
+  if (!m_CurrentRemoteLease.end_date ||
+      ts >= m_CurrentRemoteLease.end_date -
       i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD * 1000)
     UpdateCurrentRemoteLease(true);
-  if (ts < m_CurrentRemoteLease.endDate) {
+  if (ts < m_CurrentRemoteLease.end_date) {
     std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
     for (auto it : packets) {
       auto msg = m_RoutingSession->WrapSingleMessage(
@@ -669,8 +669,8 @@ void Stream::SendPackets(
       msgs.push_back(
           i2p::tunnel::TunnelMessageBlock  {
           i2p::tunnel::e_DeliveryTypeTunnel,
-          m_CurrentRemoteLease.tunnelGateway,
-          m_CurrentRemoteLease.tunnelID,
+          m_CurrentRemoteLease.tunnel_gateway,
+          m_CurrentRemoteLease.tunnel_ID,
           msg});
       m_NumSentBytes += it->GetLength();
     }
@@ -794,8 +794,8 @@ void Stream::UpdateCurrentRemoteLease(
       bool updated = false;
       if (expired) {
         for (auto it : leases)
-          if ((it.tunnelGateway == m_CurrentRemoteLease.tunnelGateway) &&
-              (it.tunnelID != m_CurrentRemoteLease.tunnelID)) {
+          if ((it.tunnel_gateway == m_CurrentRemoteLease.tunnel_gateway) &&
+              (it.tunnel_ID != m_CurrentRemoteLease.tunnel_ID)) {
             m_CurrentRemoteLease = it;
             updated = true;
             break;
@@ -805,19 +805,19 @@ void Stream::UpdateCurrentRemoteLease(
         uint32_t i =
           i2p::crypto::RandInRange<uint32_t>(
               0, leases.size() - 1);
-        if (m_CurrentRemoteLease.endDate &&
-            leases[i].tunnelID == m_CurrentRemoteLease.tunnelID)
+        if (m_CurrentRemoteLease.end_date &&
+            leases[i].tunnel_ID == m_CurrentRemoteLease.tunnel_ID)
           // make sure we don't select previous
           i = (i + 1) % leases.size();  // if so, pick next
         m_CurrentRemoteLease = leases[i];
       }
     } else {
       m_RemoteLeaseSet = nullptr;
-      m_CurrentRemoteLease.endDate = 0;
+      m_CurrentRemoteLease.end_date = 0;
       // re-request expired
     }
   } else {
-    m_CurrentRemoteLease.endDate = 0;
+    m_CurrentRemoteLease.end_date = 0;
   }
 }
 

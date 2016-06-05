@@ -59,6 +59,7 @@ class I2PControlService {
       const std::string& address,
       int port,
       const std::string& password);
+
   ~I2PControlService();
 
   void Start();
@@ -97,7 +98,7 @@ class I2PControlService {
   std::shared_ptr<I2PControlSession> m_Session;
 
   bool m_IsRunning;
-  std::thread* m_Thread;
+  std::unique_ptr<std::thread> m_Thread;
 
   boost::asio::io_service& m_Service;
   boost::asio::ip::tcp::acceptor m_Acceptor;

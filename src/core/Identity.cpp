@@ -30,12 +30,14 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
+#include "Identity.h"
+
 #include <stdio.h>
 #include <time.h>
 
+#include <memory>
 #include <string>
 
-#include "Identity.h"
 #include "RouterContext.h"
 #include "crypto/ElGamal.h"
 #include "crypto/Hash.h"
@@ -50,7 +52,7 @@ namespace data {
 
 Identity& Identity::operator=(const Keys& keys) {
   // copy public and signing keys together
-  memcpy(publicKey, keys.publicKey, sizeof(publicKey) + sizeof(signingKey));
+  memcpy(public_key, keys.public_key, sizeof(public_key) + sizeof(signing_key));
   memset(&certificate, 0, sizeof(certificate));
   return *this;
 }
@@ -58,7 +60,7 @@ Identity& Identity::operator=(const Keys& keys) {
 size_t Identity::FromBuffer(
     const uint8_t* buf,
     size_t) {
-  memcpy(publicKey, buf, DEFAULT_IDENTITY_SIZE);
+  memcpy(public_key, buf, DEFAULT_IDENTITY_SIZE);
   return DEFAULT_IDENTITY_SIZE;
 }
 
@@ -66,7 +68,7 @@ IdentHash Identity::Hash() const {
   IdentHash hash;
   i2p::crypto::SHA256().CalculateDigest(
       hash,
-      publicKey,
+      public_key,
       DEFAULT_IDENTITY_SIZE);
   return hash;
 }
@@ -77,26 +79,26 @@ IdentityEx::IdentityEx()
       m_ExtendedBuffer(nullptr) {}
 
 IdentityEx::IdentityEx(
-    const uint8_t* publicKey,
-    const uint8_t* signingKey,
+    const uint8_t* public_key,
+    const uint8_t* signing_key,
     SigningKeyType type) {
   memcpy(
-      m_StandardIdentity.publicKey,
-      publicKey,
-      sizeof(m_StandardIdentity.publicKey));
+      m_StandardIdentity.public_key,
+      public_key,
+      sizeof(m_StandardIdentity.public_key));
   if (type != SIGNING_KEY_TYPE_DSA_SHA1) {
-    size_t excessLen = 0;
-    uint8_t* excessBuf = nullptr;
+    size_t excess_len = 0;
+    std::unique_ptr<std::uint8_t[]> excess_buf;
     switch (type) {
       case SIGNING_KEY_TYPE_ECDSA_SHA256_P256: {
         size_t padding =
           128 - i2p::crypto::ECDSAP256_KEY_LENGTH;  // 64 = 128 - 64
         i2p::crypto::RandBytes(
-            m_StandardIdentity.signingKey,
+            m_StandardIdentity.signing_key,
             padding);
         memcpy(
-            m_StandardIdentity.signingKey + padding,
-            signingKey,
+            m_StandardIdentity.signing_key + padding,
+            signing_key,
             i2p::crypto::ECDSAP256_KEY_LENGTH);
         break;
       }
@@ -104,51 +106,51 @@ IdentityEx::IdentityEx(
         size_t padding =
           128 - i2p::crypto::ECDSAP384_KEY_LENGTH;  // 32 = 128 - 96
         i2p::crypto::RandBytes(
-            m_StandardIdentity.signingKey,
+            m_StandardIdentity.signing_key,
             padding);
         memcpy(
-            m_StandardIdentity.signingKey + padding,
-            signingKey,
+            m_StandardIdentity.signing_key + padding,
+            signing_key,
             i2p::crypto::ECDSAP384_KEY_LENGTH);
         break;
       }
       case SIGNING_KEY_TYPE_ECDSA_SHA512_P521: {
-        memcpy(m_StandardIdentity.signingKey, signingKey, 128);
-        excessLen = i2p::crypto::ECDSAP521_KEY_LENGTH - 128;  // 4 = 132 - 128
-        excessBuf = new uint8_t[excessLen];
-        memcpy(excessBuf, signingKey + 128, excessLen);
+        memcpy(m_StandardIdentity.signing_key, signing_key, 128);
+        excess_len = i2p::crypto::ECDSAP521_KEY_LENGTH - 128;  // 4 = 132 - 128
+        excess_buf = std::make_unique<std::uint8_t[]>(excess_len);
+        memcpy(excess_buf.get(), signing_key + 128, excess_len);
         break;
       }
       case SIGNING_KEY_TYPE_RSA_SHA256_2048: {
-        memcpy(m_StandardIdentity.signingKey, signingKey, 128);
-        excessLen = i2p::crypto::RSASHA2562048_KEY_LENGTH - 128;  // 128 = 256 - 128
-        excessBuf = new uint8_t[excessLen];
-        memcpy(excessBuf, signingKey + 128, excessLen);
+        memcpy(m_StandardIdentity.signing_key, signing_key, 128);
+        excess_len = i2p::crypto::RSASHA2562048_KEY_LENGTH - 128;  // 128 = 256 - 128
+        excess_buf = std::make_unique<std::uint8_t[]>(excess_len);
+        memcpy(excess_buf.get(), signing_key + 128, excess_len);
         break;
       }
       case SIGNING_KEY_TYPE_RSA_SHA384_3072: {
-        memcpy(m_StandardIdentity.signingKey, signingKey, 128);
-        excessLen = i2p::crypto::RSASHA3843072_KEY_LENGTH - 128;  // 256 = 384 - 128
-        excessBuf = new uint8_t[excessLen];
-        memcpy(excessBuf, signingKey + 128, excessLen);
+        memcpy(m_StandardIdentity.signing_key, signing_key, 128);
+        excess_len = i2p::crypto::RSASHA3843072_KEY_LENGTH - 128;  // 256 = 384 - 128
+        excess_buf = std::make_unique<std::uint8_t[]>(excess_len);
+        memcpy(excess_buf.get(), signing_key + 128, excess_len);
         break;
       }
       case SIGNING_KEY_TYPE_RSA_SHA512_4096: {
-        memcpy(m_StandardIdentity.signingKey, signingKey, 128);
-        excessLen = i2p::crypto::RSASHA5124096_KEY_LENGTH - 128;  // 384 = 512 - 128
-        excessBuf = new uint8_t[excessLen];
-        memcpy(excessBuf, signingKey + 128, excessLen);
+        memcpy(m_StandardIdentity.signing_key, signing_key, 128);
+        excess_len = i2p::crypto::RSASHA5124096_KEY_LENGTH - 128;  // 384 = 512 - 128
+        excess_buf = std::make_unique<std::uint8_t[]>(excess_len);
+        memcpy(excess_buf.get(), signing_key + 128, excess_len);
         break;
       }
       case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519: {
         size_t padding =
           128 - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH;  // 96 = 128 - 32
         i2p::crypto::RandBytes(
-            m_StandardIdentity.signingKey,
+            m_StandardIdentity.signing_key,
             padding);
         memcpy(
-            m_StandardIdentity.signingKey + padding,
-            signingKey,
+            m_StandardIdentity.signing_key + padding,
+            signing_key,
             i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH);
         break;
       }
@@ -157,35 +159,33 @@ IdentityEx::IdentityEx(
             "IdentityEx: signing key type ",
             static_cast<int>(type), " is not supported");
     }
-    m_ExtendedLen = 4 + excessLen;  // 4 bytes extra + excess length
+    m_ExtendedLen = 4 + excess_len;  // 4 bytes extra + excess length
     // fill certificate
     m_StandardIdentity.certificate.type = CERTIFICATE_TYPE_KEY;
     m_StandardIdentity.certificate.length = htobe16(m_ExtendedLen);
     // fill extended buffer
-    m_ExtendedBuffer = new uint8_t[m_ExtendedLen];
-    htobe16buf(m_ExtendedBuffer, type);
-    htobe16buf(m_ExtendedBuffer + 2, CRYPTO_KEY_TYPE_ELGAMAL);
-    if (excessLen && excessBuf) {
-      memcpy(m_ExtendedBuffer + 4, excessBuf, excessLen);
-      delete[] excessBuf;
+    m_ExtendedBuffer = std::make_unique<std::uint8_t[]>(m_ExtendedLen);
+    htobe16buf(m_ExtendedBuffer.get(), type);
+    htobe16buf(m_ExtendedBuffer.get() + 2, CRYPTO_KEY_TYPE_ELGAMAL);
+    if (excess_len && excess_buf) {
+      memcpy(m_ExtendedBuffer.get() + 4, excess_buf.get(), excess_len);
     }
     // calculate ident hash
-    uint8_t* buf = new uint8_t[GetFullLen()];
-    ToBuffer(buf, GetFullLen());
-    i2p::crypto::SHA256().CalculateDigest(m_IdentHash, buf, GetFullLen());
-    delete[] buf;
+    auto buf = std::make_unique<std::uint8_t[]>(GetFullLen());
+    ToBuffer(buf.get(), GetFullLen());
+    i2p::crypto::SHA256().CalculateDigest(m_IdentHash, buf.get(), GetFullLen());
   } else {  // DSA-SHA1
     memcpy(
-        m_StandardIdentity.signingKey,
-        signingKey,
-        sizeof(m_StandardIdentity.signingKey));
+        m_StandardIdentity.signing_key,
+        signing_key,
+        sizeof(m_StandardIdentity.signing_key));
     memset(
         &m_StandardIdentity.certificate,
         0,
         sizeof(m_StandardIdentity.certificate));
     m_IdentHash = m_StandardIdentity.Hash();
     m_ExtendedLen = 0;
-    m_ExtendedBuffer = nullptr;
+    m_ExtendedBuffer.reset(nullptr);
   }
   CreateVerifier();
 }
@@ -206,25 +206,20 @@ IdentityEx::IdentityEx(
   *this = other;
 }
 
-IdentityEx::~IdentityEx() {
-  delete m_Verifier;
-  delete[] m_ExtendedBuffer;
-}
+IdentityEx::~IdentityEx() {}
 
 IdentityEx& IdentityEx::operator=(const IdentityEx& other) {
   if (&other != this) {
     memcpy(&m_StandardIdentity, &other.m_StandardIdentity, DEFAULT_IDENTITY_SIZE);
     m_IdentHash = other.m_IdentHash;
-    delete[] m_ExtendedBuffer;
     m_ExtendedLen = other.m_ExtendedLen;
     if (m_ExtendedLen > 0) {
-      m_ExtendedBuffer = new uint8_t[m_ExtendedLen];
-      memcpy(m_ExtendedBuffer, other.m_ExtendedBuffer, m_ExtendedLen);
+      m_ExtendedBuffer = std::make_unique<std::uint8_t[]>(m_ExtendedLen);
+      memcpy(m_ExtendedBuffer.get(), other.m_ExtendedBuffer.get(), m_ExtendedLen);
     } else {
-      m_ExtendedBuffer = nullptr;
+      m_ExtendedBuffer.reset(nullptr);
     }
-    delete m_Verifier;
-    m_Verifier = nullptr;
+    m_Verifier.reset(nullptr);
   }
   return *this;
 }
@@ -232,11 +227,9 @@ IdentityEx& IdentityEx::operator=(const IdentityEx& other) {
 IdentityEx& IdentityEx::operator=(const Identity& standard) {
   m_StandardIdentity = standard;
   m_IdentHash = m_StandardIdentity.Hash();
-  delete[] m_ExtendedBuffer;
-  m_ExtendedBuffer = nullptr;
+  m_ExtendedBuffer.reset(nullptr);
   m_ExtendedLen = 0;
-  delete m_Verifier;
-  m_Verifier = nullptr;
+  m_Verifier.reset(nullptr);
   return *this;
 }
 
@@ -248,12 +241,11 @@ size_t IdentityEx::FromBuffer(
     return 0;
   }
   memcpy(&m_StandardIdentity, buf, DEFAULT_IDENTITY_SIZE);
-  delete[] m_ExtendedBuffer;
   if (m_StandardIdentity.certificate.length) {
     m_ExtendedLen = be16toh(m_StandardIdentity.certificate.length);
     if (m_ExtendedLen + DEFAULT_IDENTITY_SIZE <= len) {
-      m_ExtendedBuffer = new uint8_t[m_ExtendedLen];
-      memcpy(m_ExtendedBuffer, buf + DEFAULT_IDENTITY_SIZE, m_ExtendedLen);
+      m_ExtendedBuffer = std::make_unique<std::uint8_t[]>(m_ExtendedLen);
+      memcpy(m_ExtendedBuffer.get(), buf + DEFAULT_IDENTITY_SIZE, m_ExtendedLen);
     } else {
       LogPrint(eLogError,
           "IdentityEx: certificate length ", m_ExtendedLen,
@@ -262,11 +254,10 @@ size_t IdentityEx::FromBuffer(
     }
   } else {
     m_ExtendedLen = 0;
-    m_ExtendedBuffer = nullptr;
+    m_ExtendedBuffer.reset(nullptr);
   }
   i2p::crypto::SHA256().CalculateDigest(m_IdentHash, buf, GetFullLen());
-  delete m_Verifier;
-  m_Verifier = nullptr;
+  m_Verifier.reset(nullptr);
   return GetFullLen();
 }
 
@@ -275,7 +266,7 @@ size_t IdentityEx::ToBuffer(
     size_t) const {
   memcpy(buf, &m_StandardIdentity, DEFAULT_IDENTITY_SIZE);
   if (m_ExtendedLen > 0 && m_ExtendedBuffer)
-    memcpy(buf + DEFAULT_IDENTITY_SIZE, m_ExtendedBuffer, m_ExtendedLen);
+    memcpy(buf + DEFAULT_IDENTITY_SIZE, m_ExtendedBuffer.get(), m_ExtendedLen);
   return GetFullLen();
 }
 
@@ -332,14 +323,14 @@ bool IdentityEx::Verify(
 SigningKeyType IdentityEx::GetSigningKeyType() const {
   if (m_StandardIdentity.certificate.type ==
       CERTIFICATE_TYPE_KEY && m_ExtendedBuffer)
-    return bufbe16toh(m_ExtendedBuffer);  // signing key
+    return bufbe16toh(m_ExtendedBuffer.get());  // signing key
   return SIGNING_KEY_TYPE_DSA_SHA1;
 }
 
 CryptoKeyType IdentityEx::GetCryptoKeyType() const {
   if (m_StandardIdentity.certificate.type ==
       CERTIFICATE_TYPE_KEY && m_ExtendedBuffer)
-    return bufbe16toh(m_ExtendedBuffer + 2);  // crypto key
+    return bufbe16toh(m_ExtendedBuffer.get() + 2);  // crypto key
   return CRYPTO_KEY_TYPE_ELGAMAL;
 }
 
@@ -347,56 +338,59 @@ void IdentityEx::CreateVerifier() const  {
   auto keyType = GetSigningKeyType();
   switch (keyType) {
     case SIGNING_KEY_TYPE_DSA_SHA1:
-      m_Verifier = new i2p::crypto::DSAVerifier(m_StandardIdentity.signingKey);
+      m_Verifier = std::make_unique<i2p::crypto::DSAVerifier>(m_StandardIdentity.signing_key);
     break;
     case SIGNING_KEY_TYPE_ECDSA_SHA256_P256: {
       size_t padding = 128 - i2p::crypto::ECDSAP256_KEY_LENGTH;  // 64 = 128 - 64
-      m_Verifier = new i2p::crypto::ECDSAP256Verifier(
-          m_StandardIdentity.signingKey + padding);
+      m_Verifier =
+        std::make_unique<i2p::crypto::ECDSAP256Verifier>(
+            m_StandardIdentity.signing_key + padding);
       break;
     }
     case SIGNING_KEY_TYPE_ECDSA_SHA384_P384: {
       size_t padding = 128 - i2p::crypto::ECDSAP384_KEY_LENGTH;  // 32 = 128 - 96
-      m_Verifier = new i2p::crypto::ECDSAP384Verifier(
-          m_StandardIdentity.signingKey + padding);
+      m_Verifier =
+        std::make_unique<i2p::crypto::ECDSAP384Verifier>(
+            m_StandardIdentity.signing_key + padding);
       break;
     }
     case SIGNING_KEY_TYPE_ECDSA_SHA512_P521: {
-      uint8_t signingKey[i2p::crypto::ECDSAP521_KEY_LENGTH];
-      memcpy(signingKey, m_StandardIdentity.signingKey, 128);
-      size_t excessLen = i2p::crypto::ECDSAP521_KEY_LENGTH - 128;  // 4 = 132- 128
-      memcpy(signingKey + 128, m_ExtendedBuffer + 4, excessLen);  // right after signing and crypto key types
-      m_Verifier = new i2p::crypto::ECDSAP521Verifier(signingKey);
+      uint8_t signing_key[i2p::crypto::ECDSAP521_KEY_LENGTH];
+      memcpy(signing_key, m_StandardIdentity.signing_key, 128);
+      size_t excess_len = i2p::crypto::ECDSAP521_KEY_LENGTH - 128;  // 4 = 132- 128
+      memcpy(signing_key + 128, m_ExtendedBuffer.get() + 4, excess_len);  // right after signing and crypto key types
+      m_Verifier = std::make_unique<i2p::crypto::ECDSAP521Verifier>(signing_key);
       break;
     }
     case SIGNING_KEY_TYPE_RSA_SHA256_2048: {
-      uint8_t signingKey[i2p::crypto::RSASHA2562048_KEY_LENGTH];
-      memcpy(signingKey, m_StandardIdentity.signingKey, 128);
-      size_t excessLen = i2p::crypto::RSASHA2562048_KEY_LENGTH - 128;  // 128 = 256- 128
-      memcpy(signingKey + 128, m_ExtendedBuffer + 4, excessLen);
-      m_Verifier = new i2p::crypto::RSASHA2562048Verifier(signingKey);
+      uint8_t signing_key[i2p::crypto::RSASHA2562048_KEY_LENGTH];
+      memcpy(signing_key, m_StandardIdentity.signing_key, 128);
+      size_t excess_len = i2p::crypto::RSASHA2562048_KEY_LENGTH - 128;  // 128 = 256- 128
+      memcpy(signing_key + 128, m_ExtendedBuffer.get() + 4, excess_len);
+      m_Verifier = std::make_unique<i2p::crypto::RSASHA2562048Verifier>(signing_key);
       break;
     }
     case SIGNING_KEY_TYPE_RSA_SHA384_3072: {
-      uint8_t signingKey[i2p::crypto::RSASHA3843072_KEY_LENGTH];
-      memcpy(signingKey, m_StandardIdentity.signingKey, 128);
-      size_t excessLen = i2p::crypto::RSASHA3843072_KEY_LENGTH - 128;  // 256 = 384- 128
-      memcpy(signingKey + 128, m_ExtendedBuffer + 4, excessLen);
-      m_Verifier = new i2p::crypto::RSASHA3843072Verifier(signingKey);
+      uint8_t signing_key[i2p::crypto::RSASHA3843072_KEY_LENGTH];
+      memcpy(signing_key, m_StandardIdentity.signing_key, 128);
+      size_t excess_len = i2p::crypto::RSASHA3843072_KEY_LENGTH - 128;  // 256 = 384- 128
+      memcpy(signing_key + 128, m_ExtendedBuffer.get() + 4, excess_len);
+      m_Verifier = std::make_unique<i2p::crypto::RSASHA3843072Verifier>(signing_key);
       break;
     }
     case SIGNING_KEY_TYPE_RSA_SHA512_4096: {
-      uint8_t signingKey[i2p::crypto::RSASHA5124096_KEY_LENGTH];
-      memcpy(signingKey, m_StandardIdentity.signingKey, 128);
-      size_t excessLen = i2p::crypto::RSASHA5124096_KEY_LENGTH - 128;  // 384 = 512- 128
-      memcpy(signingKey + 128, m_ExtendedBuffer + 4, excessLen);
-      m_Verifier = new i2p::crypto::RSASHA5124096Verifier(signingKey);
+      uint8_t signing_key[i2p::crypto::RSASHA5124096_KEY_LENGTH];
+      memcpy(signing_key, m_StandardIdentity.signing_key, 128);
+      size_t excess_len = i2p::crypto::RSASHA5124096_KEY_LENGTH - 128;  // 384 = 512- 128
+      memcpy(signing_key + 128, m_ExtendedBuffer.get() + 4, excess_len);
+      m_Verifier = std::make_unique<i2p::crypto::RSASHA5124096Verifier>(signing_key);
       break;
     }
     case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519: {
       size_t padding = 128 - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH;  // 96 = 128 - 32
-      m_Verifier = new i2p::crypto::EDDSA25519Verifier(
-          m_StandardIdentity.signingKey + padding);
+      m_Verifier =
+        std::make_unique<i2p::crypto::EDDSA25519Verifier>(
+            m_StandardIdentity.signing_key + padding);
       break;
     }
     default:
@@ -407,20 +401,26 @@ void IdentityEx::CreateVerifier() const  {
 }
 
 void IdentityEx::DropVerifier() {
-  auto verifier = m_Verifier;
-  m_Verifier = nullptr;  // TODO(unassigned): make this atomic
-  delete verifier;
+  m_Verifier.reset(nullptr);
 }
+
+/**
+ *
+ * PrivateKeys
+ *
+ */
+
+PrivateKeys::PrivateKeys() : m_Signer(nullptr) {}
+PrivateKeys::~PrivateKeys() {}
 
 PrivateKeys& PrivateKeys::operator=(const Keys& keys) {
   m_Public = Identity(keys);
-  memcpy(m_PrivateKey, keys.privateKey, 256);  // 256
+  memcpy(m_PrivateKey, keys.private_key, 256);  // 256
   memcpy(
       m_SigningPrivateKey,
-      keys.signingPrivateKey,
+      keys.signing_private_key,
       m_Public.GetSigningPrivateKeyLen());
-  delete m_Signer;
-  m_Signer = nullptr;
+  m_Signer.reset(nullptr);
   CreateSigner();
   return *this;
 }
@@ -432,14 +432,9 @@ PrivateKeys& PrivateKeys::operator=(const PrivateKeys& other) {
       m_SigningPrivateKey,
       other.m_SigningPrivateKey,
       m_Public.GetSigningPrivateKeyLen());
-  delete m_Signer;
-  m_Signer = nullptr;
+  m_Signer.reset(nullptr);
   CreateSigner();
   return *this;
-}
-
-PrivateKeys::~PrivateKeys() {
-  delete m_Signer;
 }
 
 size_t PrivateKeys::FromBuffer(
@@ -451,8 +446,7 @@ size_t PrivateKeys::FromBuffer(
   size_t signingPrivateKeySize = m_Public.GetSigningPrivateKeyLen();
   memcpy(m_SigningPrivateKey, buf + ret, signingPrivateKeySize);
   ret += signingPrivateKeySize;
-  delete m_Signer;
-  m_Signer = nullptr;
+  m_Signer.reset(nullptr);
   CreateSigner();
   return ret;
 }
@@ -471,26 +465,23 @@ size_t PrivateKeys::ToBuffer(
 
 size_t PrivateKeys::FromBase64(
     const std::string& s) {
-  uint8_t* buf = new uint8_t[s.length ()];
+  auto buf = std::make_unique<std::uint8_t[]>(s.length());
   size_t l = i2p::util::Base64ToByteStream(
       s.c_str(),
       s.length(),
-      buf,
+      buf.get(),
       s.length());
-  size_t ret = FromBuffer(buf, l);
-  delete[] buf;
+  size_t ret = FromBuffer(buf.get(), l);
   return ret;
 }
 
 std::string PrivateKeys::ToBase64() const {
-  uint8_t* buf = new uint8_t[GetFullLen ()];
-  char* str = new char[GetFullLen ()*2];
-  size_t l = ToBuffer(buf, GetFullLen());
-  size_t l1 = i2p::util::ByteStreamToBase64(buf, l, str, GetFullLen() * 2);
+  auto buf = std::make_unique<std::uint8_t[]>(GetFullLen());
+  auto str = std::make_unique<char[]>(GetFullLen() * 2);
+  size_t l = ToBuffer(buf.get(), GetFullLen());
+  size_t l1 = i2p::util::ByteStreamToBase64(buf.get(), l, str.get(), GetFullLen() * 2);
   str[l1] = 0;
-  delete[] buf;
-  std::string ret(str);
-  delete[] str;
+  std::string ret(str.get());
   return ret;
 }
 
@@ -505,28 +496,28 @@ void PrivateKeys::Sign(
 void PrivateKeys::CreateSigner() {
   switch (m_Public.GetSigningKeyType()) {
     case SIGNING_KEY_TYPE_DSA_SHA1:
-      m_Signer = new i2p::crypto::DSASigner(m_SigningPrivateKey);
+      m_Signer = std::make_unique<i2p::crypto::DSASigner>(m_SigningPrivateKey);
     break;
     case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
-      m_Signer = new i2p::crypto::ECDSAP256Signer(m_SigningPrivateKey);
+      m_Signer = std::make_unique<i2p::crypto::ECDSAP256Signer>(m_SigningPrivateKey);
     break;
     case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
-      m_Signer = new i2p::crypto::ECDSAP384Signer(m_SigningPrivateKey);
+      m_Signer = std::make_unique<i2p::crypto::ECDSAP384Signer>(m_SigningPrivateKey);
     break;
     case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
-      m_Signer = new i2p::crypto::ECDSAP521Signer(m_SigningPrivateKey);
+      m_Signer = std::make_unique<i2p::crypto::ECDSAP521Signer>(m_SigningPrivateKey);
     break;
     case SIGNING_KEY_TYPE_RSA_SHA256_2048:
-      m_Signer = new i2p::crypto::RSASHA2562048Signer(m_SigningPrivateKey);
+      m_Signer = std::make_unique<i2p::crypto::RSASHA2562048Signer>(m_SigningPrivateKey);
     break;
     case SIGNING_KEY_TYPE_RSA_SHA384_3072:
-      m_Signer = new i2p::crypto::RSASHA3843072Signer(m_SigningPrivateKey);
+      m_Signer = std::make_unique<i2p::crypto::RSASHA3843072Signer>(m_SigningPrivateKey);
     break;
     case SIGNING_KEY_TYPE_RSA_SHA512_4096:
-      m_Signer = new i2p::crypto::RSASHA5124096Signer(m_SigningPrivateKey);
+      m_Signer = std::make_unique<i2p::crypto::RSASHA5124096Signer>(m_SigningPrivateKey);
     break;
     case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
-      m_Signer = new i2p::crypto::EDDSA25519Signer(m_SigningPrivateKey);
+      m_Signer = std::make_unique<i2p::crypto::EDDSA25519Signer>(m_SigningPrivateKey);
     break;
     default:
       LogPrint(eLogWarning,
@@ -581,10 +572,10 @@ PrivateKeys PrivateKeys::CreateRandomKeys(SigningKeyType type) {
         return PrivateKeys(i2p::data::CreateRandomKeys());  // DSA-SHA1
     }
     // encryption
-    uint8_t publicKey[256];
-    i2p::crypto::GenerateElGamalKeyPair(keys.m_PrivateKey, publicKey);
+    uint8_t public_key[256];
+    i2p::crypto::GenerateElGamalKeyPair(keys.m_PrivateKey, public_key);
     // identity
-    keys.m_Public = IdentityEx(publicKey, signingPublicKey, type);
+    keys.m_Public = IdentityEx(public_key, signingPublicKey, type);
     keys.CreateSigner();
     return keys;
   }
@@ -595,12 +586,12 @@ Keys CreateRandomKeys() {
   Keys keys;
   // encryption
   i2p::crypto::GenerateElGamalKeyPair(
-      keys.privateKey,
-      keys.publicKey);
+      keys.private_key,
+      keys.public_key);
   // signing
   i2p::crypto::CreateDSARandomKeys(
-      keys.signingPrivateKey,
-      keys.signingKey);
+      keys.signing_private_key,
+      keys.signing_key);
   return keys;
 }
 

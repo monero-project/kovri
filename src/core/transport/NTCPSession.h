@@ -35,9 +35,6 @@
 
 #include <boost/asio.hpp>
 
-#include <cryptopp/aes.h>
-#include <cryptopp/modes.h>
-
 #include <cstdint>
 #include <map>
 #include <memory>

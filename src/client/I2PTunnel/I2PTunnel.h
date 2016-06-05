@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
-#ifndef SRC_API_I2PTUNNEL_I2PTUNNEL_H_
-#define SRC_API_I2PTUNNEL_I2PTUNNEL_H_
+#ifndef SRC_CLIENT_I2PTUNNEL_I2PTUNNEL_H_
+#define SRC_CLIENT_I2PTUNNEL_I2PTUNNEL_H_
 
 #include <boost/asio.hpp>
 
@@ -62,13 +62,15 @@ class I2PTunnelConnection
   I2PTunnelConnection(
       I2PService* owner,
       std::shared_ptr<boost::asio::ip::tcp::socket> socket,
-      std::shared_ptr<const i2p::data::LeaseSet> leaseSet,
+      std::shared_ptr<const i2p::data::LeaseSet> lease_set,
       int port = 0);
+
   // To I2P using simplified API
   I2PTunnelConnection(
       I2PService* owner,
       std::shared_ptr<boost::asio::ip::tcp::socket> socket,
       std::shared_ptr<i2p::stream::Stream> stream);
+
   // From I2P
   I2PTunnelConnection(
       I2PService* owner,
@@ -76,6 +78,7 @@ class I2PTunnelConnection
       std::shared_ptr<boost::asio::ip::tcp::socket> socket,
       const boost::asio::ip::tcp::endpoint& target,
       bool quiet = true);
+
   ~I2PTunnelConnection();
 
   void I2PConnect(
@@ -130,7 +133,9 @@ class I2PTunnelConnectionHTTP: public I2PTunnelConnection {
       const std::string& host);
 
  protected:
-  void Write(const uint8_t * buf, size_t len);
+  void Write(
+      const uint8_t* buf,
+      size_t len);
 
  private:
   std::string m_Host;
@@ -160,10 +165,10 @@ class I2PClientTunnel : public TCPIPAcceptor {
   std::string GetName();
 
  private:
-  const i2p::data::IdentHash* GetIdentHash();
+  std::unique_ptr<const i2p::data::IdentHash> GetIdentHash();
   std::string m_TunnelName;
   std::string m_Destination;
-  const i2p::data::IdentHash* m_DestinationIdentHash;
+  std::unique_ptr<const i2p::data::IdentHash> m_DestinationIdentHash;
   int m_DestinationPort;
 };
 
@@ -255,4 +260,4 @@ class I2PServerTunnelHTTP: public I2PServerTunnel {
 }  // namespace client
 }  // namespace i2p
 
-#endif  // SRC_API_I2PTUNNEL_I2PTUNNEL_H_
+#endif  // SRC_CLIENT_I2PTUNNEL_I2PTUNNEL_H_

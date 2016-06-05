@@ -208,9 +208,9 @@ void UPnP::Run() {
   for (auto& address : context.GetRouterInfo().GetAddresses()) {
     if (!address.host.is_v6()) {
       Discover();
-      if (address.transportStyle == data::RouterInfo::eTransportSSU) {
+      if (address.transport_style == data::RouterInfo::eTransportSSU) {
         TryPortMapping(I2P_UPNP_UDP, address.port);
-      } else if (address.transportStyle == data::RouterInfo::eTransportNTCP) {
+      } else if (address.transport_style == data::RouterInfo::eTransportNTCP) {
         TryPortMapping(I2P_UPNP_TCP, address.port);
       }
     }

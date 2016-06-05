@@ -32,11 +32,13 @@
 
 #include "HTTP.h"
 
+#include <functional>
+#include <memory>
+#include <string>
+#include <vector>
+
 #include "RouterContext.h"
 #include "util/Filesystem.h"
-
-#include <string>
-#include <functional>
 
 namespace i2p {
 namespace util {
@@ -134,7 +136,7 @@ bool HTTP::Download(
   URI uri(address);
   // Ensures host is online
   auto query =
-    boost::asio::ip::tcp::resolver::query(uri.m_Host,std::to_string(uri.m_Port));
+    boost::asio::ip::tcp::resolver::query(uri.m_Host, std::to_string(uri.m_Port));
   auto endpoint =
     boost::asio::ip::tcp::resolver(service).resolve(query, ec);
   if (ec) {
@@ -247,10 +249,9 @@ void HTTP::MergeChunkedResponse(
     iss >> std::hex >> len;
     if (!len)
       break;
-    char* buf = new char[len];
-    response.read(buf, len);
-    merged.write(buf, len);
-    delete[] buf;
+    auto buf = std::make_unique<char[]>(len);
+    response.read(buf.get(), len);
+    merged.write(buf.get(), len);
     std::getline(response, hexLen);  // read \r\n after chunk
   }
 }

@@ -76,7 +76,7 @@ class EDDSA25519Verifier::EDDSA25519VerifierImpl {
 EDDSA25519Verifier::EDDSA25519Verifier(
     const std::uint8_t* signing_key)
     : m_EDDSA25519VerifierPimpl(
-          new EDDSA25519VerifierImpl(signing_key)) {}
+          std::make_unique<EDDSA25519VerifierImpl>(signing_key)) {}
 
 EDDSA25519Verifier::~EDDSA25519Verifier() {}
 
@@ -132,14 +132,14 @@ class EDDSA25519Signer::EDDSA25519SignerImpl {
 EDDSA25519Signer::EDDSA25519Signer(
     const std::uint8_t* private_signing_key)
     : m_EDDSA25519SignerPimpl(
-          new EDDSA25519SignerImpl(
+          std::make_unique<EDDSA25519SignerImpl>(
               private_signing_key)) {}
 
 EDDSA25519Signer::EDDSA25519Signer(
     const std::uint8_t* private_signing_key,
     const std::uint8_t* public_signing_key)
     : m_EDDSA25519SignerPimpl(
-          new EDDSA25519SignerImpl(
+          std::make_unique<EDDSA25519SignerImpl>(
               private_signing_key,
               public_signing_key)) {}
 

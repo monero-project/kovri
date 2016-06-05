@@ -32,11 +32,13 @@
 
 #include "Daemon.h"
 
-#include <string>
-#include <vector>
-#include <thread>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
+
+#include <memory>
+#include <string>
+#include <thread>
+#include <vector>
 
 #include "client/ClientContext.h"
 #include "Destination.h"
@@ -77,11 +79,11 @@ bool Daemon_Singleton::Init() {
       i2p::util::filesystem::GetDataPath());
   m_IsDaemon = i2p::util::config::var_map["daemon"].as<bool>();
   m_IsLogging = i2p::util::config::var_map["log"].as<bool>();
-  int port = i2p::util::config::var_map["port"].as<int>();
+  auto port = i2p::util::config::var_map["port"].as<int>();
   i2p::context.UpdatePort(port);
   i2p::context.UpdateAddress(
       boost::asio::ip::address::from_string(
-        i2p::util::config::var_map["host"].as<std::string>()));
+          i2p::util::config::var_map["host"].as<std::string>()));
   i2p::context.SetSupportsV6(
       i2p::util::config::var_map["v6"].as<bool>());
   i2p::context.SetFloodfill(
@@ -97,7 +99,7 @@ bool Daemon_Singleton::Init() {
   i2p::context.ReseedFrom(
       i2p::util::config::var_map["reseed-from"].as<std::string>());
   i2p::context.ReseedSkipSSLCheck(
-    i2p::util::config::var_map["reseed-skip-ssl-check"].as<bool>());
+      i2p::util::config::var_map["reseed-skip-ssl-check"].as<bool>());
   // Initialize the ClientContext
   InitClientContext();
   return true;
@@ -109,7 +111,7 @@ bool Daemon_Singleton::Start() {
       i2p::util::config::var_map["port"].as<int>());
   if (m_IsLogging) {
     if (m_IsDaemon) {
-      std::string logfile_path = IsService() ? "/var/log" :
+      auto logfile_path = IsService() ? "/var/log" :
       i2p::util::filesystem::GetDataPath().string();
 #ifndef _WIN32
       logfile_path.append("/kovri.log");
@@ -165,126 +167,129 @@ void Daemon_Singleton::Reload() {
 }
 
 void Daemon_Singleton::InitClientContext() {
-  i2p::client::context.RegisterShutdownHandler([this]() {
-        m_IsRunning = false;
-      });
-
-  std::shared_ptr<i2p::client::ClientDestination> localDestination;
+  i2p::client::context.RegisterShutdownHandler(
+      [this]() { m_IsRunning = false; });
+  std::shared_ptr<i2p::client::ClientDestination> local_destination;
   // Setup proxies and services
-  std::string proxyKeys =
+  auto proxy_keys =
     i2p::util::config::var_map["proxykeys"].as<std::string>();
-  if (proxyKeys.length() > 0)
-    localDestination = i2p::client::context.LoadLocalDestination(
-        proxyKeys, false);
-  i2p::client::context.SetHTTPProxy(new i2p::proxy::HTTPProxy(
+  if (proxy_keys.length() > 0)
+    local_destination = i2p::client::context.LoadLocalDestination(
+        proxy_keys,
+        false);
+  i2p::client::context.SetHTTPProxy(std::make_unique<i2p::proxy::HTTPProxy>(
       "HTTP Proxy",  // TODO(unassigned): what if we want to change the name?
       i2p::util::config::var_map["httpproxyaddress"].as<std::string>(),
       i2p::util::config::var_map["httpproxyport"].as<int>(),
-      localDestination));
-
-  i2p::client::context.SetSOCKSProxy(new i2p::proxy::SOCKSProxy(
+      local_destination));
+  i2p::client::context.SetSOCKSProxy(std::make_unique<i2p::proxy::SOCKSProxy>(
       i2p::util::config::var_map["socksproxyaddress"].as<std::string>(),
       i2p::util::config::var_map["socksproxyport"].as<int>(),
-      localDestination));
-
-  int i2pcontrolPort = i2p::util::config::var_map["i2pcontrolport"].as<int>();
-  if (i2pcontrolPort) {
+      local_destination));
+  auto i2pcontrol_port = i2p::util::config::var_map["i2pcontrolport"].as<int>();
+  if (i2pcontrol_port) {
     i2p::client::context.SetI2PControlService(
-        new i2p::client::i2pcontrol::I2PControlService(
-          i2p::client::context.GetIoService(),
-          i2p::util::config::var_map["i2pcontroladdress"].as<std::string>(),
-          i2pcontrolPort,
-          i2p::util::config::var_map["i2pcontrolpassword"].as<std::string>()));
+        std::make_unique<i2p::client::i2pcontrol::I2PControlService>(
+            i2p::client::context.GetIoService(),
+            i2p::util::config::var_map["i2pcontroladdress"].as<std::string>(),
+            i2pcontrol_port,
+            i2p::util::config::var_map["i2pcontrolpassword"].as<std::string>()));
   }
-
   // Setup client and server tunnels
   SetupTunnels();
 }
 
 void Daemon_Singleton::SetupTunnels() {
   boost::property_tree::ptree pt;
-  std::string pathTunnelsConfigFile =
+  auto path_tunnels_config_file =
     i2p::util::filesystem::GetTunnelsConfigFile().string();
   try {
-    boost::property_tree::read_ini(pathTunnelsConfigFile, pt);
+    boost::property_tree::read_ini(path_tunnels_config_file, pt);
   } catch(const std::exception& ex) {
     LogPrint(eLogWarning,
         "Daemon_Singleton: can't read ",
-        pathTunnelsConfigFile, ": ", ex.what());
+        path_tunnels_config_file, ": ", ex.what());
     return;
   }
-
-  int numClientTunnels = 0, numServerTunnels = 0;
+  int num_client_tunnels = 0, num_server_tunnels = 0;
   for (auto& section : pt) {
-    const std::string name = section.first;
+    const auto name = section.first;
     const auto& value = section.second;
     try {
-      std::string type = value.get<std::string>(I2P_TUNNELS_SECTION_TYPE);
+      auto type = value.get<std::string>(I2P_TUNNELS_SECTION_TYPE);
+      // Test which type of tunnel (client or server)
       if (type == I2P_TUNNELS_SECTION_TYPE_CLIENT) {
         // Mandatory parameters
-        std::string dest = value.get<std::string>(
-            I2P_CLIENT_TUNNEL_DESTINATION);
-        int port = value.get<int>(I2P_CLIENT_TUNNEL_PORT);
+        auto dest = value.get<std::string>(I2P_CLIENT_TUNNEL_DESTINATION);
+        auto port = value.get<int>(I2P_CLIENT_TUNNEL_PORT);
         // Optional parameters
-        std::string address = value.get(I2P_CLIENT_TUNNEL_ADDRESS, "127.0.0.1");
-        std::string keys = value.get(I2P_CLIENT_TUNNEL_KEYS, "");
-        int destinationPort = value.get(I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
-
-        std::shared_ptr<i2p::client::ClientDestination> localDestination;
+        auto address = value.get(I2P_CLIENT_TUNNEL_ADDRESS, "127.0.0.1");
+        auto keys = value.get(I2P_CLIENT_TUNNEL_KEYS, "");
+        auto destination_port = value.get(I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
+        // Get local destination
+        std::shared_ptr<i2p::client::ClientDestination> local_destination;
         if (keys.length() > 0)
-          localDestination = i2p::client::context.LoadLocalDestination(
-              keys, false);
-
-        bool result = i2p::client::context.InsertClientTunnel(port,
-            new i2p::client::I2PClientTunnel(
-              name,
-              dest,
-              address,
+          local_destination =
+            i2p::client::context.LoadLocalDestination(keys, false);
+        // Insert client tunnel
+        bool result =
+          i2p::client::context.InsertClientTunnel(
               port,
-              localDestination,
-              destinationPort));
-
+              std::make_unique<i2p::client::I2PClientTunnel>(
+                  name,
+                  dest,
+                  address,
+                  port,
+                  local_destination,
+                  destination_port));
         if (result)
-          ++numClientTunnels;
+          ++num_client_tunnels;
         else
           LogPrint(eLogError,
               "Daemon_Singleton: I2P client tunnel with port ",
               port, " already exists");
-
       } else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER ||
           type == I2P_TUNNELS_SECTION_TYPE_HTTP) {
         // Mandatory parameters
-        std::string host = value.get<std::string>(I2P_SERVER_TUNNEL_HOST);
-        int port = value.get<int>(I2P_SERVER_TUNNEL_PORT);
-        std::string keys = value.get<std::string>(I2P_SERVER_TUNNEL_KEYS);
+        auto host = value.get<std::string>(I2P_SERVER_TUNNEL_HOST);
+        auto port = value.get<int>(I2P_SERVER_TUNNEL_PORT);
+        auto keys = value.get<std::string>(I2P_SERVER_TUNNEL_KEYS);
         // Optional parameters
-        int inPort = value.get(I2P_SERVER_TUNNEL_INPORT, 0);
-        std::string accessList = value.get(I2P_SERVER_TUNNEL_ACCESS_LIST, "");
-        auto localDestination = i2p::client::context.LoadLocalDestination(
-            keys, true);
-        i2p::client::I2PServerTunnel* serverTunnel =
+        auto in_port = value.get(I2P_SERVER_TUNNEL_INPORT, 0);
+        auto accessList = value.get(I2P_SERVER_TUNNEL_ACCESS_LIST, "");
+        auto local_destination =
+          i2p::client::context.LoadLocalDestination(keys, true);
+        auto server_tunnel =
           (type == I2P_TUNNELS_SECTION_TYPE_HTTP) ?
-          new i2p::client::I2PServerTunnelHTTP(
-              name, host, port, localDestination, inPort) :
-          new i2p::client::I2PServerTunnel(
-              name, host, port, localDestination, inPort);
-        serverTunnel->SetAccessListString(accessList);
-
+            std::make_unique<i2p::client::I2PServerTunnelHTTP>(
+                name,
+                host,
+                port,
+                local_destination,
+                in_port) :
+            std::make_unique<i2p::client::I2PServerTunnel>(
+                name,
+                host,
+                port,
+                local_destination,
+                in_port);
+        server_tunnel->SetAccessListString(accessList);
+        // Insert server tunnel
         bool result = i2p::client::context.InsertServerTunnel(
-            localDestination->GetIdentHash(), serverTunnel);
-
+            local_destination->GetIdentHash(),
+            std::move(server_tunnel));
         if (result)
-          ++numServerTunnels;
+          ++num_server_tunnels;
         else
           LogPrint(eLogError,
               "Daemon_Singleton: I2P server tunnel for destination ",
               i2p::client::context.GetAddressBook().ToAddress(
-                  localDestination->GetIdentHash()),
+                  local_destination->GetIdentHash()),
               " already exists");
       } else {
         LogPrint(eLogWarning,
             "Daemon_Singleton: unknown section type=",
-            type, " of ", name, " in ", pathTunnelsConfigFile);
+            type, " of ", name, " in ", path_tunnels_config_file);
       }
     } catch(const std::exception& ex) {
       LogPrint(eLogError,
@@ -292,97 +297,90 @@ void Daemon_Singleton::SetupTunnels() {
     }
   }
   LogPrint(eLogInfo,
-      "Daemon_Singleton: ", numClientTunnels, " I2P client tunnels created");
+      "Daemon_Singleton: ", num_client_tunnels, " I2P client tunnels created");
   LogPrint(eLogInfo,
-      "Daemon_Singleton: ", numServerTunnels, " I2P server tunnels created");
+      "Daemon_Singleton: ", num_server_tunnels, " I2P server tunnels created");
 }
 
 void Daemon_Singleton::ReloadTunnels() {
   boost::property_tree::ptree pt;
-  std::string tunnelsConfigFile =
+  auto tunnels_config_file =
     i2p::util::filesystem::GetTunnelsConfigFile().string();
   try {
-    boost::property_tree::read_ini(tunnelsConfigFile, pt);
+    boost::property_tree::read_ini(tunnels_config_file, pt);
   } catch (const std::exception& ex) {
     LogPrint(eLogWarning,
         "Daemon_Singleton: can't read ",
-        tunnelsConfigFile, ": ", ex.what());
+        tunnels_config_file, ": ", ex.what());
     return;
   }
-
   // List of tunnels that still exist after config update
   // Make sure the default IRC and eepsite tunnels do not get removed
-  std::vector<std::string> updatedTunnels;
-
+  std::vector<std::string> updated_tunnels;
   // Iterate over tunnels' ident hashes for what's in tunnels.conf now
   for (auto& section : pt) {
     // TODO(unassigned): what if we switch a server from client to tunnel
     // or vice versa?
-    const std::string tunnelName = section.first;
+    const auto tunnel_name = section.first;
     const auto value = section.second;
-
-    const std::string type = value.get<std::string>(
-        I2P_TUNNELS_SECTION_TYPE, "");
-
+    const auto type = value.get<std::string>(I2P_TUNNELS_SECTION_TYPE, "");
     if (type == I2P_TUNNELS_SECTION_TYPE_SERVER ||
         type == I2P_TUNNELS_SECTION_TYPE_HTTP) {
       // Obtain server options
-      std::string keyfile = value.get<std::string>(I2P_SERVER_TUNNEL_KEYS, "");
-      std::string hostStr = value.get<std::string>(I2P_SERVER_TUNNEL_HOST, "");
-      int port = value.get<int>(I2P_SERVER_TUNNEL_PORT, 0);
-      int inPort = value.get(I2P_SERVER_TUNNEL_INPORT, 0);
-      std::string accessList = value.get(I2P_SERVER_TUNNEL_ACCESS_LIST, "");
-
+      auto key_file = value.get<std::string>(I2P_SERVER_TUNNEL_KEYS, "");
+      auto host_str = value.get<std::string>(I2P_SERVER_TUNNEL_HOST, "");
+      auto port = value.get<int>(I2P_SERVER_TUNNEL_PORT, 0);
+      auto in_port = value.get(I2P_SERVER_TUNNEL_INPORT, 0);
+      auto accessList = value.get(I2P_SERVER_TUNNEL_ACCESS_LIST, "");
       i2p::client::context.UpdateServerTunnel(
-          tunnelName, keyfile, hostStr, accessList, port, inPort,
+          tunnel_name,
+          key_file,
+          host_str,
+          accessList,
+          port,
+          in_port,
           (type == I2P_TUNNELS_SECTION_TYPE_HTTP));
-
     } else if (type == I2P_TUNNELS_SECTION_TYPE_CLIENT) {
       // Get client tunnel parameters
-      std::string keyfile = value.get(I2P_CLIENT_TUNNEL_KEYS, "");
-      std::string destination = value.get<std::string>(
-          I2P_CLIENT_TUNNEL_DESTINATION, "");
-      std::string hostStr = value.get(I2P_CLIENT_TUNNEL_ADDRESS, "127.0.0.1");
-      int port = value.get<int>(I2P_CLIENT_TUNNEL_PORT, 0);
-      int destPort = value.get(I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
-
-      i2p::client::I2PClientTunnel* tunnel =
-          i2p::client::context.GetClientTunnel(port);
-
-      if (tunnel && tunnel->GetName() != tunnelName) {
+      auto key_file = value.get(I2P_CLIENT_TUNNEL_KEYS, "");
+      auto destination = value.get<std::string>(I2P_CLIENT_TUNNEL_DESTINATION, "");
+      auto host_str = value.get(I2P_CLIENT_TUNNEL_ADDRESS, "127.0.0.1");
+      auto port = value.get<int>(I2P_CLIENT_TUNNEL_PORT, 0);
+      auto dest_port = value.get(I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
+      auto tunnel = i2p::client::context.GetClientTunnel(port);
+      if (tunnel && tunnel->GetName() != tunnel_name) {
         // Conflicting port
         // TODO(unassigned): what if we interchange two client tunnels' ports?
         // TODO(EinMByte): the addresses could differ
         LogPrint(eLogError,
             "Daemon_Singleton: ",
-            tunnelName, " will not be updated, conflicting port");
+            tunnel_name, " will not be updated, conflicting port");
         continue;
       }
-
       i2p::client::context.UpdateClientTunnel(
-          tunnelName, keyfile, destination, hostStr, port, destPort);
+          tunnel_name,
+          key_file,
+          destination,
+          host_str,
+          port,
+          dest_port);
     }
   }
-
   i2p::client::context.RemoveServerTunnels(
-      [&updatedTunnels](i2p::client::I2PServerTunnel* tunnel) {
+      [&updated_tunnels](i2p::client::I2PServerTunnel* tunnel) {
         return std::find(
-            updatedTunnels.begin(),
-            updatedTunnels.end(),
-            tunnel->GetName())
-          == updatedTunnels.end();
+            updated_tunnels.begin(),
+            updated_tunnels.end(),
+            tunnel->GetName()) == updated_tunnels.end();
       });
   i2p::client::context.RemoveClientTunnels(
-      [&updatedTunnels](i2p::client::I2PClientTunnel* tunnel) {
+      [&updated_tunnels](i2p::client::I2PClientTunnel* tunnel) {
         return std::find(
-            updatedTunnels.begin(),
-            updatedTunnels.end(),
-            tunnel->GetName())
-          == updatedTunnels.end();
+            updated_tunnels.begin(),
+            updated_tunnels.end(),
+            tunnel->GetName()) == updated_tunnels.end();
       });
 }
-
-
 
 }  // namespace util
 }  // namespace i2p

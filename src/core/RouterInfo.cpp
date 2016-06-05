@@ -34,13 +34,11 @@
 
 #include <boost/lexical_cast.hpp>
 
-#include <cryptopp/dsa.h>
-#include <cryptopp/sha.h>
-
 #include <stdio.h>
 #include <string.h>
 
 #include <fstream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -54,13 +52,13 @@ namespace i2p {
 namespace data {
 
 RouterInfo::RouterInfo(
-    const std::string& fullPath)
-    : m_FullPath(fullPath),
+    const std::string& full_path)
+    : m_FullPath(full_path),
       m_IsUpdated(false),
       m_IsUnreachable(false),
       m_SupportedTransports(0),
       m_Caps(0) {
-  m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
+  m_Buffer = std::make_unique<std::uint8_t[]>(MAX_RI_BUFFER_SIZE);
   ReadFromFile();
 }
 
@@ -71,28 +69,26 @@ RouterInfo::RouterInfo(
       m_IsUnreachable(false),
       m_SupportedTransports(0),
       m_Caps(0) {
-  m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
-  memcpy(m_Buffer, buf, len);
+  m_Buffer = std::make_unique<std::uint8_t[]>(MAX_RI_BUFFER_SIZE);
+  memcpy(m_Buffer.get(), buf, len);
   m_BufferLen = len;
   ReadFromBuffer(true);
 }
 
-RouterInfo::~RouterInfo() {
-  delete[] m_Buffer;
-}
+RouterInfo::~RouterInfo() {}
 
 void RouterInfo::Update(
     const uint8_t* buf,
     int len) {
   if (!m_Buffer)
-    m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
+    m_Buffer = std::make_unique<std::uint8_t[]>(MAX_RI_BUFFER_SIZE);
   m_IsUpdated = true;
   m_IsUnreachable = false;
   m_SupportedTransports = 0;
   m_Caps = 0;
   m_Addresses.clear();
   m_Properties.clear();
-  memcpy(m_Buffer, buf, len);
+  memcpy(m_Buffer.get(), buf, len);
   m_BufferLen = len;
   ReadFromBuffer(true);
   // don't delete buffer until saved to file
@@ -115,8 +111,8 @@ bool RouterInfo::LoadFile() {
     }
     s.seekg(0, std::ios::beg);
     if (!m_Buffer)
-      m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
-    s.read(reinterpret_cast<char *>(m_Buffer), m_BufferLen);
+      m_Buffer = std::make_unique<std::uint8_t[]>(MAX_RI_BUFFER_SIZE);
+    s.read(reinterpret_cast<char *>(m_Buffer.get()), m_BufferLen);
   } else {
     LogPrint(eLogError, "RouterInfo: can't open file ", m_FullPath);
     return false;
@@ -130,20 +126,20 @@ void RouterInfo::ReadFromFile() {
 }
 
 void RouterInfo::ReadFromBuffer(
-    bool verifySignature) {
-  size_t identityLen = m_RouterIdentity.FromBuffer(m_Buffer, m_BufferLen);
+    bool verify_signature) {
+  size_t identity_len = m_RouterIdentity.FromBuffer(m_Buffer.get(), m_BufferLen);
   std::stringstream str(
       std::string(
-        reinterpret_cast<char *>(m_Buffer) + identityLen,
-        m_BufferLen - identityLen));
+        reinterpret_cast<char *>(m_Buffer.get()) + identity_len,
+        m_BufferLen - identity_len));
   ReadFromStream(str);
-  if (verifySignature) {
+  if (verify_signature) {
     // verify signature
     int len = m_BufferLen - m_RouterIdentity.GetSignatureLen();
     if (!m_RouterIdentity.Verify(
-          reinterpret_cast<uint8_t *>(m_Buffer),
+          reinterpret_cast<uint8_t *>(m_Buffer.get()),
           len,
-          reinterpret_cast<uint8_t *>(m_Buffer + len))) {
+          reinterpret_cast<uint8_t *>(m_Buffer.get() + len))) {
       LogPrint(eLogError, "RouterInfo: signature verification failed");
       m_IsUnreachable = true;
     }
@@ -156,22 +152,22 @@ void RouterInfo::ReadFromStream(
   s.read(reinterpret_cast<char *>(&m_Timestamp), sizeof(m_Timestamp));
   m_Timestamp = be64toh(m_Timestamp);
   // read addresses
-  uint8_t numAddresses;
-  s.read(reinterpret_cast<char *>(&numAddresses), sizeof(numAddresses));
+  uint8_t num_addresses;
+  s.read(reinterpret_cast<char *>(&num_addresses), sizeof(num_addresses));
   bool introducers = false;
-  for (int i = 0; i < numAddresses; i++) {
-    bool isValidAddress = true;
+  for (int i = 0; i < num_addresses; i++) {
+    bool is_valid_address = true;
     Address address;
     s.read(reinterpret_cast<char *>(&address.cost), sizeof(address.cost));
     s.read(reinterpret_cast<char *>(&address.date), sizeof(address.date));
-    char transportStyle[5];
-    ReadString(transportStyle, s);
-    if (!strcmp(transportStyle, "NTCP"))
-      address.transportStyle = eTransportNTCP;
-    else if (!strcmp(transportStyle, "SSU"))
-      address.transportStyle = eTransportSSU;
+    char transport_style[5];
+    ReadString(transport_style, s);
+    if (!strcmp(transport_style, "NTCP"))
+      address.transport_style = eTransportNTCP;
+    else if (!strcmp(transport_style, "SSU"))
+      address.transport_style = eTransportSSU;
     else
-      address.transportStyle = eTransportUnknown;
+      address.transport_style = eTransportUnknown;
     address.port = 0;
     address.mtu = 0;
     uint16_t size, r = 0;
@@ -189,22 +185,22 @@ void RouterInfo::ReadFromStream(
         boost::system::error_code ecode;
         address.host = boost::asio::ip::address::from_string(value, ecode);
         if (ecode) {  // no error
-          if (address.transportStyle == eTransportNTCP) {
+          if (address.transport_style == eTransportNTCP) {
             m_SupportedTransports |= eNTCPV4;  // TODO(unassigned): ???
-            address.addressString = value;
+            address.address_string = value;
           } else {
             // TODO(unassigned): resolve address for SSU
             LogPrint(eLogWarning, "RouterInfo: unexpected SSU address ", value);
-            isValidAddress = false;
+            is_valid_address = false;
           }
         } else {
           // add supported protocol
           if (address.host.is_v4())
             m_SupportedTransports |=
-              (address.transportStyle == eTransportNTCP) ? eNTCPV4 : eSSUV4;
+              (address.transport_style == eTransportNTCP) ? eNTCPV4 : eSSUV4;
           else
             m_SupportedTransports |=
-              (address.transportStyle == eTransportNTCP) ? eNTCPV6 : eSSUV6;
+              (address.transport_style == eTransportNTCP) ? eNTCPV6 : eSSUV6;
         }
       } else if (!strcmp(key, "port")) {
         address.port = boost::lexical_cast<int>(value);
@@ -225,28 +221,28 @@ void RouterInfo::ReadFromStream(
         Introducer& introducer = address.introducers.at(index);
         if (!strcmp(key, "ihost")) {
           boost::system::error_code ecode;
-          introducer.iHost =
+          introducer.host =
             boost::asio::ip::address::from_string(value, ecode);
         } else if (!strcmp(key, "iport")) {
-          introducer.iPort = boost::lexical_cast<int>(value);
+          introducer.port = boost::lexical_cast<int>(value);
         } else if (!strcmp(key, "itag")) {
-          introducer.iTag = boost::lexical_cast<uint32_t>(value);
+          introducer.tag = boost::lexical_cast<uint32_t>(value);
         } else if (!strcmp(key, "ikey")) {
           i2p::util::Base64ToByteStream(
               value,
               strlen(value),
-              introducer.iKey,
+              introducer.key,
               32);
         }
       }
     }
-    if (isValidAddress)
+    if (is_valid_address)
       m_Addresses.push_back(address);
   }
   // read peers
-  uint8_t numPeers;
-  s.read(reinterpret_cast<char *>(&numPeers), sizeof(numPeers));
-  s.seekg(numPeers*32, std::ios_base::cur);  // TODO(unassigned): read peers
+  uint8_t num_peers;
+  s.read(reinterpret_cast<char *>(&num_peers), sizeof(num_peers));
+  s.seekg(num_peers*32, std::ios_base::cur);  // TODO(unassigned): read peers
   // read properties
   uint16_t size, r = 0;
   s.read(reinterpret_cast<char *>(&size), sizeof(size));
@@ -333,22 +329,24 @@ void RouterInfo::WriteToStream(
   uint64_t ts = htobe64(m_Timestamp);
   s.write(reinterpret_cast<char *>(&ts), sizeof(ts));
   // addresses
-  uint8_t numAddresses = m_Addresses.size();
-  s.write(reinterpret_cast<char *>(&numAddresses), sizeof(numAddresses));
+  uint8_t num_addresses = m_Addresses.size();
+  s.write(reinterpret_cast<char *>(&num_addresses), sizeof(num_addresses));
   for (auto& address : m_Addresses) {
     s.write(reinterpret_cast<char *>(&address.cost), sizeof(address.cost));
     s.write(reinterpret_cast<char *>(&address.date), sizeof(address.date));
     std::stringstream properties;
-    if (address.transportStyle == eTransportNTCP) {
+    if (address.transport_style == eTransportNTCP) {
       WriteString("NTCP", s);
-    } else if (address.transportStyle == eTransportSSU) {
+    } else if (address.transport_style == eTransportSSU) {
       WriteString("SSU", s);
       // caps
       WriteString("caps", properties);
       properties << '=';
       std::string caps;
-      if (IsPeerTesting()) caps += CAPS_FLAG_SSU_TESTING;
-      if (IsIntroducer()) caps += CAPS_FLAG_SSU_INTRODUCER;
+      if (IsPeerTesting())
+        caps += CAPS_FLAG_SSU_TESTING;
+      if (IsIntroducer())
+        caps += CAPS_FLAG_SSU_INTRODUCER;
       WriteString(caps, properties);
       properties << ';';
     } else {
@@ -358,7 +356,7 @@ void RouterInfo::WriteToStream(
     properties << '=';
     WriteString(address.host.to_string(), properties);
     properties << ';';
-    if (address.transportStyle == eTransportSSU) {
+    if (address.transport_style == eTransportSSU) {
       // write introducers if any
       if (address.introducers.size() > 0) {
         int i = 0;
@@ -368,7 +366,7 @@ void RouterInfo::WriteToStream(
               properties);
           properties << '=';
           WriteString(
-              introducer.iHost.to_string(),
+              introducer.host.to_string(),
               properties);
           properties << ';';
           i++;
@@ -379,7 +377,7 @@ void RouterInfo::WriteToStream(
           properties << '=';
           char value[64];
           size_t len =
-            i2p::util::ByteStreamToBase64(introducer.iKey, 32, value, 64);
+            i2p::util::ByteStreamToBase64(introducer.key, 32, value, 64);
           value[len] = 0;
           WriteString(value, properties);
           properties << ';';
@@ -392,7 +390,7 @@ void RouterInfo::WriteToStream(
               properties);
           properties << '=';
           WriteString(
-              boost::lexical_cast<std::string>(introducer.iPort),
+              boost::lexical_cast<std::string>(introducer.port),
               properties);
           properties << ';';
           i++;
@@ -404,7 +402,7 @@ void RouterInfo::WriteToStream(
               properties);
           properties << '=';
           WriteString(
-              boost::lexical_cast<std::string>(introducer.iTag),
+              boost::lexical_cast<std::string>(introducer.tag),
               properties);
           properties << ';';
           i++;
@@ -435,8 +433,8 @@ void RouterInfo::WriteToStream(
     s.write(properties.str().c_str(), properties.str().size());
   }
   // peers
-  uint8_t numPeers = 0;
-  s.write(reinterpret_cast<char *>(&numPeers), sizeof(numPeers));
+  uint8_t num_peers = 0;
+  s.write(reinterpret_cast<char *>(&num_peers), sizeof(num_peers));
   // properties
   std::stringstream properties;
   for (auto& p : m_Properties) {
@@ -457,39 +455,39 @@ const uint8_t* RouterInfo::LoadBuffer() {
           "RouterInfo: buffer for ",
           GetIdentHashAbbreviation(), " loaded from file");
   }
-  return m_Buffer;
+  return m_Buffer.get();
 }
 
 void RouterInfo::CreateBuffer(const PrivateKeys& privateKeys) {
   m_Timestamp = i2p::util::GetMillisecondsSinceEpoch();  // refresh timestamp
   std::stringstream s;
   uint8_t ident[1024];
-  auto identLen = privateKeys.GetPublic().ToBuffer(ident, 1024);
-  s.write(reinterpret_cast<char *>(ident), identLen);
+  auto ident_len = privateKeys.GetPublic().ToBuffer(ident, 1024);
+  s.write(reinterpret_cast<char *>(ident), ident_len);
   WriteToStream(s);
   m_BufferLen = s.str().size();
   if (!m_Buffer)
-    m_Buffer = new uint8_t[MAX_RI_BUFFER_SIZE];
-  memcpy(m_Buffer, s.str().c_str(), m_BufferLen);
+    m_Buffer = std::make_unique<std::uint8_t[]>(MAX_RI_BUFFER_SIZE);
+  memcpy(m_Buffer.get(), s.str().c_str(), m_BufferLen);
   // signature
   privateKeys.Sign(
-    reinterpret_cast<uint8_t *>(m_Buffer),
+    reinterpret_cast<uint8_t *>(m_Buffer.get()),
     m_BufferLen,
-    reinterpret_cast<uint8_t *>(m_Buffer) + m_BufferLen);
+    reinterpret_cast<uint8_t *>(m_Buffer.get()) + m_BufferLen);
   m_BufferLen += privateKeys.GetPublic().GetSignatureLen();
 }
 
 void RouterInfo::SaveToFile(
-    const std::string& fullPath) {
-  m_FullPath = fullPath;
+    const std::string& full_path) {
+  m_FullPath = full_path;
   if (m_Buffer) {
-    std::ofstream f(fullPath, std::ofstream::binary | std::ofstream::out);
+    std::ofstream f(full_path, std::ofstream::binary | std::ofstream::out);
     if (f.is_open())
-      f.write(reinterpret_cast<char *>(m_Buffer), m_BufferLen);
+      f.write(reinterpret_cast<char *>(m_Buffer.get()), m_BufferLen);
     else
-      LogPrint(eLogError, "RouterInfo: can't save RouterInfo to ", fullPath);
+      LogPrint(eLogError, "RouterInfo: can't save RouterInfo to ", full_path);
   } else {
-    LogPrint(eLogError, "RouterInfo: can't save RouterInfo m_Buffer==NULL");
+    LogPrint(eLogError, "RouterInfo: can't save RouterInfo, buffer is empty");
   }
 }
 
@@ -517,7 +515,7 @@ void RouterInfo::AddNTCPAddress(
   Address addr;
   addr.host = boost::asio::ip::address::from_string(host);
   addr.port = port;
-  addr.transportStyle = eTransportNTCP;
+  addr.transport_style = eTransportNTCP;
   addr.cost = 10;  // NTCP should have priority over SSU
   addr.date = 0;
   addr.mtu = 0;
@@ -533,7 +531,7 @@ void RouterInfo::AddSSUAddress(
   Address addr;
   addr.host = boost::asio::ip::address::from_string(host);
   addr.port = port;
-  addr.transportStyle = eTransportSSU;
+  addr.transport_style = eTransportSSU;
   addr.cost = 5;
   addr.date = 0;
   addr.mtu = mtu;
@@ -548,16 +546,16 @@ bool RouterInfo::AddIntroducer(
     const Address* address,
     uint32_t tag) {
   for (auto& addr : m_Addresses) {
-    if (addr.transportStyle == eTransportSSU && addr.host.is_v4()) {
+    if (addr.transport_style == eTransportSSU && addr.host.is_v4()) {
       for (auto intro : addr.introducers)
-        if (intro.iTag == tag)
+        if (intro.tag == tag)
           return false;  // already presented
-      Introducer x;
-      x.iHost = address->host;
-      x.iPort = address->port;
-      x.iTag = tag;
-      memcpy(x.iKey, address->key, 32);  // TODO(unassigned): replace to Tag<32>
-      addr.introducers.push_back(x);
+      Introducer i;
+      i.host = address->host;
+      i.port = address->port;
+      i.tag = tag;
+      memcpy(i.key, address->key, 32);  // TODO(unassigned): replace to Tag<32>
+      addr.introducers.push_back(i);
       return true;
     }
   }
@@ -567,13 +565,13 @@ bool RouterInfo::AddIntroducer(
 bool RouterInfo::RemoveIntroducer(
     const boost::asio::ip::udp::endpoint& e) {
   for (auto& addr : m_Addresses) {
-    if (addr.transportStyle == eTransportSSU && addr.host.is_v4()) {
+    if (addr.transport_style == eTransportSSU && addr.host.is_v4()) {
       for (std::vector<Introducer>::iterator it = addr.introducers.begin();
           it != addr.introducers.end();
           it++)
         if (boost::asio::ip::udp::endpoint(
-              it->iHost,
-              it->iPort) == e) {
+              it->host,
+              it->port) == e) {
           addr.introducers.erase(it);
           return true;
         }
@@ -640,7 +638,7 @@ void RouterInfo::DisableV6() {
     // NTCP
     m_SupportedTransports &= ~eNTCPV6;
     for (size_t i = 0; i < m_Addresses.size(); i++) {
-      if (m_Addresses[i].transportStyle ==
+      if (m_Addresses[i].transport_style ==
           i2p::data::RouterInfo::eTransportNTCP &&
           m_Addresses[i].host.is_v6()) {
         m_Addresses.erase(m_Addresses.begin() + i);
@@ -650,7 +648,7 @@ void RouterInfo::DisableV6() {
     // SSU
     m_SupportedTransports &= ~eSSUV6;
     for (size_t i = 0; i < m_Addresses.size(); i++) {
-      if (m_Addresses[i].transportStyle ==
+      if (m_Addresses[i].transport_style ==
           i2p::data::RouterInfo::eTransportSSU &&
           m_Addresses[i].host.is_v6()) {
         m_Addresses.erase(m_Addresses.begin() + i);
@@ -683,7 +681,7 @@ const RouterInfo::Address* RouterInfo::GetAddress(
     bool v4only,
     bool v6only) const {
   for (auto& address : m_Addresses) {
-    if (address.transportStyle == s) {
+    if (address.transport_style == s) {
       if ((!v4only || address.host.is_v4()) &&
           (!v6only || address.host.is_v6()))
         return &address;

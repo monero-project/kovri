@@ -73,7 +73,8 @@ class MD5::MD5Impl {
 };
 
 MD5::MD5()
-    : m_MD5Pimpl(new MD5Impl()) {}
+    : m_MD5Pimpl(
+          std::make_unique<MD5Impl>()) {}
 
 MD5::~MD5() {}
 
@@ -127,7 +128,8 @@ class SHA256::SHA256Impl {
 };
 
 SHA256::SHA256()
-    : m_SHA256Pimpl(new SHA256Impl()) {}
+    : m_SHA256Pimpl(
+          std::make_unique<SHA256Impl>()) {}
 
 SHA256::~SHA256() {}
 
@@ -199,7 +201,8 @@ class SHA512::SHA512Impl {
 };
 
 SHA512::SHA512()
-    : m_SHA512Pimpl(new SHA512Impl()) {}
+    : m_SHA512Pimpl(
+          std::make_unique<SHA512Impl>()) {}
 
 SHA512::~SHA512() {}
 

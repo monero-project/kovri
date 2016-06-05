@@ -383,8 +383,7 @@ std::shared_ptr<SSUSession> SSUServer::FindSession(
 
 std::shared_ptr<SSUSession> SSUServer::FindSession(
     const boost::asio::ip::udp::endpoint& ep) const {
-  LogPrint(eLogDebug,
-      "SSUServer: finding session from endpoint)");
+  LogPrint(eLogDebug, "SSUServer: finding session from endpoint");
   auto it = m_Sessions.find(ep);
   if (it != m_Sessions.end())
     return it->second;
@@ -434,8 +433,8 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
               introducer = &(address->introducers[i]);
               it = m_Sessions.find(
                   boost::asio::ip::udp::endpoint(
-                      introducer->iHost,
-                      introducer->iPort));
+                      introducer->host,
+                      introducer->port));
               if (it != m_Sessions.end()) {
                 introducerSession = it->second;
                 break;
@@ -443,15 +442,15 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
             }
             if (introducerSession) {  // session found
               LogPrint(eLogInfo,
-                  "SSUServer: ", introducer->iHost, ":", introducer->iPort,
+                  "SSUServer: ", introducer->host, ":", introducer->port,
                   "session to introducer already exists");
             } else {  // create new
               LogPrint(eLogInfo,
                   "SSUServer: creating new session to introducer");
               introducer = &(address->introducers[0]);  // TODO(unassigned): ???
               boost::asio::ip::udp::endpoint introducerEndpoint(
-                  introducer->iHost,
-                  introducer->iPort);
+                  introducer->host,
+                  introducer->port);
               introducerSession = std::make_shared<SSUSession>(
                   *this,
                   introducerEndpoint,
@@ -463,15 +462,15 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
             LogPrint("SSUServer: introducing new SSU session to [",
                 router->GetIdentHashAbbreviation(), "] through introducer [",
                 introducerSession->GetRemoteIdentHashAbbreviation(), "] ",
-                introducer->iHost, ":",
-                introducer->iPort);
+                introducer->host, ":",
+                introducer->port);
             session->WaitForIntroduction();
             // if we are unreachable
             if (i2p::context.GetRouterInfo().UsesIntroducer()) {
               uint8_t buf[1];
               Send(buf, 0, remoteEndpoint);  // send HolePunch
             }
-            introducerSession->Introduce(introducer->iTag, introducer->iKey);
+            introducerSession->Introduce(introducer->tag, introducer->key);
           } else {
             LogPrint(eLogWarning,
                 "SSUServer: can't connect to unreachable router."

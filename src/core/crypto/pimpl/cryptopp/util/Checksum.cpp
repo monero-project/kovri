@@ -78,7 +78,7 @@ class Adler32::Adler32Impl {
 
 Adler32::Adler32()
     : m_Adler32Pimpl(
-          new Adler32Impl()) {}
+          std::make_unique<Adler32Impl>()) {}
 
 Adler32::~Adler32() {}
 

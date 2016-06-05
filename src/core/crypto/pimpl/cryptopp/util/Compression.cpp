@@ -114,7 +114,7 @@ class DeflateDecompressor::DeflateDecompressorImpl {
 
 DeflateDecompressor::DeflateDecompressor()
     : m_DeflateDecompressorPimpl(
-          new DeflateDecompressorImpl()) {}
+          std::make_unique<DeflateDecompressorImpl>()) {}
 
 DeflateDecompressor::~DeflateDecompressor() {}
 
@@ -211,7 +211,7 @@ class Gzip::GzipImpl {
 
 Gzip::Gzip()
     : m_GzipPimpl(
-          new GzipImpl()) {}
+          std::make_unique<GzipImpl>()) {}
 
 Gzip::~Gzip() {}
 
@@ -297,7 +297,7 @@ class Gunzip::GunzipImpl {
 
 Gunzip::Gunzip()
     : m_GunzipPimpl(
-          new GunzipImpl()) {}
+          std::make_unique<GunzipImpl>()) {}
 
 Gunzip::~Gunzip() {}
 

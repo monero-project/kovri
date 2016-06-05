@@ -33,6 +33,7 @@
 #include "I2PTunnel.h"
 
 #include <cassert>
+#include <memory>
 #include <set>
 #include <string>
 
@@ -46,14 +47,14 @@ namespace client {
 I2PTunnelConnection::I2PTunnelConnection(
     I2PService* owner,
     std::shared_ptr<boost::asio::ip::tcp::socket> socket,
-    std::shared_ptr<const i2p::data::LeaseSet> leaseSet,
+    std::shared_ptr<const i2p::data::LeaseSet> lease_set,
     int port)
     : I2PServiceHandler(owner),
       m_Socket(socket),
       m_RemoteEndpoint(socket->remote_endpoint()),
       m_IsQuiet(true) {
         m_Stream = GetOwner()->GetLocalDestination()->CreateStream(
-            leaseSet,
+            lease_set,
             port);
 }
 
@@ -99,9 +100,9 @@ void I2PTunnelConnection::Connect() {
     m_Socket->async_connect(
         m_RemoteEndpoint,
         std::bind(
-          &I2PTunnelConnection::HandleConnect,
-          shared_from_this(),
-          std::placeholders::_1));
+            &I2PTunnelConnection::HandleConnect,
+            shared_from_this(),
+            std::placeholders::_1));
 }
 
 void I2PTunnelConnection::Terminate() {
@@ -118,13 +119,13 @@ void I2PTunnelConnection::Terminate() {
 void I2PTunnelConnection::Receive() {
   m_Socket->async_read_some(
       boost::asio::buffer(
-        m_Buffer,
-        I2P_TUNNEL_CONNECTION_BUFFER_SIZE),
+          m_Buffer,
+          I2P_TUNNEL_CONNECTION_BUFFER_SIZE),
       std::bind(
-        &I2PTunnelConnection::HandleReceived,
-        shared_from_this(),
-        std::placeholders::_1,
-        std::placeholders::_2));
+          &I2PTunnelConnection::HandleReceived,
+          shared_from_this(),
+          std::placeholders::_1,
+          std::placeholders::_2));
 }
 
 void I2PTunnelConnection::HandleReceived(
@@ -252,8 +253,8 @@ void I2PTunnelConnectionHTTP::Write(
     m_InHeader.clear();
     m_InHeader.write((const char *)buf, len);
     std::string line;
-    bool endOfHeader = false;
-    while (!endOfHeader) {
+    bool end_of_header = false;
+    while (!end_of_header) {
       std::getline(m_InHeader, line);
       if (!m_InHeader.fail()) {
         if (line.find("Host:") != std::string::npos)
@@ -261,12 +262,12 @@ void I2PTunnelConnectionHTTP::Write(
         else
           m_OutHeader << line << "\n";
         if (line == "\r")
-          endOfHeader = true;
+          end_of_header = true;
       } else {
         break;
       }
     }
-    if (endOfHeader) {
+    if (end_of_header) {
       m_OutHeader << m_InHeader.str();  // data right after header
       m_HeaderSent = true;
       I2PTunnelConnection::Write(
@@ -285,11 +286,11 @@ class I2PClientTunnelHandler
   I2PClientTunnelHandler(
       I2PClientTunnel* parent,
       i2p::data::IdentHash destination,
-      int destinationPort,
+      int destination_port,
       std::shared_ptr<boost::asio::ip::tcp::socket> socket)
     : I2PServiceHandler(parent),
       m_DestinationIdentHash(destination),
-      m_DestinationPort(destinationPort),
+      m_DestinationPort(destination_port),
       m_Socket(socket) {}
   void Handle();
   void Terminate();
@@ -349,16 +350,16 @@ I2PClientTunnel::I2PClientTunnel(
     const std::string& destination,
     const std::string& address,
     int port,
-    std::shared_ptr<ClientDestination> localDestination,
-    int destinationPort)
+    std::shared_ptr<ClientDestination> local_destination,
+    int destination_port)
     : TCPIPAcceptor(
           address,
           port,
-          localDestination),
+          local_destination),
       m_TunnelName(name),
       m_Destination(destination),
       m_DestinationIdentHash(nullptr),
-      m_DestinationPort(destinationPort) {}
+      m_DestinationPort(destination_port) {}
 
 void I2PClientTunnel::Start() {
   TCPIPAcceptor::Start();
@@ -367,23 +368,20 @@ void I2PClientTunnel::Start() {
 
 void I2PClientTunnel::Stop() {
   TCPIPAcceptor::Stop();
-  auto *originalIdentHash = m_DestinationIdentHash;
-  m_DestinationIdentHash = nullptr;
-  delete originalIdentHash;
+  m_DestinationIdentHash.reset(nullptr);
 }
 
 /* HACK: maybe we should create a caching IdentHash provider in AddressBook */
-const i2p::data::IdentHash* I2PClientTunnel::GetIdentHash() {
+std::unique_ptr<const i2p::data::IdentHash> I2PClientTunnel::GetIdentHash() {
   if (!m_DestinationIdentHash) {
     i2p::data::IdentHash identHash;
-    if (i2p::client::context.GetAddressBook().GetIdentHash(
-          m_Destination, identHash))
-      m_DestinationIdentHash = new i2p::data::IdentHash(identHash);
+    if (i2p::client::context.GetAddressBook().GetIdentHash(m_Destination, identHash))
+      m_DestinationIdentHash = std::make_unique<i2p::data::IdentHash>(identHash);
     else
       LogPrint(eLogWarning,
           "I2PClientTunnel: remote destination ", m_Destination, " not found");
   }
-  return m_DestinationIdentHash;
+  return std::move(m_DestinationIdentHash);
 }
 
 std::string I2PClientTunnel::GetName() {
@@ -392,7 +390,7 @@ std::string I2PClientTunnel::GetName() {
 
 std::shared_ptr<I2PServiceHandler> I2PClientTunnel::CreateHandler(
     std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
-  const i2p::data::IdentHash *identHash = GetIdentHash();
+  auto identHash = GetIdentHash();
   if (identHash)
     return std::make_shared<I2PClientTunnelHandler>(
         this,
@@ -407,15 +405,15 @@ I2PServerTunnel::I2PServerTunnel(
     const std::string& name,
     const std::string& address,
     int port,
-    std::shared_ptr<ClientDestination> localDestination,
+    std::shared_ptr<ClientDestination> local_destination,
     int inport)
-    : I2PService(localDestination),
+    : I2PService(local_destination),
       m_Address(address),
       m_TunnelName(name),
       m_Port(port),
       m_IsAccessList(false) {
       m_PortDestination =
-        localDestination->CreateStreamingDestination(
+        local_destination->CreateStreamingDestination(
             inport > 0 ? inport : port);
 }
 
@@ -437,10 +435,7 @@ void I2PServerTunnel::Start() {
    */
   m_Endpoint.port(m_Port);
   boost::system::error_code ec;
-  auto addr =
-    boost::asio::ip::address::from_string(
-        m_Address,
-        ec);
+  auto addr = boost::asio::ip::address::from_string(m_Address, ec);
   if (!ec) {
     m_Endpoint.address(addr);
     Accept();
@@ -470,14 +465,14 @@ void I2PServerTunnel::HandleResolve(
     const boost::system::error_code& ecode,
     boost::asio::ip::tcp::resolver::iterator it,
     std::shared_ptr<boost::asio::ip::tcp::resolver>,
-    bool acceptAfter) {
+    bool accept_after) {
   if (!ecode) {
     auto addr = (*it).endpoint().address();
     LogPrint(eLogInfo,
         "I2PServerTunnel: server tunnel ",
         (*it).host_name(), " has been resolved to ", addr);
     m_Endpoint.address(addr);
-    if (acceptAfter) {
+    if (accept_after) {
       Accept();
     }
   } else {
@@ -492,10 +487,7 @@ void I2PServerTunnel::UpdateAddress(
     const std::string& addr) {
   m_Address = addr;
   boost::system::error_code ec;
-  auto a =
-    boost::asio::ip::address::from_string(
-        m_Address,
-        ec);
+  auto a = boost::asio::ip::address::from_string(m_Address, ec);
   if (!ec) {
     m_Endpoint.address(a);
   } else {
@@ -544,18 +536,18 @@ void I2PServerTunnel::Accept() {
   if (m_PortDestination)
     m_PortDestination->SetAcceptor(
         std::bind(
-          &I2PServerTunnel::HandleAccept,
-          this,
-          std::placeholders::_1));
-  auto localDestination = GetLocalDestination();
-  if (localDestination) {
-    // set it as default if not set yet
-    if (!localDestination->IsAcceptingStreams())
-      localDestination->AcceptStreams(
-          std::bind(
             &I2PServerTunnel::HandleAccept,
             this,
             std::placeholders::_1));
+  auto local_destination = GetLocalDestination();
+  if (local_destination) {
+    // set it as default if not set yet
+    if (!local_destination->IsAcceptingStreams())
+      local_destination->AcceptStreams(
+          std::bind(
+              &I2PServerTunnel::HandleAccept,
+              this,
+              std::placeholders::_1));
   } else {
     LogPrint("I2PServerTunnel: local destination not set for server tunnel");
   }
@@ -582,11 +574,10 @@ void I2PServerTunnel::CreateI2PConnection(
     std::shared_ptr<i2p::stream::Stream> stream) {
   auto conn =
     std::make_shared<I2PTunnelConnection>(
-      this,
-      stream,
-      std::make_shared<boost::asio::ip::tcp::socket>(
-        GetService()),
-      GetEndpoint());
+        this,
+        stream,
+        std::make_shared<boost::asio::ip::tcp::socket>(GetService()),
+        GetEndpoint());
   AddHandler(conn);
   conn->Connect();
 }
@@ -599,25 +590,24 @@ I2PServerTunnelHTTP::I2PServerTunnelHTTP(
     const std::string& name,
     const std::string& address,
     int port,
-    std::shared_ptr<ClientDestination> localDestination,
+    std::shared_ptr<ClientDestination> local_destination,
     int inport)
     : I2PServerTunnel(
           name,
           address,
           port,
-          localDestination,
+          local_destination,
           inport) {}
 
 void I2PServerTunnelHTTP::CreateI2PConnection(
     std::shared_ptr<i2p::stream::Stream> stream) {
   auto conn =
     std::make_shared<I2PTunnelConnectionHTTP>(
-      this,
-      stream,
-      std::make_shared<boost::asio::ip::tcp::socket>(
-        GetService()),
-      GetEndpoint(),
-      GetAddress());
+        this,
+        stream,
+        std::make_shared<boost::asio::ip::tcp::socket>(GetService()),
+        GetEndpoint(),
+        GetAddress());
   AddHandler(conn);
   conn->Connect();
 }

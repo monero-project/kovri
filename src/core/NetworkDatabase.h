@@ -41,6 +41,7 @@
 
 #include <list>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <set>
 #include <string>
@@ -91,7 +92,7 @@ class NetDb {
 
   void RequestDestination(
       const IdentHash& destination,
-      RequestedDestination::RequestComplete requestComplete = nullptr);
+      RequestedDestination::RequestComplete request_complete = nullptr);
 
   void HandleDatabaseStoreMsg(
       std::shared_ptr<const I2NPMessage> msg);
@@ -103,11 +104,12 @@ class NetDb {
       std::shared_ptr<const I2NPMessage> msg);
 
   std::shared_ptr<const RouterInfo> GetRandomRouter() const;
+
   std::shared_ptr<const RouterInfo> GetRandomRouter(
-      std::shared_ptr<const RouterInfo> compatibleWith) const;
+      std::shared_ptr<const RouterInfo> compatible_with) const;
 
   std::shared_ptr<const RouterInfo> GetHighBandwidthRandomRouter(
-      std::shared_ptr<const RouterInfo> compatibleWith) const;
+      std::shared_ptr<const RouterInfo> compatible_with) const;
 
   std::shared_ptr<const RouterInfo> GetRandomPeerTestRouter() const;
 
@@ -116,6 +118,7 @@ class NetDb {
   std::shared_ptr<const RouterInfo> GetClosestFloodfill(
       const IdentHash& destination,
       const std::set<IdentHash>& excluded) const;
+
   std::vector<IdentHash> GetClosestFloodfills(
       const IdentHash& destination,
       size_t num,
@@ -151,7 +154,7 @@ class NetDb {
   void Load();
   void SaveUpdated();
   void Run();  // exploratory thread
-  void Explore(int numDestinations);
+  void Explore(int num_destinations);
   void Publish();
   void ManageLeaseSets();
   void ManageRequests();
@@ -161,18 +164,19 @@ class NetDb {
       Filter filter) const;
 
  private:
-  std::map<IdentHash, std::shared_ptr<LeaseSet> > m_LeaseSets;
+  std::map<IdentHash, std::shared_ptr<LeaseSet>> m_LeaseSets;
   mutable std::mutex m_RouterInfosMutex;
-  std::map<IdentHash, std::shared_ptr<RouterInfo> > m_RouterInfos;
+  std::map<IdentHash, std::shared_ptr<RouterInfo>> m_RouterInfos;
   mutable std::mutex m_FloodfillsMutex;
-  std::list<std::shared_ptr<RouterInfo> > m_Floodfills;
+  std::list<std::shared_ptr<RouterInfo>> m_Floodfills;
 
   bool m_IsRunning;
-  std::thread * m_Thread;
-  // of I2NPDatabaseStoreMsg
-  i2p::util::Queue<std::shared_ptr<const I2NPMessage> > m_Queue;
+  std::unique_ptr<std::thread> m_Thread;
 
-  i2p::data::Reseed* m_Reseed;
+  // of I2NPDatabaseStoreMsg
+  i2p::util::Queue<std::shared_ptr<const I2NPMessage>> m_Queue;
+
+  std::unique_ptr<i2p::data::Reseed> m_Reseed;
 
   friend class NetDbRequests;
   NetDbRequests m_Requests;

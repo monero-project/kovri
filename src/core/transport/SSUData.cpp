@@ -132,7 +132,7 @@ void SSUData::UpdatePacketSize(
 
 void SSUData::ProcessSentMessageAck(
     uint32_t msgID) {
-  // TODO(anonimal): too spammy? keep?
+  // TODO(unassigned): too spammy? keep?
   //LogPrint(eLogDebug,
       //"SSUData:", m_Session.GetFormattedSessionInfo(),
       //"processing sent message ACK");

@@ -170,7 +170,7 @@ void I2PControlService::HandleRequestReceived(
         LogPrint(eLogError,
             "I2PControlService: malformed I2PControl request."
             "HTTP header expected");
-        return;  // TODO(anonimal): implement
+        return;  // TODO(unassigned): implement
       }
     }
     I2PControlSession::Response response =

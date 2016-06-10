@@ -127,39 +127,58 @@ bool HTTPProxyHandler::HandleData(
   // This should always be called with at least a byte left to parse
   assert(len);
   while (len > 0) {
-    // TODO(anonimal): fallback to finding Host: header if needed
     switch (m_State) {
       case static_cast<std::size_t>(State::get_method):
         switch (*buf) {
           case ' ':
-            SetState(State::get_hostname);
+            SetState(State::get_url);
             break;
           default:
             m_Method.push_back(*buf);
             break;
         }
       break;
-      case static_cast<std::size_t>(State::get_hostname):
+      case static_cast<std::size_t>(State::get_url):
         switch (*buf) {
           case ' ':
-            SetState(State::get_httpv);
+            SetState(State::get_http_version);
             break;
           default:
             m_URL.push_back(*buf);
             break;
         }
       break;
-      case static_cast<std::size_t>(State::get_httpv):
+      case static_cast<std::size_t>(State::get_http_version):
         switch (*buf) {
           case '\r':
-            SetState(State::get_httpvnl);
+            SetState(State::host);
             break;
           default:
             m_Version.push_back(*buf);
             break;
         }
       break;
-      case static_cast<std::size_t>(State::get_httpvnl):
+      case static_cast<std::size_t>(State::host):
+        switch (*buf) {
+          case '\r':
+            SetState(State::useragent);
+            break;
+          default:
+            m_Host.push_back(*buf);
+            break;
+        }
+      break;
+      case static_cast<std::size_t>(State::useragent):
+        switch (*buf) {
+          case '\r':
+            SetState(State::newline);
+            break;
+          default:
+            m_UserAgent.push_back(*buf);
+            break;
+        }
+      break;
+      case static_cast<std::size_t>(State::newline):
         switch (*buf) {
           case '\n':
             SetState(State::done);
@@ -211,7 +230,7 @@ void HTTPProxyHandler::HandleStreamRequestComplete(
 }
 
 void HTTPProxyHandler::SetState(
-    HTTPProxyHandler::State state) {
+    const HTTPProxyHandler::State& state) {
   m_State = state;
 }
 
@@ -221,14 +240,18 @@ bool HTTPProxyHandler::CreateHTTPRequest(
   if (!ExtractIncomingRequest())
     return false;
   HandleJumpService();
+  // Set method, path, and version
   m_Request = m_Method;
   m_Request.push_back(' ');
   m_Request += m_Path;
   m_Request.push_back(' ');
-  m_Request += m_Version;
-  m_Request.push_back('\r');
-  m_Request.push_back('\n');
-  m_Request.append("Connection: close\r\n");
+  m_Request += m_Version + "\r\n";
+  // Set Host:
+  m_Request += m_Host + "\r\n";
+  // Reset/scrub User-Agent:
+  m_UserAgent = "MYOB/6.66 (AN/ON)";
+  m_Request += "User-Agent: " + m_UserAgent + "\r\n";
+  // Append remaining original request
   m_Request.append(reinterpret_cast<const char *>(buf), len);
   return true;
 }
@@ -268,8 +291,8 @@ bool HTTPProxyHandler::ExtractIncomingRequest() {
 
 void HTTPProxyHandler::HandleJumpService() {
   // TODO(anonimal): add support for remaining services / rewrite this function
-  std::size_t pos1 = m_Path.rfind(m_JumpService[1]);
-  std::size_t pos2 = m_Path.rfind(m_JumpService[2]);
+  std::size_t pos1 = m_Path.rfind(m_JumpService.at(0));
+  std::size_t pos2 = m_Path.rfind(m_JumpService.at(1));
   std::size_t pos;
   if (pos1 == std::string::npos) {
     if (pos2 == std::string::npos)
@@ -284,7 +307,7 @@ void HTTPProxyHandler::HandleJumpService() {
     else
       pos = pos2;
   }
-  auto base64 = m_Path.substr(pos + m_JumpService[1].size());
+  auto base64 = m_Path.substr(pos + m_JumpService.at(0).size());
   // We must decode
   i2p::util::http::URI uri;
   base64 = uri.Decode(base64);

@@ -104,16 +104,6 @@ class HTTPProxyHandler
   }
 
  private:
-  /// @enum State
-  /// @brief Parsing state
-  enum State : const std::uint8_t {
-    get_method,
-    get_hostname,
-    get_httpv,
-    get_httpvnl,  // TODO(unassigned): fallback to finding Host header if needed
-    done,
-  } m_State;
-
   /// @brief Asynchronously reads data sent to proxy server
   void AsyncSockRead();
 
@@ -122,7 +112,7 @@ class HTTPProxyHandler
       const boost::system::error_code& ecode,
       std::size_t bytes_transfered);
 
-  /// @brief Handles data recevied from socket
+  /// @brief Handles data received from socket
   bool HandleData(
       uint8_t* buf,
       std::size_t len);
@@ -131,9 +121,36 @@ class HTTPProxyHandler
   void HandleStreamRequestComplete(
       std::shared_ptr<i2p::stream::Stream> stream);
 
+  /// @enum State
+  /// @brief Parsing state
+  /// @note Only GET method currently supported
+  enum State : const std::uint8_t {
+    /// @var get_method
+    /// @brief Method sent in request
+    get_method,
+    /// @var get_url
+    /// @brief URL sent in request
+    get_url,
+    /// @var get_http_version
+    /// @brief HTTP version
+    get_http_version,
+    /// @var host
+    /// @brief Host: sent in request
+    host,
+    /// @var useragent
+    /// @brief User-Agent: sent in request
+    useragent,
+    /// @var newline
+    /// @brief Newline in request
+    newline,
+    /// @var done
+    /// @brief Done with request
+    done,
+  } m_State;
+
   /// @brief Sets state set by handled data
   void SetState(
-      State state);
+      const State& state);
 
   /// @brief Processes original request: extracts, validates,
   ///   calls jump service, appends original request
@@ -178,14 +195,17 @@ class HTTPProxyHandler
 
   /// @brief Data for incoming request
   std::string m_Request, m_URL, m_Method, m_Version, m_Address, m_Path;
+  std::string m_Host, m_UserAgent;
   std::uint16_t m_Port;
 
-  // Address helper map for base64 jump service
-  std::unordered_map<std::uint8_t, const std::string> m_JumpService {
-    { 1, "?i2paddresshelper=" },
-    { 2, "&i2paddresshelper=" },
-    { 3, "?kovrijumpservice=" },
-    { 4, "&kovrijumpservice=" }};
+  /// @var m_JumpService
+  /// @brief Address helpers for base64 jump service
+  const std::array<std::string, 4> m_JumpService {{
+    "?i2paddresshelper=",
+    "&i2paddresshelper=",
+    "?kovrijumpservice=",
+    "&kovrijumpservice=",
+  }};
 };
 
 }  // namespace proxy

@@ -33,8 +33,8 @@
 #ifndef SRC_CORE_GARLIC_H_
 #define SRC_CORE_GARLIC_H_
 
-#include <inttypes.h>
-
+#include <array>
+#include <cstdint>
 #include <list>
 #include <map>
 #include <memory>
@@ -60,9 +60,10 @@ enum GarlicDeliveryType {
 
 #pragma pack(1)
 struct ElGamalBlock {
-  uint8_t session_key[32];
-  uint8_t pre_IV[32];
-  uint8_t padding[158];
+  std::array<std::uint8_t, 32> session_key;
+  std::array<std::uint8_t, 32> pre_IV;
+  // TODO(unassigned): review spec, how should padding be initialized/treated?
+  std::array<std::uint8_t, 158> padding;
 };
 #pragma pack()
 
@@ -70,25 +71,63 @@ const int INCOMING_TAGS_EXPIRATION_TIMEOUT = 960;  // 16 minutes
 const int OUTGOING_TAGS_EXPIRATION_TIMEOUT = 720;  // 12 minutes
 const int LEASET_CONFIRMATION_TIMEOUT = 4000;  // in milliseconds
 
-struct SessionTag: public i2p::data::Tag<32> {
+struct SessionTag
+    : public i2p::data::Tag<32> {
   SessionTag(
-      const uint8_t* buf,
-      uint32_t ts = 0)
+      const std::uint8_t* buf,
+      std::uint32_t ts = 0)
     : Tag<32>(buf),
       creation_time(ts) {}
+
   SessionTag() = default;
-  SessionTag(const SessionTag&) = default;
-  SessionTag& operator=(const SessionTag&) = default;
+
+  SessionTag(
+      const SessionTag&) = default;
+
+  SessionTag& operator=(
+      const SessionTag&) = default;
+
 #ifndef _WIN32
-  SessionTag(SessionTag&&) = default;
-  SessionTag& operator=(SessionTag&&) = default;
+  SessionTag(
+      SessionTag&&) = default;
+
+  SessionTag& operator=(
+      SessionTag&&) = default;
 #endif
-  uint32_t creation_time;  // seconds since epoch
+
+  std::uint32_t creation_time;  // seconds since epoch
 };
 
 class GarlicDestination;
 class GarlicRoutingSession
     : public std::enable_shared_from_this<GarlicRoutingSession> {
+ public:
+  GarlicRoutingSession(
+      GarlicDestination* owner,
+      std::shared_ptr<const i2p::data::RoutingDestination> destination,
+      int num_tags,
+      bool attach_lease_set);
+
+  GarlicRoutingSession(
+      const std::uint8_t* sessionKey,
+      const SessionTag& sessionTag);  // one time encryption
+
+  ~GarlicRoutingSession();
+
+  std::shared_ptr<I2NPMessage> WrapSingleMessage(
+      std::shared_ptr<const I2NPMessage> msg);
+
+  void MessageConfirmed(
+      std::uint32_t msg_ID);
+
+  bool CleanupExpiredTags();  // returns true if something left
+
+  void SetLeaseSetUpdated() {
+    if (m_LeaseSetUpdateStatus != eLeaseSetDoNotSend)
+      m_LeaseSetUpdateStatus = eLeaseSetUpdated;
+  }
+
+ private:
   enum LeaseSetUpdateStatus {
     eLeaseSetUpToDate = 0,
     eLeaseSetUpdated,
@@ -105,56 +144,30 @@ class GarlicRoutingSession
     ~UnconfirmedTags() {}
     int num_tags;
     std::unique_ptr<SessionTag[]> session_tags;
-    uint32_t tags_creation_time;
+    std::uint32_t tags_creation_time;
   };
 
- public:
-  GarlicRoutingSession(
-      GarlicDestination* owner,
-      std::shared_ptr<const i2p::data::RoutingDestination> destination,
-      int num_tags,
-      bool attach_lease_set);
-
-  GarlicRoutingSession(
-      const uint8_t* sessionKey,
-      const SessionTag& sessionTag);  // one time encryption
-
-  ~GarlicRoutingSession();
-
-  std::shared_ptr<I2NPMessage> WrapSingleMessage(
-      std::shared_ptr<const I2NPMessage> msg);
-
-  void MessageConfirmed(
-      uint32_t msg_ID);
-
-  bool CleanupExpiredTags();  // returns true if something left
-
-  void SetLeaseSetUpdated() {
-    if (m_LeaseSetUpdateStatus != eLeaseSetDoNotSend)
-      m_LeaseSetUpdateStatus = eLeaseSetUpdated;
-  }
-
  private:
-  size_t CreateAESBlock(
-      uint8_t* buf,
+  std::size_t CreateAESBlock(
+      std::uint8_t* buf,
       std::shared_ptr<const I2NPMessage> msg);
 
-  size_t CreateGarlicPayload(
-      uint8_t* payload,
+  std::size_t CreateGarlicPayload(
+      std::uint8_t* payload,
       std::shared_ptr<const I2NPMessage> msg,
       UnconfirmedTags* new_tags);
 
-  size_t CreateGarlicClove(
-      uint8_t* buf,
+  std::size_t CreateGarlicClove(
+      std::uint8_t* buf,
       std::shared_ptr<const I2NPMessage> msg,
       bool is_destination);
 
-  size_t CreateDeliveryStatusClove(
-      uint8_t* buf,
-      uint32_t msg_ID);
+  std::size_t CreateDeliveryStatusClove(
+      std::uint8_t* buf,
+      std::uint32_t msg_ID);
 
   void TagsConfirmed(
-      uint32_t msg_ID);
+      std::uint32_t msg_ID);
 
   UnconfirmedTags* GenerateSessionTags();
 
@@ -164,16 +177,17 @@ class GarlicRoutingSession
   i2p::crypto::AESKey m_SessionKey;
   std::list<SessionTag> m_SessionTags;
   int m_NumTags;
-  std::map<uint32_t, UnconfirmedTags *> m_UnconfirmedTagsMsgs;
+  std::map<std::uint32_t, UnconfirmedTags *> m_UnconfirmedTagsMsgs;
 
   LeaseSetUpdateStatus m_LeaseSetUpdateStatus;
-  uint32_t m_LeaseSetUpdateMsgID;
-  uint64_t m_LeaseSetSubmissionTime;  // in milliseconds
+  std::uint32_t m_LeaseSetUpdateMsgID;
+  std::uint64_t m_LeaseSetSubmissionTime;  // in milliseconds
 
   i2p::crypto::CBCEncryption m_Encryption;
 };
 
-class GarlicDestination : public i2p::data::LocalDestination {
+class GarlicDestination
+    : public i2p::data::LocalDestination {
  public:
   GarlicDestination()
       : m_LastTagsCleanupTime(0) {}
@@ -187,7 +201,7 @@ class GarlicDestination : public i2p::data::LocalDestination {
   void CleanupRoutingSessions();
 
   void RemoveCreatedSession(
-      uint32_t msg_ID);
+      std::uint32_t msg_ID);
 
   std::shared_ptr<I2NPMessage> WrapMessage(
       std::shared_ptr<const i2p::data::RoutingDestination> destination,
@@ -195,16 +209,16 @@ class GarlicDestination : public i2p::data::LocalDestination {
       bool attach_lease_set = false);
 
   void AddSessionKey(
-      const uint8_t* key,
-      const uint8_t* tag);  // one tag
+      const std::uint8_t* key,
+      const std::uint8_t* tag);  // one tag
 
   virtual bool SubmitSessionKey(
-      const uint8_t* key,
-      const uint8_t* tag);  // from different thread
+      const std::uint8_t* key,
+      const std::uint8_t* tag);  // from different thread
 
   void DeliveryStatusSent(
       std::shared_ptr<GarlicRoutingSession> session,
-      uint32_t msg_ID);
+      std::uint32_t msg_ID);
 
   virtual void ProcessGarlicMessage(std::shared_ptr<I2NPMessage> msg);
   virtual void ProcessDeliveryStatusMessage(std::shared_ptr<I2NPMessage> msg);
@@ -215,8 +229,8 @@ class GarlicDestination : public i2p::data::LocalDestination {
   virtual std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool() const = 0;
 
   virtual void HandleI2NPMessage(
-      const uint8_t* buf,
-      size_t len,
+      const std::uint8_t* buf,
+      std::size_t len,
       std::shared_ptr<i2p::tunnel::InboundTunnel> from) = 0;
 
  protected:
@@ -225,14 +239,14 @@ class GarlicDestination : public i2p::data::LocalDestination {
 
  private:
   void HandleAESBlock(
-      uint8_t* buf,
-      size_t len,
+      std::uint8_t* buf,
+      std::size_t len,
       std::shared_ptr<i2p::crypto::CBCDecryption> decryption,
       std::shared_ptr<i2p::tunnel::InboundTunnel> from);
 
   void HandleGarlicPayload(
-      uint8_t* buf,
-      size_t len,
+      std::uint8_t* buf,
+      std::size_t len,
       std::shared_ptr<i2p::tunnel::InboundTunnel> from);
 
  private:
@@ -243,7 +257,7 @@ class GarlicDestination : public i2p::data::LocalDestination {
   // incoming
   std::map<SessionTag,
            std::shared_ptr<i2p::crypto::CBCDecryption>> m_Tags;
-  uint32_t m_LastTagsCleanupTime;
+  std::uint32_t m_LastTagsCleanupTime;
   // DeliveryStatus  (msg_ID -> session)
   std::map<uint32_t,
            std::shared_ptr<GarlicRoutingSession>> m_CreatedSessions;

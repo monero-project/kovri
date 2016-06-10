@@ -31,33 +31,33 @@
  */
 
 #include "Filesystem.h"
-#include "RouterContext.h"
 
 #include <string>
+
+#include "RouterContext.h"
 
 namespace i2p {
 namespace util {
 namespace filesystem {
 
-namespace bfs = boost::filesystem;
-
-bfs::path GetSU3CertsPath() {
+boost::filesystem::path GetSU3CertsPath() {
   return i2p::context.GetDataPath() / "certificates" / "su3";
 }
 
-bfs::path GetSSLCertsPath() {
+boost::filesystem::path GetSSLCertsPath() {
   return i2p::context.GetDataPath() / "certificates" / "ssl";
 }
 
-std::string GetFullPath(const std::string& filename) {
-  std::string fullPath = i2p::context.GetDataPath().string();
+std::string GetFullPath(
+    const std::string& filename) {
+  std::string full_path = i2p::context.GetDataPath().string();
 #ifdef _WIN32
-  fullPath.append("\\");
+  full_path.append("\\");
 #else
-  fullPath.append("/");
+  full_path.append("/");
 #endif
-  fullPath.append(filename);
-  return fullPath;
+  full_path.append(filename);
+  return full_path;
 }
 
 }  // namespace filesystem

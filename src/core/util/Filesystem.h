@@ -33,9 +33,11 @@
 #ifndef SRC_CORE_UTIL_FILESYSTEM_H_
 #define SRC_CORE_UTIL_FILESYSTEM_H_
 
-#include <string>
-#include <sstream>
 #include <boost/filesystem.hpp>
+
+#include <cstdint>
+#include <sstream>
+#include <string>
 
 namespace i2p {
 namespace util {
@@ -45,32 +47,39 @@ namespace filesystem {
 /// @details A wrapper for casting and and strongly-typed classes
 /// @param String to be treated as stream
 class StringStream {
-  std::stringstream m_Stream;
  public:
   StringStream(const std::string& stream) {
     m_Stream.str(stream);
   }
+
   template<typename SizeCast = std::size_t, typename Buffer, typename Size>
   void Read(Buffer& buf, Size&& size) {
     m_Stream.read(
         reinterpret_cast<char *>(&buf),
         static_cast<SizeCast>(std::forward<Size>(size)));
   };
+
   template<typename SizeCast = std::size_t, typename Offset, typename Position>
   void Seekg(Offset&& off, Position& pos) {
     m_Stream.seekg(
       static_cast<SizeCast>(std::forward<Offset>(off)),
       pos);
   };
+
   std::size_t Tellg() {
     return m_Stream.tellg();
   };
+
   bool EndOfFile() {
     return m_Stream.eof() ? true : false;
   };
+
   std::string Str() {
     return m_Stream.str();
   };
+
+ private:
+  std::stringstream m_Stream;
 };
 
 /// @return the full path of a file within the kovri directory

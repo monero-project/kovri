@@ -37,7 +37,9 @@
 
 #include <atomic>
 #include <cassert>
+#include <cstdint>
 #include <cstring>
+#include <memory>
 #include <string>
 
 #include "I2PTunnel.h"
@@ -51,273 +53,47 @@
 namespace i2p {
 namespace proxy {
 
-static const size_t HTTP_BUFFER_SIZE = 8192;
+//
+// Server
+//
 
-class HTTPProxyHandler
-    : public i2p::client::I2PServiceHandler,
-      public std::enable_shared_from_this<HTTPProxyHandler> {
- private:
-  enum state {
-    GET_METHOD,
-    GET_HOSTNAME,
-    GET_HTTPV,
-    GET_HTTPVNL,  // TODO(unassigned): fallback to finding Host header if needed
-    DONE
-  };
+HTTPProxyServer::HTTPProxyServer(
+    const std::string& name,
+    const std::string& address,
+    std::uint16_t port,
+    std::shared_ptr<i2p::client::ClientDestination> local_destination)
+    : TCPIPAcceptor(
+          address,
+          port,
+          local_destination ?
+            local_destination :
+            i2p::client::context.GetSharedLocalDestination()),
+      m_Name(name) {}
 
-  void EnterState(
-      state nstate);
+std::shared_ptr<i2p::client::I2PServiceHandler> HTTPProxyServer::CreateHandler(
+    std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
+  return std::make_shared<HTTPProxyHandler>(this, socket);
+}
 
-  bool HandleData(
-      uint8_t* http_buff,
-      std::size_t len);
-
-  void HandleSockRecv(
-      const boost::system::error_code& ecode,
-      std::size_t bytes_transfered);
-
-  void Terminate();
-  void AsyncSockRead();
-  void HTTPRequestFailed(/*std::string message*/);
-  void ExtractRequest();
-  bool ValidateHTTPRequest();
-  void HandleJumpServices();
-
-  bool CreateHTTPRequest(
-      uint8_t *http_buff,
-      std::size_t len);
-
-  void SentHTTPFailed(
-      const boost::system::error_code& ecode);
-
-  void HandleStreamRequestComplete(
-      std::shared_ptr<i2p::stream::Stream> stream);
-
-  uint8_t m_http_buff[HTTP_BUFFER_SIZE];
-  std::shared_ptr<boost::asio::ip::tcp::socket> m_sock;
-  std::string m_request,  // Data left to be sent
-              m_url,      // URL
-              m_method,   // Method
-              m_version,  // HTTP version
-              m_address,  // Address
-              m_path;     // Path
-  int m_port;             // Port
-  state m_state;          // Parsing state
-
- public:
-  HTTPProxyHandler(
-      HTTPProxyServer* parent,
-      std::shared_ptr<boost::asio::ip::tcp::socket> sock)
-      : I2PServiceHandler(parent),
-        m_sock(sock) {
-          EnterState(GET_METHOD);
-        }
-  ~HTTPProxyHandler() { Terminate(); }
-
-  void Handle() { AsyncSockRead(); }
-};
+//
+// Handler
+//
 
 void HTTPProxyHandler::AsyncSockRead() {
   LogPrint(eLogDebug, "HTTPProxyHandler: async sock read");
-  if (m_sock) {
-    m_sock->async_receive(
+  if (m_Socket) {
+    m_Socket->async_receive(
         boost::asio::buffer(
-          m_http_buff,
-          HTTP_BUFFER_SIZE),
+            m_Buffer.data(),
+            m_Buffer.size()),
         std::bind(
-          &HTTPProxyHandler::HandleSockRecv,
-          shared_from_this(),
-          std::placeholders::_1,
-          std::placeholders::_2));
+            &HTTPProxyHandler::HandleSockRecv,
+            shared_from_this(),
+            std::placeholders::_1,
+            std::placeholders::_2));
   } else {
     LogPrint(eLogError, "HTTPProxyHandler: no socket for read");
   }
-}
-
-void HTTPProxyHandler::Terminate() {
-  if (Kill()) return;
-  if (m_sock) {
-    LogPrint(eLogDebug, "HTTPProxyHandler: terminating");
-    m_sock->close();
-    m_sock = nullptr;
-  }
-  Done(shared_from_this());
-}
-
-/* All hope is lost beyond this point */
-// TODO(anonimal): handle this appropriately
-void HTTPProxyHandler::HTTPRequestFailed(
-    /*HTTPProxyHandler::errTypes error*/) {
-  static std::string response =
-    "HTTP/1.0 500 Internal Server Error\r\n"
-    "Content-type: text/html\r\n"
-    "Content-length: 0\r\n";
-  boost::asio::async_write(
-      *m_sock,
-      boost::asio::buffer(
-        response,
-        response.size()),
-      std::bind(
-        &HTTPProxyHandler::SentHTTPFailed,
-        shared_from_this(),
-        std::placeholders::_1));
-}
-
-void HTTPProxyHandler::EnterState(
-    HTTPProxyHandler::state nstate) {
-  m_state = nstate;
-}
-
-void HTTPProxyHandler::ExtractRequest() {
-  LogPrint(eLogDebug,
-      "HTTPProxyHandler: method is: ", m_method,
-      ", request is: ", m_url);
-  std::string server = "";
-  std::string port = "80";
-  boost::regex rHTTP("http://(.*?)(:(\\d+))?(/.*)");
-  boost::smatch m;
-  std::string path;
-  if (boost::regex_search(m_url, m, rHTTP, boost::match_extra)) {
-    server = m[1].str();
-    if (m[2].str() != "")
-      port = m[3].str();
-    path = m[4].str();
-  }
-  LogPrint(eLogDebug,
-      "HTTPProxyHandler: server is: ", server,
-      ", port is: ", port,
-      ", path is: ", path);
-  m_address = server;
-  m_port = boost::lexical_cast<int>(port);
-  m_path = path;
-}
-
-bool HTTPProxyHandler::ValidateHTTPRequest() {
-  if (m_version != "HTTP/1.0" && m_version != "HTTP/1.1") {
-    LogPrint(eLogError, "HTTPProxyHandler: unsupported version: ", m_version);
-    HTTPRequestFailed();  // TODO(anonimal): send right stuff
-    return false;
-  }
-  return true;
-}
-
-void HTTPProxyHandler::HandleJumpServices() {
-  static const char* helpermark1 = "?i2paddresshelper=";
-  static const char* helpermark2 = "&i2paddresshelper=";
-  size_t addressHelperPos1 = m_path.rfind(helpermark1);
-  size_t addressHelperPos2 = m_path.rfind(helpermark2);
-  size_t addressHelperPos;
-  if (addressHelperPos1 == std::string::npos) {
-    if (addressHelperPos2 == std::string::npos)
-      return;  // Not a jump service
-    else
-      addressHelperPos = addressHelperPos2;
-  } else {
-    if (addressHelperPos2 == std::string::npos)
-      addressHelperPos = addressHelperPos1;
-    else if (addressHelperPos1 > addressHelperPos2)
-      addressHelperPos = addressHelperPos1;
-    else
-      addressHelperPos = addressHelperPos2;
-  }
-  auto base64 = m_path.substr(addressHelperPos + strlen(helpermark1));
-  // Some of the symbols may be urlencoded
-  i2p::util::http::URI uri;
-  base64 = uri.Decode(base64);
-  LogPrint(eLogDebug,
-      "HTTPProxyHandler: jump service for ", m_address,
-      " found at ", base64, ". Inserting to address book");
-  // TODO(anonimal): this is very dangerous and broken.
-  // We should ask the user before doing anything.
-  // See http://pastethis.i2p/raw/pn5fL4YNJL7OSWj3Sc6N/
-  // We could redirect the user again to avoid dirtiness in the browser
-  i2p::client::context.GetAddressBook().InsertAddress(
-      m_address,
-      base64);
-  m_path.erase(addressHelperPos);
-}
-
-bool HTTPProxyHandler::CreateHTTPRequest(
-    uint8_t *http_buff,
-    std::size_t len) {
-  ExtractRequest();  // TODO(anonimal): parse earlier
-  if (!ValidateHTTPRequest())
-    return false;
-  HandleJumpServices();
-  m_request = m_method;
-  m_request.push_back(' ');
-  m_request += m_path;
-  m_request.push_back(' ');
-  m_request += m_version;
-  m_request.push_back('\r');
-  m_request.push_back('\n');
-  m_request.append("Connection: close\r\n");
-  m_request.append(reinterpret_cast<const char *>(http_buff), len);
-  return true;
-}
-
-bool HTTPProxyHandler::HandleData(
-    uint8_t *http_buff,
-    std::size_t len) {
-  // This should always be called with at least a byte left to parse
-  assert(len);
-  while (len > 0) {
-    // TODO(anonimal): fallback to finding Host: header if needed
-    switch (m_state) {
-      case GET_METHOD:
-        switch (*http_buff) {
-          case ' ':
-            EnterState(GET_HOSTNAME);
-            break;
-          default:
-            m_method.push_back(*http_buff);
-            break;
-        }
-      break;
-      case GET_HOSTNAME:
-        switch (*http_buff) {
-          case ' ':
-            EnterState(GET_HTTPV);
-            break;
-          default:
-            m_url.push_back(*http_buff);
-            break;
-        }
-      break;
-      case GET_HTTPV:
-        switch (*http_buff) {
-          case '\r':
-            EnterState(GET_HTTPVNL);
-            break;
-          default:
-            m_version.push_back(*http_buff);
-            break;
-        }
-      break;
-      case GET_HTTPVNL:
-        switch (*http_buff) {
-          case '\n':
-            EnterState(DONE);
-            break;
-          default:
-            LogPrint(eLogError,
-                "HTTPProxyHandler: rejected invalid request ending with: ",
-                static_cast<int>(*http_buff));
-            HTTPRequestFailed();  // TODO(anonimal): add correct code
-            return false;
-        }
-      break;
-      default:
-        LogPrint(eLogError, "HTTPProxyHandler: invalid state: ", m_state);
-        HTTPRequestFailed();  // TODO(anonimal): add correct code 500
-        return false;
-    }
-    http_buff++;
-    len--;
-    if (m_state == DONE)
-      return CreateHTTPRequest(http_buff, len);
-  }
-  return true;
 }
 
 void HTTPProxyHandler::HandleSockRecv(
@@ -329,32 +105,103 @@ void HTTPProxyHandler::HandleSockRecv(
           Terminate();
     return;
   }
-  if (HandleData(m_http_buff, len)) {
-    if (m_state == DONE) {
-      LogPrint(eLogInfo, "HTTPProxyHandler: proxy requested: ", m_url);
+  if (HandleData(m_Buffer.data(), len)) {
+    if (m_State == static_cast<std::size_t>(State::done)) {
+      LogPrint(eLogInfo, "HTTPProxyHandler: proxy requested: ", m_URL);
       GetOwner()->CreateStream(
           std::bind(
-            &HTTPProxyHandler::HandleStreamRequestComplete,
-            shared_from_this(),
-            std::placeholders::_1),
-          m_address,
-          m_port);
+              &HTTPProxyHandler::HandleStreamRequestComplete,
+              shared_from_this(),
+              std::placeholders::_1),
+          m_Address,
+          m_Port);
     } else {
       AsyncSockRead();
     }
   }
 }
 
-void HTTPProxyHandler::SentHTTPFailed(
-    const boost::system::error_code& ecode) {
-  if (!ecode) {
-    Terminate();
-  } else {
-    LogPrint(eLogError,
-        "HTTPProxyHandler: closing socket after sending failure: ",
-        ecode.message());
-    Terminate();
+bool HTTPProxyHandler::HandleData(
+    std::uint8_t* buf,
+    std::size_t len) {
+  // This should always be called with at least a byte left to parse
+  assert(len);
+  while (len > 0) {
+    switch (m_State) {
+      case static_cast<std::size_t>(State::get_method):
+        switch (*buf) {
+          case ' ':
+            SetState(State::get_url);
+            break;
+          default:
+            m_Method.push_back(*buf);
+            break;
+        }
+      break;
+      case static_cast<std::size_t>(State::get_url):
+        switch (*buf) {
+          case ' ':
+            SetState(State::get_http_version);
+            break;
+          default:
+            m_URL.push_back(*buf);
+            break;
+        }
+      break;
+      case static_cast<std::size_t>(State::get_http_version):
+        switch (*buf) {
+          case '\r':
+            SetState(State::host);
+            break;
+          default:
+            m_Version.push_back(*buf);
+            break;
+        }
+      break;
+      case static_cast<std::size_t>(State::host):
+        switch (*buf) {
+          case '\r':
+            SetState(State::useragent);
+            break;
+          default:
+            m_Host.push_back(*buf);
+            break;
+        }
+      break;
+      case static_cast<std::size_t>(State::useragent):
+        switch (*buf) {
+          case '\r':
+            SetState(State::newline);
+            break;
+          default:
+            m_UserAgent.push_back(*buf);
+            break;
+        }
+      break;
+      case static_cast<std::size_t>(State::newline):
+        switch (*buf) {
+          case '\n':
+            SetState(State::done);
+            break;
+          default:
+            LogPrint(eLogError,
+                "HTTPProxyHandler: rejected invalid request ending with: ",
+                static_cast<std::size_t>(*buf));
+            HTTPRequestFailed();  // TODO(unassigned): add correct code
+            return false;
+        }
+      break;
+      default:
+        LogPrint(eLogError, "HTTPProxyHandler: invalid state: ", m_State);
+        HTTPRequestFailed();  // TODO(unassigned): add correct code 500
+        return false;
+    }
+    buf++;  // TODO(anonimal): Dangerous? Review
+    len--;
+    if (m_State == static_cast<std::size_t>(State::done))
+      return CreateHTTPRequest(buf, len);
   }
+  return true;
 }
 
 void HTTPProxyHandler::HandleStreamRequestComplete(
@@ -366,37 +213,156 @@ void HTTPProxyHandler::HandleStreamRequestComplete(
     auto connection =
       std::make_shared<i2p::client::I2PTunnelConnection>(
           GetOwner(),
-          m_sock,
+          m_Socket,
           stream);
     GetOwner()->AddHandler(connection);
     connection->I2PConnect(
-        reinterpret_cast<const uint8_t*>(m_request.data()),
-        m_request.size());
+        reinterpret_cast<const uint8_t*>(m_Request.data()),
+        m_Request.size());
     Done(shared_from_this());
   } else {
     LogPrint(eLogError,
         "HTTPProxyHandler: issue when creating the stream,"
         "check the previous warnings for details");
-    // TODO(anonimal): Send correct error message host unreachable
+    // TODO(unassigned): Send correct error message host unreachable
     HTTPRequestFailed();
   }
 }
 
-HTTPProxyServer::HTTPProxyServer(
-    const std::string& name,
-    const std::string& address,
-    int port,
-    std::shared_ptr<i2p::client::ClientDestination> localDestination)
-    : TCPIPAcceptor(
-          address,
-          port,
-          localDestination ? localDestination :
-                             i2p::client::context.GetSharedLocalDestination()),
-      m_Name(name) {}
+void HTTPProxyHandler::SetState(
+    const HTTPProxyHandler::State& state) {
+  m_State = state;
+}
 
-std::shared_ptr<i2p::client::I2PServiceHandler> HTTPProxyServer::CreateHandler(
-    std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
-  return std::make_shared<HTTPProxyHandler> (this, socket);
+bool HTTPProxyHandler::CreateHTTPRequest(
+    std::uint8_t* buf,
+    std::size_t len) {
+  if (!ExtractIncomingRequest())
+    return false;
+  HandleJumpService();
+  // Set method, path, and version
+  m_Request = m_Method;
+  m_Request.push_back(' ');
+  m_Request += m_Path;
+  m_Request.push_back(' ');
+  m_Request += m_Version + "\r\n";
+  // Set Host:
+  m_Request += m_Host + "\r\n";
+  // Reset/scrub User-Agent:
+  m_UserAgent = "MYOB/6.66 (AN/ON)";
+  m_Request += "User-Agent: " + m_UserAgent + "\r\n";
+  // Append remaining original request
+  m_Request.append(reinterpret_cast<const char *>(buf), len);
+  return true;
+}
+
+bool HTTPProxyHandler::ExtractIncomingRequest() {
+  LogPrint(eLogDebug,
+      "HTTPProxyHandler: method is: ", m_Method,
+      ", request is: ", m_URL);
+  // Set defaults and regexp
+  std::string server = "", port = "80";
+  boost::regex regex("http://(.*?)(:(\\d+))?(/.*)");
+  boost::smatch smatch;
+  std::string path;
+  // Ensure path is legitimate
+  if (boost::regex_search(m_URL, smatch, regex, boost::match_extra)) {
+    server = smatch[1].str();
+    if (smatch[2].str() != "")
+      port = smatch[3].str();
+    path = smatch[4].str();
+  }
+  LogPrint(eLogDebug,
+      "HTTPProxyHandler: server is: ", server,
+      ", port is: ", port,
+      ", path is: ", path);
+  // Set member data
+  m_Address = server;
+  m_Port = boost::lexical_cast<std::uint16_t>(port);
+  m_Path = path;
+  // Check for HTTP version
+  if (m_Version != "HTTP/1.0" && m_Version != "HTTP/1.1") {
+    LogPrint(eLogError, "HTTPProxyHandler: unsupported version: ", m_Version);
+    HTTPRequestFailed();  // TODO(unassigned): send correct responses
+    return false;
+  }
+  return true;
+}
+
+void HTTPProxyHandler::HandleJumpService() {
+  // TODO(anonimal): add support for remaining services / rewrite this function
+  std::size_t pos1 = m_Path.rfind(m_JumpService.at(0));
+  std::size_t pos2 = m_Path.rfind(m_JumpService.at(1));
+  std::size_t pos;
+  if (pos1 == std::string::npos) {
+    if (pos2 == std::string::npos)
+      return;  // Not a jump service
+    else
+      pos = pos2;
+  } else {
+    if (pos2 == std::string::npos)
+      pos = pos1;
+    else if (pos1 > pos2)
+      pos = pos1;
+    else
+      pos = pos2;
+  }
+  auto base64 = m_Path.substr(pos + m_JumpService.at(0).size());
+  // We must decode
+  i2p::util::http::URI uri;
+  base64 = uri.Decode(base64);
+  // Insert into address book
+  LogPrint(eLogDebug,
+      "HTTPProxyHandler: jump service for ", m_Address,
+      " found at ", base64, ". Inserting to address book");
+  // TODO(unassigned): this is very dangerous and broken.
+  // We should ask the user for confirmation before proceeding.
+  // Previous reference: http://pastethis.i2p/raw/pn5fL4YNJL7OSWj3Sc6N/
+  // We *could* redirect the user again to avoid dirtiness in the browser
+  i2p::client::context.GetAddressBook().InsertAddress(m_Address, base64);
+  m_Path.erase(pos);
+}
+
+/* All hope is lost beyond this point */
+// TODO(unassigned): handle this appropriately
+void HTTPProxyHandler::HTTPRequestFailed(
+    /*Error error*/) {
+  static std::string response =
+    "HTTP/1.0 500 Internal Server Error\r\n"
+    "Content-type: text/html\r\n"
+    "Content-length: 0\r\n";
+  boost::asio::async_write(
+      *m_Socket,
+      boost::asio::buffer(
+          response,
+          response.size()),
+      std::bind(
+          &HTTPProxyHandler::SentHTTPFailed,
+          shared_from_this(),
+          std::placeholders::_1));
+}
+
+void HTTPProxyHandler::SentHTTPFailed(
+    const boost::system::error_code& ecode) {
+  if (!ecode) {
+    Terminate();
+  } else {
+    LogPrint(eLogError,
+        "HTTPProxyHandler: closing socket after sending failure: '",
+        ecode.message(), "'");
+    Terminate();
+  }
+}
+
+void HTTPProxyHandler::Terminate() {
+  if (Kill())
+    return;
+  if (m_Socket) {
+    LogPrint(eLogDebug, "HTTPProxyHandler: terminating");
+    m_Socket->close();
+    m_Socket = nullptr;
+  }
+  Done(shared_from_this());
 }
 
 }  // namespace proxy

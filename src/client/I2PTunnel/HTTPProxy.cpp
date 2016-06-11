@@ -196,7 +196,7 @@ bool HTTPProxyHandler::HandleData(
         HTTPRequestFailed();  // TODO(unassigned): add correct code 500
         return false;
     }
-    buf++;  // TODO(anonimal): Dangerous? Review
+    buf++;
     len--;
     if (m_State == static_cast<std::size_t>(State::done))
       return CreateHTTPRequest(buf, len);

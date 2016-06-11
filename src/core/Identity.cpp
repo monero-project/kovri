@@ -601,7 +601,7 @@ IdentHash CreateRoutingKey(
   memcpy(buf, (const uint8_t *)ident, 32);
   time_t t = time(nullptr);
   struct tm tm;
-  // TODO(anonimal): never use sprintf, use snprintf instead.
+  // TODO(unassigned): never use sprintf, use snprintf instead.
 #ifdef _WIN32
   gmtime_s(&tm, &t);
   sprintf_s(

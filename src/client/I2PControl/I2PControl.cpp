@@ -398,7 +398,7 @@ void I2PControlSession::HandleEcho(
 void I2PControlSession::HandleI2PControl(
     const ptree&,
     Response&) {
-  // TODO(anonimal): implement
+  // TODO(unassigned): implement
   LogPrint(eLogDebug, "I2PControlSession: I2PControl");
 }
 
@@ -445,7 +445,7 @@ void I2PControlSession::HandleRouterManager(
 void I2PControlSession::HandleNetworkSetting(
     const ptree&,
     Response&) {
-  // TODO(anonimal): implement
+  // TODO(unassigned): implement
 }
 
 void I2PControlSession::HandleUptime(
@@ -464,7 +464,7 @@ void I2PControlSession::HandleVersion(
 
 void I2PControlSession::HandleStatus(
     Response& response) {
-  // TODO(anonimal): implement
+  // TODO(unassigned): implement
   response.SetParam(
       constants::ROUTER_INFO_STATUS,
       "???");

@@ -46,7 +46,7 @@
 namespace i2p {
 namespace data {
 
-// TODO(anonimal): review/consider moving this class into core/util
+// TODO(unassigned): review/consider moving this class into core/util
 template<int Size>
 class Tag {
  public:

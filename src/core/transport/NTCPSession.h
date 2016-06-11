@@ -85,7 +85,7 @@ enum struct NTCPTimeoutLength : const std::size_t {
   ban_expiration = 70,  // in seconds
 };
 
-// TODO(anonimal): is packing really necessary?
+// TODO(unassigned): is packing really necessary?
 // If so, should we not be consistent with other protocols?
 #pragma pack(1)
 struct NTCPPhase1 {

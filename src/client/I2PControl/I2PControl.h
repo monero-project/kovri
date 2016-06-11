@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
-#ifndef SRC_API_I2PCONTROL_I2PCONTROL_H_
-#define SRC_API_I2PCONTROL_I2PCONTROL_H_
+#ifndef SRC_CLIENT_I2PCONTROL_I2PCONTROL_H_
+#define SRC_CLIENT_I2PCONTROL_I2PCONTROL_H_
 
 #include <boost/asio.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -41,9 +41,9 @@
 #include <mutex>
 #include <string>
 
+#include "core/tunnel/Tunnel.h"
+
 namespace i2p {
-// TODO(anonimal) remove forward declarations when possible
-namespace tunnel { class Tunnel; }
 namespace client {
 namespace i2pcontrol {
 
@@ -109,7 +109,7 @@ const char ROUTER_INFO_NET_STATUS[] =
 const char ROUTER_INFO_TUNNELS_PARTICIPATING[] =
   "i2p.router.net.tunnels.participating";
 
-// TODO(anonimal): Probably better to use the standard GetRate instead
+// TODO(unassigned): Probably better to use the standard GetRate instead
 const char ROUTER_INFO_TUNNELS_CREATION_SUCCESS[] =
   "i2p.router.net.tunnels.creationsuccessrate";
 
@@ -133,7 +133,8 @@ const char ROUTER_MANAGER_RESEED[] = "Reseed";
 }  // namespace constants
 
 /**
- * Represents a Json object, provides functionality to convert to string.
+ * @class JsonObject
+ * @brief Represents a Json object, provides functionality to convert to string.
  */
 class JsonObject {
  public:
@@ -162,7 +163,8 @@ JsonObject TunnelToJsonObject(
     i2p::tunnel::Tunnel* tunnel);
 
 /**
- * "Null" I2P control implementation, does not do actual networking.
+ * @class I2PControlSession
+ * @brief "Null" I2P control implementation, does not do actual networking.
  * @note authentication tokens are per-session
  * @note I2PControlSession must always be used as a std::shared_ptr
  * @warning an I2PControlSession must be destroyed before its io_service
@@ -322,12 +324,12 @@ class I2PControlSession
   boost::asio::io_service& m_Service;
   boost::asio::deadline_timer m_ShutdownTimer,
                               m_ExpireTokensTimer;
-};  // class I2PControlSession
+};
 
 }  // namespace i2pcontrol
 }  // namespace client
 }  // namespace i2p
 
-#endif  // SRC_API_I2PCONTROL_I2PCONTROL_H_
+#endif  // SRC_CLIENT_I2PCONTROL_I2PCONTROL_H_
 
 

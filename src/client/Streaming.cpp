@@ -300,7 +300,7 @@ void Stream::ProcessAck(
       auto sentPacket = *it;
       uint64_t rtt = ts - sentPacket->sendTime;
       m_RTT = (m_RTT * seqn + rtt) / (seqn + 1);
-      m_RTO = m_RTT * 1.5;  // TODO(anonimal): implement this better
+      m_RTO = m_RTT * 1.5;  // TODO(unassigned): implement this better
       LogPrint(eLogDebug, "Stream: packet ", seqn, " acknowledged rtt=", rtt);
       m_SentPackets.erase(it++);
       delete sentPacket;

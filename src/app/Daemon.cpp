@@ -163,7 +163,7 @@ void Daemon_Singleton::Reload() {
   LogPrint(eLogInfo, "Daemon_Singleton: reloading configuration");
   // reload tunnels.conf
   ReloadTunnels();
-  // TODO(anonimal): reload kovri.conf
+  // TODO(unassigned): reload kovri.conf
 }
 
 void Daemon_Singleton::InitClientContext() {

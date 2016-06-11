@@ -33,22 +33,22 @@
 #ifndef SRC_CORE_LEASESET_H_
 #define SRC_CORE_LEASESET_H_
 
-#include <inttypes.h>
-#include <string.h>
-
+#include <array>
+#include <cstdint>
 #include <memory>
 #include <vector>
 
 #include "Identity.h"
 
 namespace i2p {
+// TODO(unassigned): remove this forward declaration after cleaning up core/tunnel
 namespace tunnel { class TunnelPool; }
 namespace data {
 
 struct Lease {
   IdentHash tunnel_gateway;
-  uint32_t tunnel_ID;
-  uint64_t end_date;
+  std::uint32_t tunnel_ID;
+  std::uint64_t end_date;
   bool operator<(const Lease& other) const {
     if (end_date != other.end_date)
       return end_date > other.end_date;
@@ -62,8 +62,8 @@ const int MAX_LS_BUFFER_SIZE = 3072;
 class LeaseSet : public RoutingDestination {
  public:
   LeaseSet(
-      const uint8_t* buf,
-      size_t len);
+      const std::uint8_t* buf,
+      std::size_t len);
 
   explicit LeaseSet(
       const i2p::tunnel::TunnelPool& pool);
@@ -71,19 +71,19 @@ class LeaseSet : public RoutingDestination {
   ~LeaseSet() {}
 
   void Update(
-      const uint8_t* buf,
-      size_t len);
+      const std::uint8_t* buf,
+      std::size_t len);
 
   const IdentityEx& GetIdentity() const {
     return m_Identity;
   }
 
-  const uint8_t* GetBuffer() const {
+  const std::uint8_t* GetBuffer() const {
     const auto buf = m_Buffer.get();
     return buf;
   }
 
-  size_t GetBufferLen() const {
+  std::size_t GetBufferLen() const {
     return m_BufferLen;
   }
 
@@ -107,8 +107,8 @@ class LeaseSet : public RoutingDestination {
 
   bool HasNonExpiredLeases() const;
 
-  const uint8_t* GetEncryptionPublicKey() const {
-    return m_EncryptionKey;
+  const std::uint8_t* GetEncryptionPublicKey() const {
+    return m_EncryptionKey.data();
   }
 
   bool IsDestination() const {
@@ -122,9 +122,9 @@ class LeaseSet : public RoutingDestination {
   bool m_IsValid;
   std::vector<Lease> m_Leases;
   IdentityEx m_Identity;
-  uint8_t m_EncryptionKey[256];
+  std::array<std::uint8_t, 256> m_EncryptionKey;
   std::unique_ptr<std::uint8_t[]> m_Buffer;
-  size_t m_BufferLen;
+  std::size_t m_BufferLen;
 };
 
 }  // namespace data

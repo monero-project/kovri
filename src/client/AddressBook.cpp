@@ -257,7 +257,7 @@ bool AddressBook::GetIdentHash(
     }
   }
   // if not .b32 we assume full base64 address
-  // TODO(anonimal): we shouldn't *assume* it's base64!
+  // TODO(unassigned): we shouldn't *assume* it's base64!
   i2p::data::IdentityEx dest;
   if (!dest.FromBase64(address))
     return false;

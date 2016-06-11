@@ -38,11 +38,13 @@
 #include <strsafe.h>
 #include <windows.h>
 
+#include <memory>
+
 #include "Daemon.h"
 #include "Win32Service.h"
 #include "core/util/Log.h"
 
-I2PService *I2PService::s_service = NULL;
+I2PService *I2PService::m_Service = NULL;
 
 BOOL I2PService::isService() {
   BOOL bIsService = FALSE;
@@ -59,9 +61,9 @@ BOOL I2PService::isService() {
 
 BOOL I2PService::Run(
     I2PService &service) {
-  s_service = &service;
+  m_Service = &service;
   SERVICE_TABLE_ENTRY serviceTable[] = {
-    { service.m_name, ServiceMain },
+    { service.m_Name, ServiceMain },
     { NULL, NULL }
   };
   return StartServiceCtrlDispatcher(serviceTable);
@@ -70,22 +72,22 @@ BOOL I2PService::Run(
 void WINAPI I2PService::ServiceMain(
     DWORD dwArgc,
     PSTR *pszArgv) {
-  assert(s_service != NULL);
-  s_service->m_statusHandle = RegisterServiceCtrlHandler(
-    s_service->m_name, ServiceCtrlHandler);
-  if (s_service->m_statusHandle == NULL) {
+  assert(m_Service != NULL);
+  m_Service->m_StatusHandle = RegisterServiceCtrlHandler(
+    m_Service->m_Name, ServiceCtrlHandler);
+  if (m_Service->m_StatusHandle == NULL) {
     throw GetLastError();
   }
-  s_service->Start(dwArgc, pszArgv);
+  m_Service->Start(dwArgc, pszArgv);
 }
 
 void WINAPI I2PService::ServiceCtrlHandler(
     DWORD dwCtrl) {
   switch (dwCtrl) {
-    case SERVICE_CONTROL_STOP: s_service->Stop(); break;
-    case SERVICE_CONTROL_PAUSE: s_service->Pause(); break;
-    case SERVICE_CONTROL_CONTINUE: s_service->Continue(); break;
-    case SERVICE_CONTROL_SHUTDOWN: s_service->Shutdown(); break;
+    case SERVICE_CONTROL_STOP: m_Service->Stop(); break;
+    case SERVICE_CONTROL_PAUSE: m_Service->Pause(); break;
+    case SERVICE_CONTROL_CONTINUE: m_Service->Continue(); break;
+    case SERVICE_CONTROL_SHUTDOWN: m_Service->Shutdown(); break;
     case SERVICE_CONTROL_INTERROGATE: break;
     default: break;
   }
@@ -96,10 +98,10 @@ I2PService::I2PService(
     BOOL fCanStop,
     BOOL fCanShutdown,
     BOOL fCanPauseContinue) {
-  m_name = (pszServiceName == NULL) ? "" : pszServiceName;
-  m_statusHandle = NULL;
-  m_status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
-  m_status.dwCurrentState = SERVICE_START_PENDING;
+  m_Name = (pszServiceName == NULL) ? "" : pszServiceName;
+  m_StatusHandle = NULL;
+  m_Status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
+  m_Status.dwCurrentState = SERVICE_START_PENDING;
   DWORD dwControlsAccepted = 0;
   if (fCanStop)
     dwControlsAccepted |= SERVICE_ACCEPT_STOP;
@@ -107,24 +109,24 @@ I2PService::I2PService(
     dwControlsAccepted |= SERVICE_ACCEPT_SHUTDOWN;
   if (fCanPauseContinue)
     dwControlsAccepted |= SERVICE_ACCEPT_PAUSE_CONTINUE;
-  m_status.dwControlsAccepted = dwControlsAccepted;
-  m_status.dwWin32ExitCode = NO_ERROR;
-  m_status.dwServiceSpecificExitCode = 0;
-  m_status.dwCheckPoint = 0;
-  m_status.dwWaitHint = 0;
-  m_fStopping = FALSE;
+  m_Status.dwControlsAccepted = dwControlsAccepted;
+  m_Status.dwWin32ExitCode = NO_ERROR;
+  m_Status.dwServiceSpecificExitCode = 0;
+  m_Status.dwCheckPoint = 0;
+  m_Status.dwWaitHint = 0;
+  m_Stopping = FALSE;
   // Create a manual-reset event that is not signaled at first to indicate
   // the stopped signal of the service.
-  m_hStoppedEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-  if (m_hStoppedEvent == NULL) {
+  m_StoppedEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+  if (m_StoppedEvent == NULL) {
     throw GetLastError();
   }
 }
 
 I2PService::~I2PService(void) {
-  if (m_hStoppedEvent) {
-    CloseHandle(m_hStoppedEvent);
-    m_hStoppedEvent = NULL;
+  if (m_StoppedEvent) {
+    CloseHandle(m_StoppedEvent);
+    m_StoppedEvent = NULL;
   }
 }
 
@@ -151,22 +153,22 @@ void I2PService::OnStart(
   LogPrint(eLogInfo, "I2PServiceWin32: Service in OnStart()",
     EVENTLOG_INFORMATION_TYPE);
   Daemon.Start();
-  _worker = new std::thread(
+  m_Worker = std::make_unique<std::thread>(
       std::bind(
-        &I2PService::WorkerThread,
-        this));
+          &I2PService::WorkerThread,
+          this));
 }
 
 void I2PService::WorkerThread() {
-  while (!m_fStopping) {
+  while (!m_Stopping) {
     ::Sleep(1000);  // Simulate some lengthy operations.
   }
   // Signal the stopped event.
-  SetEvent(m_hStoppedEvent);
+  SetEvent(m_StoppedEvent);
 }
 
 void I2PService::Stop() {
-  DWORD dwOriginalState = m_status.dwCurrentState;
+  DWORD dwOriginalState = m_Status.dwCurrentState;
   try {
     SetServiceStatus(SERVICE_STOP_PENDING);
     OnStop();
@@ -187,12 +189,12 @@ void I2PService::OnStop() {
   LogPrint(eLogInfo,
       "I2PService: Win32Service in OnStop()", EVENTLOG_INFORMATION_TYPE);
   Daemon.Stop();
-  m_fStopping = TRUE;
-  if (WaitForSingleObject(m_hStoppedEvent, INFINITE) != WAIT_OBJECT_0) {
+  m_Stopping = TRUE;
+  if (WaitForSingleObject(m_StoppedEvent, INFINITE) != WAIT_OBJECT_0) {
     throw GetLastError();
   }
-  _worker->join();
-  delete _worker;
+  m_Worker->join();
+  m_Worker.reset(nullptr);
 }
 
 void I2PService::Pause() {
@@ -248,13 +250,13 @@ void I2PService::SetServiceStatus(
     DWORD dwWin32ExitCode,
     DWORD dwWaitHint) {
   static DWORD dwCheckPoint = 1;
-  m_status.dwCurrentState = dwCurrentState;
-  m_status.dwWin32ExitCode = dwWin32ExitCode;
-  m_status.dwWaitHint = dwWaitHint;
-  m_status.dwCheckPoint =
+  m_Status.dwCurrentState = dwCurrentState;
+  m_Status.dwWin32ExitCode = dwWin32ExitCode;
+  m_Status.dwWaitHint = dwWaitHint;
+  m_Status.dwCheckPoint =
     ((dwCurrentState == SERVICE_RUNNING) ||
     (dwCurrentState == SERVICE_STOPPED)) ? 0 : dwCheckPoint++;
-  ::SetServiceStatus(m_statusHandle, &m_status);
+  ::SetServiceStatus(m_StatusHandle, &m_Status);
 }
 
 //*****************************************************************************

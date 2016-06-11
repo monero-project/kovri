@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
-#ifndef SRC_API_I2PCONTROL_I2PCONTROLSERVER_H_
-#define SRC_API_I2PCONTROL_I2PCONTROLSERVER_H_
+#ifndef SRC_CLIENT_I2PCONTROL_I2PCONTROLSERVER_H_
+#define SRC_CLIENT_I2PCONTROL_I2PCONTROLSERVER_H_
 
 #include <inttypes.h>
 
@@ -59,6 +59,7 @@ class I2PControlService {
       const std::string& address,
       int port,
       const std::string& password);
+
   ~I2PControlService();
 
   void Start();
@@ -97,7 +98,7 @@ class I2PControlService {
   std::shared_ptr<I2PControlSession> m_Session;
 
   bool m_IsRunning;
-  std::thread* m_Thread;
+  std::unique_ptr<std::thread> m_Thread;
 
   boost::asio::io_service& m_Service;
   boost::asio::ip::tcp::acceptor m_Acceptor;
@@ -107,4 +108,4 @@ class I2PControlService {
 }  // namespace client
 }  // namespace i2p
 
-#endif  // SRC_API_I2PCONTROL_I2PCONTROLSERVER_H_
+#endif  // SRC_CLIENT_I2PCONTROL_I2PCONTROLSERVER_H_

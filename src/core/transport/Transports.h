@@ -75,10 +75,10 @@ class DHKeysPairSupplier {
 
   void Stop();
 
-  DHKeysPair* Acquire();
+  std::unique_ptr<DHKeysPair> Acquire();
 
   void Return(
-      DHKeysPair* pair);
+      std::unique_ptr<DHKeysPair> pair);
 
  private:
   void Run();
@@ -89,7 +89,7 @@ class DHKeysPairSupplier {
  private:
   const int m_QueueSize;
   bool m_IsRunning;
-  std::queue<DHKeysPair *> m_Queue;
+  std::queue<std::unique_ptr<DHKeysPair>> m_Queue;
   std::unique_ptr<std::thread> m_Thread;
   std::condition_variable m_Acquired;
   std::mutex m_AcquiredMutex;
@@ -123,10 +123,10 @@ class Transports {
     return m_Service;
   }
 
-  i2p::transport::DHKeysPair* GetNextDHKeysPair();
+  std::unique_ptr<i2p::transport::DHKeysPair> GetNextDHKeysPair();
 
   void ReuseDHKeysPair(
-      DHKeysPair* pair);
+      std::unique_ptr<DHKeysPair> pair);
 
   void SendMessage(
       const i2p::data::IdentHash& ident,

@@ -216,7 +216,7 @@ class RouterContext : public i2p::garlic::GarlicDestination {
   }
 
   const uint8_t* GetEncryptionPublicKey() const {
-    return GetIdentity().GetStandardIdentity().publicKey;
+    return GetIdentity().GetStandardIdentity().public_key;
   }
 
   void SetLeaseSetUpdated() {}

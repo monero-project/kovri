@@ -36,7 +36,7 @@
 
 #include "crypto/Rand.h"
 
-/// TODO(anonimal): unit-tests for all crypto::Rand* functions
+/// TODO(unassigned): unit-tests for all crypto::Rand* functions
 
 BOOST_AUTO_TEST_SUITE(RandInRange)
 

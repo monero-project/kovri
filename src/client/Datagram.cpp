@@ -110,8 +110,8 @@ void DatagramDestination::SendMsg(
     msgs.push_back(
         i2p::tunnel::TunnelMessageBlock {
         i2p::tunnel::e_DeliveryTypeTunnel,
-        leases[i].tunnelGateway,
-        leases[i].tunnelID,
+        leases[i].tunnel_gateway,
+        leases[i].tunnel_ID,
         garlic});
     outboundTunnel->SendTunnelDataMsg(msgs);
   } else {

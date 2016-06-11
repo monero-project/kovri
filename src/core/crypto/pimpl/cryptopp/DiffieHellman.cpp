@@ -87,7 +87,8 @@ class DiffieHellman::DiffieHellmanImpl {
 };
 
 DiffieHellman::DiffieHellman()
-    : m_DiffieHellmanPimpl(new DiffieHellmanImpl()) {}
+    : m_DiffieHellmanPimpl(
+          std::make_unique<DiffieHellmanImpl>()) {}
 
 DiffieHellman::~DiffieHellman() {}
 

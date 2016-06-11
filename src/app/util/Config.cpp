@@ -48,7 +48,7 @@ bool ParseArgs(
     char* argv[]) {
   // Random generated port if none is supplied via CLI or config
   // See: i2p.i2p/router/java/src/net/i2p/router/transport/udp/UDPEndpoint.java
-  // TODO(anonimal): move this elsewhere (outside of ParseArgs()) when possible
+  // TODO(unassigned): move this elsewhere (outside of ParseArgs()) when possible
   size_t port = i2p::crypto::RandInRange<size_t>(9111, 30777);
   // Map options values from CLI and config
   bpo::options_description help("Help options");
@@ -108,7 +108,7 @@ bool ParseArgs(
      "Enable or disable daemon mode\n"
      "1 = enabled, 0 = disabled\n")
 
-    // TODO(anonimal): clarify what --service 'really' does
+    // TODO(unassigned): clarify what --service 'really' does
     // See DaemonWin32.cpp
     ("service,s", bpo::value<bool>()->default_value(0),
      "1 if using system folders, e.g.,\n"
@@ -128,7 +128,7 @@ bool ParseArgs(
      "L if bandwidth is limited to 32Kbs/sec, O if not\n"
      "Always O if floodfill, otherwise L by default\n");
 
-  // TODO(anonimal): do we want proxy/i2pcs options in CLI
+  // TODO(unassigned): do we want proxy/i2pcs options in CLI
   // if we can redirect future multiple running instances
   // of kovri to use unique config files per instance instead?
   bpo::options_description proxy("\nProxy");

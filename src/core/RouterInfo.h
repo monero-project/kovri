@@ -39,6 +39,7 @@
 
 #include <iostream>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -92,16 +93,16 @@ class RouterInfo : public RoutingDestination {
   };
 
   struct Introducer {
-    boost::asio::ip::address iHost;
-    int iPort;
-    Tag<32> iKey;
-    uint32_t iTag;
+    boost::asio::ip::address host;
+    int port;
+    Tag<32> key;
+    uint32_t tag;
   };
 
   struct Address {
-    TransportStyle transportStyle;
+    TransportStyle transport_style;
     boost::asio::ip::address host;
-    std::string addressString;
+    std::string address_string;
     int port, mtu;
     uint64_t date;
     uint8_t cost;
@@ -115,17 +116,22 @@ class RouterInfo : public RoutingDestination {
     }
   };
 
-  RouterInfo(
-      const std::string& fullPath);
   RouterInfo()
       : m_Buffer(nullptr) {}
+
+  ~RouterInfo();
+
+  RouterInfo(
+      const std::string& full_path);
+
   RouterInfo(
       const RouterInfo&) = default;
-  RouterInfo& operator=(const RouterInfo&) = default;
+
   RouterInfo(
       const uint8_t* buf,
       int len);
-  ~RouterInfo();
+
+  RouterInfo& operator=(const RouterInfo&) = default;
 
   const IdentityEx& GetRouterIdentity() const {
     return m_RouterIdentity;
@@ -229,6 +235,7 @@ class RouterInfo : public RoutingDestination {
 
   void SetCaps(
       uint8_t caps);
+
   void SetCaps(
       const char* caps);
 
@@ -241,7 +248,8 @@ class RouterInfo : public RoutingDestination {
   }
 
   const uint8_t* GetBuffer() const {
-    return m_Buffer;
+    auto buf = m_Buffer.get();
+    return buf;
   }
 
   const uint8_t* LoadBuffer();  // load if necessary
@@ -263,7 +271,7 @@ class RouterInfo : public RoutingDestination {
   }
 
   void SaveToFile(
-      const std::string& fullPath);
+      const std::string& full_path);
 
   std::shared_ptr<RouterProfile> GetProfile() const;
 
@@ -277,17 +285,18 @@ class RouterInfo : public RoutingDestination {
       int len);
 
   void DeleteBuffer() {
-    delete[] m_Buffer;
-    m_Buffer = nullptr;
+    m_Buffer.reset(nullptr);
   }
 
   // implements RoutingDestination
   const IdentHash& GetIdentHash() const {
     return m_RouterIdentity.GetIdentHash();
   }
+
   const uint8_t* GetEncryptionPublicKey() const {
-    return m_RouterIdentity.GetStandardIdentity().publicKey;
+    return m_RouterIdentity.GetStandardIdentity().public_key;
   }
+
   bool IsDestination() const {
     return false;
   }
@@ -301,7 +310,7 @@ class RouterInfo : public RoutingDestination {
       std::istream& s);
 
   void ReadFromBuffer(
-      bool verifySignature);
+      bool verify_signature);
 
   void WriteToStream(
       std::ostream& s);
@@ -327,7 +336,7 @@ class RouterInfo : public RoutingDestination {
  private:
   std::string m_FullPath;
   IdentityEx m_RouterIdentity;
-  uint8_t * m_Buffer;
+  std::unique_ptr<std::uint8_t[]> m_Buffer;
   int m_BufferLen;
   uint64_t m_Timestamp;
   std::vector<Address> m_Addresses;

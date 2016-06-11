@@ -204,7 +204,7 @@ class X509::X509Impl {
 
 X509::X509()
     : m_X509Pimpl(
-          new X509Impl()) {}
+          std::make_unique<X509Impl>()) {}
 
 X509::~X509() {}
 

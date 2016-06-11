@@ -31,107 +31,107 @@
  */
 
 #include "Filesystem.h"
-#include "Config.h"
 
 #include <string>
+
+#include "Config.h"
 
 namespace i2p {
 namespace util {
 namespace filesystem {
 
-namespace bfs = boost::filesystem;
+std::string app_name("kovri");
 
-std::string appName("kovri");
-
-void SetAppName(const std::string& name) {
-  appName = name;
+void SetAppName(
+    const std::string& name) {
+  app_name = name;
 }
 
 std::string GetAppName() {
-  return appName;
+  return app_name;
 }
 
-bfs::path GetConfigFile() {
-  bfs::path pathConfigFile(
+boost::filesystem::path GetConfigFile() {
+  boost::filesystem::path kovri_conf(
       i2p::util::config::var_map["kovriconf"].as<std::string>());
-  if (!pathConfigFile.is_complete())
-        pathConfigFile = GetDataPath() / pathConfigFile;
-  return pathConfigFile;
+  if (!kovri_conf.is_complete())
+        kovri_conf = GetDataPath() / kovri_conf;
+  return kovri_conf;
 }
 
-bfs::path GetTunnelsConfigFile() {
-  bfs::path pathTunnelsConfigFile(
+boost::filesystem::path GetTunnelsConfigFile() {
+  boost::filesystem::path tunnels_conf(
       i2p::util::config::var_map["tunnelsconf"].as<std::string>());
-  if (!pathTunnelsConfigFile.is_complete())
-    pathTunnelsConfigFile = GetDataPath() / pathTunnelsConfigFile;
-  return pathTunnelsConfigFile;
+  if (!tunnels_conf.is_complete())
+    tunnels_conf = GetDataPath() / tunnels_conf;
+  return tunnels_conf;
 }
 
-bfs::path GetSU3CertsPath() {
+boost::filesystem::path GetSU3CertsPath() {
   return GetDataPath() / "certificates" / "su3";
 }
 
-bfs::path GetSSLCertsPath() {
+boost::filesystem::path GetSSLCertsPath() {
   return GetDataPath() / "certificates" / "ssl";
 }
 
 std::string GetFullPath(
     const std::string& filename) {
-  std::string fullPath = GetDataPath().string();
+  std::string full_path = GetDataPath().string();
 #ifdef _WIN32
-  fullPath.append("\\");
+  full_path.append("\\");
 #else
-  fullPath.append("/");
+  full_path.append("/");
 #endif
-  fullPath.append(filename);
-  return fullPath;
+  full_path.append(filename);
+  return full_path;
 }
 
-const bfs::path& GetDataPath() {
-  static bfs::path path;
+const boost::filesystem::path& GetDataPath() {
+  static boost::filesystem::path path;
   path = GetDefaultDataPath();
-  if (!exists(path)) {
+  if (!boost::filesystem::exists(path)) {
     // Create data directory
-    if (!create_directory(path)) {
+    if (!boost::filesystem::create_directory(path)) {
       LogPrint(eLogError, "Filesystem: failed to create data directory!");
       path = "";
       return path;
     }
   }
-  if (!is_directory(path))
+  if (!boost::filesystem::is_directory(path))
     path = GetDefaultDataPath();
   return path;
 }
 
-bfs::path GetDefaultDataPath() {
+boost::filesystem::path GetDefaultDataPath() {
   // Custom path, or default path:
   // Windows < Vista: C:\Documents and Settings\Username\Application Data\kovri
   // Windows >= Vista: C:\Users\Username\AppData\Roaming\kovri
   // Mac: ~/Library/Application Support/kovri
   // Unix: ~/.kovri
 #ifdef KOVRI_CUSTOM_DATA_PATH
-  return bfs::path(std::string(KOVRI_CUSTOM_DATA_PATH));
+  return boost::filesystem::path(std::string(KOVRI_CUSTOM_DATA_PATH));
 #else
 #ifdef _WIN32
   // Windows
-  char localAppData[MAX_PATH];
-  SHGetFolderPath(NULL, CSIDL_APPDATA, 0, NULL, localAppData);
-  return bfs::path(std::string(localAppData) + "\\" + appName);
+  char local_app_data[MAX_PATH];
+  SHGetFolderPath(NULL, CSIDL_APPDATA, 0, NULL, local_app_data);
+  return boost::filesystem::path(std::string(local_app_data) + "\\" + app_name);
 #else
-  bfs::path pathRet;
+  boost::filesystem::path path_ret;
   char* home = getenv("HOME");
   if (home == NULL || strlen(home) == 0)
-      pathRet = bfs::path("/");
+      path_ret = boost::filesystem::path("/");
   else
-      pathRet = bfs::path(home);
+      path_ret = boost::filesystem::path(home);
 #ifdef __APPLE__
   // Mac
-  pathRet /= "Library/Application Support";
-  create_directory(pathRet);
-  return pathRet / appName;
+  path_ret /= "Library/Application Support";
+  create_directory(path_ret);
+  return path_ret / app_name;
 #else
   // Unix
-  return pathRet / (std::string(".") + appName);
+  return path_ret / (std::string(".") + app_name);
 #endif
 #endif
 #endif

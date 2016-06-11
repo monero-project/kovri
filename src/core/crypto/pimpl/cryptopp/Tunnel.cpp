@@ -108,7 +108,8 @@ class TunnelEncryption::TunnelEncryptionImpl {
 };
 
 TunnelEncryption::TunnelEncryption()
-    : m_TunnelEncryptionPimpl(new TunnelEncryptionImpl()) {}
+    : m_TunnelEncryptionPimpl(
+          std::make_unique<TunnelEncryptionImpl>()) {}
 
 TunnelEncryption::~TunnelEncryption() {}
 
@@ -192,7 +193,8 @@ class TunnelDecryption::TunnelDecryptionImpl {
 };
 
 TunnelDecryption::TunnelDecryption()
-    : m_TunnelDecryptionPimpl(new TunnelDecryptionImpl()) {}
+    : m_TunnelDecryptionPimpl(
+          std::make_unique<TunnelDecryptionImpl>()) {}
 
 TunnelDecryption::~TunnelDecryption() {}
 

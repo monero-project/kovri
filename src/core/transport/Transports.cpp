@@ -55,7 +55,6 @@ DHKeysPairSupplier::DHKeysPairSupplier(
       m_Thread(nullptr) {}
 
 DHKeysPairSupplier::~DHKeysPairSupplier() {
-  LogPrint(eLogDebug, "DHKeysPairSupplier: destroying");
   Stop();
 }
 
@@ -70,7 +69,6 @@ void DHKeysPairSupplier::Start() {
 }
 
 void DHKeysPairSupplier::Stop() {
-  LogPrint(eLogDebug, "DHKeysPairSupplier: stopping");
   m_IsRunning = false;
   m_Acquired.notify_one();
   if (m_Thread) {
@@ -95,28 +93,28 @@ void DHKeysPairSupplier::CreateDHKeysPairs(
   LogPrint(eLogDebug, "DHKeysPairSupplier: creating");
   if (num > 0) {
     for (std::size_t i = 0; i < num; i++) {
-      i2p::transport::DHKeysPair* pair = new i2p::transport::DHKeysPair();
+      auto pair = std::make_unique<i2p::transport::DHKeysPair>();
       i2p::crypto::DiffieHellman().GenerateKeyPair(
           pair->private_key.data(),
           pair->public_key.data());
       std::unique_lock<std::mutex>  l(m_AcquiredMutex);
-      m_Queue.push(pair);
+      m_Queue.push(std::move(pair));
     }
   }
 }
 
-DHKeysPair* DHKeysPairSupplier::Acquire() {
+std::unique_ptr<DHKeysPair> DHKeysPairSupplier::Acquire() {
   LogPrint(eLogDebug, "DHKeysPairSupplier: acquiring");
   std::unique_lock<std::mutex> l(m_AcquiredMutex);
   if (!m_Queue.empty()) {
-    auto pair = m_Queue.front();
+    auto pair = std::move(m_Queue.front());
     m_Queue.pop();
     m_Acquired.notify_one();
     return pair;
   }
   l.unlock();
   // queue is empty, create new key pair
-  DHKeysPair* pair = new DHKeysPair();
+  auto pair = std::make_unique<DHKeysPair>();
   i2p::crypto::DiffieHellman().GenerateKeyPair(
       pair->private_key.data(),
       pair->public_key.data());
@@ -124,10 +122,10 @@ DHKeysPair* DHKeysPairSupplier::Acquire() {
 }
 
 void DHKeysPairSupplier::Return(
-    DHKeysPair* pair) {
+    std::unique_ptr<DHKeysPair> pair) {
   LogPrint(eLogDebug, "DHKeysPairSupplier: returning");
   std::unique_lock<std::mutex> l(m_AcquiredMutex);
-  m_Queue.push(pair);
+  m_Queue.push(std::move(pair));
 }
 
 Transports transports;
@@ -149,7 +147,6 @@ Transports::Transports()
       m_LastBandwidthUpdateTime(0) {}
 
 Transports::~Transports() {
-  LogPrint(eLogDebug, "Transports: destroying");
   Stop();
 }
 
@@ -166,7 +163,7 @@ void Transports::Start() {
   auto addresses = context.GetRouterInfo().GetAddresses();
   for (auto& address : addresses) {
     LogPrint("Transports: creating servers for address ", address.host);
-    if (address.transportStyle ==
+    if (address.transport_style ==
         i2p::data::RouterInfo::eTransportNTCP && address.host.is_v4()) {
       if (!m_NTCPServer) {
         LogPrint(eLogInfo, "Transports: TCP listening on port ", address.port);
@@ -176,7 +173,7 @@ void Transports::Start() {
         LogPrint(eLogError, "Transports: TCP server already exists");
       }
     }
-    if (address.transportStyle ==
+    if (address.transport_style ==
         i2p::data::RouterInfo::eTransportSSU && address.host.is_v4()) {
       if (!m_SSUServer) {
         LogPrint(eLogInfo, "Transports: UDP listening on port ", address.port);
@@ -199,10 +196,8 @@ void Transports::Start() {
 }
 
 void Transports::Stop() {
-  LogPrint(eLogDebug, "Transports: stopping");
 #ifdef USE_UPNP
   m_UPnP.Stop();
-  LogPrint(eLogInfo, "Transports: UPnP stopped");
 #endif
   m_PeerCleanupTimer.cancel();
   m_Peers.clear();
@@ -344,10 +339,10 @@ bool Transports::ConnectToPeer(
             return true;
           }
         } else {  // we don't have address
-          if (address->addressString.length() > 0) {  // trying to resolve
+          if (address->address_string.length() > 0) {  // trying to resolve
             LogPrint(eLogInfo,
-                "Transports: NTCP resolving ", address->addressString);
-            NTCPResolve(address->addressString, ident);
+                "Transports: NTCP resolving ", address->address_string);
+            NTCPResolve(address->address_string, ident);
             return true;
           }
         }
@@ -454,6 +449,7 @@ void Transports::HandleNTCPResolve(
   }
 }
 
+// TODO(unassigned): why is this never called anywhere?
 void Transports::CloseSession(
     std::shared_ptr<const i2p::data::RouterInfo> router) {
   if (!router)
@@ -479,7 +475,14 @@ void Transports::PostCloseSession(
         "Transports: SSU session [",
         router->GetIdentHashAbbreviation(), "] closed");
   }
-  // TODO(unassigned): delete NTCP
+  auto ntcp_session =
+    m_NTCPServer ? m_NTCPServer->FindNTCPSession(router->GetIdentHash()) : nullptr;
+  if (ntcp_session) {
+    m_NTCPServer->RemoveNTCPSession(ntcp_session);
+    LogPrint(eLogInfo,
+        "Transports: NTCP session [",
+        router->GetIdentHashAbbreviation(), "] closed");
+  }
 }
 
 void Transports::DetectExternalIP() {
@@ -503,14 +506,15 @@ void Transports::DetectExternalIP() {
   }
 }
 
-DHKeysPair* Transports::GetNextDHKeysPair() {
+std::unique_ptr<DHKeysPair> Transports::GetNextDHKeysPair() {
   LogPrint(eLogDebug, "Transports: getting next DH keys pair");
   return m_DHKeysPairSupplier.Acquire();
 }
 
-void Transports::ReuseDHKeysPair(DHKeysPair* pair) {
+void Transports::ReuseDHKeysPair(
+    std::unique_ptr<DHKeysPair> pair) {
   LogPrint(eLogDebug, "Transports: reusing DH keys pair");
-  m_DHKeysPairSupplier.Return(pair);
+  m_DHKeysPairSupplier.Return(std::move(pair));
 }
 
 void Transports::PeerConnected(

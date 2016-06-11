@@ -36,6 +36,7 @@
 
 #include <algorithm>
 #include <map>
+#include <memory>
 #include <thread>
 #include <vector>
 
@@ -386,7 +387,7 @@ void Tunnels::AddTransitTunnel(
 void Tunnels::Start() {
   m_IsRunning = true;
   m_Thread =
-    new std::thread(
+    std::make_unique<std::thread>(
         std::bind(
           &Tunnels::Run,
           this));
@@ -397,8 +398,7 @@ void Tunnels::Stop() {
   m_Queue.WakeUp();
   if (m_Thread) {
     m_Thread->join();
-    delete m_Thread;
-    m_Thread = 0;
+    m_Thread.reset(nullptr);
   }
 }
 

@@ -46,6 +46,7 @@
 #include "Identity.h"
 #include "LeaseSet.h"
 #include "crypto/AES.h"
+#include "crypto/Rand.h"
 #include "util/Queue.h"
 
 namespace i2p {
@@ -60,9 +61,12 @@ enum GarlicDeliveryType {
 
 #pragma pack(1)
 struct ElGamalBlock {
+  ElGamalBlock() {
+    // Spec defines padding as CSPRNG radomized
+    i2p::crypto::RandBytes(padding.data(), padding.size());
+  }
   std::array<std::uint8_t, 32> session_key;
   std::array<std::uint8_t, 32> pre_IV;
-  // TODO(unassigned): review spec, how should padding be initialized/treated?
   std::array<std::uint8_t, 158> padding;
 };
 #pragma pack()

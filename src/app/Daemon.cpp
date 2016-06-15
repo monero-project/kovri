@@ -59,7 +59,7 @@ namespace util {
 
 Daemon_Singleton::Daemon_Singleton()
     : m_IsRunning(true),
-      m_log(i2p::util::log::Log::Get()) {}
+      m_Log(i2p::util::log::Log::Get()) {}
 Daemon_Singleton::~Daemon_Singleton() {}
 
 bool Daemon_Singleton::IsService() const {
@@ -123,7 +123,7 @@ bool Daemon_Singleton::Start() {
       StartLog("");  // write to stdout
     }
   } else {
-    m_log->Stop();
+    m_Log->Stop();
   }
   try {
     LogPrint(eLogInfo, "Daemon_Singleton: starting NetDb");

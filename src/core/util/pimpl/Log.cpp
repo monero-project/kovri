@@ -346,7 +346,6 @@ class LogImpl {
   static void Format(
       boost::log::record_view const& rec,
       boost::log::formatting_ostream &stream) {
-    // const boost::log::attribute_value_set& attrs = rec.attribute_values();
     static std::locale loc(
         std::clog.getloc(),
         new boost::posix_time::time_facet("%Y:%m:%d|%T.%f"));
@@ -354,9 +353,11 @@ class LogImpl {
     ss.imbue(loc);
     ss << boost::log::extract<boost::posix_time::ptime>("Timestamp", rec);
     stream << ss.str();
-    stream << boost::log::extract<std::string>("Channel", rec) << ":";
-    stream << boost::log::extract<std::string>("LogName", rec) << "\t\t";
-    stream << boost::log::extract<LogLevel>("Severity", rec) << "\t\t";
+    // TODO(unassigned):
+    // When these become useful, uncomment and tweak
+    //stream << "|" << boost::log::extract<std::string>("Channel", rec) << ":";
+    //stream << boost::log::extract<std::string>("LogName", rec);
+    stream << "|" << boost::log::extract<LogLevel>("Severity", rec) << "   ";
     stream << rec[boost::log::expressions::smessage];
   }
 

@@ -237,19 +237,19 @@ class LoggerImpl {
   }
 
   LogStream& Error() {
-    return GetLogger(m_Error, m_ErrorMtx);
+    return GetLogStream(m_Error, m_ErrorMtx);
   }
 
   LogStream& Warning() {
-    return GetLogger(m_Warn, m_WarnMtx);
+    return GetLogStream(m_Warn, m_WarnMtx);
   }
 
   LogStream& Info() {
-    return GetLogger(m_Info, m_InfoMtx);
+    return GetLogStream(m_Info, m_InfoMtx);
   }
 
   LogStream& Debug() {
-    return GetLogger(m_Debug, m_DebugMtx);
+    return GetLogStream(m_Debug, m_DebugMtx);
   }
 
   void Flush() {
@@ -259,7 +259,7 @@ class LoggerImpl {
  private:
   /// @brief Lock mutex and return log stream
   /// @return Reference to LogStream
-  LogStream& GetLogger(
+  LogStream& GetLogStream(
       LogStream& stream,
       std::mutex& mtx) {
     mtx.lock();

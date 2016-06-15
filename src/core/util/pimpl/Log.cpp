@@ -406,14 +406,14 @@ std::shared_ptr<Logger> Log::Default() {
 std::ostream& operator<<(
     std::ostream& out_stream,
     LogLevel log_level) {
-  static const char* levels[] = {
+  static std::array<const char*, 4> levels {
     "DBG",  // debug
     "NFO",  // info
     "WRN",  // warning
     "ERR"   // error
   };
-  if (static_cast<std::size_t>(log_level) < sizeof(levels) / sizeof(*levels)) {
-    out_stream << levels[log_level];
+  if (static_cast<std::size_t>(log_level) < levels.size()) {
+    out_stream << levels.at(log_level);
   } else {
     out_stream << "Invalid log level: " << static_cast<int>(log_level);
   }

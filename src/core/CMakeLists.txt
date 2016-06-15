@@ -27,11 +27,11 @@ set(CORE_SRC
   "tunnel/TunnelGateway.cpp"
   "tunnel/TunnelPool.cpp"
   "util/Base64.cpp"
-  "util/HTTP.cpp"
-  "util/Log.cpp"
-  "util/MTU.cpp"
   "util/Filesystem.cpp"
-  "util/ZIP.cpp")
+  "util/HTTP.cpp"
+  "util/MTU.cpp"
+  "util/ZIP.cpp"
+  "util/pimpl/Log.cpp")
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
   list(APPEND CORE_SRC "util/I2PEndian.cpp")

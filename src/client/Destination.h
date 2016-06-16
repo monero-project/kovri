@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #ifndef SRC_CLIENT_DESTINATION_H_
@@ -47,7 +49,6 @@
 #include "NetworkDatabase.h"
 #include "Datagram.h"
 #include "Streaming.h"
-#include "crypto/CryptoConst.h"
 #include "tunnel/TunnelPool.h"
 
 namespace i2p {
@@ -82,19 +83,20 @@ class ClientDestination : public i2p::garlic::GarlicDestination {
   struct LeaseSetRequest {
     LeaseSetRequest(
         boost::asio::io_service& service)
-        : requestTime(0),
-          requestTimeoutTimer(service) {}
+        : request_time(0),
+          request_timeout_timer(service) {}
     std::set<i2p::data::IdentHash> excluded;
-    uint64_t requestTime;
-    boost::asio::deadline_timer requestTimeoutTimer;
-    RequestComplete requestComplete;
+    uint64_t request_time;
+    boost::asio::deadline_timer request_timeout_timer;
+    RequestComplete request_complete;
   };
 
  public:
   ClientDestination(
       const i2p::data::PrivateKeys& keys,
-      bool isPublic,
-      const std::map<std::string, std::string> * params = nullptr);
+      bool is_public,
+      const std::map<std::string, std::string>* params = nullptr);
+
   ~ClientDestination();
 
   virtual void Start();
@@ -124,7 +126,7 @@ class ClientDestination : public i2p::garlic::GarlicDestination {
 
   bool RequestDestination(
       const i2p::data::IdentHash& dest,
-      RequestComplete requestComplete = nullptr);
+      RequestComplete request_complete = nullptr);
 
   // streaming
   std::shared_ptr<i2p::stream::StreamingDestination> CreateStreamingDestination(
@@ -223,11 +225,11 @@ class ClientDestination : public i2p::garlic::GarlicDestination {
 
   void RequestLeaseSet(
       const i2p::data::IdentHash& dest,
-      RequestComplete requestComplete);
+      RequestComplete request_complete);
 
   bool SendLeaseSetRequest(
       const i2p::data::IdentHash& dest,
-      std::shared_ptr<const i2p::data::RouterInfo> nextFloodfill,
+      std::shared_ptr<const i2p::data::RouterInfo> next_floodfill,
       LeaseSetRequest* request);
 
   void HandleRequestTimoutTimer(
@@ -241,34 +243,35 @@ class ClientDestination : public i2p::garlic::GarlicDestination {
 
  private:
   volatile bool m_IsRunning;
-  std::thread* m_Thread;
+  std::unique_ptr<std::thread> m_Thread;
   boost::asio::io_service m_Service;
   boost::asio::io_service::work m_Work;
-  i2p::data::PrivateKeys m_Keys;
-  uint8_t m_EncryptionPublicKey[256],
-          m_EncryptionPrivateKey[256];
 
-  std::map<i2p::data::IdentHash, std::shared_ptr<i2p::data::LeaseSet> > m_RemoteLeaseSets;
-  std::map<i2p::data::IdentHash, LeaseSetRequest *> m_LeaseSetRequests;
+  i2p::data::PrivateKeys m_Keys;
+  uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
+
+  std::map<i2p::data::IdentHash,
+           std::shared_ptr<i2p::data::LeaseSet>> m_RemoteLeaseSets;
+
+  std::map<i2p::data::IdentHash,
+           LeaseSetRequest *> m_LeaseSetRequests;
+
   std::shared_ptr<i2p::tunnel::TunnelPool> m_Pool;
   std::shared_ptr<i2p::data::LeaseSet> m_LeaseSet;
 
   bool m_IsPublic;
+
   uint32_t m_PublishReplyToken;
   std::set<i2p::data::IdentHash> m_ExcludedFloodfills;  // for publishing
 
   std::shared_ptr<i2p::stream::StreamingDestination> m_StreamingDestination;  // default
-  std::map<uint16_t, std::shared_ptr<i2p::stream::StreamingDestination> > m_StreamingDestinationsByPorts;
+
+  std::map<uint16_t,
+           std::shared_ptr<i2p::stream::StreamingDestination>> m_StreamingDestinationsByPorts;
+
   i2p::datagram::DatagramDestination* m_DatagramDestination;
 
-  boost::asio::deadline_timer m_PublishConfirmationTimer,
-                              m_CleanupTimer;
-
- public:
-  // for HTTP only
-  int GetNumRemoteLeaseSets() const {
-    return m_RemoteLeaseSets.size();
-  }
+  boost::asio::deadline_timer m_PublishConfirmationTimer, m_CleanupTimer;
 };
 
 }  // namespace client

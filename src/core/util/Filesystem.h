@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,34 +26,70 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #ifndef SRC_CORE_UTIL_FILESYSTEM_H_
 #define SRC_CORE_UTIL_FILESYSTEM_H_
 
-#include <string>
 #include <boost/filesystem.hpp>
 
-/**
- * Fixes undefined reference to boost::filesystem::detail::copy_file
- * See https://github.com/purplei2p/i2pd/issues/272
- */
-#define BOOST_NO_CXX11_SCOPED_ENUMS
+#include <cstdint>
+#include <sstream>
+#include <string>
 
 namespace i2p {
 namespace util {
 namespace filesystem {
 
-namespace bfs = boost::filesystem;
+/// @class StringStream
+/// @details A wrapper for casting and and strongly-typed classes
+/// @param String to be treated as stream
+class StringStream {
+ public:
+  StringStream(const std::string& stream) {
+    m_Stream.str(stream);
+  }
+
+  template<typename SizeCast = std::size_t, typename Buffer, typename Size>
+  void Read(Buffer& buf, Size&& size) {
+    m_Stream.read(
+        reinterpret_cast<char *>(&buf),
+        static_cast<SizeCast>(std::forward<Size>(size)));
+  };
+
+  template<typename SizeCast = std::size_t, typename Offset, typename Position>
+  void Seekg(Offset&& off, Position& pos) {
+    m_Stream.seekg(
+      static_cast<SizeCast>(std::forward<Offset>(off)),
+      pos);
+  };
+
+  std::size_t Tellg() {
+    return m_Stream.tellg();
+  };
+
+  bool EndOfFile() {
+    return m_Stream.eof() ? true : false;
+  };
+
+  std::string Str() {
+    return m_Stream.str();
+  };
+
+ private:
+  std::stringstream m_Stream;
+};
 
 /// @return the full path of a file within the kovri directory
 std::string GetFullPath(const std::string& filename);
 
 /// @return the path to certificates for SU3 verification
-bfs::path GetSU3CertsPath();
+boost::filesystem::path GetSU3CertsPath();
 
 /// @return the path to SSL certificates for TLS/SSL negotiation
-bfs::path GetSSLCertsPath();
+boost::filesystem::path GetSSLCertsPath();
 
 }  // namespace filesystem
 }  // namespace util

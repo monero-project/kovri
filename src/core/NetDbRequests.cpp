@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include "NetDbRequests.h"
@@ -142,7 +144,8 @@ void NetDbRequests::ManageRequests() {
       // no response for 5 seconds
       if (ts > dest->GetCreationTime() + 5)  {
         auto count = dest->GetExcludedPeers().size();
-        if (!dest->IsExploratory() && count < 7) {
+        std::size_t attempts(7);
+        if (!dest->IsExploratory() && count < attempts) {
           auto pool = i2p::tunnel::tunnels.GetExploratoryPool();
           auto outbound = pool->GetNextOutboundTunnel();
           auto inbound = pool->GetNextInboundTunnel();
@@ -159,17 +162,17 @@ void NetDbRequests::ManageRequests() {
           } else {
             done = true;
             if (!inbound)
-              LogPrint(eLogWarning, "No inbound tunnels");
+              LogPrint(eLogWarning, "NetDbRequests: no inbound tunnels");
             if (!outbound)
-              LogPrint(eLogWarning, "No outbound tunnels");
+              LogPrint(eLogWarning, "NetDbRequests: no outbound tunnels");
             if (!nextFloodfill)
-              LogPrint(eLogWarning, "No more floodfills");
+              LogPrint(eLogWarning, "NetDbRequests: no more floodfills");
           }
         } else {
           if (!dest->IsExploratory())
             LogPrint(eLogWarning,
-                dest->GetDestination().ToBase64(),
-                " not found after 7 attempts");
+                "NetDbRequests: ", dest->GetDestination().ToBase64(),
+                " not found after ", attempts, " attempts");
           done = true;
         }
       }

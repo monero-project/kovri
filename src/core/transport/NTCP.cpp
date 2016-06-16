@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,9 +26,15 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include "NTCP.h"
+
+#include <cstdint>
+#include <memory>
+#include <string>
 
 #include "NTCPSession.h"
 #include "NetworkDatabase.h"
@@ -40,77 +46,56 @@
 namespace i2p {
 namespace transport {
 
-NTCPServer::NTCPServer(int)
+NTCPServer::NTCPServer(
+    std::size_t port)
     : m_IsRunning(false),
       m_Thread(nullptr),
       m_Work(m_Service),
+      m_NTCPEndpoint(boost::asio::ip::tcp::v4(), port),
+      m_NTCPEndpointV6(boost::asio::ip::tcp::v6(), port),
       m_NTCPAcceptor(nullptr),
-      m_NTCPV6Acceptor(nullptr) {}
+      m_NTCPV6Acceptor(nullptr) {
+  LogPrint(eLogDebug, "NTCPServer: initializing");
+}
 
 NTCPServer::~NTCPServer() {
-  Stop();
+  LogPrint(eLogDebug, "NTCPServer: destroying");
 }
 
 void NTCPServer::Start() {
   if (!m_IsRunning) {
+    LogPrint(eLogDebug, "NTCPServer: starting");
     m_IsRunning = true;
-    m_Thread = new std::thread(std::bind(&NTCPServer::Run, this));
-    // create acceptors
-    auto addresses = context.GetRouterInfo().GetAddresses();
-    for (auto& address : addresses) {
-      if (address.transportStyle ==
-          i2p::data::RouterInfo::eTransportNTCP &&
-          address.host.is_v4()) {
-        m_NTCPAcceptor = new boost::asio::ip::tcp::acceptor(
-            m_Service,
-            boost::asio::ip::tcp::endpoint(
-              boost::asio::ip::tcp::v4(),
-              address.port));
-        LogPrint(eLogInfo, "Start listening TCP port ", address.port);
-        auto conn = std::make_shared<NTCPSession>(*this);
-        m_NTCPAcceptor->async_accept(
-            conn->GetSocket(),
-            std::bind(
-              &NTCPServer::HandleAccept,
+    m_Thread = std::make_unique<std::thread>(std::bind(&NTCPServer::Run, this));
+    // Create acceptors
+    m_NTCPAcceptor =
+      std::make_unique<boost::asio::ip::tcp::acceptor>(
+          m_Service,
+          m_NTCPEndpoint);
+    auto conn = std::make_shared<NTCPSession>(*this);
+    m_NTCPAcceptor->async_accept(
+        conn->GetSocket(),
+        std::bind(
+            &NTCPServer::HandleAccept,
+            this,
+            conn,
+            std::placeholders::_1));
+    // If IPv6 is enabled, create IPv6 acceptor
+    if (context.SupportsV6()) {
+      m_NTCPV6Acceptor =
+        std::make_unique<boost::asio::ip::tcp::acceptor>(m_Service);
+      m_NTCPV6Acceptor->open(boost::asio::ip::tcp::v6());
+      m_NTCPV6Acceptor->set_option(boost::asio::ip::v6_only(true));
+      m_NTCPV6Acceptor->bind(m_NTCPEndpointV6);
+      m_NTCPV6Acceptor->listen();
+      auto conn = std::make_shared<NTCPSession>(*this);
+      m_NTCPV6Acceptor->async_accept(
+          conn->GetSocket(),
+          std::bind(
+              &NTCPServer::HandleAcceptV6,
               this,
               conn,
               std::placeholders::_1));
-        if (context.SupportsV6()) {
-          m_NTCPV6Acceptor = new boost::asio::ip::tcp::acceptor(m_Service);
-          m_NTCPV6Acceptor->open(boost::asio::ip::tcp::v6());
-          m_NTCPV6Acceptor->set_option(boost::asio::ip::v6_only(true));
-          m_NTCPV6Acceptor->bind(boost::asio::ip::tcp::endpoint(
-                boost::asio::ip::tcp::v6(),
-                address.port));
-          m_NTCPV6Acceptor->listen();
-          LogPrint(eLogInfo, "Started listening V6 on TCP port ", address.port);
-          auto conn = std::make_shared<NTCPSession> (*this);
-          m_NTCPV6Acceptor->async_accept(
-              conn->GetSocket(),
-              std::bind(
-                &NTCPServer::HandleAcceptV6,
-                this,
-                conn,
-                std::placeholders::_1));
-        }
-      }
-    }
-  }
-}
-
-void NTCPServer::Stop() {
-  m_NTCPSessions.clear();
-  if (m_IsRunning) {
-    m_IsRunning = false;
-    delete m_NTCPAcceptor;
-    m_NTCPAcceptor = nullptr;
-    delete m_NTCPV6Acceptor;
-    m_NTCPV6Acceptor = nullptr;
-    m_Service.stop();
-    if (m_Thread) {
-      m_Thread->join();
-      delete m_Thread;
-      m_Thread = nullptr;
     }
   }
 }
@@ -118,16 +103,154 @@ void NTCPServer::Stop() {
 void NTCPServer::Run() {
   while (m_IsRunning) {
     try {
+      LogPrint(eLogDebug, "NTCPServer: running ioservice");
       m_Service.run();
     } catch (std::exception& ex) {
-      LogPrint("NTCP server: ", ex.what());
+      LogPrint(eLogError,
+          "NTCPServer: ioservice error: '", ex.what(), "'");
     }
+  }
+}
+
+void NTCPServer::HandleAccept(
+    std::shared_ptr<NTCPSession> conn,
+    const boost::system::error_code& ecode) {
+  if (!ecode) {
+    LogPrint(eLogDebug, "NTCPServer: handling accepted connection");
+    boost::system::error_code ec;
+    auto ep = conn->GetSocket().remote_endpoint(ec);
+    if (!ec) {
+      LogPrint(eLogInfo, "NTCPServer: connected from ", ep);
+      auto it = m_BanList.find(ep.address());
+      if (it != m_BanList.end()) {
+        uint32_t ts = i2p::util::GetSecondsSinceEpoch();
+        if (ts < it->second) {
+          LogPrint(eLogInfo,
+              "NTCPServer: ", ep.address(), " is banned for ",
+              it->second - ts, " more seconds");
+          conn = nullptr;
+        } else {
+          m_BanList.erase(it);
+        }
+      }
+      if (conn)
+        conn->ServerLogin();
+    } else {
+      LogPrint(eLogError,
+          "NTCPServer: HandleAccept() remote endpoint: ", ec.message());
+    }
+  } else {
+    LogPrint(eLogError,
+        "NTCPServer: HandleAccept(): '", ecode.message(), "'");
+  }
+  if (ecode != boost::asio::error::operation_aborted) {
+    conn = std::make_shared<NTCPSession>(*this);
+    m_NTCPAcceptor->async_accept(
+        conn->GetSocket(),
+        std::bind(
+            &NTCPServer::HandleAccept,
+            this,
+            conn,
+            std::placeholders::_1));
+  }
+}
+
+void NTCPServer::HandleAcceptV6(
+    std::shared_ptr<NTCPSession> conn,
+    const boost::system::error_code& ecode) {
+  if (!ecode) {
+    LogPrint(eLogDebug, "NTCPServer: handling V6 accepted connection");
+    boost::system::error_code ec;
+    auto ep = conn->GetSocket().remote_endpoint(ec);
+    if (!ec) {
+      LogPrint(eLogInfo,
+          "NTCPServer: V6 connected from ", ep);
+      auto it = m_BanList.find(ep.address());
+      if (it != m_BanList.end()) {
+        uint32_t ts = i2p::util::GetSecondsSinceEpoch();
+        if (ts < it->second) {
+          LogPrint(eLogInfo,
+              "NTCPServer: ", ep.address(), " is banned for ",
+              it->second - ts, " more seconds");
+          conn = nullptr;
+        } else {
+          m_BanList.erase(it);
+        }
+      }
+      if (conn)
+        conn->ServerLogin();
+    } else {
+      LogPrint(eLogError,
+          "NTCPServer: HandleAcceptV6() remote endpoint: ", ec.message());
+    }
+  } else {
+    LogPrint(eLogError,
+        "NTCPServer: HandleAcceptV6(): '", ecode.message(), "'");
+  }
+  if (ecode != boost::asio::error::operation_aborted) {
+    conn = std::make_shared<NTCPSession>(*this);
+    m_NTCPV6Acceptor->async_accept(
+        conn->GetSocket(),
+        std::bind(
+            &NTCPServer::HandleAcceptV6,
+            this,
+            conn,
+            std::placeholders::_1));
+  }
+}
+
+void NTCPServer::Connect(
+    const boost::asio::ip::address& address,
+    std::size_t port,
+    std::shared_ptr<NTCPSession> conn) {
+  LogPrint(eLogInfo,
+      "NTCPServer: connecting to [",
+      context.GetRouterInfo().GetIdentHashAbbreviation(), "] ",
+      address , ":",  port);
+
+  m_Service.post([conn, this]() {
+      this->AddNTCPSession(conn);
+  });
+  conn->GetSocket().async_connect(
+      boost::asio::ip::tcp::endpoint(
+          address,
+          port),
+      std::bind(
+          &NTCPServer::HandleConnect,
+          this,
+          conn,
+          std::placeholders::_1));
+}
+
+void NTCPServer::HandleConnect(
+    std::shared_ptr<NTCPSession> conn,
+    const boost::system::error_code& ecode) {
+  if (ecode) {
+    LogPrint(eLogError,
+        "NTCPServer: ", conn->GetSocket().remote_endpoint(),
+        " connect error '", ecode.message(), "'");
+    if (ecode != boost::asio::error::operation_aborted)
+      i2p::data::netdb.SetUnreachable(
+          conn->GetRemoteIdentity().GetIdentHash(),
+          true);
+    conn->Terminate();
+  } else {
+    LogPrint(eLogInfo,
+        "NTCPServer: connected to ", conn->GetSocket().remote_endpoint());
+    if (conn->GetSocket().local_endpoint().protocol() ==
+        boost::asio::ip::tcp::v6())  // ipv6
+      context.UpdateNTCPV6Address(
+          conn->GetSocket().local_endpoint().address());
+    conn->ClientLogin();
   }
 }
 
 void NTCPServer::AddNTCPSession(
     std::shared_ptr<NTCPSession> session) {
   if (session) {
+    LogPrint(eLogDebug,
+        "NTCPServer: ", session->GetSocket().remote_endpoint(),
+        "*** adding NTCP session");
     std::unique_lock<std::mutex> l(m_NTCPSessionsMutex);
     m_NTCPSessions[session->GetRemoteIdentity().GetIdentHash()] = session;
   }
@@ -136,6 +259,9 @@ void NTCPServer::AddNTCPSession(
 void NTCPServer::RemoveNTCPSession(
     std::shared_ptr<NTCPSession> session) {
   if (session) {
+    LogPrint(eLogDebug,
+        "NTCPServer: ", session->GetFormattedSessionInfo(),
+        "*** removing NTCP session");
     std::unique_lock<std::mutex> l(m_NTCPSessionsMutex);
     m_NTCPSessions.erase(session->GetRemoteIdentity().GetIdentHash());
   }
@@ -143,6 +269,7 @@ void NTCPServer::RemoveNTCPSession(
 
 std::shared_ptr<NTCPSession> NTCPServer::FindNTCPSession(
     const i2p::data::IdentHash& ident) {
+  LogPrint(eLogDebug, "NTCPServer: finding NTCP session");
   std::unique_lock<std::mutex> l(m_NTCPSessionsMutex);
   auto it = m_NTCPSessions.find(ident);
   if (it != m_NTCPSessions.end())
@@ -150,125 +277,29 @@ std::shared_ptr<NTCPSession> NTCPServer::FindNTCPSession(
   return nullptr;
 }
 
-void NTCPServer::HandleAccept(
-    std::shared_ptr<NTCPSession> conn,
-    const boost::system::error_code& error) {
-  if (!error) {
-    boost::system::error_code ec;
-    auto ep = conn->GetSocket().remote_endpoint(ec);
-    if (!ec) {
-      LogPrint(eLogInfo, "Connected from ", ep);
-      auto it = m_BanList.find(ep.address());
-      if (it != m_BanList.end()) {
-        uint32_t ts = i2p::util::GetSecondsSinceEpoch();
-        if (ts < it->second) {
-          LogPrint(eLogInfo,
-              ep.address(), " is banned for ", it->second - ts, " more seconds");
-          conn = nullptr;
-        } else {
-          m_BanList.erase(it);
-        }
-      }
-      if (conn)
-        conn->ServerLogin();
-    } else {
-      LogPrint(eLogError, "Connected from error ", ec.message());
-    }
-  }
-  if (error != boost::asio::error::operation_aborted) {
-    conn = std::make_shared<NTCPSession> (*this);
-    m_NTCPAcceptor->async_accept(
-        conn->GetSocket(),
-        std::bind(
-          &NTCPServer::HandleAccept,
-          this,
-          conn,
-          std::placeholders::_1));
-  }
-}
-
-void NTCPServer::HandleAcceptV6(
-    std::shared_ptr<NTCPSession> conn,
-    const boost::system::error_code& error) {
-  if (!error) {
-    boost::system::error_code ec;
-    auto ep = conn->GetSocket().remote_endpoint(ec);
-    if (!ec) {
-      LogPrint(eLogInfo, "Connected from ", ep);
-      auto it = m_BanList.find(ep.address());
-      if (it != m_BanList.end()) {
-        uint32_t ts = i2p::util::GetSecondsSinceEpoch();
-        if (ts < it->second) {
-          LogPrint(eLogInfo,
-              ep.address(), " is banned for ", it->second - ts, " more seconds");
-          conn = nullptr;
-        } else {
-          m_BanList.erase(it);
-        }
-      }
-      if (conn)
-        conn->ServerLogin();
-    } else {
-      LogPrint(eLogError, "Connected from error ", ec.message());
-    }
-  }
-  if (error != boost::asio::error::operation_aborted) {
-    conn = std::make_shared<NTCPSession> (*this);
-    m_NTCPV6Acceptor->async_accept(
-        conn->GetSocket(),
-        std::bind(
-          &NTCPServer::HandleAcceptV6,
-          this,
-          conn,
-          std::placeholders::_1));
-  }
-}
-
-void NTCPServer::Connect(
-    const boost::asio::ip::address& address,
-    int port,
-    std::shared_ptr<NTCPSession> conn) {
-  LogPrint(eLogInfo, "Connecting to ", address , ":",  port);
-  m_Service.post([conn, this]() {
-      this->AddNTCPSession(conn);
-    });
-  conn->GetSocket().async_connect(
-      boost::asio::ip::tcp::endpoint(
-        address,
-        port),
-      std::bind(
-        &NTCPServer::HandleConnect,
-        this,
-        std::placeholders::_1,
-        conn));
-}
-
-void NTCPServer::HandleConnect(
-    const boost::system::error_code& ecode,
-    std::shared_ptr<NTCPSession> conn) {
-  if (ecode) {
-    LogPrint(eLogError, "Connect error: ", ecode.message());
-    if (ecode != boost::asio::error::operation_aborted)
-      i2p::data::netdb.SetUnreachable(
-          conn->GetRemoteIdentity().GetIdentHash(),
-          true);
-    conn->Terminate();
-  } else {
-    LogPrint(eLogInfo, "Connected to ",  conn->GetSocket().remote_endpoint());
-    if (conn->GetSocket().local_endpoint().protocol () ==
-        boost::asio::ip::tcp::v6())  // ipv6
-      context.UpdateNTCPV6Address(
-          conn->GetSocket().local_endpoint().address());
-    conn->ClientLogin();
-  }
-}
-
 void NTCPServer::Ban(
-    const boost::asio::ip::address& addr) {
+    const std::shared_ptr<NTCPSession>& session) {
   uint32_t ts = i2p::util::GetSecondsSinceEpoch();
-  m_BanList[addr] = ts + NTCP_BAN_EXPIRATION_TIMEOUT;
+  m_BanList[session->GetRemoteEndpoint().address()] =
+    ts + static_cast<std::size_t>(NTCPTimeoutLength::ban_expiration);
   LogPrint(eLogInfo,
-      addr, " has been banned for ", NTCP_BAN_EXPIRATION_TIMEOUT, " seconds");
+      "NTCPServer:", session->GetFormattedSessionInfo(), "has been banned for ",
+      static_cast<std::size_t>(NTCPTimeoutLength::ban_expiration), " seconds");
+}
+
+void NTCPServer::Stop() {
+  LogPrint(eLogDebug, "NTCPServer: stopping");
+  m_NTCPSessions.clear();
+  if (m_IsRunning) {
+    m_IsRunning = false;
+    m_NTCPAcceptor.reset(nullptr);
+    m_NTCPV6Acceptor.reset(nullptr);
+    m_Service.stop();
+    if (m_Thread) {
+      m_Thread->join();
+      m_Thread.reset(nullptr);
+    }
+  }
 }
 
 }  // namespace transport

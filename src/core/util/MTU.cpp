@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include "MTU.h"
@@ -95,7 +97,7 @@ int GetMTUUnix(
     int fallback) {
   ifaddrs* ifaddr, *ifa = nullptr;
   if (getifaddrs(&ifaddr) == -1) {
-    LogPrint(eLogError, "Can't execute getifaddrs()");
+    LogPrint(eLogError, "MTU: can't execute getifaddrs()");
     return fallback;
   }
   int family = 0;
@@ -124,15 +126,15 @@ int GetMTUUnix(
       if (ioctl(fd, SIOCGIFMTU, &ifr) >= 0)
         mtu = ifr.ifr_mtu;  // MTU
       else
-        LogPrint(eLogError, "Failed to run ioctl");
+        LogPrint(eLogError, "MTU: failed to run ioctl");
       close(fd);
     } else {
-      LogPrint(eLogError, "Failed to create datagram socket");
+      LogPrint(eLogError, "MTU: failed to create datagram socket");
     }
   } else {
-    LogPrint(
-      eLogWarning, "Interface for local address",
-      localAddress.to_string(), " not found");
+    LogPrint(eLogWarning,
+        "MTU: interface for local address",
+        localAddress.to_string(), " not found");
   }
   freeifaddrs(ifaddr);
   return mtu;
@@ -163,7 +165,8 @@ int GetMTUWindowsIpv4(
       &outBufLen);
   if (dwRetVal != NO_ERROR) {
     LogPrint(eLogError,
-        "GetMTU() has failed: enclosed GetAdaptersAddresses() call has failed");
+        "MTU: GetMTUWindowsIpv4() has failed:",
+        "enclosed GetAdaptersAddresses() call has failed");
     FREE(pAddresses);
     return fallback;
   }
@@ -174,8 +177,8 @@ int GetMTUWindowsIpv4(
     pUnicast = pCurrAddresses->FirstUnicastAddress;
     if (pUnicast == nullptr) {
       LogPrint(eLogError,
-          "GetMTU() has failed: not a unicast ipv4 address;"
-          "this is not supported");
+          "MTU: GetMTUWindowsIpv4() has failed:",
+          "not a unicast ipv4 address; this is not supported");
     }
     for (int i = 0; pUnicast != nullptr; ++i) {
       LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
@@ -191,7 +194,9 @@ int GetMTUWindowsIpv4(
     }
     pCurrAddresses = pCurrAddresses->Next;
   }
-  LogPrint(eLogError, "GetMTU() error: no usable unicast ipv4 addresses found");
+  LogPrint(eLogError,
+      "MTU: GetMTUWindowsIpv4() error:",
+      "no usable unicast ipv4 addresses found");
   FREE(pAddresses);
   return fallback;
 }
@@ -220,7 +225,8 @@ int GetMTUWindowsIpv6(
       &outBufLen);
   if (dwRetVal != NO_ERROR) {
     LogPrint(eLogError,
-      "GetMTU() has failed: enclosed GetAdaptersAddresses() call has failed");
+      "MTU: GetMTUWindowsIpv6() has failed:",
+      "enclosed GetAdaptersAddresses() call has failed");
     FREE(pAddresses);
     return fallback;
   }
@@ -232,8 +238,8 @@ int GetMTUWindowsIpv6(
     pUnicast = pCurrAddresses->FirstUnicastAddress;
     if (pUnicast == nullptr) {
       LogPrint(eLogError,
-          "GetMTU() has failed: not a unicast ipv6 address;",
-          " this is not supported");
+          "MTU: GetMTUWindowsIpv6() has failed:",
+          "not a unicast ipv6 address; this is not supported");
     }
     for (int i = 0; pUnicast != nullptr; ++i) {
       LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
@@ -257,7 +263,9 @@ int GetMTUWindowsIpv6(
     }
     pCurrAddresses = pCurrAddresses->Next;
   }
-  LogPrint(eLogError, "GetMTU() error: no usable unicast ipv6 addresses found");
+  LogPrint(eLogError,
+      "MTU: GetMTUWindowsIpv6() error:",
+      "no usable unicast ipv6 addresses found");
   FREE(pAddresses);
   return fallback;
 }
@@ -285,7 +293,9 @@ int GetMTUWindows(
         &(inputAddress.sin6_addr));
     return GetMTUWindowsIpv6(inputAddress, fallback);
   } else {
-    LogPrint(eLogError, "GetMTU() has failed: address family is not supported");
+    LogPrint(eLogError,
+        "MTU: GetMTUWindows() has failed:",
+        "address family is not supported");
     return fallback;
   }
 }

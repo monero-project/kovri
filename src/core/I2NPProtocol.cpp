@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,11 +26,11 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include "I2NPProtocol.h"
-
-#include <cryptopp/gzip.h>  // TODO(unassigned): use util/GZIP.h (?)
 
 #include <string.h>
 
@@ -38,16 +38,18 @@
 #include <vector>
 #include <set>
 
-#include "crypto/Rand.h"
 #include "Garlic.h"
 #include "NetworkDatabase.h"
 #include "RouterContext.h"
 #include "crypto/ElGamal.h"
+#include "crypto/Hash.h"
+#include "crypto/Rand.h"
+#include "crypto/util/Compression.h"
 #include "transport/Transports.h"
 #include "tunnel/Tunnel.h"
 #include "util/I2PEndian.h"
-#include "util/Timestamp.h"
 #include "util/Log.h"
+#include "util/Timestamp.h"
 
 #ifndef NETWORK_ID
 #define NETWORK_ID 2
@@ -112,7 +114,8 @@ I2NPMessage* CreateI2NPMessage(
     memcpy(msg->GetPayload(), buf, len);
     msg->len += len;
   } else {
-    LogPrint(eLogError, "I2NP message length ", len, " exceeds max length");
+    LogPrint(eLogError,
+        "I2NPMessage: message length ", len, " exceeds max length");
   }
   msg->FillI2NPMessageHeader(msgType, replyMsgID);
   return msg;
@@ -128,7 +131,8 @@ std::shared_ptr<I2NPMessage> CreateI2NPMessage(
     msg->len = msg->offset + len;
     msg->from = from;
   } else {
-    LogPrint(eLogError, "I2NP message length ", len, " exceeds max length");
+    LogPrint(eLogError,
+        "I2NPMessage: message length ", len, " exceeds max length");
   }
   return ToSharedI2NPMessage(msg);
 }
@@ -271,16 +275,16 @@ std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg(
     memcpy(buf, router->GetIdentHash(), 32);
     buf += 32;
   }
-  CryptoPP::Gzip compressor;
+  i2p::crypto::util::Gzip compressor;
   compressor.Put(router->GetBuffer(), router->GetBufferLen());
-  compressor.MessageEnd();
   auto size = compressor.MaxRetrievable();
   htobe16buf(buf, size);  // size
   buf += 2;
   m->len += (buf - payload);  // payload size
   if (m->len + size > m->maxLen) {
     LogPrint(eLogInfo,
-        "DatabaseStore message size is not enough for ", m->len + size);
+        "I2NPMessage: DatabaseStore message size is not enough for ",
+        m->len + size);
     auto newMsg =  ToSharedI2NPMessage(NewI2NPMessage());
     *newMsg = *m;
     m = newMsg;
@@ -306,9 +310,9 @@ std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg(
   if (replyToken) {
     auto leases = leaseSet->GetNonExpiredLeases();
     if (leases.size() > 0) {
-      htobe32buf(payload + size, leases[0].tunnelID);
+      htobe32buf(payload + size, leases[0].tunnel_ID);
       size += 4;  // reply tunnelID
-      memcpy(payload + size, leases[0].tunnelGateway, 32);
+      memcpy(payload + size, leases[0].tunnel_gateway, 32);
       size += 32;  // reply tunnel gateway
     } else {
       htobe32buf(payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0);
@@ -325,18 +329,41 @@ bool HandleBuildRequestRecords(
     int num,
     uint8_t* records,
     uint8_t* clearText) {
+  /**
+   * When a hop receives a tunnel build message, it looks through the records
+   * contained within it for one starting with their own identity hash
+   * (trimmed to 16 bytes). It then decrypts the ElGamal block from that record
+   * and retrieves the protected cleartext.
+   *
+   *   bytes   0-15 : First 16 bytes of the SHA-256 of
+   *                  the current hop's router identity
+   *   bytes 16-527 : ElGamal-2048 encrypted request record
+   *
+   *   Total: 528 byte record
+   *
+   * TODO(unassigned): implement bloom filter, see #58 + #77
+   */
   for (int i = 0; i < num; i++) {
     uint8_t* record = records + i * TUNNEL_BUILD_RECORD_SIZE;
+    // Test if current hop's router identity is ours
     if (!memcmp(
             record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET,
             (const uint8_t *)i2p::context.GetRouterInfo().GetIdentHash(),
             16)) {
-      LogPrint("Record ", i, " is ours");
+      LogPrint("I2NPMessage: record ", i, " is ours");
+      // Get session key from encrypted block
       i2p::crypto::ElGamalDecrypt(
           i2p::context.GetEncryptionPrivateKey(),
           record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET,
           clearText);
-      // replace record to reply
+      /**
+       * After the current hop reads their record, we replace it with
+       * a reply record stating whether or not they agree to participate
+       * in the tunnel, and if we do not, we classify a reason for rejection
+       * This is simply a 1 byte value, with 0x0 meaning that we agree to
+       * participate in the tunnel, and higher values meaning
+       * higher levels of rejection.
+       */
       if (i2p::context.AcceptsTunnels() &&
           i2p::tunnel::tunnels.GetTransitTunnels().size() <=
           MAX_NUM_TRANSIT_TUNNELS &&
@@ -353,20 +380,56 @@ bool HandleBuildRequestRecords(
         i2p::tunnel::tunnels.AddTransitTunnel(transitTunnel);
         record[BUILD_RESPONSE_RECORD_RET_OFFSET] = 0;
       } else {
-        // always reject with bandwidth reason (30)
+        /**
+         * The following rejection codes are defined:
+         *
+         * TUNNEL_REJECT_PROBABALISTIC_REJECT = 10
+         * TUNNEL_REJECT_TRANSIENT_OVERLOAD = 20
+         * TUNNEL_REJECT_BANDWIDTH = 30
+         * TUNNEL_REJECT_CRIT = 50
+         *
+         * To hide other causes from peers (such as router shutdown),
+         * the current implementation uses TUNNEL_REJECT_BANDWIDTH
+         * for *all* rejections.
+         *
+         * TODO(unassigned): review use-case for implementing other rejections
+         */
         record[BUILD_RESPONSE_RECORD_RET_OFFSET] = 30;
       }
-      // TODO(anonimal): fill filler
-      CryptoPP::SHA256().CalculateDigest(
+      /**
+       * The reply is encrypted using the AES session key delivered to it in
+       * the encrypted block, padded with 495 bytes of random data to reach
+       * the full record size. The padding is placed before the status byte:
+       *
+       *  AES-256-CBC(SHA-256(padding + status) + padding + status, key, IV)
+       *
+       *   bytes   0-31 : SHA-256 of bytes 32-527
+       *   bytes 32-526 : Padding (random generated)
+       *   byte 527     : Status byte / reply value
+       *
+       *   Total: 528 byte record
+       */
+      // Fill random padding
+      i2p::crypto::RandBytes(
+          record + BUILD_RESPONSE_RECORD_RANDPAD_OFFSET,
+          BUILD_RESPONSE_RECORD_RANDPAD_SIZE);
+      // Get SHA256 of complete record
+      i2p::crypto::SHA256().CalculateDigest(
           record + BUILD_RESPONSE_RECORD_SHA256HASH_OFFSET,
           record + BUILD_RESPONSE_RECORD_RANDPAD_OFFSET,
-          BUILD_RESPONSE_RECORD_RANDPAD_SIZE + 1);  // + 1 byte of ret
-      // encrypt reply
+          BUILD_RESPONSE_RECORD_RANDPAD_SIZE + 1);  // + 1 byte for status/reply
+      /**
+       * After deciding whether they will agree to participate
+       * in the tunnel or not, they replace the record that had contained
+       * the request with an encrypted reply block. All other records are
+       * AES-256 encrypted with the included reply key and IV.
+       * Each is AES/CBC encrypted separately with the same reply key
+       * and reply IV. The CBC mode is not continued (chained) across records.
+       */
       i2p::crypto::CBCEncryption encryption;
       for (int j = 0; j < num; j++) {
         encryption.SetKey(clearText + BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET);
         encryption.SetIV(clearText + BUILD_REQUEST_RECORD_REPLY_IV_OFFSET);
-        // TODO(anonimal): records or record?
         uint8_t* reply = records + j * TUNNEL_BUILD_RECORD_SIZE;
         encryption.Encrypt(reply, TUNNEL_BUILD_RECORD_SIZE, reply);
       }
@@ -381,17 +444,21 @@ void HandleVariableTunnelBuildMsg(
     uint8_t* buf,
     size_t len) {
   int num = buf[0];
-  LogPrint("VariableTunnelBuild ", num, " records");
+  LogPrint(eLogInfo, "I2NPMessage: VariableTunnelBuild ", num, " records");
   auto tunnel = i2p::tunnel::tunnels.GetPendingInboundTunnel(replyMsgID);
   if (tunnel) {
     // endpoint of inbound tunnel
-    LogPrint("VariableTunnelBuild reply for tunnel ", tunnel->GetTunnelID());
+    LogPrint(eLogInfo,
+        "I2NPMessage: VariableTunnelBuild reply for tunnel ",
+        tunnel->GetTunnelID());
     if (tunnel->HandleTunnelBuildResponse(buf, len)) {
-      LogPrint("Inbound tunnel ", tunnel->GetTunnelID(), " has been created");
+      LogPrint(eLogInfo,
+          "I2NPMessage: inbound tunnel ", tunnel->GetTunnelID(), " has been created");
       tunnel->SetState(i2p::tunnel::e_TunnelStateEstablished);
       i2p::tunnel::tunnels.AddInboundTunnel(tunnel);
     } else {
-      LogPrint("Inbound tunnel ", tunnel->GetTunnelID(), " has been declined");
+      LogPrint(eLogInfo,
+          "I2NPMessage: inbound tunnel ", tunnel->GetTunnelID(), " has been declined");
       tunnel->SetState(i2p::tunnel::e_TunnelStateBuildFailed);
     }
   } else {
@@ -463,20 +530,24 @@ void HandleVariableTunnelBuildReplyMsg(
     uint32_t replyMsgID,
     uint8_t* buf,
     size_t len) {
-  LogPrint("VariableTunnelBuildReplyMsg replyMsgID=", replyMsgID);
+  LogPrint(eLogInfo,
+      "I2NPMessage: VariableTunnelBuildReplyMsg replyMsgID=", replyMsgID);
   auto tunnel = i2p::tunnel::tunnels.GetPendingOutboundTunnel(replyMsgID);
   if (tunnel) {
     // reply for outbound tunnel
     if (tunnel->HandleTunnelBuildResponse(buf, len)) {
-      LogPrint("Outbound tunnel ", tunnel->GetTunnelID(), " has been created");
+      LogPrint(eLogInfo,
+          "I2NPMessage: outbound tunnel ", tunnel->GetTunnelID(), " has been created");
       tunnel->SetState(i2p::tunnel::e_TunnelStateEstablished);
       i2p::tunnel::tunnels.AddOutboundTunnel(tunnel);
     } else {
-      LogPrint("Outbound tunnel ", tunnel->GetTunnelID(), " has been declined");
+      LogPrint(eLogWarning,
+          "I2NPMessage: outbound tunnel ", tunnel->GetTunnelID(), " has been declined");
       tunnel->SetState(i2p::tunnel::e_TunnelStateBuildFailed);
     }
   } else {
-    LogPrint("Pending tunnel for message ", replyMsgID, " not found");
+    LogPrint(eLogWarning,
+        "I2NPMessage: pending tunnel for message ", replyMsgID, " not found");
   }
 }
 
@@ -575,30 +646,32 @@ void HandleI2NPMessage(
     size_t len) {
   uint8_t typeID = msg[I2NP_HEADER_TYPEID_OFFSET];
   uint32_t msgID = bufbe32toh(msg + I2NP_HEADER_MSGID_OFFSET);
-  LogPrint("I2NP msg received len=", len,
+  LogPrint(eLogInfo,
+      "I2NPMessage: msg received len=", len,
       ", type=", static_cast<int>(typeID),
       ", msgID=", (unsigned int)msgID);
   uint8_t* buf = msg + I2NP_HEADER_SIZE;
   int size = bufbe16toh(msg + I2NP_HEADER_SIZE_OFFSET);
   switch (typeID) {
     case e_I2NPVariableTunnelBuild:
-      LogPrint("VariableTunnelBuild");
+      LogPrint(eLogDebug, "I2NPMessage: VariableTunnelBuild");
       HandleVariableTunnelBuildMsg(msgID, buf, size);
     break;
     case e_I2NPVariableTunnelBuildReply:
-      LogPrint("VariableTunnelBuildReply");
+      LogPrint(eLogDebug, "I2NPMessage: VariableTunnelBuildReply");
       HandleVariableTunnelBuildReplyMsg(msgID, buf, size);
     break;
     case e_I2NPTunnelBuild:
-      LogPrint("TunnelBuild");
+      LogPrint(eLogDebug, "I2NPMessage: TunnelBuild");
       HandleTunnelBuildMsg(buf, size);
     break;
     case e_I2NPTunnelBuildReply:
-      LogPrint("TunnelBuildReply");
+      LogPrint(eLogDebug, "I2NPMessage: TunnelBuildReply");
       // TODO(unassigned): ???
     break;
     default:
-      LogPrint("Unexpected message ", static_cast<int>(typeID));
+      LogPrint(eLogWarning,
+          "I2NPMessage: unexpected message ", static_cast<int>(typeID));
   }
 }
 
@@ -607,21 +680,21 @@ void HandleI2NPMessage(
   if (msg) {
     switch (msg->GetTypeID()) {
       case e_I2NPTunnelData:
-        LogPrint("TunnelData");
+        LogPrint(eLogDebug, "I2NPMessage: TunnelData");
         i2p::tunnel::tunnels.PostTunnelData(msg);
       break;
       case e_I2NPTunnelGateway:
-        LogPrint("TunnelGateway");
+        LogPrint(eLogDebug, "I2NPMessage: TunnelGateway");
         i2p::tunnel::tunnels.PostTunnelData(msg);
       break;
       case e_I2NPGarlic: {
-        LogPrint("Garlic");
+        LogPrint(eLogDebug, "I2NPMessage: Garlic");
         if (msg->from) {
           if (msg->from->GetTunnelPool())
             msg->from->GetTunnelPool()->ProcessGarlicMessage(msg);
           else
             LogPrint(eLogInfo,
-                "Local destination for garlic doesn't exist anymore");
+                "I2NPMessage: local destination for garlic doesn't exist anymore");
         } else {
           i2p::context.ProcessGarlicMessage(msg);
         }
@@ -634,7 +707,7 @@ void HandleI2NPMessage(
         i2p::data::netdb.PostI2NPMsg(msg);
       break;
       case e_I2NPDeliveryStatus: {
-        LogPrint("DeliveryStatus");
+        LogPrint(eLogDebug, "I2NPMessage: DeliveryStatus");
         if (msg->from && msg->from->GetTunnelPool())
           msg->from->GetTunnelPool()->ProcessDeliveryStatus(msg);
         else

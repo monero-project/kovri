@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #ifndef SRC_APP_WIN32SERVICE_H_
@@ -33,6 +35,7 @@
 
 #include <windows.h>
 #define WIN32_LEAN_AND_MEAN
+#include <memory>
 #include <thread>
 
 #ifdef _WIN32
@@ -63,6 +66,7 @@ class I2PService {
       BOOL fCanStop = TRUE,
       BOOL fCanShutdown = TRUE,
       BOOL fCanPauseContinue = FALSE);
+
   virtual ~I2PService(void);
 
   static BOOL isService();
@@ -95,15 +99,15 @@ class I2PService {
   void Pause();
   void Continue();
   void Shutdown();
-  static I2PService* s_service;
-  PSTR m_name;
-  SERVICE_STATUS m_status;
-  SERVICE_STATUS_HANDLE m_statusHandle;
+  static I2PService* m_Service;
+  PSTR m_Name;
+  SERVICE_STATUS m_Status;
+  SERVICE_STATUS_HANDLE m_StatusHandle;
 
-  BOOL m_fStopping;
-  HANDLE m_hStoppedEvent;
+  BOOL m_Stopping;
+  HANDLE m_StoppedEvent;
 
-  std::thread* _worker;
+  std::unique_ptr<std::thread> m_Worker;
 };
 
 void InstallService(

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include "RouterContext.h"
@@ -41,7 +43,6 @@
 #include "I2NPProtocol.h"
 #include "NetworkDatabase.h"
 #include "Version.h"
-#include "crypto/CryptoConst.h"
 #include "util/MTU.h"
 #include "util/Timestamp.h"
 #include "util/Filesystem.h"
@@ -87,7 +88,7 @@ void RouterContext::NewRouterInfo() {
       i2p::data::RouterInfo::eReachable |
       i2p::data::RouterInfo::eSSUTesting |
       i2p::data::RouterInfo::eSSUIntroducer);  // LR, BC
-  routerInfo.SetProperty("netId", "2");
+  routerInfo.SetProperty("netId", NETWORK_ID);
   routerInfo.SetProperty("router.version", I2P_VERSION);
   routerInfo.CreateBuffer(m_Keys);
   m_RouterInfo.Update(
@@ -190,7 +191,7 @@ void RouterContext::SetUnreachable() {
   // remove NTCP address
   auto& addresses = m_RouterInfo.GetAddresses();
   for (size_t i = 0; i < addresses.size(); i++) {
-    if (addresses[i].transportStyle == i2p::data::RouterInfo::eTransportNTCP) {
+    if (addresses[i].transport_style == i2p::data::RouterInfo::eTransportNTCP) {
       addresses.erase(addresses.begin() + i);
       break;
     }
@@ -215,7 +216,7 @@ void RouterContext::SetReachable() {
   // insert NTCP back
   auto& addresses = m_RouterInfo.GetAddresses();
   for (size_t i = 0; i < addresses.size(); i++) {
-    if (addresses[i].transportStyle == i2p::data::RouterInfo::eTransportSSU) {
+    if (addresses[i].transport_style == i2p::data::RouterInfo::eTransportSSU) {
       // insert NTCP address with host/port form SSU
       m_RouterInfo.AddNTCPAddress(
           addresses[i].host.to_string().c_str(),
@@ -247,7 +248,7 @@ void RouterContext::UpdateNTCPV6Address(
   auto& addresses = m_RouterInfo.GetAddresses();
   for (auto& addr : addresses) {
     if (addr.host.is_v6() &&
-        addr.transportStyle == i2p::data::RouterInfo::eTransportNTCP) {
+        addr.transport_style == i2p::data::RouterInfo::eTransportNTCP) {
       if (addr.host != host) {
         addr.host = host;
         updated = true;
@@ -262,7 +263,7 @@ void RouterContext::UpdateNTCPV6Address(
     m_RouterInfo.AddNTCPAddress(host.to_string().c_str(), port);
     auto mtu = i2p::util::mtu::GetMTU(host);
     if (mtu) {
-      LogPrint("Our v6 MTU=", mtu);
+      LogPrint(eLogDebug, "RouterContext: our v6 MTU=", mtu);
       if (mtu > 1472)
         mtu = 1472;
     }
@@ -318,22 +319,22 @@ void RouterContext::SaveKeys() {
       std::ofstream::binary | std::ofstream::out);
   i2p::data::Keys keys;
   memcpy(
-      keys.privateKey,
+      keys.private_key,
       m_Keys.GetPrivateKey(),
-      sizeof(keys.privateKey));
+      sizeof(keys.private_key));
   memcpy(
-      keys.signingPrivateKey,
+      keys.signing_private_key,
       m_Keys.GetSigningPrivateKey(),
-      sizeof(keys.signingPrivateKey));
+      sizeof(keys.signing_private_key));
   auto& ident = GetIdentity().GetStandardIdentity();
   memcpy(
-      keys.publicKey,
-      ident.publicKey,
-      sizeof(keys.publicKey));
+      keys.public_key,
+      ident.public_key,
+      sizeof(keys.public_key));
   memcpy(
-      keys.signingKey,
-      ident.signingKey,
-      sizeof(keys.signingKey));
+      keys.signing_key,
+      ident.signing_key,
+      sizeof(keys.signing_key));
   fk.write(reinterpret_cast<char *>(&keys), sizeof(keys));
 }
 

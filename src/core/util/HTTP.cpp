@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,85 +26,31 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include "HTTP.h"
 
-#include "util/Filesystem.h"
-
-#include <string>
 #include <functional>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "RouterContext.h"
+#include "util/Filesystem.h"
 
 namespace i2p {
 namespace util {
 namespace http {
 
-std::string HttpsDownload(
-    const std::string& address) {
-  // TODO(anonimal): do not use using-directive.
-  using namespace boost::asio;
-  io_service service;
-  boost::system::error_code ec;
-  URI uri(address);
-  // Ensures host is online
-  auto query = ip::tcp::resolver::query(uri.m_Host, std::to_string(uri.m_Port));
-  auto endpoint = ip::tcp::resolver(service).resolve(query, ec);
-  if (!ec) {
-    // Initialize SSL
-    // TODO(anonimal): deprecated constructor/
-    ssl::context ctx(service, ssl::context::sslv23);
-    ctx.set_options(ssl::context::no_tlsv1 | ssl::context::no_sslv3, ec);
-    if (!ec) {
-      // Ensures that we only download from certified reseed servers
-      ctx.set_verify_mode(ssl::verify_peer | ssl::verify_fail_if_no_peer_cert);
-      ctx.set_verify_callback(ssl::rfc2818_verification(uri.m_Host));
-      ctx.add_verify_path(i2p::util::filesystem::GetSSLCertsPath().string());
-      // Connect to host
-      ssl::stream<ip::tcp::socket>socket(service, ctx);
-      socket.lowest_layer().connect(*endpoint, ec);
-      if (!ec) {
-        // Initiate handshake
-        socket.handshake(ssl::stream_base::client, ec);
-        if (!ec) {
-          LogPrint(eLogInfo, "Connected to ", uri.m_Host, ":", uri.m_Port);
-          // Send header
-          std::stringstream sendStream;
-          sendStream << HttpHeader(uri.m_Path, uri.m_Host, "1.1") << "\r\n";
-          socket.write_some(buffer(sendStream.str()));
-          // Read response / download
-          std::stringstream readStream;
-          char response[1024];
-          size_t length = 0;
-          do {
-            length = socket.read_some(buffer(response, 1024), ec);
-            if (length)
-              readStream.write(response, length);
-          } while (!ec && length);
-          return GetHttpContent(readStream);
-         } else {
-           LogPrint(eLogError,
-               "Could not initialize SSL context: ", ec.message());
-         }
-       } else {
-         LogPrint(eLogError,
-             "SSL handshake failed: ", ec.message());
-       }
-    } else {
-      LogPrint(eLogError,
-          "Could not connect to ", uri.m_Host, ": ", ec.message());
-    }
-  } else {
-    LogPrint(eLogError,
-        "Could not resolve address ", uri.m_Host, ": ", ec.message());
-  }
-  return "";
-}
-
 URI::URI(
     const std::string& uri) {
   m_Path = "";
   m_Query = "";
-  ParseURI(uri);
+  Parse(uri);
+  if (!m_PortString.empty())
+    return;
   if (m_Protocol == "https") {
     m_PortString = "443";
     m_Port = 443;
@@ -114,7 +60,7 @@ URI::URI(
   }
 }
 
-void URI::ParseURI(
+void URI::Parse(
     const std::string& uri) {
   /**
   * This is a hack since colons are a part of the URI scheme
@@ -170,7 +116,86 @@ void URI::ParseURI(
   m_Query.assign(query_i, uri.end());
 }
 
-std::string HttpHeader(
+// Used by HTTPProxy
+std::string URI::Decode(
+    const std::string& data) {
+  std::string res(data);
+  for (size_t pos = res.find('%');
+      pos != std::string::npos;
+      pos = res.find('%', pos + 1)) {
+    const char c = strtol(res.substr(pos + 1, 2).c_str(), NULL, 16);
+    res.replace(pos, 3, 1, c);
+  }
+  return res;
+}
+
+bool HTTP::Download(
+    const std::string& address) {
+  boost::asio::io_service service;
+  boost::system::error_code ec;
+  URI uri(address);
+  // Ensures host is online
+  auto query =
+    boost::asio::ip::tcp::resolver::query(uri.m_Host, std::to_string(uri.m_Port));
+  auto endpoint =
+    boost::asio::ip::tcp::resolver(service).resolve(query, ec);
+  if (ec) {
+    LogPrint(eLogError,
+        "HTTP: Could not resolve address ", uri.m_Host, ": ", ec.message());
+    return false;
+  }
+  // Initialize SSL
+  boost::asio::ssl::context ctx(service, boost::asio::ssl::context::sslv23);
+  if (ctx.set_options(
+        boost::asio::ssl::context::no_tlsv1 |
+        boost::asio::ssl::context::no_sslv3,
+        ec)) {
+    LogPrint(eLogError,
+        "HTTP: Could not initialize SSL context: ", ec.message());
+    return false;
+  }
+  // Ensures that we only download from certified reseed servers
+  if (!i2p::context.ReseedSkipSSLCheck())
+    ctx.set_verify_mode(
+        boost::asio::ssl::verify_peer |
+        boost::asio::ssl::verify_fail_if_no_peer_cert);
+  ctx.set_verify_callback(boost::asio::ssl::rfc2818_verification(uri.m_Host));
+  ctx.add_verify_path(i2p::util::filesystem::GetSSLCertsPath().string());
+  // Connect to host
+  boost::asio::ssl::stream<boost::asio::ip::tcp::socket>socket(service, ctx);
+  if (socket.lowest_layer().connect(*endpoint, ec)) {
+    LogPrint(eLogError,
+        "HTTP: Could not connect to ", uri.m_Host, ": ", ec.message());
+    return false;
+  }
+  // Initiate handshake
+  if (socket.handshake(boost::asio::ssl::stream_base::client, ec)) {
+    LogPrint(eLogError,
+        "HTTP: SSL handshake failed: ", ec.message());
+    return false;
+  }
+  LogPrint(eLogInfo, "HTTP: Connected to ", uri.m_Host, ":", uri.m_Port);
+  // Send header
+  std::stringstream send_stream;
+  send_stream << Header(uri.m_Path, uri.m_Host, "1.1") << "\r\n";
+  socket.write_some(boost::asio::buffer(send_stream.str()));
+  // Read response / download
+  std::stringstream read_stream;
+  std::vector<char> response(1024);  // Arbitrary amount
+  std::size_t length = 0;
+  do {
+    length = socket.read_some(
+        boost::asio::buffer(response.data(), response.size()),
+        ec);
+    if (length)
+      read_stream.write(response.data(), length);
+  } while (!ec && length);
+  // Assign stream downloaded contents
+  m_Stream.assign(GetContent(read_stream));
+  return true;
+}
+
+const std::string HTTP::Header(
     const std::string& path,
     const std::string& host,
     const std::string& version) {
@@ -183,14 +208,13 @@ std::string HttpHeader(
   return header;
 }
 
-std::string GetHttpContent(
+const std::string HTTP::GetContent(
     std::istream& response) {
   std::string version, statusMessage;
   response >> version;  // HTTP version
-  int status;
-  response >> status;  // status
+  response >> m_Status;  // Response code status
   std::getline(response, statusMessage);
-  if (status == 200) {  // OK
+  if (m_Status == 200) {  // OK
     bool isChunked = false;
     std::string header;
     while (!response.eof() && header != "\r") {
@@ -209,12 +233,12 @@ std::string GetHttpContent(
       ss << response.rdbuf();
     return ss.str();
   } else {
-    LogPrint("HTTP response ", status);
+    LogPrint("HTTP response ", m_Status);
     return "";
   }
 }
 
-void MergeChunkedResponse(
+void HTTP::MergeChunkedResponse(
     std::istream& response,
     std::ostream& merged) {
   while (!response.eof()) {
@@ -225,25 +249,11 @@ void MergeChunkedResponse(
     iss >> std::hex >> len;
     if (!len)
       break;
-    char* buf = new char[len];
-    response.read(buf, len);
-    merged.write(buf, len);
-    delete[] buf;
+    auto buf = std::make_unique<char[]>(len);
+    response.read(buf.get(), len);
+    merged.write(buf.get(), len);
     std::getline(response, hexLen);  // read \r\n after chunk
   }
-}
-
-// Used by HTTPProxy
-std::string DecodeURI(
-    const std::string& data) {
-  std::string res(data);
-  for (size_t pos = res.find('%');
-      pos != std::string::npos;
-      pos = res.find('%', pos + 1)) {
-    const char c = strtol(res.substr(pos + 1, 2).c_str(), NULL, 16);
-    res.replace(pos, 3, 1, c);
-  }
-  return res;
 }
 
 }  // namespace http

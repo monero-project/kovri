@@ -35,7 +35,6 @@
 #include "util/Timestamp.h"
 #include "util/I2PEndian.h"
 #include "crypto/Rand.h"
-#include "crypto/CryptoConst.h"
 
 namespace i2p {
 namespace transport {

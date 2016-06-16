@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #ifndef SRC_CORE_UTIL_HTTP_H_
@@ -57,11 +59,6 @@ namespace util {
 namespace http {
 
 /**
- * @return the result of the download, or an empty string if it fails
- */
-std::string HttpsDownload(const std::string& address);
-
-/**
  * Provides functionality for parsing URIs
  */
 class URI {
@@ -77,50 +74,70 @@ class URI {
    * @param uri the URI to be parsed
    * @warning the default port is 80, for HTTPS it is 443
    */
-  void ParseURI(const std::string& uri);
+  void Parse(const std::string& uri);
+
  public:
-  std::string m_Protocol, m_Host, m_Path, m_PortString, m_Query;
-  int m_Port;
+  URI() {}
   // Parse a URI given as a string.
   explicit URI(const std::string& uri);
+  std::string m_Protocol, m_Host, m_Path, m_PortString, m_Query;
+  int m_Port;
+
+  /**
+   * @return the decoded URI
+   */
+  std::string Decode(
+      const std::string& data);
 };
 
 /**
- * Header for HTTP requests.
- * @return a string of the complete header
- * @warning this function does NOT append an additional \r\n
+ * Provides functionality for implementing HTTP
  */
-std::string HttpHeader(
-    const std::string& path,
-    const std::string& host,
-    const std::string& version);
+class HTTP {
+ public:
+  /**
+   * @return the result of the download, or an empty string if it fails
+   */
+  bool Download(
+      const std::string& address);
 
-/**
- * @return the content of the given HTTP stream without headers
- */
-std::string GetHttpContent(std::istream& response);
+  /**
+   * Header for HTTP requests.
+   * @return a string of the complete header
+   * @warning this function does NOT append an additional \r\n
+   */
+  const std::string Header(
+      const std::string& path,
+      const std::string& host,
+      const std::string& version);
 
-/**
- * Merge chunks of an HTTP response.
- */
-void MergeChunkedResponse(
-    std::istream& response,
-    std::ostream& merged);
+  /**
+   * @return the content of the given HTTP stream without headers
+   */
+  const std::string GetContent(
+      std::istream& response);
 
-/**
- * Used almost exclusively by Addressbook
- */
-const char ETAG[] = "ETag";
-const char IF_NONE_MATCH[] = "If-None-Match";
-const char IF_MODIFIED_SINCE[] = "If-Modified-Since";
-const char LAST_MODIFIED[] = "Last-Modified";
-const char TRANSFER_ENCODING[] = "Transfer-Encoding";
+  /**
+   * Merge chunks of an HTTP response.
+   */
+  void MergeChunkedResponse(
+      std::istream& response,
+      std::ostream& merged);
 
-/**
- * @return the decoded URI
- */
-std::string DecodeURI(
-    const std::string& data);
+ public:
+  /**
+   * Used almost exclusively by Addressbook
+   */
+  const std::string ETAG = "ETag";
+  const std::string IF_NONE_MATCH = "If-None-Match";
+  const std::string IF_MODIFIED_SINCE = "If-Modified-Since";
+  const std::string LAST_MODIFIED = "Last-Modified";
+  const std::string TRANSFER_ENCODING = "Transfer-Encoding";
+
+ public:
+  std::string m_Stream;  // Downloaded stream
+  std::uint16_t m_Status;  // HTTP Response Code
+};
 
 }  // namespace http
 }  // namespace util

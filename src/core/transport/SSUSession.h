@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #ifndef SRC_CORE_TRANSPORT_SSUSESSION_H_
@@ -34,7 +36,9 @@
 #include <inttypes.h>
 
 #include <memory>
+#include <ostream>
 #include <set>
+#include <string>
 #include <vector>
 
 #include "I2NPProtocol.h"
@@ -87,49 +91,49 @@ struct SSUSessionPacket {
         bodyptr(nullptr),
         bodylen(0) {}
 
-  /// How many bytes long is the header (includes Extended options)
+  /// @brief How many bytes long is the header (includes Extended options)
   /// @return n bytes denoting size of header
   size_t ComputeHeaderSize() const;
 
-  /// Do we have extended options?
+  /// @brief Do we have extended options?
   /// @return true if we have extended options
   bool HasExtendedOptions() const;
 
-  /// Extract the extended options from the SSUHeader
+  /// @brief Extract the extended options from the SSUHeader
   /// @return true if successful otherwise false
   bool ExtractExtendedOptions(SSUExtendedOptions & opts) const;
 
-  /// Obtain the SSU payload type
+  /// @brief Obtain the SSU payload type
   /// @return what type of ssu packet are we?
   uint8_t GetPayloadType() const;
 
   /// @return true if the rekey flag is set
   bool Rekey() const;
 
-  /// Used for rekey and extended options
+  /// @brief Used for rekey and extended options
   uint8_t Flag() const;
 
-  /// Set flag byte
+  /// @brief Sets flag byte
   void PutFlag(
       uint8_t f) const;
 
-  /// Packet timestamp
+  /// @brief Packet timestamp
   /// @return a four byte sending timestamp (seconds since the unix epoch).
   uint32_t Time() const;
 
-  /// Put timestamp into packet header
+  /// @brief Puts timestamp into packet header
   void PutTime(uint32_t t) const;
 
-  /// Get pointer to MAC
+  /// @brief Gets pointer to MAC
   uint8_t* MAC() const;
 
-  /// Get pointer to begining of encrypted section
+  /// @brief Gets pointer to begining of encrypted section
   uint8_t* Encrypted() const;
 
-  /// Get pointer to IV
+  /// @brief Gets pointer to IV
   uint8_t* IV() const;
 
-  /// Parse SSU header
+  /// @brief Parses SSU header
   /// @return true if valid header format otherwise false
   bool ParseHeader();
 };
@@ -137,7 +141,7 @@ struct SSUSessionPacket {
 const int SSU_CONNECT_TIMEOUT = 5;  // 5 seconds
 const int SSU_TERMINATION_TIMEOUT = 330;  // 5.5 minutes
 
-// payload types (4 bits)
+// Messages (payload types) (4 bits)
 const uint8_t PAYLOAD_TYPE_SESSION_REQUEST = 0;
 const uint8_t PAYLOAD_TYPE_SESSION_CREATED = 1;
 const uint8_t PAYLOAD_TYPE_SESSION_CONFIRMED = 2;
@@ -195,16 +199,12 @@ class SSUSession
 
   void Done();
 
-  boost::asio::ip::udp::endpoint& GetRemoteEndpoint() {
-    return m_RemoteEndpoint;
-  }
-
   bool IsV6() const {
     return m_RemoteEndpoint.address().is_v6();
   }
 
   void SendI2NPMessages(
-      const std::vector<std::shared_ptr<I2NPMessage> >& msgs);
+      const std::vector<std::shared_ptr<I2NPMessage>>& msgs);
 
   void SendPeerTest();  // Alice
 
@@ -230,6 +230,36 @@ class SSUSession
     return m_CreationTime;
   }
 
+  /// @brief Sets peer abbreviated ident hash
+  void SetRemoteIdentHashAbbreviation() {
+    m_RemoteIdentHashAbbreviation =
+      GetRemoteRouter()->GetIdentHashAbbreviation();
+  }
+
+  /// @brief Set current session's endpoint address/port
+  void SetRemoteEndpoint(
+      const boost::asio::ip::udp::endpoint& ep) {
+    m_RemoteEndpoint = ep;
+  }
+
+  /// @return Log-formatted string of session info
+  const std::string GetFormattedSessionInfo() {
+    std::ostringstream info;
+    info << " [" << GetRemoteIdentHashAbbreviation() << "] "
+         << GetRemoteEndpoint() << " ";
+    return info.str();
+  }
+
+  /// @return Current session's peer's ident hash
+  const std::string& GetRemoteIdentHashAbbreviation() {
+    return m_RemoteIdentHashAbbreviation;
+  }
+
+  /// @return Current session's endpoint address/port
+  const boost::asio::ip::udp::endpoint& GetRemoteEndpoint() {
+    return m_RemoteEndpoint;
+  }
+
   void FlushData();
 
  private:
@@ -239,13 +269,15 @@ class SSUSession
       const uint8_t* pubKey);
 
   void PostI2NPMessages(
-      std::vector<std::shared_ptr<I2NPMessage> > msgs);
+      std::vector<std::shared_ptr<I2NPMessage>> msgs);
 
-  // call for established session
+  /// @brief Call for established session
   void ProcessDecryptedMessage(
       uint8_t* buf,
       size_t len,
       const boost::asio::ip::udp::endpoint& senderEndpoint);
+
+  // Payload type 0: SessionRequest
 
   void ProcessSessionRequest(
       SSUSessionPacket& pkt,
@@ -253,15 +285,15 @@ class SSUSession
 
   void SendSessionRequest();
 
-  void SendRelayRequest(
-      uint32_t iTag,
-      const uint8_t* iKey);
+  // Payload type 1: SessionCreated
 
   void ProcessSessionCreated(
       SSUSessionPacket& pkt);
 
   void SendSessionCreated(
       const uint8_t* x);
+
+  // Payload type 2: SessionConfirmed
 
   void ProcessSessionConfirmed(
       SSUSessionPacket& pkt);
@@ -271,9 +303,20 @@ class SSUSession
       const uint8_t* ourAddress,
       size_t ourAddressLen);
 
+  // Payload type 3: RelayRequest
+
   void ProcessRelayRequest(
       SSUSessionPacket& pkt,
       const boost::asio::ip::udp::endpoint& from);
+
+  void SendRelayRequest(
+      uint32_t iTag,
+      const uint8_t* iKey);
+
+  // Payload type 4: RelayResponse
+
+  void ProcessRelayResponse(
+      SSUSessionPacket& pkt);
 
   void SendRelayResponse(
       uint32_t nonce,
@@ -281,24 +324,21 @@ class SSUSession
       const uint8_t* introKey,
       const boost::asio::ip::udp::endpoint& to);
 
+  // Payload type 5: RelayIntro
+
+  void ProcessRelayIntro(
+      SSUSessionPacket& pkt);
+
   void SendRelayIntro(
       SSUSession* session,
       const boost::asio::ip::udp::endpoint& from);
 
-  void ProcessRelayResponse(
-      SSUSessionPacket & pkt);
+  // Payload type 6: Data
 
-  void ProcessRelayIntro(
-      SSUSessionPacket & pkt);
+  void ProcessData(
+      SSUSessionPacket& pkt);
 
-  void Established();
-
-  void Failed();
-
-  void ScheduleConnectTimer();
-
-  void HandleConnectTimer(
-      const boost::system::error_code& ecode);
+  // Payload type 7: PeerTest
 
   void ProcessPeerTest(
       SSUSessionPacket& pkt,
@@ -312,15 +352,26 @@ class SSUSession
       bool toAddress = true,
       bool sendAddress = true);
 
-  void ProcessData(
-      SSUSessionPacket & pkt);
+  // Payload type 8: SessionDestroyed
 
   void SendSesionDestroyed();
+
+  // End payload types
+
+  void Established();
+
+  void Failed();
+
+  void ScheduleConnectTimer();
+
+  void HandleConnectTimer(
+      const boost::system::error_code& ecode);
 
   void Send(
       const uint8_t* buf,
       size_t size);
-  // with session key
+
+  // With session key
   void Send(
       uint8_t type,
       const uint8_t* payload,
@@ -333,7 +384,8 @@ class SSUSession
       const uint8_t* aesKey,
       const uint8_t* iv,
       const uint8_t* macKey);
-  // with session key
+
+  // With session key
   void FillHeaderAndEncrypt(
       uint8_t payloadType,
       uint8_t* buf,
@@ -362,6 +414,7 @@ class SSUSession
 
  private:
   friend class SSUData;  // TODO(unassigned): change in later
+  std::string m_RemoteIdentHashAbbreviation;
   SSUServer& m_Server;
   boost::asio::ip::udp::endpoint m_RemoteEndpoint;
   boost::asio::deadline_timer m_Timer;

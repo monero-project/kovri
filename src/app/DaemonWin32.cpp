@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include <string>
@@ -41,10 +43,11 @@ namespace i2p {
 namespace util {
 
 bool DaemonWin32::Init() {
-  setlocale(LC_CTYPE, "");
-  SetConsoleCP(1251);
-  SetConsoleOutputCP(1251);
-  setlocale(LC_ALL, "Russian");  // TODO(unassigned) set different locale
+  // TODO(unassigned): use Boost.Locale
+  setlocale(LC_CTYPE, "");  // "" uses environment's default locale
+  SetConsoleCP(65001);  // UTF-8
+  SetConsoleOutputCP(65001);
+  setlocale(LC_ALL, "");
   if (!Daemon_Singleton::Init())
     return false;
   if (I2PService::isService())
@@ -70,24 +73,25 @@ bool DaemonWin32::Init() {
     printf(" --service=remove   to remove the service.\n");
   }
   if (m_isDaemon == 1) {
-    LogPrint("Service session");
+    LogPrint(eLogInfo, "DaemonWin32: service session");
     I2PService service(SERVICE_NAME);
     if (!I2PService::Run(service)) {
-      LogPrint("Service failed to run w/err 0x%08lx\n", GetLastError());
+      LogPrint(eLogErorr,
+          "DaemonWin32: service failed to run w/err 0x%08lx\n", GetLastError());
       exit(EXIT_FAILURE);
     }
     exit(EXIT_SUCCESS);
   } else {
-    LogPrint("User session");
+    LogPrint(eLogInfo, "DaemonWin32: user session");
   }
   return true;
 }
 
 bool DaemonWin32::Start() {
   setlocale(LC_CTYPE, "");
-  SetConsoleCP(1251);
-  SetConsoleOutputCP(1251);
-  setlocale(LC_ALL, "Russian");  // TODO(unassigned) set different locale
+  SetConsoleCP(65001);
+  SetConsoleOutputCP(65001);
+  setlocale(LC_ALL, "");
   return Daemon_Singleton::Start();
 }
 

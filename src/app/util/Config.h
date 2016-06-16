@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #ifndef SRC_APP_UTIL_CONFIG_H_
@@ -61,13 +63,10 @@ const char I2P_SERVER_TUNNEL_ACCESS_LIST[] = "accesslist";
 namespace config {
 
 // Our configuration files
-extern std::string kovriConfig, tunnelsConfig;
-
-// Config option descriptions
-extern boost::program_options::options_description confOpts;
+extern std::string kovri_config, tunnels_config;
 
 // Variable map for CLI and conf args
-extern boost::program_options::variables_map varMap;
+extern boost::program_options::variables_map var_map;
 
 /**
  * @return 1 on failure/help, 0 on success
@@ -81,9 +80,9 @@ bool ParseArgs(
  * args that are not overridden will stay mapped
  */
 void ParseConfigFile(
-    std::string& kovriConfig,
-    boost::program_options::options_description& confOpts,
-    boost::program_options::variables_map& varMap);
+    std::string& config,
+    boost::program_options::options_description& config_options,
+    boost::program_options::variables_map& var_map);
 
 }  // namespace config
 }  // namespace util

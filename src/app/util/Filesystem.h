@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #ifndef SRC_APP_UTIL_FILESYSTEM_H_
@@ -42,17 +44,9 @@
 #include "core/util/Log.h"
 #include "core/util/Filesystem.h"
 
-/**
- * Fixes undefined reference to boost::filesystem::detail::copy_file
- * See https://github.com/purplei2p/i2pd/issues/272
- */
-#define BOOST_NO_CXX11_SCOPED_ENUMS
-
 namespace i2p {
 namespace util {
 namespace filesystem {
-
-namespace bfs = boost::filesystem;
 
 /**
  * Change the application name.
@@ -60,24 +54,24 @@ namespace bfs = boost::filesystem;
 void SetAppName(
     const std::string& name);
 
-// @return the application name.
+/// @return the application name.
 std::string GetAppName();
 
-// @return the full path of a file within the kovri directory
+/// @return the full path of a file within the kovri directory
 std::string GetFullPath(
     const std::string& filename);
 
-// @return the path of the configuration file
-bfs::path GetConfigFile();
+/// @return the path of the configuration file
+boost::filesystem::path GetConfigFile();
 
-// @return the path of the tunnels configuration file
-bfs::path GetTunnelsConfigFile();
+/// @return the path of the tunnels configuration file
+boost::filesystem::path GetTunnelsConfigFile();
 
-// @return the path of the kovri directory
-const bfs::path& GetDataPath();
+/// @return the path of the kovri directory
+const boost::filesystem::path& GetDataPath();
 
-// @return the default directory for app data
-bfs::path GetDefaultDataPath();
+/// @return the default directory for app data
+boost::filesystem::path GetDefaultDataPath();
 
 }  // namespace filesystem
 }  // namespace util

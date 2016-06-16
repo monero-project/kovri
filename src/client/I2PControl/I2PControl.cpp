@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include "I2PControl.h"
@@ -34,16 +36,16 @@
 
 #include <cryptopp/filters.h>
 #include <cryptopp/hex.h>
-#include <cryptopp/osrng.h>
 
 #include <iomanip>
 #include <sstream>
 #include <string>
 
-#include "core/RouterContext.h"
-#include "core/NetworkDatabase.h"
 #include "client/ClientContext.h"
+#include "core/NetworkDatabase.h"
+#include "core/RouterContext.h"
 #include "core/Version.h"
+#include "crypto/Rand.h"
 #include "transport/Transports.h"
 #include "tunnel/Tunnel.h"
 #include "util/Log.h"
@@ -301,14 +303,16 @@ I2PControlSession::Response I2PControlSession::HandleRequest(
     std::string method = pt.get<std::string>(constants::PROPERTY_METHOD);
     auto it = m_MethodHandlers.find(method);
     if (it == m_MethodHandlers.end()) {  // Not found
-      LogPrint(eLogWarning, "Unknown I2PControl method ", method);
+      LogPrint(eLogWarning,
+          "I2PControlSession: unknown I2PControl method ", method);
       response.SetError(ErrorCode::e_MethodNotFound);
       return response;
     }
     ptree params = pt.get_child(constants::PROPERTY_PARAMS);
     if (method != constants::METHOD_AUTHENTICATE &&
         !Authenticate(params, response)) {
-      LogPrint(eLogWarning, "I2PControl invalid token presented");
+      LogPrint(eLogWarning,
+          "I2PControlSession: invalid token presented");
       return response;
     }
     // Call the appropriate handler
@@ -322,7 +326,8 @@ I2PControlSession::Response I2PControlSession::HandleRequest(
 }
 
 bool I2PControlSession::Authenticate(
-    const ptree& pt, Response& response) {
+    const ptree& pt,
+    Response& response) {
   try {
     std::string token = pt.get<std::string>(constants::PARAM_TOKEN);
     std::lock_guard<std::mutex> lock(m_TokensMutex);
@@ -343,18 +348,16 @@ bool I2PControlSession::Authenticate(
 }
 
 std::string I2PControlSession::GenerateToken() const {
-  byte random_data[constants::TOKEN_SIZE] = {};
-  CryptoPP::AutoSeededRandomPool rng;
-  rng.GenerateBlock(random_data, constants::TOKEN_SIZE);
-  std::string token;
-  CryptoPP::StringSource ss(
-      random_data,
-      constants::TOKEN_SIZE,
-      true,
-      new CryptoPP::HexEncoder(
-        new CryptoPP::StringSink(
-          token)));
-  return token;
+  // Generate random data for token
+  std::array<std::uint8_t, constants::TOKEN_SIZE> rand = {};
+  i2p::crypto::RandBytes(rand.data(), constants::TOKEN_SIZE);
+  // Create base16 token from random data
+  std::stringstream token;
+  for (std::size_t i(0); i < rand.size(); i++)
+    token << std::hex << std::setfill('0') << std::setw(2)
+    << std::uppercase << static_cast<std::size_t>(rand.at(i));
+  // Return string
+  return token.str();
 }
 
 void I2PControlSession::HandleAuthenticate(
@@ -365,11 +368,12 @@ void I2PControlSession::HandleAuthenticate(
   const std::string given_pass = pt.get<std::string>(
       constants::PARAM_PASSWORD);
   LogPrint(eLogDebug,
-      "I2PControl Authenticate API = ", api,
+      "I2PControlSession: Authenticate API = ", api,
       " Password = ", given_pass);
   if (given_pass != m_Password) {
-    LogPrint(eLogError, "I2PControl authenticate invalid password ",
-      given_pass, " expected ", m_Password);
+    LogPrint(eLogError,
+        "I2PControlSession: invalid password ",
+        given_pass, ", expected ", m_Password);
     response.SetError(ErrorCode::e_InvalidPassword);
     return;
   }
@@ -387,31 +391,32 @@ void I2PControlSession::HandleEcho(
     const ptree& pt,
     Response& response) {
   const std::string echo = pt.get<std::string>(constants::PARAM_ECHO);
-  LogPrint(eLogDebug, "I2PControl Echo Echo = ", echo);
+  LogPrint(eLogDebug, "I2PControlSession: Echo = ", echo);
   response.SetParam(constants::PARAM_RESULT, echo);
 }
 
 void I2PControlSession::HandleI2PControl(
     const ptree&,
     Response&) {
-  LogPrint(eLogDebug, "I2PControl I2PControl");
-  // TODO(anonimal): implement
+  // TODO(unassigned): implement
+  LogPrint(eLogDebug, "I2PControlSession: I2PControl");
 }
 
 void I2PControlSession::HandleRouterInfo(
     const ptree& pt,
     Response& response) {
-  LogPrint(eLogDebug, "I2PControl RouterInfo");
+  LogPrint(eLogDebug, "I2PControlSession: HandleRouterInfo()");
   for (const auto& pair : pt) {
     if (pair.first == constants::PARAM_TOKEN)
       continue;
-    LogPrint(eLogDebug, pair.first);
+    LogPrint(eLogDebug, "I2PControlSession: ", pair.first);
     auto it = m_RouterInfoHandlers.find(pair.first);
     if (it != m_RouterInfoHandlers.end()) {
       (this->*(it->second))(response);
     } else {
       LogPrint(eLogError,
-          "I2PControl RouterInfo unknown request ", pair.first);
+          "I2PControlSession: HandleRouterInfo() unknown request ",
+          pair.first);
       response.SetError(ErrorCode::e_InvalidRequest);
     }
   }
@@ -420,7 +425,7 @@ void I2PControlSession::HandleRouterInfo(
 void I2PControlSession::HandleRouterManager(
     const ptree& pt,
     Response& response) {
-  LogPrint(eLogDebug, "I2PControl RouterManager");
+  LogPrint(eLogDebug, "I2PControlSession: HandleRouterManager()");
   for (const auto& pair : pt) {
     if (pair.first == constants::PARAM_TOKEN)
       continue;
@@ -430,7 +435,8 @@ void I2PControlSession::HandleRouterManager(
       (this->*(it->second))(response);
     } else {
       LogPrint(eLogError,
-          "I2PControl RouterManager unknown request ", pair.first);
+          "I2PControlSession: HandleRouterManager() unknown request ",
+          pair.first);
       response.SetError(ErrorCode::e_InvalidRequest);
     }
   }
@@ -439,7 +445,7 @@ void I2PControlSession::HandleRouterManager(
 void I2PControlSession::HandleNetworkSetting(
     const ptree&,
     Response&) {
-  // TODO(anonimal): implement
+  // TODO(unassigned): implement
 }
 
 void I2PControlSession::HandleUptime(
@@ -458,7 +464,7 @@ void I2PControlSession::HandleVersion(
 
 void I2PControlSession::HandleStatus(
     Response& response) {
-  // TODO(anonimal): implement
+  // TODO(unassigned): implement
   response.SetParam(
       constants::ROUTER_INFO_STATUS,
       "???");
@@ -565,7 +571,7 @@ void I2PControlSession::HandleOutBandwidth1S(
 
 void I2PControlSession::HandleShutdown(
     Response& response) {
-  LogPrint(eLogInfo, "Shutdown requested");
+  LogPrint(eLogInfo, "I2PControlSession: shutdown requested");
   response.SetParam(constants::ROUTER_MANAGER_SHUTDOWN, "");
   // 1 second to make sure response has been sent
   m_ShutdownTimer.expires_from_now(
@@ -585,8 +591,8 @@ void I2PControlSession::HandleShutdownGraceful(
   // Get tunnel expiry time
   int timeout = i2p::tunnel::tunnels.GetTransitTunnelsExpirationTimeout();
   LogPrint(eLogInfo,
-      "Graceful shutdown requested. Will shutdown after ",
-      timeout, " seconds");
+      "I2PControlSession: graceful shutdown requested."
+      "Will shutdown after ", timeout, " seconds");
   // Initiate graceful shutdown
   response.SetParam(
       constants::ROUTER_MANAGER_SHUTDOWN_GRACEFUL,
@@ -604,7 +610,7 @@ void I2PControlSession::HandleShutdownGraceful(
 
 void I2PControlSession::HandleReseed(
     Response& response) {
-  LogPrint(eLogInfo, "Reseed requested");
+  LogPrint(eLogInfo, "I2PControlSession: reseed requested");
   response.SetParam(
       constants::ROUTER_MANAGER_SHUTDOWN,
       "");
@@ -616,7 +622,7 @@ void I2PControlSession::ExpireTokens(
   if (error == boost::asio::error::operation_aborted)
     return;  // Do not restart timer, shutting down
   StartExpireTokensJob();
-  LogPrint(eLogDebug, "I2PControl is expiring tokens.");
+  LogPrint(eLogDebug, "I2PControlSession: expiring tokens");
   const uint64_t now = util::GetSecondsSinceEpoch();
   std::lock_guard<std::mutex> lock(m_TokensMutex);
   for (auto it = m_Tokens.begin(); it != m_Tokens.end(); ) {

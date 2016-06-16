@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,31 +26,34 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #ifndef SRC_CORE_LEASESET_H_
 #define SRC_CORE_LEASESET_H_
 
-#include <inttypes.h>
-#include <string.h>
+#include <array>
+#include <cstdint>
+#include <memory>
 #include <vector>
+
 #include "Identity.h"
 
 namespace i2p {
-namespace tunnel {
-class TunnelPool;
-}
+// TODO(unassigned): remove this forward declaration after cleaning up core/tunnel
+namespace tunnel { class TunnelPool; }
 namespace data {
 
 struct Lease {
-  IdentHash tunnelGateway;
-  uint32_t tunnelID;
-  uint64_t endDate;
-  bool operator< (const Lease& other) const {
-    if (endDate != other.endDate)
-      return endDate > other.endDate;
+  IdentHash tunnel_gateway;
+  std::uint32_t tunnel_ID;
+  std::uint64_t end_date;
+  bool operator<(const Lease& other) const {
+    if (end_date != other.end_date)
+      return end_date > other.end_date;
     else
-      return tunnelID < other.tunnelID;
+      return tunnel_ID < other.tunnel_ID;
   }
 };
 
@@ -59,25 +62,28 @@ const int MAX_LS_BUFFER_SIZE = 3072;
 class LeaseSet : public RoutingDestination {
  public:
   LeaseSet(
-      const uint8_t* buf,
-      size_t len);
+      const std::uint8_t* buf,
+      std::size_t len);
+
   explicit LeaseSet(
       const i2p::tunnel::TunnelPool& pool);
-  ~LeaseSet() { delete[] m_Buffer; }
+
+  ~LeaseSet() {}
 
   void Update(
-      const uint8_t* buf,
-      size_t len);
+      const std::uint8_t* buf,
+      std::size_t len);
 
   const IdentityEx& GetIdentity() const {
     return m_Identity;
   }
 
-  const uint8_t* GetBuffer() const {
-    return m_Buffer;
+  const std::uint8_t* GetBuffer() const {
+    const auto buf = m_Buffer.get();
+    return buf;
   }
 
-  size_t GetBufferLen() const {
+  std::size_t GetBufferLen() const {
     return m_BufferLen;
   }
 
@@ -95,14 +101,14 @@ class LeaseSet : public RoutingDestination {
   }
 
   const std::vector<Lease> GetNonExpiredLeases(
-      bool withThreshold = true) const;
+      bool with_threshold = true) const;
 
   bool HasExpiredLeases() const;
 
   bool HasNonExpiredLeases() const;
 
-  const uint8_t* GetEncryptionPublicKey() const {
-    return m_EncryptionKey;
+  const std::uint8_t* GetEncryptionPublicKey() const {
+    return m_EncryptionKey.data();
   }
 
   bool IsDestination() const {
@@ -116,9 +122,9 @@ class LeaseSet : public RoutingDestination {
   bool m_IsValid;
   std::vector<Lease> m_Leases;
   IdentityEx m_Identity;
-  uint8_t m_EncryptionKey[256];
-  uint8_t* m_Buffer;
-  size_t m_BufferLen;
+  std::array<std::uint8_t, 256> m_EncryptionKey;
+  std::unique_ptr<std::uint8_t[]> m_Buffer;
+  std::size_t m_BufferLen;
 };
 
 }  // namespace data

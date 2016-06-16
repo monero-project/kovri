@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #ifndef SRC_CLIENT_ADDRESSBOOK_H_
@@ -33,10 +35,12 @@
 
 #include <boost/asio.hpp>
 
+#include <string.h>
+
 #include <iostream>
 #include <map>
+#include <memory>
 #include <mutex>
-#include <string.h>
 #include <string>
 #include <vector>
 
@@ -92,7 +96,7 @@ class AddressBook {
   ~AddressBook();
 
   void Start(
-      ClientDestination* local_destination);
+      std::shared_ptr<ClientDestination> local_destination);
 
   void Stop();
 
@@ -104,10 +108,10 @@ class AddressBook {
       const std::string& address,
       i2p::data::IdentityEx& identity);
 
-  const i2p::data::IdentHash* FindAddress(
+  std::unique_ptr<const i2p::data::IdentHash> FindAddress(
       const std::string& address);
 
-  ClientDestination* getSharedLocalDestination() const;
+  std::shared_ptr<ClientDestination> GetSharedLocalDestination() const;
 
   // for jump service
   void InsertAddress(
@@ -117,8 +121,11 @@ class AddressBook {
   void InsertAddress(
       const i2p::data::IdentityEx& address);
 
-  void LoadHostsFromStream(std::istream& f);
-  void DownloadComplete(bool success);
+  void LoadHostsFromStream(
+      std::istream& f);
+
+  void DownloadComplete(
+      bool success);
 
   // This method returns the ".b32.i2p" address
   std::string ToAddress(
@@ -135,7 +142,7 @@ class AddressBook {
   void StartSubscriptions();
   void StopSubscriptions();
 
-  AddressBookStorage* CreateStorage();
+  std::unique_ptr<AddressBookStorage> CreateStorage();
   void LoadHosts();
   void LoadSubscriptions();
 
@@ -145,15 +152,15 @@ class AddressBook {
  private:
   std::mutex m_AddressBookMutex;
   std::map<std::string, i2p::data::IdentHash>  m_Addresses;
-  AddressBookStorage* m_Storage;
+  std::unique_ptr<AddressBookStorage> m_Storage;
   volatile bool m_IsLoaded, m_IsDownloading;
-  std::vector<AddressBookSubscription *> m_Subscriptions;
+  std::vector<std::unique_ptr<AddressBookSubscription>> m_Subscriptions;
 
   // in case if we don't know any addresses yet
-  AddressBookSubscription* m_DefaultSubscription;
+  std::unique_ptr<AddressBookSubscription> m_DefaultSubscription;
 
-  boost::asio::deadline_timer* m_SubscriptionsUpdateTimer;
-  ClientDestination* m_SharedLocalDestination;
+  std::unique_ptr<boost::asio::deadline_timer> m_SubscriptionsUpdateTimer;
+  std::shared_ptr<ClientDestination> m_SharedLocalDestination;
 };
 
 class AddressBookSubscription {

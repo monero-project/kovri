@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include <cryptopp/sha.h>
@@ -34,6 +36,7 @@
 
 #include <algorithm>
 #include <map>
+#include <memory>
 #include <thread>
 #include <vector>
 
@@ -127,7 +130,9 @@ void Tunnel::Build(
 bool Tunnel::HandleTunnelBuildResponse(
     uint8_t* msg,
     size_t) {
-  LogPrint("TunnelBuildResponse ", static_cast<int>(msg[0]), " records.");
+  LogPrint(eLogDebug,
+      "Tunnel: TunnelBuildResponse ",
+      static_cast<int>(msg[0]), " records.");
   i2p::crypto::CBCDecryption decryption;
   TunnelHopConfig* hop = m_Config->GetLastHop();
   while (hop) {
@@ -141,7 +146,8 @@ bool Tunnel::HandleTunnelBuildResponse(
         decryption.SetIV(hop->replyIV);
         decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, record);
       } else {
-        LogPrint("Tunnel hop index ", idx, " is out of range");
+        LogPrint(eLogWarning,
+            "Tunnel: hop index ", idx, " is out of range");
       }
       hop1 = hop1->prev;
     }
@@ -153,7 +159,7 @@ bool Tunnel::HandleTunnelBuildResponse(
     const uint8_t* record =
       msg + 1 + hop->recordIndex * TUNNEL_BUILD_RECORD_SIZE;
     uint8_t ret = record[BUILD_RESPONSE_RECORD_RET_OFFSET];
-    LogPrint("Ret code=", static_cast<int>(ret));
+    LogPrint("Tunnel: ret code=", static_cast<int>(ret));
     hop->router->GetProfile()->TunnelBuildResponse(ret);
     if (ret)
       // if any of participants declined the tunnel is not established
@@ -188,7 +194,9 @@ void Tunnel::EncryptTunnelMsg(
 
 void Tunnel::SendTunnelDataMsg(
     std::shared_ptr<i2p::I2NPMessage>) {
-  LogPrint(eLogInfo, "Can't send I2NP messages without delivery instructions");
+  // TODO(unassigned): review for missing code
+  LogPrint(eLogInfo,
+      "Tunnel: can't send I2NP messages without delivery instructions");
 }
 
 void InboundTunnel::HandleTunnelDataMsg(
@@ -233,7 +241,9 @@ void OutboundTunnel::SendTunnelDataMsg(
 
 void OutboundTunnel::HandleTunnelDataMsg(
     std::shared_ptr<const i2p::I2NPMessage>) {
-  LogPrint(eLogError, "Incoming message for outbound tunnel ", GetTunnelID());
+  LogPrint(eLogError,
+      "OutboundTunnel: incoming message for outbound tunnel ",
+      GetTunnelID());
 }
 
 Tunnels tunnels;
@@ -369,7 +379,7 @@ void Tunnels::AddTransitTunnel(
           tunnel->GetTunnelID(),
           tunnel)).second) {
     LogPrint(eLogError,
-        "Transit tunnel ", tunnel->GetTunnelID(), " already exists");
+        "Tunnels: transit tunnel ", tunnel->GetTunnelID(), " already exists");
     delete tunnel;
   }
 }
@@ -377,7 +387,7 @@ void Tunnels::AddTransitTunnel(
 void Tunnels::Start() {
   m_IsRunning = true;
   m_Thread =
-    new std::thread(
+    std::make_unique<std::thread>(
         std::bind(
           &Tunnels::Run,
           this));
@@ -388,8 +398,7 @@ void Tunnels::Stop() {
   m_Queue.WakeUp();
   if (m_Thread) {
     m_Thread->join();
-    delete m_Thread;
-    m_Thread = 0;
+    m_Thread.reset(nullptr);
   }
 }
 
@@ -425,7 +434,8 @@ void Tunnels::Run() {
                 else  // tunnel gateway assumed
                   HandleTunnelGatewayMsg(tunnel, msg);
               } else {
-                LogPrint(eLogWarning, "Tunnel ", tunnelID, " not found");
+                LogPrint(eLogWarning,
+                    "Tunnels: tunnel ", tunnelID, " not found");
               }
               break;
             }
@@ -437,7 +447,8 @@ void Tunnels::Run() {
             break;
             default:
               LogPrint(eLogError,
-                  "Unexpected  messsage type ", static_cast<int>(typeID));
+                  "Tunnels: unexpected messsage type ",
+                  static_cast<int>(typeID));
           }
           msg = m_Queue.Get();
           if (msg) {
@@ -455,7 +466,7 @@ void Tunnels::Run() {
         lastTs = ts;
       }
     } catch (std::exception& ex) {
-      LogPrint("Tunnels: ", ex.what());
+      LogPrint("Tunnels::Run() exception: ", ex.what());
     }
   }
 }
@@ -464,7 +475,7 @@ void Tunnels::HandleTunnelGatewayMsg(
     TunnelBase* tunnel,
     std::shared_ptr<I2NPMessage> msg) {
   if (!tunnel) {
-    LogPrint(eLogError, "Missing tunnel for TunnelGateway");
+    LogPrint(eLogError, "Tunnels: missing tunnel for TunnelGateway");
     return;
   }
   const uint8_t* payload = msg->GetPayload();
@@ -474,7 +485,7 @@ void Tunnels::HandleTunnelGatewayMsg(
   msg->len = msg->offset + len;
   auto typeID = msg->GetTypeID();
   LogPrint(eLogDebug,
-      "TunnelGateway of ", static_cast<int>(len),
+      "Tunnels: TunnelGateway of ", static_cast<int>(len),
       " bytes for tunnel ", tunnel->GetTunnelID(),
       ". Msg type ", static_cast<int>(typeID));
   if (typeID == e_I2NPDatabaseStore || typeID == e_I2NPDatabaseSearchReply)
@@ -507,7 +518,8 @@ void Tunnels::ManagePendingTunnels(
     switch (tunnel->GetState()) {
       case e_TunnelStatePending:
         if (ts > tunnel->GetCreationTime() + TUNNEL_CREATION_TIMEOUT) {
-          LogPrint("Pending tunnel build request ",
+          LogPrint(eLogInfo,
+              "Tunnels: pending tunnel build request ",
               it->first, " timeout. Deleted");
           // update stats
           auto config = tunnel->GetTunnelConfig();
@@ -527,7 +539,8 @@ void Tunnels::ManagePendingTunnels(
         }
       break;
       case e_TunnelStateBuildFailed:
-        LogPrint("Pending tunnel build request ",
+        LogPrint(eLogInfo,
+            "Tunnels: pending tunnel build request ",
             it->first, " failed. Deleted");
         it = pendingTunnels.erase(it);
         m_NumFailedTunnelCreations++;
@@ -549,7 +562,8 @@ void Tunnels::ManageOutboundTunnels() {
     for (auto it = m_OutboundTunnels.begin(); it != m_OutboundTunnels.end();) {
       auto tunnel = *it;
       if (ts > tunnel->GetCreationTime() + TUNNEL_EXPIRATION_TIMEOUT) {
-        LogPrint("Tunnel ", tunnel->GetTunnelID(), " expired");
+        LogPrint(eLogInfo,
+            "Tunnels: tunnel ", tunnel->GetTunnelID(), " expired");
         auto pool = tunnel->GetTunnelPool();
         if (pool)
           pool->TunnelExpired(tunnel);
@@ -578,7 +592,7 @@ void Tunnels::ManageOutboundTunnels() {
     auto router = i2p::data::netdb.GetRandomRouter();
     if (!inboundTunnel || !router)
       return;
-    LogPrint("Creating one hop outbound tunnel...");
+    LogPrint(eLogInfo, "Tunnels: creating one hop outbound tunnel");
     CreateTunnel<OutboundTunnel> (
         std::make_shared<TunnelConfig> (
           std::vector<std::shared_ptr<const i2p::data::RouterInfo> > { router },
@@ -591,7 +605,8 @@ void Tunnels::ManageInboundTunnels() {
     for (auto it = m_InboundTunnels.begin(); it != m_InboundTunnels.end();) {
       auto tunnel = it->second;
       if (ts > tunnel->GetCreationTime() + TUNNEL_EXPIRATION_TIMEOUT) {
-        LogPrint("Tunnel ", tunnel->GetTunnelID(), " expired");
+        LogPrint(eLogInfo,
+            "Tunnels: tunnel ", tunnel->GetTunnelID(), " expired");
         auto pool = tunnel->GetTunnelPool();
         if (pool)
           pool->TunnelExpired(tunnel);
@@ -615,7 +630,8 @@ void Tunnels::ManageInboundTunnels() {
     }
   }
   if (m_InboundTunnels.empty()) {
-    LogPrint("Creating zero hops inbound tunnel...");
+    LogPrint(eLogInfo,
+        "Tunnels: creating zero hops inbound tunnel");
     CreateZeroHopsInboundTunnel();
     if (!m_ExploratoryPool)
       m_ExploratoryPool =
@@ -626,7 +642,7 @@ void Tunnels::ManageInboundTunnels() {
   if (m_OutboundTunnels.empty() || m_InboundTunnels.size() < 5) {
     // trying to create one more inbound tunnel
     auto router = i2p::data::netdb.GetRandomRouter();
-    LogPrint("Creating one hop inbound tunnel...");
+    LogPrint(eLogInfo, "Tunnels: creating one hop inbound tunnel");
     CreateTunnel<InboundTunnel> (
         std::make_shared<TunnelConfig> (
           std::vector<std::shared_ptr<const i2p::data::RouterInfo> > {router}));
@@ -638,7 +654,8 @@ void Tunnels::ManageTransitTunnels() {
   for (auto it = m_TransitTunnels.begin(); it != m_TransitTunnels.end();) {
     if (ts > it->second->GetCreationTime() + TUNNEL_EXPIRATION_TIMEOUT) {
       auto tmp = it->second;
-      LogPrint("Transit tunnel ", tmp->GetTunnelID(), " expired"); {
+      LogPrint(eLogInfo,
+          "Tunnels: transit tunnel ", tmp->GetTunnelID(), " expired"); {
         std::unique_lock<std::mutex> l(m_TransitTunnelsMutex);
         it = m_TransitTunnels.erase(it);
       }

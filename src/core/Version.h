@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,17 +26,19 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #ifndef SRC_CORE_VERSION_H_
 #define SRC_CORE_VERSION_H_
 
 // Used purely for aesthetics
-#define CODENAME ""  // If we ever use "codenames" for releases
-#define KOVRI_VERSION "0.1.0"
+#define KOVRI_VERSION "0.1.0-pre-alpha"
+#define CODENAME ""  // If we ever use codenames for releases
 
-// Used by I2NP
-// http://i2p-projekt.i2p/en/docs/spec/i2np
-#define I2P_VERSION "0.9.24"
+// I2NP/NetDb RI properties
+#define I2P_VERSION "0.9.26"
+#define NETWORK_ID "2"  // I2P version < 0.6.1.10 used "1"
 
 #endif  // SRC_CORE_VERSION_H_

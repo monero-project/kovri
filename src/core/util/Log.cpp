@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include "Log.h"
@@ -47,7 +49,7 @@ LogStreamImpl::LogStreamImpl(
     std::mutex& mtx,
     log_t& l,
     LogLevel level)
-    : m_Str(new std::stringbuf),
+    : m_Str(std::make_unique<std::stringbuf>()),
       m_Access(mtx),
       m_Log(l),
       m_Level(level),
@@ -55,9 +57,7 @@ LogStreamImpl::LogStreamImpl(
       // m_Log.add_global_attribute("Logger", m_ParentName);
 }
 
-LogStreamImpl::~LogStreamImpl() {
-  delete m_Str;
-}
+LogStreamImpl::~LogStreamImpl() {}
 
 void LogStreamImpl::WaitForReady() {
   {
@@ -91,9 +91,8 @@ void LogStreamImpl::Flush() {
     // don't log if we are silent
     return;
   }
-  BOOST_LOG_SEV(m_Log, m_Level) << m_Str;
-  delete m_Str;
-  m_Str = new std::stringbuf;
+  BOOST_LOG_SEV(m_Log, m_Level) << m_Str.get();
+  m_Str = std::make_unique<std::stringbuf>();
   g_LogSink->flush();
 }
 

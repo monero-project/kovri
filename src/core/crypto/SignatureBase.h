@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,12 +26,14 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #ifndef SRC_CORE_CRYPTO_SIGNATUREBASE_H_
 #define SRC_CORE_CRYPTO_SIGNATUREBASE_H_
 
-#include <cryptopp/osrng.h>
+#include <cstdint>
 
 namespace i2p {
 namespace crypto {
@@ -39,22 +41,25 @@ namespace crypto {
 class Verifier {
  public:
   virtual ~Verifier() {}
+
   virtual bool Verify(
-      const uint8_t* buf,
-      size_t len,
-      const uint8_t* signature) const = 0;
-  virtual size_t GetPublicKeyLen() const = 0;
-  virtual size_t GetSignatureLen() const = 0;
-  virtual size_t GetPrivateKeyLen() const = 0;
+      const std::uint8_t* buf,
+      std::size_t len,
+      const std::uint8_t* signature) const = 0;
+
+  virtual std::size_t GetPublicKeyLen() const = 0;
+  virtual std::size_t GetSignatureLen() const = 0;
+  virtual std::size_t GetPrivateKeyLen() const = 0;
 };
 
 class Signer {
  public:
   virtual ~Signer() {}
+
   virtual void Sign(
-      const uint8_t* buf,
-      size_t len,
-      uint8_t* signature) const = 0;
+      const std::uint8_t* buf,
+      std::size_t len,
+      std::uint8_t* signature) const = 0;
 };
 
 class RawVerifier {
@@ -62,11 +67,11 @@ class RawVerifier {
   virtual ~RawVerifier() {}
 
   virtual void Update(
-      const uint8_t* buf,
-      size_t len) = 0;
+      const std::uint8_t* buf,
+      std::size_t len) = 0;
 
   virtual bool Verify(
-      const uint8_t* signature) = 0;
+      const std::uint8_t* signature) = 0;
 };
 
 }  // namespace crypto

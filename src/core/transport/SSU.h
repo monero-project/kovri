@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #ifndef SRC_CORE_TRANSPORT_SSU_H_
@@ -36,8 +38,10 @@
 #include <inttypes.h>
 #include <string.h>
 
+#include <cstdint>
 #include <list>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <set>
 #include <thread>
@@ -67,7 +71,8 @@ struct SSUPacket {
 class SSUServer {
  public:
   SSUServer(
-      int port);
+      std::size_t port);
+
   ~SSUServer();
 
   void Start();
@@ -82,7 +87,7 @@ class SSUServer {
       std::shared_ptr<const i2p::data::RouterInfo> router) const;
 
   std::shared_ptr<SSUSession> FindSession(
-      const boost::asio::ip::udp::endpoint& e) const;
+      const boost::asio::ip::udp::endpoint& ep) const;
 
   std::shared_ptr<SSUSession> GetRandomEstablishedSession(
       std::shared_ptr<const SSUSession> excluded);
@@ -105,7 +110,7 @@ class SSUServer {
   }
 
   void Send(
-      const uint8_t * buf,
+      const uint8_t* buf,
       size_t len,
       const boost::asio::ip::udp::endpoint& to);
 
@@ -184,38 +189,22 @@ class SSUServer {
 
   bool m_IsRunning;
 
-  std::thread* m_Thread,
-              *m_ThreadV6,
-              *m_ReceiversThread;
+  std::unique_ptr<std::thread> m_Thread, m_ThreadV6, m_ReceiversThread;
 
-  boost::asio::io_service
-              m_Service,
-              m_ServiceV6,
-              m_ReceiversService;
+  boost::asio::io_service m_Service, m_ServiceV6, m_ReceiversService;
+  boost::asio::io_service::work m_Work, m_WorkV6, m_ReceiversWork;
 
-  boost::asio::io_service::work
-              m_Work,
-              m_WorkV6,
-              m_ReceiversWork;
+  boost::asio::ip::udp::endpoint m_Endpoint, m_EndpointV6;
+  boost::asio::ip::udp::socket m_Socket, m_SocketV6;
 
-  boost::asio::ip::udp::endpoint
-              m_Endpoint,
-              m_EndpointV6;
-
-  boost::asio::ip::udp::socket
-              m_Socket,
-              m_SocketV6;
-
-  boost::asio::deadline_timer
-              m_IntroducersUpdateTimer,
-              m_PeerTestsCleanupTimer;
+  boost::asio::deadline_timer m_IntroducersUpdateTimer, m_PeerTestsCleanupTimer;
 
   // introducers we are connected to
   std::list<boost::asio::ip::udp::endpoint> m_Introducers;
 
   mutable std::mutex m_SessionsMutex;
 
-  std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession> > m_Sessions;
+  std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession>> m_Sessions;
 
   // we are introducer
   std::map<uint32_t, boost::asio::ip::udp::endpoint> m_Relays;

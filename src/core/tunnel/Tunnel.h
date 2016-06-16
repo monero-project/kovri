@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #ifndef SRC_CORE_TUNNEL_TUNNEL_H_
@@ -312,7 +314,7 @@ class Tunnels {
 
  private:
   bool m_IsRunning;
-  std::thread* m_Thread;
+  std::unique_ptr<std::thread> m_Thread;
 
   // by replyMsgID
   std::map<uint32_t, std::shared_ptr<InboundTunnel> > m_PendingInboundTunnels;

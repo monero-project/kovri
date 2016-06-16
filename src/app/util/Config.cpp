@@ -30,9 +30,9 @@
 
 #include "Config.h"
 
-#include <cryptopp/osrng.h>
-
 #include <string>
+
+#include <crypto/Rand.h>
 
 namespace i2p {
 namespace util {
@@ -40,22 +40,20 @@ namespace config {
 
 namespace bpo = boost::program_options;
 
-std::string kovriConfig, tunnelsConfig;
-bpo::options_description confOpts;
-bpo::variables_map varMap;
+std::string kovri_config, tunnels_config;
+bpo::variables_map var_map;
 
 bool ParseArgs(
     int argc,
     char* argv[]) {
-  // Random generated port if none is supplied via cli or config
-  // See Java I2P:
-  // i2p.i2p/router/java/src/net/i2p/router/transport/udp/UDPEndpoint.java
-  CryptoPP::AutoSeededRandomPool rnd;
-  int port = rnd.GenerateWord32(9111, 30777);
+  // Random generated port if none is supplied via CLI or config
+  // See: i2p.i2p/router/java/src/net/i2p/router/transport/udp/UDPEndpoint.java
+  // TODO(unassigned): move this elsewhere (outside of ParseArgs()) when possible
+  size_t port = i2p::crypto::RandInRange<size_t>(9111, 30777);
   // Map options values from CLI and config
   bpo::options_description help("Help options");
   help.add_options()
-    ("help",
+    ("help,h",
 
       "General usage:\n\n"
 
@@ -67,9 +65,11 @@ bool ParseArgs(
 
       "Reload configuration file:\n\n"
 
-      "$ pkill -HUP kovri\n\n")
+      "$ pkill -HUP kovri\n\n"
 
-    ("help-with", bpo::value<std::string>(),
+      "Read kovri.conf and tunnels.conf for more options\n\n")
+
+    ("help-with,w", bpo::value<std::string>(),
 
       "Help with a specific option.\n\n"
 
@@ -78,56 +78,59 @@ bool ParseArgs(
 
       "all     | basic | system\n"
       "network | proxy | i2pcs\n"
-      "config\n\n"
+      "reseed  | config\n\n"
 
       "Examples\n"
       "========\n\n"
 
       "List all options:\n\n"
-      "$ ./kovri --help-with all\n\n"
+      "$ ./kovri -w all\n\n"
 
       "List only basic options:\n\n"
-      "$ ./kovri --help-with basic");
+      "$ ./kovri -w basic");
 
   bpo::options_description basic("\nBasic");
   basic.add_options()
     ("host", bpo::value<std::string>()->default_value("127.0.0.1"),
      "The external IP (deprecated).\n"
      "Default: external interface")
-    ("port", bpo::value<int>()->default_value(port),
+    ("port,p", bpo::value<int>()->default_value(port),
      "Port to listen on.\n"
      "Default: random (then saved to router.info)");
 
   bpo::options_description system("\nSystem");
   system.add_options()
-    ("log", bpo::value<bool>()->default_value(0),
+    ("log,l", bpo::value<bool>()->default_value(0),
      "Enable or disable logging to file\n"
      "1 = enabled, 0 = disabled\n")
 
-    ("daemon", bpo::value<bool>()->default_value(0),
+    ("daemon,d", bpo::value<bool>()->default_value(0),
      "Enable or disable daemon mode\n"
      "1 = enabled, 0 = disabled\n")
 
-    // TODO(anonimal): clarify what --service 'really' does
+    // TODO(unassigned): clarify what --service 'really' does
     // See DaemonWin32.cpp
-    ("service", bpo::value<bool>()->default_value(0),
+    ("service,s", bpo::value<bool>()->default_value(0),
      "1 if using system folders, e.g.,\n"
      "(/var/run/kovri.pid, /var/log/kovri.log, /var/lib/kovri)\n");
 
   bpo::options_description network("\nNetwork");
   network.add_options()
-    ("v6", bpo::value<bool>()->default_value(0),
+    ("v6,6", bpo::value<bool>()->default_value(0),
      "1 to enable IPv6\n"
      "1 = enabled, 0 = disabled\n")
 
-    ("floodfill", bpo::value<bool>()->default_value(0),
+    ("floodfill,f", bpo::value<bool>()->default_value(0),
      "1 to enable router router as floodfill\n"
      "1 = enabled, 0 = disabled\n")
 
-    ("bandwidth", bpo::value<std::string>()->default_value("L"),
+    ("bandwidth,b", bpo::value<std::string>()->default_value("L"),
      "L if bandwidth is limited to 32Kbs/sec, O if not\n"
      "Always O if floodfill, otherwise L by default\n");
 
+  // TODO(unassigned): do we want proxy/i2pcs options in CLI
+  // if we can redirect future multiple running instances
+  // of kovri to use unique config files per instance instead?
   bpo::options_description proxy("\nProxy");
   proxy.add_options()
     ("httpproxyport", bpo::value<int>()->default_value(4446),
@@ -142,7 +145,7 @@ bool ParseArgs(
     ("socksproxyaddress", bpo::value<std::string>()->default_value("127.0.0.1"),
      "The SOCKS Proxy address to listen on\n")
 
-    ("proxykeys", bpo::value<std::string>()->default_value(""),
+    ("proxykeys,k", bpo::value<std::string>()->default_value(""),
      "Optional keys file for proxy's local destination\n");
 
   bpo::options_description i2pcs("\nI2P Control Service");
@@ -158,26 +161,43 @@ bool ParseArgs(
     ("i2pcontrolpassword", bpo::value<std::string>()->default_value("itoopie"),
      "I2P control service password\n");
 
+  bpo::options_description reseed("\nReseed");
+  reseed.add_options()
+    ("reseed-from,r", bpo::value<std::string>()->default_value(""),
+     "File or URL from which to reseed\n"
+     "Examples:\n"
+     "./kovri -r ~/local/path/to/i2pseeds.su3\n"
+     "./kovri -r https://my.server.tld/i2pseeds.su3\n"
+     "Note: if the server in your URL is not one of the "
+     "hard-coded reseed servers, either use --reseed-skip-ssl-check"
+     "or put your server's certificate in with the others. "
+     "They are located in the .kovri data directory\n")
+
+    ("reseed-skip-ssl-check", bpo::value<bool>()->default_value(false),
+     "Skip SSL check for reseed host. Useful for custom reseed servers\n"
+     "Examples:\n"
+     "./kovri --reseed-skip-ssl-check -r https://my.server.tld/i2pseeds.su3\n");
+
+    //("reseed-to", bpo::value<std::string>()->default_value(""),
+    // "Creates a reseed file for you to share\n"
+    // "Example: ~/path/to/new/i2pseeds.su3\n")
+
   bpo::options_description config("\nConfiguration");
   config.add_options()
-    ("config", bpo::value<std::string>(&kovriConfig)->default_value(
+    ("kovriconf,c", bpo::value<std::string>(&kovri_config)->default_value(
         i2p::util::filesystem::GetFullPath("kovri.conf")),
      "Options specified on the command line take"
      "precedence over those in the config file.\n")
 
-    ("tunnelscfg", bpo::value<std::string>(&tunnelsConfig)->default_value(
-        i2p::util::filesystem::GetFullPath("tunnels.cfg")),
+    ("tunnelsconf,t", bpo::value<std::string>(&tunnels_config)->default_value(
+        i2p::util::filesystem::GetFullPath("tunnels.conf")),
      "Tunnels Config file\n");
   // Default visible option
-  bpo::options_description kovri(
-      ":----------------------------------------------------:\n"
-      "|              The Kovri I2P Router Project          |\n"
-      "|                    version " KOVRI_VERSION "                   |\n"
-      ":----------------------------------------------------");
+  bpo::options_description kovri("");
   kovri.add(help);
   // Available config file options
-  bpo::options_description confOpts;
-  confOpts
+  bpo::options_description config_options;
+  config_options
     .add(basic)
     .add(system)
     .add(network)
@@ -185,31 +205,32 @@ bool ParseArgs(
     .add(i2pcs)
     .add(config);
   // Available cli options
-  bpo::options_description cliOpts;
-  cliOpts
+  bpo::options_description cli_options;
+  cli_options
     .add(help)
     .add(basic)
     .add(system)
     .add(network)
     .add(proxy)
     .add(i2pcs)
+    .add(reseed)
     .add(config);
   // Map and store cli options
-  bpo::store(bpo::parse_command_line(argc, argv, cliOpts), varMap);
-  bpo::notify(varMap);
+  bpo::store(bpo::parse_command_line(argc, argv, cli_options), var_map);
+  bpo::notify(var_map);
   // Parse config after mapping cli
-  ParseConfigFile(kovriConfig, confOpts, varMap);
+  ParseConfigFile(kovri_config, config_options, var_map);
   /*
    * Display --help and --help-with
    */
-  if (varMap.count("help")) {
+  if (var_map.count("help")) {
     std::cout << kovri << std::endl;
-    return 1;
+    return false;
   }
-  if (varMap.count("help-with")) {
-    const std::string& s = varMap["help-with"].as<std::string>();
+  if (var_map.count("help-with")) {
+    const std::string& s = var_map["help-with"].as<std::string>();
     if (s == "all") {
-      std::cout << confOpts;  // We don't need .add(help)
+      std::cout << config_options;  // We don't need .add(help)
     } else if (s == "basic") {
       std::cout << basic;
     } else if (s == "system") {
@@ -220,33 +241,33 @@ bool ParseArgs(
       std::cout << proxy;
     } else if (s == "i2pcs") {
       std::cout << i2pcs;
+    } else if (s == "reseed") {
+      std::cout << reseed;
     } else if (s == "config") {
       std::cout << config;
     } else {
       std::cout << "Unknown option '" << s << "'"
       << "\nTry using --help" << std::endl;
     }
-    return 1;
+    return false;
   }
-  return 0;
+  return true;
 }
 
-// TODO(anonimal):
-// rewrite this parser to include tunnelscfg and respond to SIGHUP
 void ParseConfigFile(
-    std::string& conf,
-    bpo::options_description& opts,
-    bpo::variables_map& vm) {
-  std::ifstream ifs(conf.c_str());
+    std::string& config,
+    bpo::options_description& config_options,
+    bpo::variables_map& var_map) {
+  std::ifstream ifs(config.c_str());
   if (!ifs) {
-    std::cout << "Could not open " << conf << "!\n";
+    std::cout << "Could not open " << config << "!\n";
   } else {
     bpo::store(
         bpo::parse_config_file(
-          ifs,
-          opts),
-        vm);
-    bpo::notify(vm);
+            ifs,
+            config_options),
+        var_map);
+    bpo::notify(var_map);
   }
 }
 

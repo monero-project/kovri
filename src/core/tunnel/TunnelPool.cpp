@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2016, The Kovri I2P Router Project
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -26,6 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project
  */
 
 #include "TunnelPool.h"
@@ -36,7 +38,6 @@
 #include "Garlic.h"
 #include "NetworkDatabase.h"
 #include "Tunnel.h"
-#include "crypto/CryptoConst.h"
 #include "crypto/Rand.h"
 #include "transport/Transports.h"
 #include "util/I2PEndian.h"
@@ -71,14 +72,14 @@ void TunnelPool::SetExplicitPeers(
     if (m_NumInboundHops > size) {
       m_NumInboundHops = size;
       LogPrint(eLogInfo,
-          "Inbound tunnel length has been adjusted to ", size,
-          " for explicit peers");
+          "TunnelPool: inbound tunnel length has been adjusted to ",
+          size, " for explicit peers");
     }
     if (m_NumOutboundHops > size) {
       m_NumOutboundHops = size;
       LogPrint(eLogInfo,
-          "Outbound tunnel length has been adjusted to ", size,
-          " for explicit peers");
+          "TunnelPool: outbound tunnel length has been adjusted to ",
+          size, " for explicit peers");
     }
     m_NumInboundTunnels = 1;
     m_NumOutboundTunnels = 1;
@@ -241,7 +242,8 @@ void TunnelPool::CreateTunnels() {
 
 void TunnelPool::TestTunnels() {
   for (auto it : m_Tests) {
-    LogPrint("Tunnel test ", static_cast<int>(it.first), " failed");
+    LogPrint(eLogWarning,
+        "TunnelPool: tunnel test ", static_cast<int>(it.first), " failed");
     // if test failed again with another tunnel we consider it failed
     if (it.second.first) {
       if (it.second.first->GetState() == e_TunnelStateTestFailed) {
@@ -298,7 +300,8 @@ void TunnelPool::ProcessGarlicMessage(
   if (m_LocalDestination)
     m_LocalDestination->ProcessGarlicMessage(msg);
   else
-    LogPrint(eLogWarning, "Local destination doesn't exist. Dropped");
+    LogPrint(eLogWarning,
+        "TunnelPool: local destination doesn't exist, dropped");
 }
 
 void TunnelPool::ProcessDeliveryStatus(
@@ -307,7 +310,6 @@ void TunnelPool::ProcessDeliveryStatus(
   uint32_t msgID = bufbe32toh(buf);
   buf += 4;
   uint64_t timestamp = bufbe64toh(buf);
-
   auto it = m_Tests.find(msgID);
   if (it != m_Tests.end()) {
     // restore from test failed state if any
@@ -315,15 +317,16 @@ void TunnelPool::ProcessDeliveryStatus(
       it->second.first->SetState(e_TunnelStateEstablished);
     if (it->second.second->GetState() == e_TunnelStateTestFailed)
       it->second.second->SetState(e_TunnelStateEstablished);
-    LogPrint("Tunnel test ", it->first,
-        " successive. ", i2p::util::GetMillisecondsSinceEpoch() - timestamp,
+    LogPrint(eLogInfo,
+        "TunnelPool: tunnel test ", it->first,
+        " successful: ", i2p::util::GetMillisecondsSinceEpoch() - timestamp,
         " milliseconds");
     m_Tests.erase(it);
   } else {
     if (m_LocalDestination)
       m_LocalDestination->ProcessDeliveryStatusMessage(msg);
     else
-      LogPrint(eLogWarning, "Local destination doesn't exist. Dropped");
+      LogPrint(eLogWarning, "TunnelPool: local destination doesn't exist, dropped");
   }
 }
 
@@ -359,7 +362,7 @@ bool TunnelPool::SelectPeers(
   for (int i = 0; i < numHops; i++) {
     auto hop = SelectNextHop(prevHop);
     if (!hop) {
-      LogPrint(eLogError, "Can't select next hop");
+      LogPrint(eLogError, "TunnelPool: can't select next hop");
       return false;
     }
     prevHop = hop;
@@ -383,7 +386,8 @@ bool TunnelPool::SelectExplicitPeers(
     if (r) {
       hops.push_back(r);
     } else {
-      LogPrint(eLogInfo, "Can't find router for ", ident.ToBase64());
+      LogPrint(eLogInfo,
+          "TunnelPool: can't find router for ", ident.ToBase64());
       i2p::data::netdb.RequestDestination(ident);
       return false;
     }
@@ -395,7 +399,7 @@ void TunnelPool::CreateInboundTunnel() {
   auto outboundTunnel = GetNextOutboundTunnel();
   if (!outboundTunnel)
     outboundTunnel = tunnels.GetNextOutboundTunnel();
-  LogPrint("Creating destination inbound tunnel...");
+  LogPrint(eLogInfo, "TunnelPool: creating destination inbound tunnel");
   std::vector<std::shared_ptr<const i2p::data::RouterInfo> > hops;
   if (SelectPeers(hops, true)) {
     std::reverse(hops.begin(), hops.end());
@@ -404,7 +408,8 @@ void TunnelPool::CreateInboundTunnel() {
         outboundTunnel);
     tunnel->SetTunnelPool(shared_from_this());
   } else {
-    LogPrint(eLogError, "Can't create inbound tunnel. No peers available");
+    LogPrint(eLogError,
+        "TunnelPool: can't create inbound tunnel, no peers available");
   }
 }
 
@@ -413,7 +418,7 @@ void TunnelPool::RecreateInboundTunnel(
   auto outboundTunnel = GetNextOutboundTunnel();
   if (!outboundTunnel)
     outboundTunnel = tunnels.GetNextOutboundTunnel();
-  LogPrint("Re-creating destination inbound tunnel...");
+  LogPrint(eLogInfo, "TunnelPool: re-creating destination inbound tunnel");
   auto newTunnel =
     tunnels.CreateTunnel<InboundTunnel> (
       tunnel->GetTunnelConfig()->Clone(),
@@ -426,7 +431,7 @@ void TunnelPool::CreateOutboundTunnel() {
   if (!inboundTunnel)
     inboundTunnel = tunnels.GetNextInboundTunnel();
   if (inboundTunnel) {
-    LogPrint("Creating destination outbound tunnel...");
+    LogPrint(eLogInfo, "TunnelPool: creating destination outbound tunnel");
     std::vector<std::shared_ptr<const i2p::data::RouterInfo> > hops;
     if (SelectPeers(hops, false)) {
       auto tunnel = tunnels.CreateTunnel<OutboundTunnel> (
@@ -436,11 +441,11 @@ void TunnelPool::CreateOutboundTunnel() {
       tunnel->SetTunnelPool(shared_from_this());
     } else {
       LogPrint(eLogError,
-          "Can't create outbound tunnel. No peers available");
+          "TunnelPool: can't create outbound tunnel, no peers available");
     }
   } else {
     LogPrint(eLogError,
-        "Can't create outbound tunnel. No inbound tunnels found");
+        "TunnelPool: can't create outbound tunnel, no inbound tunnels found");
   }
 }
 
@@ -450,19 +455,20 @@ void TunnelPool::RecreateOutboundTunnel(
   if (!inboundTunnel)
     inboundTunnel = tunnels.GetNextInboundTunnel();
   if (inboundTunnel) {
-    LogPrint("Re-creating destination outbound tunnel...");
+    LogPrint(eLogInfo, "TunnelPool: re-creating destination outbound tunnel");
     auto newTunnel = tunnels.CreateTunnel<OutboundTunnel> (
       tunnel->GetTunnelConfig()->Clone(
         inboundTunnel->GetTunnelConfig()));
     newTunnel->SetTunnelPool(shared_from_this());
   } else {
-    LogPrint("Can't re-create outbound tunnel. No inbound tunnels found");
+    LogPrint(eLogError,
+        "TunnelPool: can't re-create outbound tunnel, no inbound tunnels found");
   }
 }
 
 void TunnelPool::CreatePairedInboundTunnel(
     std::shared_ptr<OutboundTunnel> outboundTunnel) {
-  LogPrint(eLogInfo, "Creating paired inbound tunnel...");
+  LogPrint(eLogInfo, "TunnelPool: creating paired inbound tunnel");
   auto tunnel = tunnels.CreateTunnel<InboundTunnel> (
       outboundTunnel->GetTunnelConfig()->Invert(),
       outboundTunnel);

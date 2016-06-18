@@ -10,6 +10,7 @@ compiler:
 addons:
   apt:
     packages:
+    - ca-certificates
     - gcc-5
     - g++-5
     - libboost-all-dev

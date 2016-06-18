@@ -66,10 +66,41 @@ struct null_deleter {
 #include <memory>
 #include <mutex>
 #include <string>
+#include <vector>
 
 namespace i2p {
 namespace util {
 namespace log {
+
+/// @var g_LogLevels
+/// @brief Maps string global levels to enumerated global levels
+LogLevelsMap g_LogLevels {
+  { "info", eLogInfo },
+  { "warn", eLogWarning },
+  { "error", eLogError },
+  { "debug", eLogDebug },
+};
+
+/// @brief Sets global log levels with sanitized user input
+/// @param levels String vector of user-supplied log levels
+void SetGlobalLogLevels(
+    const std::vector<std::string>& levels) {
+  // Create temporary map for new global levels
+  LogLevelsMap new_levels;
+  // Iterate and insert into new global map
+  for (auto& v : levels) {
+    auto key = g_LogLevels.find(v);
+    if (key != g_LogLevels.end())
+      new_levels.insert({v, g_LogLevels[v]});
+  }
+  // Set new global map
+  g_LogLevels.swap(new_levels);
+}
+
+/// @brief Returns current state of global lob levels
+const LogLevelsMap& GetGlobalLogLevels() {
+  return g_LogLevels;
+}
 
 /// @typedef core_ptr
 /// @brief Boost.Log core pointer

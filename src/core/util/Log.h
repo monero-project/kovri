@@ -36,6 +36,8 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace i2p {
 namespace util {
@@ -71,6 +73,18 @@ enum LogLevel {
 #define eLogInfo i2p::util::log::eLogLevelInfo
 #define eLogWarning i2p::util::log::eLogLevelWarning
 #define eLogError i2p::util::log::eLogLevelError
+
+/// @typedef LogLevelsMap
+/// @brief Map of log levels
+typedef std::unordered_map<std::string, LogLevel> LogLevelsMap;
+
+/// @brief Set log levels/severity
+void SetGlobalLogLevels(
+    const std::vector<std::string>& levels);
+
+/// @brief Get log levels/severity
+/// @return Log levels/severity
+const LogLevelsMap& GetGlobalLogLevels();
 
 class LogStreamImpl;
 class LogStream : public std::ostream {
@@ -195,6 +209,7 @@ void DeprecatedLog(
   DeprecatedLog(stream, args...);
 }
 
+// TODO(unassigned): more efficient way to execute this function.
 template<typename... Args>
 void DeprecatedLogPrint(
     i2p::util::log::LogLevel level,
@@ -206,23 +221,43 @@ void DeprecatedLogPrint(
     DeprecatedLog(std::clog, args...);
     std::clog << std::endl;
   } else {
+    // Set log implementation
     auto log = logger->Default();
+    // Get global log levels
+    auto global_levels = i2p::util::log::GetGlobalLogLevels();
+    // Print log after testing arg level against global levels
     if (level == eLogDebug) {
-      auto& stream = log->Debug();
-      DeprecatedLog(stream, args...);
-      stream << std::flush;
+      for (auto& current_level : global_levels) {
+        if (current_level.second == eLogDebug) {
+          auto& stream = log->Debug();
+          DeprecatedLog(stream, args...);
+          stream << std::flush;
+        }
+      }
     } else if (level == eLogInfo) {
-      auto& stream = log->Info();
-      DeprecatedLog(stream, args...);
-      stream << std::flush;
+      for (auto& current_level : global_levels) {
+        if (current_level.second == eLogInfo) {
+          auto& stream = log->Info();
+          DeprecatedLog(stream, args...);
+          stream << std::flush;
+        }
+      }
     } else if (level == eLogWarning) {
-      auto& stream = log->Warning();
-      DeprecatedLog(stream, args...);
-      stream << std::flush;
-    } else  {
-      auto& stream = log->Error();
-      DeprecatedLog(stream, args...);
-      stream << std::flush;
+      for (auto& current_level : global_levels) {
+        if (current_level.second == eLogWarning) {
+          auto& stream = log->Warning();
+          DeprecatedLog(stream, args...);
+          stream << std::flush;
+        }
+      }
+    } else if (level == eLogError) {
+      for (auto& current_level : global_levels)  {
+        if (current_level.second == eLogError) {
+          auto& stream = log->Error();
+          DeprecatedLog(stream, args...);
+          stream << std::flush;
+        }
+      }
     }
   }
 }

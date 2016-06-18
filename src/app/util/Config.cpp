@@ -31,8 +31,10 @@
 #include "Config.h"
 
 #include <string>
+#include <vector>
 
-#include <crypto/Rand.h>
+#include "core/util/Log.h"
+#include "crypto/Rand.h"
 
 namespace i2p {
 namespace util {
@@ -103,6 +105,17 @@ bool ParseArgs(
     ("log,l", bpo::value<bool>()->default_value(0),
      "Enable or disable logging to file\n"
      "1 = enabled, 0 = disabled\n")
+
+    ("log-levels", bpo::value<std::vector<std::string>>()->
+                   // Note: we set a default value during validation and
+                   // leave blank here to prevent bad_any_cast exception.
+                   default_value(std::vector<std::string>(), "")->multitoken(),
+     "Log levels to report.\n"
+     "Options: info warn error debug\n"
+     "Examples:\n"
+     "./kovri --log-levels info  # produces info only\n"
+     "./kovri --log-levels warn error  # warn/error only\n"
+     "Default: all levels [info warn error debug]\n")
 
     ("daemon,d", bpo::value<bool>()->default_value(0),
      "Enable or disable daemon mode\n"
@@ -220,6 +233,9 @@ bool ParseArgs(
   bpo::notify(var_map);
   // Parse config after mapping cli
   ParseConfigFile(kovri_config, config_options, var_map);
+  // Validate user input where possible
+  if (!ValidateUserInput())
+    return false;
   /*
    * Display --help and --help-with
    */
@@ -269,6 +285,38 @@ void ParseConfigFile(
         var_map);
     bpo::notify(var_map);
   }
+}
+
+bool ValidateUserInput() {
+  /**
+   * TODO(unassigned): write custom validator for log-levels
+   * so we can set values via config file.
+   */
+  // Test for valid log-levels input
+  auto arg_levels = var_map["log-levels"].as<std::vector<std::string>>();
+  auto global_levels = i2p::util::log::GetGlobalLogLevels();
+  if (arg_levels.size()) {
+    if (arg_levels.size() > global_levels.size()) {
+      std::cout << "Invalid number of log levels. Maximum allowed: "
+                << global_levels.size() << std::endl;
+      return false;
+    }
+    // Verify validity of log levels
+    for (auto& level : arg_levels) {
+      auto result = global_levels.find(level);
+      if (result == global_levels.end()) {
+        std::cout << "Invalid log-level(s). See help for options" << std::endl;
+        return false;
+      }
+    }
+  } else {
+    // Set default log-levels if none present
+    for (auto& level : global_levels)
+      arg_levels.push_back(level.first);
+  }
+  // Set new global log-levels
+  i2p::util::log::SetGlobalLogLevels(arg_levels);
+  return true;
 }
 
 }  // namespace config

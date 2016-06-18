@@ -97,7 +97,7 @@ void SetGlobalLogLevels(
   g_LogLevels.swap(new_levels);
 }
 
-/// @brief Returns current state of global lob levels
+/// @brief Returns current state of global log levels
 const LogLevelsMap& GetGlobalLogLevels() {
   return g_LogLevels;
 }

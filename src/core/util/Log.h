@@ -65,13 +65,13 @@ namespace log {
 enum LogLevel {
   eLogLevelDebug,
   eLogLevelInfo,
-  eLogLevelWarning,
+  eLogLevelWarn,
   eLogLevelError
 };
 
 #define eLogDebug i2p::util::log::eLogLevelDebug
 #define eLogInfo i2p::util::log::eLogLevelInfo
-#define eLogWarning i2p::util::log::eLogLevelWarning
+#define eLogWarn i2p::util::log::eLogLevelWarn
 #define eLogError i2p::util::log::eLogLevelError
 
 /// @typedef LogLevelsMap
@@ -125,7 +125,7 @@ class Logger {
   LogStream& Info();
 
   /// @return Reference to warning level log stream
-  LogStream& Warning();
+  LogStream& Warn();
 
   /// @return Reference to error level log stream
   LogStream& Error();
@@ -242,10 +242,10 @@ void DeprecatedLogPrint(
           stream << std::flush;
         }
       }
-    } else if (level == eLogWarning) {
+    } else if (level == eLogWarn) {
       for (auto& current_level : global_levels) {
-        if (current_level.second == eLogWarning) {
-          auto& stream = log->Warning();
+        if (current_level.second == eLogWarn) {
+          auto& stream = log->Warn();
           DeprecatedLog(stream, args...);
           stream << std::flush;
         }

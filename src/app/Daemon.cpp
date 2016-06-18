@@ -206,7 +206,7 @@ void Daemon_Singleton::SetupTunnels() {
   try {
     boost::property_tree::read_ini(path_tunnels_config_file, pt);
   } catch(const std::exception& ex) {
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "Daemon_Singleton: can't read ",
         path_tunnels_config_file, ": ", ex.what());
     return;
@@ -287,7 +287,7 @@ void Daemon_Singleton::SetupTunnels() {
                   local_destination->GetIdentHash()),
               " already exists");
       } else {
-        LogPrint(eLogWarning,
+        LogPrint(eLogWarn,
             "Daemon_Singleton: unknown section type=",
             type, " of ", name, " in ", path_tunnels_config_file);
       }
@@ -309,7 +309,7 @@ void Daemon_Singleton::ReloadTunnels() {
   try {
     boost::property_tree::read_ini(tunnels_config_file, pt);
   } catch (const std::exception& ex) {
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "Daemon_Singleton: can't read ",
         tunnels_config_file, ": ", ex.what());
     return;

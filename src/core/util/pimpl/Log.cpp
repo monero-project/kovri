@@ -76,7 +76,7 @@ namespace log {
 /// @brief Maps string global levels to enumerated global levels
 LogLevelsMap g_LogLevels {
   { "info", eLogInfo },
-  { "warn", eLogWarning },
+  { "warn", eLogWarn },
   { "error", eLogError },
   { "debug", eLogDebug },
 };
@@ -259,7 +259,7 @@ class LoggerImpl {
       const std::string& channel)
       : m_Log(boost::log::keywords::channel = channel),
         m_Info(new LogStreamImpl(m_InfoMtx, m_Log, eLogInfo)),
-        m_Warn(new LogStreamImpl(m_WarnMtx, m_Log, eLogWarning)),
+        m_Warn(new LogStreamImpl(m_WarnMtx, m_Log, eLogWarn)),
         m_Error(new LogStreamImpl(m_ErrorMtx, m_Log, eLogError)),
         m_Debug(new LogStreamImpl(m_DebugMtx, m_Log, eLogDebug)) {
     m_Log.add_attribute(
@@ -271,7 +271,7 @@ class LoggerImpl {
     return GetLogStream(m_Error, m_ErrorMtx);
   }
 
-  LogStream& Warning() {
+  LogStream& Warn() {
     return GetLogStream(m_Warn, m_WarnMtx);
   }
 
@@ -314,8 +314,8 @@ LogStream& Logger::Error() {
   return m_LoggerPimpl->Error();
 }
 
-LogStream& Logger::Warning() {
-  return m_LoggerPimpl->Warning();
+LogStream& Logger::Warn() {
+  return m_LoggerPimpl->Warn();
 }
 
 LogStream& Logger::Info() {
@@ -441,7 +441,7 @@ std::ostream& operator<<(
   static std::array<const char*, 4> levels {
     "DBG",  // debug
     "NFO",  // info
-    "WRN",  // warning
+    "WRN",  // warn
     "ERR"   // error
   };
   if (static_cast<std::size_t>(log_level) < levels.size()) {

@@ -162,7 +162,7 @@ int AddressBookFilesystemStorage::Load(
     LogPrint(eLogInfo,
         "AddressBookFilesystemStorage: ", num, " addresses loaded");
   } else {
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "AddressBookFilesystemStorage: ", filename, " not found");
   }
   return num;
@@ -390,7 +390,7 @@ void AddressBook::LoadSubscriptions() {
       LogPrint(eLogInfo,
           "AddressBook: ", m_Subscriptions.size(), " subscriptions loaded");
     } else {
-      LogPrint(eLogWarning, "AddressBook: subscriptions.txt not found");
+      LogPrint(eLogWarn, "AddressBook: subscriptions.txt not found");
     }
   } else {
     LogPrint(eLogError, "AddressBook: subscriptions already loaded");
@@ -602,7 +602,7 @@ void AddressBookSubscription::Request() {
         LogPrint(eLogInfo,
             "AddressBookSubscription: no updates from ", m_Link);
       } else {
-        LogPrint(eLogWarning,
+        LogPrint(eLogWarn,
             "AddressBookSubscription: HTTP response ", status);
       }
     } else {

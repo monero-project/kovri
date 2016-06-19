@@ -472,7 +472,7 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
             }
             introducerSession->Introduce(introducer->tag, introducer->key);
           } else {
-            LogPrint(eLogWarning,
+            LogPrint(eLogWarn,
                 "SSUServer: can't connect to unreachable router."
                 "No introducers presented");
             std::unique_lock<std::mutex> l(m_SessionsMutex);
@@ -482,7 +482,7 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
         }
       }
     } else {
-      LogPrint(eLogWarning,
+      LogPrint(eLogWarn,
           "SSUServer: router ", router->GetIdentHashAbbreviation(),
           " doesn't have SSU address");
     }

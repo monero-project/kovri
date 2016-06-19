@@ -84,6 +84,10 @@ void ParseConfigFile(
     boost::program_options::options_description& config_options,
     boost::program_options::variables_map& var_map);
 
+/// @brief Validates user input where possible
+/// @return False on failure
+bool ValidateUserInput();
+
 }  // namespace config
 }  // namespace util
 }  // namespace i2p

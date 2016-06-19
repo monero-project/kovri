@@ -541,12 +541,12 @@ void HandleVariableTunnelBuildReplyMsg(
       tunnel->SetState(i2p::tunnel::e_TunnelStateEstablished);
       i2p::tunnel::tunnels.AddOutboundTunnel(tunnel);
     } else {
-      LogPrint(eLogWarning,
+      LogPrint(eLogWarn,
           "I2NPMessage: outbound tunnel ", tunnel->GetTunnelID(), " has been declined");
       tunnel->SetState(i2p::tunnel::e_TunnelStateBuildFailed);
     }
   } else {
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "I2NPMessage: pending tunnel for message ", replyMsgID, " not found");
   }
 }
@@ -670,7 +670,7 @@ void HandleI2NPMessage(
       // TODO(unassigned): ???
     break;
     default:
-      LogPrint(eLogWarning,
+      LogPrint(eLogWarn,
           "I2NPMessage: unexpected message ", static_cast<int>(typeID));
   }
 }

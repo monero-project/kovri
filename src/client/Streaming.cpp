@@ -176,12 +176,12 @@ void Stream::HandleNextPacket(
   } else {
     if (receivedSeqn <= m_LastReceivedSequenceNumber) {
       // we have received duplicate
-      LogPrint(eLogWarning,
+      LogPrint(eLogWarn,
           "Stream: duplicate message ", receivedSeqn, " received");
       SendQuickAck();  // resend ack for previous message again
       delete packet;  // packet dropped
     } else {
-      LogPrint(eLogWarning, "Stream: missing messages from ",
+      LogPrint(eLogWarn, "Stream: missing messages from ",
           m_LastReceivedSequenceNumber + 1, " to ", receivedSeqn - 1);
       // save message and wait for missing message again
       SavePacket(packet);
@@ -549,7 +549,7 @@ void Stream::Close() {
       m_LocalDestination.DeleteStream(shared_from_this());
     break;
     default:
-      LogPrint(eLogWarning,
+      LogPrint(eLogWarn,
           "Stream: unexpected stream status ",
           static_cast<int>(m_Status));
   }
@@ -676,7 +676,7 @@ void Stream::SendPackets(
     }
     m_CurrentOutboundTunnel->SendTunnelDataMsg(msgs);
   } else {
-    LogPrint(eLogWarning, "Stream: all leases are expired");
+    LogPrint(eLogWarn, "Stream: all leases are expired");
   }
 }
 
@@ -697,7 +697,7 @@ void Stream::HandleResendTimer(
   if (ecode != boost::asio::error::operation_aborted) {
     // check for resend attempts
     if (m_NumResendAttempts >= MAX_NUM_RESEND_ATTEMPTS) {
-      LogPrint(eLogWarning,
+      LogPrint(eLogWarn,
           "Stream: packet was not ACKed after ",
           MAX_NUM_RESEND_ATTEMPTS,  " attempts. Terminate");
       m_Status = eStreamStatusReset;
@@ -729,7 +729,7 @@ void Stream::HandleResendTimer(
           // no break here
         case 4:
           UpdateCurrentRemoteLease();  // pick another lease
-          LogPrint(eLogWarning,
+          LogPrint(eLogWarn,
               "Stream: another remote lease has been selected for stream");
         break;
         case 3:
@@ -737,7 +737,7 @@ void Stream::HandleResendTimer(
           m_CurrentOutboundTunnel =
             m_LocalDestination.GetOwner().GetTunnelPool()->GetNextOutboundTunnel(
                 m_CurrentOutboundTunnel);
-          LogPrint(eLogWarning,
+          LogPrint(eLogWarn,
               "Stream: another outbound tunnel has been selected for stream");
         break;
         default: {}
@@ -752,7 +752,7 @@ void Stream::HandleAckSendTimer(
     const boost::system::error_code&) {
   if (m_IsAckSendScheduled) {
     if (m_LastReceivedSequenceNumber < 0) {
-      LogPrint(eLogWarning,
+      LogPrint(eLogWarn,
           "Stream: SYN has not been received after ",
           ACK_SEND_TIMEOUT, " milliseconds after follow on, terminating");
       m_Status = eStreamStatusReset;
@@ -871,7 +871,7 @@ void StreamingDestination::HandleNextPacket(
       it->second->HandleNextPacket(
           packet);
     } else {
-      LogPrint(eLogWarning,
+      LogPrint(eLogWarn,
           "StreamingDestination: unknown stream ", sendStreamID);
       delete packet;
     }
@@ -882,7 +882,7 @@ void StreamingDestination::HandleNextPacket(
       if (m_Acceptor != nullptr) {
         m_Acceptor(incomingStream);
       } else {
-        LogPrint(eLogWarning,
+        LogPrint(eLogWarn,
             "StreamingDestination: acceptor for incoming stream is not set");
         DeleteStream(incomingStream);
       }
@@ -895,7 +895,7 @@ void StreamingDestination::HandleNextPacket(
           return;
         }
       // TODO(unassigned): should queue it up
-      LogPrint(eLogWarning,
+      LogPrint(eLogWarn,
           "StreamingDestination: Unknown stream ", receiveStreamID);
       delete packet;
     }

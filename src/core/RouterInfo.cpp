@@ -190,7 +190,7 @@ void RouterInfo::ReadFromStream(
             address.address_string = value;
           } else {
             // TODO(unassigned): resolve address for SSU
-            LogPrint(eLogWarning, "RouterInfo: unexpected SSU address ", value);
+            LogPrint(eLogWarn, "RouterInfo: unexpected SSU address ", value);
             is_valid_address = false;
           }
         } else {

@@ -288,7 +288,7 @@ bool SOCKSHandler::Socks5ChooseAuth() {
   m_response[1] = m_authchosen;  // Response code
   boost::asio::const_buffers_1 response(m_response, 2);
   if (m_authchosen == AUTH_UNACCEPTABLE) {
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "SOCKSHandler: SOCKS5 authentication negotiation failed");
     boost::asio::async_write(
         *m_sock,
@@ -319,7 +319,7 @@ void SOCKSHandler::SocksRequestFailed(
   assert(error != SOCKS4_OK && error != SOCKS5_OK);
   switch (m_socksv) {
     case SOCKS4:
-      LogPrint(eLogWarning, "SOCKSHandler: SOCKS4 failed: ", error);
+      LogPrint(eLogWarn, "SOCKSHandler: SOCKS4 failed: ", error);
       // Transparently map SOCKS5 errors
       if (error < SOCKS4_OK) error = SOCKS4_FAIL;
       response = GenerateSOCKS4Response(
@@ -328,7 +328,7 @@ void SOCKSHandler::SocksRequestFailed(
           m_port);
     break;
     case SOCKS5:
-      LogPrint(eLogWarning, "SOCKSHandler: SOCKS5 failed: ", error);
+      LogPrint(eLogWarn, "SOCKSHandler: SOCKS5 failed: ", error);
       response = GenerateSOCKS5Response(
           error,
           m_addrtype,

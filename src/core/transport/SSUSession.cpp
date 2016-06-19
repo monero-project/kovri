@@ -193,7 +193,7 @@ void SSUSession::CreateAESandMacKey(
     while (!*nonZero) {
       nonZero++;
       if (nonZero - sharedKey > 32) {
-        LogPrint(eLogWarning,
+        LogPrint(eLogWarn,
             "SSUSession:", GetFormattedSessionInfo(),
             "first 32 bytes of shared key is all zeros. Ignored");
         return;
@@ -322,7 +322,7 @@ void SSUSession::ProcessDecryptedMessage(
       ProcessRelayIntro(pkt);
     break;
     default:
-      LogPrint(eLogWarning,
+      LogPrint(eLogWarn,
           "SSUSession: unexpected payload type: ",
           static_cast<int>(payload_type));
   }
@@ -419,7 +419,7 @@ void SSUSession::SendSessionRequest() {
 void SSUSession::ProcessSessionCreated(
     SSUSessionPacket& pkt) {
   if (!m_RemoteRouter || !m_DHKeysPair) {
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "SSUSession:", GetFormattedSessionInfo(),
         "unsolicited SessionCreated message");
     return;
@@ -900,7 +900,7 @@ void SSUSession::ProcessRelayIntro(
             address,
             port));
   } else {
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "SSUSession:", GetFormattedSessionInfo(),
         "ProcessRelayIntro(): address size ",
         static_cast<std::size_t>(size), " is not supported");
@@ -982,7 +982,7 @@ void SSUSession::ProcessPeerTest(
   uint16_t port = buf16toh(buf + size + 5);  // big endian, 2 bytes
   const uint8_t* introKey = buf + size + 7;
   if (port && !address) {
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "SSUSession:", GetFormattedSessionInfo(), "address of ",
         static_cast<std::size_t>(size), " bytes not supported");
     return;
@@ -1372,7 +1372,7 @@ void SSUSession::Connect() {
 
 void SSUSession::WaitForConnect() {
   if (IsOutbound())
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "SSUSession:", GetFormattedSessionInfo(),
         "WaitForConnect() for outgoing session");
   else
@@ -1535,7 +1535,7 @@ void SSUSession::Send(
   if (paddingSize > 0)
     msgSize += (16 - paddingSize);
   if (msgSize > SSU_MTU_V4) {
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "SSUSession:", GetFormattedSessionInfo(),
         "<-- payload size ", msgSize, " exceeds MTU");
     return;

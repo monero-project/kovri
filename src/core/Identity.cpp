@@ -155,7 +155,7 @@ IdentityEx::IdentityEx(
         break;
       }
       default:
-        LogPrint(eLogWarning,
+        LogPrint(eLogWarn,
             "IdentityEx: signing key type ",
             static_cast<int>(type), " is not supported");
     }
@@ -394,7 +394,7 @@ void IdentityEx::CreateVerifier() const  {
       break;
     }
     default:
-      LogPrint(eLogWarning,
+      LogPrint(eLogWarn,
           "IdentityEx: signing key type ",
           static_cast<int>(keyType), " is not supported");
   }
@@ -520,7 +520,7 @@ void PrivateKeys::CreateSigner() {
       m_Signer = std::make_unique<i2p::crypto::EDDSA25519Signer>(m_SigningPrivateKey);
     break;
     default:
-      LogPrint(eLogWarning,
+      LogPrint(eLogWarn,
           "IdentityEx: Signing key type ",
           static_cast<int>(m_Public.GetSigningKeyType()), " is not supported");
   }
@@ -566,7 +566,7 @@ PrivateKeys PrivateKeys::CreateRandomKeys(SigningKeyType type) {
             signingPublicKey);
       break;
       default:
-        LogPrint(eLogWarning,
+        LogPrint(eLogWarn,
             "IdentityEx: Signing key type ",
             static_cast<int>(type), " is not supported, creating DSA-SHA1");
         return PrivateKeys(i2p::data::CreateRandomKeys());  // DSA-SHA1

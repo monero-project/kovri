@@ -411,7 +411,7 @@ void ClientDestination::HandleDatabaseSearchReplyMessage(
       m_LeaseSetRequests.erase(key);
     }
   } else {
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "ClientDestination: request for ", key.ToBase64(), " not found");
   }
 }
@@ -488,7 +488,7 @@ void ClientDestination::HandlePublishConfirmationTimer(
     const boost::system::error_code& ecode) {
   if (ecode != boost::asio::error::operation_aborted) {
     if (m_PublishReplyToken) {
-      LogPrint(eLogWarning,
+      LogPrint(eLogWarn,
           "ClientDestination: publish confirmation was not received in ",
           PUBLISH_CONFIRMATION_TIMEOUT,  "seconds. Try again");
       m_PublishReplyToken = 0;
@@ -512,7 +512,7 @@ void ClientDestination::HandleDataMessage(
       if (dest)
         dest->HandleDataMessagePayload(buf, length);
       else
-        LogPrint(eLogWarning,
+        LogPrint(eLogWarn,
             "ClientDestination: missing streaming destination");
     }
     break;
@@ -525,11 +525,11 @@ void ClientDestination::HandleDataMessage(
             buf,
             length);
       else
-        LogPrint(eLogWarning,
+        LogPrint(eLogWarn,
             "ClientDestination: missing streaming destination");
     break;
     default:
-      LogPrint(eLogWarning,
+      LogPrint(eLogWarn,
           "ClientDestination: HandleDataMessage(): unexpected protocol ", buf[9]);
   }
 }

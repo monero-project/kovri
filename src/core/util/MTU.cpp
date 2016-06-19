@@ -132,7 +132,7 @@ int GetMTUUnix(
       LogPrint(eLogError, "MTU: failed to create datagram socket");
     }
   } else {
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "MTU: interface for local address",
         localAddress.to_string(), " not found");
   }

@@ -59,7 +59,7 @@ namespace util {
 
 Daemon_Singleton::Daemon_Singleton()
     : m_IsRunning(true),
-      m_log(i2p::util::log::Log::Get()) {}
+      m_Log(i2p::util::log::Log::Get()) {}
 Daemon_Singleton::~Daemon_Singleton() {}
 
 bool Daemon_Singleton::IsService() const {
@@ -123,7 +123,7 @@ bool Daemon_Singleton::Start() {
       StartLog("");  // write to stdout
     }
   } else {
-    m_log->Stop();
+    m_Log->Stop();
   }
   try {
     LogPrint(eLogInfo, "Daemon_Singleton: starting NetDb");
@@ -206,7 +206,7 @@ void Daemon_Singleton::SetupTunnels() {
   try {
     boost::property_tree::read_ini(path_tunnels_config_file, pt);
   } catch(const std::exception& ex) {
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "Daemon_Singleton: can't read ",
         path_tunnels_config_file, ": ", ex.what());
     return;
@@ -287,7 +287,7 @@ void Daemon_Singleton::SetupTunnels() {
                   local_destination->GetIdentHash()),
               " already exists");
       } else {
-        LogPrint(eLogWarning,
+        LogPrint(eLogWarn,
             "Daemon_Singleton: unknown section type=",
             type, " of ", name, " in ", path_tunnels_config_file);
       }
@@ -309,7 +309,7 @@ void Daemon_Singleton::ReloadTunnels() {
   try {
     boost::property_tree::read_ini(tunnels_config_file, pt);
   } catch (const std::exception& ex) {
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "Daemon_Singleton: can't read ",
         tunnels_config_file, ": ", ex.what());
     return;

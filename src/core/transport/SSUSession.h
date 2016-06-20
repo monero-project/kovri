@@ -378,7 +378,8 @@ class SSUSession
       size_t len,
       const uint8_t* aesKey,
       const uint8_t* iv,
-      const uint8_t* macKey);
+      const uint8_t* macKey,
+      uint8_t flag = 0);
 
   // With session key
   void FillHeaderAndEncrypt(

@@ -307,7 +307,7 @@ size_t IdentityEx::GetSignatureLen() const {
     CreateVerifier();
   if (m_Verifier)
     return m_Verifier->GetSignatureLen();
-  return 40;
+  return i2p::crypto::DSA_SIGNATURE_LENGTH;
 }
 bool IdentityEx::Verify(
     const uint8_t* buf,
@@ -527,59 +527,62 @@ void PrivateKeys::CreateSigner() {
 }
 
 PrivateKeys PrivateKeys::CreateRandomKeys(SigningKeyType type) {
-  if (type != SIGNING_KEY_TYPE_DSA_SHA1) {
-    PrivateKeys keys;
-    // signature
-    uint8_t signingPublicKey[512];  // signing public key is 512 bytes max
-    switch (type) {
-      case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
-        i2p::crypto::CreateECDSAP256RandomKeys(
-            keys.m_SigningPrivateKey,
-            signingPublicKey);
-      break;
-      case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
-        i2p::crypto::CreateECDSAP384RandomKeys(
-            keys.m_SigningPrivateKey,
-            signingPublicKey);
-      break;
-      case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
-        i2p::crypto::CreateECDSAP521RandomKeys(
-            keys.m_SigningPrivateKey,
-            signingPublicKey);
-      break;
-      case SIGNING_KEY_TYPE_RSA_SHA256_2048:
-        i2p::crypto::CreateRSARandomKeys(
-            i2p::crypto::RSASHA2562048_KEY_LENGTH,
-            keys.m_SigningPrivateKey,
-            signingPublicKey);
-      break;
-      case SIGNING_KEY_TYPE_RSA_SHA384_3072:
-        i2p::crypto::CreateRSARandomKeys(
-            i2p::crypto::RSASHA3843072_KEY_LENGTH,
-            keys.m_SigningPrivateKey,
-            signingPublicKey);
-      break;
-      case SIGNING_KEY_TYPE_RSA_SHA512_4096:
-        i2p::crypto::CreateRSARandomKeys(
-            i2p::crypto::RSASHA5124096_KEY_LENGTH,
-            keys.m_SigningPrivateKey,
-            signingPublicKey);
-      break;
-      default:
-        LogPrint(eLogWarning,
-            "IdentityEx: Signing key type ",
-            static_cast<int>(type), " is not supported, creating DSA-SHA1");
-        return PrivateKeys(i2p::data::CreateRandomKeys());  // DSA-SHA1
-    }
-    // encryption
-    uint8_t public_key[256];
-    i2p::crypto::GenerateElGamalKeyPair(keys.m_PrivateKey, public_key);
-    // identity
-    keys.m_Public = IdentityEx(public_key, signingPublicKey, type);
-    keys.CreateSigner();
-    return keys;
+  PrivateKeys keys;
+  // signature
+  uint8_t signingPublicKey[512];  // signing public key is 512 bytes max
+  switch (type) {
+    case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
+      i2p::crypto::CreateECDSAP256RandomKeys(
+          keys.m_SigningPrivateKey,
+          signingPublicKey);
+    break;
+    case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
+      i2p::crypto::CreateECDSAP384RandomKeys(
+          keys.m_SigningPrivateKey,
+          signingPublicKey);
+    break;
+    case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
+      i2p::crypto::CreateECDSAP521RandomKeys(
+          keys.m_SigningPrivateKey,
+          signingPublicKey);
+    break;
+    case SIGNING_KEY_TYPE_RSA_SHA256_2048:
+      i2p::crypto::CreateRSARandomKeys(
+          i2p::crypto::RSASHA2562048_KEY_LENGTH,
+          keys.m_SigningPrivateKey,
+          signingPublicKey);
+    break;
+    case SIGNING_KEY_TYPE_RSA_SHA384_3072:
+      i2p::crypto::CreateRSARandomKeys(
+          i2p::crypto::RSASHA3843072_KEY_LENGTH,
+          keys.m_SigningPrivateKey,
+          signingPublicKey);
+    break;
+    case SIGNING_KEY_TYPE_RSA_SHA512_4096:
+      i2p::crypto::CreateRSARandomKeys(
+          i2p::crypto::RSASHA5124096_KEY_LENGTH,
+          keys.m_SigningPrivateKey,
+          signingPublicKey);
+    break;
+    case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
+      i2p::crypto::CreateEDDSARandomKeys(
+          keys.m_SigningPrivateKey,
+          signingPublicKey);
+    break;
+    default: // Includes 
+      LogPrint(eLogWarning,
+          "IdentityEx: Signing key type ",
+          static_cast<int>(type), " is not supported, creating DSA-SHA1");
+    case SIGNING_KEY_TYPE_DSA_SHA1:
+      return PrivateKeys(i2p::data::CreateRandomKeys());  // DSA-SHA1
   }
-  return PrivateKeys(i2p::data::CreateRandomKeys());  // DSA-SHA1
+  // encryption
+  uint8_t public_key[256];
+  i2p::crypto::GenerateElGamalKeyPair(keys.m_PrivateKey, public_key);
+  // identity
+  keys.m_Public = IdentityEx(public_key, signingPublicKey, type);
+  keys.CreateSigner();
+  return keys;
 }
 
 Keys CreateRandomKeys() {

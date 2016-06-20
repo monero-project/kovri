@@ -43,6 +43,7 @@ const std::size_t SSU_HEADER_SIZE_MIN = 37;
 const std::size_t SSU_MAC_SIZE = 16;
 const std::size_t SSU_IV_SIZE = 16;
 const std::size_t SSU_INTRO_KEY_SIZE = 32;
+const uint8_t SSU_FLAG_EXTENDED_OPTIONS = 0x04;
 
 class SSUHeader {
 public:

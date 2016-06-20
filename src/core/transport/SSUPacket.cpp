@@ -41,7 +41,6 @@ namespace transport {
 
 constexpr std::size_t SSU_KEYING_MATERIAL_SIZE = 64;
 const uint8_t SSU_FLAG_REKEY = 0x08;
-const uint8_t SSU_FLAG_EXTENDED_OPTIONS = 0x04;
 
 // Data message flags
 const uint8_t DATA_FLAG_EXTENDED_DATA_INCLUDED = 0x02;

@@ -378,6 +378,16 @@ void SSUSession::SendSessionRequest() {
   }
   uint8_t buf[320 + 18] = {};  // 304 bytes for ipv4, 320 for ipv6, all set to 0
   uint8_t* payload = buf + SSU_HEADER_SIZE_MIN;
+  // Fill extended options
+  uint8_t flag = 0;
+  if (i2p::context.GetStatus () == eRouterStatusOK) { // we don't need relays
+    flag = SSU_FLAG_EXTENDED_OPTIONS;
+    *payload = 2; 
+    ++payload;
+    uint16_t flags = 0; // clear EXTENDED_OPTIONS_FLAG_REQUEST_RELAY_TAG
+    htobe16buf(payload, flags); 
+    payload += 2;
+  }
   memcpy(payload, m_DHKeysPair->public_key.data(), 256);  // x
   bool isV4 = GetRemoteEndpoint().address().is_v4();
   if (isV4) {
@@ -401,7 +411,8 @@ void SSUSession::SendSessionRequest() {
       isV4 ? 304 : 320,
       introKey,
       iv,
-      introKey);
+      introKey,
+      flag);
   m_Server.Send(
       buf,
       isV4 ? 304 : 320,
@@ -1232,7 +1243,8 @@ void SSUSession::FillHeaderAndEncrypt(
     size_t len,
     const uint8_t* aesKey,
     const uint8_t* iv,
-    const uint8_t* macKey) {
+    const uint8_t* macKey,
+    uint8_t flag) {
   if (len < SSU_HEADER_SIZE_MIN) {
     LogPrint(eLogError,
         "SSUSession:", GetFormattedSessionInfo(),
@@ -1241,7 +1253,7 @@ void SSUSession::FillHeaderAndEncrypt(
   }
   SSUSessionPacket pkt(buf, len);
   memcpy(pkt.IV(), iv, 16);
-  pkt.PutFlag(payloadType << 4);  // MSB is 0
+  pkt.PutFlag(flag | (payloadType << 4));  // MSB is 0
   pkt.PutTime(i2p::util::GetSecondsSinceEpoch());
   uint8_t* encrypted = pkt.Encrypted();
   uint16_t encryptedLen = len - (encrypted - buf);

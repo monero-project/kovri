@@ -77,7 +77,8 @@ void RouterContext::Init(
 }
 
 void RouterContext::CreateNewRouter() {
-  m_Keys = i2p::data::CreateRandomKeys();
+  m_Keys = i2p::data::PrivateKeys::CreateRandomKeys(
+      i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
   SaveKeys();
   NewRouterInfo();
 }
@@ -314,9 +315,14 @@ bool RouterContext::Load() {
       std::ifstream::binary | std::ofstream::in);
   if (!fk.is_open())
     return false;
-  i2p::data::Keys keys;
-  fk.read(reinterpret_cast<char *>(&keys), sizeof(keys));
-  m_Keys = keys;
+  
+  fk.seekg(0, std::ios::end);
+  const size_t len = fk.tellg();
+  fk.seekg(0, std::ios::beg);
+  std::unique_ptr<uint8_t> buf(new uint8_t[len]);
+  fk.read(reinterpret_cast<char*>(buf.get()), len);
+  m_Keys.FromBuffer(buf.get(), len);
+
   i2p::data::RouterInfo routerInfo(
       i2p::util::filesystem::GetFullPath(ROUTER_INFO));
   m_RouterInfo.Update(
@@ -334,25 +340,10 @@ void RouterContext::SaveKeys() {
   std::ofstream fk(
       i2p::util::filesystem::GetFullPath(ROUTER_KEYS).c_str(),
       std::ofstream::binary | std::ofstream::out);
-  i2p::data::Keys keys;
-  memcpy(
-      keys.private_key,
-      m_Keys.GetPrivateKey(),
-      sizeof(keys.private_key));
-  memcpy(
-      keys.signing_private_key,
-      m_Keys.GetSigningPrivateKey(),
-      sizeof(keys.signing_private_key));
-  auto& ident = GetIdentity().GetStandardIdentity();
-  memcpy(
-      keys.public_key,
-      ident.public_key,
-      sizeof(keys.public_key));
-  memcpy(
-      keys.signing_key,
-      ident.signing_key,
-      sizeof(keys.signing_key));
-  fk.write(reinterpret_cast<char *>(&keys), sizeof(keys));
+  const size_t length = m_Keys.GetFullLen();
+  std::unique_ptr<uint8_t> buf(new uint8_t[length]);
+  m_Keys.ToBuffer(buf.get(), length);
+  fk.write(reinterpret_cast<char*>(buf.get()), length);
 }
 
 void RouterContext::RemoveTransport(

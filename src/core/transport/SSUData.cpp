@@ -47,6 +47,9 @@
 namespace i2p {
 namespace transport {
 
+// TODO(EinMByte): Get rid of this
+const std::size_t SSU_HEADER_SIZE_MIN = 37;
+
 void IncompleteMessage::AttachNextFragment(
     const uint8_t* fragment,
     size_t fragmentSize) {

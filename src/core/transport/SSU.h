@@ -62,7 +62,7 @@ const int SSU_PEER_TEST_TIMEOUT = 60;  // 60 seconds
 const int SSU_TO_INTRODUCER_SESSION_DURATION = 3600;  // 1 hour
 const size_t SSU_MAX_NUM_INTRODUCERS = 3;
 
-struct SSUPacket {
+struct RawSSUPacket {
   i2p::crypto::AESAlignedBuffer<1500> buf;
   boost::asio::ip::udp::endpoint from;
   size_t len;
@@ -153,15 +153,15 @@ class SSUServer {
   void HandleReceivedFrom(
       const boost::system::error_code& ecode,
       std::size_t bytes_transferred,
-      SSUPacket* packet);
+      RawSSUPacket* packet);
 
   void HandleReceivedFromV6(
       const boost::system::error_code& ecode,
       std::size_t bytes_transferred,
-      SSUPacket* packet);
+      RawSSUPacket* packet);
 
   void HandleReceivedPackets(
-      std::vector<SSUPacket *> packets);
+      std::vector<RawSSUPacket *> packets);
 
   template<typename Filter>
   std::shared_ptr<SSUSession> GetRandomSession(

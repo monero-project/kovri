@@ -1,7 +1,6 @@
 set(TESTS_SRC
   "Main.cpp"
   "core/Reseed.cpp"
-  "core/Identity.cpp"
   "core/transport/SSUPacket.cpp"
   "core/crypto/AES.cpp"
   "core/crypto/DSA.cpp"

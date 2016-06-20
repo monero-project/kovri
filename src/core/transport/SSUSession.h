@@ -50,7 +50,8 @@
 namespace i2p {
 namespace transport {
 
-const size_t SSU_HEADER_SIZE_MIN = 37;
+class SSUPacket;
+
 enum PayloadType {
   ePayloadTypeSessionRequest = 0,
   ePayloadTypeSessionCreated,
@@ -280,23 +281,20 @@ class SSUSession
   // Payload type 0: SessionRequest
 
   void ProcessSessionRequest(
-      SSUSessionPacket& pkt,
+      SSUPacket* pkt,
       const boost::asio::ip::udp::endpoint& senderEndpoint);
 
   void SendSessionRequest();
 
   // Payload type 1: SessionCreated
 
-  void ProcessSessionCreated(
-      SSUSessionPacket& pkt);
+  void ProcessSessionCreated(SSUPacket* pkt);
 
-  void SendSessionCreated(
-      const uint8_t* x);
+  void SendSessionCreated(const uint8_t* x);
 
   // Payload type 2: SessionConfirmed
 
-  void ProcessSessionConfirmed(
-      SSUSessionPacket& pkt);
+  void ProcessSessionConfirmed(SSUPacket* pkt);
 
   void SendSessionConfirmed(
       const uint8_t* y,
@@ -306,7 +304,7 @@ class SSUSession
   // Payload type 3: RelayRequest
 
   void ProcessRelayRequest(
-      SSUSessionPacket& pkt,
+      SSUPacket* pkt,
       const boost::asio::ip::udp::endpoint& from);
 
   void SendRelayRequest(
@@ -315,8 +313,7 @@ class SSUSession
 
   // Payload type 4: RelayResponse
 
-  void ProcessRelayResponse(
-      SSUSessionPacket& pkt);
+  void ProcessRelayResponse(SSUPacket* pkt);
 
   void SendRelayResponse(
       uint32_t nonce,
@@ -326,8 +323,7 @@ class SSUSession
 
   // Payload type 5: RelayIntro
 
-  void ProcessRelayIntro(
-      SSUSessionPacket& pkt);
+  void ProcessRelayIntro(SSUPacket* pkt);
 
   void SendRelayIntro(
       SSUSession* session,
@@ -335,13 +331,12 @@ class SSUSession
 
   // Payload type 6: Data
 
-  void ProcessData(
-      SSUSessionPacket& pkt);
+  void ProcessData(SSUPacket* pkt);
 
   // Payload type 7: PeerTest
 
   void ProcessPeerTest(
-      SSUSessionPacket& pkt,
+      SSUPacket* pkt,
       const boost::asio::ip::udp::endpoint& senderEndpoint);
 
   void SendPeerTest(

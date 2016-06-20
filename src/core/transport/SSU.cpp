@@ -223,7 +223,7 @@ void SSUServer::Send(
 
 void SSUServer::Receive() {
   LogPrint(eLogDebug, "SSUServer: receiving data");
-  SSUPacket* packet = new SSUPacket();
+  RawSSUPacket* packet = new RawSSUPacket();
   m_Socket.async_receive_from(
       boost::asio::buffer(
           packet->buf,
@@ -239,7 +239,7 @@ void SSUServer::Receive() {
 
 void SSUServer::ReceiveV6() {
   LogPrint(eLogDebug, "SSUServer: V6: receiving data");
-  SSUPacket* packet = new SSUPacket();
+  RawSSUPacket* packet = new RawSSUPacket();
   m_SocketV6.async_receive_from(
       boost::asio::buffer(
           packet->buf,
@@ -256,16 +256,16 @@ void SSUServer::ReceiveV6() {
 void SSUServer::HandleReceivedFrom(
     const boost::system::error_code& ecode,
     std::size_t bytes_transferred,
-    SSUPacket* packet) {
+    RawSSUPacket* packet) {
   LogPrint(eLogDebug, "SSUServer: handling received data");
   if (!ecode) {
     packet->len = bytes_transferred;
-    std::vector<SSUPacket *> packets;
+    std::vector<RawSSUPacket *> packets;
     packets.push_back(packet);
     boost::system::error_code ec;
     size_t moreBytes = m_Socket.available(ec);
     while (moreBytes && packets.size() < 25) {
-      packet = new SSUPacket();
+      packet = new RawSSUPacket();
       packet->len = m_Socket.receive_from(
           boost::asio::buffer(
               packet->buf,
@@ -289,15 +289,15 @@ void SSUServer::HandleReceivedFrom(
 void SSUServer::HandleReceivedFromV6(
     const boost::system::error_code& ecode,
     std::size_t bytes_transferred,
-    SSUPacket* packet) {
+    RawSSUPacket* packet) {
   LogPrint(eLogDebug, "SSUServer: V6: handling received data");
   if (!ecode) {
     packet->len = bytes_transferred;
-    std::vector<SSUPacket *> packets;
+    std::vector<RawSSUPacket *> packets;
     packets.push_back(packet);
     size_t moreBytes = m_SocketV6.available();
     while (moreBytes && packets.size() < 25) {
-      packet = new SSUPacket();
+      packet = new RawSSUPacket();
       packet->len = m_SocketV6.receive_from(
           boost::asio::buffer(
               packet->buf,
@@ -319,7 +319,7 @@ void SSUServer::HandleReceivedFromV6(
 }
 
 void SSUServer::HandleReceivedPackets(
-    std::vector<SSUPacket *> packets) {
+    std::vector<RawSSUPacket *> packets) {
   LogPrint(eLogDebug, "SSUServer: handling received packets");
   std::shared_ptr<SSUSession> session;
   for (auto packets_it : packets) {

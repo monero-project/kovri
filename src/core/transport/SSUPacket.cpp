@@ -50,7 +50,7 @@ const uint8_t DATA_FLAG_REQUEST_PREVIOUS_ACKS = 0x08;
 const uint8_t DATA_FLAG_EXPLICIT_CONGESTION_NOTIFICATION = 0x10;
 const uint8_t DATA_FLAG_ACK_BITFIELDS_INCLUDED = 0x40;
 const uint8_t DATA_FLAG_EXPLICIT_ACKS_INCLUDED = 0x80;
-const uint8_t DATA_FLAG_ACK_BITFIELD_HAS_NEXT = 0x10;
+const uint8_t DATA_FLAG_ACK_BITFIELD_HAS_NEXT = 0x80;
 
 void SSUHeader::SetMac(uint8_t* macPtr) {
   m_Mac = macPtr;
@@ -321,6 +321,10 @@ void SSUFragment::SetData(uint8_t* data) {
   m_Data = data;
 }
 
+void SSUDataPacket::AddExplicitACK(uint32_t messageId) {
+  m_ExplicitACKs.push_back(messageId);
+}
+
 void SSUDataPacket::AddACK(uint32_t messageId) {
   m_ACKs.push_back(messageId);
 }
@@ -564,15 +568,22 @@ std::unique_ptr<SSURelayIntroPacket> SSUPacketParser::ParseRelayIntro() {
 
 std::unique_ptr<SSUDataPacket> SSUPacketParser::ParseData() {
   std::unique_ptr<SSUDataPacket> packet(new SSUDataPacket());
+
   const uint8_t flags = ReadUInt8();
 
   // Read ACKS
   if(flags & DATA_FLAG_EXPLICIT_ACKS_INCLUDED) {
-    for(std::size_t i = 0; i < ReadUInt8(); ++i)
-      packet->AddACK(ReadUInt32());
+    const std::size_t nbExplicitACKs = ReadUInt8();
+    for(std::size_t i = 0; i < nbExplicitACKs; ++i)
+      packet->AddExplicitACK(ReadUInt32());
   }
   // Read ACK bifields
   if(flags & DATA_FLAG_ACK_BITFIELDS_INCLUDED) {
+    const std::size_t nbACKs = ReadUInt8();
+    // Read message IDs
+    for(std::size_t i = 0; i < nbACKs; ++i)
+      packet->AddACK(ReadUInt32());
+    // Read bitfields
     uint8_t bitfield;
     do {
       bitfield = ReadUInt8();
@@ -582,8 +593,10 @@ std::unique_ptr<SSUDataPacket> SSUPacketParser::ParseData() {
   // Ignore possible extended data
   if(flags & DATA_FLAG_EXTENDED_DATA_INCLUDED)
     ReadBytes(ReadUInt8());
+
+  const std::size_t nbFlags = ReadUInt8();
   // Read fragments
-  for(std::size_t i = 0; i < ReadUInt8(); ++i)
+  for(std::size_t i = 0; i < nbFlags; ++i)
     packet->AddFragment(ParseFragment());
   return packet;
 }

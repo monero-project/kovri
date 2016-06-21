@@ -218,15 +218,13 @@ private:
 
 class SSUDataPacket : public SSUPacket {
 public:
-  // TODO(EinMByte): Get rid of this
-  uint8_t* m_RawData;
-  std::size_t m_RawDataLength;
-
+  void AddExplicitACK(uint32_t messageId);
   void AddACK(uint32_t messageId);
   void AddACKBitfield(uint8_t bitfield);
   void AddFragment(SSUFragment fragment);
 private:
   uint8_t m_Flag;
+  std::vector<uint32_t> m_ExplicitACKs;
   std::vector<uint32_t> m_ACKs;
   std::vector<uint8_t> m_ACKBitfields;
   std::vector<SSUFragment> m_Fragments;

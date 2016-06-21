@@ -53,7 +53,6 @@ namespace transport {
 
 constexpr size_t SSU_KEYING_MATERIAL_SIZE = 64;
 const uint8_t SSU_FLAG_REKEY = 0x08;
-const uint8_t SSU_FLAG_EXTENDED_OPTIONS = 0x04;
 
 size_t SSUSessionPacket::ComputeHeaderSize() const {
   size_t hdr_size = SSU_HEADER_SIZE_MIN;

@@ -40,6 +40,7 @@ namespace i2p {
 namespace transport {
 
 constexpr std::size_t SSU_KEYING_MATERIAL_SIZE = 64;
+constexpr std::size_t SSU_DH_PUBLIC_SIZE = 256;
 const uint8_t SSU_FLAG_REKEY = 0x08;
 
 // Data message flags
@@ -489,7 +490,7 @@ std::unique_ptr<SSUPacket> SSUPacketParser::ParsePacket() {
 std::unique_ptr<SSUSessionRequestPacket> SSUPacketParser::ParseSessionRequest() {
   std::unique_ptr<SSUSessionRequestPacket> packet(
       new SSUSessionRequestPacket());
-  packet->SetDhX(ReadBytes(16));
+  packet->SetDhX(ReadBytes(SSU_DH_PUBLIC_SIZE));
   packet->SetIpAddress(ReadBytes(ReadUInt8()));
   return packet; 
 }
@@ -497,7 +498,7 @@ std::unique_ptr<SSUSessionRequestPacket> SSUPacketParser::ParseSessionRequest() 
 std::unique_ptr<SSUSessionCreatedPacket> SSUPacketParser::ParseSessionCreated() {
   std::unique_ptr<SSUSessionCreatedPacket> packet(
       new SSUSessionCreatedPacket());
-  packet->SetDhY(ReadBytes(16));
+  packet->SetDhY(ReadBytes(SSU_DH_PUBLIC_SIZE));
   std::size_t addressSize = ReadUInt8();
   packet->SetIpAddress(ReadBytes(addressSize), addressSize);
   packet->SetPort(ReadUInt16());

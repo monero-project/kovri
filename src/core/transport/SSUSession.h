@@ -52,75 +52,25 @@ namespace transport {
 
 class SSUPacket;
 
-enum PayloadType {
-  ePayloadTypeSessionRequest = 0,
-  ePayloadTypeSessionCreated,
-  ePayloadTypeSessionConfirmed,
-  ePayloadTypeRelayRequest,
-  ePayloadTypeRelayResponse,
-  ePayloadTypeRelayIntro,
-  ePayloadTypeData,
-  ePayloadTypePeerTest,
-  ePayloadTypeSessionDestroyed
-};
-
-// SSU Header extended options
-struct SSUExtendedOptions {
-  uint8_t * dataptr;
-  size_t datalen;
-};
-
 struct SSUSessionPacket {
   uint8_t* dataptr;  // pointer to beginning of packet header
   size_t datalen;    // how big is the total packet including header
-  size_t headerlen;  // how big is the header
   uint8_t* bodyptr;  // pointer to begining of packet body
-  size_t bodylen;    // how big the packet body is
 
   SSUSessionPacket()
       : dataptr(nullptr),
         datalen(0),
-        headerlen(0),
-        bodyptr(nullptr),
-        bodylen(0) {}
+        bodyptr(nullptr) {}
   SSUSessionPacket(
       uint8_t* buf,
       size_t len)
       : dataptr(buf),
         datalen(len),
-        headerlen(0),
-        bodyptr(nullptr),
-        bodylen(0) {}
-
-  /// @brief How many bytes long is the header (includes Extended options)
-  /// @return n bytes denoting size of header
-  size_t ComputeHeaderSize() const;
-
-  /// @brief Do we have extended options?
-  /// @return true if we have extended options
-  bool HasExtendedOptions() const;
-
-  /// @brief Extract the extended options from the SSUHeader
-  /// @return true if successful otherwise false
-  bool ExtractExtendedOptions(SSUExtendedOptions & opts) const;
-
-  /// @brief Obtain the SSU payload type
-  /// @return what type of ssu packet are we?
-  uint8_t GetPayloadType() const;
-
-  /// @return true if the rekey flag is set
-  bool Rekey() const;
-
-  /// @brief Used for rekey and extended options
-  uint8_t Flag() const;
+        bodyptr(nullptr) {}
 
   /// @brief Sets flag byte
   void PutFlag(
       uint8_t f) const;
-
-  /// @brief Packet timestamp
-  /// @return a four byte sending timestamp (seconds since the unix epoch).
-  uint32_t Time() const;
 
   /// @brief Puts timestamp into packet header
   void PutTime(uint32_t t) const;
@@ -133,10 +83,6 @@ struct SSUSessionPacket {
 
   /// @brief Gets pointer to IV
   uint8_t* IV() const;
-
-  /// @brief Parses SSU header
-  /// @return true if valid header format otherwise false
-  bool ParseHeader();
 };
 
 const int SSU_CONNECT_TIMEOUT = 5;  // 5 seconds

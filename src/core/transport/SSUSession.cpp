@@ -54,56 +54,6 @@ namespace transport {
 constexpr size_t SSU_KEYING_MATERIAL_SIZE = 64;
 const uint8_t SSU_FLAG_REKEY = 0x08;
 
-size_t SSUSessionPacket::ComputeHeaderSize() const {
-  size_t hdr_size = SSU_HEADER_SIZE_MIN;
-  // The index at which the extended options are located
-  size_t opts_idx = SSU_HEADER_SIZE_MIN;
-  if (Rekey()) {
-    LogPrint(eLogDebug, "SSUSessionPacket: packet has rekey data");
-    // The header has rekey data so add rekey data to
-    // the extended options offset and header size.
-    opts_idx += SSU_KEYING_MATERIAL_SIZE;
-    hdr_size += SSU_KEYING_MATERIAL_SIZE;
-  }
-  if (HasExtendedOptions()) {
-    LogPrint(eLogDebug, "SSUSessionPacket: packet has extended options");
-    // The header has extended options
-    if (opts_idx < datalen) {
-      // The size of the header includes the size of
-      // the extended options +1 byte holding the size.
-      hdr_size += dataptr[opts_idx] + 1;
-    }
-  }
-  return hdr_size;
-}
-
-bool SSUSessionPacket::Rekey() const {
-  return Flag() & SSU_FLAG_REKEY;
-}
-
-bool SSUSessionPacket::HasExtendedOptions() const {
-  return Flag() & SSU_FLAG_EXTENDED_OPTIONS;
-}
-
-bool SSUSessionPacket::ExtractExtendedOptions(
-    SSUExtendedOptions& opts) const {
-  size_t opts_idx = SSU_HEADER_SIZE_MIN;
-  if (Rekey())
-    opts_idx += SSU_KEYING_MATERIAL_SIZE;
-  if (opts_idx + 1 >= datalen) {
-    // If options are bigger than the ssu header
-    // don't set anything and instead return false.
-    return false;
-  }
-  opts.datalen = dataptr[opts_idx];
-  opts.dataptr = dataptr + opts_idx + 1;
-  return true;
-}
-
-uint8_t SSUSessionPacket::GetPayloadType() const {
-  return Flag() >> 4;
-}
-
 uint8_t* SSUSessionPacket::MAC() const {
   return dataptr;
 }
@@ -112,17 +62,9 @@ uint8_t* SSUSessionPacket::IV() const {
   return dataptr + size_t(16);
 }
 
-uint8_t SSUSessionPacket::Flag() const {
-  return dataptr[32];
-}
-
 void SSUSessionPacket::PutFlag(
     uint8_t f) const {
   dataptr[32] = f;
-}
-
-uint32_t SSUSessionPacket::Time() const {
-  return bufbe32toh(&dataptr[33]);
 }
 
 void SSUSessionPacket::PutTime(
@@ -132,15 +74,6 @@ void SSUSessionPacket::PutTime(
 
 uint8_t * SSUSessionPacket::Encrypted() const {
   return dataptr + size_t(32);
-}
-
-bool SSUSessionPacket::ParseHeader() {
-  headerlen = ComputeHeaderSize();
-  if (!headerlen)
-    return false;  // failed to parse header size
-  bodyptr = dataptr + headerlen;
-  bodylen = datalen - headerlen;
-  return true;
 }
 
 SSUSession::SSUSession(

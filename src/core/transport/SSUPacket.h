@@ -59,7 +59,12 @@ public:
     SessionDestroyed
   };
 
+  SSUHeader() = default;
+  SSUHeader(PayloadType type, uint8_t* mac, uint8_t* iv,
+      uint32_t time);
+
   void SetMac(uint8_t* macPtr);
+  uint8_t const* GetMac() const;
   void SetIv(uint8_t* ivPtr);
   uint8_t const* GetIv() const;
 
@@ -77,6 +82,10 @@ public:
 
   bool HasRekey() const;
   bool HasExtendedOptions() const;
+
+  /// @brief Computes the header size based on which options are set.
+  /// @return The size (in bytes) of this header.
+  std::size_t GetSize() const;
 
 private:
   uint8_t* m_Mac, * m_Iv;
@@ -315,6 +324,36 @@ private:
   uint8_t* m_Data;
   std::size_t m_Length;
 };
+
+namespace SSUPacketBuilder {
+
+  void WriteData(uint8_t*& pos, const uint8_t* data, std::size_t len);
+  void WriteUInt8(uint8_t*& pos, uint8_t data);
+  void WriteUInt32(uint8_t*& pos, uint32_t data);
+
+  /// @brief Writes an SSU header into a data buffer.
+  /// @pre The data buffer must be sufficiently large.
+  void WriteHeader(uint8_t*& data, SSUHeader* header);
+
+  std::unique_ptr<uint8_t> BuildSessionRequest(
+      const SSUSessionRequestPacket& packet);
+  std::unique_ptr<uint8_t> BuildSessionCreated(
+      const SSUSessionCreatedPacket& packet);
+  std::unique_ptr<uint8_t> BuildSessionConfirmed(
+      const SSUSessionConfirmedPacket& packet);
+  std::unique_ptr<uint8_t> BuildRelayRequest(
+      const SSURelayRequestPacket& packet);
+  std::unique_ptr<uint8_t> BuildRelayResponse(
+      const SSURelayResponsePacket& packet);
+  std::unique_ptr<uint8_t> BuildRelayIntro(
+      const SSURelayIntroPacket& packet);
+  std::unique_ptr<uint8_t> BuildData(
+      const SSUDataPacket& packet);
+  std::unique_ptr<uint8_t> BuildPeerTest(
+      const SSUPeerTestPacket& packet);
+  std::unique_ptr<uint8_t> BuildSessionDestroyed(
+      const SSUSessionDestroyedPacket& packet);
+}
 
 }
 }

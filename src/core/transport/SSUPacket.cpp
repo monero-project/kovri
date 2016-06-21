@@ -52,9 +52,20 @@ const uint8_t DATA_FLAG_ACK_BITFIELDS_INCLUDED = 0x40;
 const uint8_t DATA_FLAG_EXPLICIT_ACKS_INCLUDED = 0x80;
 const uint8_t DATA_FLAG_ACK_BITFIELD_HAS_NEXT = 0x80;
 
+SSUHeader::SSUHeader(PayloadType type, uint8_t* mac, uint8_t* iv,
+    uint32_t time)
+  : m_Mac(mac), m_Iv(iv), m_Rekey(false), m_Extended(false),
+    m_Time(time), m_PayloadType(type) {
+}
+
 void SSUHeader::SetMac(uint8_t* macPtr) {
   m_Mac = macPtr;
 }
+
+uint8_t const* SSUHeader::GetMac() const {
+  return m_Mac;
+}
+
 void SSUHeader::SetIv(uint8_t* ivPtr) {
   m_Iv = ivPtr;
 }
@@ -95,6 +106,14 @@ bool SSUHeader::HasRekey() const {
 
 bool SSUHeader::HasExtendedOptions() const {
   return m_Extended;
+}
+
+std::size_t SSUHeader::GetSize() const {
+  std::size_t size = SSU_HEADER_SIZE_MIN;
+  if(HasRekey())
+    size += SSU_KEYING_MATERIAL_SIZE;
+  // TODO(EinMByte): Add extended options size
+  return size;
 }
 
 void SSUPacket::SetHeader(std::unique_ptr<SSUHeader> header) {
@@ -619,5 +638,34 @@ std::unique_ptr<SSUSessionDestroyedPacket> SSUPacketParser::ParseSessionDestroye
   return packet;
 }
 
+namespace SSUPacketBuilder {
+
+void WriteData(uint8_t*& pos, const uint8_t* data, std::size_t len) {
+  memcpy(pos, data, len);
+  pos += len;
+}
+
+void WriteUInt8(uint8_t*& pos, uint8_t data) {
+  *(pos++) = data;
+}
+
+void WriteUInt32(uint8_t*& pos, uint32_t data) {
+  htobe32buf(pos, data);
+  pos += 4;
+}
+
+void WriteHeader(uint8_t*& data, SSUHeader* header) {
+  WriteData(data, header->GetMac(), SSU_MAC_SIZE);
+  WriteData(data, header->GetIv(), SSU_IV_SIZE);
+  const uint8_t flag =
+      (static_cast<uint8_t>(header->GetPayloadType()) << 4)
+      + (header->HasRekey() << 3)
+      + (header->HasExtendedOptions() << 2);
+  WriteUInt8(data, flag);
+  WriteUInt32(data, header->GetTime());
+  // TODO(EinMByte): Write extended options 
+}
+
+}
 }
 }

@@ -57,8 +57,8 @@ BOOST_AUTO_TEST_CASE(GetPayloadType) {
   BOOST_CHECK(header.GetPayloadType() == SSUHeader::PayloadType::PeerTest);
   header.SetPayloadType(8);
   BOOST_CHECK(header.GetPayloadType() == SSUHeader::PayloadType::SessionDestroyed);
+  //BOOST_CHECK_THROW(header.SetPayloadType(9);, std::invalid_argument);
 }
-
 
 BOOST_AUTO_TEST_SUITE_END()
 
@@ -73,8 +73,8 @@ struct SSUTestVectorsFixture {
     0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10,
     // 1 byte flag
     0x00,
-    // 4 bytes time
-    0xAA, 0xBB, 0xCC, 0xDD,
+    // 4 bytes time (2864434397)
+    0xAA, 0xBB, 0xCC, 0xDD
   };
 
   uint8_t headerExtendedOptions[42] = {
@@ -242,7 +242,6 @@ struct SSUTestVectorsFixture {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
   };
-
 };
 
 BOOST_FIXTURE_TEST_SUITE(SSUPacketParserTests, SSUTestVectorsFixture)
@@ -326,4 +325,25 @@ BOOST_AUTO_TEST_CASE(DataMultFragmentsPlain) {
     packet = parser.ParseData();
   );
 }
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_FIXTURE_TEST_SUITE(SSUPacketBuilderTests, SSUTestVectorsFixture)
+
+BOOST_AUTO_TEST_CASE(SSUHeaderPlain) {
+  i2p::transport::SSUHeader header(
+      i2p::transport::SSUHeader::PayloadType::SessionRequest,
+      &headerPlain[0], &headerPlain[16],
+      2864434397
+  );
+  std::unique_ptr<uint8_t> buffer(new uint8_t[header.GetSize()]);
+  uint8_t* bufferPtr = buffer.get();
+  i2p::transport::SSUPacketBuilder::WriteHeader(bufferPtr, &header);
+  BOOST_CHECK_EQUAL_COLLECTIONS(
+    buffer.get(),
+    buffer.get() + header.GetSize(),
+    headerPlain,
+    headerPlain + sizeof(headerPlain)
+  );
+}
+
 BOOST_AUTO_TEST_SUITE_END()

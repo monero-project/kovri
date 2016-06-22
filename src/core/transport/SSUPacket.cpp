@@ -88,6 +88,12 @@ void SSUHeader::SetRekey(bool rekey) {
   m_Rekey = rekey;
 }
 
+void SSUHeader::SetExtendedOptionsData(uint8_t* data,
+    std::size_t size) {
+  m_ExtendedOptionsSize = size;
+  m_ExtendedOptions = data;
+}
+
 void SSUHeader::SetExtendedOptions(bool extended) {
   m_Extended = extended;
 }
@@ -112,7 +118,8 @@ std::size_t SSUHeader::GetSize() const {
   std::size_t size = SSU_HEADER_SIZE_MIN;
   if(HasRekey())
     size += SSU_KEYING_MATERIAL_SIZE;
-  // TODO(EinMByte): Add extended options size
+  if(HasExtendedOptions())
+    size += m_ExtendedOptionsSize + 1;
   return size;
 }
 
@@ -124,6 +131,10 @@ SSUHeader* SSUPacket::GetHeader() const {
   return m_Header.get();
 }
 
+std::size_t SSUPacket::GetSize() const {
+  return m_Header ? m_Header->GetSize() : 0;
+}
+
 void SSUSessionRequestPacket::SetDhX(uint8_t* dhX) {
   m_DhX = dhX;
 }
@@ -132,8 +143,18 @@ uint8_t const* SSUSessionRequestPacket::GetDhX() const {
   return m_DhX;
 }
 
-void SSUSessionRequestPacket::SetIpAddress(uint8_t* ip) {
+void SSUSessionRequestPacket::SetIpAddress(uint8_t* ip, std::size_t size) {
+  m_IpAddressSize = size;
   m_IpAddress = ip;
+}
+
+std::size_t SSUSessionRequestPacket::GetIpAddressSize() const {
+  return m_IpAddressSize;
+}
+
+std::size_t SSUSessionRequestPacket::GetSize() const {
+  // DH X-parameter, address (and size)
+  return SSUPacket::GetSize() + SSU_DH_PUBLIC_SIZE + 1 + m_IpAddressSize;
 }
 
 void SSUSessionCreatedPacket::SetDhY(uint8_t* dhY) {
@@ -173,7 +194,9 @@ uint32_t SSUSessionCreatedPacket::GetRelayTag() const {
   return m_RelayTag;
 }
 
-void SSUSessionCreatedPacket::SetSignature(uint8_t* signature) {
+void SSUSessionCreatedPacket::SetSignature(uint8_t* signature,
+    std::size_t size) {
+  m_SignatureSize = size;
   m_Signature = signature;
 }
 
@@ -187,6 +210,14 @@ void SSUSessionCreatedPacket::SetSignedOnTime(uint32_t time) {
 
 uint32_t SSUSessionCreatedPacket::GetSignedOnTime() const {
   return m_SignedOnTime;
+}
+
+std::size_t SSUSessionCreatedPacket::GetSize() const {
+  // DH X-parameter, 1 byte address size, address size,
+  //    port size (2 bytes), relay tag size, time size,
+  //    signature size
+  return SSUPacket::GetSize() + SSU_DH_PUBLIC_SIZE + 1 + m_AddressSize
+    + 2 + 4 + 4 + m_SignatureSize;
 }
 
 void SSUSessionConfirmedPacket::SetRemoteRouterIdentity(
@@ -214,6 +245,12 @@ uint32_t SSUSessionConfirmedPacket::GetSignedOnTime() const {
   return m_SignedOnTime;
 }
 
+std::size_t SSUSessionConfirmedPacket::GetSize() const {
+  // Identity size, signature size, time size
+  return SSUPacket::GetSize() + m_RemoteIdentity.GetFullLen() 
+    + m_RemoteIdentity.GetSignatureLen() + 4;
+}
+
 void SSURelayRequestPacket::SetRelayTag(uint32_t relayTag) {
   m_RelayTag = relayTag;
 }
@@ -222,7 +259,8 @@ uint32_t SSURelayRequestPacket::GetRelayTag() const {
   return m_RelayTag;
 }
 
-void SSURelayRequestPacket::SetIpAddress(uint8_t* ipAddress) {
+void SSURelayRequestPacket::SetIpAddress(uint8_t* ipAddress, std::size_t size) {
+  m_IpAddressSize = size;
   m_IpAddress = ipAddress;
 }
 
@@ -230,7 +268,8 @@ uint8_t const* SSURelayRequestPacket::GetIpAddress() const {
   return m_IpAddress;
 }
 
-void SSURelayRequestPacket::SetChallenge(uint8_t* challenge) {
+void SSURelayRequestPacket::SetChallenge(uint8_t* challenge, std::size_t size) {
+  m_ChallengeSize = size;
   m_Challenge = challenge;
 }
 
@@ -258,6 +297,13 @@ uint32_t SSURelayRequestPacket::GetNonce() const {
   return m_Nonce;
 }
 
+std::size_t SSURelayRequestPacket::GetSize() const {
+  // Relay tag, nonce, address (and size), port,
+  //       challenge (and size), intro key
+  return SSUPacket::GetSize() + 4 + 4 + m_IpAddressSize + 1
+    + 2 + m_ChallengeSize + 1 + SSU_INTRO_KEY_SIZE;
+}
+
 void SSURelayResponsePacket::SetNonce(uint32_t nonce) {
   m_Nonce = nonce;
 }
@@ -275,7 +321,9 @@ std::size_t SSURelayResponsePacket::GetIpAddressAliceSize() const {
   return m_IpAddressAliceSize;
 }
 
-void SSURelayResponsePacket::SetIpAddressCharlie(uint8_t* ipAddress) {
+void SSURelayResponsePacket::SetIpAddressCharlie(uint8_t* ipAddress,
+    std::size_t size) {
+  m_IpAddressCharlieSize = size;
   m_IpAddressCharlie = ipAddress;
 }
 
@@ -291,6 +339,13 @@ uint16_t SSURelayResponsePacket::GetPortAlice() const {
   return m_PortAlice;
 }
 
+std::size_t SSURelayResponsePacket::GetSize() const {
+  // Nonce, address (and size) for Alice and Charlie,
+  //    port for Alice and Charlie
+  return SSUPacket::GetSize() + 4 + m_IpAddressAliceSize + 1 +
+    m_IpAddressCharlieSize + 1 + 2 + 2;
+}
+
 void SSURelayIntroPacket::SetIpAddress(uint8_t* ipAddress, std::size_t size) {
   m_IpAddressSize = size;
   m_IpAddress = ipAddress;
@@ -304,7 +359,8 @@ std::size_t SSURelayIntroPacket::GetIpAddressSize() const {
   return m_IpAddressSize;
 }
 
-void SSURelayIntroPacket::SetChallenge(uint8_t* challenge) {
+void SSURelayIntroPacket::SetChallenge(uint8_t* challenge, std::size_t size) {
+  m_ChallengeSize = size;
   m_Challenge = challenge;
 }
 
@@ -314,6 +370,12 @@ void SSURelayIntroPacket::SetPort(uint16_t port) {
 
 uint16_t SSURelayIntroPacket::GetPort() const {
   return m_Port;
+}
+
+std::size_t SSURelayIntroPacket::GetSize() const {
+  // Address (and size), challenge (and size), port
+  return SSUPacket::GetSize() + m_IpAddressSize + 1
+    + m_ChallengeSize + 1 + 2;
 }
 
 std::size_t SSUFragment::GetSize() const {
@@ -356,6 +418,21 @@ void SSUDataPacket::AddFragment(SSUFragment fragment) {
   m_Fragments.push_back(fragment);
 }
 
+std::size_t SSUDataPacket::GetSize() const {
+  // Flag, number of fragments
+  std::size_t size = SSUPacket::GetSize() + 1 + 1;
+  // Explicit ACKs
+  if(!m_ExplicitACKs.empty())
+    size += 1 + m_ExplicitACKs.size() * 4;
+  // ACK bitfields
+  if(!m_ACKs.empty())
+    size += 1 + m_ACKs.size() * (4 + 1);
+  // TODO(EinMByte): Count extended data
+  for(const SSUFragment& frag : m_Fragments)
+    size += frag.GetSize() + 4 + 3;
+  return size;
+}
+
 void SSUPeerTestPacket::SetNonce(uint32_t nonce) {
   m_Nonce = nonce;
 }
@@ -386,6 +463,11 @@ void SSUPeerTestPacket::SetIntroKey(uint8_t* introKey) {
 
 uint8_t const* SSUPeerTestPacket::GetIntroKey() const {
   return m_IntroKey;
+}
+
+std::size_t SSUPeerTestPacket::GetSize() const {
+  // Nonce, address (IPv4), port, intro key
+  return SSUPacket::GetSize() + 1 + 4 + 2 + SSU_INTRO_KEY_SIZE;
 }
 
 void SSUPacketParser::ConsumeData(std::size_t amount) {
@@ -458,9 +540,8 @@ std::unique_ptr<SSUHeader> SSUPacketParser::ParseHeader() {
   }
 
   if (header->HasExtendedOptions()) {
-    // TODO(EinMByte): Actually do something with the options
-    const std::size_t optionsSize = *m_Data;
-    ConsumeData(optionsSize);
+    const std::size_t optionsSize = ReadUInt8();
+    header->SetExtendedOptionsData(ReadBytes(optionsSize), optionsSize);
   }
   return header;
 }
@@ -514,7 +595,8 @@ std::unique_ptr<SSUSessionRequestPacket> SSUPacketParser::ParseSessionRequest() 
   std::unique_ptr<SSUSessionRequestPacket> packet(
       new SSUSessionRequestPacket());
   packet->SetDhX(ReadBytes(SSU_DH_PUBLIC_SIZE));
-  packet->SetIpAddress(ReadBytes(ReadUInt8()));
+  std::size_t size = ReadUInt8();
+  packet->SetIpAddress(ReadBytes(size), size);
   return packet; 
 }
 
@@ -527,7 +609,7 @@ std::unique_ptr<SSUSessionCreatedPacket> SSUPacketParser::ParseSessionCreated() 
   packet->SetPort(ReadUInt16());
   packet->SetRelayTag(ReadUInt32());
   packet->SetSignedOnTime(ReadUInt32());
-  packet->SetSignature(m_Data);
+  packet->SetSignature(m_Data, m_Length);
   return packet; 
 }
 
@@ -552,9 +634,11 @@ std::unique_ptr<SSURelayRequestPacket> SSUPacketParser::ParseRelayRequest() {
   std::unique_ptr<SSURelayRequestPacket> packet(
       new SSURelayRequestPacket());
   packet->SetRelayTag(ReadUInt32());
-  packet->SetIpAddress(ReadBytes(ReadUInt8()));
+  const std::size_t ipAddressSize = ReadUInt8();
+  packet->SetIpAddress(ReadBytes(ipAddressSize), ipAddressSize);
   packet->SetPort(ReadUInt16());
-  packet->SetChallenge(ReadBytes(ReadUInt8()));
+  const std::size_t challengeSize = ReadUInt8();
+  packet->SetChallenge(ReadBytes(challengeSize), challengeSize);
   packet->SetIntroKey(ReadBytes(SSU_INTRO_KEY_SIZE));
   packet->SetNonce(ReadUInt32());
 
@@ -564,10 +648,11 @@ std::unique_ptr<SSURelayRequestPacket> SSUPacketParser::ParseRelayRequest() {
 std::unique_ptr<SSURelayResponsePacket> SSUPacketParser::ParseRelayResponse() {
   std::unique_ptr<SSURelayResponsePacket> packet(
       new SSURelayResponsePacket());
-  packet->SetIpAddressCharlie(ReadBytes(ReadUInt8()));
+  const std::size_t ipAddressCharlieSize = ReadUInt8();
+  packet->SetIpAddressCharlie(ReadBytes(ipAddressCharlieSize), ipAddressCharlieSize);
   packet->SetPortCharlie(ReadUInt16());
-  const std::size_t ipAddressSize = ReadUInt8();
-  packet->SetIpAddressAlice(ReadBytes(ipAddressSize), ipAddressSize);
+  const std::size_t ipAddressAliceSize = ReadUInt8();
+  packet->SetIpAddressAlice(ReadBytes(ipAddressAliceSize), ipAddressAliceSize);
   packet->SetPortAlice(ReadUInt16());
   packet->SetNonce(ReadUInt32());
 
@@ -580,8 +665,8 @@ std::unique_ptr<SSURelayIntroPacket> SSUPacketParser::ParseRelayIntro() {
   const std::size_t ipAddressSize = ReadUInt8();
   packet->SetIpAddress(ReadBytes(ipAddressSize), ipAddressSize);
   packet->SetPort(ReadUInt16());
-  // TODO(EinMByte): Challenge must be ignored?
-  // packet->SetChallenge(ReadBytes(ReadUInt8()));
+  const std::size_t challengeSize = ReadUInt8();
+  packet->SetChallenge(ReadBytes(challengeSize), challengeSize);
   return packet;
 }
 
@@ -664,6 +749,58 @@ void WriteHeader(uint8_t*& data, SSUHeader* header) {
   WriteUInt8(data, flag);
   WriteUInt32(data, header->GetTime());
   // TODO(EinMByte): Write extended options 
+}
+
+std::unique_ptr<uint8_t> BuildSessionRequest(
+    const SSUSessionRequestPacket& packet) {
+  std::unique_ptr<uint8_t> buffer(new uint8_t[packet.GetSize()]);
+}
+
+std::unique_ptr<uint8_t> BuildSessionCreated(
+    const SSUSessionCreatedPacket& packet) {
+  std::unique_ptr<uint8_t> buffer(new uint8_t[packet.GetSize()]);
+
+}
+
+std::unique_ptr<uint8_t> BuildSessionConfirmed(
+    const SSUSessionConfirmedPacket& packet) {
+  std::unique_ptr<uint8_t> buffer(new uint8_t[packet.GetSize()]);
+
+}
+
+std::unique_ptr<uint8_t> BuildRelayRequest(
+    const SSURelayRequestPacket& packet) {
+  std::unique_ptr<uint8_t> buffer(new uint8_t[packet.GetSize()]);
+
+}
+
+std::unique_ptr<uint8_t> BuildRelayResponse(
+    const SSURelayResponsePacket& packet) {
+  std::unique_ptr<uint8_t> buffer(new uint8_t[packet.GetSize()]);
+
+}
+
+std::unique_ptr<uint8_t> BuildRelayIntro(
+    const SSURelayIntroPacket& packet) {
+  std::unique_ptr<uint8_t> buffer(new uint8_t[packet.GetSize()]);
+
+}
+
+std::unique_ptr<uint8_t> BuildData(
+    const SSUDataPacket& packet) {
+  std::unique_ptr<uint8_t> buffer(new uint8_t[packet.GetSize()]);
+
+}
+
+std::unique_ptr<uint8_t> BuildPeerTest(
+    const SSUPeerTestPacket& packet) {
+  std::unique_ptr<uint8_t> buffer(new uint8_t[packet.GetSize()]);
+
+}
+
+std::unique_ptr<uint8_t> BuildSessionDestroyed(
+    const SSUSessionDestroyedPacket& packet) {
+  std::unique_ptr<uint8_t> buffer(new uint8_t[packet.GetSize()]);
 }
 
 }

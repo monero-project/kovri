@@ -77,7 +77,7 @@ struct SSUTestVectorsFixture {
     0xAA, 0xBB, 0xCC, 0xDD
   };
 
-  uint8_t headerExtendedOptions[42] = {
+  uint8_t headerExtendedOptions[41] = {
     // 16 byte MAC (not an actual one)
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -94,7 +94,7 @@ struct SSUTestVectorsFixture {
     0x11, 0x12, 0x13
   };
 
-  uint8_t sessionRequest[300] = {
+  uint8_t sessionRequest[261] = {
     // 256 bytes X (as in DH)
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -131,7 +131,7 @@ struct SSUTestVectorsFixture {
     // 1 byte IP address size
     0x03,
     // 3 bytes IP address
-    0x0A, 0x0B, 0x0C
+    0x0A, 0x0B, 0x0C, 0x0D
   };
 
   uint8_t sessionCreated[310] = {
@@ -261,6 +261,7 @@ BOOST_AUTO_TEST_CASE(SSUHeaderPlain) {
     header->GetPayloadType() ==
       i2p::transport::SSUHeader::PayloadType::SessionRequest
   );
+  BOOST_CHECK_EQUAL(header->GetSize(), 37);
 }
 
 BOOST_AUTO_TEST_CASE(SSUHeaderExtendedOptions) {
@@ -278,6 +279,7 @@ BOOST_AUTO_TEST_CASE(SSUHeaderExtendedOptions) {
     header->GetPayloadType() ==
       i2p::transport::SSUHeader::PayloadType::SessionRequest
   );
+  BOOST_CHECK_EQUAL(header->GetSize(), 41);
 }
 
 BOOST_AUTO_TEST_CASE(SessionRequestPlain) {
@@ -288,6 +290,7 @@ BOOST_AUTO_TEST_CASE(SessionRequestPlain) {
   BOOST_CHECK_NO_THROW(
     packet = parser.ParseSessionRequest();
   );
+  BOOST_CHECK_EQUAL(packet->GetSize(), 260);
 }
 
 BOOST_AUTO_TEST_CASE(SessionCreatedPlain) {
@@ -304,6 +307,7 @@ BOOST_AUTO_TEST_CASE(SessionCreatedPlain) {
   BOOST_CHECK_EQUAL(packet->GetRelayTag(), 1234567890);
   BOOST_CHECK_EQUAL(packet->GetSignedOnTime(), 1466500266);
   BOOST_CHECK_EQUAL(*packet->GetSignature(), 0x00);
+  BOOST_CHECK_EQUAL(packet->GetSize(), 310);
 }
 
 BOOST_AUTO_TEST_CASE(DataOneFragmentPlain) {
@@ -314,6 +318,7 @@ BOOST_AUTO_TEST_CASE(DataOneFragmentPlain) {
   BOOST_CHECK_NO_THROW(
     packet = parser.ParseData();
   );
+  BOOST_CHECK_EQUAL(packet->GetSize(), 61);
 }
 
 BOOST_AUTO_TEST_CASE(DataMultFragmentsPlain) {
@@ -324,6 +329,7 @@ BOOST_AUTO_TEST_CASE(DataMultFragmentsPlain) {
   BOOST_CHECK_NO_THROW(
     packet = parser.ParseData();
   );
+  BOOST_CHECK_EQUAL(packet->GetSize(), 80);
 }
 BOOST_AUTO_TEST_SUITE_END()
 

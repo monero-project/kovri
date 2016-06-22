@@ -76,6 +76,7 @@ public:
 
   void SetRekey(bool rekey);
   void SetExtendedOptions(bool extended);
+  void SetExtendedOptionsData(uint8_t* data, std::size_t size);
 
   void SetTime(uint32_t time);
   uint32_t GetTime() const;
@@ -88,10 +89,11 @@ public:
   std::size_t GetSize() const;
 
 private:
-  uint8_t* m_Mac, * m_Iv;
+  uint8_t* m_Mac, * m_Iv, * m_ExtendedOptions;
   bool m_Rekey, m_Extended;
   uint32_t m_Time;
   PayloadType m_PayloadType;
+  std::size_t m_ExtendedOptionsSize;
 };
 
 class SSUPacket {
@@ -104,6 +106,8 @@ public:
   /// @return A raw pointer to the header of this packet.
   SSUHeader* GetHeader() const;
 
+  std::size_t GetSize() const;
+
   // TODO(EinMByte): Get rid of this
   uint8_t* m_RawData;
   std::size_t m_RawDataLength;
@@ -115,8 +119,11 @@ class SSUSessionRequestPacket : public SSUPacket {
 public:
   void SetDhX(uint8_t* dhX);
   uint8_t const* GetDhX() const;
-  void SetIpAddress(uint8_t* ip);
+  void SetIpAddress(uint8_t* ip, std::size_t size);
+  std::size_t GetIpAddressSize() const;
+  std::size_t GetSize() const;
 private:
+  std::size_t m_IpAddressSize;
   uint8_t* m_DhX, * m_IpAddress;
 };
 
@@ -131,12 +138,13 @@ public:
   uint16_t GetPort() const;
   void SetRelayTag(uint32_t relayTag);
   uint32_t GetRelayTag() const;
-  void SetSignature(uint8_t* signature);
+  void SetSignature(uint8_t* signature, std::size_t size);
   uint8_t* GetSignature() const;
   void SetSignedOnTime(uint32_t time);
   uint32_t GetSignedOnTime() const;
+  std::size_t GetSize() const;
 private:
-  std::size_t m_AddressSize;
+  std::size_t m_AddressSize, m_SignatureSize;
   uint8_t* m_DhY, * m_IpAddress, * m_Signature;
   uint16_t m_Port;
   uint32_t m_RelayTag, m_SignedOnTime;
@@ -151,6 +159,7 @@ public:
   uint8_t const* GetSignature() const;
   void SetSignedOnTime(uint32_t time);
   uint32_t GetSignedOnTime() const;
+  std::size_t GetSize() const;
 private:
   i2p::data::IdentityEx m_RemoteIdentity;
   uint8_t* m_Signature;
@@ -161,17 +170,19 @@ class SSURelayRequestPacket : public SSUPacket {
 public:
   void SetRelayTag(uint32_t tag);
   uint32_t GetRelayTag() const;
-  void SetIpAddress(uint8_t* ipAddress);
+  void SetIpAddress(uint8_t* ipAddress, std::size_t size);
   uint8_t const* GetIpAddress() const;
-  void SetChallenge(uint8_t* challenge);
+  void SetChallenge(uint8_t* challenge, std::size_t size);
   void SetPort(uint16_t port);
   uint16_t GetPort() const;
   void SetIntroKey(uint8_t* key);
   uint8_t const* GetIntroKey() const;
   void SetNonce(uint32_t nonce);
   uint32_t GetNonce() const;
+  std::size_t GetSize() const;
 private:
   uint32_t m_RelayTag, m_Nonce;
+  std::size_t m_IpAddressSize, m_ChallengeSize;
   uint8_t* m_IpAddress, * m_Challenge, * m_IntroKey;
   uint16_t m_Port;
 };
@@ -182,12 +193,13 @@ public:
   void SetIpAddressAlice(uint8_t* ipAddress, std::size_t size);
   uint8_t const* GetIpAddressAlice() const;
   std::size_t GetIpAddressAliceSize() const;
-  void SetIpAddressCharlie(uint8_t* ipAddress);
+  void SetIpAddressCharlie(uint8_t* ipAddress, std::size_t size);
   void SetPortAlice(uint16_t port);
   uint16_t GetPortAlice() const;
   void SetPortCharlie(uint16_t port);
+  std::size_t GetSize() const;
 private:
-  std::size_t m_IpAddressAliceSize;
+  std::size_t m_IpAddressAliceSize, m_IpAddressCharlieSize;
   uint32_t m_Nonce;
   uint8_t* m_IpAddressAlice, * m_IpAddressCharlie;
   uint16_t m_PortAlice, m_PortCharlie;
@@ -198,11 +210,12 @@ public:
   void SetIpAddress(uint8_t* ipAddress, std::size_t size);
   uint8_t const* GetIpAddress() const;
   std::size_t GetIpAddressSize() const;
-  void SetChallenge(uint8_t* challenge);
+  void SetChallenge(uint8_t* challenge, std::size_t size);
   void SetPort(uint16_t port);
   uint16_t GetPort() const;
+  std::size_t GetSize() const;
 private:
-  std::size_t m_IpAddressSize;
+  std::size_t m_IpAddressSize, m_ChallengeSize;
   uint8_t* m_IpAddress, * m_Challenge;
   uint16_t m_Port;
 };
@@ -210,12 +223,11 @@ private:
 
 class SSUFragment {
 public:
-  std::size_t GetSize() const;
-
   void SetMessageId(uint32_t messageId);
   void SetNumber(uint8_t number);
   void SetIsLast(bool isLast);
   void SetSize(std::size_t size);
+  std::size_t GetSize() const;
   void SetData(uint8_t* data);
 private:
   uint8_t m_MessageId;
@@ -231,6 +243,7 @@ public:
   void AddACK(uint32_t messageId);
   void AddACKBitfield(uint8_t bitfield);
   void AddFragment(SSUFragment fragment);
+  std::size_t GetSize() const;
 private:
   uint8_t m_Flag;
   std::vector<uint32_t> m_ExplicitACKs;
@@ -249,6 +262,7 @@ public:
   uint16_t GetPort() const;
   void SetIntroKey(uint8_t* key);
   uint8_t const* GetIntroKey() const;
+  std::size_t GetSize() const;
 private:
   uint32_t m_Nonce, m_IpAddress;
   uint8_t* m_IntroKey;

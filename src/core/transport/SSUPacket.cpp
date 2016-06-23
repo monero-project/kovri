@@ -832,7 +832,21 @@ std::unique_ptr<uint8_t> BuildSessionCreated(
 std::unique_ptr<uint8_t> BuildSessionConfirmed(
     const SSUSessionConfirmedPacket& packet) {
   std::unique_ptr<uint8_t> buffer(new uint8_t[packet.GetSize()]);
-
+  uint8_t* buf = buffer.get();
+  if(packet.GetHeader())
+    WriteHeader(buf, packet.GetHeader());
+  WriteUInt8(buf, 0x00); // 1 byte info
+  const std::size_t identitySize = packet.GetRemoteRouterIdentity().GetFullLen();
+  WriteUInt8(buf, identitySize);
+  packet.GetRemoteRouterIdentity().ToBuffer(buf, identitySize);
+  WriteUInt32(buf, packet.GetSignedOnTime());
+  // Write padding (before signature)
+  const std::size_t signatureSize = packet.GetRemoteRouterIdentity().GetSignatureLen();
+  const std::size_t paddingSize = 16 - (buf - buffer.get() + signatureSize) % 16;
+  i2p::crypto::RandBytes(buf, paddingSize);
+  buf += paddingSize;
+  WriteData(buf, packet.GetSignature(), signatureSize); 
+  return buffer;
 }
 
 std::unique_ptr<uint8_t> BuildRelayRequest(

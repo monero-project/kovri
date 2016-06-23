@@ -479,6 +479,8 @@ BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_FIXTURE_TEST_SUITE(SSUPacketBuilderTests, SSUTestVectorsFixture)
 
+using namespace i2p::transport::SSUPacketBuilder;
+
 BOOST_AUTO_TEST_CASE(SSUHeaderPlain) {
   i2p::transport::SSUHeader header(
       i2p::transport::SSUHeader::PayloadType::SessionRequest,
@@ -487,7 +489,7 @@ BOOST_AUTO_TEST_CASE(SSUHeaderPlain) {
   );
   std::unique_ptr<uint8_t> buffer(new uint8_t[header.GetSize()]);
   uint8_t* bufferPtr = buffer.get();
-  i2p::transport::SSUPacketBuilder::WriteHeader(bufferPtr, &header);
+  WriteHeader(bufferPtr, &header);
   BOOST_CHECK_EQUAL_COLLECTIONS(
     buffer.get(),
     buffer.get() + header.GetSize(),
@@ -507,7 +509,7 @@ BOOST_AUTO_TEST_CASE(SSUHeaderExtendedOptions) {
   header.SetExtendedOptions(true);
   std::unique_ptr<uint8_t> buffer(new uint8_t[header.GetSize()]);
   uint8_t* bufferPtr = buffer.get();
-  i2p::transport::SSUPacketBuilder::WriteHeader(bufferPtr, &header);
+  WriteHeader(bufferPtr, &header);
   BOOST_CHECK_EQUAL_COLLECTIONS(
     buffer.get(),
     buffer.get() + header.GetSize(),
@@ -516,4 +518,17 @@ BOOST_AUTO_TEST_CASE(SSUHeaderExtendedOptions) {
   );
 }
 
+BOOST_AUTO_TEST_CASE(SessionRequestPlain) {
+  i2p::transport::SSUSessionRequestPacket packet;
+  packet.SetDhX(&sessionRequest[0]);
+  packet.SetIpAddress(&sessionRequest[257], 4);
+
+  std::unique_ptr<uint8_t> buffer(BuildSessionRequest(packet));
+  BOOST_CHECK_EQUAL_COLLECTIONS(
+    buffer.get(),
+    buffer.get() + packet.GetSize(),
+    sessionRequest,
+    sessionRequest + sizeof(sessionRequest)
+  );
+}
 BOOST_AUTO_TEST_SUITE_END()

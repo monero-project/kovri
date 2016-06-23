@@ -122,6 +122,7 @@ public:
   void SetDhX(uint8_t* dhX);
   uint8_t const* GetDhX() const;
   void SetIpAddress(uint8_t* ip, std::size_t size);
+  uint8_t const* GetIpAddress() const;
   std::size_t GetIpAddressSize() const;
   std::size_t GetSize() const;
 private:

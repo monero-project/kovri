@@ -156,6 +156,10 @@ void SSUSessionRequestPacket::SetIpAddress(uint8_t* ip, std::size_t size) {
   m_IpAddress = ip;
 }
 
+uint8_t const* SSUSessionRequestPacket::GetIpAddress() const {
+  return m_IpAddress;
+}
+
 std::size_t SSUSessionRequestPacket::GetIpAddressSize() const {
   return m_IpAddressSize;
 }
@@ -789,11 +793,19 @@ void WriteHeader(uint8_t*& data, SSUHeader* header) {
 std::unique_ptr<uint8_t> BuildSessionRequest(
     const SSUSessionRequestPacket& packet) {
   std::unique_ptr<uint8_t> buffer(new uint8_t[packet.GetSize()]);
+  uint8_t* buf = buffer.get();
+  if(packet.GetHeader())
+    WriteHeader(buf, packet.GetHeader());
+  WriteData(buf, packet.GetDhX(), SSU_DH_PUBLIC_SIZE);
+  WriteUInt8(buf, packet.GetIpAddressSize());
+  WriteData(buf, packet.GetIpAddress(), packet.GetIpAddressSize());
+  return buffer;
 }
 
 std::unique_ptr<uint8_t> BuildSessionCreated(
     const SSUSessionCreatedPacket& packet) {
   std::unique_ptr<uint8_t> buffer(new uint8_t[packet.GetSize()]);
+
 
 }
 

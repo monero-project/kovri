@@ -129,8 +129,8 @@ struct SSUTestVectorsFixture {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     // 1 byte IP address size
-    0x03,
-    // 3 bytes IP address
+    0x04,
+    // 4 bytes IP address
     0x0A, 0x0B, 0x0C, 0x0D
   };
 
@@ -185,6 +185,80 @@ struct SSUTestVectorsFixture {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+  };
+
+  uint8_t sessionConfirmed[64] = {
+    // TODO(EinMByte): Make this more realistic so it will parse
+    // 1 byte info
+    0x00,
+    // 2 byte fragment size (8)
+    0x08,
+    // 8 byte fragment
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    // Signed on time (1466500266)
+    0x57, 0x69, 0x04, 0xAA,
+    // Padding to reach multiple of 16 bytes
+    0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    // Signature (non-realistic example)
+    // 40 bytes (DSA)
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+  };
+
+  uint8_t relayRequest[52] = {
+    // 4 byte relay tag
+    0x01, 0x02, 0x03, 0x04,
+    // 1 byte address size
+    0x04,
+    // 4 byte IP address
+    0x0A, 0x0B, 0x0C, 0x0D,
+    // 2 byte port (9000)
+    0x23, 0x28,
+    // 1 byte challenge size
+    0x04,
+    // 4 byte challenge
+    0x00, 0x00, 0x00, 0x00,
+    // 32 byte intro key
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    // 4 byte nonce
+    0x01, 0x01, 0x01, 0x01
+  };
+
+  uint8_t relayResponse[18] = {
+    // 1 byte address size (4)
+    0x04,
+    // 4 byte address
+    0x0A, 0x0B, 0x0C, 0x0D,
+    // 2 byte port (9000)
+    0x23, 0x28,
+    // 1 byte address size (4)
+    0x04,
+    // 4 byte address
+    0x0A, 0x0B, 0x0C, 0x0D,
+    // 2 byte port (9000)
+    0x23, 0x28,
+    // 4 byte nonce
+    0x01, 0x01, 0x01, 0x01
+  };
+
+  uint8_t relayIntro[12] = {
+    // 1 byte address size (4)
+    0x04,
+    // 4 byte address
+    0x0A, 0x0B, 0x0C, 0x0D,
+    // 2 byte port (9000)
+    0x23, 0x28,
+    // 1 byte challenge size (4)
+    0x04,
+    // 4 byte challenge
+    0x00, 0x00, 0x00, 0x00
   };
 
   uint8_t dataOneFragment[61] = {
@@ -261,7 +335,7 @@ BOOST_AUTO_TEST_CASE(SSUHeaderPlain) {
     header->GetPayloadType() ==
       i2p::transport::SSUHeader::PayloadType::SessionRequest
   );
-  BOOST_CHECK_EQUAL(header->GetSize(), 37);
+  BOOST_CHECK_EQUAL(header->GetSize(), sizeof(headerPlain));
 }
 
 BOOST_AUTO_TEST_CASE(SSUHeaderExtendedOptions) {
@@ -279,7 +353,7 @@ BOOST_AUTO_TEST_CASE(SSUHeaderExtendedOptions) {
     header->GetPayloadType() ==
       i2p::transport::SSUHeader::PayloadType::SessionRequest
   );
-  BOOST_CHECK_EQUAL(header->GetSize(), 41);
+  BOOST_CHECK_EQUAL(header->GetSize(), sizeof(headerExtendedOptions));
 }
 
 BOOST_AUTO_TEST_CASE(SessionRequestPlain) {
@@ -290,7 +364,7 @@ BOOST_AUTO_TEST_CASE(SessionRequestPlain) {
   BOOST_CHECK_NO_THROW(
     packet = parser.ParseSessionRequest();
   );
-  BOOST_CHECK_EQUAL(packet->GetSize(), 260);
+  BOOST_CHECK_EQUAL(packet->GetSize(), sizeof(sessionRequest));
 }
 
 BOOST_AUTO_TEST_CASE(SessionCreatedPlain) {
@@ -307,7 +381,77 @@ BOOST_AUTO_TEST_CASE(SessionCreatedPlain) {
   BOOST_CHECK_EQUAL(packet->GetRelayTag(), 1234567890);
   BOOST_CHECK_EQUAL(packet->GetSignedOnTime(), 1466500266);
   BOOST_CHECK_EQUAL(*packet->GetSignature(), 0x00);
-  BOOST_CHECK_EQUAL(packet->GetSize(), 310);
+  BOOST_CHECK_EQUAL(packet->GetSize(), sizeof(sessionCreated));
+}
+
+BOOST_AUTO_TEST_CASE(RelayRequestPlain) {
+  i2p::transport::SSUPacketParser parser(
+    relayRequest, sizeof(relayRequest)
+  );
+  std::unique_ptr<i2p::transport::SSURelayRequestPacket> packet;
+  BOOST_CHECK_NO_THROW(
+    packet = parser.ParseRelayRequest();
+  );
+  BOOST_CHECK_EQUAL(packet->GetRelayTag(), 0x01020304);
+  const uint8_t expectedAddress[4] = {0x0A, 0x0B, 0x0C, 0x0D};
+  BOOST_CHECK_EQUAL_COLLECTIONS(
+      packet->GetIpAddress(),
+      packet->GetIpAddress() + sizeof(expectedAddress),
+      expectedAddress,
+      expectedAddress + sizeof(expectedAddress) 
+  );
+  BOOST_CHECK_EQUAL(packet->GetPort(), 9000);
+  BOOST_CHECK_EQUAL(*packet->GetChallenge(), 0);
+  BOOST_CHECK_EQUAL(*packet->GetIntroKey(), 0);
+  BOOST_CHECK_EQUAL(packet->GetNonce(), 0x01010101);
+  BOOST_CHECK_EQUAL(packet->GetSize(), sizeof(relayRequest));
+}
+
+BOOST_AUTO_TEST_CASE(RelayResponsePlain) {
+  i2p::transport::SSUPacketParser parser(
+    relayResponse, sizeof(relayResponse)
+  );
+  std::unique_ptr<i2p::transport::SSURelayResponsePacket> packet;
+  BOOST_CHECK_NO_THROW(
+    packet = parser.ParseRelayResponse();
+  );
+  const uint8_t expectedAddress[4] = {0x0A, 0x0B, 0x0C, 0x0D};
+  BOOST_CHECK_EQUAL_COLLECTIONS(
+      packet->GetIpAddressCharlie(),
+      packet->GetIpAddressCharlie() + sizeof(expectedAddress),
+      expectedAddress,
+      expectedAddress + sizeof(expectedAddress)
+  );
+  BOOST_CHECK_EQUAL(packet->GetPortCharlie(), 9000);
+  BOOST_CHECK_EQUAL_COLLECTIONS(
+      packet->GetIpAddressAlice(),
+      packet->GetIpAddressAlice() + sizeof(expectedAddress),
+      expectedAddress,
+      expectedAddress + sizeof(expectedAddress)
+  );
+  BOOST_CHECK_EQUAL(packet->GetPortAlice(), 9000);
+  BOOST_CHECK_EQUAL(packet->GetNonce(), 0x01010101);
+  BOOST_CHECK_EQUAL(packet->GetSize(), sizeof(relayResponse));
+}
+
+BOOST_AUTO_TEST_CASE(RelayIntroPlain) {
+  i2p::transport::SSUPacketParser parser(
+    relayIntro, sizeof(relayIntro)
+  );
+  std::unique_ptr<i2p::transport::SSURelayIntroPacket> packet;
+  BOOST_CHECK_NO_THROW(
+    packet = parser.ParseRelayIntro();
+  );
+  const uint8_t expectedAddress[4] = {0x0A, 0x0B, 0x0C, 0x0D};
+  BOOST_CHECK_EQUAL_COLLECTIONS(
+      packet->GetIpAddress(),
+      packet->GetIpAddress() + sizeof(expectedAddress),
+      expectedAddress,
+      expectedAddress + sizeof(expectedAddress)
+  );
+  BOOST_CHECK_EQUAL(packet->GetPort(), 9000);
+  BOOST_CHECK_EQUAL(*packet->GetChallenge(), 0);
+  BOOST_CHECK_EQUAL(packet->GetSize(), sizeof(relayIntro));
 }
 
 BOOST_AUTO_TEST_CASE(DataOneFragmentPlain) {
@@ -318,7 +462,7 @@ BOOST_AUTO_TEST_CASE(DataOneFragmentPlain) {
   BOOST_CHECK_NO_THROW(
     packet = parser.ParseData();
   );
-  BOOST_CHECK_EQUAL(packet->GetSize(), 61);
+  BOOST_CHECK_EQUAL(packet->GetSize(), sizeof(dataOneFragment));
 }
 
 BOOST_AUTO_TEST_CASE(DataMultFragmentsPlain) {
@@ -329,7 +473,7 @@ BOOST_AUTO_TEST_CASE(DataMultFragmentsPlain) {
   BOOST_CHECK_NO_THROW(
     packet = parser.ParseData();
   );
-  BOOST_CHECK_EQUAL(packet->GetSize(), 80);
+  BOOST_CHECK_EQUAL(packet->GetSize(), sizeof(dataMultFragments));
 }
 BOOST_AUTO_TEST_SUITE_END()
 
@@ -349,6 +493,26 @@ BOOST_AUTO_TEST_CASE(SSUHeaderPlain) {
     buffer.get() + header.GetSize(),
     headerPlain,
     headerPlain + sizeof(headerPlain)
+  );
+}
+
+BOOST_AUTO_TEST_CASE(SSUHeaderExtendedOptions) {
+  i2p::transport::SSUHeader header(
+      i2p::transport::SSUHeader::PayloadType::SessionRequest,
+      &headerExtendedOptions[0], &headerExtendedOptions[16],
+      2864434397
+  );
+  uint8_t extendedData[3] = {0x11, 0x12, 0x13};
+  header.SetExtendedOptionsData(extendedData, sizeof(extendedData));
+  header.SetExtendedOptions(true);
+  std::unique_ptr<uint8_t> buffer(new uint8_t[header.GetSize()]);
+  uint8_t* bufferPtr = buffer.get();
+  i2p::transport::SSUPacketBuilder::WriteHeader(bufferPtr, &header);
+  BOOST_CHECK_EQUAL_COLLECTIONS(
+    buffer.get(),
+    buffer.get() + header.GetSize(),
+    headerExtendedOptions,
+    headerExtendedOptions + sizeof(headerExtendedOptions)
   );
 }
 

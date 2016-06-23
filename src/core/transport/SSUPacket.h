@@ -77,6 +77,8 @@ public:
   void SetRekey(bool rekey);
   void SetExtendedOptions(bool extended);
   void SetExtendedOptionsData(uint8_t* data, std::size_t size);
+  uint8_t const* GetExtendedOptionsData() const;
+  std::size_t GetExtendedOptionsSize() const;
 
   void SetTime(uint32_t time);
   uint32_t GetTime() const;
@@ -173,6 +175,7 @@ public:
   void SetIpAddress(uint8_t* ipAddress, std::size_t size);
   uint8_t const* GetIpAddress() const;
   void SetChallenge(uint8_t* challenge, std::size_t size);
+  uint8_t const* GetChallenge() const;
   void SetPort(uint16_t port);
   uint16_t GetPort() const;
   void SetIntroKey(uint8_t* key);
@@ -190,13 +193,16 @@ private:
 class SSURelayResponsePacket : public SSUPacket {
 public:
   void SetNonce(uint32_t nonce);
+  uint32_t GetNonce() const;
   void SetIpAddressAlice(uint8_t* ipAddress, std::size_t size);
   uint8_t const* GetIpAddressAlice() const;
   std::size_t GetIpAddressAliceSize() const;
   void SetIpAddressCharlie(uint8_t* ipAddress, std::size_t size);
+  uint8_t const* GetIpAddressCharlie() const;
   void SetPortAlice(uint16_t port);
   uint16_t GetPortAlice() const;
   void SetPortCharlie(uint16_t port);
+  uint16_t GetPortCharlie() const;
   std::size_t GetSize() const;
 private:
   std::size_t m_IpAddressAliceSize, m_IpAddressCharlieSize;
@@ -211,6 +217,7 @@ public:
   uint8_t const* GetIpAddress() const;
   std::size_t GetIpAddressSize() const;
   void SetChallenge(uint8_t* challenge, std::size_t size);
+  uint8_t const* GetChallenge() const;
   void SetPort(uint16_t port);
   uint16_t GetPort() const;
   std::size_t GetSize() const;

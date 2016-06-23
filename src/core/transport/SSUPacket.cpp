@@ -94,6 +94,14 @@ void SSUHeader::SetExtendedOptionsData(uint8_t* data,
   m_ExtendedOptions = data;
 }
 
+uint8_t const* SSUHeader::GetExtendedOptionsData() const {
+  return m_ExtendedOptions;
+}
+
+std::size_t SSUHeader::GetExtendedOptionsSize() const {
+  return m_ExtendedOptionsSize;
+}
+
 void SSUHeader::SetExtendedOptions(bool extended) {
   m_Extended = extended;
 }
@@ -273,6 +281,10 @@ void SSURelayRequestPacket::SetChallenge(uint8_t* challenge, std::size_t size) {
   m_Challenge = challenge;
 }
 
+uint8_t const* SSURelayRequestPacket::GetChallenge() const {
+  return m_Challenge;
+}
+
 void SSURelayRequestPacket::SetPort(uint16_t port) {
   m_Port = port;
 }
@@ -308,6 +320,10 @@ void SSURelayResponsePacket::SetNonce(uint32_t nonce) {
   m_Nonce = nonce;
 }
 
+uint32_t SSURelayResponsePacket::GetNonce() const {
+  return m_Nonce;
+}
+
 void SSURelayResponsePacket::SetIpAddressAlice(uint8_t* ipAddress, std::size_t size) {
   m_IpAddressAliceSize = size;
   m_IpAddressAlice = ipAddress;
@@ -327,16 +343,24 @@ void SSURelayResponsePacket::SetIpAddressCharlie(uint8_t* ipAddress,
   m_IpAddressCharlie = ipAddress;
 }
 
+uint8_t const* SSURelayResponsePacket::GetIpAddressCharlie() const {
+  return m_IpAddressCharlie;
+}
+
 void SSURelayResponsePacket::SetPortAlice(uint16_t port) {
   m_PortAlice = port;
+}
+
+uint16_t SSURelayResponsePacket::GetPortAlice() const {
+  return m_PortAlice;
 }
 
 void SSURelayResponsePacket::SetPortCharlie(uint16_t port) {
   m_PortCharlie = port;
 }
 
-uint16_t SSURelayResponsePacket::GetPortAlice() const {
-  return m_PortAlice;
+uint16_t SSURelayResponsePacket::GetPortCharlie() const {
+  return m_PortCharlie;
 }
 
 std::size_t SSURelayResponsePacket::GetSize() const {
@@ -362,6 +386,10 @@ std::size_t SSURelayIntroPacket::GetIpAddressSize() const {
 void SSURelayIntroPacket::SetChallenge(uint8_t* challenge, std::size_t size) {
   m_ChallengeSize = size;
   m_Challenge = challenge;
+}
+
+uint8_t const* SSURelayIntroPacket::GetChallenge() const {
+  return m_Challenge;
 }
 
 void SSURelayIntroPacket::SetPort(uint16_t port) {
@@ -748,7 +776,14 @@ void WriteHeader(uint8_t*& data, SSUHeader* header) {
       + (header->HasExtendedOptions() << 2);
   WriteUInt8(data, flag);
   WriteUInt32(data, header->GetTime());
-  // TODO(EinMByte): Write extended options 
+  if(header->HasExtendedOptions()) {
+    // TODO(EinMByte): Check for overflow
+    WriteUInt8(data, header->GetExtendedOptionsSize());
+    WriteData(
+        data,
+        header->GetExtendedOptionsData(),
+        header->GetExtendedOptionsSize());
+  }
 }
 
 std::unique_ptr<uint8_t> BuildSessionRequest(

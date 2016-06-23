@@ -143,6 +143,7 @@ public:
   uint32_t GetRelayTag() const;
   void SetSignature(uint8_t* signature, std::size_t size);
   uint8_t* GetSignature() const;
+  std::size_t GetSignatureSize() const;
   void SetSignedOnTime(uint32_t time);
   uint32_t GetSignedOnTime() const;
   std::size_t GetSize() const;
@@ -351,6 +352,7 @@ namespace SSUPacketBuilder {
 
   void WriteData(uint8_t*& pos, const uint8_t* data, std::size_t len);
   void WriteUInt8(uint8_t*& pos, uint8_t data);
+  void WriteUInt16(uint8_t*& pos, uint16_t data);
   void WriteUInt32(uint8_t*& pos, uint32_t data);
 
   /// @brief Writes an SSU header into a data buffer.

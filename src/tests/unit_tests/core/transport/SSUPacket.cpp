@@ -531,4 +531,21 @@ BOOST_AUTO_TEST_CASE(SessionRequestPlain) {
     sessionRequest + sizeof(sessionRequest)
   );
 }
+
+BOOST_AUTO_TEST_CASE(SessionCreatedPlain) {
+  i2p::transport::SSUSessionCreatedPacket packet;
+  packet.SetDhY(&sessionCreated[0]);
+  packet.SetIpAddress(&sessionCreated[257], 3);
+  packet.SetPort(9000);
+  packet.SetRelayTag(1234567890);
+  packet.SetSignedOnTime(1466500266);
+  packet.SetSignature(&sessionCreated[270], 40);
+  std::unique_ptr<uint8_t> buffer(BuildSessionCreated(packet));
+  BOOST_CHECK_EQUAL_COLLECTIONS(
+    buffer.get(),
+    buffer.get() + packet.GetSize(),
+    sessionCreated,
+    sessionCreated + sizeof(sessionCreated)
+  );
+}
 BOOST_AUTO_TEST_SUITE_END()

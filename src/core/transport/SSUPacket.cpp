@@ -216,6 +216,10 @@ uint8_t* SSUSessionCreatedPacket::GetSignature() const {
   return m_Signature;
 }
 
+std::size_t SSUSessionCreatedPacket::GetSignatureSize() const {
+  return m_SignatureSize;
+}
+
 void SSUSessionCreatedPacket::SetSignedOnTime(uint32_t time) {
   m_SignedOnTime = time;
 }
@@ -766,6 +770,11 @@ void WriteUInt8(uint8_t*& pos, uint8_t data) {
   *(pos++) = data;
 }
 
+void WriteUInt16(uint8_t*& pos, uint16_t data) {
+  htobe16buf(pos, data);
+  pos += 2;
+}
+
 void WriteUInt32(uint8_t*& pos, uint32_t data) {
   htobe32buf(pos, data);
   pos += 4;
@@ -797,6 +806,7 @@ std::unique_ptr<uint8_t> BuildSessionRequest(
   if(packet.GetHeader())
     WriteHeader(buf, packet.GetHeader());
   WriteData(buf, packet.GetDhX(), SSU_DH_PUBLIC_SIZE);
+  // TODO(EinMByte): Check for overflow
   WriteUInt8(buf, packet.GetIpAddressSize());
   WriteData(buf, packet.GetIpAddress(), packet.GetIpAddressSize());
   return buffer;
@@ -805,8 +815,18 @@ std::unique_ptr<uint8_t> BuildSessionRequest(
 std::unique_ptr<uint8_t> BuildSessionCreated(
     const SSUSessionCreatedPacket& packet) {
   std::unique_ptr<uint8_t> buffer(new uint8_t[packet.GetSize()]);
-
-
+  uint8_t* buf = buffer.get();
+  if(packet.GetHeader())
+    WriteHeader(buf, packet.GetHeader());
+  WriteData(buf, packet.GetDhY(), SSU_DH_PUBLIC_SIZE);
+  // TODO(EinMByte): Check for overflow
+  WriteUInt8(buf, packet.GetIpAddressSize());
+  WriteData(buf, packet.GetIpAddress(), packet.GetIpAddressSize());
+  WriteUInt16(buf, packet.GetPort());
+  WriteUInt32(buf, packet.GetRelayTag());
+  WriteUInt32(buf, packet.GetSignedOnTime());
+  WriteData(buf, packet.GetSignature(), packet.GetSignatureSize());
+  return buffer;
 }
 
 std::unique_ptr<uint8_t> BuildSessionConfirmed(

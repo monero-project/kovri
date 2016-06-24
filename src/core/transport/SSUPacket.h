@@ -43,6 +43,7 @@ const std::size_t SSU_HEADER_SIZE_MIN = 37;
 const std::size_t SSU_MAC_SIZE = 16;
 const std::size_t SSU_IV_SIZE = 16;
 const std::size_t SSU_INTRO_KEY_SIZE = 32;
+const std::size_t SSU_BUFFER_SIZE_MARGIN = 18;
 const uint8_t SSU_FLAG_EXTENDED_OPTIONS = 0x04;
 
 class SSUHeader {
@@ -56,15 +57,17 @@ public:
     RelayIntro,
     Data,
     PeerTest,
-    SessionDestroyed
+    SessionDestroyed,
+    Unknown
   };
 
-  SSUHeader() = default;
+  SSUHeader();
+  SSUHeader(PayloadType type);
   SSUHeader(PayloadType type, uint8_t* mac, uint8_t* iv,
       uint32_t time);
 
   void SetMac(uint8_t* macPtr);
-  uint8_t const* GetMac() const;
+  uint8_t* GetMac() const;
   void SetIv(uint8_t* ivPtr);
   uint8_t const* GetIv() const;
 
@@ -355,28 +358,24 @@ namespace SSUPacketBuilder {
   void WriteUInt16(uint8_t*& pos, uint16_t data);
   void WriteUInt32(uint8_t*& pos, uint32_t data);
 
+  std::size_t GetPaddingSize(std::size_t size);
+  std::size_t GetPaddedSize(std::size_t size);
+
   /// @brief Writes an SSU header into a data buffer.
   /// @pre The data buffer must be sufficiently large.
   void WriteHeader(uint8_t*& data, SSUHeader* header);
 
-  std::unique_ptr<uint8_t> BuildSessionRequest(
-      const SSUSessionRequestPacket& packet);
-  std::unique_ptr<uint8_t> BuildSessionCreated(
-      const SSUSessionCreatedPacket& packet);
-  std::unique_ptr<uint8_t> BuildSessionConfirmed(
-      const SSUSessionConfirmedPacket& packet);
-  std::unique_ptr<uint8_t> BuildRelayRequest(
-      const SSURelayRequestPacket& packet);
-  std::unique_ptr<uint8_t> BuildRelayResponse(
-      const SSURelayResponsePacket& packet);
-  std::unique_ptr<uint8_t> BuildRelayIntro(
-      const SSURelayIntroPacket& packet);
-  std::unique_ptr<uint8_t> BuildData(
-      const SSUDataPacket& packet);
-  std::unique_ptr<uint8_t> BuildPeerTest(
-      const SSUPeerTestPacket& packet);
-  std::unique_ptr<uint8_t> BuildSessionDestroyed(
-      const SSUSessionDestroyedPacket& packet);
+  void WriteSessionRequest(uint8_t*& buf, SSUSessionRequestPacket* packet);
+  void WriteSessionCreated(uint8_t*& buf, SSUSessionCreatedPacket* packet);
+  void WriteSessionConfirmed(uint8_t*& buf, SSUSessionConfirmedPacket* packet);
+  void WriteRelayRequest(uint8_t*& buf, SSURelayRequestPacket* packet);
+  void WriteRelayResponse(uint8_t*& buf, SSURelayResponsePacket* packet);
+  void WriteRelayIntro(uint8_t*& buf, SSURelayIntroPacket* packet);
+  void WriteData(uint8_t*& buf, SSUDataPacket* packet);
+  void WritePeerTest(uint8_t*& buf, SSUPeerTestPacket* packet);
+  void WriteSessionDestroyed(uint8_t*& buf, SSUSessionDestroyedPacket* packet);
+
+  void WritePacket(uint8_t*& buf, SSUPacket* packet);
 }
 
 }

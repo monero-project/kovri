@@ -57,7 +57,12 @@ BOOST_AUTO_TEST_CASE(GetPayloadType) {
   BOOST_CHECK(header.GetPayloadType() == SSUHeader::PayloadType::PeerTest);
   header.SetPayloadType(8);
   BOOST_CHECK(header.GetPayloadType() == SSUHeader::PayloadType::SessionDestroyed);
-  //BOOST_CHECK_THROW(header.SetPayloadType(9);, std::invalid_argument);
+}
+
+BOOST_AUTO_TEST_CASE(SetPayloadTypeInvalid) {
+  i2p::transport::SSUHeader header;
+  BOOST_CHECK_THROW(header.SetPayloadType(9);, std::invalid_argument);
+  BOOST_CHECK_THROW(header.SetPayloadType(-1);, std::invalid_argument);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
@@ -523,7 +528,9 @@ BOOST_AUTO_TEST_CASE(SessionRequestPlain) {
   packet.SetDhX(&sessionRequest[0]);
   packet.SetIpAddress(&sessionRequest[257], 4);
 
-  std::unique_ptr<uint8_t> buffer(BuildSessionRequest(packet));
+  std::unique_ptr<uint8_t> buffer(new uint8_t[packet.GetSize()]);
+  uint8_t* bufferPtr = buffer.get();
+  WriteSessionRequest(bufferPtr, &packet);
   BOOST_CHECK_EQUAL_COLLECTIONS(
     buffer.get(),
     buffer.get() + packet.GetSize(),
@@ -540,7 +547,10 @@ BOOST_AUTO_TEST_CASE(SessionCreatedPlain) {
   packet.SetRelayTag(1234567890);
   packet.SetSignedOnTime(1466500266);
   packet.SetSignature(&sessionCreated[270], 40);
-  std::unique_ptr<uint8_t> buffer(BuildSessionCreated(packet));
+
+  std::unique_ptr<uint8_t> buffer(new uint8_t[packet.GetSize()]);
+  uint8_t* bufferPtr = buffer.get();
+  WriteSessionCreated(bufferPtr, &packet);
   BOOST_CHECK_EQUAL_COLLECTIONS(
     buffer.get(),
     buffer.get() + packet.GetSize(),

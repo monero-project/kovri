@@ -318,6 +318,12 @@ class SSUSession
       const uint8_t* payload,
       size_t len);
 
+  void WriteAndEncrypt(
+    SSUPacket* packet,
+    uint8_t* buffer,
+    const uint8_t* aesKey,
+    const uint8_t* macKey);
+
   void FillHeaderAndEncrypt(
       uint8_t payloadType,
       uint8_t* buf,

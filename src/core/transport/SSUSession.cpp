@@ -304,8 +304,7 @@ void SSUSession::ProcessSessionRequest(
 
 void SSUSession::SendSessionRequest() {
   LogPrint(eLogError,
-      "SSUSession:", GetFormattedSessionInfo(),
-      "sending SessionRequest");
+      "SSUSession:", GetFormattedSessionInfo(), "sending SessionRequest");
   auto introKey = GetIntroKey();
   if (!introKey) {
     LogPrint(eLogError,
@@ -313,47 +312,30 @@ void SSUSession::SendSessionRequest() {
         "SendSessionRequest(): SSU is not supported");
     return;
   }
-  uint8_t buf[320 + 18] = {};  // 304 bytes for ipv4, 320 for ipv6, all set to 0
-  uint8_t* payload = buf + SSU_HEADER_SIZE_MIN;
+  SSUSessionRequestPacket packet;
+  packet.SetHeader(std::make_unique<SSUHeader>(SSUHeader::PayloadType::SessionRequest));
+  uint8_t iv[SSU_IV_SIZE];
+  i2p::crypto::RandBytes(iv, SSU_IV_SIZE);
+  packet.GetHeader()->SetIv(iv);
+  packet.SetDhX(m_DHKeysPair->public_key.data());
+
   // Fill extended options
-  uint8_t flag = 0;
   if (i2p::context.GetStatus () == eRouterStatusOK) { // we don't need relays
-    flag = SSU_FLAG_EXTENDED_OPTIONS;
-    *payload = 2; 
-    ++payload;
-    uint16_t flags = 0; // clear EXTENDED_OPTIONS_FLAG_REQUEST_RELAY_TAG
-    htobe16buf(payload, flags); 
-    payload += 2;
+    packet.GetHeader()->SetExtendedOptions(true);
+    uint8_t extendedData[2] = {0x00, 0x00};
+    packet.GetHeader()->SetExtendedOptionsData(extendedData, 2);
   }
-  memcpy(payload, m_DHKeysPair->public_key.data(), 256);  // x
-  bool isV4 = GetRemoteEndpoint().address().is_v4();
-  if (isV4) {
-    payload[256] = 4;
-    memcpy(
-        payload + 257,
-        GetRemoteEndpoint().address().to_v4().to_bytes().data(),
-        4);
-  } else {
-    payload[256] = 16;
-    memcpy(
-        payload + 257,
-        GetRemoteEndpoint().address().to_v6().to_bytes().data(),
-        16);
-  }
-  uint8_t iv[16];
-  i2p::crypto::RandBytes(iv, 16);
-  FillHeaderAndEncrypt(
-      PAYLOAD_TYPE_SESSION_REQUEST,
-      buf,
-      isV4 ? 304 : 320,
-      introKey,
-      iv,
-      introKey,
-      flag);
-  m_Server.Send(
-      buf,
-      isV4 ? 304 : 320,
-      GetRemoteEndpoint());
+
+  const auto address = GetRemoteEndpoint().address();
+  if (GetRemoteEndpoint().address().is_v4())
+    packet.SetIpAddress(address.to_v4().to_bytes().data(), 4);
+  else
+    packet.SetIpAddress(address.to_v6().to_bytes().data(), 16);
+
+  const std::size_t bufferSize = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
+  std::unique_ptr<uint8_t> buffer(new uint8_t[bufferSize]); 
+  WriteAndEncrypt(&packet, buffer.get(), introKey, introKey);
+  m_Server.Send(buffer.get(), bufferSize, GetRemoteEndpoint());
 }
 
 /**
@@ -426,8 +408,7 @@ void SSUSession::ProcessSessionCreated(SSUPacket* pkt) {
   }
 }
 
-void SSUSession::SendSessionCreated(
-    const uint8_t* x) {
+void SSUSession::SendSessionCreated(const uint8_t* x) {
   auto introKey = GetIntroKey();
   auto address = IsV6() ?
     i2p::context.GetRouterInfo().GetSSUV6Address() :
@@ -438,43 +419,33 @@ void SSUSession::SendSessionCreated(
         "SendSessionCreated(): SSU is not supported");
     return;
   }
+  SSUSessionCreatedPacket packet;
+  packet.SetHeader(std::make_unique<SSUHeader>(SSUHeader::PayloadType::SessionRequest));
+  packet.SetDhY(m_DHKeysPair->public_key.data());
+  packet.SetPort(GetRemoteEndpoint().port());
+
+  const std::size_t signatureSize = i2p::context.GetIdentity().GetSignatureLen();
+  std::unique_ptr<uint8_t> signatureBuf(new uint8_t[signatureSize]);
+  // signature
   // x,y, remote IP, remote port, our IP, our port, relayTag, signed on time
   SignedData s;
   s.Insert(x, 256);  // x
-  uint8_t buf[384 + 18] = {};
-  uint8_t* payload = buf + SSU_HEADER_SIZE_MIN;
-  memcpy(payload, m_DHKeysPair->public_key.data(), 256);
-  s.Insert(payload, 256);  // y
-  payload += 256;
-  if (GetRemoteEndpoint().address().is_v4()) {
-    // ipv4
-    *payload = 4;
-    payload++;
-    memcpy(
-        payload,
-        GetRemoteEndpoint().address().to_v4().to_bytes().data(),
-        4);
-    s.Insert(payload, 4);  // remote endpoint IP V4
-    payload += 4;
+  s.Insert(packet.GetDhY(), 256);  // y
+  const auto remoteAddress = GetRemoteEndpoint().address();
+  if (remoteAddress.is_v4()) {
+    packet.SetIpAddress(remoteAddress.to_v4().to_bytes().data(), 4);
+    s.Insert(remoteAddress.to_v4().to_bytes().data(), 4);
   } else {
-    // ipv6
-    *payload = 16;
-    payload++;
-    memcpy(
-        payload,
-        GetRemoteEndpoint().address().to_v6().to_bytes().data(),
-        16);
-    s.Insert(payload, 16);  // remote endpoint IP V6
-    payload += 16;
+    packet.SetIpAddress(remoteAddress.to_v6().to_bytes().data(), 16);
+    s.Insert(remoteAddress.to_v6().to_bytes().data(), 16);
   }
-  htobe16buf(payload, GetRemoteEndpoint().port());
-  s.Insert(payload, 2);  // remote port
-  payload += 2;
+  s.Insert<uint16_t>(packet.GetPort());  // remote port
   if (address->host.is_v4())
     s.Insert(address->host.to_v4().to_bytes().data(), 4);  // our IP V4
   else
     s.Insert(address->host.to_v6().to_bytes().data(), 16);  // our IP V6
   s.Insert<uint16_t> (htobe16(address->port));  // our port
+
   uint32_t relayTag = 0;
   if (i2p::context.GetRouterInfo().IsIntroducer()) {
     relayTag = i2p::crypto::Rand<uint32_t>();
@@ -482,43 +453,34 @@ void SSUSession::SendSessionCreated(
       relayTag = 1;
     m_Server.AddRelay(relayTag, GetRemoteEndpoint());
   }
-  htobe32buf(payload, relayTag);
-  payload += 4;  // relay tag
-  htobe32buf(payload, i2p::util::GetSecondsSinceEpoch());  // signed on time
-  payload += 4;
-  s.Insert(payload - 8, 4);  // put relayTag
+  packet.SetRelayTag(relayTag);
+  packet.SetSignedOnTime(i2p::util::GetSecondsSinceEpoch());
+  s.Insert<uint32_t>(relayTag);
+  s.Insert<uint32_t>(packet.GetSignedOnTime());
   // store for session confirmation
   m_SessionConfirmData =
     std::unique_ptr<SignedData>(std::make_unique<SignedData>(s));
-  s.Insert(payload - 4, 4);  // put timestamp
-  s.Sign(i2p::context.GetPrivateKeys(), payload);  // DSA signature
-  uint8_t iv[16];
-  i2p::crypto::RandBytes(iv, 16);
+  s.Sign(i2p::context.GetPrivateKeys(), signatureBuf.get());  // DSA signature
+  std::size_t bufferSize = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
+  const std::size_t sigPaddingSize = SSUPacketBuilder::GetPaddingSize(
+      bufferSize + signatureSize);
+  i2p::crypto::RandBytes(signatureBuf.get() + signatureSize, sigPaddingSize);
+  packet.SetSignature(signatureBuf.get(), signatureSize + sigPaddingSize);
+  // Recompute buffer size
+  bufferSize = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
+
   // encrypt signature and padding with newly created session key
-  size_t signatureLen = i2p::context.GetIdentity().GetSignatureLen();
-  size_t paddingSize = signatureLen & 0x0F;  // %16
-  if (paddingSize > 0) {
-    signatureLen += (16 - paddingSize);
-    i2p::crypto::RandBytes(payload, paddingSize);
-  }
-  m_SessionKeyEncryption.SetIV(iv);
+  m_SessionKeyEncryption.SetIV(packet.GetHeader()->GetIv());
   m_SessionKeyEncryption.Encrypt(
-      payload,
-      signatureLen,
-      payload);
-  payload += signatureLen;
-  size_t msgLen = payload - buf;
-  if (msgLen <= SSU_MTU_V4) {
-    // encrypt message with intro key
-    FillHeaderAndEncrypt(
-      PAYLOAD_TYPE_SESSION_CREATED,
-      buf,
-      msgLen,
-      introKey,
-      iv,
-      introKey);
-    // send it
-    Send(buf, msgLen);
+      packet.GetSignature(),
+      packet.GetSignatureSize(),
+      packet.GetSignature());
+
+  // TODO(EinMByte): Deal with large messages in a better way
+  if(bufferSize <= SSU_MTU_V4) {
+    std::unique_ptr<uint8_t> buffer(new uint8_t[bufferSize]); 
+    WriteAndEncrypt(&packet, buffer.get(), introKey, introKey);
+    Send(buffer.get(), bufferSize);
   }
 }
 
@@ -556,26 +518,17 @@ void SSUSession::SendSessionConfirmed(
     const uint8_t* y,
     const uint8_t* ourAddress,
     size_t ourAddressLen) {
-  uint8_t buf[512 + 18] = {};
-  uint8_t* payload = buf + SSU_HEADER_SIZE_MIN;
-  *payload = 1;  // 1 fragment
-  payload++;  // info
-  size_t identLen = i2p::context.GetIdentity().GetFullLen();  // 387+ bytes
-  htobe16buf(payload, identLen);
-  payload += 2;  // cursize
-  i2p::context.GetIdentity().ToBuffer(payload, identLen);
-  payload += identLen;
-  uint32_t signedOnTime = i2p::util::GetSecondsSinceEpoch();
-  htobe32buf(payload, signedOnTime);  // signed on time
-  payload += 4;
-  auto signatureLen = i2p::context.GetIdentity().GetSignatureLen();
-  // Add N bytes padding, currently uninterpreted
-  size_t paddingSize = ((payload - buf) + signatureLen)%16;
-  if (paddingSize > 0) {
-    paddingSize = 16 - paddingSize;
-    i2p::crypto::RandBytes(payload, paddingSize);
-  }
-  payload += paddingSize;  // padding size
+
+  SSUSessionConfirmedPacket packet;
+  packet.SetHeader(std::make_unique<SSUHeader>(SSUHeader::PayloadType::SessionRequest));
+  uint8_t iv[SSU_IV_SIZE];
+  i2p::crypto::RandBytes(iv, SSU_IV_SIZE);
+  packet.GetHeader()->SetIv(iv);
+  packet.SetRemoteRouterIdentity(i2p::context.GetIdentity());
+  packet.SetSignedOnTime(i2p::util::GetSecondsSinceEpoch());
+  
+  std::unique_ptr<uint8_t> signatureBuf(
+      new uint8_t[i2p::context.GetIdentity().GetSignatureLen()]);
   // signature
   // x,y, our IP, our port, remote IP, remote port,
   // relayTag, our signed on time
@@ -583,33 +536,21 @@ void SSUSession::SendSessionConfirmed(
   s.Insert(m_DHKeysPair->public_key.data(), 256);  // x
   s.Insert(y, 256);  // y
   s.Insert(ourAddress, ourAddressLen);  // our address/port as seen by party
-  if (GetRemoteEndpoint().address().is_v4())
-    // remote IP V4
-    s.Insert(
-        GetRemoteEndpoint().address().to_v4().to_bytes().data(),
-        4);
-  else
-    // remote IP V6
-    s.Insert(
-        GetRemoteEndpoint().address().to_v6().to_bytes().data(),
-        16);
-  s.Insert<uint16_t> (htobe16(GetRemoteEndpoint().port()));  // remote port
-  s.Insert(htobe32(m_RelayTag));  // relay tag
-  s.Insert(htobe32(signedOnTime));  // signed on time
-  s.Sign(i2p::context.GetPrivateKeys(), payload);  // DSA signature
-  payload += signatureLen;
-  size_t msgLen = payload - buf;
-  uint8_t iv[16];
-  i2p::crypto::RandBytes(iv, 16);
-  // encrypt message with session key
-  FillHeaderAndEncrypt(
-      PAYLOAD_TYPE_SESSION_CONFIRMED,
-      buf,
-      msgLen,
-      m_SessionKey,
-      iv,
-      m_MacKey);
-  Send(buf, msgLen);
+  const auto address = GetRemoteEndpoint().address();
+  if (address.is_v4()) // remote IP V4
+    s.Insert(address.to_v4().to_bytes().data(), 4);
+  else // remote IP V6
+    s.Insert(address.to_v6().to_bytes().data(), 16);
+  s.Insert<uint16_t>(htobe16(GetRemoteEndpoint().port()));  // remote port
+  s.Insert(htobe32(m_RelayTag)); 
+  s.Insert(htobe32(packet.GetSignedOnTime()));
+  s.Sign(i2p::context.GetPrivateKeys(), signatureBuf.get());
+  packet.SetSignature(signatureBuf.get());
+
+  const std::size_t bufferSize = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
+  std::unique_ptr<uint8_t> buffer(new uint8_t[bufferSize]); 
+  WriteAndEncrypt(&packet, buffer.get(), m_SessionKey, m_MacKey);
+  Send(buffer.get(), bufferSize);
 }
 
 /**
@@ -1153,6 +1094,40 @@ void SSUSession::FillHeaderAndEncrypt(
       encryptedLen + 18,
       macKey,
       pkt.MAC());
+}
+
+void SSUSession::WriteAndEncrypt(
+    SSUPacket* packet,
+    uint8_t* buffer,
+    const uint8_t* aesKey,
+    const uint8_t* macKey) {
+
+  packet->GetHeader()->SetTime(i2p::util::GetSecondsSinceEpoch());
+
+  uint8_t* bufPtr = buffer;
+  SSUPacketBuilder::WritePacket(bufPtr, packet);
+
+  // Encrypt everything after the MAC and IV
+  uint8_t* encrypted = buffer + SSU_IV_SIZE + SSU_MAC_SIZE; 
+  uint16_t encryptedLen = SSUPacketBuilder::GetPaddingSize(
+      (bufPtr - buffer) - (SSU_IV_SIZE  + SSU_MAC_SIZE));
+  // Add padding
+  i2p::crypto::RandBytes(bufPtr, encryptedLen);
+  i2p::crypto::CBCEncryption encryption(aesKey, packet->GetHeader()->GetIv());
+  encryption.Encrypt(encrypted, encryptedLen, encrypted);
+  // Compute HMAC of encryptedPayload + IV + (payloadLength ^ protocolVersion)
+  // Currently, protocolVersion == 0
+  bufPtr = encrypted;
+  SSUPacketBuilder::WriteData(encrypted, packet->GetHeader()->GetIv(), SSU_IV_SIZE);
+  SSUPacketBuilder::WriteUInt16(bufPtr, encryptedLen);
+  i2p::crypto::HMACMD5Digest(
+      encrypted,
+      encryptedLen + SSU_BUFFER_SIZE_MARGIN,
+      macKey,
+      packet->GetHeader()->GetMac());
+
+  // Write header
+  SSUPacketBuilder::WriteHeader(buffer, packet->GetHeader());
 }
 
 void SSUSession::FillHeaderAndEncrypt(

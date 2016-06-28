@@ -27,6 +27,7 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 #include "SSUPacket.h"
 
 #include <exception>
@@ -685,9 +686,9 @@ SSUFragment SSUPacketParser::ParseFragment() {
   SSUFragment fragment;
   fragment.SetMessageID(ReadUInt32());
   // TODO(EinMByte): clean this up
-  std::uint8_t info_buf[4] = {};
-  memcpy(info_buf + 1, ReadBytes(3), 3);
-  const std::uint32_t fragment_info = bufbe32toh(info_buf);
+  std::array<std::uint8_t, 4> info_buf {};
+  memcpy(info_buf.data() + 1, ReadBytes(3), 3);
+  const std::uint32_t fragment_info = bufbe32toh(info_buf.data());
   fragment.SetSize(fragment_info & 0x3FFF);  // bits 0 - 13
   fragment.SetIsLast(fragment_info & 0x010000);  // bit 16
   fragment.SetNumber(fragment_info >> 17);  // bits 23 - 17
@@ -699,7 +700,7 @@ SSUFragment SSUPacketParser::ParseFragment() {
 std::unique_ptr<SSUHeader> SSUPacketParser::ParseHeader() {
   if (m_Length < SSU_HEADER_SIZE_MIN)
     throw std::length_error("SSU header too small");
-  std::unique_ptr<SSUHeader> header(new SSUHeader());
+  auto header = std::make_unique<SSUHeader>();
   // Set MAC and IV
   header->SetMAC(ReadBytes(SSU_MAC_SIZE));
   header->SetIV(ReadBytes(SSU_IV_SIZE));
@@ -717,8 +718,8 @@ std::unique_ptr<SSUHeader> SSUPacketParser::ParseHeader() {
     ConsumeData(SSU_KEYING_MATERIAL_SIZE);
   }
   if (header->HasExtendedOptions()) {
-    const std::size_t optionsSize = ReadUInt8();
-    header->SetExtendedOptionsData(ReadBytes(optionsSize), optionsSize);
+    const std::size_t options_size = ReadUInt8();
+    header->SetExtendedOptionsData(ReadBytes(options_size), options_size);
   }
   return header;
 }
@@ -765,8 +766,7 @@ std::unique_ptr<SSUPacket> SSUPacketParser::ParsePacket() {
 }
 
 std::unique_ptr<SSUSessionRequestPacket> SSUPacketParser::ParseSessionRequest() {
-  std::unique_ptr<SSUSessionRequestPacket> packet(
-      new SSUSessionRequestPacket());
+  auto packet = std::make_unique<SSUSessionRequestPacket>();
   packet->SetDhX(ReadBytes(SSU_DH_PUBLIC_SIZE));
   std::size_t size = ReadUInt8();
   packet->SetIPAddress(ReadBytes(size), size);
@@ -774,8 +774,7 @@ std::unique_ptr<SSUSessionRequestPacket> SSUPacketParser::ParseSessionRequest() 
 }
 
 std::unique_ptr<SSUSessionCreatedPacket> SSUPacketParser::ParseSessionCreated() {
-  std::unique_ptr<SSUSessionCreatedPacket> packet(
-      new SSUSessionCreatedPacket());
+  auto packet = std::make_unique<SSUSessionCreatedPacket>();
   packet->SetDhY(ReadBytes(SSU_DH_PUBLIC_SIZE));
   std::size_t address_size = ReadUInt8();
   packet->SetIPAddress(ReadBytes(address_size), address_size);
@@ -788,8 +787,7 @@ std::unique_ptr<SSUSessionCreatedPacket> SSUPacketParser::ParseSessionCreated() 
 
 std::unique_ptr<SSUSessionConfirmedPacket> SSUPacketParser::ParseSessionConfirmed() {
   const std::size_t init_length = m_Length;
-  std::unique_ptr<SSUSessionConfirmedPacket> packet(
-      new SSUSessionConfirmedPacket());
+  auto packet = std::make_unique<SSUSessionConfirmedPacket>();
   ConsumeData(1);  // Skip info byte
   std::uint16_t identity_size = ReadUInt16();
   i2p::data::IdentityEx identity;
@@ -803,8 +801,7 @@ std::unique_ptr<SSUSessionConfirmedPacket> SSUPacketParser::ParseSessionConfirme
 }
 
 std::unique_ptr<SSURelayRequestPacket> SSUPacketParser::ParseRelayRequest() {
-  std::unique_ptr<SSURelayRequestPacket> packet(
-      new SSURelayRequestPacket());
+  auto packet = std::make_unique<SSURelayRequestPacket>();
   packet->SetRelayTag(ReadUInt32());
   const std::size_t address_size = ReadUInt8();
   packet->SetIPAddress(ReadBytes(address_size), address_size);
@@ -817,8 +814,7 @@ std::unique_ptr<SSURelayRequestPacket> SSUPacketParser::ParseRelayRequest() {
 }
 
 std::unique_ptr<SSURelayResponsePacket> SSUPacketParser::ParseRelayResponse() {
-  std::unique_ptr<SSURelayResponsePacket> packet(
-      new SSURelayResponsePacket());
+  auto packet = std::make_unique<SSURelayResponsePacket>();
   const std::size_t charlie_address_size = ReadUInt8();
   packet->SetIPAddressCharlie(ReadBytes(charlie_address_size), charlie_address_size);
   packet->SetPortCharlie(ReadUInt16());
@@ -830,8 +826,7 @@ std::unique_ptr<SSURelayResponsePacket> SSUPacketParser::ParseRelayResponse() {
 }
 
 std::unique_ptr<SSURelayIntroPacket> SSUPacketParser::ParseRelayIntro() {
-  std::unique_ptr<SSURelayIntroPacket> packet(
-      new SSURelayIntroPacket());
+  auto packet = std::make_unique<SSURelayIntroPacket>();
   const std::size_t address_size = ReadUInt8();
   packet->SetIPAddress(ReadBytes(address_size), address_size);
   packet->SetPort(ReadUInt16());
@@ -841,7 +836,7 @@ std::unique_ptr<SSURelayIntroPacket> SSUPacketParser::ParseRelayIntro() {
 }
 
 std::unique_ptr<SSUDataPacket> SSUPacketParser::ParseData() {
-  std::unique_ptr<SSUDataPacket> packet(new SSUDataPacket());
+  auto packet = std::make_unique<SSUDataPacket>();
   const std::uint8_t flags = ReadUInt8();
   // Read ACKS
   if (flags & DATA_FLAG_EXPLICIT_ACKS_INCLUDED) {
@@ -873,8 +868,7 @@ std::unique_ptr<SSUDataPacket> SSUPacketParser::ParseData() {
 }
 
 std::unique_ptr<SSUPeerTestPacket> SSUPacketParser::ParsePeerTest() {
-  std::unique_ptr<SSUPeerTestPacket> packet(
-      new SSUPeerTestPacket());
+  auto packet = std::make_unique<SSUPeerTestPacket>();
   packet->SetNonce(ReadUInt32());
   // TODO(EinMByte): Handle other address sizes, or deal with the errors.
   packet->SetIPAddress(buf32toh(ReadBytes((ReadUInt8() == 4) ? 4 : 0)));
@@ -890,8 +884,7 @@ std::unique_ptr<SSUPeerTestPacket> SSUPacketParser::ParsePeerTest() {
  */
 
 std::unique_ptr<SSUSessionDestroyedPacket> SSUPacketParser::ParseSessionDestroyed() {
-  std::unique_ptr<SSUSessionDestroyedPacket> packet(
-      new SSUSessionDestroyedPacket());
+  auto packet = std::make_unique<SSUSessionDestroyedPacket>();
   return packet;
 }
 

@@ -51,9 +51,6 @@
 namespace i2p {
 namespace transport {
 
-constexpr size_t SSU_KEYING_MATERIAL_SIZE = 64;
-const uint8_t SSU_FLAG_REKEY = 0x08;
-
 uint8_t* SSUSessionPacket::MAC() const {
   return dataptr;
 }
@@ -208,10 +205,8 @@ void SSUSession::ProcessDecryptedMessage(
     uint8_t* buf,
     size_t len,
     const boost::asio::ip::udp::endpoint& senderEndpoint) {
-
   len -= (len & 0x0F);  // %16, delete extra padding
   SSUPacketParser parser(buf, len);
-
   std::unique_ptr<SSUPacket> packet;
   try {
     packet = parser.ParsePacket();
@@ -220,7 +215,6 @@ void SSUSession::ProcessDecryptedMessage(
         "SSUSession: invalid SSU session packet from ", senderEndpoint);
     return;
   }
-
   switch (packet->GetHeader()->GetPayloadType()) {
     case SSUHeader::PayloadType::Data:
       ProcessData(packet.get());
@@ -313,27 +307,27 @@ void SSUSession::SendSessionRequest() {
     return;
   }
   SSUSessionRequestPacket packet;
-  packet.SetHeader(std::make_unique<SSUHeader>(SSUHeader::PayloadType::SessionRequest));
+  packet.SetHeader(
+      std::make_unique<SSUHeader>(SSUHeader::PayloadType::SessionRequest));
   uint8_t iv[SSU_IV_SIZE];
   i2p::crypto::RandBytes(iv, SSU_IV_SIZE);
-  packet.GetHeader()->SetIv(iv);
+  packet.GetHeader()->SetIV(iv);
   packet.SetDhX(m_DHKeysPair->public_key.data());
-
   // Fill extended options
-  if (i2p::context.GetStatus () == eRouterStatusOK) { // we don't need relays
+  if (i2p::context.GetStatus() == eRouterStatusOK) {  // we don't need relays
     packet.GetHeader()->SetExtendedOptions(true);
     uint8_t extendedData[2] = {0x00, 0x00};
     packet.GetHeader()->SetExtendedOptionsData(extendedData, 2);
   }
-
   const auto address = GetRemoteEndpoint().address();
   if (GetRemoteEndpoint().address().is_v4())
-    packet.SetIpAddress(address.to_v4().to_bytes().data(), 4);
+    packet.SetIPAddress(address.to_v4().to_bytes().data(), 4);
   else
-    packet.SetIpAddress(address.to_v6().to_bytes().data(), 16);
+    packet.SetIPAddress(address.to_v6().to_bytes().data(), 16);
 
-  const std::size_t bufferSize = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
-  std::unique_ptr<uint8_t> buffer(new uint8_t[bufferSize]); 
+  const std::size_t bufferSize =
+    SSUPacketBuilder::GetPaddedSize(packet.GetSize());
+  std::unique_ptr<uint8_t> buffer(new uint8_t[bufferSize]);
   WriteAndEncrypt(&packet, buffer.get(), introKey, introKey);
   m_Server.Send(buffer.get(), bufferSize, GetRemoteEndpoint());
 }
@@ -363,16 +357,16 @@ void SSUSession::ProcessSessionCreated(SSUPacket* pkt) {
   s.Insert(m_DHKeysPair->public_key.data(), 256);  // x
   s.Insert(packet->GetDhY(), 256);  // y
   boost::asio::ip::address ourIP;
-  if (packet->GetIpAddressSize() == 4) {  // v4
+  if (packet->GetIPAddressSize() == 4) {  // v4
     boost::asio::ip::address_v4::bytes_type bytes;
-    memcpy(bytes.data(), packet->GetIpAddress(), 4);
+    memcpy(bytes.data(), packet->GetIPAddress(), 4);
     ourIP = boost::asio::ip::address_v4(bytes);
   } else {  // v6
     boost::asio::ip::address_v6::bytes_type bytes;
-    memcpy(bytes.data(), packet->GetIpAddress(), 16);
+    memcpy(bytes.data(), packet->GetIPAddress(), 16);
     ourIP = boost::asio::ip::address_v6(bytes);
   }
-  s.Insert(packet->GetIpAddress(), packet->GetIpAddressSize());  // our IP
+  s.Insert(packet->GetIPAddress(), packet->GetIPAddressSize());  // our IP
   s.Insert<uint16_t>(htobe16(packet->GetPort()));  // our port
   LogPrint(eLogInfo,
       "SSUSession:", GetFormattedSessionInfo(),
@@ -395,12 +389,18 @@ void SSUSession::ProcessSessionCreated(SSUPacket* pkt) {
   size_t paddingSize = signatureLen & 0x0F;  // %16
   if (paddingSize > 0)
     signatureLen += (16 - paddingSize);
-  m_SessionKeyDecryption.SetIV(packet->GetHeader()->GetIv());
-  m_SessionKeyDecryption.Decrypt(packet->GetSignature(), signatureLen, packet->GetSignature());
+  m_SessionKeyDecryption.SetIV(packet->GetHeader()->GetIV());
+  m_SessionKeyDecryption.Decrypt(
+      packet->GetSignature(),
+      signatureLen,
+      packet->GetSignature());
   // verify
   if (s.Verify(m_RemoteIdentity, packet->GetSignature())) {
     // all good
-    SendSessionConfirmed(packet->GetDhY(), packet->GetIpAddress(), packet->GetIpAddressSize() + 2);
+    SendSessionConfirmed(
+        packet->GetDhY(),
+        packet->GetIPAddress(),
+        packet->GetIPAddressSize() + 2);
   } else {  // invalid signature
     LogPrint(eLogError,
         "SSUSession:", GetFormattedSessionInfo(),
@@ -420,10 +420,10 @@ void SSUSession::SendSessionCreated(const uint8_t* x) {
     return;
   }
   SSUSessionCreatedPacket packet;
-  packet.SetHeader(std::make_unique<SSUHeader>(SSUHeader::PayloadType::SessionRequest));
+  packet.SetHeader(
+      std::make_unique<SSUHeader>(SSUHeader::PayloadType::SessionRequest));
   packet.SetDhY(m_DHKeysPair->public_key.data());
   packet.SetPort(GetRemoteEndpoint().port());
-
   const std::size_t signatureSize = i2p::context.GetIdentity().GetSignatureLen();
   std::unique_ptr<uint8_t> signatureBuf(new uint8_t[signatureSize]);
   // signature
@@ -433,10 +433,10 @@ void SSUSession::SendSessionCreated(const uint8_t* x) {
   s.Insert(packet.GetDhY(), 256);  // y
   const auto remoteAddress = GetRemoteEndpoint().address();
   if (remoteAddress.is_v4()) {
-    packet.SetIpAddress(remoteAddress.to_v4().to_bytes().data(), 4);
+    packet.SetIPAddress(remoteAddress.to_v4().to_bytes().data(), 4);
     s.Insert(remoteAddress.to_v4().to_bytes().data(), 4);
   } else {
-    packet.SetIpAddress(remoteAddress.to_v6().to_bytes().data(), 16);
+    packet.SetIPAddress(remoteAddress.to_v6().to_bytes().data(), 16);
     s.Insert(remoteAddress.to_v6().to_bytes().data(), 16);
   }
   s.Insert<uint16_t>(packet.GetPort());  // remote port
@@ -468,17 +468,15 @@ void SSUSession::SendSessionCreated(const uint8_t* x) {
   packet.SetSignature(signatureBuf.get(), signatureSize + sigPaddingSize);
   // Recompute buffer size
   bufferSize = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
-
   // encrypt signature and padding with newly created session key
-  m_SessionKeyEncryption.SetIV(packet.GetHeader()->GetIv());
+  m_SessionKeyEncryption.SetIV(packet.GetHeader()->GetIV());
   m_SessionKeyEncryption.Encrypt(
       packet.GetSignature(),
       packet.GetSignatureSize(),
       packet.GetSignature());
-
   // TODO(EinMByte): Deal with large messages in a better way
-  if(bufferSize <= SSU_MTU_V4) {
-    std::unique_ptr<uint8_t> buffer(new uint8_t[bufferSize]); 
+  if (bufferSize <= SSU_MTU_V4) {
+    std::unique_ptr<uint8_t> buffer(new uint8_t[bufferSize]);
     WriteAndEncrypt(&packet, buffer.get(), introKey, introKey);
     Send(buffer.get(), bufferSize);
   }
@@ -503,7 +501,8 @@ void SSUSession::ProcessSessionConfirmed(SSUPacket* pkt) {
   SSUSessionConfirmedPacket* packet = static_cast<SSUSessionConfirmedPacket*>(pkt);
   m_RemoteIdentity = packet->GetRemoteRouterIdentity();
   m_Data.UpdatePacketSize(m_RemoteIdentity.GetIdentHash());
-  m_SessionConfirmData->Insert<uint32_t>(htobe32(packet->GetSignedOnTime())); // signature time
+  // signature time
+  m_SessionConfirmData->Insert<uint32_t>(htobe32(packet->GetSignedOnTime()));
   if (m_SessionConfirmData->Verify(m_RemoteIdentity, packet->GetSignature())) {
     // verified
     Established();
@@ -518,15 +517,14 @@ void SSUSession::SendSessionConfirmed(
     const uint8_t* y,
     const uint8_t* ourAddress,
     size_t ourAddressLen) {
-
   SSUSessionConfirmedPacket packet;
-  packet.SetHeader(std::make_unique<SSUHeader>(SSUHeader::PayloadType::SessionRequest));
+  packet.SetHeader(
+      std::make_unique<SSUHeader>(SSUHeader::PayloadType::SessionRequest));
   uint8_t iv[SSU_IV_SIZE];
   i2p::crypto::RandBytes(iv, SSU_IV_SIZE);
-  packet.GetHeader()->SetIv(iv);
+  packet.GetHeader()->SetIV(iv);
   packet.SetRemoteRouterIdentity(i2p::context.GetIdentity());
   packet.SetSignedOnTime(i2p::util::GetSecondsSinceEpoch());
-  
   std::unique_ptr<uint8_t> signatureBuf(
       new uint8_t[i2p::context.GetIdentity().GetSignatureLen()]);
   // signature
@@ -537,18 +535,17 @@ void SSUSession::SendSessionConfirmed(
   s.Insert(y, 256);  // y
   s.Insert(ourAddress, ourAddressLen);  // our address/port as seen by party
   const auto address = GetRemoteEndpoint().address();
-  if (address.is_v4()) // remote IP V4
+  if (address.is_v4())  // remote IP V4
     s.Insert(address.to_v4().to_bytes().data(), 4);
-  else // remote IP V6
+  else  // remote IP V6
     s.Insert(address.to_v6().to_bytes().data(), 16);
   s.Insert<uint16_t>(htobe16(GetRemoteEndpoint().port()));  // remote port
-  s.Insert(htobe32(m_RelayTag)); 
+  s.Insert(htobe32(m_RelayTag));
   s.Insert(htobe32(packet.GetSignedOnTime()));
   s.Sign(i2p::context.GetPrivateKeys(), signatureBuf.get());
   packet.SetSignature(signatureBuf.get());
-
   const std::size_t bufferSize = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
-  std::unique_ptr<uint8_t> buffer(new uint8_t[bufferSize]); 
+  std::unique_ptr<uint8_t> buffer(new uint8_t[bufferSize]);
   WriteAndEncrypt(&packet, buffer.get(), m_SessionKey, m_MacKey);
   Send(buffer.get(), bufferSize);
 }
@@ -562,12 +559,10 @@ void SSUSession::SendSessionConfirmed(
 void SSUSession::ProcessRelayRequest(
     SSUPacket* pkt,
     const boost::asio::ip::udp::endpoint& from) {
-
   SSURelayRequestPacket* packet = static_cast<SSURelayRequestPacket*>(pkt);
   auto session = m_Server.FindRelaySession(packet->GetRelayTag());
   if (!session)
     return;
-
   SendRelayResponse(
       packet->GetNonce(),
       from,
@@ -636,13 +631,13 @@ void SSUSession::ProcessRelayResponse(SSUPacket* pkt) {
   SSURelayResponsePacket* packet = static_cast<SSURelayResponsePacket*>(pkt);
   // TODO(EinMByte): Check remote (charlie) address
   boost::asio::ip::address ourIP;
-  if (packet->GetIpAddressAliceSize() == 4) {
+  if (packet->GetIPAddressAliceSize() == 4) {
     boost::asio::ip::address_v4::bytes_type bytes;
-    memcpy(bytes.data(), packet->GetIpAddressAlice(), 4);
+    memcpy(bytes.data(), packet->GetIPAddressAlice(), 4);
     ourIP = boost::asio::ip::address_v4(bytes);
   } else {
     boost::asio::ip::address_v6::bytes_type bytes;
-    memcpy(bytes.data(), packet->GetIpAddressAlice(), 16);
+    memcpy(bytes.data(), packet->GetIPAddressAlice(), 16);
     ourIP = boost::asio::ip::address_v6(bytes);
   }
   LogPrint(eLogInfo,
@@ -726,8 +721,8 @@ void SSUSession::SendRelayResponse(
 
 void SSUSession::ProcessRelayIntro(SSUPacket* pkt) {
   SSURelayIntroPacket* packet = static_cast<SSURelayIntroPacket*>(pkt);
-  if (packet->GetIpAddressSize() == 4) {
-    boost::asio::ip::address_v4 address(bufbe32toh(packet->GetIpAddress()));
+  if (packet->GetIPAddressSize() == 4) {
+    boost::asio::ip::address_v4 address(bufbe32toh(packet->GetIPAddress()));
     // send hole punch of 1 byte
     m_Server.Send(
         {},
@@ -739,7 +734,7 @@ void SSUSession::ProcessRelayIntro(SSUPacket* pkt) {
     LogPrint(eLogWarning,
         "SSUSession:", GetFormattedSessionInfo(),
         "ProcessRelayIntro(): address size ",
-        packet->GetIpAddressSize(),
+        packet->GetIPAddressSize(),
         " is not supported");
   }
 }
@@ -811,10 +806,8 @@ void SSUSession::FlushData() {
 void SSUSession::ProcessPeerTest(
     SSUPacket* pkt,
     const boost::asio::ip::udp::endpoint& senderEndpoint) {
-
   SSUPeerTestPacket* packet = static_cast<SSUPeerTestPacket*>(pkt);
-
-  if (packet->GetPort() && !packet->GetIpAddress()) {
+  if (packet->GetPort() && !packet->GetIPAddress()) {
     LogPrint(eLogWarning,
         "SSUSession:", GetFormattedSessionInfo(), "address size ",
         " bytes not supported");
@@ -903,7 +896,7 @@ void SSUSession::ProcessPeerTest(
               packet->m_RawDataLength);
           SendPeerTest(  // to Alice with her address received from Bob
               packet->GetNonce(),
-              be32toh(packet->GetIpAddress()),
+              be32toh(packet->GetIPAddress()),
               be16toh(packet->GetPort()),
               packet->GetIntroKey());
         } else {
@@ -1101,30 +1094,30 @@ void SSUSession::WriteAndEncrypt(
     uint8_t* buffer,
     const uint8_t* aesKey,
     const uint8_t* macKey) {
-
   packet->GetHeader()->SetTime(i2p::util::GetSecondsSinceEpoch());
-
   uint8_t* bufPtr = buffer;
   SSUPacketBuilder::WritePacket(bufPtr, packet);
-
   // Encrypt everything after the MAC and IV
-  uint8_t* encrypted = buffer + SSU_IV_SIZE + SSU_MAC_SIZE; 
+  uint8_t* encrypted = buffer + SSU_IV_SIZE + SSU_MAC_SIZE;
   uint16_t encryptedLen = SSUPacketBuilder::GetPaddingSize(
       (bufPtr - buffer) - (SSU_IV_SIZE  + SSU_MAC_SIZE));
   // Add padding
   i2p::crypto::RandBytes(bufPtr, encryptedLen);
-  i2p::crypto::CBCEncryption encryption(aesKey, packet->GetHeader()->GetIv());
+  i2p::crypto::CBCEncryption encryption(aesKey, packet->GetHeader()->GetIV());
   encryption.Encrypt(encrypted, encryptedLen, encrypted);
   // Compute HMAC of encryptedPayload + IV + (payloadLength ^ protocolVersion)
   // Currently, protocolVersion == 0
   bufPtr = encrypted;
-  SSUPacketBuilder::WriteData(encrypted, packet->GetHeader()->GetIv(), SSU_IV_SIZE);
+  SSUPacketBuilder::WriteData(
+      encrypted,
+      packet->GetHeader()->GetIV(),
+      SSU_IV_SIZE);
   SSUPacketBuilder::WriteUInt16(bufPtr, encryptedLen);
   i2p::crypto::HMACMD5Digest(
       encrypted,
       encryptedLen + SSU_BUFFER_SIZE_MARGIN,
       macKey,
-      packet->GetHeader()->GetMac());
+      packet->GetHeader()->GetMAC());
 
   // Write header
   SSUPacketBuilder::WriteHeader(buffer, packet->GetHeader());

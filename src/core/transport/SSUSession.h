@@ -234,13 +234,16 @@ class SSUSession
 
   // Payload type 1: SessionCreated
 
-  void ProcessSessionCreated(SSUPacket* pkt);
+  void ProcessSessionCreated(
+      SSUPacket* pkt);
 
-  void SendSessionCreated(const uint8_t* x);
+  void SendSessionCreated(
+      const uint8_t* x);
 
   // Payload type 2: SessionConfirmed
 
-  void ProcessSessionConfirmed(SSUPacket* pkt);
+  void ProcessSessionConfirmed(
+      SSUPacket* pkt);
 
   void SendSessionConfirmed(
       const uint8_t* y,
@@ -259,7 +262,8 @@ class SSUSession
 
   // Payload type 4: RelayResponse
 
-  void ProcessRelayResponse(SSUPacket* pkt);
+  void ProcessRelayResponse(
+      SSUPacket* pkt);
 
   void SendRelayResponse(
       uint32_t nonce,
@@ -269,7 +273,8 @@ class SSUSession
 
   // Payload type 5: RelayIntro
 
-  void ProcessRelayIntro(SSUPacket* pkt);
+  void ProcessRelayIntro(
+      SSUPacket* pkt);
 
   void SendRelayIntro(
       SSUSession* session,
@@ -277,7 +282,8 @@ class SSUSession
 
   // Payload type 6: Data
 
-  void ProcessData(SSUPacket* pkt);
+  void ProcessData(
+      SSUPacket* pkt);
 
   // Payload type 7: PeerTest
 

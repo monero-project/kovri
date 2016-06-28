@@ -33,6 +33,7 @@
 
 #include <cinttypes>
 #include <memory>
+#include <vector>
 
 #include "RouterInfo.h"
 
@@ -44,10 +45,16 @@ const std::size_t SSU_MAC_SIZE = 16;
 const std::size_t SSU_IV_SIZE = 16;
 const std::size_t SSU_INTRO_KEY_SIZE = 32;
 const std::size_t SSU_BUFFER_SIZE_MARGIN = 18;
-const uint8_t SSU_FLAG_EXTENDED_OPTIONS = 0x04;
+const std::uint8_t SSU_FLAG_EXTENDED_OPTIONS = 0x04;
 
+constexpr std::size_t SSU_KEYING_MATERIAL_SIZE = 64;
+constexpr std::size_t SSU_DH_PUBLIC_SIZE = 256;
+const std::uint8_t SSU_FLAG_REKEY = 0x08;
+
+/// @class SSUHeader
+/// @brief Constitutes all SSU headers
 class SSUHeader {
-public:
+ public:
   enum class PayloadType {
     SessionRequest = 0,
     SessionCreated,
@@ -62,50 +69,78 @@ public:
   };
 
   SSUHeader();
-  SSUHeader(PayloadType type);
-  SSUHeader(PayloadType type, uint8_t* mac, uint8_t* iv,
-      uint32_t time);
 
-  void SetMac(uint8_t* macPtr);
-  uint8_t* GetMac() const;
-  void SetIv(uint8_t* ivPtr);
-  uint8_t const* GetIv() const;
+  explicit SSUHeader(
+      PayloadType type);
+
+  SSUHeader(
+      PayloadType type,
+      std::uint8_t* mac,
+      std::uint8_t* iv,
+      std::uint32_t time);
+
+  void SetMAC(
+      std::uint8_t* mac);
+
+  std::uint8_t* GetMAC() const;
+
+  void SetIV(
+      std::uint8_t* iv);
+
+  std::uint8_t const* GetIV() const;
 
   /// Sets the type of the payload
-  /// @param type nonnegative integer between 0 and 8 
+  /// @param type nonnegative integer between 0 and 8
   /// @throw std::invalid_argument if the type is invalid
-  void SetPayloadType(short type);
+  void SetPayloadType(
+      short type);
+
   PayloadType GetPayloadType() const;
 
-  void SetRekey(bool rekey);
-  void SetExtendedOptions(bool extended);
-  void SetExtendedOptionsData(uint8_t* data, std::size_t size);
-  uint8_t const* GetExtendedOptionsData() const;
+  void SetRekey(
+      bool rekey);
+
+  void SetExtendedOptions(
+      bool extended);
+
+  void SetExtendedOptionsData(
+      std::uint8_t* data,
+      std::size_t size);
+
+  std::uint8_t const* GetExtendedOptionsData() const;
+
   std::size_t GetExtendedOptionsSize() const;
 
-  void SetTime(uint32_t time);
-  uint32_t GetTime() const;
+  void SetTime(
+      std::uint32_t time);
+
+  std::uint32_t GetTime() const;
 
   bool HasRekey() const;
+
   bool HasExtendedOptions() const;
 
   /// @brief Computes the header size based on which options are set.
   /// @return The size (in bytes) of this header.
   std::size_t GetSize() const;
 
-private:
-  uint8_t* m_Mac, * m_Iv, * m_ExtendedOptions;
+ private:
+  std::uint8_t* m_MAC, *m_IV, *m_ExtendedOptions;
   bool m_Rekey, m_Extended;
-  uint32_t m_Time;
+  std::uint32_t m_Time;
   PayloadType m_PayloadType;
   std::size_t m_ExtendedOptionsSize;
 };
 
+/// @class SSUPacket
+/// @brief Constitutes all SSU packets
 class SSUPacket {
-public:
-  /// @brief Sets the header of this packet to the given unique pointer,
-  ///        ownership of the pointer is transferred
-  void SetHeader(std::unique_ptr<SSUHeader> header);
+ public:
+  /// @brief Sets the header of this packet to the given unique pointer
+  /// @param header SSU packet header
+  /// @note Ownership of the pointer is transferred
+  void SetHeader(
+      std::unique_ptr<SSUHeader> header);
 
   /// @brief Getter for the header of this packet.
   /// @return A raw pointer to the header of this packet.
@@ -114,208 +149,332 @@ public:
   std::size_t GetSize() const;
 
   // TODO(EinMByte): Get rid of this
-  uint8_t* m_RawData;
+  std::uint8_t* m_RawData;
   std::size_t m_RawDataLength;
-protected:
+
+ protected:
   std::unique_ptr<SSUHeader> m_Header;
 };
 
+/// @class SSUSessionRequestPacket
+/// @brief Payload type 0: SessionRequest
 class SSUSessionRequestPacket : public SSUPacket {
-public:
-  void SetDhX(uint8_t* dhX);
-  uint8_t const* GetDhX() const;
-  void SetIpAddress(uint8_t* ip, std::size_t size);
-  uint8_t const* GetIpAddress() const;
-  std::size_t GetIpAddressSize() const;
+ public:
+  void SetDhX(
+      std::uint8_t* dhX);
+
+  std::uint8_t const* GetDhX() const;
+
+  void SetIPAddress(
+      std::uint8_t* address,
+      std::size_t size);
+
+  std::uint8_t const* GetIPAddress() const;
+
+  std::size_t GetIPAddressSize() const;
+
   std::size_t GetSize() const;
-private:
-  std::size_t m_IpAddressSize;
-  uint8_t* m_DhX, * m_IpAddress;
+
+ private:
+  std::size_t m_IPAddressSize;
+  std::uint8_t* m_DhX, *m_IPAddress;
 };
 
+/// @class SSUSessionCreatedPacket
+/// @brief Payload type 1: SessionCreated
 class SSUSessionCreatedPacket : public SSUPacket {
-public:
-  void SetDhY(uint8_t* dhY);
-  uint8_t const* GetDhY() const;
-  void SetIpAddress(uint8_t* ip, std::size_t size);
-  uint8_t const* GetIpAddress() const;
-  std::size_t GetIpAddressSize() const;
-  void SetPort(uint16_t port);
-  uint16_t GetPort() const;
-  void SetRelayTag(uint32_t relayTag);
-  uint32_t GetRelayTag() const;
-  void SetSignature(uint8_t* signature, std::size_t size);
-  uint8_t* GetSignature() const;
+ public:
+  void SetDhY(
+      std::uint8_t* dhY);
+
+  std::uint8_t const* GetDhY() const;
+
+  void SetIPAddress(
+      std::uint8_t* address,
+      std::size_t size);
+
+  std::uint8_t const* GetIPAddress() const;
+
+  std::size_t GetIPAddressSize() const;
+
+  void SetPort(
+      std::uint16_t port);
+
+  std::uint16_t GetPort() const;
+
+  void SetRelayTag(
+      std::uint32_t relay_tag);
+
+  std::uint32_t GetRelayTag() const;
+
+  void SetSignature(
+      std::uint8_t* signature,
+      std::size_t size);
+
+  std::uint8_t* GetSignature() const;
+
   std::size_t GetSignatureSize() const;
-  void SetSignedOnTime(uint32_t time);
-  uint32_t GetSignedOnTime() const;
+
+  void SetSignedOnTime(
+      std::uint32_t time);
+
+  std::uint32_t GetSignedOnTime() const;
+
   std::size_t GetSize() const;
-private:
+
+ private:
   std::size_t m_AddressSize, m_SignatureSize;
-  uint8_t* m_DhY, * m_IpAddress, * m_Signature;
-  uint16_t m_Port;
-  uint32_t m_RelayTag, m_SignedOnTime;
+  std::uint8_t* m_DhY, *m_IPAddress, *m_Signature;
+  std::uint16_t m_Port;
+  std::uint32_t m_RelayTag, m_SignedOnTime;
 };
 
-
+/// @class SSUSessionConfirmedPacket
+/// @brief Payload type 2: SessionConfirmed
 class SSUSessionConfirmedPacket : public SSUPacket {
-public:
-  void SetRemoteRouterIdentity(const i2p::data::IdentityEx& identity);
+ public:
+  void SetRemoteRouterIdentity(
+      const i2p::data::IdentityEx& identity);
+
   i2p::data::IdentityEx GetRemoteRouterIdentity() const;
-  void SetSignature(uint8_t* signature);
-  uint8_t const* GetSignature() const;
-  void SetSignedOnTime(uint32_t time);
-  uint32_t GetSignedOnTime() const;
+
+  void SetSignature(
+      std::uint8_t* signature);
+
+  std::uint8_t const* GetSignature() const;
+
+  void SetSignedOnTime(
+      std::uint32_t time);
+
+  std::uint32_t GetSignedOnTime() const;
+
   std::size_t GetSize() const;
-private:
+
+ private:
   i2p::data::IdentityEx m_RemoteIdentity;
-  uint8_t* m_Signature;
-  uint32_t m_SignedOnTime;
+  std::uint8_t* m_Signature;
+  std::uint32_t m_SignedOnTime;
 };
 
+/// @class SSURelayRequestPacket
+/// @brief Payload type 3: RelayRequest
 class SSURelayRequestPacket : public SSUPacket {
-public:
-  void SetRelayTag(uint32_t tag);
-  uint32_t GetRelayTag() const;
-  void SetIpAddress(uint8_t* ipAddress, std::size_t size);
-  uint8_t const* GetIpAddress() const;
-  void SetChallenge(uint8_t* challenge, std::size_t size);
-  uint8_t const* GetChallenge() const;
-  void SetPort(uint16_t port);
-  uint16_t GetPort() const;
-  void SetIntroKey(uint8_t* key);
-  uint8_t const* GetIntroKey() const;
-  void SetNonce(uint32_t nonce);
-  uint32_t GetNonce() const;
+ public:
+  void SetRelayTag(
+      std::uint32_t tag);
+
+  std::uint32_t GetRelayTag() const;
+
+  void SetIPAddress(
+      std::uint8_t* address,
+      std::size_t size);
+
+  std::uint8_t const* GetIPAddress() const;
+
+  void SetChallenge(
+      std::uint8_t* challenge,
+      std::size_t size);
+
+  std::uint8_t const* GetChallenge() const;
+
+  void SetPort(
+      std::uint16_t port);
+
+  std::uint16_t GetPort() const;
+
+  void SetIntroKey(
+      std::uint8_t* key);
+
+  std::uint8_t const* GetIntroKey() const;
+
+  void SetNonce(
+      std::uint32_t nonce);
+
+  std::uint32_t GetNonce() const;
+
   std::size_t GetSize() const;
-private:
-  uint32_t m_RelayTag, m_Nonce;
-  std::size_t m_IpAddressSize, m_ChallengeSize;
-  uint8_t* m_IpAddress, * m_Challenge, * m_IntroKey;
-  uint16_t m_Port;
+
+ private:
+  std::uint32_t m_RelayTag, m_Nonce;
+  std::size_t m_IPAddressSize, m_ChallengeSize;
+  std::uint8_t* m_IPAddress, *m_Challenge, *m_IntroKey;
+  std::uint16_t m_Port;
 };
 
+/// @class SSURelayResponsePacket
+/// @brief Payload type 4: RelayResponse
 class SSURelayResponsePacket : public SSUPacket {
-public:
-  void SetNonce(uint32_t nonce);
-  uint32_t GetNonce() const;
-  void SetIpAddressAlice(uint8_t* ipAddress, std::size_t size);
-  uint8_t const* GetIpAddressAlice() const;
-  std::size_t GetIpAddressAliceSize() const;
-  void SetIpAddressCharlie(uint8_t* ipAddress, std::size_t size);
-  uint8_t const* GetIpAddressCharlie() const;
-  void SetPortAlice(uint16_t port);
-  uint16_t GetPortAlice() const;
-  void SetPortCharlie(uint16_t port);
-  uint16_t GetPortCharlie() const;
+ public:
+  void SetNonce(
+      std::uint32_t nonce);
+
+  std::uint32_t GetNonce() const;
+
+  void SetIPAddressAlice(
+      std::uint8_t* address,
+      std::size_t size);
+
+  std::uint8_t const* GetIPAddressAlice() const;
+
+  std::size_t GetIPAddressAliceSize() const;
+
+  void SetIPAddressCharlie(
+      std::uint8_t* address,
+      std::size_t size);
+
+  std::uint8_t const* GetIPAddressCharlie() const;
+
+  void SetPortAlice(
+      std::uint16_t port);
+
+  std::uint16_t GetPortAlice() const;
+
+  void SetPortCharlie(
+      std::uint16_t port);
+
+  std::uint16_t GetPortCharlie() const;
+
   std::size_t GetSize() const;
-private:
-  std::size_t m_IpAddressAliceSize, m_IpAddressCharlieSize;
-  uint32_t m_Nonce;
-  uint8_t* m_IpAddressAlice, * m_IpAddressCharlie;
-  uint16_t m_PortAlice, m_PortCharlie;
+
+ private:
+  std::size_t m_IPAddressAliceSize, m_IPAddressCharlieSize;
+  std::uint32_t m_Nonce;
+  std::uint8_t* m_IPAddressAlice, *m_IPAddressCharlie;
+  std::uint16_t m_PortAlice, m_PortCharlie;
 };
 
+/// @class SSURelayIntroPacket
+/// @brief Payload type 5: RelayIntro
 class SSURelayIntroPacket : public SSUPacket {
-public:
-  void SetIpAddress(uint8_t* ipAddress, std::size_t size);
-  uint8_t const* GetIpAddress() const;
-  std::size_t GetIpAddressSize() const;
-  void SetChallenge(uint8_t* challenge, std::size_t size);
-  uint8_t const* GetChallenge() const;
-  void SetPort(uint16_t port);
-  uint16_t GetPort() const;
+ public:
+  void SetIPAddress(
+      std::uint8_t* address,
+      std::size_t size);
+
+  std::uint8_t const* GetIPAddress() const;
+
+  std::size_t GetIPAddressSize() const;
+
+  void SetChallenge(
+      std::uint8_t* challenge,
+      std::size_t size);
+
+  std::uint8_t const* GetChallenge() const;
+
+  void SetPort(
+      std::uint16_t port);
+
+  std::uint16_t GetPort() const;
+
   std::size_t GetSize() const;
-private:
-  std::size_t m_IpAddressSize, m_ChallengeSize;
-  uint8_t* m_IpAddress, * m_Challenge;
-  uint16_t m_Port;
+
+ private:
+  std::size_t m_IPAddressSize, m_ChallengeSize;
+  std::uint8_t* m_IPAddress, *m_Challenge;
+  std::uint16_t m_Port;
 };
 
-
+/// @class SSUFragment
+/// @brief Constitutes all SSU fragments
 class SSUFragment {
-public:
-  void SetMessageId(uint32_t messageId);
-  void SetNumber(uint8_t number);
-  void SetIsLast(bool isLast);
-  void SetSize(std::size_t size);
+ public:
+  void SetMessageID(
+      std::uint32_t message_ID);
+
+  void SetNumber(
+      std::uint8_t number);
+
+  void SetIsLast(
+      bool is_last);
+
+  void SetSize(
+      std::size_t size);
+
   std::size_t GetSize() const;
-  void SetData(uint8_t* data);
-private:
-  uint8_t m_MessageId;
-  uint8_t m_Number;
+
+  void SetData(
+      std::uint8_t* data);
+
+ private:
+  std::uint8_t m_MessageID;
+  std::uint8_t m_Number;
   bool m_IsLast;
   std::size_t m_Size;
-  uint8_t* m_Data;
+  std::uint8_t* m_Data;
 };
 
+/// @class SSUDataPacket
+/// @brief Payload type 6: Data
 class SSUDataPacket : public SSUPacket {
-public:
-  void AddExplicitACK(uint32_t messageId);
-  void AddACK(uint32_t messageId);
-  void AddACKBitfield(uint8_t bitfield);
-  void AddFragment(SSUFragment fragment);
+ public:
+  void AddExplicitACK(
+      std::uint32_t message_ID);
+
+  void AddACK(
+      std::uint32_t message_ID);
+
+  void AddACKBitfield(
+      std::uint8_t bitfield);
+
+  void AddFragment(
+      SSUFragment fragment);
+
   std::size_t GetSize() const;
-private:
-  uint8_t m_Flag;
-  std::vector<uint32_t> m_ExplicitACKs;
-  std::vector<uint32_t> m_ACKs;
-  std::vector<uint8_t> m_ACKBitfields;
+
+ private:
+  std::uint8_t m_Flag;
+  std::vector<std::uint32_t> m_ExplicitACKs;
+  std::vector<std::uint32_t> m_ACKs;
+  std::vector<std::uint8_t> m_ACKBitfields;
   std::vector<SSUFragment> m_Fragments;
 };
 
+/// @class SSUPeerTestPacket
+/// @brief Payload type 7: PeerTest
 class SSUPeerTestPacket : public SSUPacket {
-public:
-  void SetNonce(uint32_t nonce);
-  uint32_t GetNonce() const;
-  void SetIpAddress(uint32_t ipAddress);
-  uint32_t GetIpAddress() const;
-  void SetPort(uint16_t port);
-  uint16_t GetPort() const;
-  void SetIntroKey(uint8_t* key);
-  uint8_t const* GetIntroKey() const;
-  std::size_t GetSize() const;
-private:
-  uint32_t m_Nonce, m_IpAddress;
-  uint8_t* m_IntroKey;
-  uint16_t m_Port;
+ public:
+  void SetNonce(
+      std::uint32_t nonce);
 
+  std::uint32_t GetNonce() const;
+
+  void SetIPAddress(
+      std::uint32_t address);
+
+  std::uint32_t GetIPAddress() const;
+
+  void SetPort(
+      std::uint16_t port);
+
+  std::uint16_t GetPort() const;
+
+  void SetIntroKey(
+      std::uint8_t* key);
+
+  std::uint8_t const* GetIntroKey() const;
+
+  std::size_t GetSize() const;
+
+ private:
+  std::uint32_t m_Nonce, m_IPAddress;
+  std::uint8_t* m_IntroKey;
+  std::uint16_t m_Port;
 };
 
-class SSUSessionDestroyedPacket : public SSUPacket { };
+/// @class SSUSessionDestroyedPacket
+/// @brief Payload type 8: SessionDestroyed
+class SSUSessionDestroyedPacket : public SSUPacket {};
 
+/// @class SSUPacketParser
+/// @brief Constitutes SSU packet parsing
 class SSUPacketParser {
-  /// Advances the internal data pointer by the given amount
-  /// @param amount the amount by which to advance the data pointer
-  /// @throw std::length_error if amount exceeds the remaining data length
-  void ConsumeData(std::size_t amount);
-
-  /// Consume a given amount of bytes, and return a pointer to first consumed
-  ///  byte.
-  /// @return a pointer to the first byte that was consumed (m_Data + amount)
-  /// @throw std::length_error if amount exceeds the remaining data length
-  uint8_t* ReadBytes(std::size_t amount);
-
-  /// Reads a uint32_t, i.e. a 4 byte unsigned integer
-  /// @return the newly read uint32_t
-  /// @throw std::length_error if less than 4 bytes are available for reading
-  uint32_t ReadUInt32();
-
-  /// Reads a uint16_t, i.e. a 2 byte unsigned integer
-  /// @return the newly read uint16_t
-  /// @throw std::length_error if less than 2 bytes are available for reading
-  uint16_t ReadUInt16();
-
-  /// Reads a uint8_t, i.e. a single byte
-  /// @return the newly read byte as a uint8_t
-  /// @throw std::length_error if no bytes are available for reading 
-  uint8_t ReadUInt8();
-
-  SSUFragment ParseFragment();
-public:
+ public:
   SSUPacketParser() = default;
-  SSUPacketParser(uint8_t* data, std::size_t len);
- 
+
+  SSUPacketParser(
+      std::uint8_t* data,
+      std::size_t len);
+
   /// @brief Parses an SSU header.
   /// @return a pointer to the newly constructed SSUHeader object
   /// @throw std::length_error if the buffer contains less data than the
@@ -328,57 +487,141 @@ public:
 
   /// @brief Parses a session request packet, without the header
   std::unique_ptr<SSUSessionRequestPacket> ParseSessionRequest();
+
   /// @brief Parses a session created packet, without the header
   std::unique_ptr<SSUSessionCreatedPacket> ParseSessionCreated();
+
   /// @brief Parses a session confirmed packet, without the header
   /// TODO: Support multiple fragments?
   std::unique_ptr<SSUSessionConfirmedPacket> ParseSessionConfirmed();
+
   /// @brief Parses a relay request packet, without the header
   std::unique_ptr<SSURelayRequestPacket> ParseRelayRequest();
+
   /// @brief Parses a relay response packet, without the header
   std::unique_ptr<SSURelayResponsePacket> ParseRelayResponse();
+
   /// @brief Parses a relay intro packet, without the header
   std::unique_ptr<SSURelayIntroPacket> ParseRelayIntro();
+
   /// @brief Parses a data packet, without the header
   std::unique_ptr<SSUDataPacket> ParseData();
+
   /// @brief Parses a peer test packet, without the header
   std::unique_ptr<SSUPeerTestPacket> ParsePeerTest();
+
   /// @brief Parses a session destroyed packet, without the header
   std::unique_ptr<SSUSessionDestroyedPacket> ParseSessionDestroyed();
 
-private:
-  uint8_t* m_Data;
+ private:
+  /// @brief Advances the internal data pointer by the given amount
+  /// @param amount the amount by which to advance the data pointer
+  /// @throw std::length_error if amount exceeds the remaining data length
+  void ConsumeData(
+      std::size_t amount);
+
+  /// @brief Consume a given amount of bytes, and return a pointer to first consumed
+  ///   byte.
+  /// @return a pointer to the first byte that was consumed (m_Data + amount)
+  /// @throw std::length_error if amount exceeds the remaining data length
+  std::uint8_t* ReadBytes(
+      std::size_t amount);
+
+  /// @brief Reads a std::uint32_t, i.e. a 4 byte unsigned integer
+  /// @return the newly read std::uint32_t
+  /// @throw std::length_error if less than 4 bytes are available for reading
+  std::uint32_t ReadUInt32();
+
+  /// @brief Reads a std::uint16_t, i.e. a 2 byte unsigned integer
+  /// @return the newly read std::uint16_t
+  /// @throw std::length_error if less than 2 bytes are available for reading
+  std::uint16_t ReadUInt16();
+
+  /// @brief Reads a std::uint8_t, i.e. a single byte
+  /// @return the newly read byte as a std::uint8_t
+  /// @throw std::length_error if no bytes are available for reading
+  std::uint8_t ReadUInt8();
+
+  SSUFragment ParseFragment();
+
+ private:
+  std::uint8_t* m_Data;
   std::size_t m_Length;
 };
 
 namespace SSUPacketBuilder {
 
-  void WriteData(uint8_t*& pos, const uint8_t* data, std::size_t len);
-  void WriteUInt8(uint8_t*& pos, uint8_t data);
-  void WriteUInt16(uint8_t*& pos, uint16_t data);
-  void WriteUInt32(uint8_t*& pos, uint32_t data);
+void WriteData(
+    std::uint8_t*& pos,
+    const std::uint8_t* data,
+    std::size_t len);
 
-  std::size_t GetPaddingSize(std::size_t size);
-  std::size_t GetPaddedSize(std::size_t size);
+void WriteUInt8(
+    std::uint8_t*& pos,
+    std::uint8_t data);
 
-  /// @brief Writes an SSU header into a data buffer.
-  /// @pre The data buffer must be sufficiently large.
-  void WriteHeader(uint8_t*& data, SSUHeader* header);
+void WriteUInt16(
+    std::uint8_t*& pos,
+    std::uint16_t data);
 
-  void WriteSessionRequest(uint8_t*& buf, SSUSessionRequestPacket* packet);
-  void WriteSessionCreated(uint8_t*& buf, SSUSessionCreatedPacket* packet);
-  void WriteSessionConfirmed(uint8_t*& buf, SSUSessionConfirmedPacket* packet);
-  void WriteRelayRequest(uint8_t*& buf, SSURelayRequestPacket* packet);
-  void WriteRelayResponse(uint8_t*& buf, SSURelayResponsePacket* packet);
-  void WriteRelayIntro(uint8_t*& buf, SSURelayIntroPacket* packet);
-  void WriteData(uint8_t*& buf, SSUDataPacket* packet);
-  void WritePeerTest(uint8_t*& buf, SSUPeerTestPacket* packet);
-  void WriteSessionDestroyed(uint8_t*& buf, SSUSessionDestroyedPacket* packet);
+void WriteUInt32(
+    std::uint8_t*& pos,
+    std::uint32_t data);
 
-  void WritePacket(uint8_t*& buf, SSUPacket* packet);
-}
+std::size_t GetPaddingSize(
+    std::size_t size);
 
-}
-}
+std::size_t GetPaddedSize(
+    std::size_t size);
+
+/// @brief Writes an SSU header into a data buffer.
+/// @pre The data buffer must be sufficiently large.
+void WriteHeader(
+    std::uint8_t*& data,
+    SSUHeader* header);
+
+void WriteSessionRequest(
+    std::uint8_t*& buf,
+    SSUSessionRequestPacket* packet);
+
+void WriteSessionCreated(
+    std::uint8_t*& buf,
+    SSUSessionCreatedPacket* packet);
+
+void WriteSessionConfirmed(
+    std::uint8_t*& buf,
+    SSUSessionConfirmedPacket* packet);
+
+void WriteRelayRequest(
+    std::uint8_t*& buf,
+    SSURelayRequestPacket* packet);
+
+void WriteRelayResponse(
+    std::uint8_t*& buf,
+    SSURelayResponsePacket* packet);
+
+void WriteRelayIntro(
+    std::uint8_t*& buf,
+    SSURelayIntroPacket* packet);
+
+void WriteData(
+    std::uint8_t*& buf,
+    SSUDataPacket* packet);
+
+void WritePeerTest(
+    std::uint8_t*& buf,
+    SSUPeerTestPacket* packet);
+
+void WriteSessionDestroyed(
+    std::uint8_t*& buf,
+    SSUSessionDestroyedPacket* packet);
+
+void WritePacket(
+    std::uint8_t*& buf,
+    SSUPacket* packet);
+}  // namespace SSUPacketBuilder
+
+}  // namespace transport
+}  // namespace i2p
 
 #endif  // SRC_CORE_TRANSPORT_SSUPACKET_H_

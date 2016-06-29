@@ -1069,7 +1069,7 @@ void SSUSession::FillHeaderAndEncrypt(
   pkt.PutFlag(flag | (payload_type << 4));  // MSB is 0
   pkt.PutTime(i2p::util::GetSecondsSinceEpoch());
   std::uint8_t* encrypted = pkt.Encrypted();
-  std::uint16_t encrypted_len = len - (encrypted - buf);
+  auto encrypted_len = len - (encrypted - buf);
   i2p::crypto::CBCEncryption encryption(aes_key, iv);
   encryption.Encrypt(
       encrypted,
@@ -1095,7 +1095,7 @@ void SSUSession::WriteAndEncrypt(
   SSUPacketBuilder::WritePacket(buf, packet);
   // Encrypt everything after the MAC and IV
   std::uint8_t* encrypted = buffer + SSU_IV_SIZE + SSU_MAC_SIZE;
-  std::uint16_t encrypted_len = SSUPacketBuilder::GetPaddingSize(
+  auto encrypted_len = SSUPacketBuilder::GetPaddingSize(
       (buf - buffer) - (SSU_IV_SIZE  + SSU_MAC_SIZE));
   // Add padding
   i2p::crypto::RandBytes(buf, encrypted_len);
@@ -1134,7 +1134,7 @@ void SSUSession::FillHeaderAndEncrypt(
   pkt.PutFlag(payload_type << 4);  // MSB is 0
   pkt.PutTime(i2p::util::GetSecondsSinceEpoch());
   std::uint8_t* encrypted = pkt.Encrypted();
-  std::uint16_t encrypted_len = len - (encrypted - buf);
+  auto encrypted_len = len - (encrypted - buf);
   m_SessionKeyEncryption.Encrypt(
       encrypted,
       encrypted_len,
@@ -1161,7 +1161,7 @@ void SSUSession::Decrypt(
   }
   SSUSessionPacket pkt(buf, len);
   std::uint8_t* encrypted = pkt.Encrypted();
-  std::uint16_t encrypted_len = len - (encrypted - buf);
+  auto encrypted_len = len - (encrypted - buf);
   i2p::crypto::CBCDecryption decryption;
   decryption.SetKey(aes_key);
   decryption.SetIV(pkt.IV());
@@ -1182,7 +1182,7 @@ void SSUSession::DecryptSessionKey(
   }
   SSUSessionPacket pkt(buf, len);
   std::uint8_t* encrypted = pkt.Encrypted();
-  std::uint16_t encrypted_len = len - (encrypted - buf);
+  auto encrypted_len = len - (encrypted - buf);
   if (encrypted_len > 0) {
     m_SessionKeyDecryption.SetIV(pkt.IV());
     m_SessionKeyDecryption.Decrypt(
@@ -1204,7 +1204,7 @@ bool SSUSession::Validate(
   }
   SSUSessionPacket pkt(buf, len);
   std::uint8_t * encrypted = pkt.Encrypted();
-  std::uint16_t encrypted_len = len - (encrypted - buf);
+  auto encrypted_len = len - (encrypted - buf);
   // assume actual buffer size is 18 (16 + 2) bytes more
   memcpy(buf + len, pkt.IV(), 16);
   htobe16buf(buf + len + 16, encrypted_len);

@@ -293,7 +293,7 @@ void SSUData::ProcessFragments(
       // process message
       SendMsgAck(msgID);
       msg->FromSSU(msgID);
-      if (m_Session.GetState() == eSessionStateEstablished) {
+      if (m_Session.GetState() == SessionStateEstablished) {
         if (!m_ReceivedMessages.count(msgID)) {
           if (m_ReceivedMessages.size() > MAX_NUM_RECEIVED_MESSAGES)
             m_ReceivedMessages.clear();

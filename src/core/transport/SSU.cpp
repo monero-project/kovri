@@ -34,13 +34,13 @@
 
 #include <boost/bind.hpp>
 
+#include <array>
 #include <cstdint>
 #include <list>
 #include <memory>
 #include <set>
 #include <vector>
 
-#include "SSU.h"
 #include "crypto/Rand.h"
 #include "NetworkDatabase.h"
 #include "RouterContext.h"
@@ -452,8 +452,8 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
             session->WaitForIntroduction();
             // if we are unreachable
             if (i2p::context.GetRouterInfo().UsesIntroducer()) {
-              std::uint8_t buf[1];
-              Send(buf, 0, remote_endpoint);  // send HolePunch
+              std::array<std::uint8_t, 1> buf {};
+              Send(buf.data(), 0, remote_endpoint);  // send HolePunch
             }
             introducer_session->Introduce(introducer->tag, introducer->key);
           } else {

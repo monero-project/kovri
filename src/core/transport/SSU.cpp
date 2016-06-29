@@ -34,8 +34,6 @@
 
 #include <boost/bind.hpp>
 
-#include <string.h>
-
 #include <cstdint>
 #include <list>
 #include <memory>
@@ -88,8 +86,8 @@ void SSUServer::Start() {
   m_ReceiversThread =
     std::make_unique<std::thread>(
         std::bind(
-          &SSUServer::RunReceivers,
-          this));
+            &SSUServer::RunReceivers,
+            this));
   m_Thread =
     std::make_unique<std::thread>(
         std::bind(
@@ -178,14 +176,14 @@ void SSUServer::RunReceivers() {
 }
 
 void SSUServer::AddRelay(
-    uint32_t tag,
+    std::uint32_t tag,
     const boost::asio::ip::udp::endpoint& relay) {
   LogPrint(eLogDebug, "SSUServer: adding relay");
   m_Relays[tag] = relay;
 }
 
 std::shared_ptr<SSUSession> SSUServer::FindRelaySession(
-    uint32_t tag) {
+    std::uint32_t tag) {
   LogPrint(eLogDebug, "SSUServer: finding relay session");
   auto it = m_Relays.find(tag);
   if (it != m_Relays.end())
@@ -194,31 +192,23 @@ std::shared_ptr<SSUSession> SSUServer::FindRelaySession(
 }
 
 void SSUServer::Send(
-    const uint8_t* buf,
-    size_t len,
+    const std::uint8_t* buf,
+    std::size_t len,
     const boost::asio::ip::udp::endpoint& to) {
   LogPrint(eLogDebug, "SSUServer: sending data");
   if (to.protocol() == boost::asio::ip::udp::v4()) {
     try {
-      m_Socket.send_to(
-          boost::asio::buffer(
-              buf,
-              len),
-          to);
+      m_Socket.send_to(boost::asio::buffer(buf, len), to);
     } catch (const std::exception& ex) {
       LogPrint(eLogError, "SSUServer: send error: '", ex.what(), "'");
     }
   } else {
-      try {
-        m_SocketV6.send_to(
-            boost::asio::buffer(
-                buf,
-                len),
-            to);
-      } catch (const std::exception& ex) {
-        LogPrint(eLogError, "SSUServer: V6 send error: '", ex.what(), "'");
-      }
+    try {
+      m_SocketV6.send_to(boost::asio::buffer(buf, len), to);
+    } catch (const std::exception& ex) {
+      LogPrint(eLogError, "SSUServer: V6 send error: '", ex.what(), "'");
     }
+  }
 }
 
 void SSUServer::Receive() {
@@ -263,8 +253,8 @@ void SSUServer::HandleReceivedFrom(
     std::vector<RawSSUPacket *> packets;
     packets.push_back(packet);
     boost::system::error_code ec;
-    size_t moreBytes = m_Socket.available(ec);
-    while (moreBytes && packets.size() < 25) {
+    std::size_t more_bytes = m_Socket.available(ec);
+    while (more_bytes && packets.size() < 25) {
       packet = new RawSSUPacket();
       packet->len = m_Socket.receive_from(
           boost::asio::buffer(
@@ -272,7 +262,7 @@ void SSUServer::HandleReceivedFrom(
               SSU_MTU_V4),
           packet->from);
       packets.push_back(packet);
-      moreBytes = m_Socket.available();
+      more_bytes = m_Socket.available();
     }
     m_Service.post(
         std::bind(
@@ -295,8 +285,8 @@ void SSUServer::HandleReceivedFromV6(
     packet->len = bytes_transferred;
     std::vector<RawSSUPacket *> packets;
     packets.push_back(packet);
-    size_t moreBytes = m_SocketV6.available();
-    while (moreBytes && packets.size() < 25) {
+    std::size_t more_bytes = m_SocketV6.available();
+    while (more_bytes && packets.size() < 25) {
       packet = new RawSSUPacket();
       packet->len = m_SocketV6.receive_from(
           boost::asio::buffer(
@@ -304,7 +294,7 @@ void SSUServer::HandleReceivedFromV6(
               SSU_MTU_V6),
           packet->from);
       packets.push_back(packet);
-      moreBytes = m_SocketV6.available();
+      more_bytes = m_SocketV6.available();
     }
     m_ServiceV6.post(
         std::bind(
@@ -322,28 +312,28 @@ void SSUServer::HandleReceivedPackets(
     std::vector<RawSSUPacket *> packets) {
   LogPrint(eLogDebug, "SSUServer: handling received packets");
   std::shared_ptr<SSUSession> session;
-  for (auto packets_it : packets) {
-    auto packet = packets_it;
+  for (auto packet : packets) {
+    auto pkt = packet;
     try {
-      // we received packet for other session than previous
-      if (!session || session->GetRemoteEndpoint() != packet->from) {
+      // we received pkt for other session than previous
+      if (!session || session->GetRemoteEndpoint() != pkt->from) {
         if (session)
           session->FlushData();
-        auto session_it = m_Sessions.find(packet->from);
+        auto session_it = m_Sessions.find(pkt->from);
         if (session_it != m_Sessions.end())
           session = session_it->second;
         if (!session) {
-          session = std::make_shared<SSUSession>(*this, packet->from);
+          session = std::make_shared<SSUSession>(*this, pkt->from);
           session->WaitForConnect(); {
             std::unique_lock<std::mutex> l(m_SessionsMutex);
-            m_Sessions[packet->from] = session;
+            m_Sessions[pkt->from] = session;
           }
           LogPrint(eLogInfo,
               "SSUServer: created new SSU session from ",
               session->GetRemoteEndpoint());
         }
       }
-      session->ProcessNextMessage(packet->buf, packet->len, packet->from);
+      session->ProcessNextMessage(pkt->buf, pkt->len, pkt->from);
     } catch (std::exception& ex) {
       LogPrint(eLogError,
           "SSUServer: HandleReceivedPackets(): '", ex.what(), "'");
@@ -351,7 +341,7 @@ void SSUServer::HandleReceivedPackets(
         session->FlushData();
       session = nullptr;
     }
-    delete packet;
+    delete pkt;
   }
   if (session)
     session->FlushData();
@@ -365,20 +355,15 @@ std::shared_ptr<SSUSession> SSUServer::FindSession(
   auto address = router->GetSSUAddress(true);  // v4 only
   if (!address)
     return nullptr;
-  auto session = FindSession(
-      boost::asio::ip::udp::endpoint(
-          address->host,
-          address->port));
+  auto session =
+    FindSession(boost::asio::ip::udp::endpoint(address->host, address->port));
   if (session || !context.SupportsV6())
     return session;
   // try v6
   address = router->GetSSUV6Address();
   if (!address)
     return nullptr;
-  return FindSession(
-      boost::asio::ip::udp::endpoint(
-          address->host,
-          address->port));
+  return FindSession(boost::asio::ip::udp::endpoint(address->host, address->port));
 }
 
 std::shared_ptr<SSUSession> SSUServer::FindSession(
@@ -393,27 +378,27 @@ std::shared_ptr<SSUSession> SSUServer::FindSession(
 
 std::shared_ptr<SSUSession> SSUServer::GetSession(
     std::shared_ptr<const i2p::data::RouterInfo> router,
-    bool peerTest) {
+    bool peer_test) {
   LogPrint(eLogDebug, "SSUServer: getting session");
   std::shared_ptr<SSUSession> session;
   if (router) {
     auto address = router->GetSSUAddress(!context.SupportsV6());
     if (address) {
-      boost::asio::ip::udp::endpoint remoteEndpoint(
+      boost::asio::ip::udp::endpoint remote_endpoint(
           address->host,
           address->port);
-      auto it = m_Sessions.find(remoteEndpoint);
+      auto it = m_Sessions.find(remote_endpoint);
       if (it != m_Sessions.end()) {
         session = it->second;
       } else {
         // otherwise create new session
         session = std::make_shared<SSUSession>(
             *this,
-            remoteEndpoint,
+            remote_endpoint,
             router,
-            peerTest); {
+            peer_test); {
           std::unique_lock<std::mutex> l(m_SessionsMutex);
-          m_Sessions[remoteEndpoint] = session;
+          m_Sessions[remote_endpoint] = session;
         }
         session->SetRemoteIdentHashAbbreviation();
         if (!router->UsesIntroducer()) {
@@ -424,23 +409,23 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
           session->Connect();
         } else {
           // connect through introducer
-          int numIntroducers = address->introducers.size();
-          if (numIntroducers > 0) {
-            std::shared_ptr<SSUSession> introducerSession;
+          int num_introducers = address->introducers.size();
+          if (num_introducers > 0) {
+            std::shared_ptr<SSUSession> introducer_session;
             const i2p::data::RouterInfo::Introducer* introducer = nullptr;
             // we might have a session to introducer already
-            for (int i = 0; i < numIntroducers; i++) {
+            for (int i = 0; i < num_introducers; i++) {
               introducer = &(address->introducers[i]);
               it = m_Sessions.find(
-                  boost::asio::ip::udp::endpoint(
-                      introducer->host,
-                      introducer->port));
+                       boost::asio::ip::udp::endpoint(
+                           introducer->host,
+                           introducer->port));
               if (it != m_Sessions.end()) {
-                introducerSession = it->second;
+                introducer_session = it->second;
                 break;
               }
             }
-            if (introducerSession) {  // session found
+            if (introducer_session) {  // session found
               LogPrint(eLogInfo,
                   "SSUServer: ", introducer->host, ":", introducer->port,
                   "session to introducer already exists");
@@ -451,32 +436,32 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
               boost::asio::ip::udp::endpoint introducerEndpoint(
                   introducer->host,
                   introducer->port);
-              introducerSession = std::make_shared<SSUSession>(
+              introducer_session = std::make_shared<SSUSession>(
                   *this,
                   introducerEndpoint,
                   router);
               std::unique_lock<std::mutex> l(m_SessionsMutex);
-              m_Sessions[introducerEndpoint] = introducerSession;
+              m_Sessions[introducerEndpoint] = introducer_session;
             }
             // introduce
             LogPrint("SSUServer: introducing new SSU session to [",
                 router->GetIdentHashAbbreviation(), "] through introducer [",
-                introducerSession->GetRemoteIdentHashAbbreviation(), "] ",
+                introducer_session->GetRemoteIdentHashAbbreviation(), "] ",
                 introducer->host, ":",
                 introducer->port);
             session->WaitForIntroduction();
             // if we are unreachable
             if (i2p::context.GetRouterInfo().UsesIntroducer()) {
-              uint8_t buf[1];
-              Send(buf, 0, remoteEndpoint);  // send HolePunch
+              std::uint8_t buf[1];
+              Send(buf, 0, remote_endpoint);  // send HolePunch
             }
-            introducerSession->Introduce(introducer->tag, introducer->key);
+            introducer_session->Introduce(introducer->tag, introducer->key);
           } else {
             LogPrint(eLogWarning,
                 "SSUServer: can't connect to unreachable router."
                 "No introducers presented");
             std::unique_lock<std::mutex> l(m_SessionsMutex);
-            m_Sessions.erase(remoteEndpoint);
+            m_Sessions.erase(remote_endpoint);
             session.reset();
           }
         }
@@ -512,15 +497,14 @@ template<typename Filter>
 std::shared_ptr<SSUSession> SSUServer::GetRandomSession(
     Filter filter) {
   LogPrint(eLogDebug, "SSUServer: getting random session");
-  std::vector<std::shared_ptr<SSUSession>> filteredSessions;
-  for (auto s : m_Sessions)
-    if (filter (s.second))
-      filteredSessions.push_back(s.second);
-  if (filteredSessions.size() > 0) {
-    size_t s = filteredSessions.size();
-    size_t ind =
-      i2p::crypto::RandInRange<size_t>(0, s - 1);
-    return filteredSessions[ind];
+  std::vector<std::shared_ptr<SSUSession>> filtered_sessions;
+  for (auto session : m_Sessions)
+    if (filter (session.second))
+      filtered_sessions.push_back(session.second);
+  if (filtered_sessions.size() > 0) {
+    std::size_t s = filtered_sessions.size();
+    std::size_t ind = i2p::crypto::RandInRange<std::size_t>(0, s - 1);
+    return filtered_sessions[ind];
   }
   return nullptr;
 }
@@ -532,24 +516,22 @@ std::shared_ptr<SSUSession> SSUServer::GetRandomEstablishedSession(
       [excluded](std::shared_ptr<SSUSession> session)->bool {
       return session->GetState() == SessionStateEstablished &&
       !session->IsV6() &&
-      session != excluded;
-    });
+      session != excluded; });
 }
 
 std::set<SSUSession *> SSUServer::FindIntroducers(
-    int maxNumIntroducers) {
+    int max_num_introducers) {
   LogPrint(eLogDebug, "SSUServer: finding introducers");
-  uint32_t ts = i2p::util::GetSecondsSinceEpoch();
+  std::uint32_t ts = i2p::util::GetSecondsSinceEpoch();
   std::set<SSUSession *> ret;
-  for (int i = 0; i < maxNumIntroducers; i++) {
+  for (int i = 0; i < max_num_introducers; i++) {
     auto session =
       GetRandomSession(
           [&ret, ts](std::shared_ptr<SSUSession> session)->bool {
           return session->GetRelayTag() &&
           !ret.count(session.get()) &&
           session->GetState() == SessionStateEstablished &&
-          ts < session->GetCreationTime() + SSU_TO_INTRODUCER_SESSION_DURATION;
-          });
+          ts < session->GetCreationTime() + SSU_TO_INTRODUCER_SESSION_DURATION; });
     if (session) {
       ret.insert(session.get());
       break;
@@ -585,36 +567,36 @@ void SSUServer::HandleIntroducersUpdateTimer(
       return;  // we don't need introducers anymore
     // we are firewalled
     if (!i2p::context.IsUnreachable()) i2p::context.SetUnreachable();
-    std::list<boost::asio::ip::udp::endpoint> newList;
-    size_t numIntroducers = 0;
-    uint32_t ts = i2p::util::GetSecondsSinceEpoch();
-    for (auto it : m_Introducers) {
-      auto session = FindSession(it);
+    std::list<boost::asio::ip::udp::endpoint> new_list;
+    std::size_t num_introducers = 0;
+    std::uint32_t ts = i2p::util::GetSecondsSinceEpoch();  // Timestamp
+    for (auto introducer : m_Introducers) {
+      auto session = FindSession(introducer);
       if (session &&
           ts < session->GetCreationTime() + SSU_TO_INTRODUCER_SESSION_DURATION) {
         session->SendKeepAlive();
-        newList.push_back(it);
-        numIntroducers++;
+        new_list.push_back(introducer);
+        num_introducers++;
       } else {
-        i2p::context.RemoveIntroducer(it);
+        i2p::context.RemoveIntroducer(introducer);
       }
     }
-    if (numIntroducers < SSU_MAX_NUM_INTRODUCERS) {
+    if (num_introducers < SSU_MAX_NUM_INTRODUCERS) {
       // create new
       auto introducers = FindIntroducers(SSU_MAX_NUM_INTRODUCERS);
       if (introducers.size() > 0) {
-        for (auto it1 : introducers) {
-          auto router = it1->GetRemoteRouter();
+        for (auto it : introducers) {
+          auto router = it->GetRemoteRouter();
           if (router &&
-              i2p::context.AddIntroducer(*router, it1->GetRelayTag())) {
-            newList.push_back(it1->GetRemoteEndpoint());
-            if (newList.size() >= SSU_MAX_NUM_INTRODUCERS)
+              i2p::context.AddIntroducer(*router, it->GetRelayTag())) {
+            new_list.push_back(it->GetRemoteEndpoint());
+            if (new_list.size() >= SSU_MAX_NUM_INTRODUCERS)
               break;
           }
         }
       }
     }
-    m_Introducers = newList;
+    m_Introducers = new_list;
     if (m_Introducers.empty()) {
       auto introducer = i2p::data::netdb.GetRandomIntroducer();
       if (introducer)
@@ -625,7 +607,7 @@ void SSUServer::HandleIntroducersUpdateTimer(
 }
 
 void SSUServer::NewPeerTest(
-    uint32_t nonce,
+    std::uint32_t nonce,
     PeerTestParticipant role,
     std::shared_ptr<SSUSession> session) {
   LogPrint(eLogDebug, "SSUServer: new peer test");
@@ -637,7 +619,7 @@ void SSUServer::NewPeerTest(
 }
 
 PeerTestParticipant SSUServer::GetPeerTestParticipant(
-    uint32_t nonce) {
+    std::uint32_t nonce) {
   LogPrint(eLogDebug, "SSUServer: getting PeerTest participant");
   auto it = m_PeerTests.find(nonce);
   if (it != m_PeerTests.end())
@@ -647,7 +629,7 @@ PeerTestParticipant SSUServer::GetPeerTestParticipant(
 }
 
 std::shared_ptr<SSUSession> SSUServer::GetPeerTestSession(
-    uint32_t nonce) {
+    std::uint32_t nonce) {
   LogPrint(eLogDebug, "SSUServer: getting PeerTest session");
   auto it = m_PeerTests.find(nonce);
   if (it != m_PeerTests.end())
@@ -657,7 +639,7 @@ std::shared_ptr<SSUSession> SSUServer::GetPeerTestSession(
 }
 
 void SSUServer::UpdatePeerTest(
-    uint32_t nonce,
+    std::uint32_t nonce,
     PeerTestParticipant role) {
   LogPrint(eLogDebug, "SSUServer: updating PeerTest");
   auto it = m_PeerTests.find(nonce);
@@ -666,7 +648,7 @@ void SSUServer::UpdatePeerTest(
 }
 
 void SSUServer::RemovePeerTest(
-    uint32_t nonce) {
+    std::uint32_t nonce) {
   LogPrint(eLogDebug, "SSUServer: removing PeerTest");
   m_PeerTests.erase(nonce);
 }
@@ -687,19 +669,19 @@ void SSUServer::HandlePeerTestsCleanupTimer(
     const boost::system::error_code& ecode) {
   LogPrint(eLogDebug, "SSUServer: handling PeerTests cleanup timer");
   if (ecode != boost::asio::error::operation_aborted) {
-    int numDeleted = 0;
-    uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
+    int num_deleted = 0;
+    std::uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
     for (auto it = m_PeerTests.begin(); it != m_PeerTests.end();) {
       if (ts > it->second.creationTime + SSU_PEER_TEST_TIMEOUT * 1000LL) {
-        numDeleted++;
+        num_deleted++;
         it = m_PeerTests.erase(it);
       } else {
         it++;
       }
     }
-    if (numDeleted > 0)
+    if (num_deleted > 0)
       LogPrint(eLogInfo,
-          "SSUServer: ", numDeleted, " peer tests have been expired");
+          "SSUServer: ", num_deleted, " peer tests have been expired");
     SchedulePeerTestsCleanupTimer();
   }
 }

@@ -165,7 +165,7 @@ class SSUServer {
       Filter filter);
 
   std::set<SSUSession *> FindIntroducers(
-      int max_num_introducers);
+      std::size_t max_num_introducers);
 
   void ScheduleIntroducersUpdateTimer();
 

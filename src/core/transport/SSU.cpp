@@ -409,12 +409,12 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
           session->Connect();
         } else {
           // connect through introducer
-          int num_introducers = address->introducers.size();
+          auto num_introducers = address->introducers.size();
           if (num_introducers > 0) {
             std::shared_ptr<SSUSession> introducer_session;
             const i2p::data::RouterInfo::Introducer* introducer = nullptr;
             // we might have a session to introducer already
-            for (int i = 0; i < num_introducers; i++) {
+            for (std::size_t i = 0; i < num_introducers; i++) {
               introducer = &(address->introducers[i]);
               it = m_Sessions.find(
                        boost::asio::ip::udp::endpoint(
@@ -520,11 +520,11 @@ std::shared_ptr<SSUSession> SSUServer::GetRandomEstablishedSession(
 }
 
 std::set<SSUSession *> SSUServer::FindIntroducers(
-    int max_num_introducers) {
+    std::size_t max_num_introducers) {
   LogPrint(eLogDebug, "SSUServer: finding introducers");
   std::uint32_t ts = i2p::util::GetSecondsSinceEpoch();
   std::set<SSUSession *> ret;
-  for (int i = 0; i < max_num_introducers; i++) {
+  for (std::size_t i = 0; i < max_num_introducers; i++) {
     auto session =
       GetRandomSession(
           [&ret, ts](std::shared_ptr<SSUSession> session)->bool {
@@ -669,7 +669,7 @@ void SSUServer::HandlePeerTestsCleanupTimer(
     const boost::system::error_code& ecode) {
   LogPrint(eLogDebug, "SSUServer: handling PeerTests cleanup timer");
   if (ecode != boost::asio::error::operation_aborted) {
-    int num_deleted = 0;
+    std::size_t num_deleted = 0;
     std::uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
     for (auto it = m_PeerTests.begin(); it != m_PeerTests.end();) {
       if (ts > it->second.creationTime + SSU_PEER_TEST_TIMEOUT * 1000LL) {

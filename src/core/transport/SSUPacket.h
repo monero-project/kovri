@@ -75,30 +75,33 @@ enum struct SSUFlag : const std::uint8_t {
   DataACKBitFieldHasNext = 0x80,
 };
 
+/// @enum SSUPayloadType
+/// @brief SSU payload types assigned with spec-specific value
+/// @note 4 bits
+enum struct SSUPayloadType : const std::uint8_t {
+  SessionRequest = 0,
+  SessionCreated,
+  SessionConfirmed,
+  RelayRequest,
+  RelayResponse,
+  RelayIntro,
+  Data,
+  PeerTest,
+  SessionDestroyed,
+  Unknown  // TODO(unassigned): fully implement
+};
+
 /// @class SSUHeader
 /// @brief Constitutes all SSU headers
 class SSUHeader {
  public:
-  enum class PayloadType {
-    SessionRequest = 0,
-    SessionCreated,
-    SessionConfirmed,
-    RelayRequest,
-    RelayResponse,
-    RelayIntro,
-    Data,
-    PeerTest,
-    SessionDestroyed,
-    Unknown
-  };
-
   SSUHeader();
 
   explicit SSUHeader(
-      PayloadType type);
+      SSUPayloadType type);
 
   SSUHeader(
-      PayloadType type,
+      SSUPayloadType type,
       std::uint8_t* mac,
       std::uint8_t* iv,
       std::uint32_t time);
@@ -117,9 +120,9 @@ class SSUHeader {
   /// @param type nonnegative integer between 0 and 8
   /// @throw std::invalid_argument if the type is invalid
   void SetPayloadType(
-      short type);
+      short type);  // TODO(unassigned): replace this C-style type
 
-  PayloadType GetPayloadType() const;
+  SSUPayloadType GetPayloadType() const;
 
   void SetRekey(
       bool rekey);
@@ -152,7 +155,7 @@ class SSUHeader {
   std::uint8_t* m_MAC, *m_IV, *m_ExtendedOptions;
   bool m_Rekey, m_Extended;
   std::uint32_t m_Time;
-  PayloadType m_PayloadType;
+  SSUPayloadType m_PayloadType;
   std::size_t m_ExtendedOptionsSize;
 };
 

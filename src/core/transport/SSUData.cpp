@@ -434,7 +434,8 @@ void SSUData::Send(
     fragment->len = size;
     fragments.push_back(std::unique_ptr<Fragment>(std::move(fragment)));
     // encrypt message with session key
-    m_Session.FillHeaderAndEncrypt(PAYLOAD_TYPE_DATA, buf, size);
+    m_Session.FillHeaderAndEncrypt(
+        static_cast<std::uint8_t>(SSUPayloadType::Data), buf, size);
     try {
       m_Session.Send(buf, size);
     } catch (boost::system::system_error& ec) {
@@ -468,7 +469,8 @@ void SSUData::SendMsgACK(
   payload += 4;
   *payload = 0;  // number of fragments
   // encrypt message with session key
-  m_Session.FillHeaderAndEncrypt(PAYLOAD_TYPE_DATA, buf.data(), 48);
+  m_Session.FillHeaderAndEncrypt(
+      static_cast<std::uint8_t>(SSUPayloadType::Data), buf.data(), 48);
   m_Session.Send(buf.data(), 48);
 }
 
@@ -501,7 +503,8 @@ void SSUData::SendFragmentACK(
   *payload = 0;  // number of fragments
   auto len = d.quot < 4 ? 48 : 64;  // 48 = 37 + 7 + 4 (3+1)
   // encrypt message with session key
-  m_Session.FillHeaderAndEncrypt(PAYLOAD_TYPE_DATA, buf.data(), len);
+  m_Session.FillHeaderAndEncrypt(
+      static_cast<std::uint8_t>(SSUPayloadType::Data), buf.data(), len);
   m_Session.Send(buf.data(), len);
 }
 

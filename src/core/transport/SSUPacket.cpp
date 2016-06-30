@@ -48,13 +48,13 @@ namespace transport {
  */
 
 SSUHeader::SSUHeader()
-    : SSUHeader(PayloadType::Unknown) {}
+    : SSUHeader(SSUPayloadType::Unknown) {}
 
-SSUHeader::SSUHeader(PayloadType type)
+SSUHeader::SSUHeader(SSUPayloadType type)
     : SSUHeader(type, nullptr, nullptr, 0) {}
 
 SSUHeader::SSUHeader(
-    PayloadType type,
+    SSUPayloadType type,
     std::uint8_t* mac,
     std::uint8_t* iv,
     std::uint32_t time)
@@ -89,10 +89,10 @@ void SSUHeader::SetPayloadType(
     short type) {
   if (type < 0 || type > 8)
       throw std::invalid_argument("SSUHeader::SetPayloadType invalid type given");
-  m_PayloadType = static_cast<PayloadType>(type);
+  m_PayloadType = static_cast<SSUPayloadType>(type);
 }
 
-SSUHeader::PayloadType SSUHeader::GetPayloadType() const {
+SSUPayloadType SSUHeader::GetPayloadType() const {
   return m_PayloadType;
 }
 
@@ -729,31 +729,31 @@ std::unique_ptr<SSUPacket> SSUPacketParser::ParsePacket() {
   std::uint8_t* const old_data = m_Data;
   const std::size_t old_length = m_Length;
   switch (header->GetPayloadType()) {
-    case SSUHeader::PayloadType::SessionRequest:
+    case SSUPayloadType::SessionRequest:
       packet = ParseSessionRequest();
       break;
-    case SSUHeader::PayloadType::SessionCreated:
+    case SSUPayloadType::SessionCreated:
       packet = ParseSessionCreated();
       break;
-    case SSUHeader::PayloadType::SessionConfirmed:
+    case SSUPayloadType::SessionConfirmed:
       packet = ParseSessionConfirmed();
       break;
-    case SSUHeader::PayloadType::RelayRequest:
+    case SSUPayloadType::RelayRequest:
       packet = ParseRelayRequest();
       break;
-    case SSUHeader::PayloadType::RelayResponse:
+    case SSUPayloadType::RelayResponse:
       packet = ParseRelayResponse();
       break;
-    case SSUHeader::PayloadType::RelayIntro:
+    case SSUPayloadType::RelayIntro:
       packet = ParseRelayIntro();
       break;
-    case SSUHeader::PayloadType::Data:
+    case SSUPayloadType::Data:
       packet = ParseData();
       break;
-    case SSUHeader::PayloadType::PeerTest:
+    case SSUPayloadType::PeerTest:
       packet = ParsePeerTest();
       break;
-    case SSUHeader::PayloadType::SessionDestroyed:
+    case SSUPayloadType::SessionDestroyed:
       packet = ParseSessionDestroyed();
       break;
   }
@@ -1021,31 +1021,31 @@ void WritePacket(
     std::uint8_t*& buf,
     SSUPacket* packet) {
   switch (packet->GetHeader()->GetPayloadType()) {
-    case SSUHeader::PayloadType::SessionRequest:
+    case SSUPayloadType::SessionRequest:
       WriteSessionRequest(buf, static_cast<SSUSessionRequestPacket*>(packet));
       break;
-    case SSUHeader::PayloadType::SessionCreated:
+    case SSUPayloadType::SessionCreated:
       WriteSessionCreated(buf, static_cast<SSUSessionCreatedPacket*>(packet));
       break;
-    case SSUHeader::PayloadType::SessionConfirmed:
+    case SSUPayloadType::SessionConfirmed:
       WriteSessionConfirmed(buf, static_cast<SSUSessionConfirmedPacket*>(packet));
       break;
-    case SSUHeader::PayloadType::RelayRequest:
+    case SSUPayloadType::RelayRequest:
       WriteRelayRequest(buf, static_cast<SSURelayRequestPacket*>(packet));
       break;
-    case SSUHeader::PayloadType::RelayResponse:
+    case SSUPayloadType::RelayResponse:
       WriteRelayResponse(buf, static_cast<SSURelayResponsePacket*>(packet));
       break;
-    case SSUHeader::PayloadType::RelayIntro:
+    case SSUPayloadType::RelayIntro:
       WriteRelayIntro(buf, static_cast<SSURelayIntroPacket*>(packet));
       break;
-    case SSUHeader::PayloadType::Data:
+    case SSUPayloadType::Data:
       WriteData(buf, static_cast<SSUDataPacket*>(packet));
       break;
-    case SSUHeader::PayloadType::PeerTest:
+    case SSUPayloadType::PeerTest:
       WritePeerTest(buf, static_cast<SSUPeerTestPacket*>(packet));
       break;
-    case SSUHeader::PayloadType::SessionDestroyed:
+    case SSUPayloadType::SessionDestroyed:
       WriteSessionDestroyed(buf, static_cast<SSUSessionDestroyedPacket*>(packet));
       break;
   }

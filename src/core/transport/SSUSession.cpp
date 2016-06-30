@@ -214,36 +214,36 @@ void SSUSession::ProcessDecryptedMessage(
     return;
   }
   switch (packet->GetHeader()->GetPayloadType()) {
-    case SSUHeader::PayloadType::Data:
+    case SSUPayloadType::Data:
       ProcessData(packet.get());
       break;
-    case SSUHeader::PayloadType::SessionRequest:
+    case SSUPayloadType::SessionRequest:
       ProcessSessionRequest(packet.get(), sender_endpoint);
       break;
-    case SSUHeader::PayloadType::SessionCreated:
+    case SSUPayloadType::SessionCreated:
       ProcessSessionCreated(packet.get());
       break;
-    case SSUHeader::PayloadType::SessionConfirmed:
+    case SSUPayloadType::SessionConfirmed:
       ProcessSessionConfirmed(packet.get());
       break;
-    case SSUHeader::PayloadType::PeerTest:
+    case SSUPayloadType::PeerTest:
       LogPrint(eLogDebug, "SSUSession: PeerTest received");
       ProcessPeerTest(packet.get(), sender_endpoint);
       break;
-    case SSUHeader::PayloadType::SessionDestroyed:
+    case SSUPayloadType::SessionDestroyed:
       LogPrint(eLogDebug, "SSUSession: SessionDestroy received");
       m_Server.DeleteSession(shared_from_this());
       break;
-    case SSUHeader::PayloadType::RelayResponse:
+    case SSUPayloadType::RelayResponse:
       ProcessRelayResponse(packet.get());
       if (m_State != SessionStateEstablished)
         m_Server.DeleteSession(shared_from_this());
       break;
-    case SSUHeader::PayloadType::RelayRequest:
+    case SSUPayloadType::RelayRequest:
       LogPrint(eLogDebug, "SSUSession: RelayRequest received");
       ProcessRelayRequest(packet.get(), sender_endpoint);
       break;
-    case SSUHeader::PayloadType::RelayIntro:
+    case SSUPayloadType::RelayIntro:
       LogPrint(eLogDebug, "SSUSession: RelayIntro received");
       ProcessRelayIntro(packet.get());
       break;
@@ -305,8 +305,7 @@ void SSUSession::SendSessionRequest() {
     return;
   }
   SSUSessionRequestPacket packet;
-  packet.SetHeader(
-      std::make_unique<SSUHeader>(SSUHeader::PayloadType::SessionRequest));
+  packet.SetHeader(std::make_unique<SSUHeader>(SSUPayloadType::SessionRequest));
   std::array<std::uint8_t, static_cast<std::size_t>(SSUSize::IV)> iv;
   i2p::crypto::RandBytes(iv.data(), iv.size());
   packet.GetHeader()->SetIV(iv.data());
@@ -417,8 +416,7 @@ void SSUSession::SendSessionCreated(const std::uint8_t* x) {
     return;
   }
   SSUSessionCreatedPacket packet;
-  packet.SetHeader(
-      std::make_unique<SSUHeader>(SSUHeader::PayloadType::SessionRequest));
+  packet.SetHeader(std::make_unique<SSUHeader>(SSUPayloadType::SessionRequest));
   packet.SetDhY(m_DHKeysPair->public_key.data());
   packet.SetPort(GetRemoteEndpoint().port());
   const std::size_t signatureSize = i2p::context.GetIdentity().GetSignatureLen();
@@ -515,8 +513,7 @@ void SSUSession::SendSessionConfirmed(
     const std::uint8_t* our_address,
     std::size_t our_address_len) {
   SSUSessionConfirmedPacket packet;
-  packet.SetHeader(
-      std::make_unique<SSUHeader>(SSUHeader::PayloadType::SessionRequest));
+  packet.SetHeader(std::make_unique<SSUHeader>(SSUPayloadType::SessionRequest));
   std::array<std::uint8_t, static_cast<std::size_t>(SSUSize::IV)> iv;
   i2p::crypto::RandBytes(iv.data(), iv.size());
   packet.GetHeader()->SetIV(iv.data());
@@ -595,7 +592,7 @@ void SSUSession::SendRelayRequest(
   i2p::crypto::RandBytes(iv.data(), iv.size());
   if (m_State == SessionStateEstablished) {
     FillHeaderAndEncrypt(
-        PAYLOAD_TYPE_RELAY_REQUEST,
+        static_cast<std::uint8_t>(SSUPayloadType::RelayRequest),
         buf.data(),
         96,
         m_SessionKey,
@@ -603,7 +600,7 @@ void SSUSession::SendRelayRequest(
         m_MACKey);
   } else {
     FillHeaderAndEncrypt(
-        PAYLOAD_TYPE_RELAY_REQUEST,
+        static_cast<std::uint8_t>(SSUPayloadType::RelayRequest),
         buf.data(),
         96,
         introducer_key,
@@ -685,7 +682,7 @@ void SSUSession::SendRelayResponse(
   if (m_State == SessionStateEstablished) {
     // encrypt with session key
     FillHeaderAndEncrypt(
-        PAYLOAD_TYPE_RELAY_RESPONSE,
+        static_cast<std::uint8_t>(SSUPayloadType::RelayResponse),
         buf.data(),
         is_IPV4 ? 64 : 80);
     Send(
@@ -696,7 +693,7 @@ void SSUSession::SendRelayResponse(
     std::array<std::uint8_t, 16> iv;
     i2p::crypto::RandBytes(iv.data(), iv.size());
     FillHeaderAndEncrypt(
-        PAYLOAD_TYPE_RELAY_RESPONSE,
+        static_cast<std::uint8_t>(SSUPayloadType::RelayResponse),
         buf.data(),
         is_IPV4 ? 64 : 80,
         intro_key,
@@ -760,7 +757,7 @@ void SSUSession::SendRelayIntro(
   std::array<std::uint8_t, 16> iv;
   i2p::crypto::RandBytes(iv.data(), iv.size());  // random iv
   FillHeaderAndEncrypt(
-      PAYLOAD_TYPE_RELAY_INTRO,
+      static_cast<std::uint8_t>(SSUPayloadType::RelayIntro),
       buf.data(),
       48,
       session->m_SessionKey,
@@ -860,7 +857,7 @@ void SSUSession::ProcessPeerTest(
       auto session = m_Server.GetPeerTestSession(packet->GetNonce());
       if (session && session->m_State == SessionStateEstablished)
         session->Send(  // back to Alice
-            PAYLOAD_TYPE_PEER_TEST,
+            static_cast<std::uint8_t>(SSUPayloadType::PeerTest),
             packet->m_RawData,
             packet->m_RawDataLength);
       m_Server.RemovePeerTest(packet->GetNonce());  // nonce has been used
@@ -888,7 +885,7 @@ void SSUSession::ProcessPeerTest(
               "PeerTest from Bob. We are Charlie");
           m_Server.NewPeerTest(packet->GetNonce(), PeerTestParticipantCharlie);
           Send(  // back to Bob
-              PAYLOAD_TYPE_PEER_TEST,
+              static_cast<std::uint8_t>(SSUPayloadType::PeerTest),
               packet->m_RawData,
               packet->m_RawDataLength);
           SendPeerTest(  // to Alice with her address received from Bob
@@ -966,7 +963,7 @@ void SSUSession::SendPeerTest(
   if (to_address) {
     // encrypt message with specified intro key
     FillHeaderAndEncrypt(
-        PAYLOAD_TYPE_PEER_TEST,
+        static_cast<std::uint8_t>(SSUPayloadType::PeerTest),
         buf.data(),
         80,
         intro_key,
@@ -979,7 +976,7 @@ void SSUSession::SendPeerTest(
   } else {
     // encrypt message with session key
     FillHeaderAndEncrypt(
-        PAYLOAD_TYPE_PEER_TEST,
+        static_cast<std::uint8_t>(SSUPayloadType::PeerTest),
         buf.data(),
         80);
     Send(buf.data(), 80);
@@ -1021,7 +1018,10 @@ void SSUSession::SendSesionDestroyed() {
   if (m_IsSessionKey) {
     std::array<std::uint8_t, 48 + 18> buf {};
     // encrypt message with session key
-    FillHeaderAndEncrypt(PAYLOAD_TYPE_SESSION_DESTROYED, buf.data(), 48);
+    FillHeaderAndEncrypt(
+        static_cast<std::uint8_t>(SSUPayloadType::SessionDestroyed),
+        buf.data(),
+        48);
     try {
       Send(buf.data(), 48);
     } catch(std::exception& ex) {
@@ -1036,13 +1036,16 @@ void SSUSession::SendSesionDestroyed() {
 
 void SSUSession::SendKeepAlive() {
   if (m_State == SessionStateEstablished) {
-    std::array<std::uint8_t, 48 + 18> buf {};
+    std::array<std::uint8_t, 48 + 18> buf {};  // TODO(unassigned): document values
     std::uint8_t* payload = buf.data() + static_cast<std::size_t>(SSUSize::HeaderMin);
     *payload = 0;  // flags
     payload++;
     *payload = 0;  // num fragments
     // encrypt message with session key
-    FillHeaderAndEncrypt(PAYLOAD_TYPE_DATA, buf.data(), 48);
+    FillHeaderAndEncrypt(
+        static_cast<std::uint8_t>(SSUPayloadType::Data),
+        buf.data(),
+        48);
     Send(buf.data(), 48);
     LogPrint(eLogDebug,
         "SSUSession:", GetFormattedSessionInfo(), "keep-alive sent");

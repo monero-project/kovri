@@ -52,17 +52,6 @@ namespace transport {
 const int SSU_CONNECT_TIMEOUT = 5;  // 5 seconds
 const int SSU_TERMINATION_TIMEOUT = 330;  // 5.5 minutes
 
-// Messages (payload types) (4 bits)
-const std::uint8_t PAYLOAD_TYPE_SESSION_REQUEST = 0;
-const std::uint8_t PAYLOAD_TYPE_SESSION_CREATED = 1;
-const std::uint8_t PAYLOAD_TYPE_SESSION_CONFIRMED = 2;
-const std::uint8_t PAYLOAD_TYPE_RELAY_REQUEST = 3;
-const std::uint8_t PAYLOAD_TYPE_RELAY_RESPONSE = 4;
-const std::uint8_t PAYLOAD_TYPE_RELAY_INTRO = 5;
-const std::uint8_t PAYLOAD_TYPE_DATA = 6;
-const std::uint8_t PAYLOAD_TYPE_PEER_TEST = 7;
-const std::uint8_t PAYLOAD_TYPE_SESSION_DESTROYED = 8;
-
 enum SessionState {
   SessionStateUnknown,
   SessionStateIntroduced,

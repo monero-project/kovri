@@ -308,26 +308,26 @@ struct SSUTestVectorsFixture {
 BOOST_AUTO_TEST_SUITE(SSUHeaderTests)
 
 BOOST_AUTO_TEST_CASE(GetPayloadType) {
-  using i2p::transport::SSUHeader;
+  using namespace i2p::transport;
   SSUHeader header;
   header.SetPayloadType(0);
-  BOOST_CHECK(header.GetPayloadType() == SSUHeader::PayloadType::SessionRequest);
+  BOOST_CHECK(header.GetPayloadType() == SSUPayloadType::SessionRequest);
   header.SetPayloadType(1);
-  BOOST_CHECK(header.GetPayloadType() == SSUHeader::PayloadType::SessionCreated);
+  BOOST_CHECK(header.GetPayloadType() == SSUPayloadType::SessionCreated);
   header.SetPayloadType(2);
-  BOOST_CHECK(header.GetPayloadType() == SSUHeader::PayloadType::SessionConfirmed);
+  BOOST_CHECK(header.GetPayloadType() == SSUPayloadType::SessionConfirmed);
   header.SetPayloadType(3);
-  BOOST_CHECK(header.GetPayloadType() == SSUHeader::PayloadType::RelayRequest);
+  BOOST_CHECK(header.GetPayloadType() == SSUPayloadType::RelayRequest);
   header.SetPayloadType(4);
-  BOOST_CHECK(header.GetPayloadType() == SSUHeader::PayloadType::RelayResponse);
+  BOOST_CHECK(header.GetPayloadType() == SSUPayloadType::RelayResponse);
   header.SetPayloadType(5);
-  BOOST_CHECK(header.GetPayloadType() == SSUHeader::PayloadType::RelayIntro);
+  BOOST_CHECK(header.GetPayloadType() == SSUPayloadType::RelayIntro);
   header.SetPayloadType(6);
-  BOOST_CHECK(header.GetPayloadType() == SSUHeader::PayloadType::Data);
+  BOOST_CHECK(header.GetPayloadType() == SSUPayloadType::Data);
   header.SetPayloadType(7);
-  BOOST_CHECK(header.GetPayloadType() == SSUHeader::PayloadType::PeerTest);
+  BOOST_CHECK(header.GetPayloadType() == SSUPayloadType::PeerTest);
   header.SetPayloadType(8);
-  BOOST_CHECK(header.GetPayloadType() == SSUHeader::PayloadType::SessionDestroyed);
+  BOOST_CHECK(header.GetPayloadType() == SSUPayloadType::SessionDestroyed);
 }
 
 BOOST_AUTO_TEST_CASE(SetPayloadTypeInvalid) {
@@ -347,49 +347,41 @@ BOOST_AUTO_TEST_SUITE_END()
 BOOST_FIXTURE_TEST_SUITE(SSUPacketParserTests, SSUTestVectorsFixture)
 
 BOOST_AUTO_TEST_CASE(SSUHeaderPlain) {
-  i2p::transport::SSUPacketParser parser(
-      header_plain.data(),
-      header_plain.size());
-  std::unique_ptr<i2p::transport::SSUHeader> header;
+  using namespace i2p::transport;
+  SSUPacketParser parser(header_plain.data(), header_plain.size());
+  std::unique_ptr<SSUHeader> header;
   BOOST_CHECK_NO_THROW(header = parser.ParseHeader());
   BOOST_CHECK(!header->HasRekey());
   BOOST_CHECK(!header->HasExtendedOptions());
   BOOST_CHECK_EQUAL(header->GetTime(), 0xAABBCCDD);
-  BOOST_CHECK(
-    header->GetPayloadType() ==
-      i2p::transport::SSUHeader::PayloadType::SessionRequest);
+  BOOST_CHECK(header->GetPayloadType()== SSUPayloadType::SessionRequest);
   BOOST_CHECK_EQUAL(header->GetSize(), header_plain.size());
 }
 
 BOOST_AUTO_TEST_CASE(SSUHeaderExtendedOptions) {
-  i2p::transport::SSUPacketParser parser(
-      header_extended_options.data(),
-      header_extended_options.size());
-  std::unique_ptr<i2p::transport::SSUHeader> header;
+  using namespace i2p::transport;
+  SSUPacketParser parser(header_extended_options.data(), header_extended_options.size());
+  std::unique_ptr<SSUHeader> header;
   BOOST_CHECK_NO_THROW(header = parser.ParseHeader());
   BOOST_CHECK(!header->HasRekey());
   BOOST_CHECK(header->HasExtendedOptions());
   BOOST_CHECK_EQUAL(header->GetTime(), 0xAABBCCDD);
-  BOOST_CHECK(
-    header->GetPayloadType() ==
-      i2p::transport::SSUHeader::PayloadType::SessionRequest);
+  BOOST_CHECK(header->GetPayloadType() == SSUPayloadType::SessionRequest);
   BOOST_CHECK_EQUAL(header->GetSize(), header_extended_options.size());
 }
 
 BOOST_AUTO_TEST_CASE(SessionRequestPlain) {
-  i2p::transport::SSUPacketParser parser(
-      session_request.data(),
-      session_request.size());
-  std::unique_ptr<i2p::transport::SSUSessionRequestPacket> packet;
+  using namespace i2p::transport;
+  SSUPacketParser parser(session_request.data(), session_request.size());
+  std::unique_ptr<SSUSessionRequestPacket> packet;
   BOOST_CHECK_NO_THROW(packet = parser.ParseSessionRequest());
   BOOST_CHECK_EQUAL(packet->GetSize(), session_request.size());
 }
 
 BOOST_AUTO_TEST_CASE(SessionCreatedPlain) {
-  i2p::transport::SSUPacketParser parser(
-      session_created.data(),
-      session_created.size());
-  std::unique_ptr<i2p::transport::SSUSessionCreatedPacket> packet;
+  using namespace i2p::transport;
+  SSUPacketParser parser(session_created.data(), session_created.size());
+  std::unique_ptr<SSUSessionCreatedPacket> packet;
   BOOST_CHECK_NO_THROW(packet = parser.ParseSessionCreated());
   BOOST_CHECK_EQUAL(packet->GetIPAddressSize(), 3);
   BOOST_CHECK_EQUAL(*packet->GetIPAddress(), 0x0A);
@@ -401,10 +393,9 @@ BOOST_AUTO_TEST_CASE(SessionCreatedPlain) {
 }
 
 BOOST_AUTO_TEST_CASE(RelayRequestPlain) {
-  i2p::transport::SSUPacketParser parser(
-      relay_request.data(),
-      relay_request.size());
-  std::unique_ptr<i2p::transport::SSURelayRequestPacket> packet;
+  using namespace i2p::transport;
+  SSUPacketParser parser(relay_request.data(), relay_request.size());
+  std::unique_ptr<SSURelayRequestPacket> packet;
   BOOST_CHECK_NO_THROW(packet = parser.ParseRelayRequest());
   BOOST_CHECK_EQUAL(packet->GetRelayTag(), 0x01020304);
   const std::array<std::uint8_t, 4> expected_address {{ 0x0A, 0x0B, 0x0C, 0x0D }};
@@ -421,10 +412,9 @@ BOOST_AUTO_TEST_CASE(RelayRequestPlain) {
 }
 
 BOOST_AUTO_TEST_CASE(RelayResponsePlain) {
-  i2p::transport::SSUPacketParser parser(
-      relay_response.data(),
-      relay_response.size());
-  std::unique_ptr<i2p::transport::SSURelayResponsePacket> packet;
+  using namespace i2p::transport;
+  SSUPacketParser parser(relay_response.data(), relay_response.size());
+  std::unique_ptr<SSURelayResponsePacket> packet;
   BOOST_CHECK_NO_THROW(packet = parser.ParseRelayResponse());
   const std::array<std::uint8_t, 4> expected_address {{ 0x0A, 0x0B, 0x0C, 0x0D }};
   BOOST_CHECK_EQUAL_COLLECTIONS(
@@ -444,9 +434,9 @@ BOOST_AUTO_TEST_CASE(RelayResponsePlain) {
 }
 
 BOOST_AUTO_TEST_CASE(RelayIntroPlain) {
-  i2p::transport::SSUPacketParser parser(
-      relay_intro.data(), relay_intro.size());
-  std::unique_ptr<i2p::transport::SSURelayIntroPacket> packet;
+  using namespace i2p::transport;
+  SSUPacketParser parser(relay_intro.data(), relay_intro.size());
+  std::unique_ptr<SSURelayIntroPacket> packet;
   BOOST_CHECK_NO_THROW(packet = parser.ParseRelayIntro());
   const std::array<std::uint8_t, 4> expected_address {{ 0x0A, 0x0B, 0x0C, 0x0D }};
   BOOST_CHECK_EQUAL_COLLECTIONS(
@@ -460,19 +450,17 @@ BOOST_AUTO_TEST_CASE(RelayIntroPlain) {
 }
 
 BOOST_AUTO_TEST_CASE(DataOneFragmentPlain) {
-  i2p::transport::SSUPacketParser parser(
-      data_single_fragment.data(),
-      data_single_fragment.size());
-  std::unique_ptr<i2p::transport::SSUDataPacket> packet;
+  using namespace i2p::transport;
+  SSUPacketParser parser(data_single_fragment.data(), data_single_fragment.size());
+  std::unique_ptr<SSUDataPacket> packet;
   BOOST_CHECK_NO_THROW(packet = parser.ParseData());
   BOOST_CHECK_EQUAL(packet->GetSize(), data_single_fragment.size());
 }
 
 BOOST_AUTO_TEST_CASE(DataMultFragmentsPlain) {
-  i2p::transport::SSUPacketParser parser(
-      data_multi_fragment.data(),
-      data_multi_fragment.size());
-  std::unique_ptr<i2p::transport::SSUDataPacket> packet;
+  using namespace i2p::transport;
+  SSUPacketParser parser(data_multi_fragment.data(), data_multi_fragment.size());
+  std::unique_ptr<SSUDataPacket> packet;
   BOOST_CHECK_NO_THROW(packet = parser.ParseData());
   BOOST_CHECK_EQUAL(packet->GetSize(), data_multi_fragment.size());
 }
@@ -491,7 +479,7 @@ using namespace i2p::transport::SSUPacketBuilder;
 
 BOOST_AUTO_TEST_CASE(SSUHeaderPlain) {
   i2p::transport::SSUHeader header(
-      i2p::transport::SSUHeader::PayloadType::SessionRequest,
+      i2p::transport::SSUPayloadType::SessionRequest,
       &header_plain.at(0),
       &header_plain.at(16),
       2864434397);
@@ -508,7 +496,7 @@ BOOST_AUTO_TEST_CASE(SSUHeaderPlain) {
 
 BOOST_AUTO_TEST_CASE(SSUHeaderExtendedOptions) {
   i2p::transport::SSUHeader header(
-      i2p::transport::SSUHeader::PayloadType::SessionRequest,
+      i2p::transport::SSUPayloadType::SessionRequest,
       &header_extended_options.at(0),
       &header_extended_options.at(16),
       2864434397);

@@ -531,7 +531,8 @@ std::set<SSUSession *> SSUServer::FindIntroducers(
           return session->GetRelayTag() &&
           !ret.count(session.get()) &&
           session->GetState() == SessionStateEstablished &&
-          ts < session->GetCreationTime() + SSU_TO_INTRODUCER_SESSION_DURATION; });
+          ts < session->GetCreationTime()
+               + static_cast<std::size_t>(SSUDuration::ToIntroducerSessionDuration); });
     if (session) {
       ret.insert(session.get());
       break;
@@ -544,7 +545,7 @@ void SSUServer::ScheduleIntroducersUpdateTimer() {
   LogPrint(eLogDebug, "SSUServer: scheduling introducers update timer");
   m_IntroducersUpdateTimer.expires_from_now(
       boost::posix_time::seconds(
-          SSU_KEEP_ALIVE_INTERVAL));
+          static_cast<std::size_t>(SSUDuration::KeepAliveInterval)));
   m_IntroducersUpdateTimer.async_wait(
       std::bind(
           &SSUServer::HandleIntroducersUpdateTimer,
@@ -573,7 +574,8 @@ void SSUServer::HandleIntroducersUpdateTimer(
     for (auto introducer : m_Introducers) {
       auto session = FindSession(introducer);
       if (session &&
-          ts < session->GetCreationTime() + SSU_TO_INTRODUCER_SESSION_DURATION) {
+          ts < session->GetCreationTime()
+               + static_cast<std::size_t>(SSUDuration::ToIntroducerSessionDuration)) {
         session->SendKeepAlive();
         new_list.push_back(introducer);
         num_introducers++;
@@ -581,16 +583,17 @@ void SSUServer::HandleIntroducersUpdateTimer(
         i2p::context.RemoveIntroducer(introducer);
       }
     }
-    if (num_introducers < SSU_MAX_NUM_INTRODUCERS) {
+    if (num_introducers < static_cast<std::size_t>(SSUSize::MaxIntroducers)) {
       // create new
-      auto introducers = FindIntroducers(SSU_MAX_NUM_INTRODUCERS);
+      auto introducers =
+        FindIntroducers(static_cast<std::size_t>(SSUSize::MaxIntroducers));
       if (introducers.size() > 0) {
         for (auto it : introducers) {
           auto router = it->GetRemoteRouter();
           if (router &&
               i2p::context.AddIntroducer(*router, it->GetRelayTag())) {
             new_list.push_back(it->GetRemoteEndpoint());
-            if (new_list.size() >= SSU_MAX_NUM_INTRODUCERS)
+            if (new_list.size() >= static_cast<std::size_t>(SSUSize::MaxIntroducers))
               break;
           }
         }
@@ -657,7 +660,7 @@ void SSUServer::SchedulePeerTestsCleanupTimer() {
   LogPrint(eLogDebug, "SSUServer: scheduling PeerTests cleanup timer");
   m_PeerTestsCleanupTimer.expires_from_now(
       boost::posix_time::seconds(
-          SSU_PEER_TEST_TIMEOUT));
+          static_cast<std::size_t>(SSUDuration::PeerTestTimeout)));
   m_PeerTestsCleanupTimer.async_wait(
       std::bind(
           &SSUServer::HandlePeerTestsCleanupTimer,
@@ -672,7 +675,9 @@ void SSUServer::HandlePeerTestsCleanupTimer(
     std::size_t num_deleted = 0;
     std::uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
     for (auto it = m_PeerTests.begin(); it != m_PeerTests.end();) {
-      if (ts > it->second.creationTime + SSU_PEER_TEST_TIMEOUT * 1000LL) {
+      if (ts > it->second.creationTime
+               + static_cast<std::size_t>(SSUDuration::PeerTestTimeout)
+               * 1000LL) {
         num_deleted++;
         it = m_PeerTests.erase(it);
       } else {

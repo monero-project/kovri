@@ -59,6 +59,7 @@ enum struct SSUSize : const std::size_t {
   KeyingMaterial = 64,
   DHPublic = 256,
   MaxReceivedMessages = 1000,  // TODO(unassigned): research this value
+  MaxIntroducers = 3,
 };
 
 /// @enum SSUFlag

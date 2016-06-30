@@ -54,11 +54,6 @@
 namespace i2p {
 namespace transport {
 
-const int SSU_KEEP_ALIVE_INTERVAL = 30;  // 30 seconds
-const int SSU_PEER_TEST_TIMEOUT = 60;  // 60 seconds
-const int SSU_TO_INTRODUCER_SESSION_DURATION = 3600;  // 1 hour
-const std::size_t SSU_MAX_NUM_INTRODUCERS = 3;
-
 struct RawSSUPacket {
   i2p::crypto::AESAlignedBuffer<1500> buf;
   boost::asio::ip::udp::endpoint from;

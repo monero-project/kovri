@@ -58,6 +58,11 @@ enum struct SSUDuration : const std::size_t {
   MaxResends = 5,
   DecayInterval = 20,  // Number of message IDs we store for duplicates check
   IncompleteMessagesCleanupTimeout = 30,  // Seconds
+  ConnectTimeout = 5,  // Seconds
+  TerminationTimeout = 330,  // 5 1/2 minutes
+  KeepAliveInterval = 30,  // Seconds
+  PeerTestTimeout = 60,  // Seconds
+  ToIntroducerSessionDuration = 3600,  // 1 hour
 };
 
 struct Fragment {

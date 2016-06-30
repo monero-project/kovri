@@ -1244,7 +1244,7 @@ void SSUSession::ScheduleConnectTimer() {
   m_Timer.cancel();
   m_Timer.expires_from_now(
       boost::posix_time::seconds(
-        SSU_CONNECT_TIMEOUT));
+        static_cast<std::size_t>(SSUDuration::ConnectTimeout)));
   m_Timer.async_wait(
       std::bind(
         &SSUSession::HandleConnectTimer,
@@ -1259,7 +1259,7 @@ void SSUSession::HandleConnectTimer(
     LogPrint(eLogError,
         "SSUSession:", GetFormattedSessionInfo(),
         "session was not established after ",
-        SSU_CONNECT_TIMEOUT, " seconds");
+        static_cast<std::size_t>(SSUDuration::ConnectTimeout), " seconds");
     Failed();
   }
 }
@@ -1271,7 +1271,7 @@ void SSUSession::Introduce(
     // set connect timer
     m_Timer.expires_from_now(
         boost::posix_time::seconds(
-          SSU_CONNECT_TIMEOUT));
+            static_cast<std::size_t>(SSUDuration::ConnectTimeout)));
     m_Timer.async_wait(
         std::bind(
           &SSUSession::HandleConnectTimer,
@@ -1286,7 +1286,7 @@ void SSUSession::WaitForIntroduction() {
   // set connect timer
   m_Timer.expires_from_now(
       boost::posix_time::seconds(
-        SSU_CONNECT_TIMEOUT));
+          static_cast<std::size_t>(SSUDuration::ConnectTimeout)));
   m_Timer.async_wait(
       std::bind(
         &SSUSession::HandleConnectTimer,
@@ -1338,7 +1338,7 @@ void SSUSession::ScheduleTermination() {
   m_Timer.cancel();
   m_Timer.expires_from_now(
       boost::posix_time::seconds(
-          SSU_TERMINATION_TIMEOUT));
+          static_cast<std::size_t>(SSUDuration::TerminationTimeout)));
   m_Timer.async_wait(
       std::bind(
           &SSUSession::HandleTerminationTimer,
@@ -1350,8 +1350,8 @@ void SSUSession::HandleTerminationTimer(
     const boost::system::error_code& ecode) {
   if (ecode != boost::asio::error::operation_aborted) {
     LogPrint(eLogError,
-        "SSUSession:", GetFormattedSessionInfo(),
-        "no activity for ", SSU_TERMINATION_TIMEOUT, " seconds");
+        "SSUSession:", GetFormattedSessionInfo(), "no activity for ",
+        static_cast<std::size_t>(SSUDuration::TerminationTimeout), " seconds");
     Failed();
   }
 }

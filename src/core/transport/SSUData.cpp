@@ -41,14 +41,12 @@
 
 #include "NetworkDatabase.h"
 #include "SSU.h"
+#include "SSUPacket.h"
 #include "util/Log.h"
 #include "util/Timestamp.h"
 
 namespace i2p {
 namespace transport {
-
-// TODO(EinMByte): Get rid of this
-const std::size_t SSU_HEADER_SIZE_MIN = 37;
 
 void IncompleteMessage::AttachNextFragment(
     const uint8_t* fragment,
@@ -395,7 +393,8 @@ void SSUData::Send(
   }
   auto& fragments = sentMessage->fragments;
   // 9  =  flag + #frg(1) + messageID(4) + frag info (3)
-  size_t payloadSize = m_PacketSize - SSU_HEADER_SIZE_MIN - 9;
+  size_t payloadSize =
+    m_PacketSize - static_cast<std::size_t>(SSUSize::HeaderMin) - 9;
   size_t len = msg->GetLength();
   uint8_t* msgBuf = msg->GetSSUHeader();
   uint32_t fragmentNum = 0;
@@ -403,7 +402,7 @@ void SSUData::Send(
     auto fragment = std::make_unique<Fragment>();
     fragment->fragmentNum = fragmentNum;
     uint8_t* buf = fragment->buf;
-    uint8_t* payload = buf + SSU_HEADER_SIZE_MIN;
+    uint8_t* payload = buf + static_cast<std::size_t>(SSUSize::HeaderMin);
     *payload = DATA_FLAG_WANT_REPLY;  // for compatibility
     payload++;
     *payload = 1;  // always 1 message fragment per message
@@ -451,7 +450,7 @@ void SSUData::SendMsgAck(
       "sending message ACK");
   // actual length is 44 = 37 + 7 but pad it to multiple of 16
   uint8_t buf[48 + 18];
-  uint8_t * payload = buf + SSU_HEADER_SIZE_MIN;
+  uint8_t * payload = buf + static_cast<std::size_t>(SSUSize::HeaderMin);
   *payload = DATA_FLAG_EXPLICIT_ACKS_INCLUDED;  // flag
   payload++;
   *payload = 1;  // number of ACKs
@@ -477,7 +476,7 @@ void SSUData::SendFragmentAck(
     return;
   }
   uint8_t buf[64 + 18];
-  uint8_t* payload = buf + SSU_HEADER_SIZE_MIN;
+  uint8_t* payload = buf + static_cast<std::size_t>(SSUSize::HeaderMin);
   *payload = DATA_FLAG_ACK_BITFIELDS_INCLUDED;  // flag
   payload++;
   *payload = 1;  // number of ACK bitfields

@@ -40,16 +40,20 @@
 namespace i2p {
 namespace transport {
 
-const std::size_t SSU_HEADER_SIZE_MIN = 37;
-const std::size_t SSU_MAC_SIZE = 16;
-const std::size_t SSU_IV_SIZE = 16;
-const std::size_t SSU_INTRO_KEY_SIZE = 32;
-const std::size_t SSU_BUFFER_SIZE_MARGIN = 18;
-const std::uint8_t SSU_FLAG_EXTENDED_OPTIONS = 0x04;
+enum struct SSUSize : const std::size_t {
+  HeaderMin = 37,
+  MAC = 16,
+  IV = 16,
+  IntroKey = 32,
+  BufferMargin = 18,
+  KeyingMaterial = 64,
+  DHPublic = 256,
+};
 
-constexpr std::size_t SSU_KEYING_MATERIAL_SIZE = 64;
-constexpr std::size_t SSU_DH_PUBLIC_SIZE = 256;
-const std::uint8_t SSU_FLAG_REKEY = 0x08;
+enum struct SSUFlag : const std::uint8_t {
+  ExtendedOptions = 0x04,
+  Rekey = 0x08,
+};
 
 /// @class SSUHeader
 /// @brief Constitutes all SSU headers
@@ -478,7 +482,7 @@ class SSUPacketParser {
   /// @brief Parses an SSU header.
   /// @return a pointer to the newly constructed SSUHeader object
   /// @throw std::length_error if the buffer contains less data than the
-  //         minimum SSU header size SSU_HEADER_SIZE_MIN
+  //    minimum SSU header size
   std::unique_ptr<SSUHeader> ParseHeader();
 
   /// @brief Parses an SSUPacket, including the header

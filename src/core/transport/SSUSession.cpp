@@ -97,7 +97,7 @@ boost::asio::io_service& SSUSession::GetService() {
   return IsV6() ? m_Server.GetServiceV6() : m_Server.GetService();
 }
 
-void SSUSession::CreateAESandMacKey(
+void SSUSession::CreateAESandMACKey(
     const std::uint8_t* pub_key) {
   i2p::crypto::DiffieHellman dh;
   std::array<std::uint8_t, 256> shared_key;
@@ -107,7 +107,7 @@ void SSUSession::CreateAESandMacKey(
     return;
   }
   std::uint8_t* session_key = m_SessionKey;
-  std::uint8_t* mac_key = m_MacKey;
+  std::uint8_t* mac_key = m_MACKey;
   if (shared_key.at(0) & 0x80) {
     session_key[0] = 0;
     memcpy(session_key + 1, shared_key.data(), 31);
@@ -165,7 +165,7 @@ void SSUSession::ProcessNextMessage(
     if (m_State == SessionStateEstablished)
       ScheduleTermination();
     if (m_IsSessionKey) {
-      if (Validate(buf, len, m_MacKey)) {  // try session key first
+      if (Validate(buf, len, m_MACKey)) {  // try session key first
         DecryptSessionKey(buf, len);
       }
     } else {
@@ -290,7 +290,7 @@ void SSUSession::ProcessSessionRequest(
   SetRemoteEndpoint(sender_endpoint);
   if (!m_DHKeysPair)
     m_DHKeysPair = transports.GetNextDHKeysPair();
-  CreateAESandMacKey(packet->GetDhX());
+  CreateAESandMACKey(packet->GetDhX());
   SendSessionCreated(packet->GetDhX());
 }
 
@@ -307,7 +307,7 @@ void SSUSession::SendSessionRequest() {
   SSUSessionRequestPacket packet;
   packet.SetHeader(
       std::make_unique<SSUHeader>(SSUHeader::PayloadType::SessionRequest));
-  std::array<std::uint8_t, SSU_IV_SIZE> iv;
+  std::array<std::uint8_t, static_cast<std::size_t>(SSUSize::IV)> iv;
   i2p::crypto::RandBytes(iv.data(), iv.size());
   packet.GetHeader()->SetIV(iv.data());
   packet.SetDhX(m_DHKeysPair->public_key.data());
@@ -350,7 +350,7 @@ void SSUSession::ProcessSessionCreated(SSUPacket* pkt) {
   // x, y, our IP, our port, remote IP, remote port, relayTag, signed on time
   SignedData s;
   // TODO(unassigned): if we cannot create shared key, we should not continue
-  CreateAESandMacKey(packet->GetDhY());
+  CreateAESandMACKey(packet->GetDhY());
   s.Insert(m_DHKeysPair->public_key.data(), 256);  // x
   s.Insert(packet->GetDhY(), 256);  // y
   boost::asio::ip::address our_IP;
@@ -517,7 +517,7 @@ void SSUSession::SendSessionConfirmed(
   SSUSessionConfirmedPacket packet;
   packet.SetHeader(
       std::make_unique<SSUHeader>(SSUHeader::PayloadType::SessionRequest));
-  std::array<std::uint8_t, SSU_IV_SIZE> iv;
+  std::array<std::uint8_t, static_cast<std::size_t>(SSUSize::IV)> iv;
   i2p::crypto::RandBytes(iv.data(), iv.size());
   packet.GetHeader()->SetIV(iv.data());
   packet.SetRemoteRouterIdentity(i2p::context.GetIdentity());
@@ -543,7 +543,7 @@ void SSUSession::SendSessionConfirmed(
   packet.SetSignature(signatureBuf.get());
   const std::size_t buffer_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
   auto buffer = std::make_unique<std::uint8_t[]>(buffer_size);
-  WriteAndEncrypt(&packet, buffer.get(), m_SessionKey, m_MacKey);
+  WriteAndEncrypt(&packet, buffer.get(), m_SessionKey, m_MACKey);
   Send(buffer.get(), buffer_size);
 }
 
@@ -579,7 +579,7 @@ void SSUSession::SendRelayRequest(
     return;
   }
   std::array<std::uint8_t, 96 + 18> buf {};  // TODO(unassigned): document size values
-  std::uint8_t* payload = buf.data() + SSU_HEADER_SIZE_MIN;
+  std::uint8_t* payload = buf.data() + static_cast<std::size_t>(SSUSize::HeaderMin);
   htobe32buf(payload, introducer_tag);
   payload += 4;
   *payload = 0;  // no address
@@ -600,7 +600,7 @@ void SSUSession::SendRelayRequest(
         96,
         m_SessionKey,
         iv.data(),
-        m_MacKey);
+        m_MACKey);
   } else {
     FillHeaderAndEncrypt(
         PAYLOAD_TYPE_RELAY_REQUEST,
@@ -650,7 +650,7 @@ void SSUSession::SendRelayResponse(
     const std::uint8_t* intro_key,
     const boost::asio::ip::udp::endpoint& to) {
   std::array<std::uint8_t, 80 + 18> buf {};  // 64 Alice's ipv4 and 80 Alice's ipv6
-  std::uint8_t* payload = buf.data() + SSU_HEADER_SIZE_MIN;
+  std::uint8_t* payload = buf.data() + static_cast<std::size_t>(SSUSize::HeaderMin);
   // Charlie's address always v4
   if (!to.address().is_v4()) {
     LogPrint(eLogError,
@@ -749,7 +749,7 @@ void SSUSession::SendRelayIntro(
     return;
   }
   std::array<std::uint8_t, 48 + 18> buf {};
-  std::uint8_t* payload = buf.data() + SSU_HEADER_SIZE_MIN;
+  std::uint8_t* payload = buf.data() + static_cast<std::size_t>(SSUSize::HeaderMin);
   *payload = 4;
   payload++;  // size
   htobe32buf(payload, from.address().to_v4().to_ulong());  // Alice's IP
@@ -765,7 +765,7 @@ void SSUSession::SendRelayIntro(
       48,
       session->m_SessionKey,
       iv.data(),
-      session->m_MacKey);
+      session->m_MACKey);
   m_Server.Send(
       buf.data(),
       48,
@@ -932,7 +932,7 @@ void SSUSession::SendPeerTest(
     bool to_address,  // is true for Alice<->Charlie communications only
     bool send_address) {  // is false if message comes from Alice
   std::array<std::uint8_t, 80 + 18> buf {};
-  std::uint8_t* payload = buf.data() + SSU_HEADER_SIZE_MIN;
+  std::uint8_t* payload = buf.data() + static_cast<std::size_t>(SSUSize::HeaderMin);
   htobe32buf(payload, nonce);
   payload += 4;  // nonce
   // address and port
@@ -1037,7 +1037,7 @@ void SSUSession::SendSesionDestroyed() {
 void SSUSession::SendKeepAlive() {
   if (m_State == SessionStateEstablished) {
     std::array<std::uint8_t, 48 + 18> buf {};
-    std::uint8_t* payload = buf.data() + SSU_HEADER_SIZE_MIN;
+    std::uint8_t* payload = buf.data() + static_cast<std::size_t>(SSUSize::HeaderMin);
     *payload = 0;  // flags
     payload++;
     *payload = 0;  // num fragments
@@ -1058,7 +1058,7 @@ void SSUSession::FillHeaderAndEncrypt(
     const std::uint8_t* iv,
     const std::uint8_t* mac_key,
     std::uint8_t flag) {
-  if (len < SSU_HEADER_SIZE_MIN) {
+  if (len < static_cast<std::size_t>(SSUSize::HeaderMin)) {
     LogPrint(eLogError,
         "SSUSession:", GetFormattedSessionInfo(),
         "unexpected SSU packet length ", len);
@@ -1094,9 +1094,11 @@ void SSUSession::WriteAndEncrypt(
   std::uint8_t* buf = buffer;
   SSUPacketBuilder::WritePacket(buf, packet);
   // Encrypt everything after the MAC and IV
-  std::uint8_t* encrypted = buffer + SSU_IV_SIZE + SSU_MAC_SIZE;
+  std::uint8_t* encrypted =
+    buffer + static_cast<std::size_t>(SSUSize::IV) + static_cast<std::size_t>(SSUSize::MAC);
   auto encrypted_len = SSUPacketBuilder::GetPaddingSize(
-      (buf - buffer) - (SSU_IV_SIZE  + SSU_MAC_SIZE));
+      (buf - buffer) - (static_cast<std::size_t>(SSUSize::IV)
+      + static_cast<std::size_t>(SSUSize::MAC)));
   // Add padding
   i2p::crypto::RandBytes(buf, encrypted_len);
   i2p::crypto::CBCEncryption encryption(aes_key, packet->GetHeader()->GetIV());
@@ -1107,11 +1109,11 @@ void SSUSession::WriteAndEncrypt(
   SSUPacketBuilder::WriteData(
       encrypted,
       packet->GetHeader()->GetIV(),
-      SSU_IV_SIZE);
+      static_cast<std::size_t>(SSUSize::IV));
   SSUPacketBuilder::WriteUInt16(buf, encrypted_len);
   i2p::crypto::HMACMD5Digest(
       encrypted,
-      encrypted_len + SSU_BUFFER_SIZE_MARGIN,
+      encrypted_len + static_cast<std::size_t>(SSUSize::BufferMargin),
       mac_key,
       packet->GetHeader()->GetMAC());
   // Write header
@@ -1122,7 +1124,7 @@ void SSUSession::FillHeaderAndEncrypt(
     std::uint8_t payload_type,
     std::uint8_t* buf,
     std::size_t len) {
-  if (len < SSU_HEADER_SIZE_MIN) {
+  if (len < static_cast<std::size_t>(SSUSize::HeaderMin)) {
     LogPrint(eLogError,
         "SSUSession:", GetFormattedSessionInfo(),
         "unexpected SSU packet length ", len);
@@ -1145,7 +1147,7 @@ void SSUSession::FillHeaderAndEncrypt(
   i2p::crypto::HMACMD5Digest(
       encrypted,
       encrypted_len + 18,
-      m_MacKey,
+      m_MACKey,
       pkt.MAC());
 }
 
@@ -1153,7 +1155,7 @@ void SSUSession::Decrypt(
     std::uint8_t* buf,
     std::size_t len,
     const std::uint8_t* aes_key) {
-  if (len < SSU_HEADER_SIZE_MIN) {
+  if (len < static_cast<std::size_t>(SSUSize::HeaderMin)) {
     LogPrint(eLogError,
         "SSUSession:", GetFormattedSessionInfo(),
         "Decrypt(): unexpected SSU packet length ", len);
@@ -1174,7 +1176,7 @@ void SSUSession::Decrypt(
 void SSUSession::DecryptSessionKey(
     std::uint8_t* buf,
     std::size_t len) {
-  if (len < SSU_HEADER_SIZE_MIN) {
+  if (len < static_cast<std::size_t>(SSUSize::HeaderMin)) {
     LogPrint(eLogError,
         "SSUSession:", GetFormattedSessionInfo(),
         "DecryptSessionKey(): unexpected SSU packet length ", len);
@@ -1196,7 +1198,7 @@ bool SSUSession::Validate(
     std::uint8_t* buf,
     std::size_t len,
     const std::uint8_t* mac_key) {
-  if (len < SSU_HEADER_SIZE_MIN) {
+  if (len < static_cast<std::size_t>(SSUSize::HeaderMin)) {
     LogPrint(eLogError,
         "SSUSession:", GetFormattedSessionInfo(),
         "Validate(): unexpected SSU packet length ", len);
@@ -1386,7 +1388,7 @@ void SSUSession::Send(
     const std::uint8_t* payload,
     std::size_t len) {
   std::array<std::uint8_t, SSU_MTU_V4 + 18> buf {};
-  std::size_t msg_size = len + SSU_HEADER_SIZE_MIN;
+  std::size_t msg_size = len + static_cast<std::size_t>(SSUSize::HeaderMin);
   std::size_t padding_size = msg_size & 0x0F;  // %16
   if (padding_size > 0)
     msg_size += (16 - padding_size);
@@ -1396,7 +1398,7 @@ void SSUSession::Send(
         "<-- payload size ", msg_size, " exceeds MTU");
     return;
   }
-  memcpy(buf.data() + SSU_HEADER_SIZE_MIN, payload, len);
+  memcpy(buf.data() + static_cast<std::size_t>(SSUSize::HeaderMin), payload, len);
   // encrypt message with session key
   FillHeaderAndEncrypt(type, buf.data(), msg_size);
   Send(buf.data(), msg_size);

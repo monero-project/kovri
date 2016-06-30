@@ -221,7 +221,7 @@ class SSUSession
  private:
   boost::asio::io_service& GetService();
 
-  void CreateAESandMacKey(
+  void CreateAESandMACKey(
       const std::uint8_t* pub_key);
 
   void PostI2NPMessages(
@@ -389,7 +389,7 @@ class SSUSession
   i2p::crypto::CBCEncryption m_SessionKeyEncryption;
   i2p::crypto::CBCDecryption m_SessionKeyDecryption;
   i2p::crypto::AESKey m_SessionKey;
-  i2p::crypto::MACKey m_MacKey;
+  i2p::crypto::MACKey m_MACKey;
   std::uint32_t m_CreationTime;  // seconds since epoch
   std::unique_ptr<SignedData> m_SessionConfirmData;
   bool m_IsDataReceived;

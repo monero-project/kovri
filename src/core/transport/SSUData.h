@@ -35,6 +35,7 @@
 
 #include <boost/asio.hpp>
 
+#include <array>
 #include <cstdint>
 #include <map>
 #include <memory>
@@ -63,20 +64,20 @@ struct Fragment {
   Fragment() = default;
 
   Fragment(
-      int num,
+      std::size_t num,
       const std::uint8_t* buf,
-      int last_len,
+      std::size_t last_len,
       bool last)
       : fragment_num(num),
         len(last_len),
         is_last(last) {
-          memcpy(buffer, buf, len);
+          memcpy(buffer.data(), buf, len);
         }
 
-  int fragment_num;
-  std::size_t len;
+  std::size_t fragment_num, len;
   bool is_last;
-  std::uint8_t buffer[static_cast<std::size_t>(SSUSize::PacketMaxIPv4) + 18];  // use biggest
+  // TODO(unassigned): document 18 and why ipv4
+  std::array<std::uint8_t, static_cast<std::size_t>(SSUSize::PacketMaxIPv4) + 18> buffer;
 };
 
 struct FragmentCmp {
@@ -99,7 +100,7 @@ struct IncompleteMessage {
       std::size_t fragment_size);
 
   std::shared_ptr<I2NPMessage> msg;
-  int next_fragment_num;
+  std::size_t next_fragment_num;
   std::uint32_t last_fragment_insert_time;  // in seconds
   std::set<std::unique_ptr<Fragment>, FragmentCmp> saved_fragments;
 };
@@ -140,7 +141,7 @@ class SSUData {
 
   void SendFragmentACK(
       std::uint32_t msg_id,
-      int fragment_num);
+      std::size_t fragment_num);
 
   void ProcessACKs(
       std::uint8_t*& buf,
@@ -177,7 +178,7 @@ class SSUData {
   std::set<std::uint32_t> m_ReceivedMessages;
   boost::asio::deadline_timer m_ResendTimer, m_DecayTimer,
                               m_IncompleteMessagesCleanupTimer;
-  int m_MaxPacketSize, m_PacketSize;
+  std::size_t m_MaxPacketSize, m_PacketSize;
   i2p::I2NPMessagesHandler m_Handler;
 };
 

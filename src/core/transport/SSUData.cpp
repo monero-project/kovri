@@ -34,6 +34,7 @@
 
 #include <boost/bind.hpp>
 
+#include <array>
 #include <cstdint>
 #include <memory>
 
@@ -156,32 +157,32 @@ void SSUData::ProcessACKs(
       "SSUData:", m_Session.GetFormattedSessionInfo(), "processing ACKs");
   if (flag & static_cast<std::uint8_t>(SSUFlag::DataExplicitACKsIncluded)) {
     // explicit ACKs
-    std::uint8_t num_ACKs = *buf;
+    auto num_ACKs = *buf;
     buf++;
-    for (int i = 0; i < num_ACKs; i++)
+    for (auto i = 0; i < num_ACKs; i++)
       ProcessSentMessageACK(bufbe32toh(buf+i*4));
     buf += num_ACKs * 4;
   }
   if (flag & static_cast<std::uint8_t>(SSUFlag::DataACKBitfieldsIncluded)) {
     // explicit ACK bitfields
-    std::uint8_t num_bitfields = *buf;
+    auto num_bitfields = *buf;
     buf++;
-    for (int i = 0; i < num_bitfields; i++) {
-      std::uint32_t msg_id = bufbe32toh(buf);
+    for (auto i = 0; i < num_bitfields; i++) {
+      auto msg_id = bufbe32toh(buf);
       buf += 4;  // message ID
       auto it = m_SentMessages.find(msg_id);
       // process individual ACK bitfields
       bool is_not_last = false;
-      int fragment = 0;
+      std::size_t fragment = 0;
       do {
-        std::uint8_t bitfield = *buf;
+        auto bitfield = *buf;
         is_not_last = bitfield & 0x80;
         bitfield &= 0x7F;  // clear MSB
         if (bitfield && it != m_SentMessages.end()) {
-          int num_send_fragments = it->second->fragments.size();
+          auto num_send_fragments = it->second->fragments.size();
           // process bits
           std::uint8_t mask = 0x01;
-          for (int j = 0; j < 7; j++) {
+          for (auto j = 0; j < 7; j++) {
             if (bitfield & mask) {
               if (fragment < num_send_fragments)
                 it->second->fragments[fragment].reset(nullptr);
@@ -202,17 +203,17 @@ void SSUData::ProcessFragments(
   LogPrint(eLogDebug,
       "SSUData:", m_Session.GetFormattedSessionInfo(),
       "processing fragments");
-  std::uint8_t num_fragments = *buf;  // number of fragments
+  auto num_fragments = *buf;  // number of fragments
   buf++;
-  for (int i = 0; i < num_fragments; i++) {
-    std::uint32_t msg_id = bufbe32toh(buf);  // message ID
+  for (auto i = 0; i < num_fragments; i++) {
+    auto msg_id = bufbe32toh(buf);  // message ID
     buf += 4;
-    std::uint8_t frag[4];
-    frag[0] = 0;
-    memcpy(frag + 1, buf, 3);
+    std::array<std::uint8_t, 4> frag;
+    frag.at(0) = 0;
+    memcpy(frag.data() + 1, buf, 3);
     buf += 3;
-    std::uint32_t fragment_info = bufbe32toh(frag);  // fragment info
-    std::uint16_t fragment_size = fragment_info & 0x3FFF;  // bits 0 - 13
+    auto fragment_info = bufbe32toh(frag.data());  // fragment info
+    auto fragment_size = fragment_info & 0x3FFF;  // bits 0 - 13
     bool is_last = fragment_info & 0x010000;  // bit 16
     std::uint8_t fragment_num = fragment_info >> 17;  // bits 23 - 17
     if (fragment_size >= static_cast<std::size_t>(SSUSize::PacketMaxIPv4)) {
@@ -246,7 +247,7 @@ void SSUData::ProcessFragments(
           if (fragment->fragment_num ==
               incomplete_message->next_fragment_num) {
             incomplete_message->AttachNextFragment(
-                fragment->buffer,
+                fragment->buffer.data(),
                 fragment->len);
             is_last = fragment->is_last;
             incomplete_message->saved_fragments.erase(saved_fragment++);
@@ -379,7 +380,7 @@ void SSUData::Send(
   LogPrint(eLogDebug,
       "SSUData:", m_Session.GetFormattedSessionInfo(),
       "sending message");
-  std::uint32_t msg_id = msg->ToSSU();
+  auto msg_id = msg->ToSSU();
   if (m_SentMessages.count(msg_id) > 0) {
     LogPrint(eLogWarning,
         "SSUData:", m_Session.GetFormattedSessionInfo(),
@@ -402,16 +403,15 @@ void SSUData::Send(
   }
   auto& fragments = sent_message->fragments;
   // 9 = flag + #frg(1) + messageID(4) + frag info (3)
-  std::size_t payload_size =
-    m_PacketSize - static_cast<std::size_t>(SSUSize::HeaderMin) - 9;
-  std::size_t len = msg->GetLength();
-  std::uint8_t* msg_buf = msg->GetSSUHeader();
-  std::uint32_t fragment_num = 0;
+  auto payload_size = m_PacketSize - static_cast<std::size_t>(SSUSize::HeaderMin) - 9;
+  auto len = msg->GetLength();
+  auto msg_buf = msg->GetSSUHeader();
+  std::size_t fragment_num = 0;
   while (len > 0) {
     auto fragment = std::make_unique<Fragment>();
     fragment->fragment_num = fragment_num;
-    std::uint8_t* buf = fragment->buffer;
-    std::uint8_t* payload = buf + static_cast<std::size_t>(SSUSize::HeaderMin);
+    auto buf = fragment->buffer.data();
+    auto payload = buf + static_cast<std::size_t>(SSUSize::HeaderMin);
     *payload = static_cast<std::uint8_t>(SSUFlag::DataWantReply);  // for compatibility
     payload++;
     *payload = 1;  // always 1 message fragment per message
@@ -419,8 +419,8 @@ void SSUData::Send(
     htobe32buf(payload, msg_id);
     payload += 4;
     bool is_last = (len <= payload_size);
-    std::size_t size = is_last ? len : payload_size;
-    std::uint32_t fragment_info = (fragment_num << 17);
+    auto size = is_last ? len : payload_size;
+    auto fragment_info = (fragment_num << 17);
     if (is_last)
       fragment_info |= 0x010000;
     fragment_info |= size;
@@ -458,8 +458,8 @@ void SSUData::SendMsgACK(
       "SSUData:", m_Session.GetFormattedSessionInfo(),
       "sending message ACK");
   // actual length is 44 = 37 + 7 but pad it to multiple of 16
-  std::uint8_t buf[48 + 18];
-  std::uint8_t* payload = buf + static_cast<std::size_t>(SSUSize::HeaderMin);
+  std::array<std::uint8_t, 48 + 18> buf;
+  auto payload = buf.data() + static_cast<std::size_t>(SSUSize::HeaderMin);
   *payload = static_cast<std::uint8_t>(SSUFlag::DataExplicitACKsIncluded);  // flag
   payload++;
   *payload = 1;  // number of ACKs
@@ -468,13 +468,13 @@ void SSUData::SendMsgACK(
   payload += 4;
   *payload = 0;  // number of fragments
   // encrypt message with session key
-  m_Session.FillHeaderAndEncrypt(PAYLOAD_TYPE_DATA, buf, 48);
-  m_Session.Send(buf, 48);
+  m_Session.FillHeaderAndEncrypt(PAYLOAD_TYPE_DATA, buf.data(), 48);
+  m_Session.Send(buf.data(), 48);
 }
 
 void SSUData::SendFragmentACK(
     std::uint32_t msg_id,
-    int fragment_num) {
+    std::size_t fragment_num) {
   LogPrint(eLogDebug,
       "SSUData:", m_Session.GetFormattedSessionInfo(),
       "sending fragment ACK");
@@ -484,8 +484,8 @@ void SSUData::SendFragmentACK(
         "fragment number ", fragment_num, " exceeds 64");
     return;
   }
-  std::uint8_t buf[64 + 18];
-  std::uint8_t* payload = buf + static_cast<std::size_t>(SSUSize::HeaderMin);
+  std::array<std::uint8_t, 64 + 18> buf;  // TODO(unassigned): document values
+  auto payload = buf.data() + static_cast<std::size_t>(SSUSize::HeaderMin);
   *payload = static_cast<std::uint8_t>(SSUFlag::DataACKBitfieldsIncluded);  // flag
   payload++;
   *payload = 1;  // number of ACK bitfields
@@ -499,10 +499,10 @@ void SSUData::SendFragmentACK(
   *payload = 0x01 << d.rem;  // set corresponding bit
   payload++;
   *payload = 0;  // number of fragments
-  std::size_t len = d.quot < 4 ? 48 : 64;  // 48 = 37 + 7 + 4 (3+1)
+  auto len = d.quot < 4 ? 48 : 64;  // 48 = 37 + 7 + 4 (3+1)
   // encrypt message with session key
-  m_Session.FillHeaderAndEncrypt(PAYLOAD_TYPE_DATA, buf, len);
-  m_Session.Send(buf, len);
+  m_Session.FillHeaderAndEncrypt(PAYLOAD_TYPE_DATA, buf.data(), len);
+  m_Session.Send(buf.data(), len);
 }
 
 void SSUData::ScheduleResend() {
@@ -515,8 +515,7 @@ void SSUData::ScheduleResend() {
         static_cast<std::size_t>(SSUDuration::ResendInterval)));
   auto s = m_Session.shared_from_this();
   m_ResendTimer.async_wait(
-      [s](
-        const boost::system::error_code& ecode) {
+      [s](const boost::system::error_code& ecode) {
       s->m_Data.HandleResendTimer(ecode);
       });
 }
@@ -527,14 +526,14 @@ void SSUData::HandleResendTimer(
       "SSUData:", m_Session.GetFormattedSessionInfo(),
       "handling resend timer");
   if (ecode != boost::asio::error::operation_aborted) {
-    std::uint32_t ts = i2p::util::GetSecondsSinceEpoch();
+    auto ts = i2p::util::GetSecondsSinceEpoch();
     for (auto it = m_SentMessages.begin(); it != m_SentMessages.end();) {
       if (ts >= it->second->next_resend_time) {
         if (it->second->num_resends < static_cast<std::size_t>(SSUDuration::MaxResends)) {
           for (auto& fragment : it->second->fragments)
             if (fragment) {
               try {
-                m_Session.Send(fragment->buffer, fragment->len);  // resend
+                m_Session.Send(fragment->buffer.data(), fragment->len);  // resend
               } catch (boost::system::system_error& ec) {
                 LogPrint(eLogError,
                     "SSUData:", m_Session.GetFormattedSessionInfo(),
@@ -570,8 +569,7 @@ void SSUData::ScheduleDecay() {
           static_cast<std::size_t>(SSUDuration::DecayInterval)));
   auto s = m_Session.shared_from_this();
   m_ResendTimer.async_wait(
-      [s](
-        const boost::system::error_code& ecode) {
+      [s](const boost::system::error_code& ecode) {
       s->m_Data.HandleDecayTimer(ecode);
       });
 }
@@ -606,9 +604,8 @@ void SSUData::HandleIncompleteMessagesCleanupTimer(
       "SSUData:", m_Session.GetFormattedSessionInfo(),
       "handling incomplete messages cleanup");
   if (ecode != boost::asio::error::operation_aborted) {
-    std::uint32_t ts = i2p::util::GetSecondsSinceEpoch();
-    for (auto it = m_IncompleteMessages.begin ();
-        it != m_IncompleteMessages.end();) {
+    auto ts = i2p::util::GetSecondsSinceEpoch();
+    for (auto it = m_IncompleteMessages.begin(); it != m_IncompleteMessages.end();) {
       if (ts > it->second->last_fragment_insert_time +
           static_cast<std::size_t>(SSUDuration::IncompleteMessagesCleanupTimeout)) {
         LogPrint(eLogError,

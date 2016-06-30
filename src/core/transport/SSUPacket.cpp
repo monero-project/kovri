@@ -312,11 +312,10 @@ std::uint32_t SSUSessionConfirmedPacket::GetSignedOnTime() const {
 
 std::size_t SSUSessionConfirmedPacket::GetSize() const {
   // This message must be a multiple of 16
-  const std::size_t size =
-    SSUPacket::GetSize()
-    + m_RemoteIdentity.GetFullLen()       // Identity size
-    + m_RemoteIdentity.GetSignatureLen()  // Signature size
-    + 4;                                  // Time size
+  return SSUPacket::GetSize()
+         + m_RemoteIdentity.GetFullLen()       // Identity size
+         + m_RemoteIdentity.GetSignatureLen()  // Signature size
+         + 4;                                  // Time size
 }
 
 /**

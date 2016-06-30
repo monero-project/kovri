@@ -377,7 +377,6 @@ class SSUSession
 
  private:
   friend class SSUData;  // TODO(unassigned): change in later
-  SSUData m_Data;
   std::string m_RemoteIdentHashAbbreviation;
   SSUServer& m_Server;
   boost::asio::ip::udp::endpoint m_RemoteEndpoint;
@@ -386,6 +385,7 @@ class SSUSession
   SessionState m_State;
   bool m_IsSessionKey;
   std::uint32_t m_RelayTag;
+  SSUData m_Data;
   i2p::crypto::CBCEncryption m_SessionKeyEncryption;
   i2p::crypto::CBCDecryption m_SessionKeyDecryption;
   i2p::crypto::AESKey m_SessionKey;

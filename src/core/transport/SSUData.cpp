@@ -34,8 +34,6 @@
 
 #include <boost/bind.hpp>
 
-#include <stdlib.h>
-
 #include <cstdint>
 #include <memory>
 
@@ -49,18 +47,18 @@ namespace i2p {
 namespace transport {
 
 void IncompleteMessage::AttachNextFragment(
-    const uint8_t* fragment,
-    size_t fragmentSize) {
-  if (msg->len + fragmentSize > msg->maxLen) {
+    const std::uint8_t* fragment,
+    std::size_t fragment_size) {
+  if (msg->len + fragment_size > msg->maxLen) {
     LogPrint(eLogInfo,
         "Transport: SSU I2NP message size ", msg->maxLen, " is not enough");
-    auto newMsg = ToSharedI2NPMessage(NewI2NPMessage());
-    *newMsg = *msg;
-    msg = newMsg;
+    auto new_msg = ToSharedI2NPMessage(NewI2NPMessage());
+    *new_msg = *msg;
+    msg = new_msg;
   }
-  memcpy(msg->buf + msg->len, fragment, fragmentSize);
-  msg->len += fragmentSize;
-  nextFragmentNum++;
+  memcpy(msg->buf + msg->len, fragment, fragment_size);
+  msg->len += fragment_size;
+  next_fragment_num++;
 }
 
 SSUData::SSUData(
@@ -74,9 +72,9 @@ SSUData::SSUData(
     static_cast<std::size_t>(SSUSize::PacketMaxIPv6) :
     static_cast<std::size_t>(SSUSize::PacketMaxIPv4);
   m_PacketSize = m_MaxPacketSize;
-  auto remoteRouter = session.GetRemoteRouter();
-  if (remoteRouter)
-    AdjustPacketSize(*remoteRouter);
+  auto remote_router = session.GetRemoteRouter();
+  if (remote_router)
+    AdjustPacketSize(*remote_router);
 }
 
 SSUData::~SSUData() {
@@ -96,19 +94,19 @@ void SSUData::Stop() {
 }
 
 void SSUData::AdjustPacketSize(
-    const i2p::data::RouterInfo& remoteRouter) {
+    const i2p::data::RouterInfo& remote_router) {
   LogPrint(eLogDebug,
       "SSUData: adjusting packet size");
-  auto ssuAddress = remoteRouter.GetSSUAddress();
-  if (ssuAddress && ssuAddress->mtu) {
+  auto ssu_address = remote_router.GetSSUAddress();
+  if (ssu_address && ssu_address->mtu) {
     if (m_Session.IsV6 ())
       m_PacketSize =
-        ssuAddress->mtu
+        ssu_address->mtu
         - static_cast<std::size_t>(SSUSize::HeaderIPv6)
         - static_cast<std::size_t>(SSUSize::HeaderUDP);
     else
       m_PacketSize =
-        ssuAddress->mtu
+        ssu_address->mtu
         - static_cast<std::size_t>(SSUSize::HeaderIPv4)
         - static_cast<std::size_t>(SSUSize::HeaderUDP);
     if (m_PacketSize > 0) {
@@ -119,31 +117,31 @@ void SSUData::AdjustPacketSize(
         m_PacketSize = m_MaxPacketSize;
       LogPrint(eLogInfo,
           "SSUData:", m_Session.GetFormattedSessionInfo(),
-          "MTU=", ssuAddress->mtu, " packet size=", m_PacketSize);
+          "MTU=", ssu_address->mtu, " packet size=", m_PacketSize);
     } else {
-      LogPrint(eLogWarning, "SSUData: unexpected MTU ", ssuAddress->mtu);
+      LogPrint(eLogWarning, "SSUData: unexpected MTU ", ssu_address->mtu);
       m_PacketSize = m_MaxPacketSize;
     }
   }
 }
 
 void SSUData::UpdatePacketSize(
-    const i2p::data::IdentHash& remoteIdent) {
+    const i2p::data::IdentHash& remote_ident) {
   LogPrint(eLogDebug,
       "SSUData:", m_Session.GetFormattedSessionInfo(),
       "updating packet size");
-  auto routerInfo = i2p::data::netdb.FindRouter(remoteIdent);
-  if (routerInfo)
-    AdjustPacketSize(*routerInfo);
+  auto router_info = i2p::data::netdb.FindRouter(remote_ident);
+  if (router_info)
+    AdjustPacketSize(*router_info);
 }
 
-void SSUData::ProcessSentMessageAck(
-    uint32_t msgID) {
+void SSUData::ProcessSentMessageACK(
+    std::uint32_t msg_id) {
   // TODO(unassigned): too spammy? keep?
   //LogPrint(eLogDebug,
       //"SSUData:", m_Session.GetFormattedSessionInfo(),
       //"processing sent message ACK");
-  auto it = m_SentMessages.find(msgID);
+  auto it = m_SentMessages.find(msg_id);
   if (it != m_SentMessages.end()) {
     m_SentMessages.erase(it);
     if (m_SentMessages.empty())
@@ -151,41 +149,41 @@ void SSUData::ProcessSentMessageAck(
   }
 }
 
-void SSUData::ProcessAcks(
-    uint8_t *& buf,
-    uint8_t flag) {
+void SSUData::ProcessACKs(
+    std::uint8_t*& buf,
+    std::uint8_t flag) {
   LogPrint(eLogDebug,
       "SSUData:", m_Session.GetFormattedSessionInfo(), "processing ACKs");
   if (flag & static_cast<std::uint8_t>(SSUFlag::DataExplicitACKsIncluded)) {
     // explicit ACKs
-    uint8_t numAcks =*buf;
+    std::uint8_t num_ACKs = *buf;
     buf++;
-    for (int i = 0; i < numAcks; i++)
-      ProcessSentMessageAck(bufbe32toh(buf+i*4));
-    buf += numAcks*4;
+    for (int i = 0; i < num_ACKs; i++)
+      ProcessSentMessageACK(bufbe32toh(buf+i*4));
+    buf += num_ACKs * 4;
   }
   if (flag & static_cast<std::uint8_t>(SSUFlag::DataACKBitfieldsIncluded)) {
     // explicit ACK bitfields
-    uint8_t numBitfields =*buf;
+    std::uint8_t num_bitfields = *buf;
     buf++;
-    for (int i = 0; i < numBitfields; i++) {
-      uint32_t msgID = bufbe32toh(buf);
-      buf += 4;  // msgID
-      auto it = m_SentMessages.find(msgID);
-      // process individual Ack bitfields
-      bool isNonLast = false;
+    for (int i = 0; i < num_bitfields; i++) {
+      std::uint32_t msg_id = bufbe32toh(buf);
+      buf += 4;  // message ID
+      auto it = m_SentMessages.find(msg_id);
+      // process individual ACK bitfields
+      bool is_not_last = false;
       int fragment = 0;
       do {
-        uint8_t bitfield = *buf;
-        isNonLast = bitfield & 0x80;
+        std::uint8_t bitfield = *buf;
+        is_not_last = bitfield & 0x80;
         bitfield &= 0x7F;  // clear MSB
         if (bitfield && it != m_SentMessages.end()) {
-          int numSentFragments = it->second->fragments.size();
+          int num_send_fragments = it->second->fragments.size();
           // process bits
-          uint8_t mask = 0x01;
+          std::uint8_t mask = 0x01;
           for (int j = 0; j < 7; j++) {
             if (bitfield & mask) {
-              if (fragment < numSentFragments)
+              if (fragment < num_send_fragments)
                 it->second->fragments[fragment].reset(nullptr);
             }
             fragment++;
@@ -194,137 +192,137 @@ void SSUData::ProcessAcks(
         }
         buf++;
       }
-      while (isNonLast);
+      while (is_not_last);
     }
   }
 }
 
 void SSUData::ProcessFragments(
-    uint8_t* buf) {
+    std::uint8_t* buf) {
   LogPrint(eLogDebug,
       "SSUData:", m_Session.GetFormattedSessionInfo(),
       "processing fragments");
-  uint8_t numFragments = *buf;  // number of fragments
+  std::uint8_t num_fragments = *buf;  // number of fragments
   buf++;
-  for (int i = 0; i < numFragments; i++) {
-    uint32_t msgID = bufbe32toh(buf);  // message ID
+  for (int i = 0; i < num_fragments; i++) {
+    std::uint32_t msg_id = bufbe32toh(buf);  // message ID
     buf += 4;
-    uint8_t frag[4];
+    std::uint8_t frag[4];
     frag[0] = 0;
     memcpy(frag + 1, buf, 3);
     buf += 3;
-    uint32_t fragmentInfo = bufbe32toh(frag);  // fragment info
-    uint16_t fragmentSize = fragmentInfo & 0x3FFF;  // bits 0 - 13
-    bool isLast = fragmentInfo & 0x010000;  // bit 16
-    uint8_t fragmentNum = fragmentInfo >> 17;  // bits 23 - 17
-    if (fragmentSize >= static_cast<std::size_t>(SSUSize::PacketMaxIPv4)) {
+    std::uint32_t fragment_info = bufbe32toh(frag);  // fragment info
+    std::uint16_t fragment_size = fragment_info & 0x3FFF;  // bits 0 - 13
+    bool is_last = fragment_info & 0x010000;  // bit 16
+    std::uint8_t fragment_num = fragment_info >> 17;  // bits 23 - 17
+    if (fragment_size >= static_cast<std::size_t>(SSUSize::PacketMaxIPv4)) {
       LogPrint(eLogError,
           "SSUData:", m_Session.GetFormattedSessionInfo(),
-          "fragment size ", fragmentSize, "exceeds max SSU packet size");
+          "fragment size ", fragment_size, "exceeds max SSU packet size");
       return;
     }
-    //  find message with msgID
-    auto it = m_IncompleteMessages.find(msgID);
+    //  find message with message ID
+    auto it = m_IncompleteMessages.find(msg_id);
     if (it == m_IncompleteMessages.end()) {
       // create new message
       auto msg = ToSharedI2NPMessage(NewI2NPShortMessage());
       msg->len -= I2NP_SHORT_HEADER_SIZE;
       it = m_IncompleteMessages.insert(
           std::make_pair(
-            msgID,
-            std::unique_ptr<IncompleteMessage>(
-                std::make_unique<IncompleteMessage>(msg)))).first;
+              msg_id,
+              std::unique_ptr<IncompleteMessage>(
+                  std::make_unique<IncompleteMessage>(msg)))).first;
     }
-    std::unique_ptr<IncompleteMessage>& incompleteMessage = it->second;
+    std::unique_ptr<IncompleteMessage>& incomplete_message = it->second;
     // handle current fragment
-    if (fragmentNum == incompleteMessage->nextFragmentNum) {
+    if (fragment_num == incomplete_message->next_fragment_num) {
       // expected fragment
-      incompleteMessage->AttachNextFragment(buf, fragmentSize);
-      if (!isLast && !incompleteMessage->savedFragments.empty()) {
+      incomplete_message->AttachNextFragment(buf, fragment_size);
+      if (!is_last && !incomplete_message->saved_fragments.empty()) {
         // try saved fragments
-        for (auto it1 = incompleteMessage->savedFragments.begin();
-            it1 != incompleteMessage->savedFragments.end();) {
-          auto& savedFragment = *it1;
-          if (savedFragment->fragmentNum ==
-              incompleteMessage->nextFragmentNum) {
-            incompleteMessage->AttachNextFragment(
-                savedFragment->buf,
-                savedFragment->len);
-            isLast = savedFragment->isLast;
-            incompleteMessage->savedFragments.erase(it1++);
+        for (auto saved_fragment = incomplete_message->saved_fragments.begin();
+            saved_fragment != incomplete_message->saved_fragments.end();) {
+          auto& fragment = *saved_fragment;
+          if (fragment->fragment_num ==
+              incomplete_message->next_fragment_num) {
+            incomplete_message->AttachNextFragment(
+                fragment->buffer,
+                fragment->len);
+            is_last = fragment->is_last;
+            incomplete_message->saved_fragments.erase(saved_fragment++);
           } else {
             break;
           }
         }
-        if (isLast)
+        if (is_last)
           LogPrint(eLogDebug,
               "SSUData:", m_Session.GetFormattedSessionInfo(),
-              "message ", msgID, " is complete");
+              "message ", msg_id, " is complete");
       }
     } else {
-      if (fragmentNum < incompleteMessage->nextFragmentNum) {
+      if (fragment_num < incomplete_message->next_fragment_num) {
         // duplicate fragment
         LogPrint(eLogWarning,
             "SSUData:", m_Session.GetFormattedSessionInfo(),
-            " ignoring duplicate fragment ", static_cast<int>(fragmentNum),
-            " of message ", msgID);
+            " ignoring duplicate fragment ", static_cast<int>(fragment_num),
+            " of message ", msg_id);
       } else {
         // missing fragment
         LogPrint(eLogWarning,
             "SSUData:", m_Session.GetFormattedSessionInfo(),
             " missing fragments from ",
-            static_cast<int>(incompleteMessage->nextFragmentNum),
-            " to ", fragmentNum - 1, " of message ", msgID);
-        auto savedFragment =
-          std::make_unique<Fragment>(fragmentNum, buf, fragmentSize, isLast);
-        if (incompleteMessage->savedFragments.insert(
-              std::unique_ptr<Fragment>(std::move(savedFragment))).second)
-          incompleteMessage->lastFragmentInsertTime =
+            static_cast<int>(incomplete_message->next_fragment_num),
+            " to ", fragment_num - 1, " of message ", msg_id);
+        auto saved_fragment =
+          std::make_unique<Fragment>(fragment_num, buf, fragment_size, is_last);
+        if (incomplete_message->saved_fragments.insert(
+              std::unique_ptr<Fragment>(std::move(saved_fragment))).second)
+          incomplete_message->last_fragment_insert_time =
             i2p::util::GetSecondsSinceEpoch();
         else
           LogPrint(eLogWarning,
               "SSUData:", m_Session.GetFormattedSessionInfo(),
-              "fragment ", static_cast<int>(fragmentNum),
-              " of message ", msgID, " is already saved");
+              "fragment ", static_cast<int>(fragment_num),
+              " of message ", msg_id, " is already saved");
       }
-      isLast = false;
+      is_last = false;
     }
-    if (isLast) {
+    if (is_last) {
       // delete incomplete message
-      auto msg = incompleteMessage->msg;
-      incompleteMessage->msg = nullptr;
-      m_IncompleteMessages.erase(msgID);
+      auto msg = incomplete_message->msg;
+      incomplete_message->msg = nullptr;
+      m_IncompleteMessages.erase(msg_id);
       // process message
-      SendMsgAck(msgID);
-      msg->FromSSU(msgID);
+      SendMsgACK(msg_id);
+      msg->FromSSU(msg_id);
       if (m_Session.GetState() == SessionStateEstablished) {
-        if (!m_ReceivedMessages.count(msgID)) {
+        if (!m_ReceivedMessages.count(msg_id)) {
           if (m_ReceivedMessages.size() >
               static_cast<std::size_t>(SSUSize::MaxReceivedMessages))
             m_ReceivedMessages.clear();
           else
             ScheduleDecay();
-          m_ReceivedMessages.insert(msgID);
+          m_ReceivedMessages.insert(msg_id);
           m_Handler.PutNextMessage(msg);
         } else {
           LogPrint(eLogWarning,
               "SSUData:", m_Session.GetFormattedSessionInfo(),
-              "SSU message ", msgID, " already received");
+              "SSU message ", msg_id, " already received");
         }
       } else {
-        auto i2np_type = msg->GetTypeID();
+        auto I2NP_type = msg->GetTypeID();
         // we expect DeliveryStatus
-        if (i2np_type == e_I2NPDeliveryStatus) {
+        if (I2NP_type == e_I2NPDeliveryStatus) {
           LogPrint(eLogInfo,
               "SSUData:", m_Session.GetFormattedSessionInfo(),
               "SSU session established");
           m_Session.Established();
-        } else if (i2np_type == e_I2NPDatabaseStore) {
+        } else if (I2NP_type == e_I2NPDatabaseStore) {
           // we got a database store message
           LogPrint(eLogInfo,
               "SSUData:", m_Session.GetFormattedSessionInfo(),
               "Got DSM From SSU");
-          m_ReceivedMessages.insert(msgID);
+          m_ReceivedMessages.insert(msg_id);
           m_Handler.PutNextMessage(msg);
         } else {
           LogPrint(eLogError,
@@ -334,9 +332,9 @@ void SSUData::ProcessFragments(
         }
       }
     } else {
-      SendFragmentAck(msgID, fragmentNum);
+      SendFragmentACK(msg_id, fragment_num);
     }
-    buf += fragmentSize;
+    buf += fragment_size;
   }
 }
 
@@ -348,10 +346,10 @@ void SSUData::FlushReceivedMessage() {
 }
 
 void SSUData::ProcessMessage(
-    uint8_t* buf,
-    size_t len) {
-  // uint8_t* start = buf;
-  uint8_t flag = *buf;
+    std::uint8_t* buf,
+    std::size_t len) {
+  // std::uint8_t* start = buf;
+  std::uint8_t flag = *buf;
   buf++;
   LogPrint(eLogDebug,
       "SSUData:", m_Session.GetFormattedSessionInfo(),
@@ -361,16 +359,16 @@ void SSUData::ProcessMessage(
   if (flag &
       (static_cast<std::uint8_t>(SSUFlag::DataACKBitfieldsIncluded) |
        static_cast<std::uint8_t>(SSUFlag::DataExplicitACKsIncluded)))
-    ProcessAcks(buf, flag);
+    ProcessACKs(buf, flag);
   // extended data if presented
   if (flag & static_cast<std::uint8_t>(SSUFlag::DataExtendedIncluded)) {
-    uint8_t extendedDataSize = *buf;
+    std::uint8_t extended_data_size = *buf;
     buf++;  // size
     LogPrint(eLogDebug,
         "SSUData:", m_Session.GetFormattedSessionInfo(),
         "SSU extended data of ",
-        static_cast<int>(extendedDataSize), " bytes presented");
-    buf += extendedDataSize;
+        static_cast<int>(extended_data_size), " bytes presented");
+    buf += extended_data_size;
   }
   // process data
   ProcessFragments(buf);
@@ -381,56 +379,58 @@ void SSUData::Send(
   LogPrint(eLogDebug,
       "SSUData:", m_Session.GetFormattedSessionInfo(),
       "sending message");
-  uint32_t msgID = msg->ToSSU();
-  if (m_SentMessages.count(msgID) > 0) {
+  std::uint32_t msg_id = msg->ToSSU();
+  if (m_SentMessages.count(msg_id) > 0) {
     LogPrint(eLogWarning,
         "SSUData:", m_Session.GetFormattedSessionInfo(),
-        "message ", msgID, " was already sent");
+        "message ", msg_id, " was already sent");
     return;
   }
   if (m_SentMessages.empty())  // schedule resend at first message only
     ScheduleResend();
-  auto ret = m_SentMessages.insert(
-      std::make_pair(
-        msgID,
-        std::unique_ptr<SentMessage>(std::make_unique<SentMessage>())));
-  std::unique_ptr<SentMessage>& sentMessage = ret.first->second;
+  auto ret =
+    m_SentMessages.insert(
+        std::make_pair(
+            msg_id,
+            std::unique_ptr<SentMessage>(std::make_unique<SentMessage>())));
+  std::unique_ptr<SentMessage>& sent_message = ret.first->second;
   if (ret.second) {
-    sentMessage->nextResendTime =
-      i2p::util::GetSecondsSinceEpoch() + static_cast<std::size_t>(SSUDuration::ResendInterval);
-    sentMessage->numResends = 0;
+    sent_message->next_resend_time =
+      i2p::util::GetSecondsSinceEpoch()
+      + static_cast<std::size_t>(SSUDuration::ResendInterval);
+    sent_message->num_resends = 0;
   }
-  auto& fragments = sentMessage->fragments;
-  // 9  =  flag + #frg(1) + messageID(4) + frag info (3)
-  size_t payloadSize =
+  auto& fragments = sent_message->fragments;
+  // 9 = flag + #frg(1) + messageID(4) + frag info (3)
+  std::size_t payload_size =
     m_PacketSize - static_cast<std::size_t>(SSUSize::HeaderMin) - 9;
-  size_t len = msg->GetLength();
-  uint8_t* msgBuf = msg->GetSSUHeader();
-  uint32_t fragmentNum = 0;
+  std::size_t len = msg->GetLength();
+  std::uint8_t* msg_buf = msg->GetSSUHeader();
+  std::uint32_t fragment_num = 0;
   while (len > 0) {
     auto fragment = std::make_unique<Fragment>();
-    fragment->fragmentNum = fragmentNum;
-    uint8_t* buf = fragment->buf;
-    uint8_t* payload = buf + static_cast<std::size_t>(SSUSize::HeaderMin);
+    fragment->fragment_num = fragment_num;
+    std::uint8_t* buf = fragment->buffer;
+    std::uint8_t* payload = buf + static_cast<std::size_t>(SSUSize::HeaderMin);
     *payload = static_cast<std::uint8_t>(SSUFlag::DataWantReply);  // for compatibility
     payload++;
     *payload = 1;  // always 1 message fragment per message
     payload++;
-    htobe32buf(payload, msgID);
+    htobe32buf(payload, msg_id);
     payload += 4;
-    bool isLast = (len <= payloadSize);
-    size_t size = isLast ? len : payloadSize;
-    uint32_t fragmentInfo = (fragmentNum << 17);
-    if (isLast)
-      fragmentInfo |= 0x010000;
-    fragmentInfo |= size;
-    fragmentInfo = htobe32(fragmentInfo);
-    memcpy(payload, reinterpret_cast<uint8_t *>((&fragmentInfo)) + 1, 3);
+    bool is_last = (len <= payload_size);
+    std::size_t size = is_last ? len : payload_size;
+    std::uint32_t fragment_info = (fragment_num << 17);
+    if (is_last)
+      fragment_info |= 0x010000;
+    fragment_info |= size;
+    fragment_info = htobe32(fragment_info);
+    memcpy(payload, reinterpret_cast<std::uint8_t *>((&fragment_info)) + 1, 3);
     payload += 3;
-    memcpy(payload, msgBuf, size);
+    memcpy(payload, msg_buf, size);
     size += payload - buf;
     if (size & 0x0F)  // make sure 16 bytes boundary
-      size = ((size >> 4) + 1) << 4;  // (/16 + 1)*16
+      size = ((size >> 4) + 1) << 4;  // (/16 + 1) * 16
     fragment->len = size;
     fragments.push_back(std::unique_ptr<Fragment>(std::move(fragment)));
     // encrypt message with session key
@@ -442,29 +442,29 @@ void SSUData::Send(
           "SSUData:", m_Session.GetFormattedSessionInfo(),
           "can't send SSU fragment: '", ec.what(), "'");
     }
-    if (!isLast) {
-      len -= payloadSize;
-      msgBuf += payloadSize;
+    if (!is_last) {
+      len -= payload_size;
+      msg_buf += payload_size;
     } else {
       len = 0;
     }
-    fragmentNum++;
+    fragment_num++;
   }
 }
 
-void SSUData::SendMsgAck(
-    uint32_t msgID) {
+void SSUData::SendMsgACK(
+    std::uint32_t msg_id) {
   LogPrint(eLogDebug,
       "SSUData:", m_Session.GetFormattedSessionInfo(),
       "sending message ACK");
   // actual length is 44 = 37 + 7 but pad it to multiple of 16
-  uint8_t buf[48 + 18];
-  uint8_t * payload = buf + static_cast<std::size_t>(SSUSize::HeaderMin);
+  std::uint8_t buf[48 + 18];
+  std::uint8_t* payload = buf + static_cast<std::size_t>(SSUSize::HeaderMin);
   *payload = static_cast<std::uint8_t>(SSUFlag::DataExplicitACKsIncluded);  // flag
   payload++;
   *payload = 1;  // number of ACKs
   payload++;
-  *(reinterpret_cast<uint32_t *>(payload)) = htobe32(msgID);  // msgID
+  *(reinterpret_cast<std::uint32_t *>(payload)) = htobe32(msg_id);  // msg_id
   payload += 4;
   *payload = 0;  // number of fragments
   // encrypt message with session key
@@ -472,34 +472,34 @@ void SSUData::SendMsgAck(
   m_Session.Send(buf, 48);
 }
 
-void SSUData::SendFragmentAck(
-    uint32_t msgID,
-    int fragmentNum) {
+void SSUData::SendFragmentACK(
+    std::uint32_t msg_id,
+    int fragment_num) {
   LogPrint(eLogDebug,
       "SSUData:", m_Session.GetFormattedSessionInfo(),
       "sending fragment ACK");
-  if (fragmentNum > 64) {
+  if (fragment_num > 64) {
     LogPrint(eLogWarning,
         "SSUData:", m_Session.GetFormattedSessionInfo(),
-        "fragment number ", fragmentNum, " exceeds 64");
+        "fragment number ", fragment_num, " exceeds 64");
     return;
   }
-  uint8_t buf[64 + 18];
-  uint8_t* payload = buf + static_cast<std::size_t>(SSUSize::HeaderMin);
+  std::uint8_t buf[64 + 18];
+  std::uint8_t* payload = buf + static_cast<std::size_t>(SSUSize::HeaderMin);
   *payload = static_cast<std::uint8_t>(SSUFlag::DataACKBitfieldsIncluded);  // flag
   payload++;
   *payload = 1;  // number of ACK bitfields
   payload++;
   // one ack
-  *(reinterpret_cast<uint32_t *>(payload)) = htobe32(msgID);  // msgID
+  *(reinterpret_cast<std::uint32_t *>(payload)) = htobe32(msg_id);  // msg_id
   payload += 4;
-  div_t d = div(fragmentNum, 7);
+  div_t d = div(fragment_num, 7);
   memset(payload, 0x80, d.quot);  // 0x80 means non-last
   payload += d.quot;
   *payload = 0x01 << d.rem;  // set corresponding bit
   payload++;
   *payload = 0;  // number of fragments
-  size_t len = d.quot < 4 ? 48 : 64;  // 48 = 37 + 7 + 4 (3+1)
+  std::size_t len = d.quot < 4 ? 48 : 64;  // 48 = 37 + 7 + 4 (3+1)
   // encrypt message with session key
   m_Session.FillHeaderAndEncrypt(PAYLOAD_TYPE_DATA, buf, len);
   m_Session.Send(buf, len);
@@ -527,23 +527,23 @@ void SSUData::HandleResendTimer(
       "SSUData:", m_Session.GetFormattedSessionInfo(),
       "handling resend timer");
   if (ecode != boost::asio::error::operation_aborted) {
-    uint32_t ts = i2p::util::GetSecondsSinceEpoch();
+    std::uint32_t ts = i2p::util::GetSecondsSinceEpoch();
     for (auto it = m_SentMessages.begin(); it != m_SentMessages.end();) {
-      if (ts >= it->second->nextResendTime) {
-        if (it->second->numResends < static_cast<std::size_t>(SSUDuration::MaxResends)) {
-          for (auto& f : it->second->fragments)
-            if (f) {
+      if (ts >= it->second->next_resend_time) {
+        if (it->second->num_resends < static_cast<std::size_t>(SSUDuration::MaxResends)) {
+          for (auto& fragment : it->second->fragments)
+            if (fragment) {
               try {
-                m_Session.Send(f->buf, f->len);  // resend
+                m_Session.Send(fragment->buffer, fragment->len);  // resend
               } catch (boost::system::system_error& ec) {
                 LogPrint(eLogError,
                     "SSUData:", m_Session.GetFormattedSessionInfo(),
                     "can't resend SSU fragment: '", ec.what(), "'");
               }
             }
-          it->second->numResends++;
-          it->second->nextResendTime +=
-            it->second->numResends * static_cast<std::size_t>(SSUDuration::ResendInterval);
+          it->second->num_resends++;
+          it->second->next_resend_time +=
+            it->second->num_resends * static_cast<std::size_t>(SSUDuration::ResendInterval);
           it++;
         } else {
           LogPrint(eLogError,
@@ -567,7 +567,7 @@ void SSUData::ScheduleDecay() {
   m_DecayTimer.cancel();
   m_DecayTimer.expires_from_now(
       boost::posix_time::seconds(
-        static_cast<std::size_t>(SSUDuration::DecayInterval)));
+          static_cast<std::size_t>(SSUDuration::DecayInterval)));
   auto s = m_Session.shared_from_this();
   m_ResendTimer.async_wait(
       [s](
@@ -592,11 +592,10 @@ void SSUData::ScheduleIncompleteMessagesCleanup() {
   m_IncompleteMessagesCleanupTimer.cancel();
   m_IncompleteMessagesCleanupTimer.expires_from_now(
       boost::posix_time::seconds(
-        static_cast<std::size_t>(SSUDuration::IncompleteMessagesCleanupTimeout)));
+          static_cast<std::size_t>(SSUDuration::IncompleteMessagesCleanupTimeout)));
   auto s = m_Session.shared_from_this();
   m_IncompleteMessagesCleanupTimer.async_wait(
-      [s](
-        const boost::system::error_code& ecode) {
+      [s](const boost::system::error_code& ecode) {
       s->m_Data.HandleIncompleteMessagesCleanupTimer(ecode);
       });
 }
@@ -607,10 +606,10 @@ void SSUData::HandleIncompleteMessagesCleanupTimer(
       "SSUData:", m_Session.GetFormattedSessionInfo(),
       "handling incomplete messages cleanup");
   if (ecode != boost::asio::error::operation_aborted) {
-    uint32_t ts = i2p::util::GetSecondsSinceEpoch();
+    std::uint32_t ts = i2p::util::GetSecondsSinceEpoch();
     for (auto it = m_IncompleteMessages.begin ();
         it != m_IncompleteMessages.end();) {
-      if (ts > it->second->lastFragmentInsertTime +
+      if (ts > it->second->last_fragment_insert_time +
           static_cast<std::size_t>(SSUDuration::IncompleteMessagesCleanupTimeout)) {
         LogPrint(eLogError,
             "SSUData:", m_Session.GetFormattedSessionInfo(),

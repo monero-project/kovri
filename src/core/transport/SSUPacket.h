@@ -40,7 +40,17 @@
 namespace i2p {
 namespace transport {
 
+/// @enum SSUSize
+/// @brief Constants used to represent sizes in SSU including
+///   packet, crypto, and implementation
 enum struct SSUSize : const std::size_t {
+  MTUv4 = 1484,
+  MTUv6 = 1472,
+  HeaderIPv4 = 20,
+  HeaderIPv6 = 40,
+  HeaderUDP = 8,
+  PacketMaxIPv4 = MTUv4 - HeaderIPv4 - HeaderUDP,  // Total: 1456
+  PacketMaxIPv6 = MTUv6 - HeaderIPv6 - HeaderUDP,  // Total: 1424
   HeaderMin = 37,
   MAC = 16,
   IV = 16,
@@ -48,11 +58,21 @@ enum struct SSUSize : const std::size_t {
   BufferMargin = 18,
   KeyingMaterial = 64,
   DHPublic = 256,
+  MaxReceivedMessages = 1000,  // TODO(unassigned): research this value
 };
 
+/// @enum SSUFlag
+/// @brief Constants used to represent flags used at the packet level
 enum struct SSUFlag : const std::uint8_t {
   ExtendedOptions = 0x04,
   Rekey = 0x08,
+  DataExtendedIncluded = 0x02,
+  DataWantReply = 0x04,
+  DataRequestPreviousACKs = 0x08,  // TODO(unassigned): unimplemented
+  DataExplicitCongestionNotification = 0x10,  // TODO(unassigned): unimplemented
+  DataACKBitfieldsIncluded = 0x40,
+  DataExplicitACKsIncluded = 0x80,
+  DataACKBitFieldHasNext = 0x80,
 };
 
 /// @class SSUHeader

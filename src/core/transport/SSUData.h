@@ -46,43 +46,26 @@
 #include "I2NPProtocol.h"
 #include "Identity.h"
 #include "RouterInfo.h"
+#include "SSUPacket.h"
 
 namespace i2p {
 namespace transport {
 
-const size_t SSU_MTU_V4 = 1484;
-const size_t SSU_MTU_V6 = 1472;
-const size_t IPV4_HEADER_SIZE = 20;
-const size_t IPV6_HEADER_SIZE = 40;
-const size_t UDP_HEADER_SIZE = 8;
-const size_t SSU_V4_MAX_PACKET_SIZE =
-  SSU_MTU_V4 -
-  IPV4_HEADER_SIZE -
-  UDP_HEADER_SIZE;  // Total: 1456
-const size_t SSU_V6_MAX_PACKET_SIZE =
-  SSU_MTU_V6 -
-  IPV6_HEADER_SIZE -
-  UDP_HEADER_SIZE;  // Total: 1424
-const int RESEND_INTERVAL = 3;  // in seconds
-const int MAX_NUM_RESENDS = 5;
-const int DECAY_INTERVAL = 20;  // in seconds
-// how many msgID we store for duplicates check
-const int MAX_NUM_RECEIVED_MESSAGES = 1000;
-const int INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT = 30;  // in seconds
-// data flags
-const uint8_t DATA_FLAG_EXTENDED_DATA_INCLUDED = 0x02;
-const uint8_t DATA_FLAG_WANT_REPLY = 0x04;
-const uint8_t DATA_FLAG_REQUEST_PREVIOUS_ACKS = 0x08;
-const uint8_t DATA_FLAG_EXPLICIT_CONGESTION_NOTIFICATION = 0x10;
-const uint8_t DATA_FLAG_ACK_BITFIELDS_INCLUDED = 0x40;
-const uint8_t DATA_FLAG_EXPLICIT_ACKS_INCLUDED = 0x80;
-const uint8_t DATA_FLAG_ACK_BITFIELD_HAS_NEXT = 0x80;
+/// @enum SSUDuration
+/// @brief Constants used to represent various aspects
+///   of duration used during SSU activity
+enum struct SSUDuration : const std::size_t {
+  ResendInterval = 3,  // Seconds
+  MaxResends = 5,
+  DecayInterval = 20,  // Number of message IDs we store for duplicates check
+  IncompleteMessagesCleanupTimeout = 30,  // Seconds
+};
 
 struct Fragment {
   int fragmentNum;
   size_t len;
   bool isLast;
-  uint8_t buf[SSU_V4_MAX_PACKET_SIZE + 18];  // use biggest
+  uint8_t buf[static_cast<std::size_t>(SSUSize::PacketMaxIPv4) + 18];  // use biggest
   Fragment() = default;
   Fragment(
       int n,
@@ -124,7 +107,7 @@ struct IncompleteMessage {
 struct SentMessage {
   std::vector<std::unique_ptr<Fragment> > fragments;
   uint32_t nextResendTime;  // in seconds
-  int numResends;
+  std::size_t numResends;
 };
 
 class SSUSession;

@@ -217,7 +217,7 @@ void SSUServer::Receive() {
   m_Socket.async_receive_from(
       boost::asio::buffer(
           packet->buf,
-          SSU_MTU_V4),
+          static_cast<std::size_t>(SSUSize::MTUv4)),
       packet->from,
       std::bind(
           &SSUServer::HandleReceivedFrom,
@@ -233,7 +233,7 @@ void SSUServer::ReceiveV6() {
   m_SocketV6.async_receive_from(
       boost::asio::buffer(
           packet->buf,
-          SSU_MTU_V6),
+          static_cast<std::size_t>(SSUSize::MTUv6)),
       packet->from,
       std::bind(
           &SSUServer::HandleReceivedFromV6,
@@ -259,7 +259,7 @@ void SSUServer::HandleReceivedFrom(
       packet->len = m_Socket.receive_from(
           boost::asio::buffer(
               packet->buf,
-              SSU_MTU_V4),
+              static_cast<std::size_t>(SSUSize::MTUv4)),
           packet->from);
       packets.push_back(packet);
       more_bytes = m_Socket.available();
@@ -291,7 +291,7 @@ void SSUServer::HandleReceivedFromV6(
       packet->len = m_SocketV6.receive_from(
           boost::asio::buffer(
               packet->buf,
-              SSU_MTU_V6),
+              static_cast<std::size_t>(SSUSize::MTUv6)),
           packet->from);
       packets.push_back(packet);
       more_bytes = m_SocketV6.available();

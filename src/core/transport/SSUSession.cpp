@@ -472,7 +472,7 @@ void SSUSession::SendSessionCreated(const std::uint8_t* x) {
       packet.GetSignatureSize(),
       packet.GetSignature());
   // TODO(EinMByte): Deal with large messages in a better way
-  if (buffer_size <= SSU_MTU_V4) {
+  if (buffer_size <= static_cast<std::size_t>(SSUSize::MTUv4)) {
     auto buffer = std::make_unique<std::uint8_t[]>(buffer_size);
     WriteAndEncrypt(&packet, buffer.get(), intro_key, intro_key);
     Send(buffer.get(), buffer_size);
@@ -1387,12 +1387,12 @@ void SSUSession::Send(
     std::uint8_t type,
     const std::uint8_t* payload,
     std::size_t len) {
-  std::array<std::uint8_t, SSU_MTU_V4 + 18> buf {};
+  std::array<std::uint8_t, static_cast<std::size_t>(SSUSize::MTUv4) + 18> buf {};
   std::size_t msg_size = len + static_cast<std::size_t>(SSUSize::HeaderMin);
   std::size_t padding_size = msg_size & 0x0F;  // %16
   if (padding_size > 0)
     msg_size += (16 - padding_size);
-  if (msg_size > SSU_MTU_V4) {
+  if (msg_size > static_cast<std::size_t>(SSUSize::MTUv4)) {
     LogPrint(eLogWarning,
         "SSUSession:", GetFormattedSessionInfo(),
         "<-- payload size ", msg_size, " exceeds MTU");

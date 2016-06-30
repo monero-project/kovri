@@ -838,13 +838,13 @@ std::unique_ptr<SSUDataPacket> SSUPacketParser::ParseData() {
   auto packet = std::make_unique<SSUDataPacket>();
   const std::uint8_t flags = ReadUInt8();
   // Read ACKS
-  if (flags & DATA_FLAG_EXPLICIT_ACKS_INCLUDED) {
+  if (flags & static_cast<std::uint8_t>(SSUFlag::DataExplicitACKsIncluded)) {
     const std::size_t nb_explicit_ACKs = ReadUInt8();
     for(std::size_t i = 0; i < nb_explicit_ACKs; ++i)
       packet->AddExplicitACK(ReadUInt32());
   }
   // Read ACK bifields
-  if (flags & DATA_FLAG_ACK_BITFIELDS_INCLUDED) {
+  if (flags & static_cast<std::uint8_t>(SSUFlag::DataACKBitfieldsIncluded)) {
     const std::size_t nb_ACKs = ReadUInt8();
     // Read message IDs
     for (std::size_t i = 0; i < nb_ACKs; ++i)
@@ -854,10 +854,10 @@ std::unique_ptr<SSUDataPacket> SSUPacketParser::ParseData() {
     do {
       bitfield = ReadUInt8();
       packet->AddACKBitfield(bitfield);
-    } while (bitfield & DATA_FLAG_ACK_BITFIELD_HAS_NEXT);
+    } while (bitfield & static_cast<std::uint8_t>(SSUFlag::DataACKBitFieldHasNext));
   }
   // Ignore possible extended data
-  if (flags & DATA_FLAG_EXTENDED_DATA_INCLUDED)
+  if (flags & static_cast<std::uint8_t>(SSUFlag::DataExtendedIncluded))
     ReadBytes(ReadUInt8());
   const std::size_t nb_flags = ReadUInt8();
   // Read fragments

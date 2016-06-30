@@ -71,8 +71,8 @@ SSUData::SSUData(
       m_IncompleteMessagesCleanupTimer(session.GetService()) {
   LogPrint(eLogDebug, "SSUData: initializing");
   m_MaxPacketSize = session.IsV6() ?
-    SSU_V6_MAX_PACKET_SIZE :
-    SSU_V4_MAX_PACKET_SIZE;
+    static_cast<std::size_t>(SSUSize::PacketMaxIPv6) :
+    static_cast<std::size_t>(SSUSize::PacketMaxIPv4);
   m_PacketSize = m_MaxPacketSize;
   auto remoteRouter = session.GetRemoteRouter();
   if (remoteRouter)
@@ -102,9 +102,15 @@ void SSUData::AdjustPacketSize(
   auto ssuAddress = remoteRouter.GetSSUAddress();
   if (ssuAddress && ssuAddress->mtu) {
     if (m_Session.IsV6 ())
-      m_PacketSize = ssuAddress->mtu - IPV6_HEADER_SIZE - UDP_HEADER_SIZE;
+      m_PacketSize =
+        ssuAddress->mtu
+        - static_cast<std::size_t>(SSUSize::HeaderIPv6)
+        - static_cast<std::size_t>(SSUSize::HeaderUDP);
     else
-      m_PacketSize = ssuAddress->mtu - IPV4_HEADER_SIZE - UDP_HEADER_SIZE;
+      m_PacketSize =
+        ssuAddress->mtu
+        - static_cast<std::size_t>(SSUSize::HeaderIPv4)
+        - static_cast<std::size_t>(SSUSize::HeaderUDP);
     if (m_PacketSize > 0) {
       // make sure packet size multiple of 16
       m_PacketSize >>= 4;
@@ -150,7 +156,7 @@ void SSUData::ProcessAcks(
     uint8_t flag) {
   LogPrint(eLogDebug,
       "SSUData:", m_Session.GetFormattedSessionInfo(), "processing ACKs");
-  if (flag & DATA_FLAG_EXPLICIT_ACKS_INCLUDED) {
+  if (flag & static_cast<std::uint8_t>(SSUFlag::DataExplicitACKsIncluded)) {
     // explicit ACKs
     uint8_t numAcks =*buf;
     buf++;
@@ -158,7 +164,7 @@ void SSUData::ProcessAcks(
       ProcessSentMessageAck(bufbe32toh(buf+i*4));
     buf += numAcks*4;
   }
-  if (flag & DATA_FLAG_ACK_BITFIELDS_INCLUDED) {
+  if (flag & static_cast<std::uint8_t>(SSUFlag::DataACKBitfieldsIncluded)) {
     // explicit ACK bitfields
     uint8_t numBitfields =*buf;
     buf++;
@@ -211,7 +217,7 @@ void SSUData::ProcessFragments(
     uint16_t fragmentSize = fragmentInfo & 0x3FFF;  // bits 0 - 13
     bool isLast = fragmentInfo & 0x010000;  // bit 16
     uint8_t fragmentNum = fragmentInfo >> 17;  // bits 23 - 17
-    if (fragmentSize >= SSU_V4_MAX_PACKET_SIZE) {
+    if (fragmentSize >= static_cast<std::size_t>(SSUSize::PacketMaxIPv4)) {
       LogPrint(eLogError,
           "SSUData:", m_Session.GetFormattedSessionInfo(),
           "fragment size ", fragmentSize, "exceeds max SSU packet size");
@@ -293,7 +299,8 @@ void SSUData::ProcessFragments(
       msg->FromSSU(msgID);
       if (m_Session.GetState() == SessionStateEstablished) {
         if (!m_ReceivedMessages.count(msgID)) {
-          if (m_ReceivedMessages.size() > MAX_NUM_RECEIVED_MESSAGES)
+          if (m_ReceivedMessages.size() >
+              static_cast<std::size_t>(SSUSize::MaxReceivedMessages))
             m_ReceivedMessages.clear();
           else
             ScheduleDecay();
@@ -351,10 +358,12 @@ void SSUData::ProcessMessage(
       "processing message: flags=", static_cast<std::size_t>(flag),
       " len=", len);
   // process acks if presented
-  if (flag & (DATA_FLAG_ACK_BITFIELDS_INCLUDED | DATA_FLAG_EXPLICIT_ACKS_INCLUDED))
+  if (flag &
+      (static_cast<std::uint8_t>(SSUFlag::DataACKBitfieldsIncluded) |
+       static_cast<std::uint8_t>(SSUFlag::DataExplicitACKsIncluded)))
     ProcessAcks(buf, flag);
   // extended data if presented
-  if (flag & DATA_FLAG_EXTENDED_DATA_INCLUDED) {
+  if (flag & static_cast<std::uint8_t>(SSUFlag::DataExtendedIncluded)) {
     uint8_t extendedDataSize = *buf;
     buf++;  // size
     LogPrint(eLogDebug,
@@ -388,7 +397,7 @@ void SSUData::Send(
   std::unique_ptr<SentMessage>& sentMessage = ret.first->second;
   if (ret.second) {
     sentMessage->nextResendTime =
-      i2p::util::GetSecondsSinceEpoch() + RESEND_INTERVAL;
+      i2p::util::GetSecondsSinceEpoch() + static_cast<std::size_t>(SSUDuration::ResendInterval);
     sentMessage->numResends = 0;
   }
   auto& fragments = sentMessage->fragments;
@@ -403,7 +412,7 @@ void SSUData::Send(
     fragment->fragmentNum = fragmentNum;
     uint8_t* buf = fragment->buf;
     uint8_t* payload = buf + static_cast<std::size_t>(SSUSize::HeaderMin);
-    *payload = DATA_FLAG_WANT_REPLY;  // for compatibility
+    *payload = static_cast<std::uint8_t>(SSUFlag::DataWantReply);  // for compatibility
     payload++;
     *payload = 1;  // always 1 message fragment per message
     payload++;
@@ -451,7 +460,7 @@ void SSUData::SendMsgAck(
   // actual length is 44 = 37 + 7 but pad it to multiple of 16
   uint8_t buf[48 + 18];
   uint8_t * payload = buf + static_cast<std::size_t>(SSUSize::HeaderMin);
-  *payload = DATA_FLAG_EXPLICIT_ACKS_INCLUDED;  // flag
+  *payload = static_cast<std::uint8_t>(SSUFlag::DataExplicitACKsIncluded);  // flag
   payload++;
   *payload = 1;  // number of ACKs
   payload++;
@@ -477,7 +486,7 @@ void SSUData::SendFragmentAck(
   }
   uint8_t buf[64 + 18];
   uint8_t* payload = buf + static_cast<std::size_t>(SSUSize::HeaderMin);
-  *payload = DATA_FLAG_ACK_BITFIELDS_INCLUDED;  // flag
+  *payload = static_cast<std::uint8_t>(SSUFlag::DataACKBitfieldsIncluded);  // flag
   payload++;
   *payload = 1;  // number of ACK bitfields
   payload++;
@@ -503,7 +512,7 @@ void SSUData::ScheduleResend() {
   m_ResendTimer.cancel();
   m_ResendTimer.expires_from_now(
       boost::posix_time::seconds(
-        RESEND_INTERVAL));
+        static_cast<std::size_t>(SSUDuration::ResendInterval)));
   auto s = m_Session.shared_from_this();
   m_ResendTimer.async_wait(
       [s](
@@ -521,7 +530,7 @@ void SSUData::HandleResendTimer(
     uint32_t ts = i2p::util::GetSecondsSinceEpoch();
     for (auto it = m_SentMessages.begin(); it != m_SentMessages.end();) {
       if (ts >= it->second->nextResendTime) {
-        if (it->second->numResends < MAX_NUM_RESENDS) {
+        if (it->second->numResends < static_cast<std::size_t>(SSUDuration::MaxResends)) {
           for (auto& f : it->second->fragments)
             if (f) {
               try {
@@ -533,13 +542,14 @@ void SSUData::HandleResendTimer(
               }
             }
           it->second->numResends++;
-          it->second->nextResendTime += it->second->numResends*RESEND_INTERVAL;
+          it->second->nextResendTime +=
+            it->second->numResends * static_cast<std::size_t>(SSUDuration::ResendInterval);
           it++;
         } else {
           LogPrint(eLogError,
               "SSUData:", m_Session.GetFormattedSessionInfo(),
               "SSU message has not been ACKed after ",
-              MAX_NUM_RESENDS, " attempts. Deleted");
+              static_cast<std::size_t>(SSUDuration::MaxResends), " attempts. Deleted");
           it = m_SentMessages.erase(it);
         }
       } else {
@@ -557,7 +567,7 @@ void SSUData::ScheduleDecay() {
   m_DecayTimer.cancel();
   m_DecayTimer.expires_from_now(
       boost::posix_time::seconds(
-        DECAY_INTERVAL));
+        static_cast<std::size_t>(SSUDuration::DecayInterval)));
   auto s = m_Session.shared_from_this();
   m_ResendTimer.async_wait(
       [s](
@@ -582,7 +592,7 @@ void SSUData::ScheduleIncompleteMessagesCleanup() {
   m_IncompleteMessagesCleanupTimer.cancel();
   m_IncompleteMessagesCleanupTimer.expires_from_now(
       boost::posix_time::seconds(
-        INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT));
+        static_cast<std::size_t>(SSUDuration::IncompleteMessagesCleanupTimeout)));
   auto s = m_Session.shared_from_this();
   m_IncompleteMessagesCleanupTimer.async_wait(
       [s](
@@ -601,11 +611,12 @@ void SSUData::HandleIncompleteMessagesCleanupTimer(
     for (auto it = m_IncompleteMessages.begin ();
         it != m_IncompleteMessages.end();) {
       if (ts > it->second->lastFragmentInsertTime +
-          INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT) {
+          static_cast<std::size_t>(SSUDuration::IncompleteMessagesCleanupTimeout)) {
         LogPrint(eLogError,
             "SSUData:", m_Session.GetFormattedSessionInfo(),
             "SSU message ", it->first, " was not completed in ",
-            INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT, " seconds. Deleted");
+            static_cast<std::size_t>(SSUDuration::IncompleteMessagesCleanupTimeout),
+            " seconds. Deleted");
         it = m_IncompleteMessages.erase(it);
       } else {
         it++;

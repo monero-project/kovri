@@ -193,8 +193,8 @@ std::size_t SSUSessionRequestPacket::GetIPAddressSize() const {
 std::size_t SSUSessionRequestPacket::GetSize() const {
   return SSUPacket::GetSize()
          + static_cast<std::size_t>(SSUSize::DHPublic)  // DH X-parameter
-         + 1                   // Bob's IP address size
-         + m_IPAddressSize;    // That many byte representation of IP address
+         + 1                 // Bob's IP address size
+         + m_IPAddressSize;  // That many byte representation of IP address
 }
 
 /**
@@ -272,9 +272,9 @@ std::uint32_t SSUSessionCreatedPacket::GetSignedOnTime() const {
 std::size_t SSUSessionCreatedPacket::GetSize() const {
   return SSUPacket::GetSize()
          + static_cast<std::size_t>(SSUSize::DHPublic)  // Y to complete the DH agreement
-         + 1 + m_AddressSize   // 1 byte address size, address size,
-         + 2 + 4 + 4           // Port size (2 bytes), relay tag size, time size
-         + m_SignatureSize;    // Signature size
+         + 1 + m_AddressSize  // 1 byte address size, address size,
+         + 2 + 4 + 4          // Port size (2 bytes), relay tag size, time size
+         + m_SignatureSize;   // Signature size
 }
 
 /**
@@ -384,14 +384,14 @@ std::uint32_t SSURelayRequestPacket::GetNonce() const {
 
 std::size_t SSURelayRequestPacket::GetSize() const {
   return SSUPacket::GetSize()
-         + 4                   // Relay tag
-         + 1                   // Alice's IP address size
-         + m_IPAddressSize     // that many bytes representation of IP address
-         + 2                   // Alice's port number
-         + 1                   // Challenge size
-         + m_ChallengeSize     // That many bytes to be relayed to Charlie in intro
+         + 4                // Relay tag
+         + 1                // Alice's IP address size
+         + m_IPAddressSize  // that many bytes representation of IP address
+         + 2                // Alice's port number
+         + 1                // Challenge size
+         + m_ChallengeSize  // That many bytes to be relayed to Charlie in intro
          + static_cast<std::size_t>(SSUSize::IntroKey)  // Alice's 32-byte Intro key
-         + 4;                  // Nonce of Alice's relay request
+         + 4;               // Nonce of Alice's relay request
 }
 
 /**
@@ -506,7 +506,6 @@ std::uint16_t SSURelayIntroPacket::GetPort() const {
 }
 
 std::size_t SSURelayIntroPacket::GetSize() const {
-  // Address (and size), challenge (and size), port
   return SSUPacket::GetSize()
          + 1                 // Alice's IP address size
          + m_IPAddressSize   // that many bytes representation of IP address
@@ -635,10 +634,10 @@ std::uint8_t const* SSUPeerTestPacket::GetIntroKey() const {
 
 std::size_t SSUPeerTestPacket::GetSize() const {
   return SSUPacket::GetSize()
-         + 4                    // Nonce
-         + 1                    // Alice's IP address size
+         + 4  // Nonce
+         + 1  // Alice's IP address size
          // TODO(unassigned): that many byte representation of IP address (if size > 0)
-         + 2                    // Alice's port number
+         + 2  // Alice's port number
          + static_cast<std::size_t>(SSUSize::IntroKey);  // Alice's or Charlie's 32-byte introduction key
 }
 
@@ -689,6 +688,7 @@ SSUFragment SSUPacketParser::ParseFragment() {
   memcpy(info_buf.data() + 1, ReadBytes(3), 3);
   const std::uint32_t fragment_info = bufbe32toh(info_buf.data());
   fragment.SetSize(fragment_info & 0x3FFF);  // bits 0 - 13
+  // bits 15-14: unused, set to 0 for compatibility with future uses
   fragment.SetIsLast(fragment_info & 0x010000);  // bit 16
   fragment.SetNumber(fragment_info >> 17);  // bits 23 - 17
   // TODO(EinMByte): Check whether the size is correct
@@ -887,8 +887,6 @@ std::unique_ptr<SSUSessionDestroyedPacket> SSUPacketParser::ParseSessionDestroye
   return packet;
 }
 
-/// @namespace SSUPacketBuilder
-/// @brief Packet building implementation
 namespace SSUPacketBuilder {
 
 void WriteData(

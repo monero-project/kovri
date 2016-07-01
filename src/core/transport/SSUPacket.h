@@ -98,54 +98,88 @@ class SSUHeader {
  public:
   SSUHeader();
 
+  /// @brief Constructs SSU header with pre-determined payload type
   explicit SSUHeader(
       SSUPayloadType type);
 
+  /// @brief Constructs SSU header with pre-determined payload type and content
+  /// @note Assumes content is valid
+  /// @param SSUPayloadType SSU payload type
+  /// @param mac Pointer to header's MAC material
+  /// @param iv Pointer to header's IV material
+  /// @param time Header's timestamp
   SSUHeader(
       SSUPayloadType type,
       std::uint8_t* mac,
       std::uint8_t* iv,
       std::uint32_t time);
 
+  /// @brief Sets MAC from appointed position within header
+  /// @note Assumes content is valid (based on position)
   void SetMAC(
       std::uint8_t* mac);
 
+  /// @brief Gets acquired MAC after it has been set when parsed
+  /// @return Pointer to MAC material
   std::uint8_t* GetMAC() const;
 
+  /// @brief Sets IV from appointed position within header
+  /// @note Assumes content is valid (based on position)
+  /// @param Pointer to header's IV material
   void SetIV(
       std::uint8_t* iv);
 
+  /// @brief Gets acquired IV after it has been set when parsed
+  /// @return Pointer to IV material
   std::uint8_t const* GetIV() const;
 
-  /// Sets the type of the payload
+  /// @brief Sets the type of SSU payload
+  /// @note Assumes content is valid (based on position)
   /// @param type nonnegative integer between 0 and 8
   /// @throw std::invalid_argument if the type is invalid
   void SetPayloadType(
       short type);  // TODO(unassigned): replace this C-style type
 
+  /// @brief Gets SSU header payload type
+  /// @return SSU header payload type
   SSUPayloadType GetPayloadType() const;
 
+  /// @brief Sets timestamp from appointed position within header
+  /// @note Assumes content is valid (based on position)
+  void SetTime(
+      std::uint32_t time);
+
+  /// @return Timestamp that was previously set when parsed
+  std::uint32_t GetTime() const;
+
+  /// @brief Sets rekey after testing if flag has been set
+  /// @note Assumes content is valid (based on position)
+  /// @param rekey True if rekey is set, false if not
   void SetRekey(
       bool rekey);
 
+  /// @brief Returns bool of rekey that was set when parsed
+  /// @return True if rekey is set, false if not
+  bool HasRekey() const;
+
+  /// @brief Sets extended options after testing if flag is set
+  /// @param extended True if extended options are set, false if not
   void SetExtendedOptions(
       bool extended);
 
+  /// @brief Sets extended options data from appointed position within header
+  /// @note Assumes content is extended options material based on bit being set
   void SetExtendedOptionsData(
       std::uint8_t* data,
       std::size_t size);
 
+  /// @return Pointer to extended options data that was previously set when parsed
   std::uint8_t const* GetExtendedOptionsData() const;
 
+  /// @return Extended options size that was previously set when parsed
   std::size_t GetExtendedOptionsSize() const;
 
-  void SetTime(
-      std::uint32_t time);
-
-  std::uint32_t GetTime() const;
-
-  bool HasRekey() const;
-
+  /// @return Extended options bool that was previously set when parsed
   bool HasExtendedOptions() const;
 
   /// @brief Computes the header size based on which options are set.
@@ -174,6 +208,7 @@ class SSUPacket {
   /// @return A raw pointer to the header of this packet.
   SSUHeader* GetHeader() const;
 
+  /// @return Header size if available, else 0
   std::size_t GetSize() const;
 
   // TODO(EinMByte): Get rid of this
@@ -186,21 +221,34 @@ class SSUPacket {
 
 /// @class SSUSessionRequestPacket
 /// @brief Payload type 0: SessionRequest
+/// @details This is the first message sent to establish a session
 class SSUSessionRequestPacket : public SSUPacket {
  public:
+  /// @brief Sets Diffie-Hellman X to begin the DH agreement
+  /// @note Assumes content is valid (based on position)
+  /// @param dhX Pointer to DH X
   void SetDhX(
       std::uint8_t* dhX);
 
+  /// @return Pointer to DH X that was previously set when parsed
   std::uint8_t const* GetDhX() const;
 
+  /// @brief Sets Bob's 1 byte IP address and byte size representation
+  ///   of Bob's IP address
+  /// @note Assumes content is valid (based on position)
+  /// @param address Bob's IP address
+  /// @param size Bob's IP address size
   void SetIPAddress(
       std::uint8_t* address,
       std::size_t size);
 
+  /// @return Pointer to Bob's IP address that was previously set when parsed
   std::uint8_t const* GetIPAddress() const;
 
+  /// @return Bob's IP address size that was previously set when parsed
   std::size_t GetIPAddressSize() const;
 
+  /// @return The size (in bytes) of this header + message
   std::size_t GetSize() const;
 
  private:
@@ -210,44 +258,76 @@ class SSUSessionRequestPacket : public SSUPacket {
 
 /// @class SSUSessionCreatedPacket
 /// @brief Payload type 1: SessionCreated
+/// @details This is the response to a SessionRequest
 class SSUSessionCreatedPacket : public SSUPacket {
  public:
+  /// @brief Sets Diffie-Hellman Y to begin the DH agreement
+  /// @note Assumes content is valid (based on position)
+  /// @param dhY Pointer to DH Y
   void SetDhY(
       std::uint8_t* dhY);
 
+  /// @return Pointer to DH Y that was previously set when parsed
   std::uint8_t const* GetDhY() const;
 
+  /// @brief Sets Alice's 1 byte IP address and byte size representation
+  ///   of Alice's IP address
+  /// @note Assumes content is valid (based on position)
+  /// @param address Pointer to Alice's IP address
+  /// @param size Alice's IP address size
   void SetIPAddress(
       std::uint8_t* address,
       std::size_t size);
 
+  /// @return Pointer to Alice's IP address that was previously set when parsed
   std::uint8_t const* GetIPAddress() const;
 
+  /// @return Alice's IP address size that was previously set when parsed
   std::size_t GetIPAddressSize() const;
 
+  /// @brief Sets Alice's 2 byte port number
+  /// @note Assumes content is valid (based on position)
+  /// @param port Alice's port number
   void SetPort(
       std::uint16_t port);
 
+  /// @return Alice's IP port that was previously set when parsed
   std::uint16_t GetPort() const;
 
+  /// @brief Sets 4 byte relay (introduction) tag which Alice can publish
+  /// @note Assumes content is valid (based on position)
   void SetRelayTag(
       std::uint32_t relay_tag);
 
+  /// @return Relay tag that was previously set when parsed
   std::uint32_t GetRelayTag() const;
 
+  /// @brief Sets 4 byte timestamp (seconds from the epoch) for use
+  ///   in the signature
+  /// @note Assumes content is valid (based on position)
+  void SetSignedOnTime(
+      std::uint32_t time);
+
+  /// @return Timestamp that was previously set when parsed
+  std::uint32_t GetSignedOnTime() const;
+
+  /// @brief Sets Bob's signature of the critical exchanged data
+  /// @details (DH X + DH Y + Alice's IP + Alice's port + Bob's IP + Bob's port
+  ///   + Alice's new relay tag + Bob's signed on time)
+  /// @note Assumes content is valid (based on position)
+  /// @param signature Pointer to Bob's signature
+  /// @param size Bob's signature size
   void SetSignature(
       std::uint8_t* signature,
       std::size_t size);
 
+  /// @return Pointer to Bob's signature that was previously set when parsed
   std::uint8_t* GetSignature() const;
 
+  /// @return Bob's signature size that was previously set when parsed
   std::size_t GetSignatureSize() const;
 
-  void SetSignedOnTime(
-      std::uint32_t time);
-
-  std::uint32_t GetSignedOnTime() const;
-
+  /// @return The size (in bytes) of this header + message
   std::size_t GetSize() const;
 
  private:
@@ -259,23 +339,40 @@ class SSUSessionCreatedPacket : public SSUPacket {
 
 /// @class SSUSessionConfirmedPacket
 /// @brief Payload type 2: SessionConfirmed
+/// @details This is the response to a SessionCreated message and the
+///   last step in establishing a session. There may be multiple
+///   SessionConfirmed messages required if the Router Identity must be fragmented
+/// @note 1 byte identity fragment info is currently skipped
 class SSUSessionConfirmedPacket : public SSUPacket {
  public:
+  /// @brief Sets Alice's remote router identity fragment
+  /// @note Assumes content is valid (based on position)
   void SetRemoteRouterIdentity(
       const i2p::data::IdentityEx& identity);
 
+  /// @return Router identity that was previously set when parsed
   i2p::data::IdentityEx GetRemoteRouterIdentity() const;
 
-  void SetSignature(
-      std::uint8_t* signature);
-
-  std::uint8_t const* GetSignature() const;
-
+  /// @brief Sets 4 byte signed-on timestamp
+  /// @note Assumes content is valid (based on position)
   void SetSignedOnTime(
       std::uint32_t time);
 
+  /// @return Timestamp that was previously set when parsed
   std::uint32_t GetSignedOnTime() const;
 
+  /// @brief Sets Alice's signature of the critical exchanged data
+  /// @details (X + Y + Alice's IP + Alice's port + Bob's IP + Bob's port
+  ///   + Alice's new relay tag + Alice's signed on time)
+  /// @note Assumes content is valid (based on position)
+  /// @param signature Pointer to Alice's signature
+  void SetSignature(
+      std::uint8_t* signature);
+
+  /// @return Pointer to Alices's signature size that was previously set when parsed
+  std::uint8_t const* GetSignature() const;
+
+  /// @return The size (in bytes) of this header + message
   std::size_t GetSize() const;
 
  private:
@@ -286,40 +383,75 @@ class SSUSessionConfirmedPacket : public SSUPacket {
 
 /// @class SSURelayRequestPacket
 /// @brief Payload type 3: RelayRequest
+/// @details This is the first message sent from Alice to Bob
+///   to request an introduction to Charlie.
 class SSURelayRequestPacket : public SSUPacket {
  public:
+  /// @brief Sets 4 byte relay (introduction) tag, nonzero, as received by Alice
+  ///   in the SessionCreated message from Bob
+  /// @note Assumes content is valid (based on position)
+  /// @param tag Relay tag
   void SetRelayTag(
       std::uint32_t tag);
 
+  /// @return Relay tag that was previously set when parsed
   std::uint32_t GetRelayTag() const;
 
+  /// @brief Sets Alice's 1 byte IP address and byte size representation
+  ///   of Alice's IP address
+  /// @note Assumes content is valid (based on position)
+  /// @param address Pointer to Alice's IP address
+  /// @param size Alice's IP address size
   void SetIPAddress(
       std::uint8_t* address,
       std::size_t size);
 
+  /// @return Pointer to Alice's IP address that was previously set when parsed
   std::uint8_t const* GetIPAddress() const;
 
+  // TODO(unassigned): GetIPAddressSize() ?
+
+  /// @brief Sets Alice's 2 byte port number
+  /// @note Assumes content is valid (based on position)
+  /// @param port Alice's port number
+  void SetPort(
+      std::uint16_t port);
+
+  /// @return Alice's IP port that was previously set when parsed
+  std::uint16_t GetPort() const;
+
+  /// @brief Sets 1 byte challenge size and that many bytes to be relayed
+  ///   to Charlie in the intro
+  /// @note Assumes content is valid (based on position)
+  /// @param challenge Pointer to challenge size
+  /// @param size Size of challenge size
   void SetChallenge(
       std::uint8_t* challenge,
       std::size_t size);
 
+  /// @return Pointer to challenge that was previously set when parsed
   std::uint8_t const* GetChallenge() const;
 
-  void SetPort(
-      std::uint16_t port);
-
-  std::uint16_t GetPort() const;
-
+  /// @brief Sets Alice's 32-byte introduction key
+  ///   (so Bob can reply with Charlie's info)
+  /// @note Assumes content is valid (based on position)
+  /// @param key Pointer to intro key
   void SetIntroKey(
       std::uint8_t* key);
 
+  /// @return Pointer to intro key that was previously set when parsed
   std::uint8_t const* GetIntroKey() const;
 
+  /// @brief Sets 4 byte nonce of Alice's relay request
+  /// @note Assumes content is valid (based on position)
+  /// @param nonce 4 byte nonce
   void SetNonce(
       std::uint32_t nonce);
 
+  /// @return Nonce that was previously set when parsed
   std::uint32_t GetNonce() const;
 
+  /// @return The size (in bytes) of this header + message
   std::size_t GetSize() const;
 
  private:
@@ -331,37 +463,63 @@ class SSURelayRequestPacket : public SSUPacket {
 
 /// @class SSURelayResponsePacket
 /// @brief Payload type 4: RelayResponse
+/// @details This is the response to a RelayRequest and is sent from Bob to Alice
 class SSURelayResponsePacket : public SSUPacket {
  public:
-  void SetNonce(
-      std::uint32_t nonce);
-
-  std::uint32_t GetNonce() const;
-
-  void SetIPAddressAlice(
-      std::uint8_t* address,
-      std::size_t size);
-
-  std::uint8_t const* GetIPAddressAlice() const;
-
-  std::size_t GetIPAddressAliceSize() const;
-
+  /// @brief Sets Charlie's 1 byte IP address and byte size representation
+  ///   of Charlie's IP address
+  /// @note Assumes content is valid (based on position)
+  /// @param address Pointer to Charlie's IP address
+  /// @param size Charlie's IP address size
   void SetIPAddressCharlie(
       std::uint8_t* address,
       std::size_t size);
 
+  /// @return Pointer to Charlie's IP address that was previously set when parsed
   std::uint8_t const* GetIPAddressCharlie() const;
 
-  void SetPortAlice(
-      std::uint16_t port);
-
-  std::uint16_t GetPortAlice() const;
-
+  /// @brief Sets Charlies's 2 byte port number
+  /// @note Assumes content is valid (based on position)
+  /// @param port Charlie's port number
   void SetPortCharlie(
       std::uint16_t port);
 
+  /// @return Charlie's IP port that was previously set when parsed
   std::uint16_t GetPortCharlie() const;
 
+  /// @brief Sets Alice's 1 byte IP address and byte size representation
+  ///   of Alice's IP address
+  /// @note Assumes content is valid (based on position)
+  /// @param address Pointer to Alice's IP address
+  /// @param size Alice's IP address size
+  void SetIPAddressAlice(
+      std::uint8_t* address,
+      std::size_t size);
+
+  /// @return Pointer to Alice's IP address that was previously set when parsed
+  std::uint8_t const* GetIPAddressAlice() const;
+
+  /// @return Alice's IP address size that was previously set when parsed
+  std::size_t GetIPAddressAliceSize() const;
+
+  /// @brief Sets Alices's 2 byte port number
+  /// @note Assumes content is valid (based on position)
+  /// @param port Alice's port number
+  void SetPortAlice(
+      std::uint16_t port);
+
+  /// @return Alice's IP port that was previously set when parsed
+  std::uint16_t GetPortAlice() const;
+
+  /// @brief Sets 4 byte nonce sent by Alice
+  /// @param nonce 4 byte nonce
+  void SetNonce(
+      std::uint32_t nonce);
+
+  /// @return Nonce that was previously set when parsed
+  std::uint32_t GetNonce() const;
+
+  /// @return The size (in bytes) of this header + message
   std::size_t GetSize() const;
 
  private:
@@ -373,27 +531,46 @@ class SSURelayResponsePacket : public SSUPacket {
 
 /// @class SSURelayIntroPacket
 /// @brief Payload type 5: RelayIntro
+/// @details This is the introduction for Alice, which is sent from Bob to Charlie
 class SSURelayIntroPacket : public SSUPacket {
  public:
+  /// @brief Sets Alice's 1 byte IP address and byte size representation
+  ///   of Alice's IP address
+  /// @note Assumes content is valid (based on position)
+  /// @param address Pointer to Alice's IP address
+  /// @param size Alice's IP address size
   void SetIPAddress(
       std::uint8_t* address,
       std::size_t size);
 
+  /// @return Pointer to Alice's IP address that was previously set when parsed
   std::uint8_t const* GetIPAddress() const;
 
+  /// @return Alice's IP address size that was previously set when parsed
   std::size_t GetIPAddressSize() const;
 
+  /// @brief Sets Alice's 2 byte port number
+  /// @note Assumes content is valid (based on position)
+  /// @param port Alice's port number
+  void SetPort(
+      std::uint16_t port);
+
+  /// @return Alice's IP port that was previously set when parsed
+  std::uint16_t GetPort() const;
+
+  /// @brief Sets 1 byte challenge size and that many bytes to be relayed
+  ///   from Alice
+  /// @note Assumes content is valid (based on position)
+  /// @param challenge Pointer to challenge size
+  /// @param size Size of challenge size
   void SetChallenge(
       std::uint8_t* challenge,
       std::size_t size);
 
+  /// @return Pointer to challenge that was previously set when parsed
   std::uint8_t const* GetChallenge() const;
 
-  void SetPort(
-      std::uint16_t port);
-
-  std::uint16_t GetPort() const;
-
+  /// @return The size (in bytes) of this header + message
   std::size_t GetSize() const;
 
  private:
@@ -404,22 +581,35 @@ class SSURelayIntroPacket : public SSUPacket {
 
 /// @class SSUFragment
 /// @brief Constitutes all SSU fragments
+/// @note Used exclusively for payload type 6: Data
 class SSUFragment {
  public:
+  /// @brief Sets 4 byte message ID
+  /// @note Assumes content is valid (based on position)
+  /// @param message_id 4 byte message ID
   void SetMessageID(
-      std::uint32_t message_ID);
+      std::uint32_t message_id);
 
-  void SetNumber(
-      std::uint8_t number);
-
-  void SetIsLast(
-      bool is_last);
-
+  /// @brief Sets fragment size (0 - 16383)
+  /// @param size Fragment size
   void SetSize(
       std::size_t size);
 
+  /// @return Fragment size that was set when parsed
   std::size_t GetSize() const;
 
+  /// @brief Sets 'is last' bit
+  /// @param bool True if last, false if not
+  void SetIsLast(
+      bool is_last);
+
+  /// @brief Sets fragment number (0 - 127)
+  /// @param number Fragment number
+  void SetNumber(
+      std::uint8_t number);
+
+  /// @brief Sets whole fragment data
+  /// @param Pointer to fragment size
   void SetData(
       std::uint8_t* data);
 
@@ -433,20 +623,31 @@ class SSUFragment {
 
 /// @class SSUDataPacket
 /// @brief Payload type 6: Data
+/// @details This message is used for data transport and acknowledgment
 class SSUDataPacket : public SSUPacket {
  public:
+  /// @brief Add explicit acks if they are included
+  /// @param message_id The message ID being fully ACK'd
   void AddExplicitACK(
-      std::uint32_t message_ID);
+      std::uint32_t message_id);
 
+  /// @brief Add ACK if included (not including bitfield)
+  /// @param message_id The message ID being fully ACK'd
   void AddACK(
-      std::uint32_t message_ID);
+      std::uint32_t message_id);
 
+  /// @brief Add ACK bitfield if ACK is included
+  /// @note Called after ACK is included
+  /// @param bitfield ACK bitfield
   void AddACKBitfield(
       std::uint8_t bitfield);
 
+  /// @brief Add fragment for parsing
+  /// @param fragment Fragment to be parsed
   void AddFragment(
       SSUFragment fragment);
 
+  /// @return The size (in bytes) of this header + message
   std::size_t GetSize() const;
 
  private:
@@ -459,28 +660,49 @@ class SSUDataPacket : public SSUPacket {
 
 /// @class SSUPeerTestPacket
 /// @brief Payload type 7: PeerTest
+/// @details Implements packet for collaborative reachability testing for peers
 class SSUPeerTestPacket : public SSUPacket {
  public:
+  /// @brief Sets 4 byte nonce
+  /// @note Assumes content is valid (based on position)
+  /// @param nonce 4 byte nonce
   void SetNonce(
       std::uint32_t nonce);
 
+  /// @return Nonce that was previously set when parsed
   std::uint32_t GetNonce() const;
 
+  // TODO(unassigned): implement SetIPAddress() like others (see spec)?
+  /// @brief Sets Alice's 1 byte IP address and byte size representation
+  ///   of Alice's IP address
+  /// @note Assumes content is valid (based on position)
+  /// @param address Alice's IP address
   void SetIPAddress(
       std::uint32_t address);
 
+  // TODO(unassigned): implement GetIPAddress() like others (see spec)?
+  /// @return Alice's IP address that was previously set when parsed
   std::uint32_t GetIPAddress() const;
 
+  /// @brief Sets Alice's 2 byte port number
+  /// @note Assumes content is valid (based on position)
+  /// @param port Alice's port number
   void SetPort(
       std::uint16_t port);
 
+  /// @return Alice's IP port that was previously set when parsed
   std::uint16_t GetPort() const;
 
+  /// @brief Alice's or Charlie's 32-byte introduction key
+  /// @note Assumes content is valid (based on position)
+  /// @param key Pointer to intro key
   void SetIntroKey(
       std::uint8_t* key);
 
+  /// @return Pointer to intro key that was previously set when parsed
   std::uint8_t const* GetIntroKey() const;
 
+  /// @return The size (in bytes) of this header + message
   std::size_t GetSize() const;
 
  private:
@@ -491,6 +713,8 @@ class SSUPeerTestPacket : public SSUPacket {
 
 /// @class SSUSessionDestroyedPacket
 /// @brief Payload type 8: SessionDestroyed
+/// @details This message does not contain any data. Its typical size
+///   (including header) in current implementation is 48 bytes (before non-mod-16 padding)
 class SSUSessionDestroyedPacket : public SSUPacket {};
 
 /// @class SSUPacketParser
@@ -499,6 +723,9 @@ class SSUPacketParser {
  public:
   SSUPacketParser() = default;
 
+  /// @brief Constructs packet parser from message/packet
+  /// @param data Pointer to message/packet
+  /// @param len Length of message/packet
   SSUPacketParser(
       std::uint8_t* data,
       std::size_t len);
@@ -506,7 +733,7 @@ class SSUPacketParser {
   /// @brief Parses an SSU header.
   /// @return a pointer to the newly constructed SSUHeader object
   /// @throw std::length_error if the buffer contains less data than the
-  //    minimum SSU header size
+  ///    minimum SSU header size
   std::unique_ptr<SSUHeader> ParseHeader();
 
   /// @brief Parses an SSUPacket, including the header
@@ -570,6 +797,8 @@ class SSUPacketParser {
   /// @throw std::length_error if no bytes are available for reading
   std::uint8_t ReadUInt8();
 
+  /// @brief Parses data fragment
+  /// @return A parsed data fragment
   SSUFragment ParseFragment();
 
  private:
@@ -577,73 +806,134 @@ class SSUPacketParser {
   std::size_t m_Length;
 };
 
+/// @namespace SSUPacketBuilder
+/// @brief Packet building implementation
 namespace SSUPacketBuilder {
 
+/// @brief Writes data into buffer
+/// @note Increments buffer pointer position after writing data
+/// @param pos Reference to pointer to buffer position
+/// @param data Pointer to data to write
+/// @param len Length of data
 void WriteData(
     std::uint8_t*& pos,
     const std::uint8_t* data,
     std::size_t len);
 
+/// @brief Writes an 8-bit unsigned integer type into buffer
+/// @note Increments buffer pointer position after writing data
+/// @param pos Reference to pointer to buffer position
+/// @param data Data to write
 void WriteUInt8(
     std::uint8_t*& pos,
     std::uint8_t data);
 
+/// @brief Writes a 16-bit unsigned integer type into buffer
+/// @note Converts bytes from host to big-endian order
+/// @note Increments buffer pointer position after writing data
+/// @param pos Reference to pointer to buffer position
+/// @param data Data to write
 void WriteUInt16(
     std::uint8_t*& pos,
     std::uint16_t data);
 
+/// @brief Writes a 32-bit unsigned integer type into buffer
+/// @note Converts bytes from host to big-endian order
+/// @note Increments buffer pointer position after writing data
+/// @param pos Reference to pointer to buffer position
+/// @param data Data to write
 void WriteUInt32(
     std::uint8_t*& pos,
     std::uint32_t data);
 
+/// @brief Calculates padding size needed for message
+/// @details All messages contain 0 or more bytes of padding.
+///   Each message must be padded to a 16 byte boundary,
+///   as required by the AES256 encryption layer
+/// @param size Size of message
 std::size_t GetPaddingSize(
     std::size_t size);
 
+/// @brief Gets padded size of message
+/// @param size Size of message
 std::size_t GetPaddedSize(
     std::size_t size);
 
 /// @brief Writes an SSU header into a data buffer.
 /// @pre The data buffer must be sufficiently large.
+/// @param data Reference to pointer to data
+/// @param header Pointer to SSU header
 void WriteHeader(
     std::uint8_t*& data,
     SSUHeader* header);
 
+/// @brief Writes SessionRequest message
+/// @param buf Reference to pointer to buffer to write into
+/// @param packet SessionRequest packet to write
 void WriteSessionRequest(
     std::uint8_t*& buf,
     SSUSessionRequestPacket* packet);
 
+/// @brief Writes SessionCreated message
+/// @param buf Reference to pointer to buffer to write into
+/// @param packet SessionCreated packet to write
 void WriteSessionCreated(
     std::uint8_t*& buf,
     SSUSessionCreatedPacket* packet);
 
+/// @brief Writes SessionConfirmed message
+/// @param buf Reference to pointer to buffer to write into
+/// @param packet SessionConfirmed packet to write
 void WriteSessionConfirmed(
     std::uint8_t*& buf,
     SSUSessionConfirmedPacket* packet);
 
+/// @brief Writes RelayRequest message
+/// @param buf Reference to pointer to buffer to write into
+/// @param packet RelayRequest packet to write
 void WriteRelayRequest(
     std::uint8_t*& buf,
     SSURelayRequestPacket* packet);
 
+/// @brief Writes RelayResponse message
+/// @param buf Reference to pointer to buffer to write into
+/// @param packet RelayResponse packet to write
 void WriteRelayResponse(
     std::uint8_t*& buf,
     SSURelayResponsePacket* packet);
 
+/// @brief Writes RelayIntro message
+/// @param buf Reference to pointer to buffer to write into
+/// @param packet RelayIntro packet to write
 void WriteRelayIntro(
     std::uint8_t*& buf,
     SSURelayIntroPacket* packet);
 
+/// @brief Writes Data message
+/// @param buf Reference to pointer to buffer to write into
+/// @param packet Data packet to write
 void WriteData(
     std::uint8_t*& buf,
     SSUDataPacket* packet);
 
+/// @brief Writes PeerTest message
+/// @param buf Reference to pointer to buffer to write into
+/// @param packet PeerTest packet to write
 void WritePeerTest(
     std::uint8_t*& buf,
     SSUPeerTestPacket* packet);
 
+/// @brief Writes SessionDestroyed message
+/// @param buf Reference to pointer to buffer to write into
+/// @param packet SessionDestroyed packet to write
 void WriteSessionDestroyed(
     std::uint8_t*& buf,
     SSUSessionDestroyedPacket* packet);
 
+/// @brief Writes SSU packet for SSU session
+/// @param buf Reference to pointer to buffer to write into
+/// @param packet SSU packet to write
+/// @note packet is one of any payload types
 void WritePacket(
     std::uint8_t*& buf,
     SSUPacket* packet);

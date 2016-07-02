@@ -35,9 +35,8 @@
 
 #include <boost/asio.hpp>
 
-#include <inttypes.h>
-#include <string.h>
-
+#include <array>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <set>
@@ -46,84 +45,75 @@
 #include "I2NPProtocol.h"
 #include "Identity.h"
 #include "RouterInfo.h"
+#include "SSUPacket.h"
 
 namespace i2p {
 namespace transport {
 
-const size_t SSU_MTU_V4 = 1484;
-const size_t SSU_MTU_V6 = 1472;
-const size_t IPV4_HEADER_SIZE = 20;
-const size_t IPV6_HEADER_SIZE = 40;
-const size_t UDP_HEADER_SIZE = 8;
-const size_t SSU_V4_MAX_PACKET_SIZE =
-  SSU_MTU_V4 -
-  IPV4_HEADER_SIZE -
-  UDP_HEADER_SIZE;  // Total: 1456
-const size_t SSU_V6_MAX_PACKET_SIZE =
-  SSU_MTU_V6 -
-  IPV6_HEADER_SIZE -
-  UDP_HEADER_SIZE;  // Total: 1424
-const int RESEND_INTERVAL = 3;  // in seconds
-const int MAX_NUM_RESENDS = 5;
-const int DECAY_INTERVAL = 20;  // in seconds
-// how many msgID we store for duplicates check
-const int MAX_NUM_RECEIVED_MESSAGES = 1000;
-const int INCOMPLETE_MESSAGES_CLEANUP_TIMEOUT = 30;  // in seconds
-// data flags
-const uint8_t DATA_FLAG_EXTENDED_DATA_INCLUDED = 0x02;
-const uint8_t DATA_FLAG_WANT_REPLY = 0x04;
-const uint8_t DATA_FLAG_REQUEST_PREVIOUS_ACKS = 0x08;
-const uint8_t DATA_FLAG_EXPLICIT_CONGESTION_NOTIFICATION = 0x10;
-const uint8_t DATA_FLAG_ACK_BITFIELDS_INCLUDED = 0x40;
-const uint8_t DATA_FLAG_EXPLICIT_ACKS_INCLUDED = 0x80;
+/// @enum SSUDuration
+/// @brief Constants used to represent various aspects
+///   of duration used during SSU activity
+enum struct SSUDuration : const std::size_t {
+  ResendInterval = 3,  // Seconds
+  MaxResends = 5,
+  DecayInterval = 20,  // Number of message IDs we store for duplicates check
+  IncompleteMessagesCleanupTimeout = 30,  // Seconds
+  ConnectTimeout = 5,  // Seconds
+  TerminationTimeout = 330,  // 5 1/2 minutes
+  KeepAliveInterval = 30,  // Seconds
+  PeerTestTimeout = 60,  // Seconds
+  ToIntroducerSessionDuration = 3600,  // 1 hour
+};
 
 struct Fragment {
-  int fragmentNum;
-  size_t len;
-  bool isLast;
-  uint8_t buf[SSU_V4_MAX_PACKET_SIZE + 18];  // use biggest
   Fragment() = default;
+
   Fragment(
-      int n,
-      const uint8_t* b,
-      int l,
+      std::size_t num,
+      const std::uint8_t* buf,
+      std::size_t last_len,
       bool last)
-      : fragmentNum(n),
-        len(l),
-        isLast(last) {
-          memcpy(buf, b, len);
+      : fragment_num(num),
+        len(last_len),
+        is_last(last) {
+          memcpy(buffer.data(), buf, len);
         }
+
+  std::size_t fragment_num, len;
+  bool is_last;
+  // TODO(unassigned): document 18 and why ipv4
+  std::array<std::uint8_t, static_cast<std::size_t>(SSUSize::PacketMaxIPv4) + 18> buffer;
 };
 
 struct FragmentCmp {
   bool operator() (
       const std::unique_ptr<Fragment>& f1,
       const std::unique_ptr<Fragment>& f2) const {
-    return f1->fragmentNum < f2->fragmentNum;
+    return f1->fragment_num < f2->fragment_num;
   }
 };
 
 struct IncompleteMessage {
-  std::shared_ptr<I2NPMessage> msg;
-  int nextFragmentNum;
-  uint32_t lastFragmentInsertTime;  // in seconds
-  std::set<std::unique_ptr<Fragment>, FragmentCmp> savedFragments;
-
   IncompleteMessage(
       std::shared_ptr<I2NPMessage> m)
       : msg(m),
-        nextFragmentNum(0),
-        lastFragmentInsertTime(0) {}
+        next_fragment_num(0),
+        last_fragment_insert_time(0) {}
 
   void AttachNextFragment(
-      const uint8_t* fragment,
-      size_t fragmentSize);
+      const std::uint8_t* fragment,
+      std::size_t fragment_size);
+
+  std::shared_ptr<I2NPMessage> msg;
+  std::size_t next_fragment_num;
+  std::uint32_t last_fragment_insert_time;  // in seconds
+  std::set<std::unique_ptr<Fragment>, FragmentCmp> saved_fragments;
 };
 
 struct SentMessage {
-  std::vector<std::unique_ptr<Fragment> > fragments;
-  uint32_t nextResendTime;  // in seconds
-  int numResends;
+  std::vector<std::unique_ptr<Fragment>> fragments;
+  std::uint32_t next_resend_time;  // in seconds
+  std::size_t num_resends;
 };
 
 class SSUSession;
@@ -131,6 +121,7 @@ class SSUData {
  public:
   SSUData(
       SSUSession& session);
+
   ~SSUData();
 
   void Start();
@@ -138,8 +129,8 @@ class SSUData {
   void Stop();
 
   void ProcessMessage(
-      uint8_t* buf,
-      size_t len);
+      std::uint8_t* buf,
+      std::size_t len);
 
   void FlushReceivedMessage();
 
@@ -147,25 +138,25 @@ class SSUData {
       std::shared_ptr<i2p::I2NPMessage> msg);
 
   void UpdatePacketSize(
-      const i2p::data::IdentHash& remoteIdent);
+      const i2p::data::IdentHash& remote_ident);
 
  private:
-  void SendMsgAck(
-      uint32_t msgID);
+  void SendMsgACK(
+      std::uint32_t msg_id);
 
-  void SendFragmentAck(
-      uint32_t msgID,
-      int fragmentNum);
+  void SendFragmentACK(
+      std::uint32_t msg_id,
+      std::size_t fragment_num);
 
-  void ProcessAcks(
-      uint8_t *& buf,
-      uint8_t flag);
+  void ProcessACKs(
+      std::uint8_t*& buf,
+      std::uint8_t flag);
 
   void ProcessFragments(
-      uint8_t * buf);
+      std::uint8_t * buf);
 
-  void ProcessSentMessageAck(
-      uint32_t msgID);
+  void ProcessSentMessageACK(
+      std::uint32_t msg_id);
 
   void ScheduleResend();
 
@@ -187,13 +178,12 @@ class SSUData {
 
  private:
   SSUSession& m_Session;
-  std::map<uint32_t, std::unique_ptr<IncompleteMessage> > m_IncompleteMessages;
-  std::map<uint32_t, std::unique_ptr<SentMessage> > m_SentMessages;
-  std::set<uint32_t> m_ReceivedMessages;
-  boost::asio::deadline_timer m_ResendTimer,
-                              m_DecayTimer,
+  std::map<std::uint32_t, std::unique_ptr<IncompleteMessage>> m_IncompleteMessages;
+  std::map<std::uint32_t, std::unique_ptr<SentMessage>> m_SentMessages;
+  std::set<std::uint32_t> m_ReceivedMessages;
+  boost::asio::deadline_timer m_ResendTimer, m_DecayTimer,
                               m_IncompleteMessagesCleanupTimer;
-  int m_MaxPacketSize, m_PacketSize;
+  std::size_t m_MaxPacketSize, m_PacketSize;
   i2p::I2NPMessagesHandler m_Handler;
 };
 

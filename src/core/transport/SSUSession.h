@@ -33,8 +33,7 @@
 #ifndef SRC_CORE_TRANSPORT_SSUSESSION_H_
 #define SRC_CORE_TRANSPORT_SSUSESSION_H_
 
-#include <inttypes.h>
-
+#include <cstdint>
 #include <memory>
 #include <ostream>
 #include <set>
@@ -50,69 +49,64 @@
 namespace i2p {
 namespace transport {
 
-class SSUPacket;
-
-struct SSUSessionPacket {
-  uint8_t* dataptr;  // pointer to beginning of packet header
-  size_t datalen;    // how big is the total packet including header
-  uint8_t* bodyptr;  // pointer to begining of packet body
-
-  SSUSessionPacket()
-      : dataptr(nullptr),
-        datalen(0),
-        bodyptr(nullptr) {}
-  SSUSessionPacket(
-      uint8_t* buf,
-      size_t len)
-      : dataptr(buf),
-        datalen(len),
-        bodyptr(nullptr) {}
-
-  /// @brief Sets flag byte
-  void PutFlag(
-      uint8_t f) const;
-
-  /// @brief Puts timestamp into packet header
-  void PutTime(uint32_t t) const;
-
-  /// @brief Gets pointer to MAC
-  uint8_t* MAC() const;
-
-  /// @brief Gets pointer to begining of encrypted section
-  uint8_t* Encrypted() const;
-
-  /// @brief Gets pointer to IV
-  uint8_t* IV() const;
-};
-
-const int SSU_CONNECT_TIMEOUT = 5;  // 5 seconds
-const int SSU_TERMINATION_TIMEOUT = 330;  // 5.5 minutes
-
-// Messages (payload types) (4 bits)
-const uint8_t PAYLOAD_TYPE_SESSION_REQUEST = 0;
-const uint8_t PAYLOAD_TYPE_SESSION_CREATED = 1;
-const uint8_t PAYLOAD_TYPE_SESSION_CONFIRMED = 2;
-const uint8_t PAYLOAD_TYPE_RELAY_REQUEST = 3;
-const uint8_t PAYLOAD_TYPE_RELAY_RESPONSE = 4;
-const uint8_t PAYLOAD_TYPE_RELAY_INTRO = 5;
-const uint8_t PAYLOAD_TYPE_DATA = 6;
-const uint8_t PAYLOAD_TYPE_PEER_TEST = 7;
-const uint8_t PAYLOAD_TYPE_SESSION_DESTROYED = 8;
-
 enum SessionState {
-  eSessionStateUnknown,
-  eSessionStateIntroduced,
-  eSessionStateEstablished,
-  eSessionStateClosed,
-  eSessionStateFailed
+  SessionStateUnknown,
+  SessionStateIntroduced,
+  SessionStateEstablished,
+  SessionStateClosed,
+  SessionStateFailed
 };
 
 enum PeerTestParticipant {
-  ePeerTestParticipantUnknown = 0,
-  ePeerTestParticipantAlice1,
-  ePeerTestParticipantAlice2,
-  ePeerTestParticipantBob,
-  ePeerTestParticipantCharlie
+  PeerTestParticipantUnknown = 0,
+  PeerTestParticipantAlice1,
+  PeerTestParticipantAlice2,
+  PeerTestParticipantBob,
+  PeerTestParticipantCharlie
+};
+
+class SSUPacket;
+struct SSUSessionPacket {
+  /// @var data
+  /// @brief pointer to beginning of packet header
+  std::uint8_t* data;
+  /// @var data_len
+  /// @brief how big is the total packet including header
+  std::size_t data_len;
+  /// @var body
+  /// @brief pointer to begining of packet body
+  std::uint8_t* body;
+
+  SSUSessionPacket()
+      : data(nullptr),
+        data_len(0),
+        body(nullptr) {}
+
+  SSUSessionPacket(
+      std::uint8_t* buf,
+      std::size_t len)
+      : data(buf),
+        data_len(len),
+        body(nullptr) {}
+
+  /// @brief Sets flag byte
+  /// @param f Flag byte
+  void PutFlag(
+      std::uint8_t flag) const;
+
+  /// @brief Puts timestamp into packet header
+  /// @param t Timestamp
+  void PutTime(
+      std::uint32_t time) const;
+
+  /// @brief Gets pointer to MAC
+  std::uint8_t* MAC() const;
+
+  /// @brief Gets pointer to begining of encrypted section
+  std::uint8_t* Encrypted() const;
+
+  /// @brief Gets pointer to IV
+  std::uint8_t* IV() const;
 };
 
 class SSUServer;
@@ -122,23 +116,24 @@ class SSUSession
  public:
   SSUSession(
       SSUServer& server,
-      boost::asio::ip::udp::endpoint& remoteEndpoint,
+      boost::asio::ip::udp::endpoint& remote_endpoint,
       std::shared_ptr<const i2p::data::RouterInfo> router = nullptr,
-      bool peerTest = false);
+      bool peer_test = false);
+
   ~SSUSession();
 
   void ProcessNextMessage(
-      uint8_t* buf,
-      size_t len,
-      const boost::asio::ip::udp::endpoint& senderEndpoint);
+      std::uint8_t* buf,
+      std::size_t len,
+      const boost::asio::ip::udp::endpoint& sender_endpoint);
 
   void Connect();
 
   void WaitForConnect();
 
   void Introduce(
-      uint32_t iTag,
-      const uint8_t * iKey);
+      std::uint32_t introducer_tag,
+      const std::uint8_t * introducer_key);
 
   void WaitForIntroduction();
 
@@ -159,21 +154,21 @@ class SSUSession
     return m_State;
   }
 
-  size_t GetNumSentBytes() const {
+  std::size_t GetNumSentBytes() const {
     return m_NumSentBytes;
   }
 
-  size_t GetNumReceivedBytes() const {
+  std::size_t GetNumReceivedBytes() const {
     return m_NumReceivedBytes;
   }
 
   void SendKeepAlive();
 
-  uint32_t GetRelayTag() const {
+  std::uint32_t GetRelayTag() const {
     return m_RelayTag;
   }
 
-  uint32_t GetCreationTime() const {
+  std::uint32_t GetCreationTime() const {
     return m_CreationTime;
   }
 
@@ -212,40 +207,43 @@ class SSUSession
  private:
   boost::asio::io_service& GetService();
 
-  void CreateAESandMacKey(
-      const uint8_t* pubKey);
+  void CreateAESandMACKey(
+      const std::uint8_t* pub_key);
 
   void PostI2NPMessages(
       std::vector<std::shared_ptr<I2NPMessage>> msgs);
 
   /// @brief Call for established session
   void ProcessDecryptedMessage(
-      uint8_t* buf,
-      size_t len,
-      const boost::asio::ip::udp::endpoint& senderEndpoint);
+      std::uint8_t* buf,
+      std::size_t len,
+      const boost::asio::ip::udp::endpoint& sender_endpoint);
 
   // Payload type 0: SessionRequest
 
   void ProcessSessionRequest(
       SSUPacket* pkt,
-      const boost::asio::ip::udp::endpoint& senderEndpoint);
+      const boost::asio::ip::udp::endpoint& sender_endpoint);
 
   void SendSessionRequest();
 
   // Payload type 1: SessionCreated
 
-  void ProcessSessionCreated(SSUPacket* pkt);
+  void ProcessSessionCreated(
+      SSUPacket* pkt);
 
-  void SendSessionCreated(const uint8_t* x);
+  void SendSessionCreated(
+      const std::uint8_t* x);
 
   // Payload type 2: SessionConfirmed
 
-  void ProcessSessionConfirmed(SSUPacket* pkt);
+  void ProcessSessionConfirmed(
+      SSUPacket* pkt);
 
   void SendSessionConfirmed(
-      const uint8_t* y,
-      const uint8_t* ourAddress,
-      size_t ourAddressLen);
+      const std::uint8_t* y,
+      const std::uint8_t* our_address,
+      std::size_t our_address_len);
 
   // Payload type 3: RelayRequest
 
@@ -254,22 +252,24 @@ class SSUSession
       const boost::asio::ip::udp::endpoint& from);
 
   void SendRelayRequest(
-      uint32_t iTag,
-      const uint8_t* iKey);
+      std::uint32_t introducer_tag,
+      const std::uint8_t* introducer_key);
 
   // Payload type 4: RelayResponse
 
-  void ProcessRelayResponse(SSUPacket* pkt);
+  void ProcessRelayResponse(
+      SSUPacket* pkt);
 
   void SendRelayResponse(
-      uint32_t nonce,
+      std::uint32_t nonce,
       const boost::asio::ip::udp::endpoint& from,
-      const uint8_t* introKey,
+      const std::uint8_t* intro_key,
       const boost::asio::ip::udp::endpoint& to);
 
   // Payload type 5: RelayIntro
 
-  void ProcessRelayIntro(SSUPacket* pkt);
+  void ProcessRelayIntro(
+      SSUPacket* pkt);
 
   void SendRelayIntro(
       SSUSession* session,
@@ -277,21 +277,22 @@ class SSUSession
 
   // Payload type 6: Data
 
-  void ProcessData(SSUPacket* pkt);
+  void ProcessData(
+      SSUPacket* pkt);
 
   // Payload type 7: PeerTest
 
   void ProcessPeerTest(
       SSUPacket* pkt,
-      const boost::asio::ip::udp::endpoint& senderEndpoint);
+      const boost::asio::ip::udp::endpoint& sender_endpoint);
 
   void SendPeerTest(
-      uint32_t nonce,
-      uint32_t address,
-      uint16_t port,
-      const uint8_t* introKey,
-      bool toAddress = true,
-      bool sendAddress = true);
+      std::uint32_t nonce,
+      std::uint32_t address,
+      std::uint16_t port,
+      const std::uint8_t* intro_key,
+      bool to_address = true,
+      bool send_address = true);
 
   // Payload type 8: SessionDestroyed
 
@@ -309,51 +310,51 @@ class SSUSession
       const boost::system::error_code& ecode);
 
   void Send(
-      const uint8_t* buf,
-      size_t size);
+      const std::uint8_t* buf,
+      std::size_t size);
 
   // With session key
   void Send(
-      uint8_t type,
-      const uint8_t* payload,
-      size_t len);
+      std::uint8_t type,
+      const std::uint8_t* payload,
+      std::size_t len);
 
   void WriteAndEncrypt(
     SSUPacket* packet,
-    uint8_t* buffer,
-    const uint8_t* aesKey,
-    const uint8_t* macKey);
+    std::uint8_t* buffer,
+    const std::uint8_t* aes_key,
+    const std::uint8_t* mac_key);
 
   void FillHeaderAndEncrypt(
-      uint8_t payloadType,
-      uint8_t* buf,
-      size_t len,
-      const uint8_t* aesKey,
-      const uint8_t* iv,
-      const uint8_t* macKey,
-      uint8_t flag = 0);
+      std::uint8_t payload_type,
+      std::uint8_t* buf,
+      std::size_t len,
+      const std::uint8_t* aes_key,
+      const std::uint8_t* iv,
+      const std::uint8_t* mac_key,
+      std::uint8_t flag = 0);
 
   // With session key
   void FillHeaderAndEncrypt(
-      uint8_t payloadType,
-      uint8_t* buf,
-      size_t len);
+      std::uint8_t payload_type,
+      std::uint8_t* buf,
+      std::size_t len);
 
   void Decrypt(
-      uint8_t* buf,
-      size_t len,
-      const uint8_t* aesKey);
+      std::uint8_t* buf,
+      std::size_t len,
+      const std::uint8_t* aes_key);
 
   void DecryptSessionKey(
-      uint8_t* buf,
-      size_t len);
+      std::uint8_t* buf,
+      std::size_t len);
 
   bool Validate(
-      uint8_t* buf,
-      size_t len,
-      const uint8_t* macKey);
+      std::uint8_t* buf,
+      std::size_t len,
+      const std::uint8_t* mac_key);
 
-  const uint8_t* GetIntroKey() const;
+  const std::uint8_t* GetIntroKey() const;
 
   void ScheduleTermination();
 
@@ -369,13 +370,13 @@ class SSUSession
   bool m_PeerTest;
   SessionState m_State;
   bool m_IsSessionKey;
-  uint32_t m_RelayTag;
+  std::uint32_t m_RelayTag;
+  SSUData m_Data;
   i2p::crypto::CBCEncryption m_SessionKeyEncryption;
   i2p::crypto::CBCDecryption m_SessionKeyDecryption;
   i2p::crypto::AESKey m_SessionKey;
-  i2p::crypto::MACKey m_MacKey;
-  uint32_t m_CreationTime;  // seconds since epoch
-  SSUData m_Data;
+  i2p::crypto::MACKey m_MACKey;
+  std::uint32_t m_CreationTime;  // seconds since epoch
   std::unique_ptr<SignedData> m_SessionConfirmData;
   bool m_IsDataReceived;
 };

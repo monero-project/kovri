@@ -35,9 +35,6 @@
 
 #include <boost/asio.hpp>
 
-#include <inttypes.h>
-#include <string.h>
-
 #include <cstdint>
 #include <list>
 #include <map>
@@ -57,15 +54,10 @@
 namespace i2p {
 namespace transport {
 
-const int SSU_KEEP_ALIVE_INTERVAL = 30;  // 30 seconds
-const int SSU_PEER_TEST_TIMEOUT = 60;  // 60 seconds
-const int SSU_TO_INTRODUCER_SESSION_DURATION = 3600;  // 1 hour
-const size_t SSU_MAX_NUM_INTRODUCERS = 3;
-
 struct RawSSUPacket {
   i2p::crypto::AESAlignedBuffer<1500> buf;
   boost::asio::ip::udp::endpoint from;
-  size_t len;
+  std::size_t len;
 };
 
 class SSUServer {
@@ -81,7 +73,7 @@ class SSUServer {
 
   std::shared_ptr<SSUSession> GetSession(
       std::shared_ptr<const i2p::data::RouterInfo> router,
-      bool peerTest = false);
+      bool peer_test = false);
 
   std::shared_ptr<SSUSession> FindSession(
       std::shared_ptr<const i2p::data::RouterInfo> router) const;
@@ -111,33 +103,33 @@ class SSUServer {
 
   void Send(
       const uint8_t* buf,
-      size_t len,
+      std::size_t len,
       const boost::asio::ip::udp::endpoint& to);
 
   void AddRelay(
-      uint32_t tag,
+      std::uint32_t tag,
       const boost::asio::ip::udp::endpoint& relay);
 
   std::shared_ptr<SSUSession> FindRelaySession(
-      uint32_t tag);
+      std::uint32_t tag);
 
   void NewPeerTest(
-      uint32_t nonce,
+      std::uint32_t nonce,
       PeerTestParticipant role,
       std::shared_ptr<SSUSession> session = nullptr);
 
   PeerTestParticipant GetPeerTestParticipant(
-      uint32_t nonce);
+      std::uint32_t nonce);
 
   std::shared_ptr<SSUSession> GetPeerTestSession(
-      uint32_t nonce);
+      std::uint32_t nonce);
 
   void UpdatePeerTest(
-      uint32_t nonce,
+      std::uint32_t nonce,
       PeerTestParticipant role);
 
   void RemovePeerTest(
-      uint32_t nonce);
+      std::uint32_t nonce);
 
  private:
   void Run();
@@ -168,7 +160,7 @@ class SSUServer {
       Filter filter);
 
   std::set<SSUSession *> FindIntroducers(
-      int maxNumIntroducers);
+      std::size_t max_num_introducers);
 
   void ScheduleIntroducersUpdateTimer();
 
@@ -182,7 +174,7 @@ class SSUServer {
 
  private:
   struct PeerTest {
-    uint64_t creationTime;
+    std::uint64_t creationTime;
     PeerTestParticipant role;
     std::shared_ptr<SSUSession> session;  // for Bob to Alice
   };
@@ -207,16 +199,10 @@ class SSUServer {
   std::map<boost::asio::ip::udp::endpoint, std::shared_ptr<SSUSession>> m_Sessions;
 
   // we are introducer
-  std::map<uint32_t, boost::asio::ip::udp::endpoint> m_Relays;
+  std::map<std::uint32_t, boost::asio::ip::udp::endpoint> m_Relays;
 
   // nonce -> creation time in milliseconds
-  std::map<uint32_t, PeerTest> m_PeerTests;
-
- public:
-  // for HTTP only
-  const decltype(m_Sessions)& GetSessions() const {
-    return m_Sessions;
-  }
+  std::map<std::uint32_t, PeerTest> m_PeerTests;
 };
 
 }  // namespace transport

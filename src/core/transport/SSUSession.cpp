@@ -1095,16 +1095,15 @@ void SSUSession::WriteAndEncrypt(
   std::uint8_t* buf = buffer;
   SSUPacketBuilder::WritePacket(buf, packet);
   // Encrypt everything after the MAC and IV
-  auto encrypted =
+  std::uint8_t* encrypted =
     buffer
     + static_cast<std::size_t>(SSUSize::IV)
     + static_cast<std::size_t>(SSUSize::MAC);
-  auto encrypted_len =
-    SSUPacketBuilder::GetPaddingSize(
-        (buf - buffer) - (static_cast<std::size_t>(SSUSize::IV)
-        + static_cast<std::size_t>(SSUSize::MAC)));
+  auto encrypted_len = buf - encrypted;
   // Add padding
-  i2p::crypto::RandBytes(buf, encrypted_len);
+  const std::size_t padding_size = SSUPacketBuilder::GetPaddingSize(encrypted_len);
+  i2p::crypto::RandBytes(buf, padding_size);
+  encrypted_len += padding_size;
   i2p::crypto::CBCEncryption encryption(aes_key, packet->GetHeader()->GetIV());
   encryption.Encrypt(encrypted, encrypted_len, encrypted);
   // Compute HMAC of encryptedPayload + IV + (payloadLength ^ protocolVersion)
@@ -1119,7 +1118,7 @@ void SSUSession::WriteAndEncrypt(
       encrypted,
       encrypted_len + static_cast<std::size_t>(SSUSize::BufferMargin),
       mac_key,
-      packet->GetHeader()->GetMAC());
+      buffer);
   // Write header
   SSUPacketBuilder::WriteHeader(buffer, packet->GetHeader());
 }

@@ -14,6 +14,19 @@ To contribute a patch, please execute the following:
    - In general, commits should be [atomic](https://en.wikipedia.org/wiki/Atomic_commit#Atomic_commit_convention) and diffs should be easy to read. For this reason, please try to not mix formatting fixes with non-formatting commits.
    - The body of the pull request should contain an accurate description of what the patch does and provide justification/reasoning for the patch (when appropriate). You should include references to any discussions such as other tickets or chats on IRC.
 
+## Proposals
+To contribute a proposal, please review our [open issues](https://github.com/monero-project/kovri/issues) for existing proposals. If what you propose is not there, then [open a new issue](https://github.com/monero-project/kovri/issues/new).
+
+Even though our C4 dictates that we merge everything, we ask that you open a proposal for the following reasons:
+
+1. A proposal open up communication
+2. A proposal show that the contributor respects the input of all project collaborators
+3. A proposal allows seamless collaborator input in an open forum
+3. A proposal saves time if a collaborator is working on a similar feature/issue
+4. A proposal prevents catasrophes and mishaps or allows collaborators to prepare for catasrophes and mishaps
+
+*Not* opening a proposal will *not* prevent you from contributing; we will merge what you PR - but a proposal is highly recommended.
+
 ## TODO's
 - Do a quick search in the codebase for ```TODO(unassigned):``` and/or pick a ticket and start patching!
 - If you create a TODO, assign it to yourself or write in ```TODO(unassigned):```

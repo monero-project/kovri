@@ -360,7 +360,9 @@ bool SU3::PrepareStream() {
     // Get signer ID
     m_Stream.Read(*m_Data->signer_id.data(), m_Data->signer_id_length);
     // Currently enforces signer ID as an email address (not spec-defined)
-    std::regex regex("([-a-z0-9+._']{1,254})@((?:[-a-z0-9]+.)+[a-z|(i2p)]{2,})");
+#define ALPHA "abcdefghijklmnopqrstuvwxyz"
+    std::regex regex("([-"ALPHA"0-9+._']{1,254})@((?:[-"ALPHA"0-9]+.)+["ALPHA"|(i2p)]{2,})");
+#undef ALPHA
     if (!std::regex_search(m_Data->signer_id.data(), regex)) {
       LogPrint(eLogError, "SU3: invalid signer ID");
       return false;

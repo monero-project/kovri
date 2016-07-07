@@ -243,7 +243,7 @@ class SSUSession
   }
 
   /// @return Log-formatted string of session info
-  const std::string GetFormattedSessionInfo() {
+  std::string GetFormattedSessionInfo() {
     std::ostringstream info;
     info << " [" << GetRemoteIdentHashAbbreviation() << "] "
          << GetRemoteEndpoint() << " ";

@@ -184,7 +184,7 @@ class Transports {
 
   std::shared_ptr<const i2p::data::RouterInfo> GetRandomPeer() const;
 
-  const std::string GetFormattedSessionInfo(
+  std::string GetFormattedSessionInfo(
       std::shared_ptr<const i2p::data::RouterInfo>& router) {
     if (router) {
       std::ostringstream info;

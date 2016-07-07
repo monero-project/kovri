@@ -156,7 +156,7 @@ class NTCPSession
   }
 
   /// @return Log-formatted string of session info
-  std::string GetFormattedSessionInfo() {
+  const std::string GetFormattedSessionInfo() {
     std::ostringstream info;
     info << " [" << GetRemoteIdentHashAbbreviation()
          << "] " << GetRemoteEndpoint() << " ";

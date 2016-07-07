@@ -68,7 +68,6 @@ SSUData::SSUData(
       m_ResendTimer(session.GetService()),
       m_DecayTimer(session.GetService()),
       m_IncompleteMessagesCleanupTimer(session.GetService()) {
-  LogPrint(eLogDebug, "SSUData: initializing");
   m_MaxPacketSize = session.IsV6() ?
     SSU_V6_MAX_PACKET_SIZE :
     SSU_V4_MAX_PACKET_SIZE;
@@ -78,9 +77,7 @@ SSUData::SSUData(
     AdjustPacketSize(*remoteRouter);
 }
 
-SSUData::~SSUData() {
-  LogPrint(eLogDebug, "SSUData: destroying");
-}
+SSUData::~SSUData() {}
 
 void SSUData::Start() {
   LogPrint(eLogDebug, "SSUData: starting");

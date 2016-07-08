@@ -171,7 +171,7 @@ std::shared_ptr<ClientDestination> ClientContext::LoadLocalDestination(
   std::unique_lock<std::mutex> l(m_DestinationsMutex);
   auto it = m_Destinations.find(keys.GetPublic().GetIdentHash());
   if (it != m_Destinations.end()) {
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "ClientContext: local destination ",
         m_AddressBook.ToAddress(keys.GetPublic().GetIdentHash()),
         " already exists");

@@ -68,16 +68,11 @@ NTCPSession::NTCPSession(
       m_ReceiveBufferOffset(0),
       m_NextMessage(nullptr),
       m_IsSending(false) {
-  LogPrint(eLogDebug, "NTCPSession: initializing DH Keys pair");
   m_DHKeysPair = transports.GetNextDHKeysPair();
-  LogPrint(eLogDebug, "NTCPSession: initializing establisher");
   m_Establisher = std::make_unique<Establisher>();
 }
 
-NTCPSession::~NTCPSession() {
-  LogPrint(eLogDebug,
-      "NTCPSession:", GetFormattedSessionInfo(), "*** destroying session");
-}
+NTCPSession::~NTCPSession() {}
 
 // TODO(unassigned): unfinished
 void NTCPSession::ServerLogin() {
@@ -412,7 +407,7 @@ void NTCPSession::CreateAESKey(
       non_zero++;
       if (non_zero - shared_key.data() >
           static_cast<std::uint8_t>(NTCPSize::pub_key)) {
-        LogPrint(eLogWarning,
+        LogPrint(eLogWarn,
             "NTCPSession:", GetFormattedSessionInfo(),
             "*** first 32 bytes of shared key is all zeros. Ignored");
         return;
@@ -691,7 +686,7 @@ void NTCPSession::HandlePhase4Sent(
     const boost::system::error_code& ecode,
     std::size_t /*bytes_transferred*/) {
   if (ecode) {
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "NTCPSession:", GetFormattedSessionInfo(),
         "!!! couldn't send Phase4 '", ecode.message(), "'");
     if (ecode != boost::asio::error::operation_aborted)
@@ -923,7 +918,7 @@ bool NTCPSession::DecryptNextBlock(
           m_NextMessageOffset - static_cast<std::size_t>(NTCPSize::adler32)))
       m_Handler.PutNextMessage(m_NextMessage);
     else
-      LogPrint(eLogWarning,
+      LogPrint(eLogWarn,
           "NTCPSession:", GetFormattedSessionInfo(),
           "!!! incorrect Adler checksum of NTCP message, dropped");
     m_NextMessage = nullptr;
@@ -1021,7 +1016,7 @@ void NTCPSession::HandleSentPayload(
     std::vector<std::shared_ptr<I2NPMessage>> /*msgs*/) {
   m_IsSending = false;
   if (ecode) {
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "NTCPSession:", GetFormattedSessionInfo(),
         "!!! couldn't send I2NP messages, error '", ecode.message(), "'");
     // TODO(unassigned):

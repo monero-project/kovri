@@ -68,7 +68,6 @@ SSUData::SSUData(
       m_ResendTimer(session.GetService()),
       m_DecayTimer(session.GetService()),
       m_IncompleteMessagesCleanupTimer(session.GetService()) {
-  LogPrint(eLogDebug, "SSUData: initializing");
   m_MaxPacketSize = session.IsV6() ?
     static_cast<std::size_t>(SSUSize::PacketMaxIPv6) :
     static_cast<std::size_t>(SSUSize::PacketMaxIPv4);
@@ -78,9 +77,7 @@ SSUData::SSUData(
     AdjustPacketSize(*remote_router);
 }
 
-SSUData::~SSUData() {
-  LogPrint(eLogDebug, "SSUData: destroying");
-}
+SSUData::~SSUData() {}
 
 void SSUData::Start() {
   LogPrint(eLogDebug, "SSUData: starting");
@@ -120,7 +117,7 @@ void SSUData::AdjustPacketSize(
           "SSUData:", m_Session.GetFormattedSessionInfo(),
           "MTU=", ssu_address->mtu, " packet size=", m_PacketSize);
     } else {
-      LogPrint(eLogWarning, "SSUData: unexpected MTU ", ssu_address->mtu);
+      LogPrint(eLogWarn, "SSUData: unexpected MTU ", ssu_address->mtu);
       m_PacketSize = m_MaxPacketSize;
     }
   }
@@ -263,13 +260,13 @@ void SSUData::ProcessFragments(
     } else {
       if (fragment_num < incomplete_message->next_fragment_num) {
         // duplicate fragment
-        LogPrint(eLogWarning,
+        LogPrint(eLogWarn,
             "SSUData:", m_Session.GetFormattedSessionInfo(),
             " ignoring duplicate fragment ", static_cast<int>(fragment_num),
             " of message ", msg_id);
       } else {
         // missing fragment
-        LogPrint(eLogWarning,
+        LogPrint(eLogWarn,
             "SSUData:", m_Session.GetFormattedSessionInfo(),
             " missing fragments from ",
             static_cast<int>(incomplete_message->next_fragment_num),
@@ -281,7 +278,7 @@ void SSUData::ProcessFragments(
           incomplete_message->last_fragment_insert_time =
             i2p::util::GetSecondsSinceEpoch();
         else
-          LogPrint(eLogWarning,
+          LogPrint(eLogWarn,
               "SSUData:", m_Session.GetFormattedSessionInfo(),
               "fragment ", static_cast<int>(fragment_num),
               " of message ", msg_id, " is already saved");
@@ -306,7 +303,7 @@ void SSUData::ProcessFragments(
           m_ReceivedMessages.insert(msg_id);
           m_Handler.PutNextMessage(msg);
         } else {
-          LogPrint(eLogWarning,
+          LogPrint(eLogWarn,
               "SSUData:", m_Session.GetFormattedSessionInfo(),
               "SSU message ", msg_id, " already received");
         }
@@ -382,7 +379,7 @@ void SSUData::Send(
       "sending message");
   auto msg_id = msg->ToSSU();
   if (m_SentMessages.count(msg_id) > 0) {
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "SSUData:", m_Session.GetFormattedSessionInfo(),
         "message ", msg_id, " was already sent");
     return;
@@ -481,7 +478,7 @@ void SSUData::SendFragmentACK(
       "SSUData:", m_Session.GetFormattedSessionInfo(),
       "sending fragment ACK");
   if (fragment_num > 64) {
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "SSUData:", m_Session.GetFormattedSessionInfo(),
         "fragment number ", fragment_num, " exceeds 64");
     return;

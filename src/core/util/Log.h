@@ -33,290 +33,145 @@
 #ifndef SRC_CORE_UTIL_LOG_H_
 #define SRC_CORE_UTIL_LOG_H_
 
-#include <boost/version.hpp>
-
-#if BOOST_VERSION >= 105600
-#include <boost/core/null_deleter.hpp>
-#else
-// defines null_deleter here if we don't have the right boost version
-#include <boost/config.hpp>
-namespace boost {
-struct null_deleter {
-  typedef void result_type;
-  template <typename T> void operator() (T*) const {}
-};
-}
-#endif
-
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/date_time/posix_time/posix_time_io.hpp>
-#include <boost/log/attributes.hpp>
-#include <boost/log/core.hpp>
-#include <boost/log/core/core.hpp>
-#include <boost/log/expressions.hpp>
-#include <boost/log/sinks.hpp>
-#include <boost/log/sinks/async_frontend.hpp>
-#include <boost/log/sinks/text_ostream_backend.hpp>
-#include <boost/log/sources/channel_feature.hpp>
-#include <boost/log/sources/logger.hpp>
-#include <boost/log/sources/record_ostream.hpp>
-#include <boost/log/sources/severity_channel_logger.hpp>
-#include <boost/log/sources/severity_feature.hpp>
-
 #include <iostream>
 #include <memory>
-#include <mutex>
 #include <string>
+#include <unordered_map>
 #include <vector>
-
-// TODO(unassigned): remove these when removing deprecated logger
-#define eLogDebug i2p::util::log::eLogLevelDebug
-#define eLogInfo i2p::util::log::eLogLevelInfo
-#define eLogWarning i2p::util::log::eLogLevelWarning
-#define eLogError i2p::util::log::eLogLevelError
 
 namespace i2p {
 namespace util {
 namespace log {
 
+/**
+ *
+ * Our flow is as follows (see Boost.Log):
+ *
+ * Kovri -> LogStream -> Logger -> Log -> UI
+ *
+ * =========================================
+ *
+ * TODO(unassigned):
+ * Our current logging implementation is overwritten and convoluted.
+ * Our flow pattern is sound but a pimpl design for LogStream, Logger,
+ * and Log, serves no useful purpose (though *may* in the future).
+ * It should also be noted that to effectively remove deprecations,
+ * a design rewrite is necessary.
+ *
+ * Referencing #33.
+ *
+ */
+
 enum LogLevel {
   eLogLevelDebug,
   eLogLevelInfo,
-  eLogLevelWarning,
+  eLogLevelWarn,
   eLogLevelError
 };
 
-// core
-typedef boost::log::core_ptr core_ptr;
-// backend
-typedef boost::log::sinks::text_ostream_backend backend_t;
-typedef boost::shared_ptr<backend_t> backend_ptr;
-// sink
-typedef boost::log::sinks::asynchronous_sink<backend_t> sink_t;
-typedef boost::shared_ptr<sink_t> sink_ptr;
-// level
-typedef boost::log::sources::severity_channel_logger_mt<LogLevel, std::string> log_t;
+#define eLogDebug i2p::util::log::eLogLevelDebug
+#define eLogInfo i2p::util::log::eLogLevelInfo
+#define eLogWarn i2p::util::log::eLogLevelWarn
+#define eLogError i2p::util::log::eLogLevelError
 
-//
-// LogStreamImpl <- LogStream
-//
-class LogStreamImpl : public std::streambuf {
- public:
-  LogStreamImpl(
-      std::mutex& access,
-      log_t& l,
-      LogLevel levelno);
-  ~LogStreamImpl();
+/// @typedef LogLevelsMap
+/// @brief Map of log levels
+typedef std::unordered_map<std::string, LogLevel> LogLevelsMap;
 
-  void MetaImpl(
-      const std::string& key,
-      std::string value);
+/// @brief Set log levels/severity
+void SetGlobalLogLevels(
+    const std::vector<std::string>& levels);
 
-  bool IsEnabled() {
-    return m_Enable;
-  }
+/// @brief Get log levels/severity
+/// @return Log levels/severity
+const LogLevelsMap& GetGlobalLogLevels();
 
-  void Disable() {
-    m_Enable = false;
-  }
-
-  void Enable() {
-    m_Enable = true;
-  }
-
-  std::streambuf::int_type overflow(
-      std::streambuf::int_type ch);
-
-  void WaitForReady();
-
- protected:
-  int sync();
-  std::streamsize xsputn(
-      const std::streambuf::char_type* s,
-      std::streamsize count);
-
- private:
-  void Flush();
-  std::unique_ptr<std::stringbuf> m_Str;
-  std::mutex& m_Access;
-  log_t& m_Log;
-  LogLevel m_Level;
-  bool m_Enable;
-};
-
+class LogStreamImpl;
 class LogStream : public std::ostream {
  public:
-  explicit LogStream(
-      LogStreamImpl* impl);
+  LogStream();
   ~LogStream();
 
-  // TODO(unassigned): implement (currently unfinished)
-  // // attach metadata to the current logger's next entries until flushed
-  // LogStream& Meta(
-  //    const std::string& key,
-  //    std::string value);
+  LogStream(
+      LogStreamImpl* impl);
 
-  // flush this log stream
-  LogStream& Flush();
-
-  // check if this stream is enabled
-  // return true if it is
-  bool IsEnabled();
-
-  // disable logging on this stream
-  void Disable();
-
-  // enable logging on this stream
+  /// @brief Enable logging on this stream
   void Enable();
 
- private:
-  LogStreamImpl* m_Impl;
-};
+  /// @brief Disable logging on this stream
+  void Disable();
 
-// // TODO(unassigned): implement (currently unfinished)
-// class BoostEventStream : public EventStream {
-//  public:
-//   virtual EventStream& Flush() const {}
-//   virtual EventStream& operator <<(
-//       const std::vector<std::string>& strs) const {}
-// };
+  /// @brief Flush this log stream
+  LogStream& Flush();
 
-//
-// LoggerImpl <- Logger
-//
-class LoggerImpl {
- public:
-  // Construct default Logger
-  LoggerImpl();
-  // Construct logger with a name that belongs in 1 log channel
-  LoggerImpl(
-      const std::string& name,
-      const std::string& channel);
-
-  LogStream& Debug();
-  LogStream& Info();
-  LogStream& Warning();
-  LogStream& Error();
-
-  // TODO(unassigned): implement (currently unfinished)
-  // EventStream& UI() {
-  //  return m_Events;
-  //}
-
-  log_t log;
+  /// @brief Check if this stream is enabled
+  /// @return True if stream is enabled
+  bool IsEnabled();
 
  private:
-  LogStream& GetLogger(
-      LogStream& log,
-      std::mutex& mtx);
-
-  std::mutex m_DebugMtx,
-             m_InfoMtx,
-             m_WarnMtx,
-             m_ErrorMtx;
-
-  LogStream m_Debug,
-            m_Info,
-            m_Warn,
-            m_Error;
-
-  // TODO(unassigned): implement (currently unfinished)
-  // BoostEventStream m_Events;
+  std::unique_ptr<LogStreamImpl> m_LogStreamPimpl;
 };
 
+class LoggerImpl;
 class Logger {
  public:
-  Logger(
-      LoggerImpl* impl);
+  Logger();
   ~Logger();
 
-  LogStream& Error();
-  LogStream& Warning();
+  Logger(
+      LoggerImpl* impl);
+
+  /// @return Reference to info level log stream
   LogStream& Info();
+
+  /// @return Reference to warning level log stream
+  LogStream& Warn();
+
+  /// @return Reference to error level log stream
+  LogStream& Error();
+
+  /// @return Reference to debug level log stream
   LogStream& Debug();
 
-  // TODO(unassigned): implement (currently unfinished)
-  // get EventStream to send events to UI
-  // EventStream& UI();
-
-  // flush pending log events
+  /// @brief Flush pending log events
   void Flush();
 
  private:
-  LoggerImpl* m_Impl;
+  std::unique_ptr<LoggerImpl> m_LoggerPimpl;
 };
 
-//
-// LogImpl <- Log
-//
-class LogImpl {
- public:
-  LogImpl(
-      LogLevel minLevel,
-      std::ostream* out);
-  LogImpl()
-      : LogImpl(
-          eLogDebug,
-          &std::clog) {}
-
-  void Flush();
-
-  void Stop();
-
-  bool IsSilent();
-
- private:
-  bool m_Silent;
-  backend_ptr m_LogBackend;
-  core_ptr m_LogCore;
-  static void Format(
-      boost::log::record_view const& rec,
-      boost::log::formatting_ostream &s);
-};
-
-/**
- * // TODO(unassigned): implement (currently unfinished)
- * // Stream for sending events to live UI
- * class EventStream {
- *  public:
- *   // flush events
- *   virtual EventStream& Flush() const = 0;
- *   // operator overload for <<
- *   // queue an event
- *   virtual EventStream& operator <<(
- *       const std::vector<std::string> & strs) const = 0;
- * };
- */
-
+class LogImpl;
 class Log {
  public:
-  Log(
-      LogLevel minLev,
-      std::ostream* out);
-  Log()
-      : Log(
-          eLogLevelWarning,
-          &std::clog) {}
+  Log();
+  ~Log();
 
-  // Get global log engine
+  Log(
+      LogLevel min_level,
+      std::ostream* out_stream);
+
+  /// @brief Get global log engine
   static std::shared_ptr<Log> Get();
 
-  // Get default logger
+  /// @brief Get default logger
   std::shared_ptr<Logger> Default();
 
-  // Create a logger's given name
-  std::unique_ptr<Logger> New(
-      const std::string& name,
-      const std::string& channel);
+  // TODO(unassigned):
+  // Uncomment when this becomes useful
+  /// @brief Create a logger's given name
+  //std::unique_ptr<Logger> New(
+      //const std::string& name,
+      //const std::string& channel);
 
-  // turn off logging forever
+  /// @brief Turn off logging forever
   void Stop();
 
-  // is logging silent right now?
+  /// @brief Is logging silent right now?
+  /// @return True if silent
   bool Silent();
 
  private:
-  std::shared_ptr<LogImpl> m_LogImpl;
+  std::shared_ptr<LogImpl> m_LogPimpl;
   std::shared_ptr<Logger> m_DefaultLogger;
 };
 
@@ -324,76 +179,97 @@ class Log {
 }  // namespace util
 }  // namespace i2p
 
-//
-// Deprecated Logger
-//
-
-#include <sstream>
-
-void DeprecatedStartLog(
-    const std::string& fullFilePath);
+/**
+ *
+ * Deprecated Logger
+ *
+ */
 
 void DeprecatedStartLog(
-    std::ostream* s);
+    const std::string& full_file_path);
+
+void DeprecatedStartLog(
+    std::ostream* stream);
 
 void DeprecatedStopLog();
 
-template<typename TValue>
+template<typename Arg>
 void DeprecatedLog(
-    std::ostream& s,
-    TValue arg) {
-  s << arg;
+    std::ostream& stream,
+    Arg arg) {
+  stream << arg;
 }
 
-template<typename TValue, typename... TArgs>
+template<typename Value, typename... Args>
 void DeprecatedLog(
-    std::ostream& s,
-    TValue arg,
-    TArgs... args) {
-  DeprecatedLog(s, arg);
-  DeprecatedLog(s, args...);
+    std::ostream& stream,
+    Value arg,
+    Args... args) {
+  DeprecatedLog(stream, arg);
+  DeprecatedLog(stream, args...);
 }
 
-template<typename... TArgs>
+// TODO(unassigned): more efficient way to execute this function.
+template<typename... Args>
 void DeprecatedLogPrint(
     i2p::util::log::LogLevel level,
-    TArgs... args) {
-  auto l = i2p::util::log::Log::Get();
-  if (l == nullptr) {
+    Args... args) {
+  auto logger = i2p::util::log::Log::Get();
+  if (logger == nullptr) {
     // fallback logging to std::clog
     std::clog << "!!! ";
     DeprecatedLog(std::clog, args...);
     std::clog << std::endl;
   } else {
-    auto log = l->Default();
+    // Set log implementation
+    auto log = logger->Default();
+    // Get global log levels
+    auto global_levels = i2p::util::log::GetGlobalLogLevels();
+    // Print log after testing arg level against global levels
     if (level == eLogDebug) {
-      auto& s = log->Debug();
-      DeprecatedLog(s, args...);
-      s << std::flush;
+      for (auto& current_level : global_levels) {
+        if (current_level.second == eLogDebug) {
+          auto& stream = log->Debug();
+          DeprecatedLog(stream, args...);
+          stream << std::flush;
+        }
+      }
     } else if (level == eLogInfo) {
-      auto& s = log->Info();
-      DeprecatedLog(s, args...);
-      s << std::flush;
-    } else if (level == eLogWarning) {
-      auto& s = log->Warning();
-      DeprecatedLog(s, args...);
-      s << std::flush;
-    } else  {
-      auto& s = log->Error();
-      DeprecatedLog(s, args...);
-      s << std::flush;
+      for (auto& current_level : global_levels) {
+        if (current_level.second == eLogInfo) {
+          auto& stream = log->Info();
+          DeprecatedLog(stream, args...);
+          stream << std::flush;
+        }
+      }
+    } else if (level == eLogWarn) {
+      for (auto& current_level : global_levels) {
+        if (current_level.second == eLogWarn) {
+          auto& stream = log->Warn();
+          DeprecatedLog(stream, args...);
+          stream << std::flush;
+        }
+      }
+    } else if (level == eLogError) {
+      for (auto& current_level : global_levels)  {
+        if (current_level.second == eLogError) {
+          auto& stream = log->Error();
+          DeprecatedLog(stream, args...);
+          stream << std::flush;
+        }
+      }
     }
   }
 }
 
-template<typename... TArgs>
+template<typename... Args>
 void DeprecatedLogPrint(
-    TArgs... args) {
+    Args... args) {
   DeprecatedLogPrint(eLogInfo, args...);
 }
 
-#define StopLog DeprecatedStopLog
 #define StartLog DeprecatedStartLog
 #define LogPrint DeprecatedLogPrint
+#define StopLog DeprecatedStopLog
 
 #endif  // SRC_CORE_UTIL_LOG_H_

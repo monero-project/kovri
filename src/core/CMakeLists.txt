@@ -99,7 +99,8 @@ set(EDDSA_SRC
   "${EDDSA_DIR}/ed25519/open.cpp"
   "${EDDSA_DIR}/ed25519/sc_muladd.cpp"
   "${EDDSA_DIR}/ed25519/sc_reduce.cpp"
-  "${EDDSA_DIR}/ed25519/sign.cpp")
+  "${EDDSA_DIR}/ed25519/sign.cpp"
+  "${EDDSA_DIR}/ed25519/verify.cpp")
 
 # Library building
 if(WITH_LIBRARY)

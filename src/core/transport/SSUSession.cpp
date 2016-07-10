@@ -416,7 +416,7 @@ void SSUSession::SendSessionCreated(
     return;
   }
   SSUSessionCreatedPacket packet;
-  packet.SetHeader(std::make_unique<SSUHeader>(SSUPayloadType::SessionRequest));
+  packet.SetHeader(std::make_unique<SSUHeader>(SSUPayloadType::SessionCreated));
   packet.SetDhY(m_DHKeysPair->public_key.data());
   packet.SetPort(GetRemoteEndpoint().port());
   auto const signature_size = i2p::context.GetIdentity().GetSignatureLen();
@@ -512,7 +512,7 @@ void SSUSession::SendSessionConfirmed(
     const std::uint8_t* our_address,
     std::size_t our_address_len) {
   SSUSessionConfirmedPacket packet;
-  packet.SetHeader(std::make_unique<SSUHeader>(SSUPayloadType::SessionRequest));
+  packet.SetHeader(std::make_unique<SSUHeader>(SSUPayloadType::SessionConfirmed));
   std::array<std::uint8_t, static_cast<std::size_t>(SSUSize::IV)> iv;
   i2p::crypto::RandBytes(iv.data(), iv.size());
   packet.GetHeader()->SetIV(iv.data());

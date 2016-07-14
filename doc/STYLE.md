@@ -1,12 +1,12 @@
 ## Style
 We ardently adhere to (or are in the process of adhering to) [Google's C++ Style Guide](https://google.github.io/styleguide/cppguide.html).
-Please run [cpplint](https://github.com/google/styleguide/tree/gh-pages/cpplint) on any applicable work before contributing to Kovri and take no offense if your contribution ends up being style refactored.
+Please run [cpplint](https://pypi.python.org/pypi/cpplint/) on any applicable work before contributing to Kovri and take no offense if your contribution ends up being style refactored.
 
 In addition to the aforementioned, please consider the following:
 
 - Please keep in line with codebase's present (vertical) style for consistency
 - If anonymity is a concern, try to blend in with a present contributor's style
-- Lines should be <=80 spaces unless impossible to do so (see [cpplint](https://github.com/google/styleguide/tree/gh-pages/cpplint))
+- Lines should be <=80 spaces unless impossible to do so (see [cpplint](https://pypi.python.org/pypi/cpplint/))
 - Pointers: reference/dereference operators on the left (attached to datatype) when possible
 - Class member variables should be prepended with m_
 - If function args newline break, ensure that *every* indent is 4 spaces (and not 2).

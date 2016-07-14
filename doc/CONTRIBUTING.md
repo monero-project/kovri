@@ -22,8 +22,8 @@ Even though our C4 dictates that we merge everything, we ask that you open a pro
 1. A proposal open up communication
 2. A proposal show that the contributor respects the input of all project collaborators
 3. A proposal allows seamless collaborator input in an open forum
-3. A proposal saves time if a collaborator is working on a similar feature/issue
-4. A proposal prevents catasrophes and mishaps or allows collaborators to prepare for catasrophes and mishaps
+4. A proposal saves time if a collaborator is working on a similar feature/issue
+5. A proposal prevents catasrophes and mishaps or allows collaborators to prepare for catasrophes and mishaps
 
 *Not* opening a proposal will *not* prevent you from contributing; we will merge what you PR - but a proposal is highly recommended.
 

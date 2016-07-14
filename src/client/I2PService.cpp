@@ -70,7 +70,7 @@ void I2PService::CreateStream(
         identHash,
         port);
   } else {
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "I2PService: remote destination ", dest, " not found");
     streamRequestComplete(nullptr);
   }

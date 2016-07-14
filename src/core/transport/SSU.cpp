@@ -66,7 +66,6 @@ SSUServer::SSUServer(
       m_SocketV6(m_ReceiversService),
       m_IntroducersUpdateTimer(m_Service),
       m_PeerTestsCleanupTimer(m_Service) {
-  LogPrint(eLogDebug, "SSUServer: initializing");
   m_Socket.set_option(boost::asio::socket_base::receive_buffer_size(65535));
   m_Socket.set_option(boost::asio::socket_base::send_buffer_size(65535));
   if (context.SupportsV6()) {
@@ -78,9 +77,7 @@ SSUServer::SSUServer(
   }
 }
 
-SSUServer::~SSUServer() {
-  LogPrint(eLogDebug, "SSUServer: destroying");
-}
+SSUServer::~SSUServer() {}
 
 void SSUServer::Start() {
   LogPrint(eLogDebug, "SSUServer: starting");
@@ -472,7 +469,7 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
             }
             introducerSession->Introduce(introducer->tag, introducer->key);
           } else {
-            LogPrint(eLogWarning,
+            LogPrint(eLogWarn,
                 "SSUServer: can't connect to unreachable router."
                 "No introducers presented");
             std::unique_lock<std::mutex> l(m_SessionsMutex);
@@ -482,7 +479,7 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
         }
       }
     } else {
-      LogPrint(eLogWarning,
+      LogPrint(eLogWarn,
           "SSUServer: router ", router->GetIdentHashAbbreviation(),
           " doesn't have SSU address");
     }

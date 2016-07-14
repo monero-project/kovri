@@ -303,7 +303,7 @@ I2PControlSession::Response I2PControlSession::HandleRequest(
     std::string method = pt.get<std::string>(constants::PROPERTY_METHOD);
     auto it = m_MethodHandlers.find(method);
     if (it == m_MethodHandlers.end()) {  // Not found
-      LogPrint(eLogWarning,
+      LogPrint(eLogWarn,
           "I2PControlSession: unknown I2PControl method ", method);
       response.SetError(ErrorCode::e_MethodNotFound);
       return response;
@@ -311,7 +311,7 @@ I2PControlSession::Response I2PControlSession::HandleRequest(
     ptree params = pt.get_child(constants::PROPERTY_PARAMS);
     if (method != constants::METHOD_AUTHENTICATE &&
         !Authenticate(params, response)) {
-      LogPrint(eLogWarning,
+      LogPrint(eLogWarn,
           "I2PControlSession: invalid token presented");
       return response;
     }

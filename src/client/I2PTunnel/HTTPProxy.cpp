@@ -101,7 +101,7 @@ void HTTPProxyHandler::HandleSockRecv(
     std::size_t len) {
   LogPrint(eLogDebug, "HTTPProxyHandler: sock recv: ", len);
   if (ecode) {
-    LogPrint(eLogWarning, "HTTPProxyHandler: sock recv got error: ", ecode);
+    LogPrint(eLogWarn, "HTTPProxyHandler: sock recv got error: ", ecode);
           Terminate();
     return;
   }

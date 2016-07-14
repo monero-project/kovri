@@ -378,7 +378,7 @@ std::unique_ptr<const i2p::data::IdentHash> I2PClientTunnel::GetIdentHash() {
     if (i2p::client::context.GetAddressBook().GetIdentHash(m_Destination, identHash))
       m_DestinationIdentHash = std::make_unique<i2p::data::IdentHash>(identHash);
     else
-      LogPrint(eLogWarning,
+      LogPrint(eLogWarn,
           "I2PClientTunnel: remote destination ", m_Destination, " not found");
   }
   return std::move(m_DestinationIdentHash);
@@ -558,7 +558,7 @@ void I2PServerTunnel::HandleAccept(
   if (stream) {
     if (m_IsAccessList) {
       if (!m_AccessList.count(stream->GetRemoteIdentity().GetIdentHash())) {
-        LogPrint(eLogWarning,
+        LogPrint(eLogWarn,
             "I2PServerTunnel: address ",
             stream->GetRemoteIdentity().GetIdentHash().ToBase32(),
             " is not in white list, incoming connection dropped");

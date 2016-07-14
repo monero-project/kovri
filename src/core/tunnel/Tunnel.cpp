@@ -146,7 +146,7 @@ bool Tunnel::HandleTunnelBuildResponse(
         decryption.SetIV(hop->replyIV);
         decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, record);
       } else {
-        LogPrint(eLogWarning,
+        LogPrint(eLogWarn,
             "Tunnel: hop index ", idx, " is out of range");
       }
       hop1 = hop1->prev;
@@ -434,7 +434,7 @@ void Tunnels::Run() {
                 else  // tunnel gateway assumed
                   HandleTunnelGatewayMsg(tunnel, msg);
               } else {
-                LogPrint(eLogWarning,
+                LogPrint(eLogWarn,
                     "Tunnels: tunnel ", tunnelID, " not found");
               }
               break;

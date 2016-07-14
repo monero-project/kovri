@@ -172,10 +172,10 @@ std::shared_ptr<I2NPMessage> GarlicRoutingSession::WrapSingleMessage(
   }
   // create message
   if (!tag_found) {  // new session
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "GarlicRoutingSession: no garlic tags available, using ElGamal");
     if (!m_Destination) {
-      LogPrint(eLogWarning,
+      LogPrint(eLogWarn,
           "GarlicRoutingSession: can't use ElGamal for unknown destination");
       return nullptr;
     }
@@ -275,7 +275,7 @@ std::size_t GarlicRoutingSession::CreateGarlicPayload(
           m_UnconfirmedTagsMsgs[msg_ID] = new_tags;
         m_Owner->DeliveryStatusSent(shared_from_this(), msg_ID);
       } else {
-        LogPrint(eLogWarning,
+        LogPrint(eLogWarn,
             "GarlicRoutingSession: DeliveryStatus clove was not created");
       }
     }
@@ -376,7 +376,7 @@ std::size_t GarlicRoutingSession::CreateDeliveryStatusClove(
           "GarlicRoutingSession: no inbound tunnels in the pool for DeliveryStatus");
     }
   } else {
-    LogPrint(eLogWarning, "GarlicRoutingSession: missing local LeaseSet");
+    LogPrint(eLogWarn, "GarlicRoutingSession: missing local LeaseSet");
   }
   return size;
 }
@@ -569,7 +569,7 @@ void GarlicDestination::HandleGarlicPayload(
         break;
       }
       case eGarlicDeliveryTypeRouter:
-        LogPrint(eLogWarning,
+        LogPrint(eLogWarn,
             "GarlicDestination: Garlic type router not supported");
         buf += 32;
       break;

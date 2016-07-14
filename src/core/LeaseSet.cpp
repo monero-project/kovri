@@ -153,7 +153,7 @@ void LeaseSet::ReadFromBuffer() {
   }
   // verify
   if (!m_Identity.Verify(m_Buffer.get(), leases - m_Buffer.get(), leases)) {
-    LogPrint(eLogWarning, "LeaseSet: verification failed");
+    LogPrint(eLogWarn, "LeaseSet: verification failed");
     m_IsValid = false;
   }
 }

@@ -450,7 +450,7 @@ void NetDb::RequestDestination(
         false,
         request_complete);  // non-exploratory
   if (!dest) {
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "NetDb: destination ", destination.ToBase64(), " was already requested");
     return;
   }
@@ -599,7 +599,7 @@ void NetDb::HandleDatabaseSearchReplyMsg(
               delete_dest = false;
             }
           } else {
-            LogPrint(eLogWarning,
+            LogPrint(eLogWarn,
                 "NetDb: ", key, " was not found in ", max_ff, "floodfills");
           }
           if (msgs.size() > 0)
@@ -614,7 +614,7 @@ void NetDb::HandleDatabaseSearchReplyMsg(
       m_Requests.RequestComplete(ident, nullptr);
     }
   } else {
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "NetDb: requested destination for ", key, " not found");
   }
   // try responses
@@ -663,7 +663,7 @@ void NetDb::HandleDatabaseLookupMsg(
   uint16_t num_excluded = bufbe16toh(excluded);
   excluded += 2;
   if (num_excluded > 512) {
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "NetDb: number of excluded peers", num_excluded, " exceeds 512");
     num_excluded = 0;  // TODO(unassigned): ???
   }
@@ -770,7 +770,7 @@ void NetDb::Explore(
     i2p::crypto::RandBytes(randomHash, 32);
     auto dest = m_Requests.CreateRequest(randomHash, true);  // exploratory
     if (!dest) {
-      LogPrint(eLogWarning,
+      LogPrint(eLogWarn,
           "NetDb: exploratory destination was already requested");
       return;
     }

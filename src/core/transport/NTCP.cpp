@@ -54,13 +54,9 @@ NTCPServer::NTCPServer(
       m_NTCPEndpoint(boost::asio::ip::tcp::v4(), port),
       m_NTCPEndpointV6(boost::asio::ip::tcp::v6(), port),
       m_NTCPAcceptor(nullptr),
-      m_NTCPV6Acceptor(nullptr) {
-  LogPrint(eLogDebug, "NTCPServer: initializing");
-}
+      m_NTCPV6Acceptor(nullptr) {}
 
-NTCPServer::~NTCPServer() {
-  LogPrint(eLogDebug, "NTCPServer: destroying");
-}
+NTCPServer::~NTCPServer() {}
 
 void NTCPServer::Start() {
   if (!m_IsRunning) {

@@ -242,7 +242,7 @@ void TunnelPool::CreateTunnels() {
 
 void TunnelPool::TestTunnels() {
   for (auto it : m_Tests) {
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "TunnelPool: tunnel test ", static_cast<int>(it.first), " failed");
     // if test failed again with another tunnel we consider it failed
     if (it.second.first) {
@@ -300,7 +300,7 @@ void TunnelPool::ProcessGarlicMessage(
   if (m_LocalDestination)
     m_LocalDestination->ProcessGarlicMessage(msg);
   else
-    LogPrint(eLogWarning,
+    LogPrint(eLogWarn,
         "TunnelPool: local destination doesn't exist, dropped");
 }
 
@@ -326,7 +326,7 @@ void TunnelPool::ProcessDeliveryStatus(
     if (m_LocalDestination)
       m_LocalDestination->ProcessDeliveryStatusMessage(msg);
     else
-      LogPrint(eLogWarning, "TunnelPool: local destination doesn't exist, dropped");
+      LogPrint(eLogWarn, "TunnelPool: local destination doesn't exist, dropped");
   }
 }
 

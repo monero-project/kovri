@@ -111,14 +111,14 @@ bool ZIP::PrepareLocalFile() {
     // Get CRC-32 checksum
     m_Stream.Read(*m_Data->crc_32.data(), Size::crc_32);
     if (!m_Data->crc_32.data()) {
-      LogPrint(eLogWarning, "ZIP: CRC-32 checksum was null");
+      LogPrint(eLogWarn, "ZIP: CRC-32 checksum was null");
       return false;
     }
     // Prepare compressed file size
     m_Stream.Read(m_Data->compressed_size, Size::compressed_size);
     m_Data->compressed_size = le32toh(m_Data->compressed_size);
     if (!m_Data->compressed_size)
-      LogPrint(eLogWarning, "ZIP: compressed file size was null");
+      LogPrint(eLogWarn, "ZIP: compressed file size was null");
     // Prepare uncompressed file size
     m_Stream.Read(m_Data->uncompressed_size, Size::uncompressed_size);
     m_Data->uncompressed_size = le32toh(m_Data->uncompressed_size);

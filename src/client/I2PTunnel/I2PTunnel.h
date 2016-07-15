@@ -162,7 +162,7 @@ class I2PClientTunnel : public TCPIPAcceptor {
 
   void Start();
   void Stop();
-  std::string GetName();
+  std::string GetName() const;
 
  private:
   std::unique_ptr<const i2p::data::IdentHash> GetIdentHash();
@@ -216,7 +216,7 @@ class I2PServerTunnel : public I2PService {
     return m_Endpoint;
   }
 
-  std::string GetName();
+  std::string GetName() const;
 
  private:
   void HandleResolve(

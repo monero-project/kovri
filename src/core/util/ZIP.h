@@ -63,7 +63,8 @@ class ZIP {
   ZIP(const std::string& zip,
       std::size_t len,
       std::size_t pos = 0)
-      : m_Stream(zip),
+      : Descriptor(),
+        m_Stream(zip),
         m_Data(std::make_unique<Data>()) {
           m_Data->content_length = len;
           m_Data->content_position = pos;

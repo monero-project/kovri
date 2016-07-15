@@ -95,7 +95,7 @@ class I2PService {
   virtual void Stop() = 0;
 
   // everyone must override this
-  virtual std::string GetName() = 0;
+  virtual std::string GetName() const = 0;
 
  private:
   std::shared_ptr<ClientDestination> m_LocalDestination;
@@ -199,9 +199,7 @@ class TCPIPAcceptor : public I2PService {
   virtual std::shared_ptr<I2PServiceHandler> CreateHandler(
       std::shared_ptr<boost::asio::ip::tcp::socket> socket) = 0;
 
-  virtual std::string GetName() {
-    return "generic TCP/IP accepting daemon";
-  }
+  std::string GetName() const { return "generic TCP/IP accepting daemon"; }
 
  protected:
   std::string m_Address;

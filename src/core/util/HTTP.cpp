@@ -104,7 +104,7 @@ void URI::Parse(
     m_Host.assign(m_Host.begin(), port_i);
     try {
       m_Port = boost::lexical_cast<decltype(m_Port)>(m_PortString);
-    } catch (const std::exception& e) {
+    } catch (const std::exception&) {
       // Keep the default port
     }
   }

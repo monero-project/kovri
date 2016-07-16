@@ -384,9 +384,7 @@ std::unique_ptr<const i2p::data::IdentHash> I2PClientTunnel::GetIdentHash() {
   return std::move(m_DestinationIdentHash);
 }
 
-std::string I2PClientTunnel::GetName() {
-  return m_TunnelName;
-}
+std::string I2PClientTunnel::GetName() const { return m_TunnelName; }
 
 std::shared_ptr<I2PServiceHandler> I2PClientTunnel::CreateHandler(
     std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
@@ -582,9 +580,7 @@ void I2PServerTunnel::CreateI2PConnection(
   conn->Connect();
 }
 
-std::string I2PServerTunnel::GetName() {
-  return m_TunnelName;
-}
+std::string I2PServerTunnel::GetName() const { return m_TunnelName; }
 
 I2PServerTunnelHTTP::I2PServerTunnelHTTP(
     const std::string& name,

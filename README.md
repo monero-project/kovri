@@ -4,8 +4,9 @@
 2. A secure, private, untraceable C++ implementation of the [I2P](https://geti2p.net) anonymous network.
 
 [![Build Status](https://travis-ci.org/monero-project/kovri.svg?branch=master)](https://travis-ci.org/monero-project/kovri)
-[![Coverity status](https://scan.coverity.com/projects/7621/badge.svg)](https://scan.coverity.com/projects/7621/)
+[![Coverity Status](https://scan.coverity.com/projects/7621/badge.svg)](https://scan.coverity.com/projects/7621/)
 [![Documentation](https://codedocs.xyz/monero-project/kovri.svg)](https://codedocs.xyz/monero-project/kovri/)
+[![License](https://img.shields.io/badge/license-BSD3-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 ## Disclaimer
 - Currently pre-alpha software; under heavy development
@@ -14,9 +15,10 @@
 
 ## Quickstart
 1. Read [Build Instructions](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md) for instructions and minimum version requirements
-1. Choose a port between ```9111``` and ```30777```
-2. Open your NAT/Firewall to allow incoming TCP/UDP connections to your chosen port (UPnP optional; see [Build Instructions](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md))
-3. Clone, build, and run Kovri:
+2. Choose a port between ```9111``` and ```30777```
+3. Open your NAT/Firewall to allow incoming TCP/UDP connections to your chosen port
+   - UPnP optional; see [Build Instructions](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md)
+4. Clone - build - run Kovri:
 ```bash
 $ git clone https://github.com/monero-project/kovri
 $ cd kovri/build && cmake ../ && make
@@ -31,7 +33,7 @@ $ ./kovri -p [your chosen port number]
 
 ## Developers
 - Visit our [Forum Funding System](https://forum.getmonero.org/8/funding-required) to get funded for your work
-- Read our [Contributing Guide](https://github.com/monero-project/kovri/blob/master/doc/CONTRIBUTING.md) before sending PR
+- Read our [Contributing Guide](https://github.com/monero-project/kovri/blob/master/doc/CONTRIBUTING.md) before sending a pull-request
 
 ## Donations
 - Visit our [Donations Page](https://getmonero.org/getting-started/donate/) help Kovri with your donations

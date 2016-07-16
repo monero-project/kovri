@@ -153,7 +153,7 @@ void RouterProfile::Load() {
           m_NumTunnelsNonReplied = participations.get(
               PEER_PROFILE_PARTICIPATION_NON_REPLIED,
               0);
-        } catch (boost::property_tree::ptree_bad_path& ex) {
+        } catch (boost::property_tree::ptree_bad_path&) {
           LogPrint(eLogWarn,
               "RouterProfile: Missing section ",
               PEER_PROFILE_SECTION_PARTICIPATION);
@@ -163,7 +163,7 @@ void RouterProfile::Load() {
           auto usage = pt.get_child(PEER_PROFILE_SECTION_USAGE);
           m_NumTimesTaken = usage.get(PEER_PROFILE_USAGE_TAKEN, 0);
           m_NumTimesRejected = usage.get(PEER_PROFILE_USAGE_REJECTED, 0);
-        } catch (boost::property_tree::ptree_bad_path& ex) {
+        } catch (boost::property_tree::ptree_bad_path&) {
           LogPrint(eLogWarn,
               "RouterProfile: missing section ", PEER_PROFILE_SECTION_USAGE);
         }

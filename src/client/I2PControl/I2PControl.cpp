@@ -317,7 +317,7 @@ I2PControlSession::Response I2PControlSession::HandleRequest(
     }
     // Call the appropriate handler
     (this->*(it->second))(params, response);
-  } catch (const boost::property_tree::ptree_error& error) {
+  } catch (const boost::property_tree::ptree_error&) {
     response.SetError(ErrorCode::e_ParseError);
   } catch (...) {
     response.SetError(ErrorCode::e_InternalError);
@@ -340,7 +340,7 @@ bool I2PControlSession::Authenticate(
       response.SetError(ErrorCode::e_ExpiredToken);
       return false;
     }
-  } catch (const boost::property_tree::ptree_error& error) {
+  } catch (const boost::property_tree::ptree_error&) {
     response.SetError(ErrorCode::e_NoToken);
     return false;
   }

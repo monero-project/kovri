@@ -57,26 +57,26 @@ class StringStream {
     m_Stream.read(
         reinterpret_cast<char *>(&buf),
         static_cast<SizeCast>(std::forward<Size>(size)));
-  };
+  }
 
   template<typename SizeCast = std::size_t, typename Offset, typename Position>
   void Seekg(Offset&& off, Position& pos) {
     m_Stream.seekg(
       static_cast<SizeCast>(std::forward<Offset>(off)),
       pos);
-  };
+  }
 
   std::size_t Tellg() {
     return m_Stream.tellg();
-  };
+  }
 
   bool EndOfFile() {
     return m_Stream.eof() ? true : false;
-  };
+  }
 
   std::string Str() {
     return m_Stream.str();
-  };
+  }
 
  private:
   std::stringstream m_Stream;

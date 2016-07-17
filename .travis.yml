@@ -28,11 +28,11 @@ addons:
       name: monero-project/kovri
       description: The Kovri I2P Router Project
     notification_email: anonimal@i2pmail.org
-    build_command_prepend: export CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} && cd build && cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON -DWITH_UPNP=ON -DWITH_DOXYGEN=ON ../
-    build_command: make -j2
+    build_command_prepend: export CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} && make clean
+    build_command: make -j2 everything
     branch_pattern: coverity_scan
 before_script: export CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION}
-script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then cd build && cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON -DWITH_UPNP=ON -DWITH_DOXYGEN=ON ../ && make doc && make -j2 ; fi
+script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then make clean && make -j2 everything; fi
 notifications:
   email: false
   irc:

@@ -44,36 +44,15 @@ $ brew install miniupnpc doxygen  # optional
 
 ## Step 3. Build
 
-### To view CMake options:
-```bash
-$ cd kovri/build
-$ cmake -L ../
-```
+* ```make``` produces vanilla binary
+* ```make static``` produces static binary
+* ```make upnp``` produces vanilla binary with UPnP support (requires [MiniUPnP](http://miniupnp.free.fr/files/))
+* ```make tests``` produces all unit-tests and benchmarks
+* ```make doxygen``` produces Doxygen documentation (output will be in doc/Doxygen)
+* ```make everything``` produces optimized, hardened, UPnP enabled binary + unit-tests and benchmarks + Doxygen
+* ```make help``` shows available CMake build options
 
-### For a regular build:
-```bash
-$ cd kovri/build
-$ cmake ../
-$ make
-```
-
-Note: all builds require building out of the ```build``` directory as described above
-
-### For UPnP support:
-- Install [MiniUPnP](http://miniupnp.free.fr/files/) or use your package manager (see above)
-```bash
-$ cmake -DWITH_UPNP=ON ../ && make
-```
-
-### To build tests:
-```bash
-$ cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON ../ && make
-```
-
-### To produce Doxygen
-```bash
-$ cmake -DWITH_DOXYGEN=ON ../ && make doc  # output will be in kovri/doc/Doxygen/
-```
+All build output will be in the ./build directory
 
 ## Step 4. Open your NAT/Firewall
 1. Choose a port between ```9111``` and ```30777```
@@ -92,7 +71,7 @@ or set your port in kovri.conf
 For a full list of options:
 
 ```bash
-$ ./kovri -h
+$ ./kovri --help-with all
 ```
 
 ## Step 6. Configuration files *(optional)*

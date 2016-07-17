@@ -15,7 +15,7 @@ option(WITH_SUPERCOP   "Build Ed25519 using the ref10 implementation from SUPERC
 option(WITH_TESTS      "Build unit tests" OFF)
 option(WITH_UPNP       "Include support for UPnP client" OFF)
 
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/build/cmake/")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -86,20 +86,6 @@ if(THREADS_HAVE_PTHREAD_ARG) # compile time flag
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 endif()
 
-if(WITH_STATIC)
-  set(Boost_USE_STATIC_LIBS ON)
-  set(Boost_USE_STATIC_RUNTIME OFF)
-  set(BUILD_SHARED_LIBS OFF)
-  if(NOT WIN32)
-    set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
-  endif()
-  if(${CMAKE_CXX_COMPILER} MATCHES ".*-openwrt-.*")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
-    set(CMAKE_THREAD_LIBS_INIT
-      "gcc_eh -Wl,-u,pthread_create,-u,pthread_once,-u,pthread_mutex_lock,-u,pthread_mutex_unlock,-u,pthread_join,-u,pthread_equal,-u,pthread_detach,-u,pthread_cond_wait,-u,pthread_cond_signal,-u,pthread_cond_destroy,-u,pthread_cond_broadcast,-u,pthread_cancel")
-  endif()
-endif()
-
 if(NOT WIN32)
   # TODO: Consider separate compilation for COMMON_SRC for library.
   # No need in -fPIC overhead for binary if not interested in library
@@ -150,6 +136,20 @@ endif()
 find_package(MiniUPnPc)
 if(NOT ${MINIUPNPC_FOUND})
   set(WITH_UPNP OFF)
+endif()
+
+if(WITH_STATIC)
+  set(Boost_USE_STATIC_LIBS ON)
+  set(Boost_USE_STATIC_RUNTIME OFF)
+  set(BUILD_SHARED_LIBS OFF)
+  if(NOT WIN32)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
+  endif()
+  if(${CMAKE_CXX_COMPILER} MATCHES ".*-openwrt-.*")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+    set(CMAKE_THREAD_LIBS_INIT
+      "gcc_eh -Wl,-u,pthread_create,-u,pthread_once,-u,pthread_mutex_lock,-u,pthread_mutex_unlock,-u,pthread_join,-u,pthread_equal,-u,pthread_detach,-u,pthread_cond_wait,-u,pthread_cond_signal,-u,pthread_cond_destroy,-u,pthread_cond_broadcast,-u,pthread_cancel")
+  endif()
 endif()
 
 # Doxygen support

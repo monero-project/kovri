@@ -1,6 +1,34 @@
-## Style
+# Style
 We ardently adhere to (or are in the process of adhering to) [Google's C++ Style Guide](https://google.github.io/styleguide/cppguide.html).
 Please run [cpplint](https://pypi.python.org/pypi/cpplint/) on any applicable work before contributing to Kovri and take no offense if your contribution ends up being style refactored.
+
+## Deviations from the Google C++ Style
+
+- The implementation file extension is ``cpp`` instead of ``cc``.
+- Enums are prefixed with ``e``/``e_`` instead of ``k``.
+- No more than one statement per line.
+  For example, one-liner ``if`` statement with its body is forbidden.
+- In the same manner, one-liner function definitions are forbidden.
+- Avoid inline functions.
+- Consider breaking on function parameters and arguments.
+  Consider providing comments for each parameter or argument.
+- Expressions can be broken before operators.
+
+```cpp
+if (expr1
+    && expr2
+    && expr3)
+  DoSomeThing();
+```
+
+- Bare if-else without brackets is allowed.
+
+```cpp
+if (expr1)
+  DoSomething();
+else
+  DoSomethingElse();
+```
 
 In addition to the aforementioned, please consider the following:
 

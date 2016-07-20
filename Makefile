@@ -29,6 +29,7 @@
 #TODO(unassigned): improve this Makefile
 
 build = build/ # TODO(unassigned): make this more useful
+remove-build = rm -fr $(build)
 
 cmake = cmake -D CMAKE_C_COMPILER=$(CC) -D CMAKE_CXX_COMPILER=$(CXX)
 
@@ -77,9 +78,12 @@ help:
 	cd $(build) && $(cmake) -LH ../
 
 clean:
-	@echo "CAUTION: This will remove the build directory" ; \
-	read -r -p "Is this what you wish to do? (y/N)?: " CONTINUE; \
-	[ $$CONTINUE = "y" ] || [ $$CONTINUE = "Y" ] || (echo "Exiting."; exit 1;)
-	rm -fr $(build)
+	@echo "CAUTION: This will remove the build directory"
+	@if [[ $$FORCE_CLEAN = "yes" ]]; then $(remove-build); \
+	else read -r -p "Is this what you wish to do? (y/N)?: " CONTINUE; \
+	  if [ $$CONTINUE = "y" ] || [ $$CONTINUE = "Y" ]; then $(remove-build); \
+	  else echo "Exiting."; exit 1; \
+	  fi; \
+	fi
 
 .PHONY: all shared static upnp tests doxygen everything help clean

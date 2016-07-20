@@ -79,7 +79,7 @@ help:
 
 clean:
 	@echo "CAUTION: This will remove the build directory"
-	@if [[ $$FORCE_CLEAN = "yes" ]]; then $(remove-build); \
+	@if [ $$FORCE_CLEAN = "yes" ]; then $(remove-build); \
 	else read -r -p "Is this what you wish to do? (y/N)?: " CONTINUE; \
 	  if [ $$CONTINUE = "y" ] || [ $$CONTINUE = "Y" ]; then $(remove-build); \
 	  else echo "Exiting."; exit 1; \

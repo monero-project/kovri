@@ -1,20 +1,12 @@
 # Build files
 *.a
 *.o
-build/CMakeCache.txt
-build/CMakeFiles/*
-build/Doxyfile
-build/cmake_install.cmake
-build/kovri
-build/kovri-benchmarks
-build/kovri-tests
-build/src
+build/
 
 # Autotools
 autom4te.cache
 .deps
 stamp-h1
-Makefile
 config.h
 config.h.in~
 config.log

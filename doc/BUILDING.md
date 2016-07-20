@@ -7,7 +7,11 @@
 - [GCC](https://gcc.gnu.org/) 5.3.0
 - [OpenSSL](https://openssl.org/) (always the latest stable version)
 
-Optional: [Doxygen](http://www.doxygen.org/) (for Doxygen documentation)
+Optional:
+
+- [Clang](http://clang.llvm.org/)
+- [Doxygen](http://www.doxygen.org/)
+- [MiniUPnP](http://miniupnp.free.fr/files/)
 
 ### MacOSX (Mavericks 10.9.4)
 - [Homebrew](http://brew.sh/)
@@ -51,8 +55,19 @@ $ brew install miniupnpc doxygen  # optional
 * ```make doxygen``` produces Doxygen documentation (output will be in doc/Doxygen)
 * ```make everything``` produces optimized, hardened, UPnP enabled binary + unit-tests and benchmarks + Doxygen
 * ```make help``` shows available CMake build options
+- ```make clean``` between subsequent builds
 
-All build output will be in the ./build directory
+All build output will be in the build directory.
+
+### Clang
+Currently, only GCC is officially supported. To build with clang, export ```CC``` and ```CXX```:
+
+```bash
+$ export CC=clang CXX=clang++ && make  # CC is optional to avoid CMake warnings
+```
+
+Replace ```clang``` with a clang version/path of your choosing.
+
 
 ## Step 4. Open your NAT/Firewall
 1. Choose a port between ```9111``` and ```30777```

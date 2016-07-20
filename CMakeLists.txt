@@ -160,17 +160,9 @@ endif()
 # Load remaining includes
 include_directories(${CMAKE_SOURCE_DIR})
 
-# Set default path
+# Use data-path set in Makefile. Code must call upon this definition.
 if(KOVRI_DATA_PATH)
-  set(KOVRI_DATA_DIR ${KOVRI_DATA_PATH})
-  # Using custom path, make sure the code knows about this
   add_definitions(-DKOVRI_CUSTOM_DATA_PATH="${KOVRI_DATA_PATH}")
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-  set(KOVRI_DATA_DIR "$ENV{APPDATA}\\kovri")
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  set(KOVRI_DATA_DIR "$ENV{HOME}/Library/Application Support/kovri")
-else()
-  set(KOVRI_DATA_DIR "$ENV{HOME}/.kovri")
 endif()
 
 # Show summary
@@ -204,12 +196,5 @@ set(CORE_NAME "${PROJECT_NAME}-core")
 set(TESTS_NAME "${PROJECT_NAME}-tests")
 set(BENCHMARKS_NAME "${PROJECT_NAME}-benchmarks")
 add_subdirectory(src)
-
-# Copy needed resources
-if(WITH_BINARY)
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/pkg/certificates" DESTINATION "${KOVRI_DATA_DIR}/")
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/pkg/kovri.conf" DESTINATION "${KOVRI_DATA_DIR}/")
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/pkg/tunnels.conf" DESTINATION "${KOVRI_DATA_DIR}/")
-endif()
 
 # vim: noai:ts=2:sw=2

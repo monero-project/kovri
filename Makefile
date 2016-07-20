@@ -41,7 +41,7 @@ ifeq ($(KOVRI_DATA_PATH),)
     data-path = $(HOME)/Library/Application\ Support/kovri
   endif
   ifneq (, $(findstring MINGW, $(system)))
-    data-path = $(APPDATA)\\kovri
+    data-path = "$(APPDATA)"\\kovri
   endif
 else
   data-path = $(KOVRI_DATA_PATH)

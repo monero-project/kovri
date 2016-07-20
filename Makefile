@@ -26,12 +26,15 @@
 # STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# TODO(unassigned): make this more useful
-build = build/
+#TODO(unassigned): improve this Makefile
+
+build = build/ # TODO(unassigned): make this more useful
+
+cmake = cmake -D CMAKE_C_COMPILER=$(CC) -D CMAKE_CXX_COMPILER=$(CXX)
 
 # TODO(unassigned): put these to good use. We'll require rewrite of root recipe.
-cmake-debug = -D CMAKE_BUILD_TYPE=Debug
-#cmake-release = -D CMAKE_BUILD_TYPE=Release
+debug = -D CMAKE_BUILD_TYPE=Debug
+#release = -D CMAKE_BUILD_TYPE=Release
 
 upnp       = -D WITH_UPNP=ON
 optimize   = -D WITH_OPTIMIZE=ON
@@ -46,34 +49,37 @@ all: shared
 
 shared:
 	mkdir -p $(build)
-	cd $(build) && cmake $(cmake-debug) ../ && $(MAKE)
+	cd $(build) && $(cmake) $(debug) ../ && $(MAKE)
 
 static:
 	mkdir -p $(build)
-	cd $(build) && cmake $(cmake-debug) $(static) ../ && $(MAKE)
+	cd $(build) && $(cmake) $(debug) $(static) ../ && $(MAKE)
 
 upnp:
 	mkdir -p $(build)
-	cd $(build) && cmake $(cmake-debug) $(upnp) ../ && $(MAKE)
+	cd $(build) && $(cmake) $(debug) $(upnp) ../ && $(MAKE)
 
 tests:
 	mkdir -p $(build)
-	cd $(build) && cmake $(cmake-debug) $(tests) $(benchmarks) ../ && $(MAKE)
+	cd $(build) && $(cmake) $(debug) $(tests) $(benchmarks) ../ && $(MAKE)
 
 doxygen:
 	mkdir -p $(build)
-	cd $(build) && cmake $(doxygen) ../ && $(MAKE) doc
+	cd $(build) && $(cmake) $(doxygen) ../ && $(MAKE) doc
 
 # We need (or very much should have) optimizations with hardening
 everything:
 	mkdir -p $(build)
-	cd $(build) && cmake $(cmake-debug) $(optimize) $(hardening) $(upnp) $(tests) $(benchmarks) $(doxygen) ../ && $(MAKE)
+	cd $(build) && $(cmake) $(debug) $(optimize) $(hardening) $(upnp) $(tests) $(benchmarks) $(doxygen) ../ && $(MAKE)
 
 help:
 	mkdir -p $(build)
-	cd $(build) && cmake -LH ../
+	cd $(build) && $(cmake) -LH ../
 
 clean:
+	@echo "CAUTION: This will remove the build directory" ; \
+	read -r -p "Is this what you wish to do? (y/N)?: " CONTINUE; \
+	[ $$CONTINUE = "y" ] || [ $$CONTINUE = "Y" ] || (echo "Exiting."; exit 1;)
 	rm -fr $(build)
 
 .PHONY: all shared static upnp tests doxygen everything help clean

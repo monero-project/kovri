@@ -47,8 +47,10 @@ $ brew install miniupnpc doxygen  # optional
 ```
 
 ## Step 3. Build
+Note: you must **alway** run ```make install-resources``` for new installations
 
 * ```make``` produces vanilla binary
+* ```make install-resources``` installs resources (configuration files, certificates)
 * ```make static``` produces static binary
 * ```make upnp``` produces vanilla binary with UPnP support (requires [MiniUPnP](http://miniupnp.free.fr/files/))
 * ```make tests``` produces all unit-tests and benchmarks
@@ -68,6 +70,12 @@ $ export CC=clang CXX=clang++ && make  # CC is optional to avoid CMake warnings
 
 Replace ```clang``` with a clang version/path of your choosing.
 
+### Custom data path
+You can customize Kovri's data path to your liking. Simply export ```KOVRI_DATA_PATH```; example:
+
+```bash
+$ export KOVRI_DATA_PATH=$HOME/.another-kovri-data-path && make && make install-resources
+```
 
 ## Step 4. Open your NAT/Firewall
 1. Choose a port between ```9111``` and ```30777```

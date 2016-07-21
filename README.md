@@ -18,28 +18,30 @@
 2. Choose a port between ```9111``` and ```30777```
 3. Open your NAT/Firewall to allow incoming TCP/UDP connections to your chosen port
    - UPnP optional; see [Build Instructions](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md)
-4. Clone - build - run Kovri:
+4. Download, build, and run:
 ```bash
 $ git clone https://github.com/monero-project/kovri
-$ cd kovri/build && cmake ../ && make
-$ ./kovri -p [your chosen port number]
+$ make && make install-resources # to decrease build-time, run make -j [available CPU cores]
+$ ./build/kovri -p [your chosen port number] # port number without brackets
 ```
 - For quick help options: ```$ ./kovri --help```
 - For a detailed listing of options: ```$ ./kovri --help-with all```
 
 ## Documentation
-- Read our [FAQ](https://github.com/monero-project/kovri/blob/master/doc/FAQ.md) or join us in ```#kovri``` or ```#kovri-dev``` on Freenode or Irc2P
-- All other documentation is on our [doc](https://github.com/monero-project/kovri/tree/master/doc) directory
+- Our [FAQ](https://github.com/monero-project/kovri/blob/master/doc/FAQ.md) and other documentation are in our [doc](https://github.com/monero-project/kovri/tree/master/doc) directory
 
 ## Developers
-- Visit our [Forum Funding System](https://forum.getmonero.org/8/funding-required) to get funded for your work
 - Read our [Contributing Guide](https://github.com/monero-project/kovri/blob/master/doc/CONTRIBUTING.md) before sending a pull-request
+- Visit our [Forum Funding System](https://forum.getmonero.org/8/funding-required) to get funded for your work
 
-## Donations
-- Visit our [Donations Page](https://getmonero.org/getting-started/donate/) help Kovri with your donations
+## Contact
+- Visit us on [Slack](https://monero.slack.com)
+- IRC: [Freenode](https://webchat.freenode.net/) | [OFTC](https://webchat.oftc.net/) | Irc2P
+  - ```#kovri``` | Community & Support Channel
+  - ```#kovri-dev``` | Development Channel
 
 ## Vulnerability Response
-- Please, submit a report via [HackerOne](https://hackerone.com/kovri)
+- Submit a report via [HackerOne](https://hackerone.com/kovri)
 - If you're having trouble using HackerOne, email us *(please, use PGP)*:
 ```
 anonimal [anonimal @ mail.i2p] or [anonimal @ i2pmail.org]
@@ -47,8 +49,11 @@ Key fingerprint = 1218 6272 CD48 E253 9E2D  D29B 66A7 6ECF 9144 09F1
 ```
 Note: our future VRP will be inline with [I2P's VRP](https://trac.i2p2.de/ticket/1119)
 
+## Donations
+- Visit our [Donations Page](https://getmonero.org/getting-started/donate/) to help Kovri with your donations
+
 ## Acknowledgments
-- **orignal** for providing ```i2pd```: the most feature-complete C++ implementation of I2P for [us to fork from](https://github.com/purplei2p/i2pd/commit/45d27f8ddc43e220a9eea42de41cb67d5627a7d3)
 - **orion** for providing ```i2pcpp```: the [original](http://git.repo.i2p.xyz/w/i2pcpp.git) C++ implementation of I2P
+- **orignal** for providing ```i2pd```: the most feature-complete C++ implementation of I2P for [us to fork from](https://github.com/purplei2p/i2pd/commit/45d27f8ddc43e220a9eea42de41cb67d5627a7d3)
 - **EinMByte** for improving *both* implementations
 - The ed25519/ folder is based on the [ref10 implementation from SUPERCOP](http://bench.cr.yp.to/supercop.html)

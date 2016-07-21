@@ -15,7 +15,7 @@ option(WITH_SUPERCOP   "Build Ed25519 using the ref10 implementation from SUPERC
 option(WITH_TESTS      "Build unit tests" OFF)
 option(WITH_UPNP       "Include support for UPnP client" OFF)
 
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/build/cmake/")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -86,20 +86,6 @@ if(THREADS_HAVE_PTHREAD_ARG) # compile time flag
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 endif()
 
-if(WITH_STATIC)
-  set(Boost_USE_STATIC_LIBS ON)
-  set(Boost_USE_STATIC_RUNTIME OFF)
-  set(BUILD_SHARED_LIBS OFF)
-  if(NOT WIN32)
-    set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
-  endif()
-  if(${CMAKE_CXX_COMPILER} MATCHES ".*-openwrt-.*")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
-    set(CMAKE_THREAD_LIBS_INIT
-      "gcc_eh -Wl,-u,pthread_create,-u,pthread_once,-u,pthread_mutex_lock,-u,pthread_mutex_unlock,-u,pthread_join,-u,pthread_equal,-u,pthread_detach,-u,pthread_cond_wait,-u,pthread_cond_signal,-u,pthread_cond_destroy,-u,pthread_cond_broadcast,-u,pthread_cancel")
-  endif()
-endif()
-
 if(NOT WIN32)
   # TODO: Consider separate compilation for COMMON_SRC for library.
   # No need in -fPIC overhead for binary if not interested in library
@@ -152,6 +138,20 @@ if(NOT ${MINIUPNPC_FOUND})
   set(WITH_UPNP OFF)
 endif()
 
+if(WITH_STATIC)
+  set(Boost_USE_STATIC_LIBS ON)
+  set(Boost_USE_STATIC_RUNTIME OFF)
+  set(BUILD_SHARED_LIBS OFF)
+  if(NOT WIN32)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
+  endif()
+  if(${CMAKE_CXX_COMPILER} MATCHES ".*-openwrt-.*")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+    set(CMAKE_THREAD_LIBS_INIT
+      "gcc_eh -Wl,-u,pthread_create,-u,pthread_once,-u,pthread_mutex_lock,-u,pthread_mutex_unlock,-u,pthread_join,-u,pthread_equal,-u,pthread_detach,-u,pthread_cond_wait,-u,pthread_cond_signal,-u,pthread_cond_destroy,-u,pthread_cond_broadcast,-u,pthread_cancel")
+  endif()
+endif()
+
 # Doxygen support
 if(WITH_DOXYGEN)
   include(UseDoxygen)
@@ -160,17 +160,9 @@ endif()
 # Load remaining includes
 include_directories(${CMAKE_SOURCE_DIR})
 
-# Set default path
+# Use data-path set in Makefile. Code must call upon this definition.
 if(KOVRI_DATA_PATH)
-  set(KOVRI_DATA_DIR ${KOVRI_DATA_PATH})
-  # Using custom path, make sure the code knows about this
   add_definitions(-DKOVRI_CUSTOM_DATA_PATH="${KOVRI_DATA_PATH}")
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-  set(KOVRI_DATA_DIR "$ENV{APPDATA}\\kovri")
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  set(KOVRI_DATA_DIR "$ENV{HOME}/Library/Application Support/kovri")
-else()
-  set(KOVRI_DATA_DIR "$ENV{HOME}/.kovri")
 endif()
 
 # Show summary
@@ -204,12 +196,5 @@ set(CORE_NAME "${PROJECT_NAME}-core")
 set(TESTS_NAME "${PROJECT_NAME}-tests")
 set(BENCHMARKS_NAME "${PROJECT_NAME}-benchmarks")
 add_subdirectory(src)
-
-# Copy needed resources
-if(WITH_BINARY)
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/pkg/certificates" DESTINATION "${KOVRI_DATA_DIR}/")
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/pkg/kovri.conf" DESTINATION "${KOVRI_DATA_DIR}/")
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/pkg/tunnels.conf" DESTINATION "${KOVRI_DATA_DIR}/")
-endif()
 
 # vim: noai:ts=2:sw=2

@@ -1,18 +1,17 @@
 env:
   global:
   - GCC_VERSION=5
+  - FORCE_CLEAN=yes
+  - FORCE_INSTALL=yes
   - secure: J4o/q57D7PAqV+hG5VUhwGJLH4ryFWy8YGVAlAOyrRVv9UxfbiihhyE5Yh68tjukdFqLt3WcHB3hoPz0VfbxWGdLQ9OR0r7xxYPetA0qVYcttpumcVSBra17CCRBYOcyRCfbgUY/LVRbKlr8zgkubRUW0skUcAgELyZJA6k/k+3pd1oDjdBLMLp+TeQvQnUtekw7eEzBl31bgpku3vHQEiYxMRY6FhBC0vojNJSjT56pqYzA/bOVrPNDATxHqDAxuEWfNiNQym4P2T+LmkC2utCWlwLBSqTauy54z4nKM6+0xEmRq2hmBWZeSv1tYuKJi8rmtAH5OozyVGSaXpuelcaWE4YrNCGEXOJZQvuD+IEuFVSkqXItoUIjlE1kP/zIDAZERMaISzXkp2xpPQFes8NLE3lNdcvMYYUjVfyUpYN0qE5/XX6Opii6Y8Sj6wQaz1Y5n3g1Lp5TMlQIVmmTUPAWoCq3U2BTPn+Ub8O8Z7Y/9Zr1xdz3gBEJaYv1CuxrSb3z3lQ9BjodBL1u+l5me+16dBe4RbpPwoWvLramJAvKEuDHMx93UnYU+PWs9B9UyIwEh/FxpvRyu8iyI6pfNWIsrc1jJ2nzf1YrnXOHb0C0CdwHH6p6Nzy/bOfaBOihiwc6o9r80AHq0RBbkH7euPOGFAo4iUgYTaS7R9Pw6Rk=
 sudo: required
 dist: trusty
-before_install:
-- echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-certificates.crt
 language: cpp
 compiler:
 - gcc
 addons:
   apt:
     packages:
-    - ca-certificates
     - gcc-5
     - g++-5
     - libboost-all-dev
@@ -28,11 +27,11 @@ addons:
       name: monero-project/kovri
       description: The Kovri I2P Router Project
     notification_email: anonimal@i2pmail.org
-    build_command_prepend: export CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} && cd build && cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON -DWITH_UPNP=ON -DWITH_DOXYGEN=ON ../
-    build_command: make -j2
+    build_command_prepend: export CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} ${FORCE_CLEAN} && make clean
+    build_command: make -j2 everything && make install-resources
     branch_pattern: coverity_scan
-before_script: export CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION}
-script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then cd build && cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON -DWITH_UPNP=ON -DWITH_DOXYGEN=ON ../ && make doc && make -j2 ; fi
+before_script: export CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} ${FORCE_CLEAN}
+script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then make clean && make -j2 everything && make install-resources; fi
 notifications:
   email: false
   irc:

@@ -7,7 +7,11 @@
 - [GCC](https://gcc.gnu.org/) 5.3.0
 - [OpenSSL](https://openssl.org/) (always the latest stable version)
 
-Optional: [Doxygen](http://www.doxygen.org/) (for Doxygen documentation)
+Optional:
+
+- [Clang](http://clang.llvm.org/)
+- [Doxygen](http://www.doxygen.org/)
+- [MiniUPnP](http://miniupnp.free.fr/files/)
 
 ### MacOSX (Mavericks 10.9.4)
 - [Homebrew](http://brew.sh/)
@@ -43,36 +47,34 @@ $ brew install miniupnpc doxygen  # optional
 ```
 
 ## Step 3. Build
+Note: you must **alway** run ```make install-resources``` for new installations
 
-### To view CMake options:
+* ```make``` produces vanilla binary
+* ```make install-resources``` installs resources (configuration files, certificates)
+* ```make static``` produces static binary
+* ```make upnp``` produces vanilla binary with UPnP support (requires [MiniUPnP](http://miniupnp.free.fr/files/))
+* ```make tests``` produces all unit-tests and benchmarks
+* ```make doxygen``` produces Doxygen documentation (output will be in doc/Doxygen)
+* ```make everything``` produces optimized, hardened, UPnP enabled binary + unit-tests and benchmarks + Doxygen
+* ```make help``` shows available CMake build options
+- ```make clean``` between subsequent builds
+
+All build output will be in the build directory.
+
+### Clang
+Currently, only GCC is officially supported. To build with clang, export ```CC``` and ```CXX```:
+
 ```bash
-$ cd kovri/build
-$ cmake -L ../
+$ export CC=clang CXX=clang++ && make  # CC is optional to avoid CMake warnings
 ```
 
-### For a regular build:
-```bash
-$ cd kovri/build
-$ cmake ../
-$ make
-```
+Replace ```clang``` with a clang version/path of your choosing.
 
-Note: all builds require building out of the ```build``` directory as described above
+### Custom data path
+You can customize Kovri's data path to your liking. Simply export ```KOVRI_DATA_PATH```; example:
 
-### For UPnP support:
-- Install [MiniUPnP](http://miniupnp.free.fr/files/) or use your package manager (see above)
 ```bash
-$ cmake -DWITH_UPNP=ON ../ && make
-```
-
-### To build tests:
-```bash
-$ cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON ../ && make
-```
-
-### To produce Doxygen
-```bash
-$ cmake -DWITH_DOXYGEN=ON ../ && make doc  # output will be in kovri/doc/Doxygen/
+$ export KOVRI_DATA_PATH=$HOME/.another-kovri-data-path && make && make install-resources
 ```
 
 ## Step 4. Open your NAT/Firewall
@@ -92,7 +94,7 @@ or set your port in kovri.conf
 For a full list of options:
 
 ```bash
-$ ./kovri -h
+$ ./kovri --help-with all
 ```
 
 ## Step 6. Configuration files *(optional)*

@@ -28,10 +28,11 @@ addons:
       description: The Kovri I2P Router Project
     notification_email: anonimal@i2pmail.org
     build_command_prepend: export CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} ${FORCE_CLEAN} && make clean
-    build_command: make -j2 everything && make install-resources
+    build_command: make -j2 dependencies && make -j2 all-options && make install-resources
     branch_pattern: coverity_scan
+before_install: git submodule update --init --recursive
 before_script: export CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} ${FORCE_CLEAN}
-script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then make clean && make -j2 everything && make install-resources; fi
+script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then make clean && make -j2 dependencies && make -j2 all-options && make install-resources; fi
 notifications:
   email: false
   irc:

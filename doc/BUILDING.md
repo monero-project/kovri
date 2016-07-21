@@ -47,16 +47,24 @@ $ brew install miniupnpc doxygen  # optional
 ```
 
 ## Step 3. Build
-Note: you must **alway** run ```make install-resources``` for new installations
+Minimum requirement:
+```bash
+$ git clone --recursive https://github.com/monero-project/kovri
+$ make dependencies && make && make install-resources # to decrease build-time, run make -j [available CPU cores]
+```
+- End-users MUST run ```make dependencies``` and ```make install-resources``` for new installations
+- Developers SHOULD run ```make dependencies``` and ```make install-resources``` after a fresh fetch
 
-* ```make``` produces vanilla binary
-* ```make install-resources``` installs resources (configuration files, certificates)
-* ```make static``` produces static binary
-* ```make upnp``` produces vanilla binary with UPnP support (requires [MiniUPnP](http://miniupnp.free.fr/files/))
-* ```make tests``` produces all unit-tests and benchmarks
-* ```make doxygen``` produces Doxygen documentation (output will be in doc/Doxygen)
-* ```make everything``` produces optimized, hardened, UPnP enabled binary + unit-tests and benchmarks + Doxygen
-* ```make help``` shows available CMake build options
+Other options:
+
+- ```make static``` produces static binary
+
+- ```make upnp``` produces vanilla binary with UPnP support (requires [MiniUPnP](http://miniupnp.free.fr/files/))
+- ```make tests``` produces all unit-tests and benchmarks
+- ```make doxygen``` produces Doxygen documentation (output will be in doc/Doxygen)
+- ```make all-options``` produces optimized, hardened, UPnP enabled binary + unit-tests and benchmarks + Doxygen
+
+- ```make help``` shows available CMake build options
 - ```make clean``` between subsequent builds
 
 All build output will be in the build directory.

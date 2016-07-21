@@ -21,8 +21,8 @@
 4. Download, build, and run:
 ```bash
 $ git clone https://github.com/monero-project/kovri
-$ make # or make -j [available CPU cores]
-$ ./build/kovri -p [your chosen port number]
+$ make && make install-resources # to decrease build-time, run make -j [available CPU cores]
+$ ./build/kovri -p [your chosen port number] # port number without brackets
 ```
 - For quick help options: ```$ ./kovri --help```
 - For a detailed listing of options: ```$ ./kovri --help-with all```

@@ -28,15 +28,38 @@
 
 #TODO(unassigned): improve this Makefile
 
-build = build/ # TODO(unassigned): make this more useful
-remove-build = rm -fr $(build)
+# Get architecture
+system := $(shell uname)
 
-cmake = cmake -D CMAKE_C_COMPILER=$(CC) -D CMAKE_CXX_COMPILER=$(CXX)
+# Set custom data path
+# If no path is given, set default path
+ifeq ($(KOVRI_DATA_PATH),)
+  ifeq ($(system), Linux)
+    data-path = $(HOME)/.kovri
+  endif
+  ifeq ($(system), Darwin)
+    data-path = $(HOME)/Library/Application\ Support/kovri
+  endif
+  ifneq (, $(findstring MINGW, $(system)))
+    data-path = "$(APPDATA)"\\kovri
+  endif
+else
+  data-path = $(KOVRI_DATA_PATH)
+endif
 
+# Command to install package resources to data path
+copy-resources = cp -fR pkg/ $(data-path)
+
+# Release types
 # TODO(unassigned): put these to good use. We'll require rewrite of root recipe.
 debug = -D CMAKE_BUILD_TYPE=Debug
 #release = -D CMAKE_BUILD_TYPE=Release
 
+# Build directory and clean command
+build = build/ # TODO(unassigned): make this more useful
+remove-build = rm -fR $(build)
+
+# Current common build options
 upnp       = -D WITH_UPNP=ON
 optimize   = -D WITH_OPTIMIZE=ON
 hardening  = -D WITH_HARDENING=ON
@@ -44,6 +67,9 @@ tests      = -D WITH_TESTS=ON
 benchmarks = -D WITH_BENCHMARKS=ON
 static     = -D WITH_STATIC=ON
 doxygen    = -D WITH_DOXYGEN=ON
+
+# Our base cmake command
+cmake = cmake -D CMAKE_C_COMPILER=$(CC) -D CMAKE_CXX_COMPILER=$(CXX) -D KOVRI_DATA_PATH=$(data-path)
 
 # TODO(unassigned): implement release build options
 all: shared
@@ -86,4 +112,15 @@ clean:
 	  fi; \
 	fi
 
-.PHONY: all shared static upnp tests doxygen everything help clean
+# TODO(unassigned): we need to consider using a proper autoconf configure and make install.
+# For now, we'll simply (optionally) copy resources. Binaries will remain in build directory.
+install-resources:
+	@echo "WARNING: This will overwrite all resources and configuration files"
+	@if [ $$FORCE_INSTALL = "yes" ]; then $(copy-resources); \
+	else read -r -p "Is this what you wish to do? (y/N)?: " CONTINUE; \
+	  if [ $$CONTINUE = "y" ] || [ $$CONTINUE = "Y" ]; then $(copy-resources); \
+	  else echo "Exiting."; exit 1; \
+	  fi; \
+	fi
+
+.PHONY: all shared static upnp tests doxygen everything help clean install-resources

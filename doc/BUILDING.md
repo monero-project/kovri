@@ -1,7 +1,7 @@
 ## Step 1. Minimum requirements
 
 ### Linux / MacOSX (Mavericks 10.9.4) / FreeBSD 10 / Windows (Cygwin)
-- [Boost](http://www.boost.org/) 1.54
+- [Boost](http://www.boost.org/) 1.58
 - [CMake](https://cmake.org/) 2.8.12
 - [Crypto++](https://cryptopp.com/) 5.6.2
 - [GCC](https://gcc.gnu.org/) 5.3.0
@@ -26,6 +26,14 @@ Note: the MacOSX and FreeBSD build need love! See [#175](https://github.com/mone
 ```bash
 $ sudo apt-get install g++-5 cmake libboost-all-dev libcrypto++-dev libssl-dev libssl1.0.0
 $ sudo apt-get install libminiupnpc-dev doxygen  # optional
+```
+
+### Ubuntu Trusty 14.04:
+
+```bash
+$ sudo add-apt-repository -y ppa:kojoley/boost
+$ sudo apt-get -q update
+$ sudo apt-get -y install libboost-{chrono,log,program-options,date-time,thread,system,filesystem,regex,test}1.58{-dev,.0}
 ```
 
 ### Arch Linux

@@ -134,4 +134,4 @@ install-resources:
 	  fi; \
 	fi
 
-.PHONY: all shared static upnp tests doxygen all-options help clean install-resources
+.PHONY: all dependencies shared static upnp tests doxygen all-options help clean install-resources

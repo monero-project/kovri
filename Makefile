@@ -50,58 +50,69 @@ endif
 # Command to install package resources to data path
 copy-resources = cp -fR pkg/ $(data-path)
 
-# Release types
-# TODO(unassigned): put these to good use. We'll require rewrite of root recipe.
-debug = -D CMAKE_BUILD_TYPE=Debug
-#release = -D CMAKE_BUILD_TYPE=Release
-
 # Build directory and clean command
-build = build/ # TODO(unassigned): make this more useful
+build = build # TODO(unassigned): make this more useful
 remove-build = rm -fR $(build)
 
-# Current common build options
-upnp       = -D WITH_UPNP=ON
-optimize   = -D WITH_OPTIMIZE=ON
-hardening  = -D WITH_HARDENING=ON
-tests      = -D WITH_TESTS=ON
-benchmarks = -D WITH_BENCHMARKS=ON
-static     = -D WITH_STATIC=ON
-doxygen    = -D WITH_DOXYGEN=ON
+# Dependencies
+deps = deps
+cpp-netlib = $(deps)/cpp-netlib
+
+# Current off-by-default build options
+cmake-upnp       = -D WITH_UPNP=ON
+cmake-optimize   = -D WITH_OPTIMIZE=ON
+cmake-hardening  = -D WITH_HARDENING=ON
+cmake-tests      = -D WITH_TESTS=ON
+cmake-benchmarks = -D WITH_BENCHMARKS=ON
+cmake-static     = -D WITH_STATIC=ON
+cmake-doxygen    = -D WITH_DOXYGEN=ON
+
+# Our custom data path
+cmake-data-path = -D KOVRI_DATA_PATH=$(data-path)
+
+# Release types
+# TODO(unassigned): put these to good use. We'll require rewrite of root recipe.
+cmake-debug = -D CMAKE_BUILD_TYPE=Debug
+#cmake-release = -D CMAKE_BUILD_TYPE=Release
 
 # Our base cmake command
-cmake = cmake -D CMAKE_C_COMPILER=$(CC) -D CMAKE_CXX_COMPILER=$(CXX) -D KOVRI_DATA_PATH=$(data-path)
+cmake = cmake -D CMAKE_C_COMPILER=$(CC) -D CMAKE_CXX_COMPILER=$(CXX)
 
-# TODO(unassigned): implement release build options
+# TODO(unassigned): implement cmake-release build options
 all: shared
+
+dependencies:
+	mkdir -p $(cpp-netlib)/$(build)
+	cd $(cpp-netlib)/$(build) && $(cmake) $(cmake-debug) ../ && $(MAKE)
 
 shared:
 	mkdir -p $(build)
-	cd $(build) && $(cmake) $(debug) ../ && $(MAKE)
+	cd $(build) && $(cmake) $(cmake-debug) ../ && $(MAKE)
 
 static:
 	mkdir -p $(build)
-	cd $(build) && $(cmake) $(debug) $(static) ../ && $(MAKE)
+	cd $(build) && $(cmake) $(cmake-debug) $(cmake-static) ../ && $(MAKE)
 
 upnp:
 	mkdir -p $(build)
-	cd $(build) && $(cmake) $(debug) $(upnp) ../ && $(MAKE)
+	cd $(build) && $(cmake) $(cmake-debug) $(cmake-upnp) ../ && $(MAKE)
 
 tests:
 	mkdir -p $(build)
-	cd $(build) && $(cmake) $(debug) $(tests) $(benchmarks) ../ && $(MAKE)
+	cd $(build) && $(cmake) $(cmake-debug) $(cmake-tests) $(cmake-benchmarks) ../ && $(MAKE)
 
 doxygen:
 	mkdir -p $(build)
-	cd $(build) && $(cmake) $(doxygen) ../ && $(MAKE) doc
+	cd $(build) && $(cmake) -D WITH_CPPNETLIB=OFF $(cmake-doxygen) ../ && $(MAKE) doc
 
-# We need (or very much should have) optimizations with hardening
-everything:
+# We need (or very much should have) optimizations with cmake-hardening
+all-options:
 	mkdir -p $(build)
-	cd $(build) && $(cmake) $(debug) $(optimize) $(hardening) $(upnp) $(tests) $(benchmarks) $(doxygen) ../ && $(MAKE)
+	cd $(build) && $(cmake) $(cmake-debug) $(cmake-optimize) $(cmake-hardening) $(cmake-upnp) $(cmake-tests) $(cmake-benchmarks) $(cmake-doxygen) ../ && $(MAKE)
 
 help:
 	mkdir -p $(build)
-	cd $(build) && $(cmake) -LH ../
+	cd $(build) && $(cmake) -D WITH_CPPNETLIB=OFF -LH ../
 
 clean:
 	@echo "CAUTION: This will remove the build directory"
@@ -123,4 +134,4 @@ install-resources:
 	  fi; \
 	fi
 
-.PHONY: all shared static upnp tests doxygen everything help clean install-resources
+.PHONY: all dependencies shared static upnp tests doxygen all-options help clean install-resources

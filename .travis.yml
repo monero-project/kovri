@@ -31,7 +31,7 @@ addons:
     branch_pattern: coverity_scan
 before_install:
 - git submodule update --init --recursive
-- sudo add-apt-repository ppa:kojoley/boost
+- sudo add-apt-repository -y ppa:kojoley/boost
 - sudo apt-get -q update
 - sudo apt-get -y install libboost-{chrono,log,program-options,date-time,thread,system,filesystem,regex}1.58{-dev,.0}
 before_script: export CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} ${FORCE_CLEAN}

@@ -39,6 +39,7 @@ $ ./build/kovri -p [your chosen port number] # port number without brackets
 - IRC: [Freenode](https://webchat.freenode.net/) | [OFTC](https://webchat.oftc.net/) | Irc2P
   - ```#kovri``` | Community & Support Channel
   - ```#kovri-dev``` | Development Channel
+- https://forum.getmonero.org/
 
 ## Vulnerability Response
 - Submit a report via [HackerOne](https://hackerone.com/kovri)

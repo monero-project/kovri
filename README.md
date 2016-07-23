@@ -20,8 +20,8 @@
    - UPnP optional; see [Build Instructions](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md)
 4. Download, build, and run:
 ```bash
-$ git clone https://github.com/monero-project/kovri
-$ make && make install-resources # to decrease build-time, run make -j [available CPU cores]
+$ git clone --recursive https://github.com/monero-project/kovri
+$ make dependencies && make && make install-resources # to decrease build-time, run make -j [available CPU cores]
 $ ./build/kovri -p [your chosen port number] # port number without brackets
 ```
 - For quick help options: ```$ ./kovri --help```
@@ -39,6 +39,7 @@ $ ./build/kovri -p [your chosen port number] # port number without brackets
 - IRC: [Freenode](https://webchat.freenode.net/) | [OFTC](https://webchat.oftc.net/) | Irc2P
   - ```#kovri``` | Community & Support Channel
   - ```#kovri-dev``` | Development Channel
+- https://forum.getmonero.org/
 
 ## Vulnerability Response
 - Submit a report via [HackerOne](https://hackerone.com/kovri)

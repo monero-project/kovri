@@ -6,6 +6,7 @@ option(KOVRI_DATA_PATH "The path to the kovri data folder")
 option(WITH_BENCHMARKS "Build with benchmarks" OFF)
 option(WITH_BINARY     "Build binary" ON)
 option(WITH_CRYPTOPP   "Build with Crypto++" ON)  # Default ON unless we switch libraries
+option(WITH_CPPNETLIB  "Build with cpp-netlib" ON)
 option(WITH_DOXYGEN    "Enable support for Doxygen" OFF)
 option(WITH_HARDENING  "Use hardening compiler flags" OFF)
 option(WITH_LIBRARY    "Build library" ON)
@@ -131,6 +132,21 @@ if(NOT DEFINED OPENSSL_INCLUDE_DIR)
   message(SEND_ERROR "Could not find OpenSSL. Please download and install it first!")
 else()
   include_directories(${OPENSSL_INCLUDE_DIR})
+endif()
+
+# Note: we're actually building off branch 0.13-release - not 0.12.0.
+# cpp-netlib's MINOR is kept at 0.12 until 0.13 is official.
+# CMake will find cppnetlibConfig*.cmake in cpp-netlib's build directory
+# (we *could* instruct to make install for cpp-netlib but that's not needed ATM).
+if(WITH_CPPNETLIB)
+  set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} deps/cpp-netlib)
+  find_package(cppnetlib 0.12.0 REQUIRED)
+  if(NOT DEFINED CPPNETLIB_INCLUDE_DIRS)
+    message(SEND_ERROR "Could not find cpp-netlib 0.12.0. See building instructions.")
+  else()
+    message(STATUS "Found cpp-netlib: ${CPPNETLIB_INCLUDE_DIRS}, ${CPPNETLIB_LIBRARIES}")
+    include_directories(${CPPNETLIB_INCLUDE_DIRS})
+  endif()
 endif()
 
 find_package(MiniUPnPc)

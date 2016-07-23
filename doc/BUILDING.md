@@ -1,7 +1,7 @@
 ## Step 1. Minimum requirements
 
 ### Linux / MacOSX (Mavericks 10.9.4) / FreeBSD 10 / Windows (Cygwin)
-- [Boost](http://www.boost.org/) 1.54
+- [Boost](http://www.boost.org/) 1.58
 - [CMake](https://cmake.org/) 2.8.12
 - [Crypto++](https://cryptopp.com/) 5.6.2
 - [GCC](https://gcc.gnu.org/) 5.3.0
@@ -28,6 +28,14 @@ $ sudo apt-get install g++-5 cmake libboost-all-dev libcrypto++-dev libssl-dev l
 $ sudo apt-get install libminiupnpc-dev doxygen  # optional
 ```
 
+### Ubuntu Trusty 14.04:
+
+```bash
+$ sudo add-apt-repository -y ppa:kojoley/boost
+$ sudo apt-get -q update
+$ sudo apt-get -y install libboost-{chrono,log,program-options,date-time,thread,system,filesystem,regex,test}1.58{-dev,.0}
+```
+
 ### Arch Linux
 ```bash
 $ sudo pacman -Syu cmake boost crypto++  # gcc/g++ and openssl installed by default
@@ -47,16 +55,24 @@ $ brew install miniupnpc doxygen  # optional
 ```
 
 ## Step 3. Build
-Note: you must **alway** run ```make install-resources``` for new installations
+Minimum requirement:
+```bash
+$ git clone --recursive https://github.com/monero-project/kovri
+$ make dependencies && make && make install-resources # to decrease build-time, run make -j [available CPU cores]
+```
+- End-users MUST run ```make dependencies``` and ```make install-resources``` for new installations
+- Developers SHOULD run ```make dependencies``` and ```make install-resources``` after a fresh fetch
 
-* ```make``` produces vanilla binary
-* ```make install-resources``` installs resources (configuration files, certificates)
-* ```make static``` produces static binary
-* ```make upnp``` produces vanilla binary with UPnP support (requires [MiniUPnP](http://miniupnp.free.fr/files/))
-* ```make tests``` produces all unit-tests and benchmarks
-* ```make doxygen``` produces Doxygen documentation (output will be in doc/Doxygen)
-* ```make everything``` produces optimized, hardened, UPnP enabled binary + unit-tests and benchmarks + Doxygen
-* ```make help``` shows available CMake build options
+Other options:
+
+- ```make static``` produces static binary
+
+- ```make upnp``` produces vanilla binary with UPnP support (requires [MiniUPnP](http://miniupnp.free.fr/files/))
+- ```make tests``` produces all unit-tests and benchmarks
+- ```make doxygen``` produces Doxygen documentation (output will be in doc/Doxygen)
+- ```make all-options``` produces optimized, hardened, UPnP enabled binary + unit-tests and benchmarks + Doxygen
+
+- ```make help``` shows available CMake build options
 - ```make clean``` between subsequent builds
 
 All build output will be in the build directory.

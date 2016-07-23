@@ -3,7 +3,8 @@ env:
   - GCC_VERSION=5
   - FORCE_CLEAN=yes
   - FORCE_INSTALL=yes
-  - secure: J4o/q57D7PAqV+hG5VUhwGJLH4ryFWy8YGVAlAOyrRVv9UxfbiihhyE5Yh68tjukdFqLt3WcHB3hoPz0VfbxWGdLQ9OR0r7xxYPetA0qVYcttpumcVSBra17CCRBYOcyRCfbgUY/LVRbKlr8zgkubRUW0skUcAgELyZJA6k/k+3pd1oDjdBLMLp+TeQvQnUtekw7eEzBl31bgpku3vHQEiYxMRY6FhBC0vojNJSjT56pqYzA/bOVrPNDATxHqDAxuEWfNiNQym4P2T+LmkC2utCWlwLBSqTauy54z4nKM6+0xEmRq2hmBWZeSv1tYuKJi8rmtAH5OozyVGSaXpuelcaWE4YrNCGEXOJZQvuD+IEuFVSkqXItoUIjlE1kP/zIDAZERMaISzXkp2xpPQFes8NLE3lNdcvMYYUjVfyUpYN0qE5/XX6Opii6Y8Sj6wQaz1Y5n3g1Lp5TMlQIVmmTUPAWoCq3U2BTPn+Ub8O8Z7Y/9Zr1xdz3gBEJaYv1CuxrSb3z3lQ9BjodBL1u+l5me+16dBe4RbpPwoWvLramJAvKEuDHMx93UnYU+PWs9B9UyIwEh/FxpvRyu8iyI6pfNWIsrc1jJ2nzf1YrnXOHb0C0CdwHH6p6Nzy/bOfaBOihiwc6o9r80AHq0RBbkH7euPOGFAo4iUgYTaS7R9Pw6Rk=
+  #Coverity token
+  #- secure: J4o/q57D7PAqV+hG5VUhwGJLH4ryFWy8YGVAlAOyrRVv9UxfbiihhyE5Yh68tjukdFqLt3WcHB3hoPz0VfbxWGdLQ9OR0r7xxYPetA0qVYcttpumcVSBra17CCRBYOcyRCfbgUY/LVRbKlr8zgkubRUW0skUcAgELyZJA6k/k+3pd1oDjdBLMLp+TeQvQnUtekw7eEzBl31bgpku3vHQEiYxMRY6FhBC0vojNJSjT56pqYzA/bOVrPNDATxHqDAxuEWfNiNQym4P2T+LmkC2utCWlwLBSqTauy54z4nKM6+0xEmRq2hmBWZeSv1tYuKJi8rmtAH5OozyVGSaXpuelcaWE4YrNCGEXOJZQvuD+IEuFVSkqXItoUIjlE1kP/zIDAZERMaISzXkp2xpPQFes8NLE3lNdcvMYYUjVfyUpYN0qE5/XX6Opii6Y8Sj6wQaz1Y5n3g1Lp5TMlQIVmmTUPAWoCq3U2BTPn+Ub8O8Z7Y/9Zr1xdz3gBEJaYv1CuxrSb3z3lQ9BjodBL1u+l5me+16dBe4RbpPwoWvLramJAvKEuDHMx93UnYU+PWs9B9UyIwEh/FxpvRyu8iyI6pfNWIsrc1jJ2nzf1YrnXOHb0C0CdwHH6p6Nzy/bOfaBOihiwc6o9r80AHq0RBbkH7euPOGFAo4iUgYTaS7R9Pw6Rk=
 sudo: required
 dist: trusty
 language: cpp
@@ -14,7 +15,6 @@ addons:
     packages:
     - gcc-5
     - g++-5
-    - libboost-all-dev
     - libcrypto++-dev
     - libssl-dev
     - libssl1.0.0
@@ -22,16 +22,23 @@ addons:
     - doxygen
     sources:
     - ubuntu-toolchain-r-test
-  coverity_scan:
-    project:
-      name: monero-project/kovri
-      description: The Kovri I2P Router Project
-    notification_email: anonimal@i2pmail.org
-    build_command_prepend: export CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} ${FORCE_CLEAN} && make clean
-    build_command: make -j2 everything && make install-resources
-    branch_pattern: coverity_scan
+  ### https://github.com/monero-project/kovri/issues/209
+  #coverity_scan:
+  #  project:
+  #    name: monero-project/kovri
+  #    description: The Kovri I2P Router Project
+  #  notification_email: anonimal@i2pmail.org
+  #  build_command_prepend: export CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} ${FORCE_CLEAN} && make clean && cov-configure --comptype gcc --compiler /usr/bin/g++-5
+  #  build_command: make -j2 dependencies && make -j2 all-options && make install-resources
+  #  branch_pattern: coverity_scan
+before_install:
+- git submodule update --init --recursive
+- sudo add-apt-repository -y ppa:kojoley/boost
+- sudo apt-get -q update
+- sudo apt-get -y install libboost-{chrono,log,program-options,date-time,thread,system,filesystem,regex,test}1.58{-dev,.0}
 before_script: export CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} ${FORCE_CLEAN}
-script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then make clean && make -j2 everything && make install-resources; fi
+#script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then make clean && make -j2 dependencies && make -j2 all-options && make install-resources; fi
+script: make clean && make -j2 dependencies && make -j2 all-options && make install-resources
 notifications:
   email: false
   irc:
@@ -40,3 +47,14 @@ notifications:
     secure: uW44mhTbE/aMDpCMFQY5/zvfbjncQfz0E1rmw141CNgS9+yTR1jzTpfa4DKqb4mwBp8Ctw3Nvt/5eoi3ccd0jQRCVjJkj8fLmJ7ypAhYldPOepcPkDQ91PdT913APuLmR8bz8QLiuSTeCEQNg74x9w7aRNazxXSkZI94xnSxtS3iWeByp14kPMFLaDLZ9TNFHvbPV5fDZws+oode1NdU+CdLy/PciRDpMu+kBTPWfD2FT75UudiJaDGvdepvTM4Isomg0gVb/bqsWkoTBmR8VakCt/YyczLr4dANB8kS+P7eXMqQXqfd8QjV6eGU2RvXKz7t68ffpUkvlAYLTeZio95Tetlun4DcaKS8agoXspr/REN4TOramTI43rx6OPFj4kkbzvL4gM7z/D5nrUZKnbURPSIKzYXu8fYvwbquoLB/RbiOpOuvFSVdFHM0lcCM+dBREkrzABbOm91Ph2/zeMQ+w7CVnr/IuHNHhfuiL4Y5XD/rJJw0vTGEKsaftWCNZ87h4qke65b4ybeeeKf3iNnSjOm9MmCcT7c6XWP7uHJWK/nrj4HSTD/3WqUY2ldnbnUz8V9Rx5WbK8F6xqP9OW5HrPkjvPVX9Edlas6sMckBy3ZP7eRxdf/d00RqiUs5vc5iEsmy6RqksyqIz5QVRpt1+tW5oh1efOA2S2pkONw=
   password:
     secure: guYSbj8QuJ2Hf7RLULxMqDREUDgq/W2sB1xQ8fzW2qe+/UNkJ4MWoExHDu+CRNnJaLGm7SoPcgwLHzDEQnq2Qr2oB9C6+Uc7t1vid/OeXUYevDhDNrDqsmQvkmwrWNDJyR2nsnVpYkECtLY/wxFccq04AEl2WAswO8FQ4QX8OSjAgHmUDWjcnSA5ovVv4LPt8af5q60P+lljqtLZgdlP5pA25Jx9u6b00Vbz48tnqvhlgT+OvkWbsZWppfcRoSBlFed+/+LJWnKtdj6DnP9n3ht1uYc3xvid2YLieVco9/+LjUmESgFCbKnUCJ26kesbEftY10aLxB5X4rI415s/6lXZ4G71SdBOu1vXb4/cg0TlD3rwjy5LSrROiwm8wPfUbcTHqe4mUetz/AtybrRi2Bli8FomYpCDusqUZW1Z+Lx09ycCqgdyBrapuqz+pWe8CmZRsXYY9zx3R3g3mEiYeejDOqDycVxuxDS1x3sopmj2sE5UAFfr3F3UaJHQS7JfwKlllfAw5+RldWlXA3iasqPBhOAChK4Cfxtwydn7WwefXf5ybQXiB74E4Ka4DWvzG1yJXaLTi8Ee3Xp54HXs4fpDkZDtAhX/gioxS14KaDxVRCpI9nra2/h883fgvZAV1ok84KurQH03ZNW1hvXJi/oOaalaE66cgjDe94acnmM=
+### https://github.com/travis-ci/travis-ci/issues/5427
+#notifications:
+#  email: false
+#  irc: "chat.freenode.net#kovri-dev"
+#  template:
+#  - "%{repository_name} #%{build_number} | %{branch} | %{commit} | %{commit_subject} | %{author}: %{message}"
+#  - "View diff  | %{compare_url}"
+#  - "View build | %{build_url}"
+#  nick: kovri
+#  password:
+#    secure: guYSbj8QuJ2Hf7RLULxMqDREUDgq/W2sB1xQ8fzW2qe+/UNkJ4MWoExHDu+CRNnJaLGm7SoPcgwLHzDEQnq2Qr2oB9C6+Uc7t1vid/OeXUYevDhDNrDqsmQvkmwrWNDJyR2nsnVpYkECtLY/wxFccq04AEl2WAswO8FQ4QX8OSjAgHmUDWjcnSA5ovVv4LPt8af5q60P+lljqtLZgdlP5pA25Jx9u6b00Vbz48tnqvhlgT+OvkWbsZWppfcRoSBlFed+/+LJWnKtdj6DnP9n3ht1uYc3xvid2YLieVco9/+LjUmESgFCbKnUCJ26kesbEftY10aLxB5X4rI415s/6lXZ4G71SdBOu1vXb4/cg0TlD3rwjy5LSrROiwm8wPfUbcTHqe4mUetz/AtybrRi2Bli8FomYpCDusqUZW1Z+Lx09ycCqgdyBrapuqz+pWe8CmZRsXYY9zx3R3g3mEiYeejDOqDycVxuxDS1x3sopmj2sE5UAFfr3F3UaJHQS7JfwKlllfAw5+RldWlXA3iasqPBhOAChK4Cfxtwydn7WwefXf5ybQXiB74E4Ka4DWvzG1yJXaLTi8Ee3Xp54HXs4fpDkZDtAhX/gioxS14KaDxVRCpI9nra2/h883fgvZAV1ok84KurQH03ZNW1hvXJi/oOaalaE66cgjDe94acnmM=

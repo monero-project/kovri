@@ -26,7 +26,7 @@ addons:
       name: monero-project/kovri
       description: The Kovri I2P Router Project
     notification_email: anonimal@i2pmail.org
-    build_command_prepend: export CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} ${FORCE_CLEAN} && make clean
+    build_command_prepend: export CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} ${FORCE_CLEAN} && make clean && cov-configure --comptype gcc --compiler /usr/bin/g++-5
     build_command: make -j2 dependencies && make -j2 all-options && make install-resources
     branch_pattern: coverity_scan
 before_install:

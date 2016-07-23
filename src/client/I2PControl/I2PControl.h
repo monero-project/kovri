@@ -321,6 +321,7 @@ class I2PControlSession
                                         m_RouterManagerHandlers,
                                         m_NetworkSettingHandlers;
 
+  /// @todo Unused private field. Why?
   boost::asio::io_service& m_Service;
   boost::asio::deadline_timer m_ShutdownTimer,
                               m_ExpireTokensTimer;

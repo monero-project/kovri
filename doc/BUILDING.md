@@ -1,13 +1,17 @@
 ## Step 1. Minimum requirements
 
 ### Linux / MacOSX (Mavericks 10.9.4) / FreeBSD 10 / Windows (Cygwin)
-- [Boost](http://www.boost.org/) 1.54
+- [Boost](http://www.boost.org/) 1.58
 - [CMake](https://cmake.org/) 2.8.12
 - [Crypto++](https://cryptopp.com/) 5.6.2
 - [GCC](https://gcc.gnu.org/) 5.3.0
 - [OpenSSL](https://openssl.org/) (always the latest stable version)
 
-Optional: [Doxygen](http://www.doxygen.org/) (for Doxygen documentation)
+Optional:
+
+- [Clang](http://clang.llvm.org/)
+- [Doxygen](http://www.doxygen.org/)
+- [MiniUPnP](http://miniupnp.free.fr/files/)
 
 ### MacOSX (Mavericks 10.9.4)
 - [Homebrew](http://brew.sh/)
@@ -22,6 +26,14 @@ Note: the MacOSX and FreeBSD build need love! See [#175](https://github.com/mone
 ```bash
 $ sudo apt-get install g++-5 cmake libboost-all-dev libcrypto++-dev libssl-dev libssl1.0.0
 $ sudo apt-get install libminiupnpc-dev doxygen  # optional
+```
+
+### Ubuntu Trusty 14.04:
+
+```bash
+$ sudo add-apt-repository -y ppa:kojoley/boost
+$ sudo apt-get -q update
+$ sudo apt-get -y install libboost-{chrono,log,program-options,date-time,thread,system,filesystem,regex,test}1.58{-dev,.0}
 ```
 
 ### Arch Linux
@@ -43,36 +55,42 @@ $ brew install miniupnpc doxygen  # optional
 ```
 
 ## Step 3. Build
-
-### To view CMake options:
+Minimum requirement:
 ```bash
-$ cd kovri/build
-$ cmake -L ../
+$ git clone --recursive https://github.com/monero-project/kovri
+$ make dependencies && make && make install-resources # to decrease build-time, run make -j [available CPU cores]
+```
+- End-users MUST run ```make dependencies``` and ```make install-resources``` for new installations
+- Developers SHOULD run ```make dependencies``` and ```make install-resources``` after a fresh fetch
+
+Other options:
+
+- ```make static``` produces static binary
+
+- ```make upnp``` produces vanilla binary with UPnP support (requires [MiniUPnP](http://miniupnp.free.fr/files/))
+- ```make tests``` produces all unit-tests and benchmarks
+- ```make doxygen``` produces Doxygen documentation (output will be in doc/Doxygen)
+- ```make all-options``` produces optimized, hardened, UPnP enabled binary + unit-tests and benchmarks + Doxygen
+
+- ```make help``` shows available CMake build options
+- ```make clean``` between subsequent builds
+
+All build output will be in the build directory.
+
+### Clang
+Currently, only GCC is officially supported. To build with clang, export ```CC``` and ```CXX```:
+
+```bash
+$ export CC=clang CXX=clang++ && make  # CC is optional to avoid CMake warnings
 ```
 
-### For a regular build:
-```bash
-$ cd kovri/build
-$ cmake ../
-$ make
-```
+Replace ```clang``` with a clang version/path of your choosing.
 
-Note: all builds require building out of the ```build``` directory as described above
+### Custom data path
+You can customize Kovri's data path to your liking. Simply export ```KOVRI_DATA_PATH```; example:
 
-### For UPnP support:
-- Install [MiniUPnP](http://miniupnp.free.fr/files/) or use your package manager (see above)
 ```bash
-$ cmake -DWITH_UPNP=ON ../ && make
-```
-
-### To build tests:
-```bash
-$ cmake -DWITH_TESTS=ON -DWITH_BENCHMARKS=ON ../ && make
-```
-
-### To produce Doxygen
-```bash
-$ cmake -DWITH_DOXYGEN=ON ../ && make doc  # output will be in kovri/doc/Doxygen/
+$ export KOVRI_DATA_PATH=$HOME/.another-kovri-data-path && make && make install-resources
 ```
 
 ## Step 4. Open your NAT/Firewall
@@ -92,7 +110,7 @@ or set your port in kovri.conf
 For a full list of options:
 
 ```bash
-$ ./kovri -h
+$ ./kovri --help-with all
 ```
 
 ## Step 6. Configuration files *(optional)*

@@ -44,7 +44,7 @@ namespace util {
 namespace filesystem {
 
 /// @class StringStream
-/// @details A wrapper for casting and and strongly-typed classes
+/// @details A wrapper for casting and strongly-typed classes
 /// @param String to be treated as stream
 class StringStream {
  public:
@@ -52,31 +52,31 @@ class StringStream {
     m_Stream.str(stream);
   }
 
-  template<typename SizeCast = std::size_t, typename Buffer, typename Size>
+  template <typename SizeCast = std::size_t, typename Buffer, typename Size>
   void Read(Buffer& buf, Size&& size) {
     m_Stream.read(
         reinterpret_cast<char *>(&buf),
         static_cast<SizeCast>(std::forward<Size>(size)));
-  };
+  }
 
-  template<typename SizeCast = std::size_t, typename Offset, typename Position>
-  void Seekg(Offset&& off, Position& pos) {
+  template <typename SizeCast = std::size_t, typename Offset>
+  void Seekg(Offset&& off, std::ios_base::seekdir way) {
     m_Stream.seekg(
       static_cast<SizeCast>(std::forward<Offset>(off)),
-      pos);
-  };
+      way);
+  }
 
   std::size_t Tellg() {
     return m_Stream.tellg();
-  };
+  }
 
   bool EndOfFile() {
     return m_Stream.eof() ? true : false;
-  };
+  }
 
   std::string Str() {
     return m_Stream.str();
-  };
+  }
 
  private:
   std::stringstream m_Stream;

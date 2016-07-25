@@ -115,22 +115,22 @@ help:
 	cd $(build) && $(cmake) -D WITH_CPPNETLIB=OFF -LH ../
 
 clean:
-	@echo "CAUTION: This will remove the build directory"
-	@if [ $$FORCE_CLEAN = "yes" ]; then $(remove-build); \
-	else read -r -p "Is this what you wish to do? (y/N)?: " CONTINUE; \
-	  if [ $$CONTINUE = "y" ] || [ $$CONTINUE = "Y" ]; then $(remove-build); \
-	  else echo "Exiting."; exit 1; \
-	  fi; \
-	fi
+	@if [ "$$FORCE_CLEAN" = "yes" ]; then $(remove-build); \
+	else echo "CAUTION: This will remove the build directory"; \
+	read -r -p "Is this what you wish to do? (y/N)?: " CONFIRM; \
+	  if [ $$CONFIRM = "y" ] || [ $$CONFIRM = "Y" ]; then $(remove-build); \
+          else echo "Exiting."; exit 1; \
+          fi; \
+        fi
 
-# TODO(unassigned): we need to consider using a proper autoconf configure and make install.
+# TODO(unassigned): we need to consider using a proper CMake generated make install.
 # For now, we'll simply (optionally) copy resources. Binaries will remain in build directory.
 install-resources:
-	@echo "WARNING: This will overwrite all resources and configuration files"
-	@if [ $$FORCE_INSTALL = "yes" ]; then $(copy-resources); \
-	else read -r -p "Is this what you wish to do? (y/N)?: " CONTINUE; \
-	  if [ $$CONTINUE = "y" ] || [ $$CONTINUE = "Y" ]; then $(copy-resources); \
-	  else echo "Exiting."; exit 1; \
+	@if [ "$$FORCE_INSTALL" = "yes" ]; then $(copy-resources); \
+	else echo "WARNING: This will overwrite all resources and configuration files"; \
+	read -r -p "Is this what you wish to do? (y/N)?: " CONFIRM; \
+	  if [ $$CONFIRM = "y" ] || [ $$CONFIRM = "Y" ]; then $(copy-resources); \
+          else echo "Exiting."; exit 1; \
 	  fi; \
 	fi
 

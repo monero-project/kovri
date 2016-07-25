@@ -93,9 +93,18 @@ static:
 	mkdir -p $(build)
 	cd $(build) && $(cmake) $(cmake-debug) $(cmake-static) ../ && $(MAKE)
 
+# We need (or very much should have) optimizations with hardening
+optimized-hardening:
+	mkdir -p $(build)
+	cd $(build) && $(cmake) $(cmake-debug) $(cmake-optimize) $(cmake-hardening) ../ && $(MAKE)
+
 upnp:
 	mkdir -p $(build)
 	cd $(build) && $(cmake) $(cmake-debug) $(cmake-upnp) ../ && $(MAKE)
+
+all-options:
+	mkdir -p $(build)
+	cd $(build) && $(cmake) $(cmake-debug) $(cmake-optimize) $(cmake-hardening) $(cmake-upnp) ../ && $(MAKE)
 
 tests:
 	mkdir -p $(build)
@@ -104,11 +113,6 @@ tests:
 doxygen:
 	mkdir -p $(build)
 	cd $(build) && $(cmake) -D WITH_CPPNETLIB=OFF $(cmake-doxygen) ../ && $(MAKE) doc
-
-# We need (or very much should have) optimizations with cmake-hardening
-all-options:
-	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-debug) $(cmake-optimize) $(cmake-hardening) $(cmake-upnp) $(cmake-tests) $(cmake-benchmarks) $(cmake-doxygen) ../ && $(MAKE)
 
 help:
 	mkdir -p $(build)

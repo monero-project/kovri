@@ -38,7 +38,7 @@ before_install:
 - sudo apt-get -y install libboost-{chrono,log,program-options,date-time,thread,system,filesystem,regex,test}1.58{-dev,.0}
 before_script: export CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION} ${FORCE_CLEAN}
 #script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then make clean && make -j2 dependencies && make -j2 all-options && make install-resources; fi
-script: make clean && make -j2 dependencies && make -j2 all-options && make install-resources
+script: make clean && make -j2 dependencies && make -j2 all-options && make -j2 tests && make doxygen && make install-resources
 notifications:
   email: false
   irc:

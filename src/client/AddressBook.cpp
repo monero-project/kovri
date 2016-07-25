@@ -481,6 +481,8 @@ void AddressBookSubscription::CheckSubscription() {
   load_hosts.detach();  // TODO(unassigned): use join
 }
 
+// TODO(anonimal): see HTTP for notes on cpp-netlib refactor
+// tl;dr, all HTTP-related code + stream handling should be refactored
 void AddressBookSubscription::Request() {
   // must be run in separate thread
   LogPrint(eLogInfo,
@@ -488,7 +490,11 @@ void AddressBookSubscription::Request() {
       " ETag: ", m_Etag,
       " Last-Modified: ", m_LastModified);
   bool success = false;
-  i2p::util::http::URI uri(m_Link);
+  i2p::util::http::URI uri;
+  if (!uri.Parse(m_Link)) {
+    LogPrint(eLogError, "AddressBookSubscription: invalid URI, request failed");
+    return;
+  }
   i2p::data::IdentHash ident;
   if (m_Book.GetIdentHash(uri.m_Host, ident) &&
       m_Book.GetSharedLocalDestination()) {
@@ -525,7 +531,7 @@ void AddressBookSubscription::Request() {
       auto stream =
         m_Book.GetSharedLocalDestination()->CreateStream(
             lease_set,
-            uri.m_Port);
+            std::stoi(uri.m_Port));
       stream->Send((uint8_t *)request.str().c_str(),
           request.str().length());
       uint8_t buf[4096];

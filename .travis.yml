@@ -26,7 +26,8 @@ before_install:
 - sudo apt-get -q update
 - sudo apt-get -y install libboost-{chrono,log,program-options,date-time,thread,system,filesystem,regex,test}1.58{-dev,.0}
 before_script: export CC=gcc-${GCC_VERSION} CXX=g++-${GCC_VERSION}
-script: make clean && make -j2 dependencies && make -j2 all-options && make -j2 tests && make doxygen && make install-resources && ./kovri-tests && ./kovri-benchmarks
+script: make clean && make -j2 dependencies && make -j2 all-options && make -j2 tests && make doxygen && make install-resources
+after_success: ./monero-project/kovri/build/kovri-tests && ./monero-project/kovri/build/kovri-benchmarks
 notifications:
   email: false
   irc:

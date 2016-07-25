@@ -67,6 +67,9 @@ cmake-benchmarks = -D WITH_BENCHMARKS=ON
 cmake-static     = -D WITH_STATIC=ON
 cmake-doxygen    = -D WITH_DOXYGEN=ON
 
+# Disable options that are ON by default
+disable-options = -D WITH_CPPNETLIB=OFF
+
 # Our custom data path
 cmake-data-path = -D KOVRI_DATA_PATH=$(data-path)
 
@@ -112,11 +115,11 @@ tests:
 
 doxygen:
 	mkdir -p $(build)
-	cd $(build) && $(cmake) -D WITH_CPPNETLIB=OFF $(cmake-doxygen) ../ && $(MAKE) doc
+	cd $(build) && $(cmake) $(disable-options) $(cmake-doxygen) ../ && $(MAKE) doc
 
 help:
 	mkdir -p $(build)
-	cd $(build) && $(cmake) -D WITH_CPPNETLIB=OFF -LH ../
+	cd $(build) && $(cmake) $(disable-options) -LH ../
 
 clean:
 	@if [ "$$FORCE_CLEAN" = "yes" ]; then $(remove-build); \
@@ -138,4 +141,4 @@ install-resources:
 	  fi; \
 	fi
 
-.PHONY: all dependencies shared static upnp tests doxygen all-options help clean install-resources
+.PHONY: all dependencies shared static optimized-hardening upnp all-options tests doxygen help clean install-resources

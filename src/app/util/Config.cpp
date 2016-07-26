@@ -216,6 +216,7 @@ bool ParseArgs(
     .add(network)
     .add(proxy)
     .add(i2pcs)
+    .add(reseed)
     .add(config);
   // Available cli options
   bpo::options_description cli_options;

@@ -9,9 +9,7 @@
 [![License](https://img.shields.io/badge/license-BSD3-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 ## Disclaimer
-- Currently pre-alpha software; under heavy development
-- Use branch ```master``` for most stability
-- See branch ```development``` for most recent activity
+- Currently **pre-alpha** software; under heavy development
 
 ## Quickstart
 1. Read [Build Instructions](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md) for instructions and minimum version requirements

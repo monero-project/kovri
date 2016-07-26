@@ -9,9 +9,7 @@
 [![License](https://img.shields.io/badge/license-BSD3-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 ## Disclaimer
-- Currently pre-alpha software; under heavy development
-- Use branch ```master``` for most stability
-- See branch ```development``` for most recent activity
+- Currently **pre-alpha** software; under heavy development
 
 ## Quickstart
 1. Read [Build Instructions](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md) for instructions and minimum version requirements
@@ -52,9 +50,3 @@ Note: our future VRP will be inline with [I2P's VRP](https://trac.i2p2.de/ticket
 
 ## Donations
 - Visit our [Donations Page](https://getmonero.org/getting-started/donate/) to help Kovri with your donations
-
-## Acknowledgments
-- **orion** for providing ```i2pcpp```: the [original](http://git.repo.i2p.xyz/w/i2pcpp.git) C++ implementation of I2P
-- **orignal** for providing ```i2pd```: the most feature-complete C++ implementation of I2P for [us to fork from](https://github.com/purplei2p/i2pd/commit/45d27f8ddc43e220a9eea42de41cb67d5627a7d3)
-- **EinMByte** for improving *both* implementations
-- The ed25519/ folder is based on the [ref10 implementation from SUPERCOP](http://bench.cr.yp.to/supercop.html)

@@ -4,10 +4,11 @@
 To contribute a patch, please execute the following:
 
 1. Fork Kovri
-2. Read [STYLE.md](https://github.com/monero-project/kovri/blob/master/doc/STYLE.md)
-3. Create a topic branch
+2. Read our [style guide](https://github.com/monero-project/kovri/blob/master/doc/STYLE.md)
+3. Create a [topic branch](https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging)
 4. [**Sign**](https://git-scm.com/book/en/v2/Git-Tools-Signing-Your-Work) your commit(s)
-5. PR to branch ```development```
+5. Send a pull-request to branch ```master```
+   - We currently do not have any tags as we are in pre-alpha. For now, you can base your work off of master.
    - Commit messages should be verbose by default, consisting of a short subject line (50 chars max), a blank line, and detailed explanatory text as separate paragraph(s) - unless the title alone is self-explanatory.
    - Commit title should prepend class or aspect of project. For example, "HTTPProxy: implement User-Agent scrubber. Fixes #193." or "Garlic: fix uninitialized padding in ElGamalBlock".
    - If a particular commit references another issue, please add a reference. For example "See #123", or "Fixes #123". This will help us resolve tickets when we merge into ```master```.

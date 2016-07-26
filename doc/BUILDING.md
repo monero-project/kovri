@@ -68,9 +68,11 @@ Other options:
 - ```make static``` produces static binary
 
 - ```make upnp``` produces vanilla binary with UPnP support (requires [MiniUPnP](http://miniupnp.free.fr/files/))
+- ```make optimized-hardening``` produces optimized, hardened binary
+- ```make all-options``` produces optimized, hardened, UPnP enabled binary
+
 - ```make tests``` produces all unit-tests and benchmarks
 - ```make doxygen``` produces Doxygen documentation (output will be in doc/Doxygen)
-- ```make all-options``` produces optimized, hardened, UPnP enabled binary + unit-tests and benchmarks + Doxygen
 
 - ```make help``` shows available CMake build options
 - ```make clean``` between subsequent builds

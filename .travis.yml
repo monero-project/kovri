@@ -31,8 +31,6 @@ after_success: ./monero-project/kovri/build/kovri-tests && ./monero-project/kovr
 notifications:
   email: false
   irc:
-    on_success: change
-    on_failure: change
     channels:
       - "chat.freenode.net#kovri-dev"
     nick: kovri

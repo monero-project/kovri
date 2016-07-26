@@ -34,9 +34,19 @@
 
 #include "util/HTTP.h"
 
-BOOST_AUTO_TEST_SUITE(UtilityTests)
+#include <iostream>
+#include <boost/network/uri.hpp>
+
+BOOST_AUTO_TEST_SUITE(HTTPUtilityTests)
 
 i2p::util::http::URI uri;
+
+BOOST_AUTO_TEST_CASE(UriParse) {
+  // Note: cpp-netlib has better tests.
+  // We simply test our implementation here.
+  BOOST_CHECK(uri.Parse("https://domain.org:8443/path/file.type"));
+  BOOST_CHECK(!uri.Parse("3;axc807uasdfh123m,nafsdklfj;;klj0a9u01q3"));
+}
 
 BOOST_AUTO_TEST_CASE(DecodeEmptyUri) {
   BOOST_CHECK_EQUAL(uri.Decode(""), "");

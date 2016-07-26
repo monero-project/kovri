@@ -67,6 +67,9 @@ cmake-benchmarks = -D WITH_BENCHMARKS=ON
 cmake-static     = -D WITH_STATIC=ON
 cmake-doxygen    = -D WITH_DOXYGEN=ON
 
+# Disable options that are ON by default
+disable-options = -D WITH_CPPNETLIB=OFF
+
 # Our custom data path
 cmake-data-path = -D KOVRI_DATA_PATH=$(data-path)
 
@@ -93,9 +96,18 @@ static:
 	mkdir -p $(build)
 	cd $(build) && $(cmake) $(cmake-debug) $(cmake-static) ../ && $(MAKE)
 
+# We need (or very much should have) optimizations with hardening
+optimized-hardening:
+	mkdir -p $(build)
+	cd $(build) && $(cmake) $(cmake-debug) $(cmake-optimize) $(cmake-hardening) ../ && $(MAKE)
+
 upnp:
 	mkdir -p $(build)
 	cd $(build) && $(cmake) $(cmake-debug) $(cmake-upnp) ../ && $(MAKE)
+
+all-options:
+	mkdir -p $(build)
+	cd $(build) && $(cmake) $(cmake-debug) $(cmake-optimize) $(cmake-hardening) $(cmake-upnp) ../ && $(MAKE)
 
 tests:
 	mkdir -p $(build)
@@ -103,35 +115,30 @@ tests:
 
 doxygen:
 	mkdir -p $(build)
-	cd $(build) && $(cmake) -D WITH_CPPNETLIB=OFF $(cmake-doxygen) ../ && $(MAKE) doc
-
-# We need (or very much should have) optimizations with cmake-hardening
-all-options:
-	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-debug) $(cmake-optimize) $(cmake-hardening) $(cmake-upnp) $(cmake-tests) $(cmake-benchmarks) $(cmake-doxygen) ../ && $(MAKE)
+	cd $(build) && $(cmake) $(disable-options) $(cmake-doxygen) ../ && $(MAKE) doc
 
 help:
 	mkdir -p $(build)
-	cd $(build) && $(cmake) -D WITH_CPPNETLIB=OFF -LH ../
+	cd $(build) && $(cmake) $(disable-options) -LH ../
 
 clean:
-	@echo "CAUTION: This will remove the build directory"
-	@if [ $$FORCE_CLEAN = "yes" ]; then $(remove-build); \
-	else read -r -p "Is this what you wish to do? (y/N)?: " CONTINUE; \
-	  if [ $$CONTINUE = "y" ] || [ $$CONTINUE = "Y" ]; then $(remove-build); \
-	  else echo "Exiting."; exit 1; \
-	  fi; \
-	fi
+	@if [ "$$FORCE_CLEAN" = "yes" ]; then $(remove-build); \
+	else echo "CAUTION: This will remove the build directory"; \
+	read -r -p "Is this what you wish to do? (y/N)?: " CONFIRM; \
+	  if [ $$CONFIRM = "y" ] || [ $$CONFIRM = "Y" ]; then $(remove-build); \
+          else echo "Exiting."; exit 1; \
+          fi; \
+        fi
 
-# TODO(unassigned): we need to consider using a proper autoconf configure and make install.
+# TODO(unassigned): we need to consider using a proper CMake generated make install.
 # For now, we'll simply (optionally) copy resources. Binaries will remain in build directory.
 install-resources:
-	@echo "WARNING: This will overwrite all resources and configuration files"
-	@if [ $$FORCE_INSTALL = "yes" ]; then $(copy-resources); \
-	else read -r -p "Is this what you wish to do? (y/N)?: " CONTINUE; \
-	  if [ $$CONTINUE = "y" ] || [ $$CONTINUE = "Y" ]; then $(copy-resources); \
-	  else echo "Exiting."; exit 1; \
+	@if [ "$$FORCE_INSTALL" = "yes" ]; then $(copy-resources); \
+	else echo "WARNING: This will overwrite all resources and configuration files"; \
+	read -r -p "Is this what you wish to do? (y/N)?: " CONFIRM; \
+	  if [ $$CONFIRM = "y" ] || [ $$CONFIRM = "Y" ]; then $(copy-resources); \
+          else echo "Exiting."; exit 1; \
 	  fi; \
 	fi
 
-.PHONY: all dependencies shared static upnp tests doxygen all-options help clean install-resources
+.PHONY: all dependencies shared static optimized-hardening upnp all-options tests doxygen help clean install-resources

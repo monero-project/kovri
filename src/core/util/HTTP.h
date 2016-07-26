@@ -58,36 +58,25 @@ namespace i2p {
 namespace util {
 namespace http {
 
-/**
- * Provides functionality for parsing URIs
- */
+// TODO(anonimal): refactor everything in this namespace with cpp-netlib
+// Will require review/refactor of AddressBook
+
+/// @class URI
+/// @brief Provides functionality for preparing a URI
 class URI {
-  /**
-   * The code for ParseURI() was originally copied/pasted from
-   * https://stackoverflow.com/questions/2616011/easy-way-to-parse-a-url-in-c-cross-platform
-   *
-   * See cpp-netlib for a better URI parsing implementation with Boost.
-   *
-   * Note: fragments are not parsed by this function (if they should
-   * ever be needed in the future).
-   *
-   * @param uri the URI to be parsed
-   * @warning the default port is 80, for HTTPS it is 443
-   */
-  void Parse(const std::string& uri);
-
  public:
-  URI() {}
-  // Parse a URI given as a string.
-  explicit URI(const std::string& uri);
-  std::string m_Protocol, m_Host, m_Path, m_PortString, m_Query;
-  int m_Port;
+  /// @param uri The URI string to be parsed
+  /// @note The default port is 80, for HTTPS it is 443
+  /// @return False if URI is invalid, true if valid
+  bool Parse(
+      const std::string& uri);
 
-  /**
-   * @return the decoded URI
-   */
+  /// @return The decoded URI as string
   std::string Decode(
       const std::string& data);
+
+  // TODO(anonimal): consider Get/Set functions if we keep class URI
+  std::string m_Protocol, m_Host, m_Port, m_Path, m_Query;
 };
 
 /**

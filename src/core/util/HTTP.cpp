@@ -32,6 +32,8 @@
 
 #include "HTTP.h"
 
+#include <boost/network/uri.hpp>
+
 #include <functional>
 #include <memory>
 #include <string>
@@ -44,78 +46,32 @@ namespace i2p {
 namespace util {
 namespace http {
 
-URI::URI(
+bool URI::Parse(
     const std::string& uri) {
-  m_Path = "";
-  m_Query = "";
-  Parse(uri);
-  if (!m_PortString.empty())
-    return;
-  if (m_Protocol == "https") {
-    m_PortString = "443";
-    m_Port = 443;
-  } else {
-    m_PortString = "80";
-    m_Port = 80;
-  }
-}
-
-void URI::Parse(
-    const std::string& uri) {
-  /**
-  * This is a hack since colons are a part of the URI scheme
-  * and slashes aren't always needed. See RFC 7595.
-  * */
-  const std::string prot_end("://");
-  // Separate scheme from authority
-  std::string::const_iterator prot_i = search(
-      uri.begin(),
-      uri.end(),
-      prot_end.begin(),
-      prot_end.end());
-  // Prepare for lowercase result and transform to lowercase
-  m_Protocol.reserve(
-      std::distance(
-        uri.begin(),
-        prot_i));
-  std::transform(
-      uri.begin(),
-      prot_i,
-      std::back_inserter(
-        m_Protocol),
-      std::ptr_fun<int, int>(tolower));
-  // TODO(unassigned): better error checking and handling
-  if (prot_i == uri.end())
-    return;
-  // Move onto authority. We assume it's valid and don't bother checking.
-  std::advance(prot_i, prot_end.length());
-  std::string::const_iterator path_i = std::find(prot_i, uri.end(), '/');
-  // Prepare for lowercase result and transform to lowercase
-  m_Host.reserve(std::distance(prot_i, path_i));
-  std::transform(
-      prot_i,
-      path_i,
-      std::back_inserter(m_Host),
-      std::ptr_fun<int, int>(tolower));
-  // Parse port, assuming it's valid input
-  auto port_i = std::find(m_Host.begin(), m_Host.end(), ':');
-  if (port_i != m_Host.end()) {
-    m_PortString = std::string(port_i + 1, m_Host.end());
-    m_Host.assign(m_Host.begin(), port_i);
-    try {
-      m_Port = boost::lexical_cast<decltype(m_Port)>(m_PortString);
-    } catch (const std::exception&) {
-      // Keep the default port
+  boost::network::uri::uri URI(uri);
+  if (URI.is_valid()) {
+    m_Protocol.assign(URI.scheme());
+    m_Host.assign(URI.host());
+    m_Port.assign(URI.port());
+    m_Path.assign(URI.path());
+    m_Query.assign(URI.query());
+    // Set defaults for AddressBook
+    // TODO(anonimal): this should disappear once we finish other refactoring
+    if (!m_Port.empty())
+      return true;
+    if (m_Protocol == "https") {
+      m_Port.assign("443");
+    } else {
+      m_Port.assign("80");
     }
+    return true;
+  } else {
+    LogPrint(eLogError, "URI: invalid URI");
+    return false;
   }
-  // Parse query, assuming it's valid input
-  std::string::const_iterator query_i = std::find(path_i, uri.end(), '?');
-  m_Path.assign(path_i, query_i);
-  if (query_i != uri.end())
-    ++query_i;
-  m_Query.assign(query_i, uri.end());
 }
 
+// TODO(anonimal): research if cpp-netlib can do this better
 // Used by HTTPProxy
 std::string URI::Decode(
     const std::string& data) {
@@ -133,10 +89,12 @@ bool HTTP::Download(
     const std::string& address) {
   boost::asio::io_service service;
   boost::system::error_code ec;
-  URI uri(address);
+  URI uri;
+  if (!uri.Parse(address))
+    return false;
   // Ensures host is online
   auto query =
-    boost::asio::ip::tcp::resolver::query(uri.m_Host, std::to_string(uri.m_Port));
+    boost::asio::ip::tcp::resolver::query(uri.m_Host, uri.m_Port);
   auto endpoint =
     boost::asio::ip::tcp::resolver(service).resolve(query, ec);
   if (ec) {

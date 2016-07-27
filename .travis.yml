@@ -13,7 +13,6 @@ addons:
     packages:
     - gcc-5
     - g++-5
-    - libcrypto++-dev
     - libssl-dev
     - libssl1.0.0
     - libminiupnpc-dev

@@ -107,7 +107,7 @@ if(WITH_LIBRARY)
   add_library(${CORE_NAME} ${CORE_SRC} ${CRYPTO_SRC} ${EDDSA_SRC})
   target_link_libraries(
     ${CORE_NAME}
-    ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${OPENSSL_LIBRARIES}
+    ${Boost_LIBRARIES} ${CryptoPP_LIBRARIES} ${OPENSSL_LIBRARIES}
     ${CPPNETLIB_LIBRARIES} ${DL_LIB})
   install(
     TARGETS ${CORE_NAME}

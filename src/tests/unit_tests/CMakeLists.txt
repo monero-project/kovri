@@ -28,7 +28,7 @@ if(WITH_TESTS)
   add_executable(${TESTS_NAME} ${TESTS_SRC})
   target_link_libraries(
     ${TESTS_NAME} ${CORE_NAME} ${CLIENT_NAME}
-    ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+    ${Boost_LIBRARIES} ${CryptoPP_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
   enable_testing()
   add_test(KovriTest ${TESTS_NAME})
   install(TARGETS

@@ -57,6 +57,7 @@ remove-build = rm -fR $(build)
 # Dependencies
 deps = deps
 cpp-netlib = $(deps)/cpp-netlib
+cryptopp = $(deps)/cryptopp
 
 # Current off-by-default build options
 cmake-upnp       = -D WITH_UPNP=ON
@@ -75,6 +76,7 @@ cmake-data-path = -D KOVRI_DATA_PATH=$(data-path)
 
 # Release types
 # TODO(unassigned): put these to good use. We'll require rewrite of root recipe.
+# TODO(unassigned): use release flag for dependencies when we release
 cmake-debug = -D CMAKE_BUILD_TYPE=Debug
 #cmake-release = -D CMAKE_BUILD_TYPE=Release
 
@@ -87,6 +89,8 @@ all: shared
 dependencies:
 	mkdir -p $(cpp-netlib)/$(build)
 	cd $(cpp-netlib)/$(build) && $(cmake) $(cmake-debug) ../ && $(MAKE)
+	mkdir -p $(cryptopp)/$(build)
+	cd $(cryptopp)/$(build) && $(cmake) $(cmake-debug) ../ && $(MAKE)
 
 shared:
 	mkdir -p $(build)

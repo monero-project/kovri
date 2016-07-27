@@ -49,9 +49,6 @@ class DeflateDecompressor::DeflateDecompressorImpl {
   std::size_t Put(
       std::uint8_t* buffer,
       std::size_t length) {
-    // We must append a null byte. See #141.
-    *buffer += '\0';
-    length += 1;
     std::size_t unprocessed_bytes;
     try {
       unprocessed_bytes = m_Inflator.Put(buffer, length);

@@ -32,8 +32,11 @@ if(CryptoPP_INCLUDE_DIR AND CryptoPP_LIBRARIES)
    set(CryptoPP_FOUND TRUE)
 
 else(CryptoPP_INCLUDE_DIR AND CryptoPP_LIBRARIES)
-  find_path(CryptoPP_INCLUDE_DIR cryptlib.h
-  ${PROJECT_SOURCE_DIR}/deps/cryptopp)
+
+  find_path(CryptoPP_INCLUDE_DIR
+    name cryptlib.h
+    PATHS ${PROJECT_SOURCE_DIR}/deps/cryptopp /usr/include /usr/local/include
+    NO_DEFAULT_PATH)
 
   # Commented to prevent confusion if submodule was not built correctly.
   # Uncomment when we stop using a submodule.
@@ -46,8 +49,10 @@ else(CryptoPP_INCLUDE_DIR AND CryptoPP_LIBRARIES)
   #$ENV{CRYPTOPP}/include
   #${PROJECT_SOURCE_DIR}/../..)
 
-  find_library(CryptoPP_LIBRARIES NAMES cryptopp PATHS
-  ${PROJECT_SOURCE_DIR}/deps/cryptopp/build)
+  find_library(CryptoPP_LIBRARIES
+    NAMES cryptopp
+    PATHS ${PROJECT_SOURCE_DIR}/deps/cryptopp/build /usr/lib /usr/local/lib
+    NO_DEFAULT_PATH)
 
   # Commented to prevent confusion if submodule was not built correctly.
   # Uncomment when we stop using a submodule.

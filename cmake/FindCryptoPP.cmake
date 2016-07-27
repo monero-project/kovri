@@ -34,22 +34,31 @@ if(CRYPTO++_INCLUDE_DIR AND CRYPTO++_LIBRARIES)
    set(CRYPTO++_FOUND TRUE)
 
 else(CRYPTO++_INCLUDE_DIR AND CRYPTO++_LIBRARIES)
-  find_path(CRYPTO++_INCLUDE_DIR cryptopp/cryptlib.h
-  /usr/include
-  /usr/local/include
-  $ENV{SystemDrive}/Crypto++/include
-  $ENV{CRYPTOPP}
-  $ENV{CRYPTOPP}/..
-  $ENV{CRYPTOPP}/include
-  ${PROJECT_SOURCE_DIR}/../..)
+  find_path(CRYPTO++_INCLUDE_DIR cryptlib.h
+  ${PROJECT_SOURCE_DIR}/deps/cryptopp)
 
-  find_library(CRYPTO++_LIBRARIES NAMES cryptopp
-  PATHS
-  /usr/lib
-  /usr/local/lib
-  /opt/local/lib
-  $ENV{SystemDrive}/Crypto++/lib
-  $ENV{CRYPTOPP}/lib)
+  # Commented to prevent confusion if submodule was not built correctly.
+  # Uncomment when we stop using a submodule.
+  #find_path(CRYPTO++_INCLUDE_DIR cryptopp/cryptlib.h
+  #/usr/include
+  #/usr/local/include
+  #$ENV{SystemDrive}/Crypto++/include
+  #$ENV{CRYPTOPP}
+  #$ENV{CRYPTOPP}/..
+  #$ENV{CRYPTOPP}/include
+  #${PROJECT_SOURCE_DIR}/../..)
+
+  find_library(CRYPTO++_LIBRARIES NAMES cryptopp PATHS
+  ${PROJECT_SOURCE_DIR}/deps/cryptopp)
+
+  # Commented to prevent confusion if submodule was not built correctly.
+  # Uncomment when we stop using a submodule.
+  #find_library(CRYPTO++_LIBRARIES NAMES cryptopp PATHS
+  #/usr/lib
+  #/usr/local/lib
+  #/opt/local/lib
+  #$ENV{SystemDrive}/Crypto++/lib
+  #$ENV{CRYPTOPP}/lib)
 
   if(MSVC AND NOT CRYPTO++_LIBRARIES) # Give a chance for MSVC multiconfig
   if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -78,7 +87,7 @@ else(CRYPTO++_INCLUDE_DIR AND CRYPTO++_LIBRARIES)
   message(STATUS "Found Crypto++: ${CRYPTO++_INCLUDE_DIR}, ${CRYPTO++_LIBRARIES}")
   else(CRYPTO++_INCLUDE_DIR AND CRYPTO++_LIBRARIES)
   set(CRYPTO++_FOUND FALSE)
-  message(STATUS "Crypto++ not found.")
+  message(SEND_ERROR "Crypto++ not found.")
   endif(CRYPTO++_INCLUDE_DIR AND CRYPTO++_LIBRARIES)
 
   mark_as_advanced(CRYPTO++_INCLUDE_DIR CRYPTO++_LIBRARIES)

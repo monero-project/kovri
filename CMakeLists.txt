@@ -113,9 +113,9 @@ endif()
 if(WITH_CRYPTOPP)
   find_package(CryptoPP REQUIRED)
   if(NOT DEFINED CRYPTO++_INCLUDE_DIR)
-    message(SEND_ERROR "Could not find Crypto++. Please download and install it first!")
+    message(SEND_ERROR "Could not find Crypto++. See building instructions.")
   endif()
-  include_directories(${CRYPTO++_INCLUDE_DIR})
+  include_directories(${CRYPTO++_INCLUDE_DIR}/../)  # We back-track for <cryptopp/*>
 endif()
 
 if(APPLE)

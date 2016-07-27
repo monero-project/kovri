@@ -3,7 +3,6 @@
 ### Linux / MacOSX (Mavericks 10.9.4) / FreeBSD 10 / Windows (Cygwin)
 - [Boost](http://www.boost.org/) 1.58
 - [CMake](https://cmake.org/) 2.8.12
-- [Crypto++](https://cryptopp.com/) 5.6.2
 - [GCC](https://gcc.gnu.org/) 5.3.0
 - [OpenSSL](https://openssl.org/) (always the latest stable version)
 
@@ -24,11 +23,11 @@ Note: the MacOSX and FreeBSD build need love! See [#175](https://github.com/mone
 
 ### Debian / Ubuntu
 ```bash
-$ sudo apt-get install g++-5 cmake libboost-all-dev libcrypto++-dev libssl-dev libssl1.0.0
+$ sudo apt-get install g++-5 cmake libboost-all-dev libssl-dev libssl1.0.0
 $ sudo apt-get install libminiupnpc-dev doxygen  # optional
 ```
 
-### Ubuntu Trusty 14.04:
+### Boost for Ubuntu Trusty 14.04:
 
 ```bash
 $ sudo add-apt-repository -y ppa:kojoley/boost
@@ -38,19 +37,19 @@ $ sudo apt-get -y install libboost-{chrono,log,program-options,date-time,thread,
 
 ### Arch Linux
 ```bash
-$ sudo pacman -Syu cmake boost crypto++  # gcc/g++ and openssl installed by default
+$ sudo pacman -Syu cmake boost  # gcc/g++ and openssl installed by default
 $ sudo pacman -S miniupnpc doxygen  # optional
 ```
 
 ### FreeBSD 10
 ```bash
-$ sudo pkg install gcc5 cmake boost-libs cryptopp openssl
+$ sudo pkg install gcc5 cmake boost-libs openssl
 $ sudo pkg install miniupnpc doxygen  # optional
 ```
 
 ### MacOSX (Mavericks)
 ```bash
-$ brew install gcc5 cmake boost cryptopp openssl
+$ brew install gcc5 cmake boost openssl
 $ brew install miniupnpc doxygen  # optional
 ```
 

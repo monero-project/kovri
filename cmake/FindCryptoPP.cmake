@@ -49,7 +49,7 @@ else(CRYPTO++_INCLUDE_DIR AND CRYPTO++_LIBRARIES)
   #${PROJECT_SOURCE_DIR}/../..)
 
   find_library(CRYPTO++_LIBRARIES NAMES cryptopp PATHS
-  ${PROJECT_SOURCE_DIR}/deps/cryptopp)
+  ${PROJECT_SOURCE_DIR}/deps/cryptopp/build)
 
   # Commented to prevent confusion if submodule was not built correctly.
   # Uncomment when we stop using a submodule.

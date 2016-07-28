@@ -40,6 +40,8 @@ $ sudo pacman -S miniupnpc doxygen  # optional
 
 ### MacOSX (Mavericks)
 ```bash
+$ export CC=clang CXX=clang++
+$ export CXXFLAGS="-maes -march=native"  # weidai11/cryptopp#232
 $ brew install cmake boost openssl
 $ brew install miniupnpc doxygen  # optional
 ```
@@ -74,10 +76,11 @@ Other options:
 All build output will be in the build directory.
 
 ### Clang
-To build with clang, export ```CC``` and ```CXX``` (clang is default on OSX):
+To build with clang, you must export the following:
 
 ```bash
-$ export CC=clang CXX=clang++ && make  # CC is optional to avoid CMake warnings
+$ export CC=clang CXX=clang++
+$ export CXXFLAGS="-maes -march=native"  # weidai11/cryptopp#232
 ```
 
 Replace ```clang``` with a clang version/path of your choosing.

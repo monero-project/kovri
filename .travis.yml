@@ -5,7 +5,7 @@ env:
   - FORCE_INSTALL=yes
   # Compiler versions
   - GCC_VERSION=5
-  - CLANG_VERSION=3.6
+  #- CLANG_VERSION=3.6
   # For weidai11/cryptopp#232
   - CXXFLAGS="-maes -march=native"
 sudo: required
@@ -13,13 +13,13 @@ dist: trusty
 language: cpp
 compiler:
 - gcc-5
-- clang-3.6
+#- clang-3.6
 addons:
   apt:
     packages:
     - gcc-5
     - g++-5
-    - clang-3.6
+    #- clang-3.6
     - libssl-dev
     - libssl1.0.0
     - libminiupnpc-dev
@@ -34,8 +34,8 @@ before_install:
 before_script:
 - if [ "$CC" = "gcc" ]; then export CC=gcc-${GCC_VERSION}; fi
 - if [ "$CXX" = "g++" ]; then export CXX=g++-${GCC_VERSION}; fi
-- if [ "$CC" = "clang" ]; then export CC=clang-${CLANG_VERSION}; fi
-- if [ "$CXX" = "clang++" ]; then export CXX=clang-${CLANG_VERSION}; fi
+#- if [ "$CC" = "clang" ]; then export CC=clang-${CLANG_VERSION}; fi
+#- if [ "$CXX" = "clang++" ]; then export CXX=clang-${CLANG_VERSION}; fi
 script: make clean && make -j2 dependencies && make -j2 all-options && make -j2 tests && make doxygen && make install-resources
 after_success: ./monero-project/kovri/build/kovri-tests && ./monero-project/kovri/build/kovri-benchmarks
 notifications:

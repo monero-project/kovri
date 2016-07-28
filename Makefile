@@ -28,6 +28,8 @@
 
 #TODO(unassigned): improve this Makefile
 
+CXXFLAGS := -maes -march=native  # weidai11/cryptopp#232
+
 # Get architecture
 system := $(shell uname)
 

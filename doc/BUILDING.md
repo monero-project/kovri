@@ -40,7 +40,6 @@ $ sudo pacman -S miniupnpc doxygen  # optional
 
 ### MacOSX (Mavericks)
 ```bash
-$ export CC=clang CXX=clang++
 $ export CXXFLAGS="-maes -march=native"  # weidai11/cryptopp#232
 $ brew install cmake boost openssl
 $ brew install miniupnpc doxygen  # optional

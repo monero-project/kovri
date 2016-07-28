@@ -8,7 +8,7 @@
 
 Optional:
 
-- [Clang](http://clang.llvm.org/) 3.5
+- [Clang](http://clang.llvm.org/) 3.6
 - [Doxygen](http://www.doxygen.org/)
 - [MiniUPnP](http://miniupnp.free.fr/files/)
 

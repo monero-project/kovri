@@ -8,16 +8,13 @@
 
 Optional:
 
-- [Clang](http://clang.llvm.org/)
+- [Clang](http://clang.llvm.org/) 3.5
 - [Doxygen](http://www.doxygen.org/)
 - [MiniUPnP](http://miniupnp.free.fr/files/)
 
-### MacOSX (Mavericks 10.9.4)
+### MacOSX (Mavericks 10.9.5)
 - [Homebrew](http://brew.sh/)
 
-Note: We've dropped clang support on all platforms in an effort to streamline development. Regular clang users are welcome to bring back support!
-
-Note: the MacOSX and FreeBSD build need love! See [#175](https://github.com/monero-project/kovri/issues/175) and [#176](https://github.com/monero-project/kovri/issues/176)
 
 ## Step 2. Install dependencies
 
@@ -41,17 +38,15 @@ $ sudo pacman -Syu cmake boost  # gcc/g++ and openssl installed by default
 $ sudo pacman -S miniupnpc doxygen  # optional
 ```
 
-### FreeBSD 10
-```bash
-$ sudo pkg install gcc5 cmake boost-libs openssl
-$ sudo pkg install miniupnpc doxygen  # optional
-```
-
 ### MacOSX (Mavericks)
 ```bash
-$ brew install gcc5 cmake boost openssl
+$ brew install cmake boost openssl
 $ brew install miniupnpc doxygen  # optional
 ```
+
+### FreeBSD 10
+Currently unsupported and requires building Boost 1.58.
+We're working on it, stay tuned!
 
 ## Step 3. Build
 Minimum requirement:
@@ -79,7 +74,7 @@ Other options:
 All build output will be in the build directory.
 
 ### Clang
-Currently, only GCC is officially supported. To build with clang, export ```CC``` and ```CXX```:
+To build with clang, export ```CC``` and ```CXX``` (clang is default on OSX):
 
 ```bash
 $ export CC=clang CXX=clang++ && make  # CC is optional to avoid CMake warnings

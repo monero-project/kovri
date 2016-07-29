@@ -88,6 +88,17 @@ $ export CXXFLAGS="-maes -march=native"  # weidai11/cryptopp#232
 
 Replace ```clang``` with a clang version/path of your choosing.
 
+### Clang for Ubuntu Trusty 14.04:
+
+```bash
+# We currently need clang 3.6.2 minimum requirement
+- curl -sSL "http://llvm.org/apt/llvm-snapshot.gpg.key" | sudo -E apt-key add -
+- sudo add-apt-repository -y "deb http://llvm.org/apt/precise/ llvm-toolchain-precise-3.6 main"
+- sudo apt-get -q update
+- sudo apt-get -y install clang-3.6
+
+```
+
 ### Custom data path
 You can customize Kovri's data path to your liking. Simply export ```KOVRI_DATA_PATH```; example:
 

@@ -24,12 +24,16 @@ $ sudo apt-get install g++-5 cmake libboost-all-dev libssl-dev libssl1.0.0
 $ sudo apt-get install libminiupnpc-dev doxygen  # optional
 ```
 
-### Boost for Ubuntu Trusty 14.04:
+### Ubuntu Trusty 14.04:
 
 ```bash
-$ sudo add-apt-repository -y ppa:kojoley/boost
-$ sudo apt-get -q update
-$ sudo apt-get -y install libboost-{chrono,log,program-options,date-time,thread,system,filesystem,regex,test}1.58{-dev,.0}
+$ sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+$ sudo add-apt-repository ppa:kojoley/boost
+$ sudo apt-get update
+$ sudo apt-get install libboost-{chrono,log,program-options,date-time,thread,system,filesystem,regex,test}1.58{-dev,.0}
+$ sudo apt-get install g++-5 cmake libboost-all-dev libssl-dev libssl1.0.0
+$ sudo apt-get install libminiupnpc-dev doxygen  # optional
+
 ```
 
 ### Arch Linux

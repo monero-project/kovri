@@ -1,15 +1,20 @@
 # Style
-We ardently adhere to (or are in the process of adhering to) [Google's C++ Style Guide](https://google.github.io/styleguide/cppguide.html).
-Please run [cpplint](https://pypi.python.org/pypi/cpplint/) on any applicable work before contributing to Kovri and take no offense if your contribution ends up being style refactored.
+- Read [Google's C++ Style Guide](https://google.github.io/styleguide/cppguide.html).
+- Run [cpplint](https://pypi.python.org/pypi/cpplint/)
+```bash
+$ cpplint src/path/to/my/code.cpp
+```
+- Run [clang-format](http://llvm.org/releases/3.8.0/tools/clang/docs/ClangFormat.html) with ```-style=file``` using provided [.clang-format](https://github.com/monero-project/kovri/blob/master/.clang-format)
+```bash
+$ cd kovri/ && clang-format -style=file src/path/to/my/code.cpp
+```
 
-## A few differences from Google's proposed C++ style
+## Here's what's currently not caught by clang-format and differs from Google's proposed C++ style
 
+- Keep with codebase's present (vertical) style for consistency
 - Implementation file extension is ``cpp`` instead of ``cc``.
-- No more than one statement per line.
-  - For example, one-liner ``if`` statement with its body is forbidden.
-- In the same manner, one-liner function definitions are forbidden.
-- Avoid inline functions.
-- Newline break all function parameters for consisentcy across codebase:
+- Newline break all function parameters for consisentcy across codebase
+- When function args newline break, ensure that *every* arg indent is 4 spaces
 
 ```cpp
   /// @brief Constructs SSU header with pre-determined payload type
@@ -57,46 +62,10 @@ return SSUPacket::GetSize()
        + m_SignatureSize;   // Signature size
 ```
 
-In addition to the aforementioned, please consider the following:
-
-- Please keep in line with codebase's present (vertical) style for consistency
+- Class member variables should be prepended with ```m_```
+- Don't use "cheap function" names; always use MixedCaseFunctions()
+- Avoid prepended mixed-case ```k``` and MACRO_TYPE for all constants
+- Use Doxygen three-slash ```/// C++ comments``` when documenting for Doxygen
+- Document all your work for Doxygen as you progress
+- New files should maintain consistency with other filename style
 - If anonymity is a concern, try to blend in with a present contributor's style
-- Lines should be <=80 spaces unless impossible to do so (see [cpplint](https://pypi.python.org/pypi/cpplint/))
-- Pointers: reference/dereference operators on the left (attached to datatype) when possible
-- Class member variables should be prepended with ```m_``` to keep consistency with codebase
-- Use Doxygen style documentation for functions when possible
-- If function args newline break, ensure that *every* indent is 4 spaces (and not 2).
-```cpp
-if (clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x40) {
-  // So, we send it to reply tunnel
-  i2p::transport::transports.SendMessage(
-      clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
-      ToSharedI2NPMessage(
-          CreateTunnelGatewayMsg(
-              bufbe32toh(
-                  clearText + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
-              e_I2NPVariableTunnelBuildReply,
-              buf,
-              len,
-              bufbe32toh(
-                  clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET))));
-} else {
-  i2p::transport::transports.SendMessage(
-      clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
-      ToSharedI2NPMessage(
-          CreateI2NPMessage(
-              e_I2NPVariableTunnelBuild,
-              buf,
-              len,
-              bufbe32toh(
-                  clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET))));
-}
-```
-- TODO's should me marked as ```TODO(unassigned):``` (replace unassigned with your name) so Doxygen can catch them
-- Use three-slash ```/// C++ comments``` for Doxygen unless the comments span more than 10 lines (give or take). When that happens, a traditional
-```c
-  /**
-   * should suffice
-   */
-```
-- New files should maintain consistency with other filename case

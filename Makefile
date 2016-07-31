@@ -59,6 +59,9 @@ deps = deps
 cpp-netlib = $(deps)/cpp-netlib
 cryptopp = $(deps)/cryptopp
 
+# Binaries
+run-tests = ./kovri-tests && ./kovri-benchmarks
+
 # Current off-by-default build options
 cmake-upnp       = -D WITH_UPNP=ON
 cmake-optimize   = -D WITH_OPTIMIZE=ON
@@ -115,7 +118,7 @@ all-options:
 
 tests:
 	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-debug) $(cmake-tests) $(cmake-benchmarks) ../ && $(MAKE)
+	cd $(build) && $(cmake) $(cmake-debug) $(cmake-tests) $(cmake-benchmarks) ../ && $(MAKE) && $(run-tests)
 
 doxygen:
 	mkdir -p $(build)

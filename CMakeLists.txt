@@ -106,6 +106,7 @@ find_package(
 if(NOT Boost_FOUND)
   message(SEND_ERROR "Boost not found, or version below 1.46. Please download Boost!")
 else()
+  message(STATUS "Found Boost: ${Boost_INCLUDE_DIR}, ${Boost_LIBRARIES}")
   add_definitions(-DBOOST_ALL_DYN_LINK)
   include_directories(${Boost_INCLUDE_DIRS})
 endif()

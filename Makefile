@@ -28,38 +28,40 @@
 
 #TODO(unassigned): improve this Makefile
 
-# Get architecture
-system := $(shell uname)
-
-# Set custom data path
+# Get custom data path
 # If no path is given, set default path
+system := $(shell uname)
 ifeq ($(KOVRI_DATA_PATH),)
   ifeq ($(system), Linux)
     data-path = $(HOME)/.kovri
   endif
   ifeq ($(system), Darwin)
-    data-path = $(HOME)/Library/Application\ Support/kovri
+    data-path = $(HOME)/Library/Application\ Support/Kovri
   endif
   ifneq (, $(findstring MINGW, $(system)))
-    data-path = "$(APPDATA)"\\kovri
+    data-path = "$(APPDATA)"\\Kovri
   endif
 else
   data-path = $(KOVRI_DATA_PATH)
 endif
 
-# Command to install package resources to data path
-copy-resources = cp -fR pkg/ $(data-path)
+# Set custom data path
+cmake-data-path = -D KOVRI_DATA_PATH=$(data-path)
 
-# Build directory and clean command
-build = build # TODO(unassigned): make this more useful
-remove-build = rm -fR $(build)
+# Release types
+# TODO(unassigned): put these to good use; will require rewrite of root recipe.
+cmake-debug = -D CMAKE_BUILD_TYPE=Debug
+# TODO(unassigned): use release flag for dependencies when we release
+#cmake-release = -D CMAKE_BUILD_TYPE=Release
 
-# Dependencies
-deps = deps
-cpp-netlib = $(deps)/cpp-netlib
-cryptopp = $(deps)/cryptopp
+# Our base cmake command
+cmake = cmake -D CMAKE_C_COMPILER=$(CC) -D CMAKE_CXX_COMPILER=$(CXX) $(cmake-debug)
 
-# Current off-by-default build options
+# Dependencies options
+cmake-cpp-netlib = -D CPP-NETLIB_BUILD_TESTS=OFF -D CPP-NETLIB_BUILD_EXAMPLES=OFF
+cmake-cryptopp = -D BUILD_TESTING=OFF
+
+# Current off-by-default Kovri build options
 cmake-upnp       = -D WITH_UPNP=ON
 cmake-optimize   = -D WITH_OPTIMIZE=ON
 cmake-hardening  = -D WITH_HARDENING=ON
@@ -68,54 +70,51 @@ cmake-benchmarks = -D WITH_BENCHMARKS=ON
 cmake-static     = -D WITH_STATIC=ON
 cmake-doxygen    = -D WITH_DOXYGEN=ON
 
-# Disable options that are ON by default
+# Disable build options that will fail CMake if not built
+# (used for help and doxygen build options)
 disable-options = -D WITH_CPPNETLIB=OFF
 
-# Our custom data path
-cmake-data-path = -D KOVRI_DATA_PATH=$(data-path)
-
-# Release types
-# TODO(unassigned): put these to good use. We'll require rewrite of root recipe.
-# TODO(unassigned): use release flag for dependencies when we release
-cmake-debug = -D CMAKE_BUILD_TYPE=Debug
-#cmake-release = -D CMAKE_BUILD_TYPE=Release
-
-# Our base cmake command
-cmake = cmake -D CMAKE_C_COMPILER=$(CC) -D CMAKE_CXX_COMPILER=$(CXX)
+# Filesystem
+build = build/
+cpp-netlib-build = deps/cpp-netlib/$(build)
+cryptopp-build = deps/cryptopp/$(build)
+remove-build = rm -fR $(build) && rm -fR $(cpp-netlib-build) && rm -fR $(cryptopp-build)
+copy-resources = mkdir -p $(data-path) && cp -fR pkg/* $(data-path)
+run-tests = ./kovri-tests && ./kovri-benchmarks
 
 # TODO(unassigned): implement cmake-release build options
-all: shared
+all: dynamic
 
 dependencies:
-	mkdir -p $(cpp-netlib)/$(build)
-	cd $(cpp-netlib)/$(build) && $(cmake) $(cmake-debug) ../ && $(MAKE)
-	mkdir -p $(cryptopp)/$(build)
-	cd $(cryptopp)/$(build) && $(cmake) $(cmake-debug) ../ && $(MAKE)
+	mkdir -p $(cpp-netlib-build)
+	cd $(cpp-netlib-build) && $(cmake) $(cmake-cpp-netlib) ../ && $(MAKE)
+	mkdir -p $(cryptopp-build)
+	cd $(cryptopp-build) && $(cmake) $(cmake-cryptopp) ../ && $(MAKE)
 
-shared:
+dynamic:
 	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-debug) ../ && $(MAKE)
+	cd $(build) && $(cmake) ../ && $(MAKE)
 
 static:
 	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-debug) $(cmake-static) ../ && $(MAKE)
+	cd $(build) && $(cmake) $(cmake-static) ../ && $(MAKE)
 
 # We need (or very much should have) optimizations with hardening
 optimized-hardening:
 	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-debug) $(cmake-optimize) $(cmake-hardening) ../ && $(MAKE)
+	cd $(build) && $(cmake) $(cmake-optimize) $(cmake-hardening) ../ && $(MAKE)
 
 upnp:
 	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-debug) $(cmake-upnp) ../ && $(MAKE)
+	cd $(build) && $(cmake) $(cmake-upnp) ../ && $(MAKE)
 
 all-options:
 	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-debug) $(cmake-optimize) $(cmake-hardening) $(cmake-upnp) ../ && $(MAKE)
+	cd $(build) && $(cmake) $(cmake-optimize) $(cmake-hardening) $(cmake-upnp) ../ && $(MAKE)
 
 tests:
 	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-debug) $(cmake-tests) $(cmake-benchmarks) ../ && $(MAKE)
+	cd $(build) && $(cmake) $(cmake-tests) $(cmake-benchmarks) ../ && $(MAKE) && $(run-tests)
 
 doxygen:
 	mkdir -p $(build)
@@ -127,7 +126,7 @@ help:
 
 clean:
 	@if [ "$$FORCE_CLEAN" = "yes" ]; then $(remove-build); \
-	else echo "CAUTION: This will remove the build directory"; \
+	else echo "CAUTION: This will remove the build directories for Kovri and ALL dependencies"; \
 	read -r -p "Is this what you wish to do? (y/N)?: " CONFIRM; \
 	  if [ $$CONFIRM = "y" ] || [ $$CONFIRM = "Y" ]; then $(remove-build); \
           else echo "Exiting."; exit 1; \
@@ -145,4 +144,4 @@ install-resources:
 	  fi; \
 	fi
 
-.PHONY: all dependencies shared static optimized-hardening upnp all-options tests doxygen help clean install-resources
+.PHONY: all dependencies dynamic static optimized-hardening upnp all-options tests doxygen help clean install-resources

@@ -36,10 +36,10 @@ ifeq ($(KOVRI_DATA_PATH),)
     data-path = $(HOME)/.kovri
   endif
   ifeq ($(system), Darwin)
-    data-path = $(HOME)/Library/Application\ Support/kovri
+    data-path = $(HOME)/Library/Application\ Support/Kovri
   endif
   ifneq (, $(findstring MINGW, $(system)))
-    data-path = "$(APPDATA)"\\kovri
+    data-path = "$(APPDATA)"\\Kovri
   endif
 else
   data-path = $(KOVRI_DATA_PATH)

@@ -6,7 +6,7 @@ env:
   # Compiler versions
   - GCC_VERSION=5
   - CLANG_VERSION=3.6
-  # For weidai11/cryptopp#232
+  # CXXFLAGS for weidai11/cryptopp#232
   - CXXFLAGS="-maes -march=native"
 sudo: required
 dist: trusty
@@ -20,8 +20,6 @@ addons:
     - gcc-5
     - g++-5
     - clang-3.6
-    - libc++-dev
-    - libc++abi-dev
     - libssl-dev
     - libssl1.0.0
     - libminiupnpc-dev

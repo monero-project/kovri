@@ -5,27 +5,29 @@ env:
   - FORCE_INSTALL=yes
   # Compiler versions
   - GCC_VERSION=5
-  #- CLANG_VERSION=3.6
-  # For weidai11/cryptopp#232
+  - CLANG_VERSION=3.6
+  # CXXFLAGS for weidai11/cryptopp#232
   - CXXFLAGS="-maes -march=native"
 sudo: required
 dist: trusty
 language: cpp
 compiler:
-- gcc-5
-#- clang-3.6
+- gcc
+- clang
 addons:
   apt:
     packages:
     - gcc-5
     - g++-5
-    #- clang-3.6
+    - clang-3.6
     - libssl-dev
     - libssl1.0.0
     - libminiupnpc-dev
     - doxygen
     sources:
     - ubuntu-toolchain-r-test
+    # We need 3.6.2 minimum requirement
+    - llvm-toolchain-precise-3.6
 before_install:
 - git submodule update --init --recursive
 - sudo add-apt-repository -y ppa:kojoley/boost
@@ -34,8 +36,8 @@ before_install:
 before_script:
 - if [ "$CC" = "gcc" ]; then export CC=gcc-${GCC_VERSION}; fi
 - if [ "$CXX" = "g++" ]; then export CXX=g++-${GCC_VERSION}; fi
-#- if [ "$CC" = "clang" ]; then export CC=clang-${CLANG_VERSION}; fi
-#- if [ "$CXX" = "clang++" ]; then export CXX=clang-${CLANG_VERSION}; fi
+- if [ "$CC" = "clang" ]; then export CC=clang-${CLANG_VERSION}; fi
+- if [ "$CXX" = "clang++" ]; then export CXX=clang-${CLANG_VERSION}; fi
 script: make clean && make -j2 dependencies && make -j2 all-options && make -j2 tests && make doxygen && make install-resources
 notifications:
   email: false

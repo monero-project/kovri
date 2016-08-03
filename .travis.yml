@@ -1,49 +1,55 @@
-env:
-  global:
-  # Skip user-input
-  - FORCE_CLEAN=yes
-  - FORCE_INSTALL=yes
-  # Compiler versions
-  - GCC_VERSION=5
-  #- CLANG_VERSION=3.6
-  # For weidai11/cryptopp#232
-  - CXXFLAGS="-maes -march=native"
 sudo: required
 dist: trusty
+
 language: cpp
+
 compiler:
-- gcc
-#- clang
+    - gcc
+    - clang
+
+env:
+    global:
+        # Skip user-input
+        - FORCE_CLEAN=yes
+        - FORCE_INSTALL=yes
+        # Compiler versions
+        - GCC_VERSION=4.9
+        #- CLANG_VERSION=3.6
+        # For weidai11/cryptopp#232
+        - CXXFLAGS="-maes -march=native"
+
 addons:
-  apt:
-    packages:
-    - gcc-5
-    - g++-5
-    #- clang-3.6
-    - libssl-dev
-    - libssl1.0.0
-    - libminiupnpc-dev
-    - doxygen
-    sources:
-    - ubuntu-toolchain-r-test
-    # We need 3.6.2 minimum requirement
-    #- llvm-toolchain-precise-3.6
+    apt:
+        packages:
+            - gcc-4.9
+            - g++-4.9
+            - libssl-dev
+            - libssl1.0.0
+            - libminiupnpc-dev
+            - doxygen
+        sources:
+            - ubuntu-toolchain-r-test
+
 before_install:
-- git submodule update --init --recursive
-- sudo add-apt-repository -y ppa:kojoley/boost
-- sudo apt-get -q update
-- sudo apt-get -y install libboost-{chrono,log,program-options,date-time,thread,system,filesystem,regex,test}1.58{-dev,.0}
+    - git submodule update --init --recursive
+    - sudo add-apt-repository -y ppa:kojoley/boost
+    - sudo apt-get -q update
+
+install:
+    - sudo apt-get -y install libboost-{chrono,log,program-options,date-time,thread,system,filesystem,regex,test}1.58{-dev,.0}
+
 before_script:
-- if [ "$CC" = "gcc" ]; then export CC=gcc-${GCC_VERSION}; fi
-- if [ "$CXX" = "g++" ]; then export CXX=g++-${GCC_VERSION}; fi
-#- if [ "$CC" = "clang" ]; then export CC=clang-${CLANG_VERSION}; fi
-#- if [ "$CXX" = "clang++" ]; then export CXX=clang-${CLANG_VERSION}; fi
+    - if [ "$CC" = "gcc" ]; then export CC=gcc-${GCC_VERSION}; fi
+    - if [ "$CXX" = "g++" ]; then export CXX=g++-${GCC_VERSION}; fi
+    #- if [ "$CC" = "clang" ]; then export CC=clang-${CLANG_VERSION}; fi
+    #- if [ "$CXX" = "clang++" ]; then export CXX=clang-${CLANG_VERSION}; fi
+
 script: make clean && make -j2 dependencies && make -j2 all-options && make -j2 tests && make doxygen && make install-resources
+
+
 notifications:
-  email: false
-  irc:
-    channels:
-      - "chat.freenode.net#kovri-dev"
-    nick: kovri
-    template:
-      - "%{result} | %{repository}#%{build_number} (%{commit} : %{author}) | Build details : %{build_url}"
+    email: false
+    irc:
+        channels: "chat.freenode.net#kovri-dev"
+        nick: kovri
+        template: "%{result} | %{repository}#%{build_number} (%{commit} : %{author}) | Build details : %{build_url}"

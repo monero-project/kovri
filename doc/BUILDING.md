@@ -1,10 +1,14 @@
 ## Step 1. Minimum requirements
 
-### Linux / MacOSX (Mavericks 10.9.4) / FreeBSD 10 / Windows (Cygwin)
+### Linux / MacOSX (10.9.5) / FreeBSD 10
 - [Boost](http://www.boost.org/) 1.58
 - [CMake](https://cmake.org/) 2.8.12
 - [GCC](https://gcc.gnu.org/) 5.3.0
 - [OpenSSL](https://openssl.org/) (always the latest stable version)
+
+### Windows
+- [MSYS2](https://msys2.github.io/)
+- [MinGW-w64](http://mingw-w64.org/doku.php)
 
 Optional:
 
@@ -12,9 +16,8 @@ Optional:
 - [Doxygen](http://www.doxygen.org/)
 - [MiniUPnP](http://miniupnp.free.fr/files/)
 
-### MacOSX (Mavericks 10.9.5)
+### MacOSX
 - [Homebrew](http://brew.sh/)
-
 
 ## Step 2. Install dependencies
 
@@ -42,12 +45,25 @@ $ sudo pacman -Syu cmake boost  # gcc/g++ and openssl installed by default
 $ sudo pacman -S miniupnpc doxygen  # optional
 ```
 
-### MacOSX (Mavericks)
+### MacOSX
 ```bash
 $ export CXXFLAGS="-maes -march=native"  # weidai11/cryptopp#232
 $ brew install cmake boost openssl
 $ brew install miniupnpc doxygen  # optional
 ```
+
+### Windows
+* Download the [MSYS2 installer](http://msys2.github.io/), 64-bit or 32-bit as needed, and run it.
+* Use the shortcut associated with your architecture to launch the MSYS2 environment. On 64-bit systems that would be the MinGW-w64 Win64 Shell shortcut. Note that if you are running 64-bit Windows, you will have both 64-bit and 32-bit environments.
+* Update the packages in your MSYS2 install:
+```
+pacman -Sy
+pacman -Su --ignoregroup base
+pacman -Su
+```
+* For those of you already familiar with pacman, you can run the normal ```pacman -Syu``` to update, but you may get errors and need to restart MSYS2 if pacman's dependencies are updated.
+* Install dependencies: ```pacman -S make mingw-w64-x86_64-cmake mingw-w64-x86_64-gcc mingw-w64-x86_64-boost mingw-w64-x86_64-openssl```
+* Optional: ```mingw-w64-x86_64-doxygen mingw-w64-x86_64-miniupnpc```
 
 ### FreeBSD 10
 Currently unsupported and requires building Boost 1.58.

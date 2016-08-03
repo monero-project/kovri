@@ -40,6 +40,7 @@ ifeq ($(KOVRI_DATA_PATH),)
   endif
   ifneq (, $(findstring MINGW, $(system)))
     data-path = "$(APPDATA)"\\Kovri
+    cmake-gen = -G 'MSYS Makefiles'
   endif
 else
   data-path = $(KOVRI_DATA_PATH)
@@ -55,7 +56,7 @@ cmake-debug = -D CMAKE_BUILD_TYPE=Debug
 #cmake-release = -D CMAKE_BUILD_TYPE=Release
 
 # Our base cmake command
-cmake = cmake -D CMAKE_C_COMPILER=$(CC) -D CMAKE_CXX_COMPILER=$(CXX) $(cmake-debug)
+cmake = cmake $(cmake-gen) $(cmake-debug) -D CMAKE_C_COMPILER=$(CC) -D CMAKE_CXX_COMPILER=$(CXX)
 
 # Dependencies options
 cmake-cpp-netlib = -D CPP-NETLIB_BUILD_TESTS=OFF -D CPP-NETLIB_BUILD_EXAMPLES=OFF

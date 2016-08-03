@@ -7,6 +7,10 @@ compiler:
     - gcc
     - clang
 
+os:
+    - linux
+    - osx
+
 env:
     global:
         # Skip user-input
@@ -17,6 +21,11 @@ env:
         #- CLANG_VERSION=3.6
         # For weidai11/cryptopp#232
         - CXXFLAGS="-maes -march=native"
+
+matrix:
+    exclude:
+        - os: osx
+          compiler: gcc
 
 addons:
     apt:
@@ -33,11 +42,14 @@ addons:
 
 before_install:
     - git submodule update --init --recursive
-    - sudo add-apt-repository -y ppa:kojoley/boost
-    - sudo apt-get -q update
+    - if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then sudo add-apt-repository -y ppa:kojoley/boost; sudo apt-get -q update; fi
+    - if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then brew update; fi
 
 install:
-    - sudo apt-get -y install libboost-{chrono,log,program-options,date-time,thread,system,filesystem,regex,test}1.58{-dev,.0}
+    - if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then sudo apt-get -y install libboost-{chrono,log,program-options,date-time,thread,system,filesystem,regex,test}1.58{-dev,.0}; fi
+
+    - if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then brew upgrade boost; fi
+    - if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then brew install cryptopp openssl miniupnpc doxygen; fi
 
 before_script:
     - if [ "$CC" = "gcc" ]; then export CC=gcc-${GCC_VERSION}; fi

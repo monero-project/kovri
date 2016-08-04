@@ -60,5 +60,5 @@ In the fall of 2015, along came anonimal who, not wanting to see everyone's work
 Seeing that this sort of erratic behavior would only hurt the I2P network and the project as a whole, the remaining developers continued to have [several important meetings](https://github.com/monero-project/kovri/issues/47) and set the foundation for what is now Kovri.
 
 ## I found a vulnerability! I found a bug! What do I do?
-- Vulnerabilities: see our [README](https://github.com/monero-project/kovri/blob/master/doc/README.md)
+- Vulnerabilities: see our [README](https://github.com/monero-project/kovri/blob/master/README.md)
 - Bugs: see our [Contributing Guide](https://github.com/monero-project/kovri/blob/master/doc/CONTRIBUTING.md)

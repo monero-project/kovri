@@ -1,15 +1,15 @@
 set(CLIENT_SRC
-  "Datagram.cpp"
-  "I2PControl/I2PControl.cpp"
-  "I2PControl/I2PControlServer.cpp"
-  "I2PTunnel/HTTPProxy.cpp"
-  "I2PTunnel/I2PTunnel.cpp"
-  "I2PTunnel/SOCKS.cpp"
-  "Streaming.cpp"
-  "AddressBook.cpp"
-  "Destination.cpp"
-  "ClientContext.cpp"
-  "I2PService.cpp")
+  "Datagram.cc"
+  "I2PControl/I2PControl.cc"
+  "I2PControl/I2PControlServer.cc"
+  "I2PTunnel/HTTPProxy.cc"
+  "I2PTunnel/I2PTunnel.cc"
+  "I2PTunnel/SOCKS.cc"
+  "Streaming.cc"
+  "AddressBook.cc"
+  "Destination.cc"
+  "ClientContext.cc"
+  "I2PService.cc")
 
 include_directories(
   "."

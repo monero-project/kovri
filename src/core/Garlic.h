@@ -32,7 +32,6 @@
 
 #ifndef SRC_CORE_GARLIC_H_
 #define SRC_CORE_GARLIC_H_
-
 #include <array>
 #include <cstdint>
 #include <list>

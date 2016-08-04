@@ -1,12 +1,12 @@
 # Style
-- Read [Google's C++ Style Guide](https://google.github.io/styleguide/cppguide.html).
-- Run [cpplint](https://pypi.python.org/pypi/cpplint/)
+1. Read [Google's C++ Style Guide](https://google.github.io/styleguide/cppguide.html)
+2. Run [cpplint](https://pypi.python.org/pypi/cpplint/)
 ```bash
-$ cpplint src/path/to/my/code.cpp
+$ cpplint src/path/to/my/file
 ```
-- Run [clang-format](http://llvm.org/releases/3.8.0/tools/clang/docs/ClangFormat.html) with ```-style=file``` using provided [.clang-format](https://github.com/monero-project/kovri/blob/master/.clang-format)
+3. Run [clang-format](http://llvm.org/releases/3.8.0/tools/clang/docs/ClangFormat.html) with ```-style=file``` using provided [.clang-format](https://github.com/monero-project/kovri/blob/master/.clang-format)
 ```bash
-$ cd kovri/ && clang-format -style=file src/path/to/my/code.cpp
+$ cd kovri/ && clang-format -style=file src/path/to/my/file
 ```
 
 ## Here's what's currently not caught by clang-format and differs from Google's proposed C++ style

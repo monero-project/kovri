@@ -1,9 +1,9 @@
 ## Step 1. Minimum requirements
 
 ### Linux / MacOSX (10.9.5) / FreeBSD 10
-- [Boost](http://www.boost.org/) 1.58
+- [GCC](https://gcc.gnu.org/) 4.9.3
 - [CMake](https://cmake.org/) 2.8.12
-- [GCC](https://gcc.gnu.org/) 5.3.0
+- [Boost](http://www.boost.org/) 1.58
 - [OpenSSL](https://openssl.org/) (always the latest stable version)
 
 ### Windows
@@ -12,9 +12,9 @@
 
 Optional:
 
-- [Clang](http://clang.llvm.org/) 3.6
-- [Doxygen](http://www.doxygen.org/)
-- [MiniUPnP](http://miniupnp.free.fr/files/)
+- [Clang](http://clang.llvm.org/) 3.5
+- [Doxygen](http://www.doxygen.org/) 1.8.6
+- [MiniUPnP](http://miniupnp.free.fr/files/) 1.6
 
 ### MacOSX
 - [Homebrew](http://brew.sh/)
@@ -23,7 +23,8 @@ Optional:
 
 ### Debian / Ubuntu
 ```bash
-$ sudo apt-get install g++-5 cmake libboost-all-dev libssl-dev libssl1.0.0
+$ sudo apt-get install g++-4.9 cmake libboost-all-dev libssl-dev libssl1.0.0
+$ sudo apt-get install clang-3.5  # optional
 $ sudo apt-get install libminiupnpc-dev doxygen  # optional
 ```
 
@@ -34,7 +35,8 @@ $ sudo add-apt-repository ppa:ubuntu-toolchain-r/test
 $ sudo add-apt-repository ppa:kojoley/boost
 $ sudo apt-get update
 $ sudo apt-get install libboost-{chrono,log,program-options,date-time,thread,system,filesystem,regex,test}1.58{-dev,.0}
-$ sudo apt-get install g++-5 cmake libboost-all-dev libssl-dev libssl1.0.0
+$ sudo apt-get install g++-4.9 cmake libboost-all-dev libssl-dev libssl1.0.0
+$ sudo apt-get install clang-3.5  # optional
 $ sudo apt-get install libminiupnpc-dev doxygen  # optional
 
 ```
@@ -42,6 +44,7 @@ $ sudo apt-get install libminiupnpc-dev doxygen  # optional
 ### Arch Linux
 ```bash
 $ sudo pacman -Syu cmake boost  # gcc/g++ and openssl installed by default
+$ sudo pacman -S clang  # optional
 $ sudo pacman -S miniupnpc doxygen  # optional
 ```
 
@@ -101,19 +104,7 @@ To build with clang, you must export the following:
 $ export CC=clang CXX=clang++
 $ export CXXFLAGS="-maes -march=native"  # weidai11/cryptopp#232
 ```
-
 Replace ```clang``` with a clang version/path of your choosing.
-
-### Clang for Ubuntu Trusty 14.04:
-
-```bash
-# We currently need clang 3.6.2 minimum requirement
-- curl -sSL "http://llvm.org/apt/llvm-snapshot.gpg.key" | sudo -E apt-key add -
-- sudo add-apt-repository -y "deb http://llvm.org/apt/precise/ llvm-toolchain-precise-3.6 main"
-- sudo apt-get -q update
-- sudo apt-get -y install clang-3.6
-
-```
 
 ### Custom data path
 You can customize Kovri's data path to your liking. Simply export ```KOVRI_DATA_PATH```; example:

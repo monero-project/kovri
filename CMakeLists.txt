@@ -49,15 +49,20 @@ elseif(NOT MSVC)
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9.3)
+    message(FATAL_ERROR "GCC 4.9.3 or higher is required")
+  endif()
   if(WITH_HARDENING)
     add_definitions("-D_FORTIFY_SOURCE=2")
     set(CMAKE_CXX_FLAGS
       "${CMAKE_CXX_FLAGS} -Wformat -Wformat-security -Werror=format-security")
     set(CMAKE_CXX_FLAGS
       "${CMAKE_CXX_FLAGS} -fstack-protector-strong -fPIE --param ssp-buffer-size=4 -z relro -z now")
-    endif()
-  elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    message(WARNING "Clang is not officially supported. See building instructions for minimum requirements.")
+  endif()
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 3.5)
+    message(FATAL_ERROR "Clang 3.5 or higher is required")
+  endif()
 endif()
 
 # Compiler flags customization (by system)

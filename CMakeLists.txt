@@ -45,7 +45,7 @@ CHECK_CXX_COMPILER_FLAG("-std=c++1y" CXX14_SUPPORTED)
 if(CXX14_SUPPORTED)
   add_definitions("-std=c++1y")
 elseif(NOT MSVC)
-  message(SEND_ERROR "C++14 standard not supported by compiler. See building instructions for minimum requirements.")
+  message(FATAL_ERROR "C++14 standard not supported by compiler. See building instructions.")
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -100,7 +100,7 @@ if(NOT WIN32)
 endif()
 
 find_package(
-  Boost
+  Boost 1.58
   COMPONENTS
     chrono log
     program_options date_time
@@ -109,7 +109,7 @@ find_package(
   REQUIRED)
 
 if(NOT Boost_FOUND)
-  message(SEND_ERROR "Boost not found, or version below 1.46. Please download Boost!")
+  message(FATAL_ERROR "Boost not found or requirement not satisfied. See building instructions.")
 else()
   message(STATUS "Found Boost: ${Boost_INCLUDE_DIR}, ${Boost_LIBRARIES}")
   add_definitions(-DBOOST_ALL_DYN_LINK)
@@ -119,7 +119,7 @@ endif()
 if(WITH_CRYPTOPP)
   find_package(CryptoPP REQUIRED)
   if(NOT CryptoPP_FOUND)
-    message(SEND_ERROR "Could not find Crypto++. See building instructions.")
+    message(FATAL_ERROR "Could not find Crypto++. See building instructions.")
   else()
     message(STATUS "Found Crypto++: ${CryptoPP_INCLUDE_DIR}, ${CryptoPP_LIBRARIES}")
     include_directories(${CryptoPP_INCLUDE_DIR}/../)  # We back-track for <cryptopp/*>
@@ -137,7 +137,7 @@ endif()
 
 find_package(OpenSSL REQUIRED)
 if(NOT DEFINED OPENSSL_INCLUDE_DIR)
-  message(SEND_ERROR "Could not find OpenSSL. Please download and install it first!")
+  message(FATAL_ERROR "Could not find OpenSSL. Please download and install it first!")
 else()
   include_directories(${OPENSSL_INCLUDE_DIR})
 endif()
@@ -150,7 +150,7 @@ if(WITH_CPPNETLIB)
   set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} deps/cpp-netlib)
   find_package(cppnetlib 0.12.0 REQUIRED)
   if(NOT DEFINED CPPNETLIB_INCLUDE_DIRS)
-    message(SEND_ERROR "Could not find cpp-netlib 0.12.0. See building instructions.")
+    message(FATAL_ERROR "Could not find cpp-netlib 0.12.0. See building instructions.")
   else()
     message(STATUS "Found cpp-netlib: ${CPPNETLIB_INCLUDE_DIRS}, ${CPPNETLIB_LIBRARIES}")
     include_directories(${CPPNETLIB_INCLUDE_DIRS})

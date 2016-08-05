@@ -32,8 +32,12 @@
 
 #include "HTTP.h"
 
+// cpp-netlib
+#define BOOST_NETWORK_ENABLE_HTTPS
+#include <boost/network/include/http/client.hpp>
 #include <boost/network/uri.hpp>
 
+#include <exception>
 #include <functional>
 #include <memory>
 #include <string>
@@ -87,72 +91,44 @@ std::string URI::Decode(
 
 bool HTTP::Download(
     const std::string& address) {
-  boost::asio::io_service service;
-  boost::system::error_code ec;
+  // Validate URI
   URI uri;
   if (!uri.Parse(address))
     return false;
-  // Ensures host is online
-  auto query =
-    boost::asio::ip::tcp::resolver::query(uri.m_Host, uri.m_Port);
-  auto endpoint =
-    boost::asio::ip::tcp::resolver(service).resolve(query, ec);
-  if (ec) {
-    LogPrint(eLogError,
-        "HTTP: Could not resolve address ", uri.m_Host, ": ", ec.message());
+  namespace http = boost::network::http;
+  namespace network = boost::network;
+  http::client::options options;
+  // Ensure that we only download from certified reseed servers
+  if (!i2p::context.ReseedSkipSSLCheck()) {
+    const std::string cert = uri.m_Host + ".crt";
+    const boost::filesystem::path cert_path = i2p::util::filesystem::GetSSLCertsPath() / cert;
+    if (!boost::filesystem::exists(cert_path)) {
+      LogPrint(eLogError, "HTTP: certificate unavailable: ", cert_path);
+      return false;
+    }
+    // Set SSL options
+    options
+      .openssl_certificate(cert_path.string())
+      .openssl_sni_hostname(uri.m_Host);
+  }
+  try {
+    // Set extra options
+    options.timeout(45);  // Java I2P defined
+    http::client client(options);
+    // Prepare and initiate session
+    http::client::request request(address);
+    request << network::header("User-Agent", "Wget/1.11.4");  // Java I2P defined
+    http::client::response response = client.get(request);
+    // Assign stream our downloaded contents
+    m_Stream.assign(http::body(response));
+  } catch (const std::exception& e) {
+    LogPrint(eLogError, "HTTP: unable to complete download: ", e.what());
     return false;
   }
-  // Initialize SSL
-  boost::asio::ssl::context ctx(service, boost::asio::ssl::context::sslv23);
-  if (ctx.set_options(
-        boost::asio::ssl::context::no_tlsv1 |
-        boost::asio::ssl::context::no_sslv3,
-        ec)) {
-    LogPrint(eLogError,
-        "HTTP: Could not initialize SSL context: ", ec.message());
-    return false;
-  }
-  // Ensures that we only download from certified reseed servers
-  if (!i2p::context.ReseedSkipSSLCheck())
-    ctx.set_verify_mode(
-        boost::asio::ssl::verify_peer |
-        boost::asio::ssl::verify_fail_if_no_peer_cert);
-  ctx.set_verify_callback(boost::asio::ssl::rfc2818_verification(uri.m_Host));
-  ctx.add_verify_path(i2p::util::filesystem::GetSSLCertsPath().string());
-  // Connect to host
-  boost::asio::ssl::stream<boost::asio::ip::tcp::socket>socket(service, ctx);
-  if (socket.lowest_layer().connect(*endpoint, ec)) {
-    LogPrint(eLogError,
-        "HTTP: Could not connect to ", uri.m_Host, ": ", ec.message());
-    return false;
-  }
-  // Initiate handshake
-  if (socket.handshake(boost::asio::ssl::stream_base::client, ec)) {
-    LogPrint(eLogError,
-        "HTTP: SSL handshake failed: ", ec.message());
-    return false;
-  }
-  LogPrint(eLogInfo, "HTTP: Connected to ", uri.m_Host, ":", uri.m_Port);
-  // Send header
-  std::stringstream send_stream;
-  send_stream << Header(uri.m_Path, uri.m_Host, "1.1") << "\r\n";
-  socket.write_some(boost::asio::buffer(send_stream.str()));
-  // Read response / download
-  std::stringstream read_stream;
-  std::vector<char> response(1024);  // Arbitrary amount
-  std::size_t length = 0;
-  do {
-    length = socket.read_some(
-        boost::asio::buffer(response.data(), response.size()),
-        ec);
-    if (length)
-      read_stream.write(response.data(), length);
-  } while (!ec && length);
-  // Assign stream downloaded contents
-  m_Stream.assign(GetContent(read_stream));
   return true;
 }
 
+// TODO(anonimal): remove once AddressBookSubscription has been refactored
 const std::string HTTP::Header(
     const std::string& path,
     const std::string& host,
@@ -166,6 +142,7 @@ const std::string HTTP::Header(
   return header;
 }
 
+// TODO(anonimal): remove once AddressBookSubscription has been refactored
 const std::string HTTP::GetContent(
     std::istream& response) {
   std::string version, statusMessage;
@@ -196,6 +173,7 @@ const std::string HTTP::GetContent(
   }
 }
 
+// TODO(anonimal): remove once AddressBookSubscription has been refactored
 void HTTP::MergeChunkedResponse(
     std::istream& response,
     std::ostream& merged) {

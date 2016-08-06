@@ -1,6 +1,7 @@
 ## Step 1. Minimum requirements
 
 ### Linux / MacOSX (10.9.5) / FreeBSD 10
+- [Git](https://git-scm.com/download) 1.9.1
 - [GCC](https://gcc.gnu.org/) 4.9.3
 - [CMake](https://cmake.org/) 2.8.12
 - [Boost](http://www.boost.org/) 1.58
@@ -12,7 +13,7 @@
 
 Optional:
 
-- [Clang](http://clang.llvm.org/) 3.5
+- [Clang](http://clang.llvm.org/) 3.5 ([3.6 on FreeBSD](https://llvm.org/bugs/show_bug.cgi?id=28887))
 - [Doxygen](http://www.doxygen.org/) 1.8.6
 - [MiniUPnP](http://miniupnp.free.fr/files/) 1.6
 
@@ -50,10 +51,22 @@ $ sudo pacman -S miniupnpc doxygen  # optional
 
 ### MacOSX
 ```bash
-$ export CXXFLAGS="-maes -march=native"  # weidai11/cryptopp#232
-$ brew install cmake boost openssl
+$ brew install cmake boost openssl # clang installed by default
 $ brew install miniupnpc doxygen  # optional
 ```
+Note: see Clang build instructions below
+
+### FreeBSD 10
+```bash
+$ sudo pkg install git cmake gmake clang36 openssl
+$ sudo pkg install miniupnpc doxygen  # optional
+# Build latest boost (1.58 minimum)
+$ wget https://sourceforge.net/projects/boost/files/boost/1.61.0/boost_1_61_0.tar.bz2/download -O boost_1_61_0.tar.bz2
+$ tar xvjf boost_1_61_0.tar.bz2 && cd boost_1_61_0
+$ ./bootstrap.sh --with-toolset=clang  # OK to build with clang < 3.6
+$ sudo ./b2 --toolset=clang install
+```
+Note: see FreeBSD build instructions below
 
 ### Windows
 * Download the [MSYS2 installer](http://msys2.github.io/), 64-bit or 32-bit as needed, and run it.
@@ -67,10 +80,6 @@ pacman -Su
 * For those of you already familiar with pacman, you can run the normal ```pacman -Syu``` to update, but you may get errors and need to restart MSYS2 if pacman's dependencies are updated.
 * Install dependencies: ```pacman -S make mingw-w64-x86_64-cmake mingw-w64-x86_64-gcc mingw-w64-x86_64-boost mingw-w64-x86_64-openssl```
 * Optional: ```mingw-w64-x86_64-doxygen mingw-w64-x86_64-miniupnpc```
-
-### FreeBSD 10
-Currently unsupported and requires building Boost 1.58.
-We're working on it, stay tuned!
 
 ## Step 3. Build
 Minimum requirement:
@@ -98,13 +107,19 @@ Other options:
 All build output will be in the build directory.
 
 ### Clang
-To build with clang, you must export the following:
+To build with clang, you **must** export the following:
 
 ```bash
-$ export CC=clang CXX=clang++
+$ export CC=clang CXX=clang++  # replace ```clang``` with a clang version/path of your choosing
 $ export CXXFLAGS="-maes -march=native"  # weidai11/cryptopp#232
 ```
-Replace ```clang``` with a clang version/path of your choosing.
+
+### FreeBSD
+```bash
+$ export CC=clang36 CXX=clang++36 CXXFLAGS="-maes -march=native"
+$ gmake dependencies && gmake && gmake install-resources
+```
+- Replace ```make``` with ```gmake``` for all other build options
 
 ### Custom data path
 You can customize Kovri's data path to your liking. Simply export ```KOVRI_DATA_PATH```; example:

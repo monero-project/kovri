@@ -38,6 +38,9 @@ ifeq ($(KOVRI_DATA_PATH),)
   ifeq ($(system), Darwin)
     data-path = $(HOME)/Library/Application\ Support/Kovri
   endif
+  ifneq (, $(findstring BSD, $(system))) # We should support other BSD's
+    data-path = $(HOME)/.kovri
+  endif
   ifneq (, $(findstring MINGW, $(system)))
     data-path = "$(APPDATA)"\\Kovri
     cmake-gen = -G 'MSYS Makefiles'

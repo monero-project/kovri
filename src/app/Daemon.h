@@ -84,7 +84,8 @@ class DaemonWin32 : public Daemon_Singleton {
 #else
 class DaemonLinux : public Daemon_Singleton {
  public:
-  DaemonLinux() = default;
+  DaemonLinux()
+    : m_pidFilehandle() {};
   static DaemonLinux& Instance() {
     static DaemonLinux instance;
     return instance;

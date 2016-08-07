@@ -67,6 +67,7 @@ NTCPSession::NTCPSession(
       m_IsTerminated(false),
       m_ReceiveBufferOffset(0),
       m_NextMessage(nullptr),
+      m_NextMessageOffset(0),
       m_IsSending(false) {
   m_DHKeysPair = transports.GetNextDHKeysPair();
   m_Establisher = std::make_unique<Establisher>();

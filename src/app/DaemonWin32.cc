@@ -33,7 +33,9 @@
 #include <string>
 
 #include "Daemon.h"
-#include "core/util/Log.h"
+
+#include "util/Config.h"
+#include "util/Log.h"
 
 #ifdef _WIN32
 
@@ -51,11 +53,11 @@ bool DaemonWin32::Init() {
   if (!Daemon_Singleton::Init())
     return false;
   if (I2PService::isService())
-    m_isDaemon = 1;
+    m_IsDaemon = 1;
   else
-    m_isDaemon = 0;
+    m_IsDaemon = 0;
   std::string serviceControl =
-    i2p::util::config::varMap["service"].as<std::string>();
+    i2p::util::config::var_map["service"].as<std::string>();
   if (serviceControl == "install") {
     InstallService(
         SERVICE_NAME,               // Name of service
@@ -72,11 +74,11 @@ bool DaemonWin32::Init() {
     printf(" --service=install  to install the service.\n");
     printf(" --service=remove   to remove the service.\n");
   }
-  if (m_isDaemon == 1) {
+  if (m_IsDaemon == 1) {
     LogPrint(eLogInfo, "DaemonWin32: service session");
     I2PService service(SERVICE_NAME);
     if (!I2PService::Run(service)) {
-      LogPrint(eLogErorr,
+      LogPrint(eLogError,
           "DaemonWin32: service failed to run w/err 0x%08lx\n", GetLastError());
       exit(EXIT_FAILURE);
     }

@@ -32,6 +32,11 @@
 
 #include "Filesystem.h"
 
+#ifdef __MINGW32__
+#include <minwindef.h>
+#include <shlobj.h>
+#endif
+
 #include <string>
 
 #include "Config.h"

@@ -34,14 +34,13 @@
 #define _CRT_SECURE_NO_WARNINGS  // to use freopen
 #endif
 
+#include "Win32Service.h"
+
 #include <assert.h>
-#include <strsafe.h>
-#include <windows.h>
 
 #include <memory>
 
 #include "Daemon.h"
-#include "Win32Service.h"
 #include "core/util/Log.h"
 
 I2PService *I2PService::m_Service = NULL;
@@ -98,7 +97,11 @@ I2PService::I2PService(
     BOOL fCanStop,
     BOOL fCanShutdown,
     BOOL fCanPauseContinue) {
-  m_Name = (pszServiceName == NULL) ? "" : pszServiceName;
+  if (pszServiceName == NULL) {
+    m_Name = "";  // TODO(unassigned): why?
+  } else {
+    m_Name = pszServiceName;
+  }
   m_StatusHandle = NULL;
   m_Status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
   m_Status.dwCurrentState = SERVICE_START_PENDING;
@@ -150,6 +153,7 @@ void I2PService::Start(
 void I2PService::OnStart(
     DWORD dwArgc,
     PSTR *pszArgv) {
+  // TODO(unassigned): unused args
   LogPrint(eLogInfo, "I2PServiceWin32: Service in OnStart()",
     EVENTLOG_INFORMATION_TYPE);
   Daemon.Start();

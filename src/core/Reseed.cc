@@ -193,9 +193,7 @@ bool Reseed::FetchStream(
   // Replace our stream with downloaded stream
   m_Stream = http.m_Stream;
   // TODO(unassigned): replace with constants if this isn't rewritten by #155/#168
-  return ((m_Stream.size() > 0) &&
-          (m_Stream.size() <= 128 * 1024) &&  // Arbitrary size in bytes
-          (http.m_Status == 200)) ? true : false;  // 200 OK
+  return ((m_Stream.size() > 0) && (m_Stream.size() <= 128 * 1024)); // Arbitrary size in bytes
 }
 
 bool Reseed::FetchStream(

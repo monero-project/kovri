@@ -96,7 +96,7 @@ bool AddressBookFilesystemStorage::GetAddress(
     const i2p::data::IdentHash& ident,
     i2p::data::IdentityEx& address) const {
   auto filename = GetPath() / (ident.ToBase32() + ".b32");
-  std::ifstream f(filename.c_str(), std::ifstream::binary);
+  std::ifstream f(filename.string(), std::ifstream::binary);
   if (f.is_open()) {
     f.seekg(0, std::ios::end);
     size_t len = f.tellg();
@@ -118,7 +118,7 @@ bool AddressBookFilesystemStorage::GetAddress(
 void AddressBookFilesystemStorage::AddAddress(
     const i2p::data::IdentityEx& address) {
   auto filename = GetPath() / (address.GetIdentHash().ToBase32() + ".b32");
-  std::ofstream f(filename.c_str(), std::ofstream::binary | std::ofstream::out);
+  std::ofstream f(filename.string(), std::ofstream::binary | std::ofstream::out);
   if (f.is_open()) {
     size_t len = address.GetFullLen();
     auto buf = std::make_unique<std::uint8_t[]>(len);
@@ -141,7 +141,7 @@ int AddressBookFilesystemStorage::Load(
     std::map<std::string, i2p::data::IdentHash>& addresses) {
   int num = 0;
   auto filename = GetPath() / "addresses.csv";
-  std::ifstream f(filename.c_str(), std::ofstream::in);  // in text mode
+  std::ifstream f(filename.string(), std::ofstream::in);  // in text mode
   if (f.is_open()) {
     addresses.clear();
     while (!f.eof()) {
@@ -172,7 +172,7 @@ int AddressBookFilesystemStorage::Save(
     const std::map<std::string, i2p::data::IdentHash>& addresses) {
   int num = 0;
   auto filename = GetPath() / "addresses.csv";
-  std::ofstream f(filename.c_str(), std::ofstream::out);  // in text mode
+  std::ofstream f(filename.string(), std::ofstream::out);  // in text mode
   if (f.is_open()) {
     for (auto it : addresses) {
       f << it.first << "," << it.second.ToBase32() << std::endl;

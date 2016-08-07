@@ -51,6 +51,15 @@
 namespace i2p {
 namespace data {
 
+RouterInfo::RouterInfo()
+    : m_Buffer(nullptr),
+      m_BufferLen(0),
+      m_Timestamp(0),
+      m_IsUpdated(false),
+      m_IsUnreachable(false),
+      m_SupportedTransports(0),
+      m_Caps(0) {}
+
 RouterInfo::RouterInfo(
     const std::string& full_path)
     : m_FullPath(full_path),

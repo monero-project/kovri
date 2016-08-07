@@ -58,8 +58,11 @@ namespace i2p {
 namespace util {
 
 Daemon_Singleton::Daemon_Singleton()
-    : m_IsRunning(true),
+    : m_IsDaemon(false),
+      m_IsLogging(false),
+      m_IsRunning(true),
       m_Log(i2p::util::log::Log::Get()) {}
+
 Daemon_Singleton::~Daemon_Singleton() {}
 
 bool Daemon_Singleton::IsService() const {

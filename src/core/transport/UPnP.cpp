@@ -139,7 +139,9 @@ namespace transport {
 
 UPnP::UPnP()
     : m_Thread(nullptr),
-      m_IsModuleLoaded(false) {}
+      m_IsModuleLoaded(false),
+      // TODO(unassigned): check default for windows (INVALID_HANDLE?)
+      m_Module(nullptr) {}
 
 void UPnP::Stop() {
   if (m_Thread) {

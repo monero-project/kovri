@@ -12,7 +12,6 @@ $ cd kovri/ && clang-format -style=file src/path/to/my/file
 ## Here's what's currently not caught by clang-format and differs from Google's proposed C++ style
 
 - Keep with codebase's present (vertical) style for consistency
-- Implementation file extension is ``cpp`` instead of ``cc``.
 - Newline break all function parameters for consisentcy across codebase
 - When function args newline break, ensure that *every* arg indent is 4 spaces
 
@@ -67,5 +66,4 @@ return SSUPacket::GetSize()
 - Avoid prepended mixed-case ```k``` and MACRO_TYPE for all constants
 - Use Doxygen three-slash ```/// C++ comments``` when documenting for Doxygen
 - Document all your work for Doxygen as you progress
-- New files should maintain consistency with other filename style
 - If anonymity is a concern, try to blend in with a present contributor's style

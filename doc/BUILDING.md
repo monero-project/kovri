@@ -22,6 +22,19 @@ Optional:
 
 ## Step 2. Install dependencies
 
+###  Amazon EC2
+```bash
+$ sudo yum install gcc-c++ cmake openssl-devel libquadmath
+$ sudo yum install doxygen  # optional
+$ wget https://sourceforge.net/projects/boost/files/boost/1.61.0/boost_1_61_0.tar.gz
+$ tar -xf boost_1_61_0.tar.gz
+$ cd boost_1_61_0
+$ ./bootstrap.sh
+$ sudo  ./b2 install
+$ BOOST_ROOT=/usr/local/
+$ export BOOST_ROOT
+```
+
 ### Debian / Ubuntu
 ```bash
 $ sudo apt-get install g++-4.9 cmake libboost-all-dev libssl-dev libssl1.0.0

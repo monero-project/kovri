@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "crypto/el_gamal.h"
+#include "crypto/elgamal.h"
 
 #include <cryptopp/integer.h>
 #include <cryptopp/osrng.h>
@@ -39,7 +39,7 @@
 #include <array>
 
 #include "crypto_const.h"
-#include "crypto/diffie_hellman.h"
+#include "crypto/diffie-hellman.h"
 #include "crypto/rand.h"
 #include "util/log.h"
 

@@ -1,15 +1,15 @@
 set(TESTS_SRC
-  "Main.cc"
-  "core/Reseed.cc"
-  "core/crypto/AES.cc"
-  "core/crypto/DSA.cc"
-  "core/crypto/EdDSA25519.cc"
-  "core/crypto/ElGamal.cc"
-  "core/crypto/Rand.cc"
-  "core/crypto/util/X509.cc"
-  "core/util/Base64.cc"
-  "core/util/HTTP.cc"
-  "core/util/ZIP.cc")
+  "main.cc"
+  "core/reseed.cc"
+  "core/crypto/aes.cc"
+  "core/crypto/dsa.cc"
+  "core/crypto/eddsa25519.cc"
+  "core/crypto/elgamal.cc"
+  "core/crypto/rand.cc"
+  "core/crypto/util/x509.cc"
+  "core/util/base64.cc"
+  "core/util/http.cc"
+  "core/util/zip.cc")
 
 include_directories(
   "../../"

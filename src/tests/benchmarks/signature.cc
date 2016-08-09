@@ -33,8 +33,8 @@
 #include <chrono>
 #include <iostream>
 
-#include "crypto/Rand.h"
-#include "crypto/Signature.h"
+#include "crypto/rand.h"
+#include "crypto/signature.h"
 
 typedef void (*KeyGenerator)(uint8_t*,uint8_t*) ;
 

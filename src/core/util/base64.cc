@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "Base64.h"
+#include "base64.h"
 
 #include <stdlib.h>
 

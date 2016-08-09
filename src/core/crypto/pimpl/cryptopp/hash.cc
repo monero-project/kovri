@@ -28,14 +28,14 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#include "crypto/Hash.h"
+#include "crypto/hash.h"
 
 #include <cryptopp/md5.h>
 #include <cryptopp/sha.h>
 
 #include <cstdint>
 
-#include "util/Log.h"
+#include "util/log.h"
 
 namespace i2p {
 namespace crypto {

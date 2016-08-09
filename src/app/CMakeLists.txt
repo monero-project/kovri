@@ -1,19 +1,19 @@
 set(APP_SRC
-  "Main.cc"
-  "Daemon.cc"
-  "util/Config.cc"
-  "util/Filesystem.cc")
+  "main.cc"
+  "daemon.cc"
+  "util/config.cc"
+  "util/file_system.cc")
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  list(APPEND APP_SRC "DaemonLinux.cc")
+  list(APPEND APP_SRC "daemon_linux.cc")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
-  list(APPEND APP_SRC "DaemonLinux.cc")
+  list(APPEND APP_SRC "daemon_linux.cc")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  list(APPEND APP_SRC "DaemonLinux.cc")
+  list(APPEND APP_SRC "daemon_linux.cc")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
-  list(APPEND APP_SRC "DaemonLinux.cc")
+  list(APPEND APP_SRC "daemon_linux.cc")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-  list(APPEND APP_SRC "DaemonWin32.cc")
+  list(APPEND APP_SRC "daemon_win32.cc")
   list(APPEND APP_SRC "Win32Service.cc")
 endif()
 

@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "RouterInfo.h"
+#include "router_info.h"
 
 #include <boost/lexical_cast.hpp>
 
@@ -42,11 +42,11 @@
 #include <string>
 #include <vector>
 
-#include "RouterContext.h"
-#include "util/Base64.h"
-#include "util/I2PEndian.h"
-#include "util/Log.h"
-#include "util/Timestamp.h"
+#include "router_context.h"
+#include "util/base64.h"
+#include "util/i2p_endian.h"
+#include "util/log.h"
+#include "util/time_stamp.h"
 
 namespace i2p {
 namespace data {

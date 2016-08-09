@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "NTCPSession.h"
+#include "ntcp_session.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -39,19 +39,19 @@
 #include <memory>
 #include <vector>
 
-#include "I2NPProtocol.h"
-#include "NTCP.h"
-#include "NetworkDatabase.h"
-#include "RouterContext.h"
+#include "i2np_protocol.h"
+#include "ntcp.h"
+#include "network_database.h"
+#include "router_context.h"
 #include "Transports.h"
-#include "crypto/DiffieHellman.h"
-#include "crypto/Hash.h"
-#include "crypto/Rand.h"
-#include "crypto/util/Checksum.h"
-#include "util/Base64.h"
-#include "util/I2PEndian.h"
-#include "util/Log.h"
-#include "util/Timestamp.h"
+#include "crypto/diffie_hellman.h"
+#include "crypto/hash.h"
+#include "crypto/rand.h"
+#include "crypto/util/checksum.h"
+#include "util/base64.h"
+#include "util/i2p_endian.h"
+#include "util/log.h"
+#include "util/time_stamp.h"
 
 namespace i2p {
 namespace transport {

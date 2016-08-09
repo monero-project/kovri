@@ -39,9 +39,9 @@
 #include <memory>
 #include <string>
 
-#include "crypto/ElGamal.h"
-#include "crypto/SignatureBase.h"
-#include "util/Base64.h"
+#include "crypto/el_gamal.h"
+#include "crypto/signature_base.h"
+#include "util/base64.h"
 
 namespace i2p {
 namespace data {

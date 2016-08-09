@@ -30,15 +30,15 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "ZIP.h"
+#include "zip.h"
 
 #include <istream>
 #include <string>
 #include <vector>
 
-#include "Log.h"
-#include "crypto/util/Compression.h"
-#include "util/I2PEndian.h"
+#include "log.h"
+#include "crypto/util/compression.h"
+#include "util/i2p_endian.h"
 
 namespace i2p {
 namespace util {

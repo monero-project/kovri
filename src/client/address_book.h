@@ -44,10 +44,10 @@
 #include <string>
 #include <vector>
 
-#include "Identity.h"
-#include "core/util/Filesystem.h"
-#include "util/Base64.h"
-#include "util/Log.h"
+#include "identity.h"
+#include "core/util/file_system.h"
+#include "util/base64.h"
+#include "util/log.h"
 
 namespace i2p {
 namespace client {

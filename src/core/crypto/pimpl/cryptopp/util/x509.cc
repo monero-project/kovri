@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "crypto/util/X509.h"
+#include "crypto/util/x509.h"
 
 #include <cryptopp/base64.h>
 #include <cryptopp/filters.h>
@@ -44,8 +44,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "Identity.h"
-#include "util/Log.h"
+#include "identity.h"
+#include "util/log.h"
 
 namespace i2p {
 namespace crypto {

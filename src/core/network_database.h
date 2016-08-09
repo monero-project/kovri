@@ -48,14 +48,14 @@
 #include <thread>
 #include <vector>
 
-#include "I2NPProtocol.h"
-#include "LeaseSet.h"
-#include "NetDbRequests.h"
-#include "Reseed.h"
-#include "RouterInfo.h"
-#include "tunnel/Tunnel.h"
-#include "tunnel/TunnelPool.h"
-#include "util/Queue.h"
+#include "i2np_protocol.h"
+#include "lease_set.h"
+#include "net_db_requests.h"
+#include "reseed.h"
+#include "router_info.h"
+#include "tunnel/tunnel.h"
+#include "tunnel/tunnel_pool.h"
+#include "util/queue.h"
 
 namespace i2p {
 namespace data {

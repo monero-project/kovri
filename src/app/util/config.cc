@@ -28,13 +28,13 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#include "Config.h"
+#include "config.h"
 
 #include <string>
 #include <vector>
 
-#include "core/util/Log.h"
-#include "crypto/Rand.h"
+#include "core/util/log.h"
+#include "crypto/rand.h"
 
 namespace i2p {
 namespace util {

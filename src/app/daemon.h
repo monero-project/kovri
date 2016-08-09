@@ -41,7 +41,7 @@
 #define Daemon i2p::util::DaemonLinux::Instance()
 #endif
 
-#include "core/util/Log.h"
+#include "core/util/log.h"
 
 namespace i2p {
 namespace util {

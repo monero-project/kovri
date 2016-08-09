@@ -38,8 +38,8 @@
 #include <map>
 #include <string>
 
-#include "I2NPProtocol.h"
-#include "TunnelBase.h"
+#include "i2np_protocol.h"
+#include "tunnel_base.h"
 
 namespace i2p {
 namespace tunnel {

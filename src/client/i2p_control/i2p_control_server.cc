@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "I2PControlServer.h"
+#include "i2p_control_server.h"
 
 #include <boost/date_time/local_time/local_time.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -39,9 +39,9 @@
 #include <string>
 #include <memory>
 
-#include "core/Version.h"
-#include "util/Log.h"
-#include "util/Timestamp.h"
+#include "core/version.h"
+#include "util/log.h"
+#include "util/time_stamp.h"
 
 namespace i2p {
 namespace client {

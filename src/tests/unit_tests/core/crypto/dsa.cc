@@ -34,8 +34,8 @@
 
 #include <memory>
 
-#include "crypto/Rand.h"
-#include "crypto/Signature.h"
+#include "crypto/rand.h"
+#include "crypto/signature.h"
 
 BOOST_AUTO_TEST_SUITE(DSASHA1ests)
 

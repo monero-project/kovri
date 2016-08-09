@@ -30,19 +30,19 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "TunnelPool.h"
+#include "tunnel_pool.h"
 
 #include <algorithm>
 #include <vector>
 
-#include "Garlic.h"
-#include "NetworkDatabase.h"
-#include "Tunnel.h"
-#include "crypto/Rand.h"
-#include "transport/Transports.h"
-#include "util/I2PEndian.h"
-#include "util/Timestamp.h"
-#include "util/Log.h"
+#include "garlic.h"
+#include "network_database.h"
+#include "tunnel.h"
+#include "crypto/rand.h"
+#include "transport/transports.h"
+#include "util/i2p_endian.h"
+#include "util/time_stamp.h"
+#include "util/log.h"
 
 namespace i2p {
 namespace tunnel {

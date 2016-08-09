@@ -36,7 +36,7 @@
 #include <cstdint>
 #include <memory>
 
-#include "SignatureBase.h"
+#include "signature_base.h"
 
 namespace i2p {
 namespace crypto {

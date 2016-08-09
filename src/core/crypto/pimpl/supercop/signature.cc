@@ -30,13 +30,13 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "crypto/Signature.h"
+#include "crypto/signature.h"
 
 #include <cstring>
 #include <cstdint>
 
 #include "ed25519/ed25519_ref10.h"
-#include "crypto/Rand.h"
+#include "crypto/rand.h"
 
 namespace i2p {
 namespace crypto {

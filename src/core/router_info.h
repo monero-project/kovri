@@ -43,8 +43,8 @@
 #include <string>
 #include <vector>
 
-#include "Identity.h"
-#include "Profiling.h"
+#include "identity.h"
+#include "profiling.h"
 
 namespace i2p {
 namespace data {

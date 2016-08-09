@@ -30,19 +30,19 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "SOCKS.h"
+#include "socks.h"
 
 #include <atomic>
 #include <cassert>
 #include <cstring>
 #include <string>
 
-#include "Identity.h"
-#include "I2PTunnel/I2PTunnel.h"
-#include "Streaming.h"
-#include "client/ClientContext.h"
-#include "client/Destination.h"
-#include "util/I2PEndian.h"
+#include "identity.h"
+#include "i2p_tunnel/i2p_tunnel.h"
+#include "streaming.h"
+#include "client/client_context.h"
+#include "client/destination.h"
+#include "util/i2p_endian.h"
 
 namespace i2p {
 namespace proxy {

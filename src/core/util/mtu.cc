@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "MTU.h"
+#include "mtu.h"
 #if defined(__linux__) || \
     defined(__FreeBSD_kernel__) || \
     defined(__APPLE__) || \

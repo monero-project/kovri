@@ -41,8 +41,8 @@
 #include <set>
 #include <string>
 
-#include "core/util/Log.h"
-#include "core/util/Filesystem.h"
+#include "core/util/log.h"
+#include "core/util/file_system.h"
 
 namespace i2p {
 namespace util {

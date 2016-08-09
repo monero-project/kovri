@@ -41,7 +41,7 @@
 #include <mutex>
 #include <string>
 
-#include "core/tunnel/Tunnel.h"
+#include "core/tunnel/tunnel.h"
 
 namespace i2p {
 namespace client {

@@ -47,12 +47,12 @@
 #include <string>
 #include <vector>
 
-#include "Garlic.h"
-#include "I2NPProtocol.h"
-#include "Identity.h"
-#include "LeaseSet.h"
-#include "tunnel/Tunnel.h"
-#include "util/I2PEndian.h"
+#include "garlic.h"
+#include "i2np_protocol.h"
+#include "identity.h"
+#include "lease_set.h"
+#include "tunnel/tunnel.h"
+#include "util/i2p_endian.h"
 
 namespace i2p {
 namespace client { class ClientDestination; }

@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "NetworkDatabase.h"
+#include "network_database.h"
 
 #include <boost/asio.hpp>
 
@@ -42,17 +42,17 @@
 #include <string>
 #include <vector>
 
-#include "Garlic.h"
-#include "I2NPProtocol.h"
-#include "RouterContext.h"
-#include "crypto/Rand.h"
-#include "crypto/util/Compression.h"
-#include "transport/Transports.h"
-#include "tunnel/Tunnel.h"
-#include "util/Base64.h"
-#include "util/I2PEndian.h"
-#include "util/Log.h"
-#include "util/Timestamp.h"
+#include "garlic.h"
+#include "i2np_protocol.h"
+#include "router_context.h"
+#include "crypto/rand.h"
+#include "crypto/util/compression.h"
+#include "transport/transports.h"
+#include "tunnel/tunnel.h"
+#include "util/base64.h"
+#include "util/i2p_endian.h"
+#include "util/log.h"
+#include "util/time_stamp.h"
 
 namespace i2p {
 namespace data {

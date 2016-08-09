@@ -36,7 +36,7 @@
 #include <sstream>
 #include <string>
 
-#include "crypto/util/X509.h"
+#include "crypto/util/x509.h"
 
 struct X509Fixture {
   const std::string cert =

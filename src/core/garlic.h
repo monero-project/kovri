@@ -41,12 +41,12 @@
 #include <string>
 #include <thread>
 
-#include "I2NPProtocol.h"
-#include "Identity.h"
-#include "LeaseSet.h"
-#include "crypto/AES.h"
-#include "crypto/Rand.h"
-#include "util/Queue.h"
+#include "i2np_protocol.h"
+#include "identity.h"
+#include "lease_set.h"
+#include "crypto/aes.h"
+#include "crypto/rand.h"
+#include "util/queue.h"
 
 namespace i2p {
 namespace garlic {

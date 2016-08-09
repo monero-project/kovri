@@ -40,11 +40,11 @@
 #include <memory>
 #include <vector>
 
-#include "Identity.h"
-#include "LeaseSet.h"
-#include "RouterInfo.h"
-#include "crypto/Hash.h"
-#include "util/I2PEndian.h"
+#include "identity.h"
+#include "lease_set.h"
+#include "router_info.h"
+#include "crypto/hash.h"
+#include "util/i2p_endian.h"
 
 namespace i2p {
 

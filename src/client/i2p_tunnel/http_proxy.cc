@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "HTTPProxy.h"
+#include "http_proxy.h"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/regex.hpp>
@@ -42,13 +42,13 @@
 #include <memory>
 #include <string>
 
-#include "I2PTunnel.h"
-#include "Identity.h"
-#include "Streaming.h"
-#include "client/ClientContext.h"
-#include "client/Destination.h"
-#include "util/HTTP.h"
-#include "util/I2PEndian.h"
+#include "i2p_tunnel.h"
+#include "identity.h"
+#include "streaming.h"
+#include "client/client_context.h"
+#include "client/destination.h"
+#include "util/http.h"
+#include "util/i2p_endian.h"
 
 namespace i2p {
 namespace proxy {

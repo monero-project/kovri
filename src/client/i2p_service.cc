@@ -32,10 +32,10 @@
 
 #include <string>
 
-#include "Destination.h"
-#include "Identity.h"
-#include "ClientContext.h"
-#include "I2PService.h"
+#include "destination.h"
+#include "identity.h"
+#include "client_context.h"
+#include "i2p_service.h"
 
 namespace i2p {
 namespace client {

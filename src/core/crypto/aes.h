@@ -38,7 +38,7 @@
 #include <cstdint>
 #include <memory>
 
-#include "Identity.h"
+#include "identity.h"
 
 namespace i2p {
 namespace crypto {

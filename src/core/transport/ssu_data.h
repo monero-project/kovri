@@ -43,9 +43,9 @@
 #include <set>
 #include <vector>
 
-#include "I2NPProtocol.h"
-#include "Identity.h"
-#include "RouterInfo.h"
+#include "i2np_protocol.h"
+#include "identity.h"
+#include "router_info.h"
 
 namespace i2p {
 namespace transport {

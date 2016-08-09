@@ -40,7 +40,7 @@
 #include <set>
 #include <string>
 
-#include "client/I2PService.h"
+#include "client/i2p_service.h"
 
 namespace i2p {
 namespace proxy {

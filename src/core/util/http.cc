@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "HTTP.h"
+#include "http.h"
 
 // cpp-netlib
 #define BOOST_NETWORK_ENABLE_HTTPS
@@ -43,8 +43,8 @@
 #include <string>
 #include <vector>
 
-#include "RouterContext.h"
-#include "util/Filesystem.h"
+#include "router_context.h"
+#include "util/file_system.h"
 
 namespace i2p {
 namespace util {

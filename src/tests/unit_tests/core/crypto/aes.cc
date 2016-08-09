@@ -34,7 +34,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "crypto/AES.h"
+#include "crypto/aes.h"
 
 BOOST_AUTO_TEST_SUITE(AESTests)
 

@@ -39,8 +39,8 @@
 #include <string>
 #include <iostream>
 
-#include "core/Version.h"
-#include "Filesystem.h"
+#include "core/version.h"
+#include "file_system.h"
 
 namespace i2p {
 namespace util {

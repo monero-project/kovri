@@ -43,13 +43,13 @@
 #include <string>
 #include <thread>
 
-#include "Garlic.h"
-#include "Identity.h"
-#include "LeaseSet.h"
-#include "NetworkDatabase.h"
-#include "Datagram.h"
-#include "Streaming.h"
-#include "tunnel/TunnelPool.h"
+#include "garlic.h"
+#include "identity.h"
+#include "lease_set.h"
+#include "network_database.h"
+#include "datagram.h"
+#include "streaming.h"
+#include "tunnel/tunnel_pool.h"
 
 namespace i2p {
 namespace client {

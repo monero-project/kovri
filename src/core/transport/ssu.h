@@ -47,12 +47,12 @@
 #include <thread>
 #include <vector>
 
-#include "I2NPProtocol.h"
-#include "Identity.h"
-#include "RouterInfo.h"
-#include "SSUSession.h"
-#include "crypto/AES.h"
-#include "util/I2PEndian.h"
+#include "i2np_protocol.h"
+#include "identity.h"
+#include "router_info.h"
+#include "ssu_session.h"
+#include "crypto/aes.h"
+#include "util/i2p_endian.h"
 
 namespace i2p {
 namespace transport {

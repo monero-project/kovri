@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "RouterContext.h"
+#include "router_context.h"
 
 #include <boost/lexical_cast.hpp>
 
@@ -40,12 +40,12 @@
 #include <fstream>
 #include <string>
 
-#include "I2NPProtocol.h"
-#include "NetworkDatabase.h"
-#include "Version.h"
-#include "util/MTU.h"
-#include "util/Timestamp.h"
-#include "util/Filesystem.h"
+#include "i2np_protocol.h"
+#include "network_database.h"
+#include "version.h"
+#include "util/mtu.h"
+#include "util/time_stamp.h"
+#include "util/file_system.h"
 
 namespace i2p {
 

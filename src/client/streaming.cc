@@ -33,15 +33,15 @@
 #include <algorithm>
 #include <vector>
 
-#include "RouterContext.h"
-#include "RouterInfo.h"
-#include "Streaming.h"
-#include "client/Destination.h"
-#include "crypto/Rand.h"
-#include "crypto/util/Compression.h"
-#include "tunnel/Tunnel.h"
-#include "util/Log.h"
-#include "util/Timestamp.h"
+#include "router_context.h"
+#include "router_info.h"
+#include "streaming.h"
+#include "client/destination.h"
+#include "crypto/rand.h"
+#include "crypto/util/compression.h"
+#include "tunnel/tunnel.h"
+#include "util/log.h"
+#include "util/time_stamp.h"
 
 namespace i2p {
 namespace stream {

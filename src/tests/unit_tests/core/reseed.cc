@@ -39,8 +39,8 @@
 #include <string>
 #include <vector>
 
-#include "Reseed.h"
-#include "crypto/util/X509.h"
+#include "reseed.h"
+#include "crypto/util/x509.h"
 
 BOOST_AUTO_TEST_SUITE(SU3);
 

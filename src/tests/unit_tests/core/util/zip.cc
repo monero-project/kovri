@@ -38,7 +38,7 @@
 #include <string>
 #include <vector>
 
-#include "util/ZIP.h"
+#include "util/zip.h"
 
 BOOST_AUTO_TEST_SUITE(ZIP);
 

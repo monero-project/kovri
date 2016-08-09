@@ -115,8 +115,8 @@ if(DOXYGEN_FOUND AND DOXYFILE_IN_FOUND)
 
   usedoxygen_set_default(DOXYFILE_SOURCE_CLIENT
     "${DOXYFILE_SOURCE_DIR}/client \
-    ${DOXYFILE_SOURCE_DIR}/client/I2PControl \
-    ${DOXYFILE_SOURCE_DIR}/client/I2PTunnel"
+    ${DOXYFILE_SOURCE_DIR}/client/i2p_control \
+    ${DOXYFILE_SOURCE_DIR}/client/i2p_tunnel"
     STRING "Client source files")
 
   usedoxygen_set_default(DOXYFILE_SOURCE_CORE

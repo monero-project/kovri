@@ -30,14 +30,14 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "TunnelConfig.h"
+#include "tunnel_config.h"
 
 #include <vector>
 
-#include "crypto/Rand.h"
-#include "I2NPProtocol.h"
-#include "RouterContext.h"
-#include "util/Timestamp.h"
+#include "crypto/rand.h"
+#include "i2np_protocol.h"
+#include "router_context.h"
+#include "util/time_stamp.h"
 
 namespace i2p {
 namespace tunnel {

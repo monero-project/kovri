@@ -41,11 +41,11 @@
 #include <string>
 #include <vector>
 
-#include "I2NPProtocol.h"
-#include "SSUData.h"
-#include "TransportSession.h"
-#include "crypto/AES.h"
-#include "crypto/HMAC.h"
+#include "i2np_protocol.h"
+#include "ssu_data.h"
+#include "transport_session.h"
+#include "crypto/aes.h"
+#include "crypto/hmac.h"
 
 namespace i2p {
 namespace transport {

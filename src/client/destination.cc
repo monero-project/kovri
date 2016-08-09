@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "Destination.h"
+#include "destination.h"
 
 #include <boost/lexical_cast.hpp>
 
@@ -43,12 +43,12 @@
 #include <utility>
 #include <vector>
 
-#include "AddressBook.h"
-#include "NetworkDatabase.h"
-#include "crypto/ElGamal.h"
-#include "crypto/Rand.h"
-#include "util/Log.h"
-#include "util/Timestamp.h"
+#include "addressbook.h"
+#include "network_database.h"
+#include "crypto/elgamal.h"
+#include "crypto/rand.h"
+#include "util/log.h"
+#include "util/time_stamp.h"
 
 namespace i2p {
 namespace client {

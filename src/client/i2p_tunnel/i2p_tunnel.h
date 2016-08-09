@@ -41,10 +41,10 @@
 #include <sstream>
 #include <string>
 
-#include "Identity.h"
-#include "Streaming.h"
-#include "client/Destination.h"
-#include "client/I2PService.h"
+#include "identity.h"
+#include "streaming.h"
+#include "client/destination.h"
+#include "client/i2p_service.h"
 
 namespace i2p {
 namespace client {

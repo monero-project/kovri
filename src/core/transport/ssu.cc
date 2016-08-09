@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "SSU.h"
+#include "ssu.h"
 
 #include <boost/bind.hpp>
 
@@ -42,12 +42,12 @@
 #include <set>
 #include <vector>
 
-#include "SSU.h"
-#include "crypto/Rand.h"
-#include "NetworkDatabase.h"
-#include "RouterContext.h"
-#include "util/Log.h"
-#include "util/Timestamp.h"
+#include "ssu.h"
+#include "crypto/rand.h"
+#include "network_database.h"
+#include "router_context.h"
+#include "util/log.h"
+#include "util/time_stamp.h"
 
 namespace i2p {
 namespace transport {

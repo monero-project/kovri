@@ -31,7 +31,7 @@
  */
 
 #ifdef USE_UPNP
-#include "UPnP.h"
+#include "upnp.h"
 
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
@@ -50,9 +50,9 @@
 #include <string>
 #include <thread>
 
-#include "NetworkDatabase.h"
-#include "RouterContext.h"
-#include "util/Log.h"
+#include "network_database.h"
+#include "router_context.h"
+#include "util/log.h"
 
 // These are per-process and are safe to reuse for all threads
 #ifndef UPNPDISCOVER_SUCCESS

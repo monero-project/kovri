@@ -39,12 +39,12 @@
 #include <string>
 #include <utility>
 
-#include "AddressBook.h"
-#include "Destination.h"
-#include "I2PControl/I2PControlServer.h"
-#include "I2PTunnel/HTTPProxy.h"
-#include "I2PTunnel/I2PTunnel.h"
-#include "I2PTunnel/SOCKS.h"
+#include "address_book.h"
+#include "destination.h"
+#include "i2p_control/i2p_control_server.h"
+#include "i2p_tunnel/http_proxy.h"
+#include "i2p_tunnel/i2p_tunnel.h"
+#include "i2p_tunnel/socks.h"
 
 namespace i2p {
 namespace client {

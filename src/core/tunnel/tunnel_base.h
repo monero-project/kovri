@@ -37,9 +37,9 @@
 
 #include <memory>
 
-#include "I2NPProtocol.h"
-#include "Identity.h"
-#include "util/Timestamp.h"
+#include "i2np_protocol.h"
+#include "identity.h"
+#include "util/time_stamp.h"
 
 namespace i2p {
 namespace tunnel {

@@ -30,12 +30,12 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "NetDbRequests.h"
+#include "net_db_requests.h"
 
-#include "I2NPProtocol.h"
-#include "NetworkDatabase.h"
-#include "transport/Transports.h"
-#include "util/Log.h"
+#include "i2np_protocol.h"
+#include "network_database.h"
+#include "transport/transports.h"
+#include "util/log.h"
 
 namespace i2p {
 namespace data {

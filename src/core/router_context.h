@@ -45,9 +45,9 @@
 #include <mutex>
 #include <string>
 
-#include "Garlic.h"
-#include "Identity.h"
-#include "RouterInfo.h"
+#include "garlic.h"
+#include "identity.h"
+#include "router_info.h"
 
 namespace i2p {
 

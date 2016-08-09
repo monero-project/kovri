@@ -34,7 +34,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "util/Base64.h"
+#include "util/base64.h"
 
 BOOST_AUTO_TEST_SUITE(Base64and32Tests)
 

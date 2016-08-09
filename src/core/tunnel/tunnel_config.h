@@ -38,8 +38,8 @@
 #include <vector>
 #include <sstream>
 
-#include "RouterInfo.h"
-#include "crypto/Tunnel.h"
+#include "router_info.h"
+#include "crypto/tunnel.h"
 
 namespace i2p {
 namespace tunnel {

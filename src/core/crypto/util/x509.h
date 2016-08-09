@@ -38,7 +38,7 @@
 #include <iosfwd>
 #include <string>
 
-#include "Identity.h"  // i2p::data::Tag
+#include "identity.h"  // i2p::data::tag
 
 namespace i2p {
 namespace crypto {

@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "Reseed.h"
+#include "reseed.h"
 
 #include <boost/filesystem.hpp>
 
@@ -42,15 +42,15 @@
 #include <string>
 #include <vector>
 
-#include "Identity.h"
-#include "NetworkDatabase.h"
-#include "crypto/Rand.h"
-#include "crypto/Signature.h"
-#include "util/Filesystem.h"
-#include "util/HTTP.h"
-#include "util/I2PEndian.h"
-#include "util/Log.h"
-#include "util/ZIP.h"
+#include "identity.h"
+#include "network_database.h"
+#include "crypto/rand.h"
+#include "crypto/signature.h"
+#include "util/file_system.h"
+#include "util/http.h"
+#include "util/i2p_endian.h"
+#include "util/log.h"
+#include "util/zip.h"
 
 namespace i2p {
 namespace data {

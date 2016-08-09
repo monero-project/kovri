@@ -30,12 +30,12 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "I2PEndian.h"
+#include "i2p_endian.h"
 
 // http://habrahabr.ru/post/121811/
 // http://codepad.org/2ycmkz2y
 
-#include "LittleBigEndian.h"
+#include "little_big_endian.h"
 
 #ifdef NEEDS_LOCAL_ENDIAN
 uint16_t htobe16(

@@ -42,13 +42,13 @@
 #include <utility>
 #include <vector>
 
-#include "Garlic.h"
-#include "I2NPProtocol.h"
-#include "Identity.h"
-#include "LeaseSet.h"
-#include "RouterContext.h"
-#include "RouterInfo.h"
-#include "TunnelBase.h"
+#include "garlic.h"
+#include "i2np_protocol.h"
+#include "identity.h"
+#include "lease_set.h"
+#include "router_context.h"
+#include "router_info.h"
+#include "tunnel_base.h"
 
 namespace i2p {
 namespace tunnel {

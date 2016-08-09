@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "I2PControl.h"
+#include "i2p_control.h"
 
 #include <boost/property_tree/json_parser.hpp>
 
@@ -41,15 +41,15 @@
 #include <sstream>
 #include <string>
 
-#include "client/ClientContext.h"
-#include "core/NetworkDatabase.h"
-#include "core/RouterContext.h"
-#include "core/Version.h"
-#include "crypto/Rand.h"
-#include "transport/Transports.h"
-#include "tunnel/Tunnel.h"
-#include "util/Log.h"
-#include "util/Timestamp.h"
+#include "client/client_context.h"
+#include "core/network_database.h"
+#include "core/router_context.h"
+#include "core/version.h"
+#include "crypto/rand.h"
+#include "transport/transports.h"
+#include "tunnel/tunnel.h"
+#include "util/log.h"
+#include "util/time_stamp.h"
 
 namespace i2p {
 namespace client {

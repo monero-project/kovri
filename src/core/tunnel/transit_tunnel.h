@@ -39,11 +39,11 @@
 #include <mutex>
 #include <vector>
 
-#include "I2NPProtocol.h"
-#include "TunnelBase.h"
-#include "TunnelEndpoint.h"
-#include "TunnelGateway.h"
-#include "crypto/Tunnel.h"
+#include "i2np_protocol.h"
+#include "tunnel_base.h"
+#include "tunnel_endpoint.h"
+#include "tunnel_gateway.h"
+#include "crypto/tunnel.h"
 
 namespace i2p {
 namespace tunnel {

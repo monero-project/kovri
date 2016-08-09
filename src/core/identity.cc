@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "Identity.h"
+#include "identity.h"
 
 #include <stdio.h>
 #include <time.h>
@@ -38,14 +38,14 @@
 #include <memory>
 #include <string>
 
-#include "RouterContext.h"
-#include "crypto/ElGamal.h"
-#include "crypto/Hash.h"
-#include "crypto/Rand.h"
-#include "crypto/Signature.h"
-#include "util/Base64.h"
-#include "util/I2PEndian.h"
-#include "util/Log.h"
+#include "router_context.h"
+#include "crypto/elgamal.h"
+#include "crypto/hash.h"
+#include "crypto/rand.h"
+#include "crypto/signature.h"
+#include "util/base64.h"
+#include "util/i2p_endian.h"
+#include "util/log.h"
 
 namespace i2p {
 namespace data {

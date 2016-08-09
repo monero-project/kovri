@@ -32,7 +32,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "util/HTTP.h"
+#include "util/http.h"
 
 #include <iostream>
 #include <boost/network/uri.hpp>

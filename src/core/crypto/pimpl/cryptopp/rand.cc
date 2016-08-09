@@ -28,7 +28,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#include "crypto/Rand.h"
+#include "crypto/rand.h"
 
 #include <cryptopp/osrng.h>
 

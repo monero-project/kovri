@@ -28,15 +28,15 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#include "crypto/DiffieHellman.h"
+#include "crypto/diffie_hellman.h"
 
 #include <cryptopp/dh.h>
 #include <cryptopp/osrng.h>
 
 #include <cstdint>
 
-#include "CryptoConst.h"
-#include "util/Log.h"
+#include "crypto_const.h"
+#include "util/log.h"
 
 namespace i2p {
 namespace crypto {

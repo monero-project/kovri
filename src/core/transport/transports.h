@@ -49,13 +49,13 @@
 #include <thread>
 #include <vector>
 
-#include "I2NPProtocol.h"
-#include "Identity.h"
-#include "NTCP.h"
-#include "NTCPSession.h"
-#include "RouterInfo.h"
-#include "SSU.h"
-#include "TransportSession.h"
+#include "i2np_protocol.h"
+#include "identity.h"
+#include "ntcp.h"
+#include "ntcp_session.h"
+#include "router_info.h"
+#include "ssu.h"
+#include "transport_session.h"
 
 #ifdef USE_UPNP
 #include "UPnP.h"

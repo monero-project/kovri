@@ -36,7 +36,7 @@
 #include <cstdint>
 #include <memory>
 
-#include "AES.h"
+#include "aes.h"
 
 namespace i2p {
 namespace crypto {

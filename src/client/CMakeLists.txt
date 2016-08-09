@@ -1,15 +1,15 @@
 set(CLIENT_SRC
-  "Datagram.cc"
-  "I2PControl/I2PControl.cc"
-  "I2PControl/I2PControlServer.cc"
-  "I2PTunnel/HTTPProxy.cc"
-  "I2PTunnel/I2PTunnel.cc"
-  "I2PTunnel/SOCKS.cc"
-  "Streaming.cc"
-  "AddressBook.cc"
-  "Destination.cc"
-  "ClientContext.cc"
-  "I2PService.cc")
+  "datagram.cc"
+  "i2p_control/i2p_control.cc"
+  "i2p_control/i2p_control_server.cc"
+  "i2p_tunnel/http_proxy.cc"
+  "i2p_tunnel/i2p_tunnel.cc"
+  "i2p_tunnel/socks.cc"
+  "streaming.cc"
+  "address_book.cc"
+  "destination.cc"
+  "client_context.cc"
+  "i2p_service.cc")
 
 include_directories(
   "."

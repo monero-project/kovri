@@ -30,13 +30,13 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "crypto/Tunnel.h"
+#include "crypto/tunnel.h"
 
 #include <cstdint>
 
-#include "AESNIMacros.h"
-#include "crypto/AES.h"
-#include "tunnel/TunnelBase.h"
+#include "aesni_macros.h"
+#include "crypto/aes.h"
+#include "tunnel/tunnel_base.h"
 
 namespace i2p {
 namespace crypto {

@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "Transports.h"
+#include "transports.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -38,12 +38,12 @@
 #include <string>
 #include <vector>
 
-#include "I2NPProtocol.h"
-#include "NetworkDatabase.h"
-#include "RouterContext.h"
-#include "crypto/DiffieHellman.h"
-#include "crypto/Rand.h"
-#include "util/Log.h"
+#include "i2np_protocol.h"
+#include "network_database.h"
+#include "router_context.h"
+#include "crypto/diffie_hellman.h"
+#include "crypto/rand.h"
+#include "util/log.h"
 
 namespace i2p {
 namespace transport {

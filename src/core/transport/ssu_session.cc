@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "SSUSession.h"
+#include "ssu_session.h"
 
 #include <boost/bind.hpp>
 
@@ -38,14 +38,14 @@
 #include <vector>
 #include <memory>
 
-#include "RouterContext.h"
-#include "SSU.h"
-#include "Transports.h"
-#include "crypto/DiffieHellman.h"
-#include "crypto/Hash.h"
-#include "crypto/Rand.h"
-#include "util/Log.h"
-#include "util/Timestamp.h"
+#include "router_context.h"
+#include "ssu.h"
+#include "transports.h"
+#include "crypto/diffie_hellman.h"
+#include "crypto/hash.h"
+#include "crypto/rand.h"
+#include "util/log.h"
+#include "util/time_stamp.h"
 
 namespace i2p {
 namespace transport {

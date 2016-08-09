@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "Daemon.h"
+#include "daemon.h"
 
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -40,19 +40,19 @@
 #include <thread>
 #include <vector>
 
-#include "client/ClientContext.h"
-#include "Destination.h"
-#include "Garlic.h"
-#include "NetworkDatabase.h"
-#include "RouterContext.h"
-#include "RouterInfo.h"
-#include "Version.h"
-#include "Streaming.h"
-#include "core/util/Log.h"
-#include "transport/NTCPSession.h"
-#include "transport/Transports.h"
-#include "tunnel/Tunnel.h"
-#include "util/Config.h"
+#include "client/client_context.h"
+#include "destination.h"
+#include "garlic.h"
+#include "network_database.h"
+#include "router_context.h"
+#include "router_info.h"
+#include "version.h"
+#include "streaming.h"
+#include "core/util/log.h"
+#include "transport/ntcp_session.h"
+#include "transport/transports.h"
+#include "tunnel/tunnel.h"
+#include "util/config.h"
 
 namespace i2p {
 namespace util {

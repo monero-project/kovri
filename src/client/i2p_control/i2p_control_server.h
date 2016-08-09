@@ -43,7 +43,7 @@
 #include <string>
 #include <thread>
 
-#include "I2PControl.h"
+#include "i2p_control.h"
 
 namespace i2p {
 namespace client {

@@ -30,16 +30,16 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "TransitTunnel.h"
+#include "transittunnel.h"
 
 #include <string.h>
 
-#include "I2NPProtocol.h"
-#include "RouterContext.h"
-#include "Tunnel.h"
-#include "transport/Transports.h"
-#include "util/I2PEndian.h"
-#include "util/Log.h"
+#include "i2np_protocol.h"
+#include "router_context.h"
+#include "tunnel.h"
+#include "transport/transports.h"
+#include "util/i2p_endian.h"
+#include "util/log.h"
 
 namespace i2p {
 namespace tunnel {

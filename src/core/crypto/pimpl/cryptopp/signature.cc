@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "crypto/Signature.h"
+#include "crypto/signature.h"
 
 #include <cryptopp/asn.h>
 #include <cryptopp/dsa.h>
@@ -44,9 +44,9 @@
 #include <cstdint>
 #include <memory>
 
-#include "CryptoConst.h"
-#include "crypto/Rand.h"
-#include "util/Log.h"
+#include "crypto_const.h"
+#include "crypto/rand.h"
+#include "util/log.h"
 
 namespace i2p {
 namespace crypto {

@@ -3,38 +3,38 @@ include_directories(
   "../")
 
 set(CORE_SRC
-  "Garlic.cc"
-  "I2NPProtocol.cc"
-  "Identity.cc"
-  "LeaseSet.cc"
-  "NetDbRequests.cc"
-  "NetworkDatabase.cc"
-  "Profiling.cc"
-  "Reseed.cc"
-  "RouterContext.cc"
-  "RouterInfo.cc"
-  "transport/NTCP.cc"
-  "transport/NTCPSession.cc"
-  "transport/SSU.cc"
-  "transport/SSUData.cc"
-  "transport/SSUSession.cc"
-  "transport/Transports.cc"
-  "transport/UPnP.cc"
-  "tunnel/TransitTunnel.cc"
-  "tunnel/Tunnel.cc"
-  "tunnel/TunnelConfig.cc"
-  "tunnel/TunnelEndpoint.cc"
-  "tunnel/TunnelGateway.cc"
-  "tunnel/TunnelPool.cc"
-  "util/Base64.cc"
-  "util/Filesystem.cc"
-  "util/HTTP.cc"
-  "util/MTU.cc"
-  "util/ZIP.cc"
-  "util/pimpl/Log.cc")
+  "garlic.cc"
+  "i2np_protocol.cc"
+  "identity.cc"
+  "lease_set.cc"
+  "net_db_requests.cc"
+  "network_database.cc"
+  "profiling.cc"
+  "reseed.cc"
+  "router_context.cc"
+  "router_info.cc"
+  "transport/ntcp.cc"
+  "transport/ntcp_session.cc"
+  "transport/ssu.cc"
+  "transport/ssu_data.cc"
+  "transport/ssu_session.cc"
+  "transport/transports.cc"
+  "transport/upnp.cc"
+  "tunnel/transit_tunnel.cc"
+  "tunnel/tunnel.cc"
+  "tunnel/tunnel_config.cc"
+  "tunnel/tunnel_endpoint.cc"
+  "tunnel/tunnel_gateway.cc"
+  "tunnel/tunnel_pool.cc"
+  "util/base64.cc"
+  "util/file_system.cc"
+  "util/http.cc"
+  "util/mtu.cc"
+  "util/zip.cc"
+  "util/pimpl/log.cc")
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-  list(APPEND CORE_SRC "util/I2PEndian.cc")
+  list(APPEND CORE_SRC "util/i2p_endian.cc")
 endif()
 
 if(WITH_CRYPTOPP)
@@ -42,17 +42,17 @@ if(WITH_CRYPTOPP)
 endif()
 
 set(CRYPTO_SRC
-  "${CRYPTOPP_DIR}/AES.cc"
-  "${CRYPTOPP_DIR}/CryptoConst.cc"
-  "${CRYPTOPP_DIR}/DiffieHellman.cc"
-  "${CRYPTOPP_DIR}/ElGamal.cc"
-  "${CRYPTOPP_DIR}/Hash.cc"
-  "${CRYPTOPP_DIR}/Rand.cc"
-  "${CRYPTOPP_DIR}/Signature.cc"
-  "${CRYPTOPP_DIR}/Tunnel.cc"
-  "${CRYPTOPP_DIR}/util/Checksum.cc"
-  "${CRYPTOPP_DIR}/util/Compression.cc"
-  "${CRYPTOPP_DIR}/util/X509.cc")
+  "${CRYPTOPP_DIR}/aes.cc"
+  "${CRYPTOPP_DIR}/crypto_const.cc"
+  "${CRYPTOPP_DIR}/diffie_hellman.cc"
+  "${CRYPTOPP_DIR}/el_gamal.cc"
+  "${CRYPTOPP_DIR}/hash.cc"
+  "${CRYPTOPP_DIR}/rand.cc"
+  "${CRYPTOPP_DIR}/signature.cc"
+  "${CRYPTOPP_DIR}/tunnel.cc"
+  "${CRYPTOPP_DIR}/util/checksum.cc"
+  "${CRYPTOPP_DIR}/util/compression.cc"
+  "${CRYPTOPP_DIR}/util/x509.cc")
 
 if(WITH_SUPERCOP)
   set(EDDSA_DIR "crypto/pimpl/supercop")
@@ -60,7 +60,7 @@ if(WITH_SUPERCOP)
 endif()
 
 set(EDDSA_SRC
-  "${EDDSA_DIR}/Signature.cc"
+  "${EDDSA_DIR}/signature.cc"
   "${EDDSA_DIR}/ed25519/fe_0.cc"
   "${EDDSA_DIR}/ed25519/fe_1.cc"
   "${EDDSA_DIR}/ed25519/fe_add.cc"

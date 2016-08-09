@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "Profiling.h"
+#include "profiling.h"
 
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/ini_parser.hpp>
@@ -38,9 +38,9 @@
 
 #include <string>
 
-#include "util/Base64.h"
-#include "util/Log.h"
-#include "RouterContext.h"
+#include "util/base64.h"
+#include "util/log.h"
+#include "router_context.h"
 
 namespace i2p {
 namespace data {

@@ -41,8 +41,8 @@
 #include <string>
 #include <unordered_map>
 
-#include "client/Destination.h"
-#include "client/I2PService.h"
+#include "client/destination.h"
+#include "client/i2p_service.h"
 
 namespace i2p {
 namespace proxy {

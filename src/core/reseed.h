@@ -42,9 +42,9 @@
 #include <string>
 #include <vector>
 
-#include "crypto/util/X509.h"
-#include "util/Filesystem.h"
-#include "util/ZIP.h"
+#include "crypto/util/x509.h"
+#include "util/file_system.h"
+#include "util/zip.h"
 
 namespace i2p {
 namespace data {

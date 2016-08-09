@@ -32,13 +32,13 @@
 
 #include <string.h>
 
-#include "RouterContext.h"
-#include "TunnelGateway.h"
-#include "crypto/Hash.h"
-#include "crypto/Rand.h"
-#include "transport/Transports.h"
-#include "util/I2PEndian.h"
-#include "util/Log.h"
+#include "router_context.h"
+#include "tunnel_gateway.h"
+#include "crypto/hash.h"
+#include "crypto/rand.h"
+#include "transport/transports.h"
+#include "util/i2p_endian.h"
+#include "util/log.h"
 
 namespace i2p {
 namespace tunnel {

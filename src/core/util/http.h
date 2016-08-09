@@ -51,8 +51,8 @@
 #include <sstream>
 #include <string>
 
-#include "Log.h"
-#include "Reseed.h"
+#include "log.h"
+#include "reseed.h"
 
 namespace i2p {
 namespace util {

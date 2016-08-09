@@ -28,13 +28,13 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#include "crypto/util/Checksum.h"
+#include "crypto/util/checksum.h"
 
 #include <cryptopp/adler32.h>
 
 #include <cstdint>
 
-#include "util/Log.h"
+#include "util/log.h"
 
 namespace i2p {
 namespace crypto {

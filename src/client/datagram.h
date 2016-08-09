@@ -39,9 +39,9 @@
 #include <map>
 #include <memory>
 
-#include "I2NPProtocol.h"
-#include "Identity.h"
-#include "LeaseSet.h"
+#include "i2np_protocol.h"
+#include "identity.h"
+#include "lease_set.h"
 
 namespace i2p {
 namespace client { class ClientDestination; }

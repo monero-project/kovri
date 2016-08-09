@@ -41,8 +41,8 @@
 #include <string>
 #include <unordered_set>
 
-#include "Destination.h"
-#include "Identity.h"
+#include "destination.h"
+#include "identity.h"
 
 namespace i2p {
 namespace client {

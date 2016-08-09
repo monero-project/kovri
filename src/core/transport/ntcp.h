@@ -43,10 +43,10 @@
 #include <thread>
 #include <vector>
 
-#include "Identity.h"
-#include "NTCPSession.h"
-#include "RouterInfo.h"
-#include "TransportSession.h"
+#include "identity.h"
+#include "ntcp_session.h"
+#include "router_info.h"
+#include "transport_session.h"
 
 namespace i2p {
 namespace transport {

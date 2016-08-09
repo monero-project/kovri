@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "ClientContext.h"
+#include "client_context.h"
 
 #include <fstream>
 #include <iostream>
@@ -40,8 +40,8 @@
 #include <string>
 #include <vector>
 
-#include "Identity.h"
-#include "util/Log.h"
+#include "identity.h"
+#include "util/log.h"
 
 namespace i2p {
 namespace client {

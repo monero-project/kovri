@@ -34,7 +34,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "crypto/Signature.h"
+#include "crypto/signature.h"
 
 BOOST_AUTO_TEST_SUITE(EdDSA25519Tests)
 

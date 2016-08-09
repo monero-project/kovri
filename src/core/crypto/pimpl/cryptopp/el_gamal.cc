@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "crypto/ElGamal.h"
+#include "crypto/el_gamal.h"
 
 #include <cryptopp/integer.h>
 #include <cryptopp/osrng.h>
@@ -38,10 +38,10 @@
 
 #include <array>
 
-#include "CryptoConst.h"
-#include "crypto/DiffieHellman.h"
-#include "crypto/Rand.h"
-#include "util/Log.h"
+#include "crypto_const.h"
+#include "crypto/diffie_hellman.h"
+#include "crypto/rand.h"
+#include "util/log.h"
 
 namespace i2p {
 namespace crypto {

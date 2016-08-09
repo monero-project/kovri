@@ -30,16 +30,16 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "I2PTunnel.h"
+#include "i2p_tunnel.h"
 
 #include <cassert>
 #include <memory>
 #include <set>
 #include <string>
 
-#include "client/ClientContext.h"
-#include "client/Destination.h"
-#include "util/Log.h"
+#include "client/client_context.h"
+#include "client/destination.h"
+#include "util/log.h"
 
 namespace i2p {
 namespace client {

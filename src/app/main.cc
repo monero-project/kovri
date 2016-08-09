@@ -32,9 +32,9 @@
 
 #include <thread>
 
-#include "Daemon.h"
-#include "util/Config.h"
-#include "util/Log.h"
+#include "daemon.h"
+#include "util/config.h"
+#include "util/log.h"
 
 int main(int argc, char* argv[]) {
   LogPrint("The Kovri I2P Router Project");

@@ -34,7 +34,7 @@
 
 #include <limits>
 
-#include "crypto/Rand.h"
+#include "crypto/rand.h"
 
 /// TODO(unassigned): unit-tests for all crypto::Rand* functions
 

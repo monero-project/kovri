@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "SSUData.h"
+#include "ssu_data.h"
 
 #include <boost/bind.hpp>
 
@@ -39,10 +39,10 @@
 #include <cstdint>
 #include <memory>
 
-#include "NetworkDatabase.h"
-#include "SSU.h"
-#include "util/Log.h"
-#include "util/Timestamp.h"
+#include "network_database.h"
+#include "ssu.h"
+#include "util/log.h"
+#include "util/time_stamp.h"
 
 namespace i2p {
 namespace transport {

@@ -43,14 +43,14 @@
 #include <thread>
 #include <vector>
 
-#include "I2NPProtocol.h"
-#include "TransitTunnel.h"
-#include "TunnelBase.h"
-#include "TunnelConfig.h"
-#include "TunnelEndpoint.h"
-#include "TunnelGateway.h"
-#include "TunnelPool.h"
-#include "util/Queue.h"
+#include "i2np_protocol.h"
+#include "transit_tunnel.h"
+#include "tunnel_base.h"
+#include "tunnel_config.h"
+#include "tunnel_endpoint.h"
+#include "tunnel_gateway.h"
+#include "tunnel_pool.h"
+#include "util/queue.h"
 
 namespace i2p {
 namespace tunnel {

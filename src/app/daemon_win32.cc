@@ -32,14 +32,14 @@
 
 #include <string>
 
-#include "Daemon.h"
+#include "daemon.h"
 
-#include "util/Config.h"
-#include "util/Log.h"
+#include "util/config.h"
+#include "util/log.h"
 
-#ifdef _WIN32
+#ifdef _win32
 
-#include "Win32Service.h"
+#include "win32_service.h"
 
 namespace i2p {
 namespace util {

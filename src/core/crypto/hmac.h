@@ -36,8 +36,8 @@
 #include <inttypes.h>
 #include <string.h>
 
-#include "Hash.h"
-#include "Identity.h"
+#include "hash.h"
+#include "identity.h"
 
 namespace i2p {
 namespace crypto {

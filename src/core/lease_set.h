@@ -38,7 +38,7 @@
 #include <memory>
 #include <vector>
 
-#include "Identity.h"
+#include "identity.h"
 
 namespace i2p {
 // TODO(unassigned): remove this forward declaration after cleaning up core/tunnel

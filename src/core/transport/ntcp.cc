@@ -30,18 +30,18 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "NTCP.h"
+#include "ntcp.h"
 
 #include <cstdint>
 #include <memory>
 #include <string>
 
-#include "NTCPSession.h"
-#include "NetworkDatabase.h"
-#include "RouterContext.h"
-#include "Transports.h"
+#include "ntcp_session.h"
+#include "network_database.h"
+#include "routercontext.h"
+#include "transports.h"
 #include "util/Log.h"
-#include "util/Timestamp.h"
+#include "util/time_stamp.h"
 
 namespace i2p {
 namespace transport {

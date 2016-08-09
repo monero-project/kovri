@@ -40,15 +40,15 @@
 #include <thread>
 #include <vector>
 
-#include "crypto/Rand.h"
-#include "I2NPProtocol.h"
-#include "NetworkDatabase.h"
-#include "RouterContext.h"
-#include "Tunnel.h"
-#include "transport/Transports.h"
-#include "util/I2PEndian.h"
-#include "util/Log.h"
-#include "util/Timestamp.h"
+#include "crypto/rand.h"
+#include "i2np_protocol.h"
+#include "network_database.h"
+#include "router_context.h"
+#include "tunnel.h"
+#include "transport/transports.h"
+#include "util/i2p_endian.h"
+#include "util/log.h"
+#include "util/time_stamp.h"
 
 namespace i2p {
 namespace tunnel {

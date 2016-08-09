@@ -28,7 +28,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#include "crypto/util/Compression.h"
+#include "crypto/util/compression.h"
 
 #include <cryptopp/crc.h>
 #include <cryptopp/gzip.h>
@@ -36,7 +36,7 @@
 
 #include <cstdint>
 
-#include "util/Log.h"
+#include "util/log.h"
 
 namespace i2p {
 namespace crypto {

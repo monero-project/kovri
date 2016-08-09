@@ -32,7 +32,7 @@
 
 #include "daemon.h"
 
-#ifndef _win32
+#ifndef _WIN32
 
 #include <fcntl.h>
 #include <signal.h>

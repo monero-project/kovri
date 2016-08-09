@@ -41,7 +41,7 @@
 #include "router_context.h"
 #include "ssu.h"
 #include "transports.h"
-#include "crypto/diffie_hellman.h"
+#include "crypto/diffie-hellman.h"
 #include "crypto/hash.h"
 #include "crypto/rand.h"
 #include "util/log.h"

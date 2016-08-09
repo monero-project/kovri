@@ -44,8 +44,8 @@ endif()
 set(CRYPTO_SRC
   "${CRYPTOPP_DIR}/aes.cc"
   "${CRYPTOPP_DIR}/crypto_const.cc"
-  "${CRYPTOPP_DIR}/diffie_hellman.cc"
-  "${CRYPTOPP_DIR}/el_gamal.cc"
+  "${CRYPTOPP_DIR}/diffie-hellman.cc"
+  "${CRYPTOPP_DIR}/elgamal.cc"
   "${CRYPTOPP_DIR}/hash.cc"
   "${CRYPTOPP_DIR}/rand.cc"
   "${CRYPTOPP_DIR}/signature.cc"

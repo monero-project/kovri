@@ -28,7 +28,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#include "crypto/diffie_hellman.h"
+#include "crypto/diffie-hellman.h"
 
 #include <cryptopp/dh.h>
 #include <cryptopp/osrng.h>

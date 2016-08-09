@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "tunnel_end_point.h"
+#include "tunnel_endpoint.h"
 
 #include <string.h>
 

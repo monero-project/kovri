@@ -39,7 +39,7 @@
 #include <memory>
 #include <string>
 
-#include "crypto/el_gamal.h"
+#include "crypto/elgamal.h"
 #include "crypto/signature_base.h"
 #include "util/base64.h"
 

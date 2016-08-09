@@ -34,7 +34,7 @@
 
 #include <memory>
 
-#include "crypto/el_gamal.h"
+#include "crypto/elgamal.h"
 #include "crypto/rand.h"
 
 BOOST_AUTO_TEST_SUITE(ElgamalTests)

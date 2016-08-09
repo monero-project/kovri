@@ -50,7 +50,7 @@
 #include <string>
 #include <thread>
 
-#include "network_database.h"
+#include "net_db.h"
 #include "router_context.h"
 #include "util/log.h"
 

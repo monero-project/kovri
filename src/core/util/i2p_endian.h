@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CORE_UTIL_I2PENDIAN_H_
-#define SRC_CORE_UTIL_I2PENDIAN_H_
+#ifndef SRC_CORE_UTIL_I2P_ENDIAN_H_
+#define SRC_CORE_UTIL_I2P_ENDIAN_H_
 #include <inttypes.h>
 #include <string.h>
 

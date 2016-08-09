@@ -47,7 +47,7 @@
 
 #include "destination.h"
 #include "identity.h"
-#include "network_database.h"
+#include "net_db.h"
 #include "crypto/rand.h"
 #include "util/http.h"
 #include "util/log.h"

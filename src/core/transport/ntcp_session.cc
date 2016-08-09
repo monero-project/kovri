@@ -41,7 +41,7 @@
 
 #include "i2np_protocol.h"
 #include "ntcp.h"
-#include "network_database.h"
+#include "net_db.h"
 #include "router_context.h"
 #include "transports.h"
 #include "crypto/diffie-hellman.h"

@@ -33,7 +33,7 @@
 #include "net_db_requests.h"
 
 #include "i2np_protocol.h"
-#include "network_database.h"
+#include "net_db.h"
 #include "transport/transports.h"
 #include "util/log.h"
 

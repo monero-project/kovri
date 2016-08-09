@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_APP_WIN32SERVICE_H_
-#define SRC_APP_WIN32SERVICE_H_
+#ifndef SRC_APP_WIN32_SERVICE_H_
+#define SRC_APP_WIN32_SERVICE_H_
 
 #include <windows.h>
 #define WIN32_LEAN_AND_MEAN

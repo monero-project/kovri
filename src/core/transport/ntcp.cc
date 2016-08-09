@@ -37,7 +37,7 @@
 #include <string>
 
 #include "ntcp_session.h"
-#include "network_database.h"
+#include "net_db.h"
 #include "router_context.h"
 #include "transports.h"
 #include "util/log.h"

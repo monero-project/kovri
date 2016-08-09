@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CORE_TUNNEL_TUNNELCONFIG_H_
-#define SRC_CORE_TUNNEL_TUNNELCONFIG_H_
+#ifndef SRC_CORE_TUNNEL_TUNNEL_CONFIG_H_
+#define SRC_CORE_TUNNEL_TUNNEL_CONFIG_H_
 
 #include <memory>
 #include <cstdint>

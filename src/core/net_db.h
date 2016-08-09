@@ -30,12 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-// Note: this file is named NetworkDatabase.h instead of NetDb.h to avoid
-// a possible nameclash with a file included by boost on case insensitive
-// filesystems.
-
-#ifndef SRC_CORE_NETWORKDATABASE_H_
-#define SRC_CORE_NETWORKDATABASE_H_
+#ifndef SRC_CORE_NET_DB_H_
+#define SRC_CORE_NET_DB_H_
 
 #include <inttypes.h>
 

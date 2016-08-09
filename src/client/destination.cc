@@ -44,7 +44,7 @@
 #include <vector>
 
 #include "address_book.h"
-#include "network_database.h"
+#include "net_db.h"
 #include "crypto/elgamal.h"
 #include "crypto/rand.h"
 #include "util/log.h"

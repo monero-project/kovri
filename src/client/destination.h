@@ -46,7 +46,7 @@
 #include "garlic.h"
 #include "identity.h"
 #include "lease_set.h"
-#include "network_database.h"
+#include "net_db.h"
 #include "datagram.h"
 #include "streaming.h"
 #include "tunnel/tunnel_pool.h"

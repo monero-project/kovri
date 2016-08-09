@@ -37,7 +37,7 @@
 #include <memory>
 #include <vector>
 
-#include "network_database.h"
+#include "net_db.h"
 #include "crypto/rand.h"
 #include "tunnel/tunnel_pool.h"
 #include "util/i2p_endian.h"

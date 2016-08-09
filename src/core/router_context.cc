@@ -41,7 +41,7 @@
 #include <string>
 
 #include "i2np_protocol.h"
-#include "network_database.h"
+#include "net_db.h"
 #include "version.h"
 #include "util/mtu.h"
 #include "util/time_stamp.h"

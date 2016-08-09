@@ -44,7 +44,7 @@
 
 #include "ssu.h"
 #include "crypto/rand.h"
-#include "network_database.h"
+#include "net_db.h"
 #include "router_context.h"
 #include "util/log.h"
 #include "util/time_stamp.h"

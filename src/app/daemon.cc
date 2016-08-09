@@ -43,7 +43,7 @@
 #include "client/client_context.h"
 #include "destination.h"
 #include "garlic.h"
-#include "network_database.h"
+#include "net_db.h"
 #include "router_context.h"
 #include "router_info.h"
 #include "version.h"

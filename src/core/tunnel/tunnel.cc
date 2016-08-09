@@ -42,7 +42,7 @@
 
 #include "crypto/rand.h"
 #include "i2np_protocol.h"
-#include "network_database.h"
+#include "net_db.h"
 #include "router_context.h"
 #include "tunnel.h"
 #include "transport/transports.h"

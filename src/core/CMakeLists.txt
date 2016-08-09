@@ -8,7 +8,7 @@ set(CORE_SRC
   "identity.cc"
   "lease_set.cc"
   "net_db_requests.cc"
-  "network_database.cc"
+  "net_db.cc"
   "profiling.cc"
   "reseed.cc"
   "router_context.cc"

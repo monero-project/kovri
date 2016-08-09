@@ -39,7 +39,7 @@
 #include <set>
 
 #include "garlic.h"
-#include "network_database.h"
+#include "net_db.h"
 #include "router_context.h"
 #include "crypto/elgamal.h"
 #include "crypto/hash.h"

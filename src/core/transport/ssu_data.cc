@@ -39,7 +39,7 @@
 #include <cstdint>
 #include <memory>
 
-#include "network_database.h"
+#include "net_db.h"
 #include "ssu.h"
 #include "util/log.h"
 #include "util/time_stamp.h"

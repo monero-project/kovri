@@ -36,7 +36,7 @@
 #include <vector>
 
 #include "garlic.h"
-#include "network_database.h"
+#include "net_db.h"
 #include "tunnel.h"
 #include "crypto/rand.h"
 #include "transport/transports.h"

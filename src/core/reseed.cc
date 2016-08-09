@@ -43,7 +43,7 @@
 #include <vector>
 
 #include "identity.h"
-#include "network_database.h"
+#include "net_db.h"
 #include "crypto/rand.h"
 #include "crypto/signature.h"
 #include "util/file_system.h"

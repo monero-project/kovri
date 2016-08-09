@@ -42,7 +42,7 @@
 #include <string>
 
 #include "client/client_context.h"
-#include "core/network_database.h"
+#include "core/net_db.h"
 #include "core/router_context.h"
 #include "core/version.h"
 #include "crypto/rand.h"

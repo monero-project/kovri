@@ -37,7 +37,7 @@
 #include "util/config.h"
 #include "util/log.h"
 
-#ifdef _win32
+#ifdef _WIN32
 
 #include "win32_service.h"
 

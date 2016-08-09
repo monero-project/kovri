@@ -58,7 +58,7 @@
 #include "transport_session.h"
 
 #ifdef USE_UPNP
-#include "UPnP.h"
+#include "upnp.h"
 #endif
 
 namespace i2p {

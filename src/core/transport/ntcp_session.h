@@ -44,10 +44,10 @@
 #include <thread>
 #include <vector>
 
-#include "i2npprotocol.h"
+#include "i2np_protocol.h"
 #include "identity.h"
-#include "routerinfo.h"
-#include "transportsession.h"
+#include "router_info.h"
+#include "transport_session.h"
 #include "crypto/aes.h"
 
 namespace i2p {

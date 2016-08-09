@@ -38,9 +38,9 @@
 
 #include "ntcp_session.h"
 #include "network_database.h"
-#include "routercontext.h"
+#include "router_context.h"
 #include "transports.h"
-#include "util/Log.h"
+#include "util/log.h"
 #include "util/time_stamp.h"
 
 namespace i2p {

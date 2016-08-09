@@ -91,7 +91,8 @@ class HTTPProxyHandler
       HTTPProxyServer* parent,
       std::shared_ptr<boost::asio::ip::tcp::socket> socket)
       : I2PServiceHandler(parent),
-        m_Socket(socket) {
+        m_Socket(socket),
+        m_Port(0) {
           SetState(State::get_method);
         }
 

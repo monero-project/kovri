@@ -116,8 +116,7 @@ class RouterInfo : public RoutingDestination {
     }
   };
 
-  RouterInfo()
-      : m_Buffer(nullptr) {}
+  RouterInfo();
 
   ~RouterInfo();
 

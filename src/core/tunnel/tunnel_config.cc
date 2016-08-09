@@ -157,8 +157,9 @@ void TunnelHopConfig::CreateBuildRequestRecord(
 
 TunnelConfig::TunnelConfig(
     std::vector<std::shared_ptr<const i2p::data::RouterInfo> > peers,
-    std::shared_ptr<const TunnelConfig> replyTunnelConfig) {
-    // replyTunnelConfig=nullptr means inbound
+    std::shared_ptr<const TunnelConfig> replyTunnelConfig)
+    : TunnelConfig() {
+  // replyTunnelConfig=nullptr means inbound
   TunnelHopConfig* prev = nullptr;
   for (auto it : peers) {
     auto hop = new TunnelHopConfig(it);

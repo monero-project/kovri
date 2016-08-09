@@ -57,7 +57,9 @@ RouterContext::RouterContext()
       m_IsFloodfill(false),
       m_StartupTime(0),
       m_Status(eRouterStatusOK),
-      m_DataPath() {}
+      m_Port(0),
+      m_DataPath(),
+      m_ReseedSkipSSLCheck(false) {}
 
 void RouterContext::Init(
     const std::string& host,

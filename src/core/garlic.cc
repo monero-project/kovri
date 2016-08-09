@@ -61,7 +61,9 @@ GarlicRoutingSession::GarlicRoutingSession(
       m_Destination(destination),
       m_NumTags(num_tags),
       m_LeaseSetUpdateStatus(
-          attach_leaseset ? eLeaseSetUpdated : eLeaseSetDoNotSend) {
+          attach_leaseset ? eLeaseSetUpdated : eLeaseSetDoNotSend),
+      m_LeaseSetUpdateMsgID(0),
+      m_LeaseSetSubmissionTime(0) {
   // create new session tags and session key
   i2p::crypto::RandBytes(m_SessionKey, 32);
   m_Encryption.SetKey(m_SessionKey);
@@ -73,7 +75,9 @@ GarlicRoutingSession::GarlicRoutingSession(
     : m_Owner(nullptr),
       m_Destination(nullptr),
       m_NumTags(1),
-      m_LeaseSetUpdateStatus(eLeaseSetDoNotSend) {
+      m_LeaseSetUpdateStatus(eLeaseSetDoNotSend),
+      m_LeaseSetUpdateMsgID(0),
+      m_LeaseSetSubmissionTime(0) {
   memcpy(m_SessionKey, session_key, 32);
   m_Encryption.SetKey(m_SessionKey);
   m_SessionTags.push_back(session_tag);

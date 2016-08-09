@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CLIENT_I2PTUNNEL_I2PTUNNEL_H_
-#define SRC_CLIENT_I2PTUNNEL_I2PTUNNEL_H_
+#ifndef SRC_CLIENT_I2P_TUNNEL_I2P_TUNNEL_H_
+#define SRC_CLIENT_I2P_TUNNEL_I2P_TUNNEL_H_
 
 #include <boost/asio.hpp>
 

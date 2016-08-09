@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CORE_TRANSPORT_SSUDATA_H_
-#define SRC_CORE_TRANSPORT_SSUDATA_H_
+#ifndef SRC_CORE_TRANSPORT_SSU_DATA_H_
+#define SRC_CORE_TRANSPORT_SSU_DATA_H_
 
 #include <boost/asio.hpp>
 

@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CORE_NETDBREQUESTS_H_
-#define SRC_CORE_NETDBREQUESTS_H_
+#ifndef SRC_CORE_NET_DB_REQUESTS_H_
+#define SRC_CORE_NET_DB_REQUESTS_H_
 
 #include <map>
 #include <memory>

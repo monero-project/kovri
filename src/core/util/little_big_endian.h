@@ -33,8 +33,8 @@
 // LittleBigEndian.h fixed for 64-bits added union
 //
 
-#ifndef SRC_CORE_UTIL_LITTLEBIGENDIAN_H_
-#define SRC_CORE_UTIL_LITTLEBIGENDIAN_H_
+#ifndef SRC_CORE_UTIL_LITTLE_BIG_ENDIAN_H_
+#define SRC_CORE_UTIL_LITTLE_BIG_ENDIAN_H_
 
 // Determine Little-Endian or Big-Endian
 

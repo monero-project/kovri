@@ -34,8 +34,8 @@
 // a possible nameclash with a file included by boost on case insensitive
 // filesystems.
 
-#ifndef SRC_CORE_NETWORKDATABASE_H_
-#define SRC_CORE_NETWORKDATABASE_H_
+#ifndef SRC_CORE_NETWORK_DATABASE_H_
+#define SRC_CORE_NETWORK_DATABASE_H_
 
 #include <inttypes.h>
 

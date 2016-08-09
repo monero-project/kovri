@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CORE_I2NPPROTOCOL_H_
-#define SRC_CORE_I2NPPROTOCOL_H_
+#ifndef SRC_CORE_I2NP_PROTOCOL_H_
+#define SRC_CORE_I2NP_PROTOCOL_H_
 
 #include <inttypes.h>
 #include <string.h>

@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CORE_ROUTERCONTEXT_H_
-#define SRC_CORE_ROUTERCONTEXT_H_
+#ifndef SRC_CORE_ROUTER_CONTEXT_H_
+#define SRC_CORE_ROUTER_CONTEXT_H_
 
 #include <boost/asio.hpp>
 #include <boost/filesystem.hpp>

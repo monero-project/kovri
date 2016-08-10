@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2015-2016, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2016, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -26,89 +26,55 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,          //
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF    //
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
+ *                                                                                            //
+ * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "crypto/diffie-hellman.h"
+#ifndef SRC_APP_UTIL_FILE_SYSTEM_H_
+#define SRC_APP_UTIL_FILE_SYSTEM_H_
 
-#include <cryptopp/dh.h>
-#include <cryptopp/osrng.h>
+#include <boost/filesystem.hpp>
+#include <boost/program_options.hpp>
+#include <boost/program_options/detail/config_file.hpp>
 
-#include <cstdint>
+#include <map>
+#include <set>
+#include <string>
 
-#include "crypto_const.h"
-#include "util/log.h"
+#include "core/util/log.h"
+#include "core/util/filesystem.h"
 
 namespace i2p {
-namespace crypto {
+namespace util {
+namespace filesystem {
 
-/// @class DiffieHellmanImpl
-/// @brief Diffie-Hellman implementation
-class DiffieHellman::DiffieHellmanImpl {
- public:
-  /// @brief Initializes with ElGamal constants on construction
-  DiffieHellmanImpl()
-      : m_DH(i2p::crypto::elgp, i2p::crypto::elgg) {}
+/**
+ * Change the application name.
+ */
+void SetAppName(
+    const std::string& name);
 
-  /// @brief Generate private/public key pair
-  /// @param private_key Private key
-  /// @param public_key Public key
-  void GenerateKeyPair(
-      std::uint8_t* private_key,
-      std::uint8_t* public_key) {
-    try {
-      m_DH.GenerateKeyPair(
-          m_PRNG,
-          private_key,
-          public_key);
-    } catch (CryptoPP::Exception e) {
-      LogPrint(eLogError,
-          "DiffieHellman: GenerateKeyPair() caught exception '", e.what(), "'");
-    }
-  }
+/// @return the application name.
+std::string GetAppName();
 
-  /// @brief Agreed value from your private key and other party's public key
-  /// @param agreed_value Agreed upon value
-  /// @param private_key Your private key
-  /// @param other_public_key Other party's public key
-  /// @return False on failure
-  bool Agree(
-      std::uint8_t* agreed_value,
-      const std::uint8_t* private_key,
-      const std::uint8_t* other_public_key) {
-    return m_DH.Agree(
-        agreed_value,
-        private_key,
-        other_public_key);
-  }
+/// @return the full path of a file within the kovri directory
+std::string GetFullPath(
+    const std::string& filename);
 
- private:
-  CryptoPP::DH m_DH;
-  CryptoPP::AutoSeededRandomPool m_PRNG;
-};
+/// @return the path of the configuration file
+boost::filesystem::path GetConfigFile();
 
-DiffieHellman::DiffieHellman()
-    : m_DiffieHellmanPimpl(
-          std::make_unique<DiffieHellmanImpl>()) {}
+/// @return the path of the tunnels configuration file
+boost::filesystem::path GetTunnelsConfigFile();
 
-DiffieHellman::~DiffieHellman() {}
+/// @return the path of the kovri directory
+const boost::filesystem::path& GetDataPath();
 
-void DiffieHellman::GenerateKeyPair(
-    std::uint8_t* private_key,
-    std::uint8_t* public_key) {
-  m_DiffieHellmanPimpl->GenerateKeyPair(
-      private_key,
-      public_key);
-}
+/// @return the default directory for app data
+boost::filesystem::path GetDefaultDataPath();
 
-bool DiffieHellman::Agree(
-    std::uint8_t* agreed_value,
-    const std::uint8_t* private_key,
-    const std::uint8_t* other_public_key) {
-  return m_DiffieHellmanPimpl->Agree(
-      agreed_value,
-      private_key,
-      other_public_key);
-}
-
-}  // namespace crypto
+}  // namespace filesystem
+}  // namespace util
 }  // namespace i2p
+
+#endif  // SRC_APP_UTIL_FILESYSTEM_H_

@@ -44,7 +44,7 @@
 #include <vector>
 
 #include "router_context.h"
-#include "util/file_system.h"
+#include "util/filesystem.h"
 
 namespace i2p {
 namespace util {

@@ -44,14 +44,14 @@
 #include "net_db.h"
 #include "router_context.h"
 #include "transports.h"
-#include "crypto/diffie-hellman.h"
+#include "crypto/diffie_hellman.h"
 #include "crypto/hash.h"
 #include "crypto/rand.h"
 #include "crypto/util/checksum.h"
 #include "util/base64.h"
 #include "util/i2p_endian.h"
 #include "util/log.h"
-#include "util/time_stamp.h"
+#include "util/timestamp.h"
 
 namespace i2p {
 namespace transport {

@@ -47,7 +47,7 @@
 #include "tunnel/tunnel_pool.h"
 #include "util/i2p_endian.h"
 #include "util/log.h"
-#include "util/time_stamp.h"
+#include "util/timestamp.h"
 
 namespace i2p {
 namespace garlic {

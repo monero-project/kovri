@@ -40,7 +40,7 @@
 #include <iostream>
 
 #include "core/version.h"
-#include "file_system.h"
+#include "filesystem.h"
 
 namespace i2p {
 namespace util {

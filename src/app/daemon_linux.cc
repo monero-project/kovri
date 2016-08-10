@@ -44,7 +44,7 @@
 
 #include "core/util/log.h"
 #include "util/config.h"
-#include "util/file_system.h"
+#include "util/filesystem.h"
 
 void handle_signal(int sig) {
   switch (sig) {

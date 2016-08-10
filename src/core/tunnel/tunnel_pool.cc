@@ -41,7 +41,7 @@
 #include "crypto/rand.h"
 #include "transport/transports.h"
 #include "util/i2p_endian.h"
-#include "util/time_stamp.h"
+#include "util/timestamp.h"
 #include "util/log.h"
 
 namespace i2p {

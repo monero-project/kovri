@@ -46,7 +46,7 @@
 #include "net_db.h"
 #include "crypto/rand.h"
 #include "crypto/signature.h"
-#include "util/file_system.h"
+#include "util/filesystem.h"
 #include "util/http.h"
 #include "util/i2p_endian.h"
 #include "util/log.h"

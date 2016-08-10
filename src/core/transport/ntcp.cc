@@ -41,7 +41,7 @@
 #include "router_context.h"
 #include "transports.h"
 #include "util/log.h"
-#include "util/time_stamp.h"
+#include "util/timestamp.h"
 
 namespace i2p {
 namespace transport {

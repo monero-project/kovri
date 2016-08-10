@@ -39,7 +39,7 @@
 #include <array>
 
 #include "crypto_const.h"
-#include "crypto/diffie-hellman.h"
+#include "crypto/diffie_hellman.h"
 #include "crypto/rand.h"
 #include "util/log.h"
 

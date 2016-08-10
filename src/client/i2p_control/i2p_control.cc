@@ -49,7 +49,7 @@
 #include "transport/transports.h"
 #include "tunnel/tunnel.h"
 #include "util/log.h"
-#include "util/time_stamp.h"
+#include "util/timestamp.h"
 
 namespace i2p {
 namespace client {

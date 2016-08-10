@@ -32,35 +32,16 @@
 
 #include "core/util/log.h"
 
-#include <boost/version.hpp>
-
-#if BOOST_VERSION >= 105600
 #include <boost/core/null_deleter.hpp>
-#else
-// defines null_deleter here if we don't have the right boost version
-#include <boost/config.hpp>
-namespace boost {
-struct null_deleter {
-  typedef void result_type;
-  template <typename T> void operator() (T*) const {}
-};
-}
-#endif
-
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 #include <boost/log/attributes.hpp>
 #include <boost/log/core.hpp>
-#include <boost/log/core/core.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/sinks.hpp>
-#include <boost/log/sinks/async_frontend.hpp>
-#include <boost/log/sinks/text_ostream_backend.hpp>
-#include <boost/log/sources/channel_feature.hpp>
 #include <boost/log/sources/logger.hpp>
 #include <boost/log/sources/record_ostream.hpp>
 #include <boost/log/sources/severity_channel_logger.hpp>
-#include <boost/log/sources/severity_feature.hpp>
 
 #include <iostream>
 #include <memory>

@@ -41,7 +41,7 @@
 #include "i2np_protocol.h"
 #include "net_db.h"
 #include "router_context.h"
-#include "crypto/diffie-hellman.h"
+#include "crypto/diffie_hellman.h"
 #include "crypto/rand.h"
 #include "util/log.h"
 

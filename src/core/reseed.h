@@ -43,7 +43,7 @@
 #include <vector>
 
 #include "crypto/util/x509.h"
-#include "util/file_system.h"
+#include "util/filesystem.h"
 #include "util/zip.h"
 
 namespace i2p {

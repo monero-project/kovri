@@ -44,8 +44,8 @@
 #include "net_db.h"
 #include "version.h"
 #include "util/mtu.h"
-#include "util/time_stamp.h"
-#include "util/file_system.h"
+#include "util/timestamp.h"
+#include "util/filesystem.h"
 
 namespace i2p {
 

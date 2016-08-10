@@ -27,7 +27,7 @@ set(CORE_SRC
   "tunnel/tunnel_gateway.cc"
   "tunnel/tunnel_pool.cc"
   "util/base64.cc"
-  "util/file_system.cc"
+  "util/filesystem.cc"
   "util/http.cc"
   "util/mtu.cc"
   "util/zip.cc"
@@ -44,7 +44,7 @@ endif()
 set(CRYPTO_SRC
   "${CRYPTOPP_DIR}/aes.cc"
   "${CRYPTOPP_DIR}/crypto_const.cc"
-  "${CRYPTOPP_DIR}/diffie-hellman.cc"
+  "${CRYPTOPP_DIR}/diffie_hellman.cc"
   "${CRYPTOPP_DIR}/elgamal.cc"
   "${CRYPTOPP_DIR}/hash.cc"
   "${CRYPTOPP_DIR}/rand.cc"

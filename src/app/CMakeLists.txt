@@ -2,7 +2,7 @@ set(APP_SRC
   "main.cc"
   "daemon.cc"
   "util/config.cc"
-  "util/file_system.cc")
+  "util/filesystem.cc")
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   list(APPEND APP_SRC "daemon_linux.cc")

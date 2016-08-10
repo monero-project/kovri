@@ -40,7 +40,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "util/file_system.h"
+#include "util/filesystem.h"
 
 namespace i2p {
 namespace util {

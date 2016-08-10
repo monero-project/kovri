@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "file_system.h"
+#include "filesystem.h"
 
 #include <string>
 

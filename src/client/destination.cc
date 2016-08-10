@@ -48,7 +48,7 @@
 #include "crypto/elgamal.h"
 #include "crypto/rand.h"
 #include "util/log.h"
-#include "util/time_stamp.h"
+#include "util/timestamp.h"
 
 namespace i2p {
 namespace client {

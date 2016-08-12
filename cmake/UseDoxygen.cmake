@@ -104,52 +104,6 @@ if(DOXYGEN_FOUND AND DOXYFILE_IN_FOUND)
   usedoxygen_set_default(DOXYFILE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src"
     PATH "Input files source directory")
 
-  ### Apparently, we must explicitly specificy our source dirs.
-  ### Flipping on recursion in Doxyfile.in has no effect (though it apparently did in 1.8.10)
-  ### See https://github.com/monero-project/kovri/issues/68
-  ### TODO(unassigned): resolve this patch
-  usedoxygen_set_default(DOXYFILE_SOURCE_API
-    "${DOXYFILE_SOURCE_DIR}/app \
-    ${DOXYFILE_SOURCE_DIR}/app/util"
-    STRING "Application source files")
-
-  usedoxygen_set_default(DOXYFILE_SOURCE_CLIENT
-    "${DOXYFILE_SOURCE_DIR}/client \
-    ${DOXYFILE_SOURCE_DIR}/client/i2p_control \
-    ${DOXYFILE_SOURCE_DIR}/client/i2p_tunnel"
-    STRING "Client source files")
-
-  usedoxygen_set_default(DOXYFILE_SOURCE_CORE
-    "${DOXYFILE_SOURCE_DIR}/core \
-    ${DOXYFILE_SOURCE_DIR}/core/crypto \
-    ${DOXYFILE_SOURCE_DIR}/core/crypto/pimpl \
-    ${DOXYFILE_SOURCE_DIR}/core/crypto/pimpl/cryptopp/ \
-    ${DOXYFILE_SOURCE_DIR}/core/crypto/pimpl/cryptopp/util/ \
-    ${DOXYFILE_SOURCE_DIR}/core/crypto/pimpl/supercop/ \
-    ${DOXYFILE_SOURCE_DIR}/core/crypto/pimpl/supercop/ed25519 \
-    ${DOXYFILE_SOURCE_DIR}/core/crypto/util \
-    ${DOXYFILE_SOURCE_DIR}/core/transport \
-    ${DOXYFILE_SOURCE_DIR}/core/tunnel \
-    ${DOXYFILE_SOURCE_DIR}/core/util \
-    ${DOXYFILE_SOURCE_DIR}/core/util/pimpl"
-    STRING "Core source files")
-
-  usedoxygen_set_default(DOXYFILE_SOURCE_CLIENT
-    "${DOXYFILE_SOURCE_DIR}/tests/benchmarks \
-    ${DOXYFILE_SOURCE_DIR}/tests/unit_tests \
-    ${DOXYFILE_SOURCE_DIR}/tests/unit_tests/core \
-    ${DOXYFILE_SOURCE_DIR}/tests/unit_tests/core/crypto \
-    ${DOXYFILE_SOURCE_DIR}/tests/unit_tests/core/crypto/util \
-    ${DOXYFILE_SOURCE_DIR}/tests/unit_tests/core/util"
-    STRING "Unit-tests/Benchmarks")
-
-  set(DOXYFILE_SOURCE_DIRS
-    "${DOXYFILE_SOURCE_DIR} \
-    ${DOXYFILE_SOURCE_API} \
-    ${DOXYFILE_SOURCE_CLIENT} \
-    ${DOXYFILE_SOURCE_CORE} \
-    ${DOXYFILE_SOURCE_TESTS}")
-
   usedoxygen_set_default(DOXYFILE_LATEX YES BOOL "Generate LaTeX API documentation" OFF)
   usedoxygen_set_default(DOXYFILE_LATEX_DIR "latex" STRING "LaTex output directory")
 

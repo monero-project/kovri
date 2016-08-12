@@ -14,8 +14,9 @@
 Optional:
 
 - [Clang](http://clang.llvm.org/) 3.5 ([3.6 on FreeBSD](https://llvm.org/bugs/show_bug.cgi?id=28887))
-- [Doxygen](http://www.doxygen.org/) 1.8.6
 - [MiniUPnP](http://miniupnp.free.fr/files/) 1.6
+- [Doxygen](http://www.doxygen.org/) 1.8.6
+- [Graphviz](http://graphviz.org/) 2.36
 
 ### MacOSX
 - [Homebrew](http://brew.sh/)
@@ -25,7 +26,7 @@ Optional:
 ###  Amazon EC2
 ```bash
 $ sudo yum install gcc-c++ cmake openssl-devel libquadmath
-$ sudo yum install doxygen  # optional
+$ sudo yum install doxygen graphviz # optional
 $ wget https://sourceforge.net/projects/boost/files/boost/1.61.0/boost_1_61_0.tar.gz
 $ tar -xf boost_1_61_0.tar.gz
 $ cd boost_1_61_0
@@ -39,7 +40,8 @@ $ export BOOST_ROOT
 ```bash
 $ sudo apt-get install g++-4.9 cmake libboost-all-dev libssl-dev libssl1.0.0
 $ sudo apt-get install clang-3.5  # optional
-$ sudo apt-get install libminiupnpc-dev doxygen  # optional
+$ sudo apt-get install doxygen graphviz  # optional
+$ sudo apt-get install libminiupnpc-dev  # optional
 ```
 
 ### Ubuntu Trusty 14.04:
@@ -51,7 +53,8 @@ $ sudo apt-get update
 $ sudo apt-get install libboost-{chrono,log,program-options,date-time,thread,system,filesystem,regex,test}1.58{-dev,.0}
 $ sudo apt-get install g++-4.9 cmake libboost-all-dev libssl-dev libssl1.0.0
 $ sudo apt-get install clang-3.5  # optional
-$ sudo apt-get install libminiupnpc-dev doxygen  # optional
+$ sudo apt-get install doxygen graphviz  # optional
+$ sudo apt-get install libminiupnpc-dev  # optional
 
 ```
 
@@ -59,20 +62,23 @@ $ sudo apt-get install libminiupnpc-dev doxygen  # optional
 ```bash
 $ sudo pacman -Syu cmake boost  # gcc/g++ and openssl installed by default
 $ sudo pacman -S clang  # optional
-$ sudo pacman -S miniupnpc doxygen  # optional
+$ sudo pacman -S doxygen graphviz  # optional
+$ sudo pacman -S miniupnpc  # optional
 ```
 
 ### MacOSX
 ```bash
 $ brew install cmake boost openssl # clang installed by default
-$ brew install miniupnpc doxygen  # optional
+$ brew install doxygen graphviz # optional
+$ brew install miniupnpc  # optional
 ```
 Note: see Clang build instructions below
 
 ### FreeBSD 10
 ```bash
 $ sudo pkg install git cmake gmake clang36 openssl
-$ sudo pkg install miniupnpc doxygen  # optional
+$ sudo pkg install doxygen graphviz  # optional
+$ sudo pkg install miniupnpc # optional
 # Build latest boost (1.58 minimum)
 $ wget https://sourceforge.net/projects/boost/files/boost/1.61.0/boost_1_61_0.tar.bz2/download -O boost_1_61_0.tar.bz2
 $ tar xvjf boost_1_61_0.tar.bz2 && cd boost_1_61_0
@@ -93,6 +99,7 @@ pacman -Su
 * For those of you already familiar with pacman, you can run the normal ```pacman -Syu``` to update, but you may get errors and need to restart MSYS2 if pacman's dependencies are updated.
 * Install dependencies: ```pacman -S make mingw-w64-x86_64-cmake mingw-w64-x86_64-gcc mingw-w64-x86_64-boost mingw-w64-x86_64-openssl```
 * Optional: ```mingw-w64-x86_64-doxygen mingw-w64-x86_64-miniupnpc```
+* Note: if using doxygen, you'll need [Graphviz](http://graphviz.org/doc/winbuild.html)
 
 ## Step 3. Build
 Minimum requirement:

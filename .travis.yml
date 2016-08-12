@@ -27,6 +27,7 @@ addons:
             - libssl1.0.0
             - libminiupnpc-dev
             - doxygen
+            - graphviz
         sources:
             - ubuntu-toolchain-r-test
 
@@ -45,7 +46,6 @@ before_script:
     #- if [ "$CXX" = "clang++" ]; then export CXX=clang-${CLANG_VERSION}; fi
 
 script: make clean && make -j2 dependencies && make -j2 all-options && make -j2 tests && make doxygen && make install-resources
-
 
 notifications:
     email: false

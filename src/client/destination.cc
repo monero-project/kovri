@@ -47,6 +47,7 @@
 #include "net_db.h"
 #include "crypto/elgamal.h"
 #include "crypto/rand.h"
+#include "identity.h"
 #include "util/log.h"
 #include "util/timestamp.h"
 
@@ -136,7 +137,7 @@ ClientDestination::ClientDestination(
   if (m_IsPublic)
     LogPrint(eLogInfo,
         "ClientDestination: created local address ",
-        i2p::client::GetB32Address(GetIdentHash()));
+        i2p::data::GetB32Address(GetIdentHash()));
   // TODO(unassigned): ???
   m_StreamingDestination =
     std::make_shared<i2p::stream::StreamingDestination> (*this);

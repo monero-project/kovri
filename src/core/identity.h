@@ -134,6 +134,11 @@ class Tag {
 };
 typedef Tag<32> IdentHash;
 
+inline std::string GetB32Address(
+    const i2p::data::IdentHash& ident) {
+  return ident.ToBase32().append(".b32.i2p");
+}
+
 #pragma pack(1)
 struct Keys {
   uint8_t private_key[256];

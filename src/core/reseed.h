@@ -109,10 +109,6 @@ class Reseed {
   // I2P-approved reseed hosts
   const std::vector<std::string> m_Hosts = {
     "https://download.xxlspeed.com/",  // Requires SNI
-    // Note: i2p*.manas.ca currently requires DST Root CA X3 (not ISRG Root X1)
-    "https://i2p-0.manas.ca:8443/",
-    "https://i2p.manas.ca:8443/",
-    //
     "https://i2p.mooo.com/netDb/",
     "https://netdb.i2p2.no/",  // Requires SNI
     "https://reseed.i2p-projekt.de/",
@@ -120,6 +116,11 @@ class Reseed {
     "https://uk.reseed.i2p2.no:444/",
     "https://us.reseed.i2p2.no:444/",
     "https://user.mx24.eu/",
+    // Note: for "Let's Encrypt" certs,
+    // we currently require DST Root CA X3 (not ISRG Root X1)
+    "https://i2p-0.manas.ca:8443/",
+    "https://i2p.manas.ca:8443/",
+    "https://reseed.atomike.ninja/",  // Requires SNI
   };
 };
 

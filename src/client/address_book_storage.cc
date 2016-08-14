@@ -34,9 +34,6 @@
 
 #include <boost/filesystem.hpp>
 
-#include <inttypes.h>  // TODO(anonimal): remove once datatype refactored
-#include <string.h>  // TODO(anonimal): remove once datatype refactored
-
 #include <fstream>
 #include <map>
 #include <memory>
@@ -65,7 +62,7 @@ bool AddressBookFilesystemStorage::GetAddress(
   std::ifstream f(filename.string(), std::ifstream::binary);
   if (f.is_open()) {
     f.seekg(0, std::ios::end);
-    size_t len = f.tellg();
+    std::size_t len = f.tellg();
     if (len < i2p::data::DEFAULT_IDENTITY_SIZE) {
       LogPrint(eLogError,
           "AddressBookFilesystemStorage: file ", filename, " is too short. ", len);
@@ -87,7 +84,7 @@ void AddressBookFilesystemStorage::AddAddress(
   auto filename = GetPath() / (address.GetIdentHash().ToBase32() + ".b32");
   std::ofstream f(filename.string(), std::ofstream::binary | std::ofstream::out);
   if (f.is_open()) {
-    size_t len = address.GetFullLen();
+    std::size_t len = address.GetFullLen();
     auto buf = std::make_unique<std::uint8_t[]>(len);
     address.ToBuffer(buf.get(), len); // TODO(anonimal): test return for sanity
     f.write(reinterpret_cast<char *>(buf.get()), len);
@@ -108,10 +105,9 @@ void AddressBookFilesystemStorage::RemoveAddress(
 }
 **/
 
-// TODO(anonimal): refactor to std::size_t
-int AddressBookFilesystemStorage::Load(
+std::size_t AddressBookFilesystemStorage::Load(
     std::map<std::string, i2p::data::IdentHash>& addresses) {
-  int num = 0;
+  std::size_t num = 0;
   // TODO(anonimal): CSV? And location? Implement Get*()
   auto filename = GetPath() / "addresses.csv";
   std::ifstream f(filename.string(), std::ofstream::in);  // in text mode
@@ -122,7 +118,7 @@ int AddressBookFilesystemStorage::Load(
       getline(f, s);
       if (!s.length())
         continue;  // skip empty line
-      size_t pos = s.find(',');
+      std::size_t pos = s.find(',');
       if (pos != std::string::npos) {
         std::string name = s.substr(0, pos++);
         std::string addr = s.substr(pos);
@@ -141,10 +137,9 @@ int AddressBookFilesystemStorage::Load(
   return num;
 }
 
-// TODO(anonimal): refactor to std::size_t
-int AddressBookFilesystemStorage::Save(
+std::size_t AddressBookFilesystemStorage::Save(
     const std::map<std::string, i2p::data::IdentHash>& addresses) {
-  int num = 0;
+  std::size_t num = 0;
   // TODO(anonimal): CSV? And location? Implement Get*()
   auto filename = GetPath() / "addresses.csv";
   std::ofstream f(filename.string(), std::ofstream::out);  // in text mode

@@ -35,8 +35,7 @@
 
 #include <boost/filesystem.hpp>
 
-#include <string.h>  // TODO(anonimal): remove once datatype refactored
-
+#include <cstdint>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -72,11 +71,10 @@ class AddressBookStorage {
       const i2p::data::IdentHash& ident) = 0;
   **/
 
-  virtual int Load(
-      std::map<std::string,
-      i2p::data::IdentHash>& addresses) = 0;
+  virtual std::size_t Load(
+      std::map<std::string, i2p::data::IdentHash>& addresses) = 0;
 
-  virtual int Save(
+  virtual std::size_t Save(
       const std::map<std::string, i2p::data::IdentHash>& addresses) = 0;
 };
 
@@ -112,13 +110,13 @@ class AddressBookFilesystemStorage : public AddressBookStorage {
   /// @brief Loads subscriptions
   /// @param addresses Reference to map of human-readable addresses to hashes
   /// @return Number of subscriptions loaded
-  int Load(
+  std::size_t Load(
       std::map<std::string, i2p::data::IdentHash>& addresses);
 
   /// @brief Saves subscriptions to file in CSV format // TODO(anonimal): why CSV?
   /// @param addresses Reference to map of human-readable address to b32 hashes of address
   /// @return Number of subscriptions saved
-  int Save(
+  std::size_t Save(
       const std::map<std::string, i2p::data::IdentHash>& addresses);
 
  private:

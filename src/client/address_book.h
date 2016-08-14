@@ -35,8 +35,8 @@
 
 #include <boost/asio.hpp>
 
-#include <string.h>
-
+#include <atomic>
+#include <cstdint>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -55,16 +55,22 @@
 namespace i2p {
 namespace client {
 
-// TODO(anonimal): datatype/container refactor
+// TODO(unassigned): replace with Monero's b32 subscription service
+const std::string SubscriptionDownloadAddress("https://downloads.getmonero.org/kovri/hosts.txt");
 
-const char DEFAULT_SUBSCRIPTION_ADDRESS[] =
-   // TODO(anonimal): replace with monero subscription address
-  "http://udhdrtrcetjm5sxzskjyr5ztpeszydbh4dpl3pl4utgqqw2v4jna.b32.i2p/hosts.txt";
-const int INITIAL_SUBSCRIPTION_UPDATE_TIMEOUT = 3;  // in minutes
-const int INITIAL_SUBSCRIPTION_RETRY_TIMEOUT = 1;  // in minutes
-const int CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT = 720;  // in minutes (12 hours)
-const int CONTINIOUS_SUBSCRIPTION_RETRY_TIMEOUT = 5;  // in minutes
-const int SUBSCRIPTION_REQUEST_TIMEOUT = 60;  // in second
+/// @enum SubscriptionTimeout
+/// @brief Constants used for timeout intervals when fetching subscriptions
+/// @notes Scoped to prevent namespace pollution (otherwise, purely stylistic)
+enum struct SubscriptionTimeout : std::uint16_t {
+  // Minutes
+  InitialUpdate = 3,
+  InitialRetry = 1,
+  ContinuousUpdate = 720,  // 12 hours
+  ContinuousRetry = 5,
+  // Seconds
+  Request = 60,
+  Receive = 30,
+};
 
 class AddressBookSubscription;
 /// @class AddressBook
@@ -224,10 +230,13 @@ class AddressBook {
   /// @notes Needed for fetching subscriptions in-net
   std::shared_ptr<ClientDestination> m_SharedLocalDestination;
 
-  // TODO(anonimal): the use of volatile appears to act as both an
-  // MSVC extension and substitute for std::atomic.
-  // Refactor with std::atomic.
-  volatile bool m_IsLoaded, m_IsDownloading;
+  /// @var m_IsLoaded
+  /// @brief Are hosts loaded into memory?
+  std::atomic<bool> m_IsLoaded;
+
+  /// @var m_IsDownloading
+  /// @brief Are subscriptions in the process downloading?
+  std::atomic<bool> m_IsDownloading;
 };
 
 /// @class AddressBookSubscription

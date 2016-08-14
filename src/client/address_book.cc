@@ -35,10 +35,9 @@
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 
-#include <inttypes.h>
-#include <string.h>
+#include <array>
+#include <cstdint>
 #include <string>
-
 #include <chrono>
 #include <condition_variable>
 #include <fstream>
@@ -77,7 +76,7 @@ void AddressBook::StartSubscriptions() {
           m_SharedLocalDestination->GetService());
     m_SubscriptionsUpdateTimer->expires_from_now(
         boost::posix_time::minutes(
-            INITIAL_SUBSCRIPTION_UPDATE_TIMEOUT));
+            static_cast<std::uint16_t>(SubscriptionTimeout::InitialUpdate)));
     m_SubscriptionsUpdateTimer->async_wait(
         std::bind(
             &AddressBook::HandleSubscriptionsUpdateTimer,
@@ -134,7 +133,7 @@ void AddressBook::HandleSubscriptionsUpdateTimer(
       // try it again later
       m_SubscriptionsUpdateTimer->expires_from_now(
           boost::posix_time::minutes(
-              INITIAL_SUBSCRIPTION_RETRY_TIMEOUT));
+              static_cast<std::uint16_t>(SubscriptionTimeout::InitialRetry)));
       m_SubscriptionsUpdateTimer->async_wait(
           std::bind(
               &AddressBook::HandleSubscriptionsUpdateTimer,
@@ -179,7 +178,8 @@ void AddressBookSubscription::Request() {  // TODO(anonimal): rename to Download
       if (new_data_received.wait_for(
               l,
               std::chrono::seconds(
-                  SUBSCRIPTION_REQUEST_TIMEOUT)) == std::cv_status::timeout)
+                  static_cast<std::uint16_t>(SubscriptionTimeout::Request)))
+          == std::cv_status::timeout)
         LogPrint(eLogError,
             "AddressBookSubscription: ",
             "subscription lease set request timeout expired");
@@ -200,37 +200,39 @@ void AddressBookSubscription::Request() {  // TODO(anonimal): rename to Download
         m_Book.GetSharedLocalDestination()->CreateStream(
             lease_set,
             std::stoi(uri.m_Port));
-      stream->Send((uint8_t *)request.str().c_str(),
+      stream->Send(
+          reinterpret_cast<const std::uint8_t *>(request.str().c_str()),
           request.str().length());
-      uint8_t buf[4096];
+      std::array<std::uint8_t, 4096> buf;
       bool end = false;
       while (!end) {
         stream->AsyncReceive(
             boost::asio::buffer(
-              buf,
-              4096),
+              buf.data(),
+              buf.size()),
             [&](const boost::system::error_code& ecode,
               std::size_t bytes_transferred) {
                 if (bytes_transferred)
                   response.write(
-                      reinterpret_cast<char *>(buf),
+                      reinterpret_cast<char *>(buf.data()),
                       bytes_transferred);
                 if (ecode == boost::asio::error::timed_out || !stream->IsOpen())
                   end = true;
                 new_data_received.notify_all();
               },
-            30);  // wait for 30 seconds
+            static_cast<std::uint16_t>(SubscriptionTimeout::Receive));
         std::unique_lock<std::mutex> l(new_data_received_mutex);
         if (new_data_received.wait_for(
                 l,
                 std::chrono::seconds(
-                    SUBSCRIPTION_REQUEST_TIMEOUT)) == std::cv_status::timeout)
+                    static_cast<std::uint16_t>(SubscriptionTimeout::Request)))
+            == std::cv_status::timeout)
           LogPrint(eLogError,
               "AddressBookSubscription: subscription timeout expired");
       }
       // process remaining buffer
-      while (size_t len = stream->ReadSome(buf, 4096))
-        response.write(reinterpret_cast<char *>(buf), len);
+      while (std::size_t len = stream->ReadSome(buf.data(), buf.size()))
+        response.write(reinterpret_cast<char *>(buf.data()), len);
       // parse response
       std::string version;
       response >> version;  // HTTP version
@@ -344,8 +346,8 @@ void AddressBook::DownloadComplete(
     m_SubscriptionsUpdateTimer->expires_from_now(
         boost::posix_time::minutes(
             success ?
-            CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT :
-            CONTINIOUS_SUBSCRIPTION_RETRY_TIMEOUT));
+            static_cast<std::uint16_t>(SubscriptionTimeout::ContinuousUpdate) :
+            static_cast<std::uint16_t>(SubscriptionTimeout::ContinuousRetry)));
     m_SubscriptionsUpdateTimer->async_wait(
         std::bind(
             &AddressBook::HandleSubscriptionsUpdateTimer,
@@ -378,7 +380,9 @@ void AddressBook::LoadHosts() {
       m_IsDownloading = true;
       if (!m_DefaultSubscription)
         m_DefaultSubscription =
-          std::make_unique<AddressBookSubscription>(*this, DEFAULT_SUBSCRIPTION_ADDRESS);
+          std::make_unique<AddressBookSubscription>(
+              *this,
+              SubscriptionDownloadAddress.data());
       m_DefaultSubscription->CheckSubscription();
     }
   }
@@ -394,13 +398,13 @@ std::unique_ptr<AddressBookStorage> AddressBook::CreateStorage() {
 void AddressBook::LoadHostsFromStream(
     std::istream& f) {
   std::unique_lock<std::mutex> l(m_AddressBookMutex);
-  int num_addresses = 0;
+  std::size_t num_addresses = 0;
   std::string s;
   while (!f.eof()) {
     getline(f, s);
     if (!s.length())
       continue;  // skip empty line
-    size_t pos = s.find('=');
+    std::size_t pos = s.find('=');
     if (pos != std::string::npos) {
       std::string name = s.substr(0, pos++);
       std::string addr = s.substr(pos);
@@ -446,7 +450,7 @@ void AddressBook::Stop() {
   if (m_IsDownloading) {
     LogPrint(eLogInfo,
         "AddressBook: subscription is downloading, waiting for termination");
-    for (int i = 0; i < 30; i++) {
+    for (std::size_t i = 0; i < 30; i++) {
       if (!m_IsDownloading) {
         LogPrint(eLogInfo, "AddressBook: subscription download complete");
         break;

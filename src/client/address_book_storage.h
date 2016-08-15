@@ -41,6 +41,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 #include "identity.h"
 #include "core/util/filesystem.h"
@@ -51,7 +52,19 @@
 namespace i2p {
 namespace client {
 
-// TODO(unassigned): do we really need an interface class for address book?
+/// @var AddressBookDefaults
+/// @brief Default string constants used throughout address book
+const std::unordered_map<std::string, std::string> AddressBookDefaults = {
+    { "Pathname", "addressbook" },
+    { "SubscriptionFilename", "hosts.txt" },
+    // TODO(anonimal): "addresses" is confusing and so is its real purpose
+    // (currently only used to verify that addresses have indeed been saved)
+    { "AddressesFilename", "addresses.csv" },
+    { "PublisherFilename", "publishers.txt" },
+    // TODO(unassigned): replace with Monero's b32 publisher service
+    { "PublisherURI", "https://downloads.getmonero.org/kovri/hosts.txt" },
+};
+
 /// @class AddressBookStorage
 /// @brief Interface for address book storage
 class AddressBookStorage {
@@ -79,7 +92,7 @@ class AddressBookStorage {
 };
 
 /// @class AddressBookFilesystemStorage
-/// @brief All filesystem-related addressbook member functions
+/// @brief All filesystem-related address book member functions
 class AddressBookFilesystemStorage : public AddressBookStorage {
  public:
   /// @details Gets/Sets address book path/directory
@@ -88,14 +101,14 @@ class AddressBookFilesystemStorage : public AddressBookStorage {
 
   /// @brief Gets b32 identity from storage and puts into identity buffer
   /// @return True if b32 identity is in filesystem and valid
-  /// @param ident Reference to identity hash from filesystem
+  /// @param ident Const reference to identity hash from filesystem
   /// @param address Reference to identity address buffer
   bool GetAddress(
       const i2p::data::IdentHash& ident,
       i2p::data::IdentityEx& address) const;
 
   /// @brief Adds identity to address book storage
-  /// @param address Reference to identity address buffer
+  /// @param address Const reference to identity address buffer
   void AddAddress(
       const i2p::data::IdentityEx& address);
 
@@ -107,23 +120,29 @@ class AddressBookFilesystemStorage : public AddressBookStorage {
       const i2p::data::IdentHash& ident);
   **/
 
-  /// @brief Loads subscriptions
-  /// @param addresses Reference to map of human-readable addresses to hashes
+  /// @brief Loads subscriptions from file into memory
   /// @return Number of subscriptions loaded
+  /// @param addresses Reference to map of human-readable addresses to hashes
   std::size_t Load(
       std::map<std::string, i2p::data::IdentHash>& addresses);
 
   /// @brief Saves subscriptions to file in CSV format // TODO(anonimal): why CSV?
-  /// @param addresses Reference to map of human-readable address to b32 hashes of address
   /// @return Number of subscriptions saved
+  /// @param addresses Const reference to map of human-readable address to b32 hashes of address
   std::size_t Save(
       const std::map<std::string, i2p::data::IdentHash>& addresses);
 
  private:
+  /// @brief Gets addresses filename (file list of saved addresses)
+  /// @return Const reference to addresses filename
+  const std::string& GetAddressesFilename() {
+    return (GetAddressBookPath() / AddressBookDefaults.at("AddressesFilename")).string();
+  }
+
   /// @brief Gets data path and appends address book's path
   /// @return Boost.Filesystem path of address book path
-  boost::filesystem::path GetPath() const {
-    return i2p::context.GetDataPath() / "addressbook";
+  boost::filesystem::path GetAddressBookPath() const {
+    return i2p::context.GetDataPath() / AddressBookDefaults.at("Pathname");
   }
 };
 

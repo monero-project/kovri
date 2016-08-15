@@ -46,7 +46,7 @@ namespace i2p {
 namespace client {
 
 AddressBookFilesystemStorage::AddressBookFilesystemStorage() {
-  auto path = GetPath();
+  auto path = GetAddressBookPath();
   if (!boost::filesystem::exists(path)) {
     if (!boost::filesystem::create_directory(path))
       LogPrint(eLogError,
@@ -57,20 +57,19 @@ AddressBookFilesystemStorage::AddressBookFilesystemStorage() {
 bool AddressBookFilesystemStorage::GetAddress(
     const i2p::data::IdentHash& ident,
     i2p::data::IdentityEx& address) const {
-  // TODO(anonimal): implement GetB32Filename()  // see GetB32Address()
-  auto filename = GetPath() / (ident.ToBase32() + ".b32");
-  std::ifstream f(filename.string(), std::ifstream::binary);
-  if (f.is_open()) {
-    f.seekg(0, std::ios::end);
-    std::size_t len = f.tellg();
+  auto filename = GetAddressBookPath() / (ident.ToBase32() + ".b32");
+  std::ifstream file(filename.string(), std::ifstream::binary);
+  if (file.is_open()) {
+    file.seekg(0, std::ios::end);
+    std::size_t len = file.tellg();
     if (len < i2p::data::DEFAULT_IDENTITY_SIZE) {
       LogPrint(eLogError,
           "AddressBookFilesystemStorage: file ", filename, " is too short. ", len);
       return false;
     }
-    f.seekg(0, std::ios::beg);
+    file.seekg(0, std::ios::beg);
     auto buf = std::make_unique<std::uint8_t[]>(len);
-    f.read(reinterpret_cast<char *>(buf.get()), len);
+    file.read(reinterpret_cast<char *>(buf.get()), len);
     address.FromBuffer(buf.get(), len);  // TODO(anonimal): test return for sanity
     return true;
   } else {
@@ -80,14 +79,13 @@ bool AddressBookFilesystemStorage::GetAddress(
 
 void AddressBookFilesystemStorage::AddAddress(
     const i2p::data::IdentityEx& address) {
-  // TODO(anonimal): implement GetB32Filename()  // see GetB32Address()
-  auto filename = GetPath() / (address.GetIdentHash().ToBase32() + ".b32");
-  std::ofstream f(filename.string(), std::ofstream::binary | std::ofstream::out);
-  if (f.is_open()) {
+  auto filename = GetAddressBookPath() / (address.GetIdentHash().ToBase32() + ".b32");
+  std::ofstream file(filename.string(), std::ofstream::binary | std::ofstream::out);
+  if (file.is_open()) {
     std::size_t len = address.GetFullLen();
     auto buf = std::make_unique<std::uint8_t[]>(len);
     address.ToBuffer(buf.get(), len); // TODO(anonimal): test return for sanity
-    f.write(reinterpret_cast<char *>(buf.get()), len);
+    file.write(reinterpret_cast<char *>(buf.get()), len);
   } else {
     LogPrint(eLogError,
         "AddressBookFilesystemStorage: can't open file ", filename);
@@ -98,7 +96,6 @@ void AddressBookFilesystemStorage::AddAddress(
 // TODO(unassigned): currently unused
 void AddressBookFilesystemStorage::RemoveAddress(
     const i2p::data::IdentHash& ident) {
-  // TODO(anonimal): implement GetB32Filename()  // see GetB32Address()
   auto filename = GetPath() / (ident.ToBase32() + ".b32");
   if (boost::filesystem::exists(filename))
     boost::filesystem::remove(filename);
@@ -108,20 +105,19 @@ void AddressBookFilesystemStorage::RemoveAddress(
 std::size_t AddressBookFilesystemStorage::Load(
     std::map<std::string, i2p::data::IdentHash>& addresses) {
   std::size_t num = 0;
-  // TODO(anonimal): CSV? And location? Implement Get*()
-  auto filename = GetPath() / "addresses.csv";
-  std::ifstream f(filename.string(), std::ofstream::in);  // in text mode
-  if (f.is_open()) {
+  auto filename = GetAddressesFilename();
+  std::ifstream file(filename, std::ofstream::in);
+  if (file.is_open()) {
     addresses.clear();
-    while (!f.eof()) {
-      std::string s;
-      getline(f, s);
-      if (!s.length())
+    while (!file.eof()) {
+      std::string host;
+      getline(file, host);
+      if (!host.length())
         continue;  // skip empty line
-      std::size_t pos = s.find(',');
+      std::size_t pos = host.find(',');
       if (pos != std::string::npos) {
-        std::string name = s.substr(0, pos++);
-        std::string addr = s.substr(pos);
+        std::string name = host.substr(0, pos++);
+        std::string addr = host.substr(pos);
         i2p::data::IdentHash ident;
         ident.FromBase32(addr);
         addresses[name] = ident;
@@ -140,12 +136,11 @@ std::size_t AddressBookFilesystemStorage::Load(
 std::size_t AddressBookFilesystemStorage::Save(
     const std::map<std::string, i2p::data::IdentHash>& addresses) {
   std::size_t num = 0;
-  // TODO(anonimal): CSV? And location? Implement Get*()
-  auto filename = GetPath() / "addresses.csv";
-  std::ofstream f(filename.string(), std::ofstream::out);  // in text mode
-  if (f.is_open()) {
+  auto filename = GetAddressesFilename();
+  std::ofstream file(filename, std::ofstream::out);
+  if (file.is_open()) {
     for (auto it : addresses) {
-      f << it.first << "," << it.second.ToBase32() << std::endl;
+      file << it.first << "," << it.second.ToBase32() << std::endl;
       num++;
     }
     LogPrint(eLogInfo, "AddressBookFilesystemStorage: ", num, " addresses saved");

@@ -103,26 +103,35 @@ pacman -Su
 
 ## Step 3. Build
 Minimum requirement:
+
+### 1. Clone the repository
 ```bash
 $ git clone --recursive https://github.com/monero-project/kovri
-$ make dependencies && make && make install-resources # to decrease build-time, run make -j [available CPU cores]
 ```
-- End-users MUST run ```make dependencies``` and ```make install-resources``` for new installations
-- Developers SHOULD run ```make dependencies``` and ```make install-resources``` after a fresh fetch
+### 2. Build kovri and submodule dependencies with one command
+```bash
+$ make # to decrease build-time, run make -j [available CPU cores]
+```
+### 3. Install resources (configuration files + package resources)
+```bash
+$ make install-resources
+```
 
-Other options:
+- End-users MUST run ```make install-resources``` for new installations
+- Developers SHOULD run ```make install-resources``` after a fresh fetch
 
-- ```make static``` produces static binary
+### Other options you can use in place of step 2:
 
 - ```make upnp``` produces vanilla binary with UPnP support (requires [MiniUPnP](http://miniupnp.free.fr/files/))
 - ```make optimized-hardening``` produces optimized, hardened binary
 - ```make all-options``` produces optimized, hardened, UPnP enabled binary
-
 - ```make tests``` produces all unit-tests and benchmarks
-- ```make doxygen``` produces Doxygen documentation (output will be in doc/Doxygen)
+- ```make static``` produces static binary
 
+### Other available options
+- ```make doxygen``` produces Doxygen documentation (output will be in doc/Doxygen)
+- ```make clean``` cleans build directories and Doxygen output
 - ```make help``` shows available CMake build options
-- ```make clean``` between subsequent builds
 
 All build output will be in the build directory.
 

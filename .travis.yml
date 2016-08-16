@@ -57,7 +57,7 @@ before_script:
     #- if [ "$CC" = "clang" ]; then export CC=clang-${CLANG_VERSION}; fi
     #- if [ "$CXX" = "clang++" ]; then export CXX=clang-${CLANG_VERSION}; fi
 
-script: make clean && make -j2 dependencies && make -j2 all-options && make -j2 tests && make doxygen && make install-resources
+script: make clean && make -j2 all-options && make -j2 tests && make doxygen && make install-resources
 
 notifications:
     email: false

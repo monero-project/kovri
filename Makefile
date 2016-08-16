@@ -96,28 +96,28 @@ dependencies:
 	mkdir -p $(cryptopp-build)
 	cd $(cryptopp-build) && $(cmake) $(cmake-cryptopp) ../ && $(MAKE)
 
-dynamic:
+dynamic: dependencies
 	mkdir -p $(build)
 	cd $(build) && $(cmake) ../ && $(MAKE)
 
-static:
+static: dependencies
 	mkdir -p $(build)
 	cd $(build) && $(cmake) $(cmake-static) ../ && $(MAKE)
 
 # We need (or very much should have) optimizations with hardening
-optimized-hardening:
+optimized-hardening: dependencies
 	mkdir -p $(build)
 	cd $(build) && $(cmake) $(cmake-optimize) $(cmake-hardening) ../ && $(MAKE)
 
-upnp:
+upnp: dependencies
 	mkdir -p $(build)
 	cd $(build) && $(cmake) $(cmake-upnp) ../ && $(MAKE)
 
-all-options:
+all-options: dependencies
 	mkdir -p $(build)
 	cd $(build) && $(cmake) $(cmake-optimize) $(cmake-hardening) $(cmake-upnp) ../ && $(MAKE)
 
-tests:
+tests: dependencies
 	mkdir -p $(build)
 	cd $(build) && $(cmake) $(cmake-tests) $(cmake-benchmarks) ../ && $(MAKE) && $(run-tests)
 

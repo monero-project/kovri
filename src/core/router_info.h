@@ -348,4 +348,4 @@ class RouterInfo : public RoutingDestination {
 }  // namespace data
 }  // namespace i2p
 
-#endif  // SRC_CORE_ROUTERINFO_H_
+#endif  // SRC_CORE_ROUTER_INFO_H_

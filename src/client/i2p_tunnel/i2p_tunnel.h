@@ -260,4 +260,4 @@ class I2PServerTunnelHTTP: public I2PServerTunnel {
 }  // namespace client
 }  // namespace i2p
 
-#endif  // SRC_CLIENT_I2PTUNNEL_I2PTUNNEL_H_
+#endif  // SRC_CLIENT_I2P_TUNNEL_I2P_TUNNEL_H_

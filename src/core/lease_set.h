@@ -130,4 +130,4 @@ class LeaseSet : public RoutingDestination {
 }  // namespace data
 }  // namespace i2p
 
-#endif  // SRC_CORE_LEASESET_H_
+#endif  // SRC_CORE_LEASE_SET_H_

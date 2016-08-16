@@ -32,6 +32,7 @@
 
 #ifndef SRC_CORE_UTIL_I2P_ENDIAN_H_
 #define SRC_CORE_UTIL_I2P_ENDIAN_H_
+
 #include <inttypes.h>
 #include <string.h>
 
@@ -151,4 +152,4 @@ inline void htobe64buf(
   htobuf64(buf, htobe64(big64));
 }
 
-#endif  // SRC_CORE_UTIL_I2PENDIAN_H_
+#endif  // SRC_CORE_UTIL_I2P_ENDIAN_H_

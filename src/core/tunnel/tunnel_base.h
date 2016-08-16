@@ -114,4 +114,4 @@ struct TunnelCreationTimeCmp {
 }  // namespace tunnel
 }  // namespace i2p
 
-#endif  // SRC_CORE_TUNNEL_TUNNELBASE_H_
+#endif  // SRC_CORE_TUNNEL_TUNNEL_BASE_H_

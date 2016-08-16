@@ -414,4 +414,4 @@ class I2NPMessagesHandler {
 
 }  // namespace i2p
 
-#endif  // SRC_CORE_I2NPPROTOCOL_H_
+#endif  // SRC_CORE_I2NP_PROTOCOL_H_

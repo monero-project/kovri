@@ -120,4 +120,4 @@ void InstallService(
 
 void UninstallService(PSTR pszServiceName);
 
-#endif  // SRC_APP_WIN32SERVICE_H_
+#endif  // SRC_APP_WIN32_SERVICE_H_

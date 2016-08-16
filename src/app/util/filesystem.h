@@ -77,4 +77,4 @@ boost::filesystem::path GetDefaultDataPath();
 }  // namespace util
 }  // namespace i2p
 
-#endif  // SRC_APP_UTIL_FILESYSTEM_H_
+#endif  // SRC_APP_UTIL_FILE_SYSTEM_H_

@@ -305,4 +305,4 @@ extern RouterContext context;
 
 }  // namespace i2p
 
-#endif  // SRC_CORE_ROUTERCONTEXT_H_
+#endif  // SRC_CORE_ROUTER_CONTEXT_H_

@@ -223,4 +223,4 @@ class TCPIPAcceptor : public I2PService {
 }  // namespace client
 }  // namespace i2p
 
-#endif  // SRC_CLIENT_I2PSERVICE_H_
+#endif  // SRC_CLIENT_I2P_SERVICE_H_

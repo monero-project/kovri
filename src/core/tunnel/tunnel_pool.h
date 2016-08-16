@@ -186,4 +186,4 @@ class TunnelPool
 }  // namespace tunnel
 }  // namespace i2p
 
-#endif  // SRC_CORE_TUNNEL_TUNNELPOOL_H_
+#endif  // SRC_CORE_TUNNEL_TUNNEL_POOL_H_

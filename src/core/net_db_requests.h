@@ -141,5 +141,4 @@ class NetDbRequests {
 }  // namespace data
 }  // namespace i2p
 
-#endif  // SRC_CORE_NETDBREQUESTS_H_
-
+#endif  // SRC_CORE_NET_DB_REQUESTS_H_

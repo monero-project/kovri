@@ -435,5 +435,4 @@ class SSUSession
 }  // namespace transport
 }  // namespace i2p
 
-#endif  // SRC_CORE_TRANSPORT_SSUSESSION_H_
-
+#endif  // SRC_CORE_TRANSPORT_SSU_SESSION_H_

@@ -319,4 +319,4 @@ class NTCPSession
 }  // namespace transport
 }  // namespace i2p
 
-#endif  // SRC_CORE_TRANSPORT_NTCPSESSION_H_
+#endif  // SRC_CORE_TRANSPORT_NTCP_SESSION_H_

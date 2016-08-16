@@ -217,4 +217,4 @@ extern ClientContext context;
 }  // namespace client
 }  // namespace i2p
 
-#endif  // SRC_CLIENT_CLIENTCONTEXT_H_
+#endif  // SRC_CLIENT_CLIENT_CONTEXT_H_

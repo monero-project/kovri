@@ -82,7 +82,8 @@ disable-options = -D WITH_CPPNETLIB=OFF
 build = build/
 cpp-netlib-build = deps/cpp-netlib/$(build)
 cryptopp-build = deps/cryptopp/$(build)
-remove-build = rm -fR $(build) && rm -fR $(cpp-netlib-build) && rm -fR $(cryptopp-build)
+doxygen-output = doc/Doxygen
+remove-build = rm -fR $(build) $(cpp-netlib-build) $(cryptopp-build) $(doxygen-output)
 copy-resources = mkdir -p $(data-path) && cp -fR pkg/* $(data-path)
 run-tests = ./kovri-tests && ./kovri-benchmarks
 
@@ -95,30 +96,34 @@ dependencies:
 	mkdir -p $(cryptopp-build)
 	cd $(cryptopp-build) && $(cmake) $(cmake-cryptopp) ../ && $(MAKE)
 
-dynamic:
+dynamic: dependencies
 	mkdir -p $(build)
 	cd $(build) && $(cmake) ../ && $(MAKE)
 
-static:
+static: dependencies
 	mkdir -p $(build)
 	cd $(build) && $(cmake) $(cmake-static) ../ && $(MAKE)
 
 # We need (or very much should have) optimizations with hardening
-optimized-hardening:
+optimized-hardening: dependencies
 	mkdir -p $(build)
 	cd $(build) && $(cmake) $(cmake-optimize) $(cmake-hardening) ../ && $(MAKE)
 
-upnp:
+upnp: dependencies
 	mkdir -p $(build)
 	cd $(build) && $(cmake) $(cmake-upnp) ../ && $(MAKE)
 
-all-options:
+all-options: dependencies
 	mkdir -p $(build)
 	cd $(build) && $(cmake) $(cmake-optimize) $(cmake-hardening) $(cmake-upnp) ../ && $(MAKE)
 
-tests:
+tests: dependencies
 	mkdir -p $(build)
 	cd $(build) && $(cmake) $(cmake-tests) $(cmake-benchmarks) ../ && $(MAKE) && $(run-tests)
+
+tests-optimized-hardening: dependencies
+	mkdir -p $(build)
+	cd $(build) && $(cmake) $(cmake-optimize) $(cmake-hardening) $(cmake-tests) $(cmake-benchmarks) ../ && $(MAKE)
 
 doxygen:
 	mkdir -p $(build)
@@ -130,7 +135,7 @@ help:
 
 clean:
 	@if [ "$$FORCE_CLEAN" = "yes" ]; then $(remove-build); \
-	else echo "CAUTION: This will remove the build directories for Kovri and ALL dependencies"; \
+	else echo "CAUTION: This will remove the build directories for Kovri and all submodule dependencies, and remove all Doxygen output"; \
 	read -r -p "Is this what you wish to do? (y/N)?: " CONFIRM; \
 	  if [ $$CONFIRM = "y" ] || [ $$CONFIRM = "Y" ]; then $(remove-build); \
           else echo "Exiting."; exit 1; \
@@ -148,4 +153,4 @@ install-resources:
 	  fi; \
 	fi
 
-.PHONY: all dependencies dynamic static optimized-hardening upnp all-options tests doxygen help clean install-resources
+.PHONY: all dependencies dynamic static optimized-hardening upnp all-options tests tests-optimized-hardening doxygen help clean install-resources

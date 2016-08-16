@@ -49,7 +49,7 @@ install:
     - if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then sudo apt-get -y install libboost-{chrono,log,program-options,date-time,thread,system,filesystem,regex,test}1.58{-dev,.0}; fi
 
     - if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then brew upgrade boost; fi
-    - if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then brew install cryptopp openssl miniupnpc doxygen; fi
+    - if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then brew install openssl miniupnpc doxygen graphviz; fi
 
 before_script:
     - if [ "$CC" = "gcc" ]; then export CC=gcc-${GCC_VERSION}; fi

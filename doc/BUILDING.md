@@ -126,6 +126,7 @@ $ make install-resources
 - ```make optimized-hardening``` produces optimized, hardened binary
 - ```make all-options``` produces optimized, hardened, UPnP enabled binary
 - ```make tests``` produces all unit-tests and benchmarks
+- ```make tests-optimized-hardening``` produces all unit-tests and benchmarks with optimized hardening
 - ```make static``` produces static binary
 
 ### Other available options

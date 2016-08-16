@@ -121,6 +121,10 @@ tests: dependencies
 	mkdir -p $(build)
 	cd $(build) && $(cmake) $(cmake-tests) $(cmake-benchmarks) ../ && $(MAKE) && $(run-tests)
 
+tests-optimized-hardening: dependencies
+	mkdir -p $(build)
+	cd $(build) && $(cmake) $(cmake-optimize) $(cmake-hardening) $(cmake-tests) $(cmake-benchmarks) ../ && $(MAKE)
+
 doxygen:
 	mkdir -p $(build)
 	cd $(build) && $(cmake) $(disable-options) $(cmake-doxygen) ../ && $(MAKE) doc
@@ -149,4 +153,4 @@ install-resources:
 	  fi; \
 	fi
 
-.PHONY: all dependencies dynamic static optimized-hardening upnp all-options tests doxygen help clean install-resources
+.PHONY: all dependencies dynamic static optimized-hardening upnp all-options tests tests-optimized-hardening doxygen help clean install-resources

@@ -59,7 +59,7 @@ cmake-debug = -D CMAKE_BUILD_TYPE=Debug
 #cmake-release = -D CMAKE_BUILD_TYPE=Release
 
 # Our base cmake command
-cmake = cmake $(cmake-gen) $(cmake-debug) -D CMAKE_C_COMPILER=$(CC) -D CMAKE_CXX_COMPILER=$(CXX)
+cmake = cmake $(cmake-gen) $(cmake-debug)
 
 # Dependencies options
 cmake-cpp-netlib = -D CPP-NETLIB_BUILD_TESTS=OFF -D CPP-NETLIB_BUILD_EXAMPLES=OFF

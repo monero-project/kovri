@@ -108,4 +108,4 @@ class I2PControlService {
 }  // namespace client
 }  // namespace i2p
 
-#endif  // SRC_CLIENT_I2PCONTROL_I2PCONTROLSERVER_H_
+#endif  // SRC_CLIENT_I2P_CONTROL_I2P_CONTROL_SERVER_H_

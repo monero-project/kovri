@@ -98,4 +98,4 @@ class TunnelEndpoint {
 }  // namespace tunnel
 }  // namespace i2p
 
-#endif  // SRC_CORE_TUNNEL_TUNNELENDPOINT_H_
+#endif  // SRC_CORE_TUNNEL_TUNNEL_ENDPOINT_H_

@@ -185,4 +185,4 @@ extern NetDb netdb;
 }  // namespace data
 }  // namespace i2p
 
-#endif  // SRC_CORE_NETWORKDATABASE_H_
+#endif  // SRC_CORE_NET_DB_H_

@@ -182,4 +182,4 @@ class AddressBookSubscription {
 }  // namespace client
 }  // namespace i2p
 
-#endif  // SRC_CLIENT_ADDRESSBOOK_H_
+#endif  // SRC_CLIENT_ADDRESS_BOOK_H_

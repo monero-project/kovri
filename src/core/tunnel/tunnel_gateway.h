@@ -101,4 +101,4 @@ class TunnelGateway {
 }  // namespace tunnel
 }  // namespace i2p
 
-#endif  // SRC_CORE_TUNNEL_TUNNELGATEWAY_H_
+#endif  // SRC_CORE_TUNNEL_TUNNEL_GATEWAY_H_

@@ -143,4 +143,4 @@ class TransportSession {
 }  // namespace transport
 }  // namespace i2p
 
-#endif  // SRC_CORE_TRANSPORT_TRANSPORTSESSION_H_
+#endif  // SRC_CORE_TRANSPORT_TRANSPORT_SESSION_H_

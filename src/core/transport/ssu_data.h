@@ -200,5 +200,4 @@ class SSUData {
 }  // namespace transport
 }  // namespace i2p
 
-#endif  // SRC_CORE_TRANSPORT_SSUDATA_H_
-
+#endif  // SRC_CORE_TRANSPORT_SSU_DATA_H_

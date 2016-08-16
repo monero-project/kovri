@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CLIENT_I2PTUNNEL_HTTP_PROXY_H_
-#define SRC_CLIENT_I2PTUNNEL_HTTP_PROXY_H_
+#ifndef SRC_CLIENT_I2P_TUNNEL_HTTP_PROXY_H_
+#define SRC_CLIENT_I2P_TUNNEL_HTTP_PROXY_H_
 
 #include <boost/asio.hpp>
 
@@ -212,4 +212,4 @@ class HTTPProxyHandler
 }  // namespace proxy
 }  // namespace i2p
 
-#endif  // SRC_CLIENT_I2PTUNNEL_HTTPPROXY_H_
+#endif  // SRC_CLIENT_I2P_TUNNEL_HTTP_PROXY_H_

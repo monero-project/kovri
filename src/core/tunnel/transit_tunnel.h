@@ -191,4 +191,4 @@ TransitTunnel* CreateTransitTunnel(
 }  // namespace tunnel
 }  // namespace i2p
 
-#endif  // SRC_CORE_TUNNEL_TRANSITTUNNEL_H_
+#endif  // SRC_CORE_TUNNEL_TRANSIT_TUNNEL_H_

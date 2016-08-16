@@ -233,4 +233,4 @@ struct BigEndian {
 };
 #pragma pack(pop)
 
-#endif  // SRC_CORE_UTIL_LITTLEBIGENDIAN_H_
+#endif  // SRC_CORE_UTIL_LITTLE_BIG_ENDIAN_H_

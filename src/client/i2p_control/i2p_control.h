@@ -331,6 +331,4 @@ class I2PControlSession
 }  // namespace client
 }  // namespace i2p
 
-#endif  // SRC_CLIENT_I2PCONTROL_I2PCONTROL_H_
-
-
+#endif  // SRC_CLIENT_I2P_CONTROL_I2P_CONTROL_H_

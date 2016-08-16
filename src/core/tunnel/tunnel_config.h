@@ -125,4 +125,4 @@ class TunnelConfig : public std::enable_shared_from_this<TunnelConfig> {
 }  // namespace tunnel
 }  // namespace i2p
 
-#endif  // SRC_CORE_TUNNEL_TUNNELCONFIG_H_
+#endif  // SRC_CORE_TUNNEL_TUNNEL_CONFIG_H_

@@ -82,7 +82,8 @@ disable-options = -D WITH_CPPNETLIB=OFF
 build = build/
 cpp-netlib-build = deps/cpp-netlib/$(build)
 cryptopp-build = deps/cryptopp/$(build)
-remove-build = rm -fR $(build) && rm -fR $(cpp-netlib-build) && rm -fR $(cryptopp-build)
+doxygen-output = doc/Doxygen
+remove-build = rm -fR $(build) $(cpp-netlib-build) $(cryptopp-build) $(doxygen-output)
 copy-resources = mkdir -p $(data-path) && cp -fR pkg/* $(data-path)
 run-tests = ./kovri-tests && ./kovri-benchmarks
 
@@ -130,7 +131,7 @@ help:
 
 clean:
 	@if [ "$$FORCE_CLEAN" = "yes" ]; then $(remove-build); \
-	else echo "CAUTION: This will remove the build directories for Kovri and ALL dependencies"; \
+	else echo "CAUTION: This will remove the build directories for Kovri and all submodule dependencies, and remove all Doxygen output"; \
 	read -r -p "Is this what you wish to do? (y/N)?: " CONFIRM; \
 	  if [ $$CONFIRM = "y" ] || [ $$CONFIRM = "Y" ]; then $(remove-build); \
           else echo "Exiting."; exit 1; \

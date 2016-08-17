@@ -43,6 +43,7 @@
 #include <boost/log/sources/record_ostream.hpp>
 #include <boost/log/sources/severity_channel_logger.hpp>
 
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -87,25 +88,64 @@ const LogLevelsMap& GetGlobalLogLevels() {
 /// @brief Boost.Log core pointer
 typedef boost::log::core_ptr core_ptr;
 
-/// @typedef backend_t
+/**
+ *
+ * ostream backend + sink
+ *
+ */
+
+/// @typedef ostream_backend_t
 /// @brief Boost.Log text ostream backend sink
-typedef boost::log::sinks::text_ostream_backend backend_t;
+typedef boost::log::sinks::text_ostream_backend ostream_backend_t;
 
-/// @typedef backend_ptr
+/// @typedef ostream_backend_ptr
+/// @brief Shared pointer to ostream backend sink
+typedef boost::shared_ptr<ostream_backend_t> ostream_backend_ptr;
+
+/// @typedef ostream_sink_t
+/// @brief Boost.Log asynchronous ostream sink
+typedef boost::log::sinks::asynchronous_sink<ostream_backend_t> ostream_sink_t;
+
+/// @typedef ostream_sink_ptr
+/// @brief Shared pointer to ostream sink
+typedef boost::shared_ptr<ostream_sink_t> ostream_sink_ptr;
+
+/// @var g_LogOutStreamSink
+/// @brief sink pointer to global log ostream sink
+ostream_sink_ptr g_LogOutStreamSink;
+
+/**
+ *
+ * File backend + sink
+ *
+ */
+
+/// @typedef backend_t
+/// @brief Boost.Log text file backend sink
+typedef boost::log::sinks::text_file_backend file_backend_t;
+
+/// @typedef file_backend_ptr
 /// @brief Shared pointer to backend sink
-typedef boost::shared_ptr<backend_t> backend_ptr;
+typedef boost::shared_ptr<file_backend_t> file_backend_ptr;
 
-/// @typedef sink_t
-/// @brief Boost.Log asynchronous sink
-typedef boost::log::sinks::asynchronous_sink<backend_t> sink_t;
+/// @typedef file_sink_t
+/// @brief Boost.Log asynchronous file sink
+typedef boost::log::sinks::asynchronous_sink<file_backend_t> file_sink_t;
 
-/// @typedef sink_ptr
-/// @brief Shared pointer to sink
-typedef boost::shared_ptr<sink_t> sink_ptr;
+/// @typedef file_sink_ptr
+/// @brief Shared pointer to file sink
+typedef boost::shared_ptr<file_sink_t> file_sink_ptr;
 
-/// @var g_LogSink
-/// @brief sink pointer to global log sink
-sink_ptr g_LogSink;
+/// @var g_LogFileSink
+/// @brief sink pointer to global log file sink
+/// @notes Currently no need for this to be global. Kept for continuity.
+file_sink_ptr g_LogFileSink;
+
+/**
+ *
+ * Global log + channels
+ *
+ */
 
 /// @var g_Log
 /// @brief Shared pointer to global log
@@ -152,7 +192,7 @@ class LogStreamImpl : public std::streambuf {
     }
     BOOST_LOG_SEV(m_Log, m_Level) << m_Str.get();
     m_Str = std::make_unique<std::stringbuf>();
-    g_LogSink->flush();
+    g_LogOutStreamSink->flush();
   }
 
   bool IsEnabled() {
@@ -265,7 +305,7 @@ class LoggerImpl {
   }
 
   void Flush() {
-    g_LogSink->flush();
+    g_LogOutStreamSink->flush();
   }
 
  private:
@@ -330,20 +370,30 @@ class LogImpl {
     // Running
     m_Silent = false;
     // Backend
-    m_LogBackend = boost::make_shared<backend_t>();
-    m_LogBackend->add_stream(boost::shared_ptr<std::ostream>(out_stream, boost::null_deleter()));
-    // Sink
-    g_LogSink = boost::shared_ptr<sink_t>(new sink_t(m_LogBackend));
-    g_LogSink->set_filter(boost::log::expressions::attr<LogLevel>("Severity") >= min_level);
-    g_LogSink->set_formatter(&LogImpl::Format);
+    m_LogOutStreamBackend = boost::make_shared<ostream_backend_t>();
+    m_LogOutStreamBackend->add_stream(boost::shared_ptr<std::ostream>(out_stream, boost::null_deleter()));
+    // Global ostream sink
+    g_LogOutStreamSink = boost::shared_ptr<ostream_sink_t>(new ostream_sink_t(m_LogOutStreamBackend));
+    g_LogOutStreamSink->set_filter(boost::log::expressions::attr<LogLevel>("Severity") >= min_level);
+    g_LogOutStreamSink->set_formatter(&LogImpl::Format);
+    // Global file sink
+    // @notes We use file_backend_sink because simply add_stream'ing a file to
+    // the ostream backend will not provide keywords like file sink will do (AFAIK)
+    m_LogFileBackend = boost::make_shared<file_backend_t>(
+          boost::log::keywords::file_name = "kovri_%1N.log",  // kovri_0.log, kovri_1.log, etc.
+          boost::log::keywords::rotation_size = 10 * 1024 * 1024);  // 10 MiB
+    g_LogFileSink = boost::shared_ptr<file_sink_t>(new file_sink_t(m_LogFileBackend));
+    g_LogFileSink->set_filter(boost::log::expressions::attr<LogLevel>("Severity") >= min_level);
+    g_LogFileSink->set_formatter(&LogImpl::Format);
     // Core
     m_LogCore = boost::log::core::get();
-    m_LogCore->add_sink(g_LogSink);
+    m_LogCore->add_sink(g_LogOutStreamSink);
+    m_LogCore->add_sink(g_LogFileSink);
     m_LogCore->add_global_attribute("Timestamp", boost::log::attributes::local_clock());
   }
 
   void Flush() {
-    g_LogSink->flush();
+    g_LogOutStreamSink->flush();
   }
 
   void Stop() {
@@ -374,7 +424,8 @@ class LogImpl {
   }
 
  private:
-  backend_ptr m_LogBackend;
+  ostream_backend_ptr m_LogOutStreamBackend;
+  file_backend_ptr m_LogFileBackend;
   core_ptr m_LogCore;
   bool m_Silent;
 };

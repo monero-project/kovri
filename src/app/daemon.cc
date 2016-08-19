@@ -63,14 +63,6 @@ Daemon_Singleton::Daemon_Singleton()
 
 Daemon_Singleton::~Daemon_Singleton() {}
 
-bool Daemon_Singleton::IsService() const {
-#ifndef _WIN32
-  return i2p::util::config::var_map["service"].as<bool>();
-#else
-  return false;
-#endif
-}
-
 // TODO(anonimal): find a better way to initialize
 bool Daemon_Singleton::Init() {
   LogPrint(eLogInfo, "Daemon_Singleton: initializing");

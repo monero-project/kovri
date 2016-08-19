@@ -64,7 +64,6 @@ class Daemon_Singleton {
  protected:
   Daemon_Singleton();
   virtual ~Daemon_Singleton();
-  bool IsService() const;
   std::shared_ptr<i2p::util::log::Log> m_Log;
 };
 

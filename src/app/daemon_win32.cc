@@ -70,9 +70,6 @@ bool DaemonWin32::Init() {
   } else if (serviceControl == "remove") {
     UninstallService(SERVICE_NAME);
     exit(0);
-  } else if (serviceControl != "none") {
-    printf(" --service=install  to install the service.\n");
-    printf(" --service=remove   to remove the service.\n");
   }
   if (m_IsDaemon == 1) {
     LogPrint(eLogInfo, "DaemonWin32: service session");

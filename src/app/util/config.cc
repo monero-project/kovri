@@ -103,11 +103,10 @@ bool ParseArgs(
      "Enable or disable daemon mode\n"
      "1 = enabled, 0 = disabled\n")
 
-    // TODO(unassigned): clarify what --service 'really' does
-    // See DaemonWin32.cpp
-    ("service,s", bpo::value<bool>()->default_value(false),
-     "1 if using system folders, e.g.,\n"
-     "(/var/run/kovri.pid, /var/log/kovri.log, /var/lib/kovri)\n")
+    ("service,s", bpo::value<std::string>()->default_value(""),
+     "Windows only:\n"
+     "./kovri --service install  # installs service\n"
+     "./kovri --service remove   # removes service\n")
 
      ("log-to-console", bpo::value<bool>()->default_value(true),
      "Enable or disable console log output\n"

@@ -97,9 +97,7 @@ bool DaemonLinux::Start() {
     ::open("/dev/null", O_RDWR);
   }
   // Pidfile
-  m_pidFile = IsService() ? "/var/run" :
-    i2p::util::filesystem::GetDataPath().string();
-  m_pidFile.append("/kovri.pid");
+  m_pidFile = (i2p::util::filesystem::GetDataPath() / "kovri.pid").string();
   m_pidFilehandle = open(
       m_pidFile.c_str(),
       O_RDWR | O_CREAT,

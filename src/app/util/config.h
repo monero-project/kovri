@@ -84,9 +84,11 @@ void ParseConfigFile(
     boost::program_options::options_description& config_options,
     boost::program_options::variables_map& var_map);
 
-/// @brief Validates user input where possible
+/// @brief Sets logging options after validating user input
 /// @return False on failure
-bool ValidateUserInput();
+/// @notes We set here instead of router context because we start logging
+///   before router context and client context are initialized
+bool SetLoggingOptions();
 
 }  // namespace config
 }  // namespace util

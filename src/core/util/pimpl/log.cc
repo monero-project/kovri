@@ -32,36 +32,17 @@
 
 #include "core/util/log.h"
 
-#include <boost/version.hpp>
-
-#if BOOST_VERSION >= 105600
 #include <boost/core/null_deleter.hpp>
-#else
-// defines null_deleter here if we don't have the right boost version
-#include <boost/config.hpp>
-namespace boost {
-struct null_deleter {
-  typedef void result_type;
-  template <typename T> void operator() (T*) const {}
-};
-}
-#endif
-
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/date_time/posix_time/posix_time_io.hpp>
 #include <boost/log/attributes.hpp>
 #include <boost/log/core.hpp>
-#include <boost/log/core/core.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/sinks.hpp>
-#include <boost/log/sinks/async_frontend.hpp>
-#include <boost/log/sinks/text_ostream_backend.hpp>
-#include <boost/log/sources/channel_feature.hpp>
 #include <boost/log/sources/logger.hpp>
 #include <boost/log/sources/record_ostream.hpp>
 #include <boost/log/sources/severity_channel_logger.hpp>
-#include <boost/log/sources/severity_feature.hpp>
 
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -71,6 +52,15 @@ struct null_deleter {
 namespace i2p {
 namespace util {
 namespace log {
+
+/**
+ *
+ * Configuration/command-line options
+ *
+ * TODO(unassigned): Get/Set are not ideal here.
+ * See #96, #98, and #223
+ *
+ */
 
 /// @var g_LogLevels
 /// @brief Maps string global levels to enumerated global levels
@@ -102,29 +92,118 @@ const LogLevelsMap& GetGlobalLogLevels() {
   return g_LogLevels;
 }
 
+/// @var g_EnableLogToConsole
+/// @brief Global log to console option
+/// @notes Must be initialized by config options
+bool g_EnableLogToConsole;
+
+/// @var g_EnableLogToFile
+/// @brief Global log to file option
+/// @notes Must be initialized by config options
+bool g_EnableLogToFile;
+
+/// @var g_LogFileName
+/// @brief Global log filename
+std::string g_LogFileName;
+
+/// @brief Sets console logging option
+/// @param option Option set from configuration
+void SetOptionLogToConsole(
+    bool option) {
+  g_EnableLogToConsole = option;
+}
+
+/// @brief Gets console logging option
+bool GetOptionLogToConsole() {
+  return g_EnableLogToConsole;
+}
+
+/// @brief Sets file logging option
+/// @param option Option set from configuration
+void SetOptionLogToFile(
+    bool option) {
+  g_EnableLogToFile = option;
+}
+
+/// @brief Gets file logging option
+bool GetOptionLogToFile() {
+  return g_EnableLogToFile;
+}
+
+/// @brief Sets log filename
+/// @param option Option set from configuration
+void SetOptionLogFileName(
+    const std::string& option) {
+  g_LogFileName = option;
+}
+
+/// @brief Gets log filename option
+const std::string& GetOptionLogFileName() {
+  return g_LogFileName;
+}
+
+/**
+ *
+ * ostream backend + sink
+ *
+ */
+
+/// @typedef ostream_backend_t
+/// @brief Boost.Log text ostream backend sink
+typedef boost::log::sinks::text_ostream_backend ostream_backend_t;
+
+/// @typedef ostream_backend_ptr
+/// @brief Shared pointer to ostream backend sink
+typedef boost::shared_ptr<ostream_backend_t> ostream_backend_ptr;
+
+/// @typedef ostream_sink_t
+/// @brief Boost.Log asynchronous ostream sink
+typedef boost::log::sinks::asynchronous_sink<ostream_backend_t> ostream_sink_t;
+
+/// @typedef ostream_sink_ptr
+/// @brief Shared pointer to ostream sink
+typedef boost::shared_ptr<ostream_sink_t> ostream_sink_ptr;
+
+/// @var g_LogOutStreamSink
+/// @brief sink pointer to global log ostream sink
+ostream_sink_ptr g_LogOutStreamSink;
+
+/**
+ *
+ * File backend + sink
+ *
+ */
+
+/// @typedef backend_t
+/// @brief Boost.Log text file backend sink
+typedef boost::log::sinks::text_file_backend file_backend_t;
+
+/// @typedef file_backend_ptr
+/// @brief Shared pointer to backend sink
+typedef boost::shared_ptr<file_backend_t> file_backend_ptr;
+
+/// @typedef file_sink_t
+/// @brief Boost.Log asynchronous file sink
+typedef boost::log::sinks::asynchronous_sink<file_backend_t> file_sink_t;
+
+/// @typedef file_sink_ptr
+/// @brief Shared pointer to file sink
+typedef boost::shared_ptr<file_sink_t> file_sink_ptr;
+
+/// @var g_LogFileSink
+/// @brief sink pointer to global log file sink
+/// @notes Currently no need for this to be global. Kept for continuity.
+file_sink_ptr g_LogFileSink;
+
+/**
+ *
+ * Global log + channels
+ *
+ */
+
 /// @typedef core_ptr
 /// @brief Boost.Log core pointer
 typedef boost::log::core_ptr core_ptr;
-
-/// @typedef backend_t
-/// @brief Boost.Log text ostream backend sink
-typedef boost::log::sinks::text_ostream_backend backend_t;
-
-/// @typedef backend_ptr
-/// @brief Shared pointer to backend sink
-typedef boost::shared_ptr<backend_t> backend_ptr;
-
-/// @typedef sink_t
-/// @brief Boost.Log asynchronous sink
-typedef boost::log::sinks::asynchronous_sink<backend_t> sink_t;
-
-/// @typedef sink_ptr
-/// @brief Shared pointer to sink
-typedef boost::shared_ptr<sink_t> sink_ptr;
-
-/// @var g_LogSink
-/// @brief sink pointer to global log sink
-sink_ptr g_LogSink;
 
 /// @var g_Log
 /// @brief Shared pointer to global log
@@ -155,27 +234,11 @@ class LogStreamImpl : public std::streambuf {
 
   ~LogStreamImpl() {}
 
-  void Enable() {
-    m_Enabled = true;
-  }
-
-  void Disable() {
-    m_Enabled = false;
-  }
-
   /// @note Not thread safe
   void Flush() {
-    if (g_Log->Silent()) {
-      // Don't log if we are silent
-      return;
-    }
     BOOST_LOG_SEV(m_Log, m_Level) << m_Str.get();
     m_Str = std::make_unique<std::stringbuf>();
-    g_LogSink->flush();
-  }
-
-  bool IsEnabled() {
-    return m_Enabled;
+    g_LogOutStreamSink->flush();
   }
 
   void WaitForReady() {
@@ -220,23 +283,6 @@ LogStream::LogStream(
     LogStreamImpl* impl)
     : std::ostream(impl),
       m_LogStreamPimpl(impl) {}
-
-void LogStream::Enable() {
-  m_LogStreamPimpl->Enable();
-}
-
-void LogStream::Disable() {
-  m_LogStreamPimpl->Disable();
-}
-
-LogStream& LogStream::Flush() {
-  m_LogStreamPimpl->Flush();
-  return *this;
-}
-
-bool LogStream::IsEnabled() {
-  return m_LogStreamPimpl->IsEnabled();
-}
 
 /**
  *
@@ -283,10 +329,6 @@ class LoggerImpl {
     return GetLogStream(m_Debug, m_DebugMtx);
   }
 
-  void Flush() {
-    g_LogSink->flush();
-  }
-
  private:
   /// @brief Lock mutex and return log stream
   /// @return Reference to LogStream
@@ -326,10 +368,6 @@ LogStream& Logger::Debug() {
   return m_LoggerPimpl->Debug();
 }
 
-void Logger::Flush() {
-  m_LoggerPimpl->Flush();
-}
-
 /**
  *
  * Log implementation and definitions
@@ -339,41 +377,59 @@ void Logger::Flush() {
 /// @class LogImpl
 class LogImpl {
  public:
-  LogImpl() : LogImpl(eLogDebug, &std::clog) {}
-
+  LogImpl() {}
   ~LogImpl() {}
 
   LogImpl(
       LogLevel min_level,
-      std::ostream* out_stream) {
-    // Running
-    m_Silent = false;
-    // Backend
-    m_LogBackend = boost::make_shared<backend_t>();
-    m_LogBackend->add_stream(boost::shared_ptr<std::ostream>(out_stream, boost::null_deleter()));
-    // Sink
-    g_LogSink = boost::shared_ptr<sink_t>(new sink_t(m_LogBackend));
-    g_LogSink->set_filter(boost::log::expressions::attr<LogLevel>("Severity") >= min_level);
-    g_LogSink->set_formatter(&LogImpl::Format);
-    // Core
-    m_LogCore = boost::log::core::get();
-    m_LogCore->add_sink(g_LogSink);
-    m_LogCore->add_global_attribute("Timestamp", boost::log::attributes::local_clock());
-  }
-
-  void Flush() {
-    g_LogSink->flush();
-  }
-
-  void Stop() {
-    m_Silent = true;
-  }
-
-  bool IsSilent() {
-    return m_Silent;
+      std::ostream* out_stream,
+      const std::string& log_file_name)
+      : m_LogLevel(min_level),
+        m_OutStream(out_stream),
+        m_FileName(log_file_name) {
+    // Implement core
+    m_Core = boost::log::core::get();
+    if (m_Core) {
+      m_Core->add_global_attribute("Timestamp", boost::log::attributes::local_clock());
+      // Add/remove ostream sink
+      if (GetOptionLogToConsole())
+        m_Core->add_sink(GetOutStreamSink());
+      if (!GetOptionLogToConsole())
+        m_Core->remove_sink(GetOutStreamSink());
+      // Add/remove file sink
+      if (GetOptionLogToFile())
+        m_Core->add_sink(GetFileSink());
+      if (!GetOptionLogToFile())
+        m_Core->remove_sink(GetFileSink());
+    }
   }
 
  private:
+  /// @brief Initializes ostream backend and sink
+  /// @return Initialized and configured global ostream sink
+  ostream_sink_ptr GetOutStreamSink() {
+    m_OutStreamBackend = boost::make_shared<ostream_backend_t>();
+    m_OutStreamBackend->add_stream(boost::shared_ptr<std::ostream>(m_OutStream, boost::null_deleter()));
+    g_LogOutStreamSink = boost::shared_ptr<ostream_sink_t>(new ostream_sink_t(m_OutStreamBackend));
+    g_LogOutStreamSink->set_filter(boost::log::expressions::attr<LogLevel>("Severity") >= m_LogLevel);
+    g_LogOutStreamSink->set_formatter(&LogImpl::Format);
+    return g_LogOutStreamSink;
+  }
+
+  /// @brief Initializes file backend and sink
+  /// @return Initialized and configured global file sink
+  /// @notes We use file_backend_sink because simply add_stream'ing a file to
+  ///   the ostream backend will not provide needed keywords (AFAICT)
+  file_sink_ptr GetFileSink() {
+    m_FileBackend = boost::make_shared<file_backend_t>(
+          boost::log::keywords::file_name = m_FileName,
+          boost::log::keywords::rotation_size = 10 * 1024 * 1024);  // 10 MiB
+    g_LogFileSink = boost::shared_ptr<file_sink_t>(new file_sink_t(m_FileBackend));
+    g_LogFileSink->set_filter(boost::log::expressions::attr<LogLevel>("Severity") >= m_LogLevel);
+    g_LogFileSink->set_formatter(&LogImpl::Format);
+    return g_LogFileSink;
+  }
+
   static void Format(
       boost::log::record_view const& rec,
       boost::log::formatting_ostream &stream) {
@@ -393,47 +449,48 @@ class LogImpl {
   }
 
  private:
-  backend_ptr m_LogBackend;
-  core_ptr m_LogCore;
-  bool m_Silent;
+  LogLevel m_LogLevel;
+  std::ostream* m_OutStream;
+  std::string m_FileName;
+  core_ptr m_Core;
+  ostream_backend_ptr m_OutStreamBackend;
+  file_backend_ptr m_FileBackend;
 };
 
-Log::Log() : Log(eLogDebug, &std::clog) {}
+Log::Log() {}
 Log::~Log() {}
 
 Log::Log(
     LogLevel min_level,
-    std::ostream* out_stream) {
-  m_LogPimpl = std::make_shared<LogImpl>(min_level, out_stream);
+    std::ostream* out_stream,
+    const std::string& log_file_name) {
+  m_LogPimpl = std::make_shared<LogImpl>(min_level, out_stream, log_file_name);
   m_DefaultLogger = std::make_shared<Logger>(new LoggerImpl);
 }
 
-void Log::Stop() {
-  m_LogPimpl->Stop();
-}
-
-bool Log::Silent() {
-  return m_LogPimpl->IsSilent();
-}
-
-std::shared_ptr<Log> Log::Get() {
-    // Make default logger if we don't have a logger
+std::shared_ptr<Log> Log::GetGlobalLogEngine() {
+  // TODO(unassigned): Total hack to ensure that log config log options
+  // are loaded first! If not, we won't be able to use config log options
+  // because this ctor is initialized upon the first call to LogPrint which,
+  // in turn, precedes any config file + cli opt processing.
+  // This approach + logging design + library design all need to be rethought.
+  // See #96, #98, and #223.
+  auto log_file_name = GetOptionLogFileName();
+  if (log_file_name.empty())
+    return nullptr;
+  // Make default logger if we don't have a logger
   if (g_Log == nullptr)
-    g_Log = std::make_shared<Log>(eLogDebug, &std::clog);
+    g_Log = std::make_shared<Log>(eLogDebug, &std::clog, log_file_name);
   return g_Log;
 }
 
-std::shared_ptr<Logger> Log::Default() {
+std::shared_ptr<Logger> Log::GetDefaultLogger() {
+  // TODO(unassigned): see above
+  // User disabled all logging
+  if (!GetOptionLogToConsole() && !GetOptionLogToFile())
+    return nullptr;
   return m_DefaultLogger;
 }
-
-// TODO(unassigned):
-// Uncomment when this becomes useful
-//std::unique_ptr<Logger> Log::New(
-    //const std::string& name,
-    //const std::string& channel) {
-  //return std::unique_ptr<Logger>(new Logger(new LoggerImpl(name, channel)));
-//}
 
 std::ostream& operator<<(
     std::ostream& out_stream,
@@ -455,21 +512,3 @@ std::ostream& operator<<(
 }  // namespace log
 }  // namespace util
 }  // namespace i2p
-
-/**
- *
- * Deprecated Logger
- *
- */
-
-void DeprecatedStartLog(
-    const std::string& full_file_path) {
-  std::cerr << "Not opening log file: " << full_file_path << std::endl;
-}
-
-void DeprecatedStartLog(
-    std::ostream* stream) {
-  *stream << "Deprecated Logging not implemented" << std::endl;
-}
-
-void DeprecatedStopLog() {}

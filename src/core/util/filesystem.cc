@@ -48,6 +48,10 @@ boost::filesystem::path GetSSLCertsPath() {
   return i2p::context.GetDataPath() / "certificates" / "ssl";
 }
 
+const boost::filesystem::path GetLogsPath() {
+  return i2p::context.GetDataPath() / "logs";
+}
+
 std::string GetFullPath(
     const std::string& filename) {
   std::string full_path = i2p::context.GetDataPath().string();

@@ -58,7 +58,7 @@ namespace log {
  * It should also be noted that to effectively remove deprecations,
  * a design rewrite is necessary.
  *
- * Referencing #33.
+ * Referencing #223
  *
  */
 
@@ -86,6 +86,30 @@ void SetGlobalLogLevels(
 /// @return Log levels/severity
 const LogLevelsMap& GetGlobalLogLevels();
 
+/// @brief Sets console logging option
+/// @param option Option set from configuration
+void SetOptionLogToConsole(
+    bool option);
+
+/// @brief Gets console logging option
+bool GetOptionLogToConsole();
+
+/// @brief Sets file logging option
+/// @param option Option set from configuration
+void SetOptionLogToFile(
+    bool option);
+
+/// @brief Gets file logging option
+bool GetOptionLogToFile();
+
+/// @brief Sets log filename
+/// @param option Option set from configuration
+void SetOptionLogFileName(
+    const std::string& option);
+
+/// @brief Gets log filename option
+const std::string& GetOptionLogFileName();
+
 class LogStreamImpl;
 class LogStream : public std::ostream {
  public:
@@ -95,7 +119,8 @@ class LogStream : public std::ostream {
   LogStream(
       LogStreamImpl* impl);
 
-  /// @brief Enable logging on this stream
+  // TODO(anonimal): unused, remove. We can implement differently if needed.
+  /*/// @brief Enable logging on this stream
   void Enable();
 
   /// @brief Disable logging on this stream
@@ -106,7 +131,7 @@ class LogStream : public std::ostream {
 
   /// @brief Check if this stream is enabled
   /// @return True if stream is enabled
-  bool IsEnabled();
+  bool IsEnabled();*/
 
  private:
   std::unique_ptr<LogStreamImpl> m_LogStreamPimpl;
@@ -133,8 +158,9 @@ class Logger {
   /// @return Reference to debug level log stream
   LogStream& Debug();
 
-  /// @brief Flush pending log events
-  void Flush();
+  // TODO(anonimal): unused, remove. We can implement differently if needed.
+  /*/// @brief Flush pending log events
+  void Flush();*/
 
  private:
   std::unique_ptr<LoggerImpl> m_LoggerPimpl;
@@ -148,27 +174,22 @@ class Log {
 
   Log(
       LogLevel min_level,
-      std::ostream* out_stream);
+      std::ostream* out_stream,
+      const std::string& log_file_name);
 
-  /// @brief Get global log engine
-  static std::shared_ptr<Log> Get();
+  /// @brief Gets global log engine
+  /// @return Shared pointer to global log engine
+  static std::shared_ptr<Log> GetGlobalLogEngine();
 
-  /// @brief Get default logger
-  std::shared_ptr<Logger> Default();
+  /// @brief Gets default logger
+  /// @return Shared pointer to default logger
+  std::shared_ptr<Logger> GetDefaultLogger();
 
-  // TODO(unassigned):
-  // Uncomment when this becomes useful
-  /// @brief Create a logger's given name
-  //std::unique_ptr<Logger> New(
-      //const std::string& name,
-      //const std::string& channel);
-
-  /// @brief Turn off logging forever
-  void Stop();
-
-  /// @brief Is logging silent right now?
-  /// @return True if silent
-  bool Silent();
+  // TODO(anonimal): unused, remove. We can implement differently if needed.
+  /*/// @brief Create a logger's given name
+  std::unique_ptr<Logger> New(
+      const std::string& name,
+      const std::string& channel);*/
 
  private:
   std::shared_ptr<LogImpl> m_LogPimpl;
@@ -184,14 +205,6 @@ class Log {
  * Deprecated Logger
  *
  */
-
-void DeprecatedStartLog(
-    const std::string& full_file_path);
-
-void DeprecatedStartLog(
-    std::ostream* stream);
-
-void DeprecatedStopLog();
 
 template<typename Arg>
 void DeprecatedLog(
@@ -214,49 +227,52 @@ template<typename... Args>
 void DeprecatedLogPrint(
     i2p::util::log::LogLevel level,
     Args... args) {
-  auto logger = i2p::util::log::Log::Get();
-  if (logger == nullptr) {
+  auto logger = i2p::util::log::Log::GetGlobalLogEngine();
+  if (!logger) {
     // fallback logging to std::clog
-    std::clog << "!!! ";
     DeprecatedLog(std::clog, args...);
     std::clog << std::endl;
-  } else {
-    // Set log implementation
-    auto log = logger->Default();
-    // Get global log levels
-    auto global_levels = i2p::util::log::GetGlobalLogLevels();
-    // Print log after testing arg level against global levels
-    if (level == eLogDebug) {
-      for (auto& current_level : global_levels) {
-        if (current_level.second == eLogDebug) {
-          auto& stream = log->Debug();
-          DeprecatedLog(stream, args...);
-          stream << std::flush;
-        }
+    return;
+  }
+  // Set log implementation
+  auto log = logger->GetDefaultLogger();
+  if (!log) {
+    // Logger disabled by user options
+    return;
+  }
+  // Get global log levels
+  auto global_levels = i2p::util::log::GetGlobalLogLevels();
+  // Print log after testing arg level against global levels
+  if (level == eLogDebug) {
+    for (auto& current_level : global_levels) {
+      if (current_level.second == eLogDebug) {
+        auto& stream = log->Debug();
+        DeprecatedLog(stream, args...);
+        stream << std::flush;
       }
-    } else if (level == eLogInfo) {
-      for (auto& current_level : global_levels) {
-        if (current_level.second == eLogInfo) {
-          auto& stream = log->Info();
-          DeprecatedLog(stream, args...);
-          stream << std::flush;
-        }
+    }
+  } else if (level == eLogInfo) {
+    for (auto& current_level : global_levels) {
+      if (current_level.second == eLogInfo) {
+        auto& stream = log->Info();
+        DeprecatedLog(stream, args...);
+        stream << std::flush;
       }
-    } else if (level == eLogWarn) {
-      for (auto& current_level : global_levels) {
-        if (current_level.second == eLogWarn) {
-          auto& stream = log->Warn();
-          DeprecatedLog(stream, args...);
-          stream << std::flush;
-        }
+    }
+  } else if (level == eLogWarn) {
+    for (auto& current_level : global_levels) {
+      if (current_level.second == eLogWarn) {
+        auto& stream = log->Warn();
+        DeprecatedLog(stream, args...);
+        stream << std::flush;
       }
-    } else if (level == eLogError) {
-      for (auto& current_level : global_levels)  {
-        if (current_level.second == eLogError) {
-          auto& stream = log->Error();
-          DeprecatedLog(stream, args...);
-          stream << std::flush;
-        }
+    }
+  } else if (level == eLogError) {
+    for (auto& current_level : global_levels)  {
+      if (current_level.second == eLogError) {
+        auto& stream = log->Error();
+        DeprecatedLog(stream, args...);
+        stream << std::flush;
       }
     }
   }
@@ -268,8 +284,18 @@ void DeprecatedLogPrint(
   DeprecatedLogPrint(eLogInfo, args...);
 }
 
-#define StartLog DeprecatedStartLog
 #define LogPrint DeprecatedLogPrint
+
+// TODO(anonimal): no longer needed, remove all of these deprecations
+void DeprecatedStartLog(
+    const std::string& full_file_path);
+
+void DeprecatedStartLog(
+    std::ostream* stream);
+
+void DeprecatedStopLog();
+
+#define StartLog DeprecatedStartLog
 #define StopLog DeprecatedStopLog
 
 #endif  // SRC_CORE_UTIL_LOG_H_

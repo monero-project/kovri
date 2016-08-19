@@ -80,6 +80,10 @@ boost::filesystem::path GetSSLCertsPath() {
   return GetDataPath() / "certificates" / "ssl";
 }
 
+const boost::filesystem::path GetLogsPath() {
+  return GetDataPath() / "logs";
+}
+
 std::string GetFullPath(
     const std::string& filename) {
   std::string full_path = GetDataPath().string();

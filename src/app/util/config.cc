@@ -96,15 +96,27 @@ bool ParseArgs(
     ("host", bpo::value<std::string>()->default_value("127.0.0.1"),
      "The external IP (deprecated).\n"
      "Default: external interface")
+
     ("port,p", bpo::value<int>()->default_value(port),
      "Port to listen on.\n"
      "Default: random (then saved to router.info)");
 
   bpo::options_description system("\nSystem");
   system.add_options()
-    ("log,l", bpo::value<bool>()->default_value(0),
+    ("log-to-console", bpo::value<bool>()->default_value(true),
+     "Enable or disable console log output\n"
+     "1 = enabled, 0 = disabled\n"
+     "Default: 1 = enabled\n")
+
+    ("log-to-file", bpo::value<bool>()->default_value(true),
      "Enable or disable logging to file\n"
-     "1 = enabled, 0 = disabled\n")
+     "1 = enabled, 0 = disabled\n"
+     "Default: 0 = disabled\n")
+
+    ("log-file-name", bpo::value<std::string>()->default_value(
+        (i2p::util::filesystem::GetLogsPath() / "kovri_%1N.log").string()),
+     "Sets log filename\n"
+     "Default (with rotation): kovri_0.log, kovri_1.log, etc.\n")
 
     ("log-levels", bpo::value<std::vector<std::string>>()->
                    // Note: we set a default value during validation and
@@ -234,8 +246,8 @@ bool ParseArgs(
   bpo::notify(var_map);
   // Parse config after mapping cli
   ParseConfigFile(kovri_config, config_options, var_map);
-  // Validate user input where possible
-  if (!ValidateUserInput())
+  // Set logging options
+  if (!SetLoggingOptions())
     return false;
   /*
    * Display --help and --help-with
@@ -288,14 +300,15 @@ void ParseConfigFile(
   }
 }
 
-bool ValidateUserInput() {
+bool SetLoggingOptions() {
+  namespace log = i2p::util::log;
   /**
    * TODO(unassigned): write custom validator for log-levels
    * so we can set values via config file.
    */
   // Test for valid log-levels input
   auto arg_levels = var_map["log-levels"].as<std::vector<std::string>>();
-  auto global_levels = i2p::util::log::GetGlobalLogLevels();
+  auto global_levels = log::GetGlobalLogLevels();
   if (arg_levels.size()) {
     if (arg_levels.size() > global_levels.size()) {
       std::cout << "Invalid number of log levels. Maximum allowed: "
@@ -316,7 +329,11 @@ bool ValidateUserInput() {
       arg_levels.push_back(level.first);
   }
   // Set new global log-levels
-  i2p::util::log::SetGlobalLogLevels(arg_levels);
+  log::SetGlobalLogLevels(arg_levels);
+  // Set other logging options
+  log::SetOptionLogToConsole(var_map["log-to-console"].as<bool>());
+  log::SetOptionLogToFile(var_map["log-to-file"].as<bool>());
+  log::SetOptionLogFileName(var_map["log-file-name"].as<std::string>());
   return true;
 }
 

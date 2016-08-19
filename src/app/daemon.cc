@@ -59,9 +59,7 @@ namespace util {
 
 Daemon_Singleton::Daemon_Singleton()
     : m_IsDaemon(false),
-      m_IsLogging(false),
-      m_IsRunning(true),
-      m_Log(i2p::util::log::Log::Get()) {}
+      m_IsRunning(true) {}
 
 Daemon_Singleton::~Daemon_Singleton() {}
 
@@ -81,7 +79,6 @@ bool Daemon_Singleton::Init() {
       i2p::util::config::var_map["port"].as<int>(),
       i2p::util::filesystem::GetDataPath());
   m_IsDaemon = i2p::util::config::var_map["daemon"].as<bool>();
-  m_IsLogging = i2p::util::config::var_map["log"].as<bool>();
   auto port = i2p::util::config::var_map["port"].as<int>();
   i2p::context.UpdatePort(port);
   i2p::context.UpdateAddress(
@@ -99,6 +96,7 @@ bool Daemon_Singleton::Init() {
       i2p::context.SetLowBandwidth();
   }
   // Set reseed options
+  // TODO(anonimal): rename as SetOption*
   i2p::context.ReseedFrom(
       i2p::util::config::var_map["reseed-from"].as<std::string>());
   i2p::context.ReseedSkipSSLCheck(
@@ -112,22 +110,6 @@ bool Daemon_Singleton::Start() {
   LogPrint(eLogInfo,
       "Daemon_Singleton: listening on port ",
       i2p::util::config::var_map["port"].as<int>());
-  if (m_IsLogging) {
-    if (m_IsDaemon) {
-      auto logfile_path = IsService() ? "/var/log" :
-      i2p::util::filesystem::GetDataPath().string();
-#ifndef _WIN32
-      logfile_path.append("/kovri.log");
-#else
-      logfile_path.append("\\kovri.log");
-#endif
-      StartLog(logfile_path);
-    } else {
-      StartLog("");  // write to stdout
-    }
-  } else {
-    m_Log->Stop();
-  }
   try {
     LogPrint(eLogInfo, "Daemon_Singleton: starting NetDb");
     if (!i2p::data::netdb.Start()) {
@@ -157,7 +139,6 @@ bool Daemon_Singleton::Stop() {
   LogPrint(eLogInfo, "Daemon_Singleton: stopping NetDb");
   i2p::data::netdb.Stop();
   LogPrint(eLogInfo, "Goodbye!");
-  StopLog();
   return true;
 }
 

@@ -52,9 +52,7 @@ class Daemon_Singleton {
   virtual bool Start();
   virtual bool Stop();
   virtual void Reload();
-  bool m_IsDaemon,
-       m_IsLogging,
-       m_IsRunning;
+  bool m_IsDaemon, m_IsRunning;
 
  private:
   /// Initializes the router's client context object

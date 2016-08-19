@@ -91,6 +91,9 @@ boost::filesystem::path GetSU3CertsPath();
 /// @return the path to SSL certificates for TLS/SSL negotiation
 boost::filesystem::path GetSSLCertsPath();
 
+/// @return the path to log storage
+const boost::filesystem::path GetLogsPath();
+
 }  // namespace filesystem
 }  // namespace util
 }  // namespace i2p

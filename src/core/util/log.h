@@ -119,20 +119,6 @@ class LogStream : public std::ostream {
   LogStream(
       LogStreamImpl* impl);
 
-  // TODO(anonimal): unused, remove. We can implement differently if needed.
-  /*/// @brief Enable logging on this stream
-  void Enable();
-
-  /// @brief Disable logging on this stream
-  void Disable();
-
-  /// @brief Flush this log stream
-  LogStream& Flush();
-
-  /// @brief Check if this stream is enabled
-  /// @return True if stream is enabled
-  bool IsEnabled();*/
-
  private:
   std::unique_ptr<LogStreamImpl> m_LogStreamPimpl;
 };
@@ -158,10 +144,6 @@ class Logger {
   /// @return Reference to debug level log stream
   LogStream& Debug();
 
-  // TODO(anonimal): unused, remove. We can implement differently if needed.
-  /*/// @brief Flush pending log events
-  void Flush();*/
-
  private:
   std::unique_ptr<LoggerImpl> m_LoggerPimpl;
 };
@@ -184,12 +166,6 @@ class Log {
   /// @brief Gets default logger
   /// @return Shared pointer to default logger
   std::shared_ptr<Logger> GetDefaultLogger();
-
-  // TODO(anonimal): unused, remove. We can implement differently if needed.
-  /*/// @brief Create a logger's given name
-  std::unique_ptr<Logger> New(
-      const std::string& name,
-      const std::string& channel);*/
 
  private:
   std::shared_ptr<LogImpl> m_LogPimpl;
@@ -285,17 +261,5 @@ void DeprecatedLogPrint(
 }
 
 #define LogPrint DeprecatedLogPrint
-
-// TODO(anonimal): no longer needed, remove all of these deprecations
-void DeprecatedStartLog(
-    const std::string& full_file_path);
-
-void DeprecatedStartLog(
-    std::ostream* stream);
-
-void DeprecatedStopLog();
-
-#define StartLog DeprecatedStartLog
-#define StopLog DeprecatedStopLog
 
 #endif  // SRC_CORE_UTIL_LOG_H_

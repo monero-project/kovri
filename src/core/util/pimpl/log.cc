@@ -234,19 +234,6 @@ class LogStreamImpl : public std::streambuf {
 
   ~LogStreamImpl() {}
 
-  // TODO(anonimal): unused, remove. We can implement differently if needed.
-  /*void Enable() {
-    m_Enabled = true;
-  }
-
-  bool IsEnabled() {
-    return m_Enabled;
-  }
-
-  void Disable() {
-    m_Enabled = false;
-  }*/
-
   /// @note Not thread safe
   void Flush() {
     BOOST_LOG_SEV(m_Log, m_Level) << m_Str.get();
@@ -297,24 +284,6 @@ LogStream::LogStream(
     : std::ostream(impl),
       m_LogStreamPimpl(impl) {}
 
-// TODO(anonimal): unused, remove. We can implement differently if needed.
-/*void LogStream::Enable() {
-  m_LogStreamPimpl->Enable();
-}
-
-void LogStream::Disable() {
-  m_LogStreamPimpl->Disable();
-}
-
-LogStream& LogStream::Flush() {
-  m_LogStreamPimpl->Flush();
-  return *this;
-}
-
-bool LogStream::IsEnabled() {
-  return m_LogStreamPimpl->IsEnabled();
-}*/
-
 /**
  *
  * Logger implementation and definitions
@@ -360,11 +329,6 @@ class LoggerImpl {
     return GetLogStream(m_Debug, m_DebugMtx);
   }
 
-  // TODO(anonimal): unused, remove. We can implement differently if needed.
-  /*void Flush() {
-    g_LogOutStreamSink->flush();
-  }*/
-
  private:
   /// @brief Lock mutex and return log stream
   /// @return Reference to LogStream
@@ -403,11 +367,6 @@ LogStream& Logger::Info() {
 LogStream& Logger::Debug() {
   return m_LoggerPimpl->Debug();
 }
-
-// TODO(anonimal): unused, remove. We can implement differently if needed.
-/*void Logger::Flush() {
-  m_LoggerPimpl->Flush();
-}*/
 
 /**
  *
@@ -533,13 +492,6 @@ std::shared_ptr<Logger> Log::GetDefaultLogger() {
   return m_DefaultLogger;
 }
 
-// TODO(anonimal): unused, remove. We can implement differently if needed.
-/*std::unique_ptr<Logger> Log::New(
-    const std::string& name,
-    const std::string& channel) {
-  return std::unique_ptr<Logger>(new Logger(new LoggerImpl(name, channel)));
-}*/
-
 std::ostream& operator<<(
     std::ostream& out_stream,
     LogLevel log_level) {
@@ -560,22 +512,3 @@ std::ostream& operator<<(
 }  // namespace log
 }  // namespace util
 }  // namespace i2p
-
-// TODO(anonimal): no longer needed, remove all of these deprecations
-/**
- *
- * Deprecated Logger
- *
- */
-
-void DeprecatedStartLog(
-    const std::string& full_file_path) {
-  std::cerr << "Not opening log file: " << full_file_path << std::endl;
-}
-
-void DeprecatedStartLog(
-    std::ostream* stream) {
-  *stream << "Deprecated Logging not implemented" << std::endl;
-}
-
-void DeprecatedStopLog() {}

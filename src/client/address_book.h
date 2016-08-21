@@ -104,6 +104,7 @@ class AddressBook {
   /// @param address Const reference to .b32.i2p address
   /// @param ident Reference to identity hash
   /// @notes If identity hash is found point @param ident to found hash
+  /// @notes Used for in-net downloads only
   bool CheckAddressIdentHashFound(
       const std::string& address,
       i2p::data::IdentHash& ident);
@@ -111,6 +112,7 @@ class AddressBook {
   /// @brief Finds address within loaded subscriptions
   /// @returns Unique pointer to identity hash of loaded address
   /// @param address Const reference to address
+  /// @notes Used for in-net downloads only
   std::unique_ptr<const i2p::data::IdentHash> GetLoadedAddressIdentHash(
       const std::string& address);
 
@@ -133,9 +135,10 @@ class AddressBook {
     return std::make_unique<AddressBookFilesystemStorage>();
   }
 
-  /// @brief Saves hosts (subscription) from stream into address book
+  /// @brief Validates and saves hosts (subscription) from stream into address book
+  /// @return False if malformed host in subscription
   /// @param file Reference to file stream of hosts (subscription)
-  void SaveHostsToStorage(
+  bool ValidateSubscriptionThenSaveToStorage(
       std::istream& stream);
 
   /// @brief Sets the download state as complete and resets timer as needed
@@ -269,9 +272,9 @@ class AddressBookSubscriber {
   /// @brief Initializes defaults for address book subscription implementation
   AddressBookSubscriber(
       AddressBook& book,
-      const std::string& link)
+      const std::string& uri)
       : m_Book(book),
-        m_Link(link) {}
+        m_URI(uri) {}
 
   /// @brief Instantiates thread that fetches in-net subscriptions
   void DownloadSubscription();
@@ -286,7 +289,7 @@ class AddressBookSubscriber {
   /// @brief Reference to address book implementation
   AddressBook& m_Book;
   // Used for HTTP request  // TODO(anonimal): remove when refactored with cpp-netlib
-  std::string m_Link, m_Etag, m_LastModified;
+  std::string m_URI, m_Etag, m_LastModified;
 };
 
 }  // namespace client

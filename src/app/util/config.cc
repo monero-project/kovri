@@ -116,7 +116,7 @@ bool ParseArgs(
     ("log-to-file", bpo::value<bool>()->default_value(true),
      "Enable or disable logging to file\n"
      "1 = enabled, 0 = disabled\n"
-     "Default: 0 = disabled\n")
+     "Default: 1 = enabled\n")
 
     ("log-file-name", bpo::value<std::string>()->default_value(
         (i2p::util::filesystem::GetLogsPath() / "kovri_%1N.log").string()),

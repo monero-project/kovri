@@ -62,23 +62,21 @@ const char I2P_SERVER_TUNNEL_ACCESS_LIST[] = "accesslist";
 
 namespace config {
 
-// Our configuration files
-extern std::string kovri_config, tunnels_config;
-
-// Variable map for CLI and conf args
+/// @var var_map
+/// @brief Variable map for command-line and config file args
 extern boost::program_options::variables_map var_map;
 
-/**
- * @return 1 on failure/help, 0 on success
- */
+/// @brief Parse command line arguments
+/// @return False on failure
 bool ParseArgs(
     int argc,
     char* argv[]);
 
-/**
- * Note: CLI args override config file args but
- * args that are not overridden will stay mapped
- */
+/// @brief Parses configuration file and maps options
+/// @param config File name
+/// @param config_options Reference to instantiated options_description
+/// @param var_map Reference to instantiated variables map
+/// @notes command-line opts take precedence over config file opts)
 void ParseConfigFile(
     std::string& config,
     boost::program_options::options_description& config_options,

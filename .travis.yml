@@ -19,8 +19,6 @@ env:
         # Compiler versions
         - GCC_VERSION=4.9
         #- CLANG_VERSION=3.6
-        # For weidai11/cryptopp#232
-        - CXXFLAGS="-maes -march=native"
 
 matrix:
     exclude:

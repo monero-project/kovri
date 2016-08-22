@@ -141,12 +141,11 @@ To build with clang, you **must** export the following:
 
 ```bash
 $ export CC=clang CXX=clang++  # replace ```clang``` with a clang version/path of your choosing
-$ export CXXFLAGS="-maes -march=native"  # weidai11/cryptopp#232
 ```
 
 ### FreeBSD
 ```bash
-$ export CC=clang36 CXX=clang++36 CXXFLAGS="-maes -march=native"
+$ export CC=clang36 CXX=clang++36
 $ gmake dependencies && gmake && gmake install-resources
 ```
 - Replace ```make``` with ```gmake``` for all other build options

@@ -23,69 +23,76 @@ Optional:
 
 ## Step 2. Install dependencies
 
-###  Amazon EC2
-```bash
-$ sudo yum install gcc-c++ cmake openssl-devel libquadmath
-$ sudo yum install doxygen graphviz # optional
-$ wget https://sourceforge.net/projects/boost/files/boost/1.61.0/boost_1_61_0.tar.gz
-$ tar -xf boost_1_61_0.tar.gz
-$ cd boost_1_61_0
-$ ./bootstrap.sh
-$ sudo  ./b2 install
-$ BOOST_ROOT=/usr/local/
-$ export BOOST_ROOT
-```
-
 ### Debian / Ubuntu
+Required dependencies:
 ```bash
 $ sudo apt-get install g++-4.9 cmake libboost-all-dev libssl-dev libssl1.0.0
-$ sudo apt-get install clang-3.5  # optional
-$ sudo apt-get install doxygen graphviz  # optional
-$ sudo apt-get install libminiupnpc-dev  # optional
+```
+Optional dependencies:
+```bash
+$ sudo apt-get install clang-3.5
+$ sudo apt-get install doxygen graphviz
+$ sudo apt-get install libminiupnpc-dev
 ```
 
-### Ubuntu Trusty 14.04:
+### Ubuntu Trusty 14.04
+You can either build Boost from source or use PPA
+Below are instructions for PPA:
 
+Required dependencies:
 ```bash
 $ sudo add-apt-repository ppa:ubuntu-toolchain-r/test
 $ sudo add-apt-repository ppa:kojoley/boost
 $ sudo apt-get update
 $ sudo apt-get install libboost-{chrono,log,program-options,date-time,thread,system,filesystem,regex,test}1.58{-dev,.0}
 $ sudo apt-get install g++-4.9 cmake libboost-all-dev libssl-dev libssl1.0.0
-$ sudo apt-get install clang-3.5  # optional
-$ sudo apt-get install doxygen graphviz  # optional
-$ sudo apt-get install libminiupnpc-dev  # optional
-
+```
+Optional dependencies:
+```bash
+$ sudo apt-get install clang-3.5
+$ sudo apt-get install doxygen graphviz
+$ sudo apt-get install libminiupnpc-dev
 ```
 
 ### Arch Linux
+Required dependencies:
 ```bash
 $ sudo pacman -Syu cmake boost  # gcc/g++ and openssl installed by default
-$ sudo pacman -S clang  # optional
-$ sudo pacman -S doxygen graphviz  # optional
-$ sudo pacman -S miniupnpc  # optional
+```
+Optional dependencies:
+```bash
+$ sudo pacman -S clang
+$ sudo pacman -S doxygen graphviz
+$ sudo pacman -S miniupnpc
 ```
 
 ### MacOSX
+Required dependencies:
 ```bash
 $ brew install cmake boost openssl # clang installed by default
-$ brew install doxygen graphviz # optional
-$ brew install miniupnpc  # optional
 ```
-Note: see Clang build instructions below
+Optional dependencies:
+```bash
+$ brew install doxygen graphviz
+$ brew install miniupnpc
+```
 
 ### FreeBSD 10
+Required dependencies:
 ```bash
 $ sudo pkg install git cmake gmake clang36 openssl
-$ sudo pkg install doxygen graphviz  # optional
-$ sudo pkg install miniupnpc # optional
 # Build latest boost (1.58 minimum)
 $ wget https://sourceforge.net/projects/boost/files/boost/1.61.0/boost_1_61_0.tar.bz2/download -O boost_1_61_0.tar.bz2
 $ tar xvjf boost_1_61_0.tar.bz2 && cd boost_1_61_0
 $ ./bootstrap.sh --with-toolset=clang  # OK to build with clang < 3.6
 $ sudo ./b2 --toolset=clang install
 ```
-Note: see FreeBSD build instructions below
+Optional dependencies:
+```bash
+$ sudo pkg install doxygen graphviz
+$ sudo pkg install miniupnpc
+```
+**Note: see FreeBSD build instructions below**
 
 ### Windows
 * Download the [MSYS2 installer](http://msys2.github.io/), 64-bit or 32-bit as needed, and run it.
@@ -101,8 +108,24 @@ pacman -Su
 * Optional: ```mingw-w64-x86_64-doxygen mingw-w64-x86_64-miniupnpc```
 * Note: if using doxygen, you'll need [Graphviz](http://graphviz.org/doc/winbuild.html)
 
+###  Amazon EC2
+Required dependencies:
+```bash
+$ sudo yum install gcc-c++ cmake openssl-devel libquadmath
+$ wget https://sourceforge.net/projects/boost/files/boost/1.61.0/boost_1_61_0.tar.gz
+$ tar -xf boost_1_61_0.tar.gz
+$ cd boost_1_61_0
+$ ./bootstrap.sh
+$ sudo  ./b2 install
+$ BOOST_ROOT=/usr/local/
+$ export BOOST_ROOT
+```
+Optional dependencies:
+```bash
+$ sudo yum install doxygen graphviz
+```
+
 ## Step 3. Build
-Minimum requirement:
 
 ### 1. Clone the repository
 ```bash
@@ -130,11 +153,13 @@ $ make install-resources
 - ```make static``` produces static binary
 
 ### Other available options
-- ```make doxygen``` produces Doxygen documentation (output will be in doc/Doxygen)
+- ```make doxygen``` produces Doxygen documentation
 - ```make clean``` cleans build directories and Doxygen output
 - ```make help``` shows available CMake build options
 
-All build output will be in the build directory.
+#### Notes
+- Doxygen output will be in ```doc``` directory
+- All other build output will be in the ``build``` directory
 
 ### Clang
 To build with clang, you **must** export the following:
@@ -164,34 +189,16 @@ $ export KOVRI_DATA_PATH=$HOME/.another-kovri-data-path && make && make install-
 
 If you do not choose a port via cli or ```kovri.conf```, Kovri will randomly generate a new one on each startup. If you do not have access to your NAT, you can instead install and build with [MiniUPnP](http://miniupnp.free.fr/files/) support
 
-## Step 5. Run Kovri
-```bash
-$ ./kovri -p [your chosen port]
-```
-or set your port in kovri.conf
+## Step 5. Configure Kovri
+Read the configuration files for available options
 
+## Step 6. Run Kovri
+```bash
+$ ./kovri -p [your chosen port]  # or set your port in kovri.conf
+```
 
 For a full list of options:
 
 ```bash
-$ ./kovri --help-with all
+$ ./kovri --help
 ```
-
-## Step 6. Configuration files *(optional)*
-
-Configuration files has INI-like syntax: <key> = <value>.
-All command-line parameters are allowed as keys, for example:
-
-kovri.conf:
-
-    log = 1
-    v6 = 0
-    ircdest = irc.dg.i2p
-
-tunnels.conf:
-
-    [IRC]
-    type = client
-    port = 6669
-    destination = irc.dg.i2p
-    keys = irc-keys.dat

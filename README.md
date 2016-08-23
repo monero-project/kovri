@@ -12,19 +12,7 @@
 - Currently **pre-alpha** software; under heavy development
 
 ## Quickstart
-1. Read [Build Instructions](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md) for instructions and minimum version requirements
-2. Choose a port between ```9111``` and ```30777```
-3. Open your NAT/Firewall to allow incoming TCP/UDP connections to your chosen port
-   - UPnP optional; see [Build Instructions](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md)
-4. Download, build, and run:
-```bash
-$ git clone --recursive https://github.com/monero-project/kovri
-$ make  # to decrease build-time, run make -j [available CPU cores]
-$ make install-resources  # will only install configuration files + resources
-$ ./build/kovri -p [your chosen port number]  # port number without brackets
-```
-- For quick help options: ```$ ./kovri --help```
-- For a detailed listing of options: ```$ ./kovri --help-with all```
+- Read [Build Instructions](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md) to install dependencies, build, and run kovri
 
 ## Documentation
 - Our [FAQ](https://github.com/monero-project/kovri/blob/master/doc/FAQ.md) and other documentation are in our [doc](https://github.com/monero-project/kovri/tree/master/doc) directory

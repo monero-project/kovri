@@ -13,7 +13,7 @@ Once essential quality-assurance has been resolved and an API has been implement
 Currently, we are focusing on everything listed in our [issues tracker](https://github.com/monero-project/kovri/issues/). They cover a bulk of what we need to finish before an official release (alpha, beta, or greater).
 
 ## Is Kovri usable, partially usable, or recommended to not be used for actual privacy at the moment?
-Kovri is usable to the extent of what ```./kovri --help-with all``` has to offer. Kovri currently has no interaction with Monero. With regard to privacy, we have fixed many security issues since inception but we are still in pre-alpha.
+Kovri is usable to the extent of what ```./kovri --help``` has to offer. Kovri currently has no interaction with Monero. With regard to privacy, we have fixed many security issues since inception but we are still in pre-alpha.
 
 There is still much code to cover so don't expect a strong guarantee of anonymity like with Tor or even java I2P. Those projects have 10+ years of research and implementation experience - and we are just getting started.
 

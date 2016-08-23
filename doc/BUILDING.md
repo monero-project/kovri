@@ -23,19 +23,19 @@ Optional:
 
 ## Step 2. Install dependencies
 
-### Debian / Ubuntu
+### Ubuntu Xenial (16.04)
 Required dependencies:
 ```bash
-$ sudo apt-get install g++-4.9 cmake libboost-all-dev libssl-dev libssl1.0.0
+$ sudo apt-get install git cmake libboost-all-dev libssl-dev  # gcc/g++ and libssl installed by default
 ```
 Optional dependencies:
 ```bash
-$ sudo apt-get install clang-3.5
+$ sudo apt-get install clang
 $ sudo apt-get install doxygen graphviz
 $ sudo apt-get install libminiupnpc-dev
 ```
 
-### Ubuntu Trusty 14.04
+### Ubuntu Trusty (14.04)
 You can either build Boost from source or use PPA
 Below are instructions for PPA:
 
@@ -44,14 +44,51 @@ Required dependencies:
 $ sudo add-apt-repository ppa:ubuntu-toolchain-r/test
 $ sudo add-apt-repository ppa:kojoley/boost
 $ sudo apt-get update
-$ sudo apt-get install libboost-{chrono,log,program-options,date-time,thread,system,filesystem,regex,test}1.58{-dev,.0}
-$ sudo apt-get install g++-4.9 cmake libboost-all-dev libssl-dev libssl1.0.0
+$ sudo apt-get install libboost-{chrono,log,program-options,date-time,thread,system,filesystem,regex,test}1.58-dev
+$ sudo apt-get install git g++-4.9 cmake libboost-all-dev libssl-dev libssl1.0.0
 ```
 Optional dependencies:
 ```bash
 $ sudo apt-get install clang-3.5
 $ sudo apt-get install doxygen graphviz
 $ sudo apt-get install libminiupnpc-dev
+```
+
+### Debian (stable)
+We'll need to pull from ```testing``` for ```Boost 1.58+``` and because of a [broken CMake](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=826656). For documentation's sake, we will pull all dependencies from ```testing```. If you're unfamiliar with apt-pinning, proceed with the following before installing dependencies:
+
+- Create and edit ```/etc/apt/preferences.d/custom.pref```
+- Enter and save the following:
+
+```
+Package: *
+Pin: release a=stable
+Pin-Priority: 700
+
+Package: *
+Pin: release a=testing
+Pin-Priority: 650
+```
+- Create and edit ```/etc/apt/sources.list.d/custom.list```
+```
+# Stable
+deb [Enter your mirror here] stable main non-free contrib
+# Testing
+deb [Enter your mirror here] testing main non-free contrib
+```
+- Replace ```[Enter your mirror here]``` with your mirror (see ```/etc/apt/sources.list```)
+- Run ```$ sudo apt-get update```
+- Install dependencies with the ```-t testing``` switch:
+
+Required dependencies:
+```bash
+$ sudo apt-get -t testing install git g++ cmake libboost-all-dev libssl-dev libssl1.0.0
+```
+Optional dependencies:
+```bash
+$ sudo apt-get -t testing install clang
+$ sudo apt-get -t testing install doxygen graphviz
+$ sudo apt-get -t testing install libminiupnpc-dev
 ```
 
 ### Arch Linux
@@ -66,7 +103,7 @@ $ sudo pacman -S doxygen graphviz
 $ sudo pacman -S miniupnpc
 ```
 
-### MacOSX
+### Mac OSX
 Required dependencies:
 ```bash
 $ brew install cmake boost openssl # clang installed by default
@@ -94,7 +131,7 @@ $ sudo pkg install miniupnpc
 ```
 **Note: see FreeBSD build instructions below**
 
-### Windows
+### Windows (MSYS2/MinGW-64)
 * Download the [MSYS2 installer](http://msys2.github.io/), 64-bit or 32-bit as needed, and run it.
 * Use the shortcut associated with your architecture to launch the MSYS2 environment. On 64-bit systems that would be the MinGW-w64 Win64 Shell shortcut. Note that if you are running 64-bit Windows, you will have both 64-bit and 32-bit environments.
 * Update the packages in your MSYS2 install:
@@ -108,7 +145,7 @@ pacman -Su
 * Optional: ```mingw-w64-x86_64-doxygen mingw-w64-x86_64-miniupnpc```
 * Note: if using doxygen, you'll need [Graphviz](http://graphviz.org/doc/winbuild.html)
 
-###  Amazon EC2
+### Amazon EC2
 Required dependencies:
 ```bash
 $ sudo yum install gcc-c++ cmake openssl-devel libquadmath
@@ -193,12 +230,15 @@ If you do not choose a port via cli or ```kovri.conf```, Kovri will randomly gen
 Read the configuration files for available options
 
 ## Step 6. Run Kovri
-```bash
-$ ./kovri -p [your chosen port]  # or set your port in kovri.conf
-```
-
 For a full list of options:
 
 ```bash
 $ ./kovri --help
 ```
+
+Basic command:
+```bash
+$ ./kovri -p [your chosen port]  # or set your port in kovri.conf
+```
+
+Wait 10-15 minutes or so to get bootstrapped into the network and then point your IRC client to port 6669 and join ```#kovri``` and ```#kovri-dev```

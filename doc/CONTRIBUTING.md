@@ -1,7 +1,10 @@
 # Contributing
 
-## Workflow
-To contribute a patch, please execute the following:
+## Quality Assurance
+- View our [Quality Assurance](https://github.com/monero-project/kovri/blob/master/doc/QUALITY_ASSURANCE.md) guide to get an idea of proposed workflow
+
+## Sending your work
+To contribute your work, please proceed with the following:
 
 1. Fork Kovri
 2. Read our [style guide](https://github.com/monero-project/kovri/blob/master/doc/STYLE.md)

@@ -1,7 +1,7 @@
 #ifndef CRYPTO_HASH_SHA512_H__
 #define CRYPTO_HASH_SHA512_H__
 
-#include "crypto/Hash.h"
+#include "crypto/hash.h"
 
 inline void crypto_hash_sha512(unsigned char* output, const unsigned char* input,
  size_t len)

@@ -6,6 +6,7 @@ option(KOVRI_DATA_PATH "The path to the kovri data folder")
 option(WITH_BENCHMARKS "Build with benchmarks" OFF)
 option(WITH_BINARY     "Build binary" ON)
 option(WITH_CRYPTOPP   "Build with Crypto++" ON)  # Default ON unless we switch libraries
+option(WITH_CPPNETLIB  "Build with cpp-netlib" ON)
 option(WITH_DOXYGEN    "Enable support for Doxygen" OFF)
 option(WITH_HARDENING  "Use hardening compiler flags" OFF)
 option(WITH_LIBRARY    "Build library" ON)
@@ -15,7 +16,7 @@ option(WITH_SUPERCOP   "Build Ed25519 using the ref10 implementation from SUPERC
 option(WITH_TESTS      "Build unit tests" OFF)
 option(WITH_UPNP       "Include support for UPnP client" OFF)
 
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/build/cmake/")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -40,23 +41,28 @@ endif()
 
 # Check for c++14 support
 include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++14" CXX14_SUPPORTED)
+CHECK_CXX_COMPILER_FLAG("-std=c++1y" CXX14_SUPPORTED)
 if(CXX14_SUPPORTED)
-  add_definitions("-std=c++14")
+  add_definitions("-std=c++1y")
 elseif(NOT MSVC)
-  message(SEND_ERROR "C++14 standard not supported by compiler. See building instructions for minimum requirements.")
+  message(FATAL_ERROR "C++14 standard not supported by compiler. See building instructions.")
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9.3)
+    message(FATAL_ERROR "GCC 4.9.3 or higher is required")
+  endif()
   if(WITH_HARDENING)
     add_definitions("-D_FORTIFY_SOURCE=2")
     set(CMAKE_CXX_FLAGS
       "${CMAKE_CXX_FLAGS} -Wformat -Wformat-security -Werror=format-security")
     set(CMAKE_CXX_FLAGS
       "${CMAKE_CXX_FLAGS} -fstack-protector-strong -fPIE --param ssp-buffer-size=4 -z relro -z now")
-    endif()
-  elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    message(SEND_ERROR "Clang is currently not supported. See building instructions for minimum requirements.")
+  endif()
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 3.5)
+    message(FATAL_ERROR "Clang 3.5 or higher is required")
+  endif()
 endif()
 
 # Compiler flags customization (by system)
@@ -86,6 +92,76 @@ if(THREADS_HAVE_PTHREAD_ARG) # compile time flag
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 endif()
 
+if(NOT WIN32)
+  # TODO: Consider separate compilation for COMMON_SRC for library.
+  # No need in -fPIC overhead for binary if not interested in library
+  # HINT: revert c266cff CMakeLists.txt: compilation speed up
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+endif()
+
+find_package(
+  Boost 1.58
+  COMPONENTS
+    chrono log
+    program_options date_time
+    thread system
+    filesystem regex
+  REQUIRED)
+
+if(NOT Boost_FOUND)
+  message(FATAL_ERROR "Boost not found or requirement not satisfied. See building instructions.")
+else()
+  message(STATUS "Found Boost: ${Boost_INCLUDE_DIR}, ${Boost_LIBRARIES}")
+  add_definitions(-DBOOST_ALL_DYN_LINK)
+  include_directories(${Boost_INCLUDE_DIRS})
+endif()
+
+if(WITH_CRYPTOPP)
+  find_package(CryptoPP REQUIRED)
+  if(NOT CryptoPP_FOUND)
+    message(FATAL_ERROR "Could not find Crypto++. See building instructions.")
+  else()
+    message(STATUS "Found Crypto++: ${CryptoPP_INCLUDE_DIR}, ${CryptoPP_LIBRARIES}")
+    include_directories(${CryptoPP_INCLUDE_DIR}/../)  # We back-track for <cryptopp/*>
+  endif()
+endif()
+
+if(APPLE)
+  # If we're on OS X check for Homebrew's copy of OpenSSL instead of Apple's
+  if (NOT OpenSSL_DIR)
+    execute_process (COMMAND brew --prefix openssl
+      OUTPUT_VARIABLE OPENSSL_ROOT_DIR
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+  endif()
+endif()
+
+find_package(OpenSSL REQUIRED)
+if(NOT DEFINED OPENSSL_INCLUDE_DIR)
+  message(FATAL_ERROR "Could not find OpenSSL. Please download and install it first!")
+else()
+  include_directories(${OPENSSL_INCLUDE_DIR})
+endif()
+
+# Note: we're actually building off branch 0.13-release - not 0.12.0.
+# cpp-netlib's MINOR is kept at 0.12 until 0.13 is official.
+# CMake will find cppnetlibConfig*.cmake in cpp-netlib's build directory
+# (we *could* instruct to make install for cpp-netlib but that's not needed ATM).
+if(WITH_CPPNETLIB)
+  set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} deps/cpp-netlib)
+  find_package(cppnetlib 0.12.0 REQUIRED)
+  if(NOT DEFINED CPPNETLIB_INCLUDE_DIRS)
+    message(FATAL_ERROR "Could not find cpp-netlib 0.12.0. See building instructions.")
+  else()
+    message(STATUS "Found cpp-netlib: ${CPPNETLIB_INCLUDE_DIRS}, ${CPPNETLIB_LIBRARIES}")
+    include_directories(${CPPNETLIB_INCLUDE_DIRS})
+  endif()
+endif()
+
+find_package(MiniUPnPc)
+if(NOT ${MINIUPNPC_FOUND})
+  set(WITH_UPNP OFF)
+endif()
+
 if(WITH_STATIC)
   set(Boost_USE_STATIC_LIBS ON)
   set(Boost_USE_STATIC_RUNTIME OFF)
@@ -100,58 +176,6 @@ if(WITH_STATIC)
   endif()
 endif()
 
-if(NOT WIN32)
-  # TODO: Consider separate compilation for COMMON_SRC for library.
-  # No need in -fPIC overhead for binary if not interested in library
-  # HINT: revert c266cff CMakeLists.txt: compilation speed up
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-endif()
-
-find_package(
-  Boost
-  COMPONENTS
-    chrono log
-    program_options date_time
-    thread system
-    filesystem regex
-  REQUIRED)
-
-if(NOT Boost_FOUND)
-  message(SEND_ERROR "Boost not found, or version below 1.46. Please download Boost!")
-else()
-  add_definitions(-DBOOST_ALL_DYN_LINK)
-  include_directories(${Boost_INCLUDE_DIRS})
-endif()
-
-if(WITH_CRYPTOPP)
-  find_package(CryptoPP REQUIRED)
-  if(NOT DEFINED CRYPTO++_INCLUDE_DIR)
-    message(SEND_ERROR "Could not find Crypto++. Please download and install it first!")
-  endif()
-  include_directories(${CRYPTO++_INCLUDE_DIR})
-endif()
-
-if(APPLE)
-  # If we're on OS X check for Homebrew's copy of OpenSSL instead of Apple's
-  if (NOT OpenSSL_DIR)
-    execute_process (COMMAND brew --prefix openssl
-      OUTPUT_VARIABLE OPENSSL_ROOT_DIR
-      OUTPUT_STRIP_TRAILING_WHITESPACE)
-  endif()
-endif()
-
-find_package(OpenSSL REQUIRED)
-if(NOT DEFINED OPENSSL_INCLUDE_DIR)
-  message(SEND_ERROR "Could not find OpenSSL. Please download and install it first!")
-else()
-  include_directories(${OPENSSL_INCLUDE_DIR})
-endif()
-
-find_package(MiniUPnPc)
-if(NOT ${MINIUPNPC_FOUND})
-  set(WITH_UPNP OFF)
-endif()
-
 # Doxygen support
 if(WITH_DOXYGEN)
   include(UseDoxygen)
@@ -160,17 +184,9 @@ endif()
 # Load remaining includes
 include_directories(${CMAKE_SOURCE_DIR})
 
-# Set default path
+# Use data-path set in Makefile. Code must call upon this definition.
 if(KOVRI_DATA_PATH)
-  set(KOVRI_DATA_DIR ${KOVRI_DATA_PATH})
-  # Using custom path, make sure the code knows about this
   add_definitions(-DKOVRI_CUSTOM_DATA_PATH="${KOVRI_DATA_PATH}")
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-  set(KOVRI_DATA_DIR "$ENV{APPDATA}\\kovri")
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  set(KOVRI_DATA_DIR "$ENV{HOME}/Library/Application Support/kovri")
-else()
-  set(KOVRI_DATA_DIR "$ENV{HOME}/.kovri")
 endif()
 
 # Show summary
@@ -204,12 +220,5 @@ set(CORE_NAME "${PROJECT_NAME}-core")
 set(TESTS_NAME "${PROJECT_NAME}-tests")
 set(BENCHMARKS_NAME "${PROJECT_NAME}-benchmarks")
 add_subdirectory(src)
-
-# Copy needed resources
-if(WITH_BINARY)
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/pkg/certificates" DESTINATION "${KOVRI_DATA_DIR}/")
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/pkg/kovri.conf" DESTINATION "${KOVRI_DATA_DIR}/")
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/pkg/tunnels.conf" DESTINATION "${KOVRI_DATA_DIR}/")
-endif()
 
 # vim: noai:ts=2:sw=2

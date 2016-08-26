@@ -1,15 +1,15 @@
 set(CLIENT_SRC
-  "Datagram.cpp"
-  "I2PControl/I2PControl.cpp"
-  "I2PControl/I2PControlServer.cpp"
-  "I2PTunnel/HTTPProxy.cpp"
-  "I2PTunnel/I2PTunnel.cpp"
-  "I2PTunnel/SOCKS.cpp"
-  "Streaming.cpp"
-  "AddressBook.cpp"
-  "Destination.cpp"
-  "ClientContext.cpp"
-  "I2PService.cpp")
+  "datagram.cc"
+  "i2p_control/i2p_control.cc"
+  "i2p_control/i2p_control_server.cc"
+  "i2p_tunnel/http_proxy.cc"
+  "i2p_tunnel/i2p_tunnel.cc"
+  "i2p_tunnel/socks.cc"
+  "streaming.cc"
+  "address_book.cc"
+  "destination.cc"
+  "client_context.cc"
+  "i2p_service.cc")
 
 include_directories(
   "."
@@ -20,7 +20,7 @@ if(WITH_LIBRARY)
   add_library(${CLIENT_NAME} ${CLIENT_SRC})
   target_link_libraries(
     ${CLIENT_NAME} ${CORE_NAME}
-    ${Boost_LIBRARIES} ${CRYPTO++_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+    ${Boost_LIBRARIES} ${CryptoPP_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
   install(
     TARGETS ${CLIENT_NAME}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

@@ -145,23 +145,6 @@ pacman -Su
 * Optional: ```mingw-w64-x86_64-doxygen mingw-w64-x86_64-miniupnpc```
 * Note: if using doxygen, you'll need [Graphviz](http://graphviz.org/doc/winbuild.html)
 
-### Amazon EC2
-Required dependencies:
-```bash
-$ sudo yum install gcc-c++ cmake openssl-devel libquadmath
-$ wget https://sourceforge.net/projects/boost/files/boost/1.61.0/boost_1_61_0.tar.gz
-$ tar -xf boost_1_61_0.tar.gz
-$ cd boost_1_61_0
-$ ./bootstrap.sh
-$ sudo  ./b2 install
-$ BOOST_ROOT=/usr/local/
-$ export BOOST_ROOT
-```
-Optional dependencies:
-```bash
-$ sudo yum install doxygen graphviz
-```
-
 ## Step 3. Build
 
 ### 1. Clone the repository

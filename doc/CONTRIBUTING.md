@@ -1,13 +1,17 @@
 # Contributing
 
-## Workflow
-To contribute a patch, please execute the following:
+## Quality Assurance
+- View our [Quality Assurance](https://github.com/monero-project/kovri/blob/master/doc/QUALITY_ASSURANCE.md) guide to get an idea of proposed workflow
+
+## Sending your work
+To contribute your work, please proceed with the following:
 
 1. Fork Kovri
-2. Read [STYLE.md](https://github.com/monero-project/kovri/blob/master/doc/STYLE.md)
-3. Create a topic branch
+2. Read our [style guide](https://github.com/monero-project/kovri/blob/master/doc/STYLE.md)
+3. Create a [topic branch](https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging)
 4. [**Sign**](https://git-scm.com/book/en/v2/Git-Tools-Signing-Your-Work) your commit(s)
-5. PR to branch ```development```
+5. Send a pull-request to branch ```master```
+   - We currently do not have any tags as we are in pre-alpha. For now, you can base your work off of master.
    - Commit messages should be verbose by default, consisting of a short subject line (50 chars max), a blank line, and detailed explanatory text as separate paragraph(s) - unless the title alone is self-explanatory.
    - Commit title should prepend class or aspect of project. For example, "HTTPProxy: implement User-Agent scrubber. Fixes #193." or "Garlic: fix uninitialized padding in ElGamalBlock".
    - If a particular commit references another issue, please add a reference. For example "See #123", or "Fixes #123". This will help us resolve tickets when we merge into ```master```.
@@ -22,8 +26,8 @@ Even though our C4 dictates that we merge everything, we ask that you open a pro
 1. A proposal open up communication
 2. A proposal show that the contributor respects the input of all project collaborators
 3. A proposal allows seamless collaborator input in an open forum
-3. A proposal saves time if a collaborator is working on a similar feature/issue
-4. A proposal prevents catasrophes and mishaps or allows collaborators to prepare for catasrophes and mishaps
+4. A proposal saves time if a collaborator is working on a similar feature/issue
+5. A proposal prevents catasrophes and mishaps or allows collaborators to prepare for catasrophes and mishaps
 
 *Not* opening a proposal will *not* prevent you from contributing; we will merge what you PR - but a proposal is highly recommended.
 

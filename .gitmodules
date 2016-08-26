@@ -1,0 +1,8 @@
+[submodule "deps/cpp-netlib"]
+	path = deps/cpp-netlib
+	url = https://github.com/cpp-netlib/cpp-netlib.git
+	branch = 0.13-release
+[submodule "deps/cryptopp"]
+	path = deps/cryptopp
+	url = https://github.com/weidai11/cryptopp.git
+	branch = master

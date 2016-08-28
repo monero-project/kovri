@@ -299,6 +299,9 @@ struct I2NPMessageBuffer : public I2NPMessage {
   uint8_t m_Buffer[SZ + 16] = {};
 };
 
+// TODO(rakhimov): Consider shared_ptr instead of unique_ptr
+//                 if a shared msg is the common case.
+//                 ``ToSharedI2NPMessage`` is already providing a shared_ptr.
 std::unique_ptr<I2NPMessage> NewI2NPMessage();
 std::unique_ptr<I2NPMessage> NewI2NPMessage(
     size_t len);

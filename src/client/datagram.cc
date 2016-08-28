@@ -59,43 +59,43 @@ void DatagramDestination::SendDatagramTo(
     uint16_t fromPort,
     uint16_t toPort) {
   uint8_t buf[MAX_DATAGRAM_SIZE];
-  auto identityLen =
-    m_Owner.GetIdentity().ToBuffer(buf, MAX_DATAGRAM_SIZE);
+  auto identityLen = m_Owner.GetIdentity().ToBuffer(buf, MAX_DATAGRAM_SIZE);
   uint8_t* signature = buf + identityLen;
   auto signatureLen = m_Owner.GetIdentity().GetSignatureLen();
   uint8_t* buf1 = signature + signatureLen;
   size_t headerLen = identityLen + signatureLen;
   memcpy(buf1, payload, len);
-  if (m_Owner.GetIdentity().GetSigningKeyType() ==
-      i2p::data::SIGNING_KEY_TYPE_DSA_SHA1) {
+  if (m_Owner.GetIdentity().GetSigningKeyType()
+      == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1) {
     uint8_t hash[32];
     i2p::crypto::SHA256().CalculateDigest(hash, buf1, len);
     m_Owner.Sign(hash, 32, signature);
   } else {
     m_Owner.Sign(buf1, len, signature);
   }
-  auto msg =
-    CreateDataMessage(buf, len + headerLen, fromPort, toPort);
-  auto remote = m_Owner.FindLeaseSet(ident);
-  if (remote)
+  I2NPMessage* msg = CreateDataMessage(buf, len + headerLen, fromPort, toPort);
+  std::shared_ptr<const i2p::data::LeaseSet> remote
+      = m_Owner.FindLeaseSet(ident);
+  if (remote) {
     m_Owner.GetService().post(
-        std::bind(
-          &DatagramDestination::SendMsg,
-          this, msg, remote));
-  else
+        [this, msg, remote] { SendMsg(msg, remote); });
+  } else {
     m_Owner.RequestDestination(
-        ident, std::bind(
-          &DatagramDestination::HandleLeaseSetRequestComplete,
-          this, std::placeholders::_1, msg));
+        ident,
+        [this, msg](std::shared_ptr<i2p::data::LeaseSet> remote) {
+          HandleLeaseSetRequestComplete(std::move(remote), msg);
+        });
+  }
 }
 
 void DatagramDestination::HandleLeaseSetRequestComplete(
     std::shared_ptr<i2p::data::LeaseSet> remote,
     I2NPMessage* msg) {
-  if (remote)
+  if (remote) {
     SendMsg(msg, remote);
-  else
+  } else {
     DeleteI2NPMessage(msg);
+  }
 }
 
 void DatagramDestination::SendMsg(
@@ -108,11 +108,10 @@ void DatagramDestination::SendMsg(
     uint32_t i = i2p::crypto::RandInRange<uint32_t>(0, leases.size() - 1);
     auto garlic = m_Owner.WrapMessage(remote, ToSharedI2NPMessage(msg), true);
     msgs.push_back(
-        i2p::tunnel::TunnelMessageBlock {
-        i2p::tunnel::e_DeliveryTypeTunnel,
-        leases[i].tunnel_gateway,
-        leases[i].tunnel_ID,
-        garlic});
+        i2p::tunnel::TunnelMessageBlock{i2p::tunnel::e_DeliveryTypeTunnel,
+                                        leases[i].tunnel_gateway,
+                                        leases[i].tunnel_ID,
+                                        garlic});
     outboundTunnel->SendTunnelDataMsg(msgs);
   } else {
     if (outboundTunnel)

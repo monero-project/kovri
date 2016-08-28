@@ -120,11 +120,11 @@ void Tunnel::Build(
     outboundTunnel->SendTunnelDataMsg(
         GetNextIdentHash(),
         0,
-        ToSharedI2NPMessage(msg));
+        ToSharedI2NPMessage(std::move(msg)));
   else
     i2p::transport::transports.SendMessage(
         GetNextIdentHash(),
-        ToSharedI2NPMessage(msg));
+        ToSharedI2NPMessage(std::move(msg)));
 }
 
 bool Tunnel::HandleTunnelBuildResponse(

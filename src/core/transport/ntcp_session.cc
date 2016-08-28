@@ -886,7 +886,7 @@ bool NTCPSession::DecryptNextBlock(
           static_cast<std::size_t>(NTCPSize::phase3_alice_ri) ?
             NewI2NPShortMessage() :
             NewI2NPMessage();
-      m_NextMessage = ToSharedI2NPMessage(msg);
+      m_NextMessage = ToSharedI2NPMessage(std::move(msg));
       memcpy(
           m_NextMessage->buf,
           buf.data(),

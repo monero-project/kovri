@@ -33,11 +33,11 @@
 #ifndef SRC_CORE_I2NP_PROTOCOL_H_
 #define SRC_CORE_I2NP_PROTOCOL_H_
 
-#include <inttypes.h>
-#include <string.h>
+#include <cstdint>
+#include <cstring>
 
-#include <set>
 #include <memory>
+#include <set>
 #include <vector>
 
 #include "identity.h"
@@ -299,23 +299,21 @@ struct I2NPMessageBuffer : public I2NPMessage {
   uint8_t m_Buffer[SZ + 16] = {};
 };
 
-I2NPMessage* NewI2NPMessage();
-I2NPMessage* NewI2NPMessage(
+std::unique_ptr<I2NPMessage> NewI2NPMessage();
+std::unique_ptr<I2NPMessage> NewI2NPMessage(
     size_t len);
 
-I2NPMessage* NewI2NPShortMessage();
-
-void DeleteI2NPMessage(
-    I2NPMessage* msg);
+std::unique_ptr<I2NPMessage> NewI2NPShortMessage();
 
 std::shared_ptr<I2NPMessage> ToSharedI2NPMessage(
-    I2NPMessage* msg);
+    std::unique_ptr<I2NPMessage> msg);
 
-I2NPMessage* CreateI2NPMessage(
+std::unique_ptr<I2NPMessage> CreateI2NPMessage(
     I2NPMessageType msgType,
     const uint8_t* buf,
     int len,
     uint32_t replyMsgID = 0);
+
 std::shared_ptr<I2NPMessage> CreateI2NPMessage(
     const uint8_t* buf,
     int len,
@@ -367,24 +365,27 @@ void HandleTunnelBuildMsg(
     uint8_t* buf,
     size_t len);
 
-I2NPMessage* CreateTunnelDataMsg(
+std::unique_ptr<I2NPMessage> CreateTunnelDataMsg(
     const uint8_t * buf);
-I2NPMessage* CreateTunnelDataMsg(
+
+std::unique_ptr<I2NPMessage> CreateTunnelDataMsg(
     uint32_t tunnelID,
     const uint8_t* payload);
 
 std::shared_ptr<I2NPMessage> CreateEmptyTunnelDataMsg();
 
-I2NPMessage* CreateTunnelGatewayMsg(
+std::unique_ptr<I2NPMessage> CreateTunnelGatewayMsg(
     uint32_t tunnelID,
     const uint8_t* buf,
     size_t len);
-I2NPMessage* CreateTunnelGatewayMsg(
+
+std::unique_ptr<I2NPMessage> CreateTunnelGatewayMsg(
     uint32_t tunnelID,
     I2NPMessageType msgType,
     const uint8_t* buf,
     size_t len,
     uint32_t replyMsgID = 0);
+
 std::shared_ptr<I2NPMessage> CreateTunnelGatewayMsg(
     uint32_t tunnelID,
     std::shared_ptr<I2NPMessage> msg);
@@ -395,6 +396,7 @@ size_t GetI2NPMessageLength(
 void HandleI2NPMessage(
     uint8_t* msg,
     size_t len);
+
 void HandleI2NPMessage(
     std::shared_ptr<I2NPMessage> msg);
 

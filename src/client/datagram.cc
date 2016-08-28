@@ -52,6 +52,49 @@ DatagramDestination::DatagramDestination(
     : m_Owner(owner),
       m_Receiver(nullptr) {}
 
+namespace {  // Helper facilities to transfer messages.
+
+/// Deleter for a shared pointer
+/// that can be cancelled or nullified.
+template <typename T>
+class CancellableDeleter {
+ public:
+  /// Deletes the payload if the deleter still active.
+  void operator()(T* ptr) {
+    if (!cancel_)
+      delete ptr;
+  }
+
+  /// Deactivates the deleter.
+  void cancel() {
+    cancel_ = true;
+  }
+
+ private:
+  bool cancel_ = false;  ///< The controlling flag.
+};
+
+/// Shared pointer with ``release`` semantics as unique_ptr.
+template <typename T>
+using ReleasableSharedPtr = std::shared_ptr<T>;
+
+/// Helper function to make releasable shared_ptr with appropriate deleter.
+//
+/// @param payload  The payload for the handle.
+template <typename T>
+auto make_releasable_shared_ptr(T* payload) {
+  return ReleasableSharedPtr<T>(payload, CancellableDeleter<T>());
+}
+
+/// @returns The released payload from the shared ptr.
+template <typename T>
+T* release(const ReleasableSharedPtr<T>& smart_ptr) {
+  std::get_deleter<CancellableDeleter<T>>(smart_ptr)->cancel();
+  return smart_ptr.get();
+}
+
+}  // namespace
+
 void DatagramDestination::SendDatagramTo(
     const uint8_t* payload,
     size_t len,
@@ -73,40 +116,46 @@ void DatagramDestination::SendDatagramTo(
   } else {
     m_Owner.Sign(buf1, len, signature);
   }
-  I2NPMessage* msg = CreateDataMessage(buf, len + headerLen, fromPort, toPort);
+  std::unique_ptr<I2NPMessage> msg
+      = CreateDataMessage(buf, len + headerLen, fromPort, toPort);
   std::shared_ptr<const i2p::data::LeaseSet> remote
       = m_Owner.FindLeaseSet(ident);
+
+  ReleasableSharedPtr<I2NPMessage> temp_msg
+      = make_releasable_shared_ptr(msg.release());
   if (remote) {
-    m_Owner.GetService().post(
-        [this, msg, remote] { SendMsg(msg, remote); });
+    m_Owner.GetService().post([this, temp_msg, remote] {
+      SendMsg(std::unique_ptr<I2NPMessage>(release(temp_msg)), remote);
+    });
   } else {
     m_Owner.RequestDestination(
         ident,
-        [this, msg](std::shared_ptr<i2p::data::LeaseSet> remote) {
-          HandleLeaseSetRequestComplete(std::move(remote), msg);
+        [this, temp_msg](const std::shared_ptr<i2p::data::LeaseSet>& remote) {
+          HandleLeaseSetRequestComplete(
+              remote, std::unique_ptr<I2NPMessage>(release(temp_msg)));
         });
   }
 }
 
 void DatagramDestination::HandleLeaseSetRequestComplete(
     std::shared_ptr<i2p::data::LeaseSet> remote,
-    I2NPMessage* msg) {
-  if (remote) {
-    SendMsg(msg, remote);
-  } else {
-    DeleteI2NPMessage(msg);
-  }
+    std::unique_ptr<I2NPMessage> msg) {
+  if (remote)
+    SendMsg(std::move(msg), remote);
 }
 
 void DatagramDestination::SendMsg(
-    I2NPMessage* msg,
+    std::unique_ptr<I2NPMessage> msg,
     std::shared_ptr<const i2p::data::LeaseSet> remote) {
   auto outboundTunnel = m_Owner.GetTunnelPool()->GetNextOutboundTunnel();
   auto leases = remote->GetNonExpiredLeases();
   if (!leases.empty() && outboundTunnel) {
     std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
     uint32_t i = i2p::crypto::RandInRange<uint32_t>(0, leases.size() - 1);
-    auto garlic = m_Owner.WrapMessage(remote, ToSharedI2NPMessage(msg), true);
+    auto garlic = m_Owner.WrapMessage(
+        remote,
+        ToSharedI2NPMessage(std::move(msg)),
+        true);
     msgs.push_back(
         i2p::tunnel::TunnelMessageBlock{i2p::tunnel::e_DeliveryTypeTunnel,
                                         leases[i].tunnel_gateway,
@@ -120,7 +169,6 @@ void DatagramDestination::SendMsg(
     else
       LogPrint(eLogWarn,
           "DatagramDestination: failed to send datagram: no outbound tunnels");
-    DeleteI2NPMessage(msg);
   }
 }
 
@@ -179,12 +227,12 @@ void DatagramDestination::HandleDataMessagePayload(
   }
 }
 
-I2NPMessage* DatagramDestination::CreateDataMessage(
+std::unique_ptr<I2NPMessage> DatagramDestination::CreateDataMessage(
     const uint8_t* payload,
     size_t len,
     uint16_t fromPort,
     uint16_t toPort) {
-  I2NPMessage* msg = NewI2NPMessage();
+  std::unique_ptr<I2NPMessage> msg = NewI2NPMessage();
   i2p::crypto::util::Gzip compressor;  // default level
   compressor.Put(payload, len);
   std::size_t size = compressor.MaxRetrievable();
@@ -202,4 +250,3 @@ I2NPMessage* DatagramDestination::CreateDataMessage(
 
 }  // namespace datagram
 }  // namespace i2p
-

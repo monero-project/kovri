@@ -276,13 +276,12 @@ class LogStreamImpl : public std::streambuf {
   bool m_Enabled;
 };
 
-LogStream::LogStream() {}
-LogStream::~LogStream() {}
-
 LogStream::LogStream(
     LogStreamImpl* impl)
     : std::ostream(impl),
       m_LogStreamPimpl(impl) {}
+
+LogStream::~LogStream() {}
 
 /**
  *
@@ -345,12 +344,11 @@ class LoggerImpl {
   std::mutex m_InfoMtx, m_WarnMtx, m_ErrorMtx, m_DebugMtx;
 };
 
-Logger::Logger() {}
-Logger::~Logger() {}
-
 Logger::Logger(
     LoggerImpl* impl)
     : m_LoggerPimpl(impl) {}
+
+Logger::~Logger() {}
 
 LogStream& Logger::Error() {
   return m_LoggerPimpl->Error();
@@ -377,9 +375,6 @@ LogStream& Logger::Debug() {
 /// @class LogImpl
 class LogImpl {
  public:
-  LogImpl() {}
-  ~LogImpl() {}
-
   LogImpl(
       LogLevel min_level,
       std::ostream* out_stream,
@@ -403,6 +398,8 @@ class LogImpl {
         m_Core->remove_sink(GetFileSink());
     }
   }
+
+  ~LogImpl() {}
 
  private:
   /// @brief Initializes ostream backend and sink
@@ -457,9 +454,6 @@ class LogImpl {
   file_backend_ptr m_FileBackend;
 };
 
-Log::Log() {}
-Log::~Log() {}
-
 Log::Log(
     LogLevel min_level,
     std::ostream* out_stream,
@@ -467,6 +461,8 @@ Log::Log(
   m_LogPimpl = std::make_shared<LogImpl>(min_level, out_stream, log_file_name);
   m_DefaultLogger = std::make_shared<Logger>(new LoggerImpl);
 }
+
+Log::~Log() {}
 
 std::shared_ptr<Log> Log::GetGlobalLogEngine() {
   // TODO(unassigned): Total hack to ensure that log config log options

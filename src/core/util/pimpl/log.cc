@@ -229,8 +229,7 @@ class LogStreamImpl : public std::streambuf {
       : m_Str(std::make_unique<std::stringbuf>()),
         m_Access(mtx),
         m_Log(log),
-        m_Level(level),
-        m_Enabled(true) {}
+        m_Level(level) {}
 
   ~LogStreamImpl() {}
 
@@ -273,7 +272,6 @@ class LogStreamImpl : public std::streambuf {
   std::mutex& m_Access;
   log_t& m_Log;
   LogLevel m_Level;
-  bool m_Enabled;
 };
 
 LogStream::LogStream(
@@ -491,12 +489,12 @@ std::shared_ptr<Logger> Log::GetDefaultLogger() {
 std::ostream& operator<<(
     std::ostream& out_stream,
     LogLevel log_level) {
-  static std::array<const char*, 4> levels {
+  static std::array<const char*, 4> levels {{
     "DBG",  // debug
     "NFO",  // info
     "WRN",  // warn
     "ERR"   // error
-  };
+  }};
   if (static_cast<std::size_t>(log_level) < levels.size()) {
     out_stream << levels.at(log_level);
   } else {

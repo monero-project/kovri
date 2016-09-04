@@ -93,6 +93,11 @@ bool Daemon_Singleton::Init() {
       i2p::util::config::var_map["reseed-from"].as<std::string>());
   i2p::context.ReseedSkipSSLCheck(
       i2p::util::config::var_map["reseed-skip-ssl-check"].as<bool>());
+  i2p::context.SetSupportsNTCP(
+      i2p::util::config::var_map["enable-ntcp"].as<bool>());
+  i2p::context.SetSupportsSSU(
+      i2p::util::config::var_map["enable-ssu"].as<bool>());
+
   // Initialize the ClientContext
   InitClientContext();
   return true;

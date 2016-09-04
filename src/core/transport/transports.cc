@@ -318,7 +318,7 @@ bool Transports::ConnectToPeer(
         "Transports: connecting to peer",
         GetFormattedSessionInfo(peer.router));
     // NTCP
-    if (!peer.num_attempts) {
+    if (!peer.num_attempts && i2p::context.SupportsNTCP()) {
       LogPrint(eLogDebug,
           "Transports: attempting NTCP for peer",
           GetFormattedSessionInfo(peer.router));
@@ -347,7 +347,7 @@ bool Transports::ConnectToPeer(
           }
         }
       }
-    } else if (peer.num_attempts == 1) {  // SSU
+    } else if (peer.num_attempts == 1 && i2p::context.SupportsSSU()) {  // SSU
       LogPrint(eLogDebug,
          "Transports: attempting SSU for peer",
           GetFormattedSessionInfo(peer.router));

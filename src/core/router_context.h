@@ -189,11 +189,29 @@ class RouterContext : public i2p::garlic::GarlicDestination {
     return m_RouterInfo.IsV6();
   }
 
+  /// @return true if we support the NTCP transport, false otherwise
+  bool SupportsNTCP() const {
+    return m_SupportsNTCP;
+  }
+
+  /// @return true if we support the SSU transport, false otherwise
+  bool SupportsSSU() const {
+    return m_SupportsSSU;
+  }
+
   // Set if we support IPv6 connectivity.
   // Rebuilds RouterInfo.
   // @param supportsV6 true if we support IPv6, false if we don't
   void SetSupportsV6(
       bool supportsV6);
+
+  /// @brief Sets whether or not this router supports the NTCP transport
+  /// @param supportsNTCP true if NTCP is supported, false otherwise
+  void SetSupportsNTCP(bool supportsNTCP);
+
+  /// @brief Sets whether or not this router supports the SSU transport
+  /// @param supportsNTCP true if SSU is supported, false otherwise
+  void SetSupportsSSU(bool supportsSSU);
 
   // Called From NTCPSession.
   // Update our NTCP IPv6 address.
@@ -285,6 +303,7 @@ class RouterContext : public i2p::garlic::GarlicDestination {
   void UpdateRouterInfo();
   bool Load();
   void SaveKeys();
+  void RemoveTransport(i2p::data::RouterInfo::TransportStyle transport);
 
  private:
   i2p::data::RouterInfo m_RouterInfo;
@@ -299,6 +318,7 @@ class RouterContext : public i2p::garlic::GarlicDestination {
   boost::filesystem::path m_DataPath;
   std::string m_ReseedFrom;
   bool m_ReseedSkipSSLCheck;
+  bool m_SupportsNTCP, m_SupportsSSU;
 };
 
 extern RouterContext context;

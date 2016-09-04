@@ -224,7 +224,7 @@ void NTCPServer::HandleConnect(
   if (ecode) {
     LogPrint(eLogError,
       "NTCPServer:  connect error '", ecode.message(), "'");
-
+  
     if (ecode != boost::asio::error::operation_aborted)
       i2p::data::netdb.SetUnreachable(
           conn->GetRemoteIdentity().GetIdentHash(),

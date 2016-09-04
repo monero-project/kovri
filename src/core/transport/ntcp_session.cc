@@ -795,7 +795,9 @@ void NTCPSession::ReceivePayload() {
 void NTCPSession::HandleReceivedPayload(
     const boost::system::error_code& ecode,
     std::size_t bytes_transferred) {
-  if (ecode) {
+  // EOF errors are expected for short messages, so ignoring them is fine
+  // as long as bytes_transferred is nonzero
+  if (ecode && (ecode != boost::asio::error::eof || !bytes_transferred)) {
     LogPrint(eLogError,
         "NTCPSession:", GetFormattedSessionInfo(),
         "!!! HandleReceivedPayload(): '", ecode.message(), "'");
@@ -805,7 +807,6 @@ void NTCPSession::HandleReceivedPayload(
           "NTCPSession:", GetFormattedSessionInfo(), "!!! banning");
       m_Server.Ban(shared_from_this());
     }
-    // if (ecode != boost::asio::error::operation_aborted)
     Terminate();
   } else {
     m_NumReceivedBytes += bytes_transferred;

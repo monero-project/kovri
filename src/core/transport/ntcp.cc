@@ -223,8 +223,8 @@ void NTCPServer::HandleConnect(
     const boost::system::error_code& ecode) {
   if (ecode) {
     LogPrint(eLogError,
-        "NTCPServer: ", conn->GetSocket().remote_endpoint(),
-        " connect error '", ecode.message(), "'");
+      "NTCPServer:  connect error '", ecode.message(), "'");
+
     if (ecode != boost::asio::error::operation_aborted)
       i2p::data::netdb.SetUnreachable(
           conn->GetRemoteIdentity().GetIdentHash(),

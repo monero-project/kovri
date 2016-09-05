@@ -834,15 +834,18 @@ void NTCPSession::HandleReceivedPayload(
   if(m_ReceiveBufferOffset > 0) // Do we have an incomplete block?
     std::memcpy(m_ReceiveBuffer, next_block, m_ReceiveBufferOffset);
 
-  // Stop reading data in one of the following cases 
+  // TODO(unassigned): Only flush when the I2NP message has been put in
+  //  the I2NPMessagesHandler
+  //  (some of these flushes won't have any effect at all)
+  m_Handler.Flush();
+
+  // Stop reading data if at least one of the following conditons holds
   // - there was an EOF error (connection closed by remote)
   // - the maximum message size has been reached
   if (ecode == boost::asio::error::eof
       || m_NumReceivedBytes >= static_cast<std::size_t>(NTCPSize::max_message)) {
-    m_Handler.Flush();
     Terminate();
   } else {
-    m_Handler.Flush();
     ScheduleTermination();  // Reset termination timer
     ReceivePayload();
   }

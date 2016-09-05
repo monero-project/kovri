@@ -41,7 +41,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <unordered_map>
 
 #include "identity.h"
 #include "core/util/filesystem.h"
@@ -52,20 +51,46 @@
 namespace i2p {
 namespace client {
 
-// TODO(anonimal): remove this map in favor of a struct for defaults
-/// @var AddressBookDefaults
+/// @class AddressBookDefaults
 /// @brief Default string constants used throughout address book
-const std::unordered_map<std::string, std::string> AddressBookDefaults = {
-    { "Pathname", "addressbook" },
-    { "SubscriptionFilename", "hosts.txt" },
-    // TODO(anonimal): "addresses" is confusing and so is its real purpose
-    // (currently only used to verify that addresses have indeed been saved)
-    { "AddressesFilename", "addresses.csv" },
-    { "PublishersFilename", "publishers.txt" },
+struct AddressBookDefaults {
+  /// @brief Pathname of address book within KOVRI_DATA_DIR
+  /// @return Pathname for address book storage
+  std::string GetDefaultPathname() const {
+    return "addressbook";
+  };
+
+  /// @brief Gets default publishers filename
+  /// @return Default publishers filename
+  /// @notes A publishers file holds a list of publisher addresses
+  ///   of whom publish 'subscriptions' that contain a list of hosts to .b32.i2p
+  std::string GetDefaultPublishersFilename() const {
+    return "publishers.txt";
+  }
+
+  /// @brief Gets default publisher URI
+  /// @return Default publishers URI
+  /// @notes A default publisher is used if no publishers file is available
+  std::string GetDefaultPublisherURI() const {
     // TODO(unassigned): replace with Monero's b32 publisher service
-    { "PublisherURI", "https://downloads.getmonero.org/kovri/hosts.txt" },
+    return "https://downloads.getmonero.org/kovri/hosts.txt";
     // Below is only used for testing in-net download (this is *not* our default subscription)
-    //{ "PublisherURI", "http://udhdrtrcetjm5sxzskjyr5ztpeszydbh4dpl3pl4utgqqw2v4jna.b32.i2p/hosts.txt" },
+    //return "http://udhdrtrcetjm5sxzskjyr5ztpeszydbh4dpl3pl4utgqqw2v4jna.b32.i2p/hosts.txt";
+  }
+
+  /// @brief Gets default subscription filename
+  /// @return Default subscription filename
+  /// @notes Filename used by publishers when they publish a 'subscription'
+  std::string GetDefaultSubscriptionFilename() const {
+    return "hosts.txt";
+  }
+
+  /// @brief Gets addresses file (file list of saved addresses)
+  /// @return Default addresses filename
+  /// @notes Currently only used to verify that addresses have indeed been saved
+  std::string GetDefaultAddressesFilename() const {
+    return "addresses.csv";
+  }
 };
 
 /// @class AddressBookStorage
@@ -96,7 +121,9 @@ class AddressBookStorage {
 
 /// @class AddressBookFilesystemStorage
 /// @brief All filesystem-related address book member functions
-class AddressBookFilesystemStorage : public AddressBookStorage {
+class AddressBookFilesystemStorage
+    : public AddressBookDefaults,
+      public AddressBookStorage {
  public:
   /// @details Gets/Sets address book path/directory
   /// @notes Creates directory if not available
@@ -136,18 +163,10 @@ class AddressBookFilesystemStorage : public AddressBookStorage {
       const std::map<std::string, i2p::data::IdentHash>& addresses);
 
  private:
-  // TODO(anonimal): move Get* defaults here, refactor filename versus full path
-
-  /// @brief Gets addresses file (file list of saved addresses)
-  /// @return Const reference to addresses filename
-  const std::string GetAddressesFilenamePath() {
-    return (GetAddressBookPath() / AddressBookDefaults.at("AddressesFilename")).string();
-  }
-
   /// @brief Gets data path and appends address book's path
   /// @return Boost.Filesystem path of address book path
   boost::filesystem::path GetAddressBookPath() const {
-    return i2p::context.GetDataPath() / AddressBookDefaults.at("Pathname");
+    return i2p::context.GetDataPath() / GetDefaultPathname();
   }
 };
 

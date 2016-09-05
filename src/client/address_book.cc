@@ -110,7 +110,7 @@ void AddressBook::LoadPublishers() {
   // TODO(unassigned): this is a one-shot: we won't be able to
   // edit publisher's file manually with any effect after router start
   if (m_Subscribers.empty()) {
-    auto publishers = GetPublishersFilename();
+    auto publishers = GetDefaultPublishersFilename();
     LogPrint(eLogInfo, "AddressBook: loading publisher file ", publishers);
     std::ifstream file(
         i2p::util::filesystem::GetFullPath(publishers),
@@ -187,7 +187,7 @@ void AddressBook::LoadSubscriptionFromPublisher() {
     return;
   }
   // If available, load default subscription from file
-  auto subscription = GetSubscriptionFilename();
+  auto subscription = GetDefaultSubscriptionFilename();
   std::ifstream file(
       i2p::util::filesystem::GetFullPath(subscription),
       std::ofstream::in);
@@ -259,7 +259,7 @@ bool AddressBook::ValidateSubscriptionThenSaveToStorage(
   // Save to subscription file if default file does not exist
   // TODO(unassigned): extend this to append new hosts (when other subscriptions are used)
   bool file_exists = false;
-  auto filename = GetSubscriptionFilename();
+  auto filename = GetDefaultSubscriptionFilename();
   std::ofstream file;
   if (!boost::filesystem::exists(i2p::util::filesystem::GetFullPath(filename))) {   // TODO(anonimal): throw gets into address book storage
     file.open(

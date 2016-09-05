@@ -105,8 +105,8 @@ void AddressBookFilesystemStorage::RemoveAddress(
 std::size_t AddressBookFilesystemStorage::Load(
     std::map<std::string, i2p::data::IdentHash>& addresses) {
   std::size_t num = 0;
-  auto filename = GetAddressesFilenamePath();
-  std::ifstream file(filename, std::ofstream::in);
+  auto filename = GetAddressBookPath() / GetDefaultAddressesFilename();
+  std::ifstream file(filename.string(), std::ofstream::in);
   if (file.is_open()) {
     addresses.clear();
     while (!file.eof()) {
@@ -136,8 +136,8 @@ std::size_t AddressBookFilesystemStorage::Load(
 std::size_t AddressBookFilesystemStorage::Save(
     const std::map<std::string, i2p::data::IdentHash>& addresses) {
   std::size_t num = 0;
-  auto filename = GetAddressesFilenamePath();
-  std::ofstream file(filename, std::ofstream::out);
+  auto filename = GetAddressBookPath() / GetDefaultAddressesFilename();
+  std::ofstream file(filename.string(), std::ofstream::out);
   if (file.is_open()) {
     for (auto it : addresses) {
       file << it.first << "," << it.second.ToBase32() << std::endl;

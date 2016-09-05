@@ -70,7 +70,7 @@ enum struct SubscriberTimeout : std::uint16_t {
 class AddressBookSubscriber;
 /// @class AddressBook
 /// @brief Address book implementation
-class AddressBook {
+class AddressBook : public AddressBookDefaults {
  public:
   /// @brief Initializes defaults for address book implementation
   AddressBook()
@@ -187,28 +187,6 @@ class AddressBook {
   /// @brief Loads hosts file (subscription)
   /// @details If not on filesystem, downloads subscription from a publisher
   void LoadSubscriptionFromPublisher();
-
-  /// @brief Gets default publishers filename
-  /// @return Const reference to publishers filename
-  /// @notes A publishers file holds a list of publisher addresses
-  ///   of whom publish 'subscriptions' that contain a list of hosts to .b32.i2p
-  const std::string& GetPublishersFilename() {
-    return AddressBookDefaults.at("PublishersFilename");
-  }
-
-  /// @brief Gets default publishers URI
-  /// @return Const reference to publishers URI
-  /// @notes A default publisher is used if no publishers file is available
-  const std::string& GetDefaultPublisherURI() {
-    return AddressBookDefaults.at("PublisherURI");
-  }
-
-  /// @brief Gets default subscription filename
-  /// @return Const reference to subscription filename
-  /// @notes Filename used by publishers when they publish a 'subscription'
-  const std::string& GetSubscriptionFilename() {
-    return AddressBookDefaults.at("SubscriptionFilename");
-  }
 
   /**
   // TODO(unassigned): currently unused

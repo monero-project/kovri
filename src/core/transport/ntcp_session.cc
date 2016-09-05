@@ -795,12 +795,12 @@ void NTCPSession::ReceivePayload() {
 void NTCPSession::HandleReceivedPayload(
     const boost::system::error_code& ecode,
     std::size_t bytes_transferred) {
-  // EOF errors are expected for short messages, so ignoring them is fine
-  // as long as bytes_transferred is nonzero
-  if (ecode && (ecode != boost::asio::error::eof || !bytes_transferred)) {
+
+  // EOF errors are expected for short messages, so ignoring them here is fine
+  if (ecode && (ecode != boost::asio::error::eof)) {
     LogPrint(eLogError,
-        "NTCPSession:", GetFormattedSessionInfo(),
-        "!!! HandleReceivedPayload(): '", ecode.message(), "'");
+      "NTCPSession:", GetFormattedSessionInfo(),
+      "!!! HandleReceivedPayload(): '", ecode.message(), "'");
     if (!m_NumReceivedBytes) {
       // Ban peer
       LogPrint(eLogInfo,
@@ -808,58 +808,41 @@ void NTCPSession::HandleReceivedPayload(
       m_Server.Ban(shared_from_this());
     }
     Terminate();
-  } else {
-    m_NumReceivedBytes += bytes_transferred;
-    LogPrint(eLogDebug,
-        "NTCPSession:", GetFormattedSessionInfo(),
-        "--> ", bytes_transferred, " bytes transferred, ",
-        GetNumReceivedBytes(), " total bytes received");
-    i2p::transport::transports.UpdateReceivedBytes(bytes_transferred);
-    m_ReceiveBufferOffset += bytes_transferred;
-    if (m_ReceiveBufferOffset >= static_cast<std::size_t>(NTCPSize::iv)) {
-      std::size_t num_reloads = 0;
-      do {
-        std::uint8_t* next_block = m_ReceiveBuffer;
-        while (m_ReceiveBufferOffset >= static_cast<std::size_t>(NTCPSize::iv)) {
-          if (!DecryptNextBlock(next_block)) {  // 16 bytes
-            Terminate();
-            return;
-          }
-          next_block += static_cast<std::size_t>(NTCPSize::iv);
-          m_ReceiveBufferOffset -= static_cast<std::size_t>(NTCPSize::iv);
-        }
-        if (m_ReceiveBufferOffset > 0)
-          memcpy(m_ReceiveBuffer, next_block, m_ReceiveBufferOffset);
-        // Try to read more
-        if (num_reloads < 5) {  // TODO(unassigned): document 5
-          boost::system::error_code ec;
-          std::size_t more_bytes = m_Socket.available(ec);
-          if (more_bytes) {
-            if (more_bytes >
-                static_cast<std::size_t>(NTCPSize::buffer) - m_ReceiveBufferOffset)
-              more_bytes =
-                static_cast<std::size_t>(NTCPSize::buffer) - m_ReceiveBufferOffset;
-            more_bytes = m_Socket.read_some(
-                boost::asio::buffer(
-                  m_ReceiveBuffer + m_ReceiveBufferOffset,
-                  more_bytes));
-            if (ec) {
-              LogPrint(eLogError,
-                  "NTCPSession:", GetFormattedSessionInfo(),
-                  "!!! HandleReceivedPayload(): read more bytes error '",
-                  ec.message(), "'");
-              Terminate();
-              return;
-            }
-            m_NumReceivedBytes += more_bytes;
-            m_ReceiveBufferOffset += more_bytes;
-            num_reloads++;
-          }
-        }
-      }
-      while (m_ReceiveBufferOffset >= static_cast<std::size_t>(NTCPSize::iv));
-      m_Handler.Flush();
+    return;
+  }
+
+  const std::size_t blockSize = static_cast<std::size_t>(NTCPSize::iv);
+
+  m_NumReceivedBytes += bytes_transferred;
+  LogPrint(eLogDebug,
+    "NTCPSession:", GetFormattedSessionInfo(),
+    "--> ", bytes_transferred, " bytes transferred, ",
+    GetNumReceivedBytes(), " total bytes received");
+  i2p::transport::transports.UpdateReceivedBytes(bytes_transferred);
+  m_ReceiveBufferOffset += bytes_transferred;
+  // Decrypt as many 16 byte blocks as possible
+  std::uint8_t* next_block = m_ReceiveBuffer;
+  while(m_ReceiveBufferOffset >= blockSize) {
+    // Try to decrypt one block
+    if (!DecryptNextBlock(next_block)) {
+      Terminate();
+      return;
     }
+    next_block += blockSize;
+    m_ReceiveBufferOffset -= blockSize;
+  } 
+  if(m_ReceiveBufferOffset > 0) // Do we have an incomplete block?
+    std::memcpy(m_ReceiveBuffer, next_block, m_ReceiveBufferOffset);
+
+  // Stop reading data in one of the following cases 
+  // - there was an EOF error (connection closed by remote)
+  // - the maximum message size has been reached
+  if (ecode == boost::asio::error::eof
+      || m_NumReceivedBytes >= static_cast<std::size_t>(NTCPSize::max_message)) {
+    m_Handler.Flush();
+    Terminate();
+  } else {
+    m_Handler.Flush();
     ScheduleTermination();  // Reset termination timer
     ReceivePayload();
   }

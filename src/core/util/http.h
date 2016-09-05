@@ -33,6 +33,8 @@
 #ifndef SRC_CORE_UTIL_HTTP_H_
 #define SRC_CORE_UTIL_HTTP_H_
 
+// TODO(anonimal): cleanup headers
+
 #include <boost/algorithm/string.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
@@ -40,10 +42,12 @@
 #include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
 
-#include <openssl/bn.h>
-#include <openssl/err.h>
-#include <openssl/ssl.h>
+// cpp-netlib
+#define BOOST_NETWORK_ENABLE_HTTPS
+#include <boost/network/include/http/client.hpp>
+#include <boost/network/uri.hpp>
 
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -54,78 +58,208 @@
 #include "log.h"
 #include "reseed.h"
 
+// TODO(anonimal): fix certificates for i2*.manas.ca and downloads.getmonero.org
+
 namespace i2p {
 namespace util {
-namespace http {
+namespace http {  // TODO(anonimal): consider removing this namespace (its not needed)
 
-// TODO(anonimal): refactor everything in this namespace with cpp-netlib
-// Will require review/refactor of AddressBook
-
-/// @class URI
-/// @brief Provides functionality for preparing a URI
-class URI {
- public:
-  /// @param uri The URI string to be parsed
-  /// @note The default port is 80, for HTTPS it is 443
-  /// @return False if URI is invalid, true if valid
-  bool Parse(
-      const std::string& uri);
-
-  /// @return The decoded URI as string
-  std::string Decode(
-      const std::string& data);
-
-  // TODO(anonimal): consider Get/Set functions if we keep class URI
-  std::string m_Protocol, m_Host, m_Port, m_Path, m_Query;
+/// @enum Timeout
+/// @brief Constants used for HTTP timeout lengths when downloading
+/// @notes Scoped to prevent namespace pollution (otherwise, purely stylistic)
+enum struct Timeout : std::uint8_t {
+  // Seconds
+  Request = 45,  // Java I2P defined
+  Receive = 30,
 };
 
-/**
- * Provides functionality for implementing HTTP
- */
-class HTTP {
+/// @class HTTPStorage
+/// @brief Storage for class HTTP
+class HTTPStorage {
  public:
-  /**
-   * @return the result of the download, or an empty string if it fails
-   */
+  /// @brief Set URI path to test against future downloads
+  /// @param path URI path
+  /// @notes Needed in conjunction with ETag
+  void SetPath(
+      const std::string& path) {
+    m_Path.assign(path);
+  }
+
+  /// @brief Get previously set URI path
+  /// @notes Needed in conjunction with ETag
+  const std::string GetPreviousPath() {
+    return m_Path;
+  }
+
+  /// @brief Set ETag member from response header
+  void SetETag(
+      const std::string& etag) {
+    m_ETag.assign(etag);
+  }
+
+  /// @brief Get previously set ETag member from response header
+  /// @return ETag value
+  const std::string& GetPreviousETag() {
+    return m_ETag;
+  }
+
+  /// @brief Set Last-Modified member from response header
+  void SetLastModified(
+      const std::string& last_modified) {
+    m_LastModified.assign(last_modified);
+  }
+
+  /// @brief Get previously set Last-Modified member from response header
+  /// @return Last-Modified value
+  const std::string& GetPreviousLastModified() {
+    return m_LastModified;
+  }
+
+  /// @brief Sets downloaded contents to stream
+  /// @notes Called after completed download
+  void SetDownloadedContents(
+      const std::string& stream) {
+    m_Stream.assign(stream);
+  }
+
+  /// @brief Gets downloaded contents after successful download
+  /// @return String of downloaded contents
+  /// @notes Called after completed download
+  const std::string& GetDownloadedContents() {
+    return m_Stream;
+  }
+
+ private:
+  /// @var m_Path
+  /// @brief Path value from a 1st request that can be tested against later
+  /// @notes If path is same as previous request, apply required header values
+  std::string m_Path;
+
+  /// @var m_ETag
+  /// @brief ETag value from response header
+  /// @notes Used primarily for subscriptions. Can be extended to auto-update
+  std::string m_ETag;
+
+  /// @var m_LastModified
+  /// @brief Last-Modified value from response header
+  /// @notes Used primarily for subscriptions. Can be extended to auto-update
+  std::string m_LastModified;
+
+  /// @var m_Stream
+  /// @brief Downloaded contents
+  std::string m_Stream;  // TODO(anonimal): consider refactoring into an actual stream
+};
+
+/// @class HTTP
+/// @brief Provides functionality for implementing HTTP/S
+/// @details URI is typically passed to ctor. Otherwise, see below.
+/// @notes Vocabulary:
+///   Clearnet: Connections made outside of the I2P network
+///   In-net: Connections made within the I2P network
+class HTTP : public HTTPStorage {
+ public:
+  HTTP() {}  // for HTTPProxy and tests
+  ~HTTP() {}
+
+  HTTP(const std::string& uri)
+      : m_URI(uri) {}
+
+  /// @brief Set cpp-netlib URI object if not set with ctor
+  /// @param uri String URI (complete)
+  void SetURI(
+      const std::string& uri) {
+    // Remove existing URI if set
+    if (!m_URI.string().empty()) {
+      boost::network::uri::uri new_uri;
+      m_URI.swap(new_uri);
+    }
+    // Set new URI
+    m_URI.append(uri);
+  }
+
+  /// @brief Get initialized URI
+  /// @return cpp-netlib URI object
+  boost::network::uri::uri GetURI() {
+    return m_URI;
+  }
+
+  /// @brief Tests if TLD is I2P and set default ports for in-net downloading
+  /// @return True if TLD is .i2p
+  /// @notes The default port is 80, for HTTPS it is 443
+  /// @notes Removing this will require refactoring stream implementation
+  bool HostIsI2P();
+
+  /// @brief Downloads parameter URI
+  /// @param uri String URI
+  /// @details Sets member URI with param uri, calls Download()
+  /// @return Bool result of Download()
+  /// @notes Only used if URI not initialized with ctor
   bool Download(
-      const std::string& address);
+      const std::string& uri);
 
-  /**
-   * Header for HTTP requests.
-   * @return a string of the complete header
-   * @warning this function does NOT append an additional \r\n
-   */
-  const std::string Header(
-      const std::string& path,
-      const std::string& host,
-      const std::string& version);
+  /// @brief Download wrapper function for clearnet and in-net download
+  /// @return False on failure
+  bool Download();
 
-  /**
-   * @return the content of the given HTTP stream without headers
-   */
-  const std::string GetContent(
-      std::istream& response);
+  /// @brief Decode URI in HTTP proxy request
+  /// @return The decoded URI as string
+  std::string HTTPProxyDecode(
+      const std::string& data);
 
-  /**
-   * Merge chunks of an HTTP response.
-   */
-  void MergeChunkedResponse(
+ private:
+  /// @brief Downloads over clearnet
+  /// @return False on failure
+  bool DownloadViaClearnet();
+
+  /// @brief Downloads within I2P
+  /// @return False on failure
+  /// @notes Used for address book and for future in-net autoupdates
+  bool DownloadViaI2P();
+
+ private:
+  /// @var m_URI
+  /// @brief cpp-netlib URI instance
+  boost::network::uri::uri m_URI;
+
+  // TODO(anonimal): consider removing typedefs after refactor
+  // TODO(anonimal): remove the following notes after refactor
+
+  /// @brief HTTP client object
+  /// @notes Currently only applies to clearnet download
+  typedef boost::network::http::client Client;
+
+  /// @brief HTTP client options object (timeout, SNI, etc.)
+  /// @notes Currently only applies to clearnet download
+  typedef boost::network::http::client::options Options;
+
+  /// @brief HTTP client request object (header, etc.)
+  /// @notes Currently only applies to clearnet download
+  typedef boost::network::http::client::request Request;
+
+  /// @brief HTTP client response object (body, status, etc.)
+  /// @notes Currently only applies to clearnet download
+  typedef boost::network::http::client::response Response;
+
+ public:
+  // TODO(anonimal): remove after refactor
+  /// @brief Prepares header for in-net request
+  void PrepareI2PRequest();
+
+  // TODO(anonimal): remove after refactor
+  /// @brief Process in-net HTTP response
+  /// @return True if processing was successful
+  bool ProcessI2PResponse();
+
+  // TODO(anonimal): remove after refactor
+  /// @brief Merge chunks of an in-net HTTP response
+  void MergeI2PChunkedResponse(
       std::istream& response,
       std::ostream& merged);
 
- public:
-  /**
-   * Used almost exclusively by Addressbook
-   */
-  const std::string ETAG = "ETag";
-  const std::string IF_NONE_MATCH = "If-None-Match";
-  const std::string IF_MODIFIED_SINCE = "If-Modified-Since";
-  const std::string LAST_MODIFIED = "Last-Modified";
-  const std::string TRANSFER_ENCODING = "Transfer-Encoding";
-
- public:
-  std::string m_Stream;  // Downloaded stream
-  std::uint16_t m_Status;  // HTTP Response Code
+ private:
+  // TODO(anonimal): remove after refactor
+  /// @brief In-net HTTP request and response
+  std::stringstream m_Request, m_Response;
 };
 
 }  // namespace http

@@ -50,12 +50,13 @@
 #include "destination.h"
 #include "router_context.h"
 #include "util/base64.h"
+#include "util/http.h"
 #include "util/log.h"
 
 namespace i2p {
 namespace client {
 
-/// @enum SubscriptionTimeout
+/// @enum SubscriberTimeout
 /// @brief Constants used for timeout intervals when fetching subscriptions
 /// @notes Scoped to prevent namespace pollution (otherwise, purely stylistic)
 enum struct SubscriberTimeout : std::uint16_t {
@@ -64,9 +65,6 @@ enum struct SubscriberTimeout : std::uint16_t {
   InitialRetry = 1,
   ContinuousUpdate = 720,  // 12 hours
   ContinuousRetry = 5,
-  // Seconds
-  Request = 60,
-  Receive = 30,
 };
 
 class AddressBookSubscriber;
@@ -78,9 +76,8 @@ class AddressBook {
   AddressBook()
       : m_SharedLocalDestination(nullptr),
         m_Storage(nullptr),
-        m_DefaultSubscriber(nullptr),
         m_SubscriberUpdateTimer(nullptr),
-        m_HostsAreLoaded(false),
+        m_SubscriptionIsLoaded(false),
         m_SubscriberIsDownloading(false) {}
 
   /// @brief Stops address book implementation
@@ -195,8 +192,8 @@ class AddressBook {
   /// @return Const reference to publishers filename
   /// @notes A publishers file holds a list of publisher addresses
   ///   of whom publish 'subscriptions' that contain a list of hosts to .b32.i2p
-  const std::string& GetDefaultPublishersFilename() {
-    return AddressBookDefaults.at("PublisherFilename");
+  const std::string& GetPublishersFilename() {
+    return AddressBookDefaults.at("PublishersFilename");
   }
 
   /// @brief Gets default publishers URI
@@ -209,7 +206,7 @@ class AddressBook {
   /// @brief Gets default subscription filename
   /// @return Const reference to subscription filename
   /// @notes Filename used by publishers when they publish a 'subscription'
-  const std::string& GetDefaultSubscriptionFilename() {
+  const std::string& GetSubscriptionFilename() {
     return AddressBookDefaults.at("SubscriptionFilename");
   }
 
@@ -246,19 +243,14 @@ class AddressBook {
   /// @brief Vector of unique pointers to respective subscriber implementation
   std::vector<std::unique_ptr<AddressBookSubscriber>> m_Subscribers;
 
-  /// @var m_DefaultSubscriber
-  /// @brief Unique pointer to address book subscriber implementation
-  /// @notes Used if we don't have any publisher addresses on file
-  std::unique_ptr<AddressBookSubscriber> m_DefaultSubscriber;
-
   /// @var m_SubscriberUpdateTimer
   /// @brief Unique pointer to Boost.Asio deadline_timer
   /// @details Handles all timer-related needs for subscription fetching
   std::unique_ptr<boost::asio::deadline_timer> m_SubscriberUpdateTimer;
 
-  /// @var m_HostsAreLoaded
+  /// @var m_SubscriptionIsLoaded
   /// @brief Are hosts loaded into memory?
-  std::atomic<bool> m_HostsAreLoaded;
+  std::atomic<bool> m_SubscriptionIsLoaded;
 
   /// @var m_SubscriberIsDownloading
   /// @brief Are subscriptions in the process of being downloaded?
@@ -274,7 +266,7 @@ class AddressBookSubscriber {
       AddressBook& book,
       const std::string& uri)
       : m_Book(book),
-        m_URI(uri) {}
+        m_HTTP(uri) {}
 
   /// @brief Instantiates thread that fetches in-net subscriptions
   void DownloadSubscription();
@@ -284,12 +276,13 @@ class AddressBookSubscriber {
   /// @warning Must be run in separate thread
   void DownloadSubscriptionImpl();
 
- private:
   /// @var m_Book
   /// @brief Reference to address book implementation
   AddressBook& m_Book;
-  // Used for HTTP request  // TODO(anonimal): remove when refactored with cpp-netlib
-  std::string m_URI, m_Etag, m_LastModified;
+
+  /// @var m_HTTP
+  /// @brief HTTP instance for subscribing to publisher
+  i2p::util::http::HTTP m_HTTP;
 };
 
 }  // namespace client

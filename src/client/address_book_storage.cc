@@ -105,7 +105,7 @@ void AddressBookFilesystemStorage::RemoveAddress(
 std::size_t AddressBookFilesystemStorage::Load(
     std::map<std::string, i2p::data::IdentHash>& addresses) {
   std::size_t num = 0;
-  auto filename = GetAddressesFilename();
+  auto filename = GetAddressesFilenamePath();
   std::ifstream file(filename, std::ofstream::in);
   if (file.is_open()) {
     addresses.clear();
@@ -120,7 +120,7 @@ std::size_t AddressBookFilesystemStorage::Load(
         std::string addr = host.substr(pos);
         i2p::data::IdentHash ident;
         ident.FromBase32(addr);
-        addresses[name] = ident;
+        addresses[name] = ident;  // TODO(anonimal): bounds checking
         num++;
       }
     }
@@ -136,16 +136,18 @@ std::size_t AddressBookFilesystemStorage::Load(
 std::size_t AddressBookFilesystemStorage::Save(
     const std::map<std::string, i2p::data::IdentHash>& addresses) {
   std::size_t num = 0;
-  auto filename = GetAddressesFilename();
+  auto filename = GetAddressesFilenamePath();
   std::ofstream file(filename, std::ofstream::out);
   if (file.is_open()) {
     for (auto it : addresses) {
       file << it.first << "," << it.second.ToBase32() << std::endl;
       num++;
     }
-    LogPrint(eLogInfo, "AddressBookFilesystemStorage: ", num, " addresses saved");
+    LogPrint(eLogInfo,
+        "AddressBookFilesystemStorage: ", num, " addresses saved");
   } else {
-    LogPrint(eLogError, "AddressBookFilesystemStorage: can't open file ", filename);
+    LogPrint(eLogError,
+        "AddressBookFilesystemStorage: can't open file ", filename);
   }
   return num;
 }

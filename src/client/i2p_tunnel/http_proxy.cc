@@ -309,8 +309,8 @@ void HTTPProxyHandler::HandleJumpService() {
   }
   auto base64 = m_Path.substr(pos + m_JumpService.at(0).size());
   // We must decode
-  i2p::util::http::URI uri;
-  base64 = uri.Decode(base64);
+  i2p::util::http::HTTP uri;
+  base64 = uri.HTTPProxyDecode(base64);
   // Insert into address book
   LogPrint(eLogDebug,
       "HTTPProxyHandler: jump service for ", m_Address,

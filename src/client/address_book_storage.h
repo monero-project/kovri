@@ -52,6 +52,7 @@
 namespace i2p {
 namespace client {
 
+// TODO(anonimal): remove this map in favor of a struct for defaults
 /// @var AddressBookDefaults
 /// @brief Default string constants used throughout address book
 const std::unordered_map<std::string, std::string> AddressBookDefaults = {
@@ -60,9 +61,11 @@ const std::unordered_map<std::string, std::string> AddressBookDefaults = {
     // TODO(anonimal): "addresses" is confusing and so is its real purpose
     // (currently only used to verify that addresses have indeed been saved)
     { "AddressesFilename", "addresses.csv" },
-    { "PublisherFilename", "publishers.txt" },
+    { "PublishersFilename", "publishers.txt" },
     // TODO(unassigned): replace with Monero's b32 publisher service
     { "PublisherURI", "https://downloads.getmonero.org/kovri/hosts.txt" },
+    // Below is only used for testing in-net download (this is *not* our default subscription)
+    //{ "PublisherURI", "http://udhdrtrcetjm5sxzskjyr5ztpeszydbh4dpl3pl4utgqqw2v4jna.b32.i2p/hosts.txt" },
 };
 
 /// @class AddressBookStorage
@@ -133,9 +136,11 @@ class AddressBookFilesystemStorage : public AddressBookStorage {
       const std::map<std::string, i2p::data::IdentHash>& addresses);
 
  private:
-  /// @brief Gets addresses filename (file list of saved addresses)
+  // TODO(anonimal): move Get* defaults here, refactor filename versus full path
+
+  /// @brief Gets addresses file (file list of saved addresses)
   /// @return Const reference to addresses filename
-  const std::string& GetAddressesFilename() {
+  const std::string GetAddressesFilenamePath() {
     return (GetAddressBookPath() / AddressBookDefaults.at("AddressesFilename")).string();
   }
 

@@ -784,7 +784,7 @@ void NTCPSession::ReceivePayload() {
       boost::asio::buffer(
           m_ReceiveBuffer + m_ReceiveBufferOffset,
           static_cast<std::size_t>(NTCPSize::buffer) - m_ReceiveBufferOffset),
-      boost::asio::transfer_all(),
+      boost::asio::transfer_at_least(static_cast<std::size_t>(NTCPSize::iv)),
       std::bind(
           &NTCPSession::HandleReceivedPayload,
           shared_from_this(),
@@ -795,6 +795,13 @@ void NTCPSession::ReceivePayload() {
 void NTCPSession::HandleReceivedPayload(
     const boost::system::error_code& ecode,
     std::size_t bytes_transferred) {
+
+  // EOF and zero bytes transferred implies that everything has been read and
+  //  the remote has closed to connnection
+  if (ecode == boost::asio::error::eof && bytes_transferred == 0) {
+    Terminate();
+    return;
+  }
 
   // EOF errors are expected for short messages, so ignoring them here is fine
   if (ecode && (ecode != boost::asio::error::eof)) {
@@ -839,11 +846,8 @@ void NTCPSession::HandleReceivedPayload(
   //  (some of these flushes won't have any effect at all)
   m_Handler.Flush();
 
-  // Stop reading data if at least one of the following conditons holds
-  // - there was an EOF error (connection closed by remote)
-  // - the maximum message size has been reached
-  if (ecode == boost::asio::error::eof
-      || m_NumReceivedBytes >= static_cast<std::size_t>(NTCPSize::max_message)) {
+  // Stop reading data if  there was an EOF error (connection closed by remote).
+  if (ecode == boost::asio::error::eof) {
     Terminate();
   } else {
     ScheduleTermination();  // Reset termination timer

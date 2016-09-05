@@ -204,9 +204,6 @@ void NTCPServer::Connect(
       context.GetRouterInfo().GetIdentHashAbbreviation(), "] ",
       address , ":",  port);
 
-  m_Service.post([conn, this]() {
-      this->AddNTCPSession(conn);
-  });
   conn->GetSocket().async_connect(
       boost::asio::ip::tcp::endpoint(
           address,
@@ -238,6 +235,10 @@ void NTCPServer::HandleConnect(
       context.UpdateNTCPV6Address(
           conn->GetSocket().local_endpoint().address());
     conn->ClientLogin();
+
+    m_Service.post([conn, this]() {
+        this->AddNTCPSession(conn);
+    });
   }
 }
 

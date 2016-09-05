@@ -122,7 +122,8 @@ int GetMTUUnix(
     if (fd > 0) {
       ifreq ifr;
       // set interface for query
-      strcpy(ifr.ifr_name, ifa->ifa_name);
+      strncpy(ifr.ifr_name, ifa->ifa_name,IFNAMSIZ);
+      ifr.ifr_name[IFNAMSIZ]='\0';
       if (ioctl(fd, SIOCGIFMTU, &ifr) >= 0)
         mtu = ifr.ifr_mtu;  // MTU
       else

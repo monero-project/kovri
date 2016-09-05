@@ -837,22 +837,23 @@ void NTCPSession::HandleReceivedPayload(
     }
     next_block += blockSize;
     m_ReceiveBufferOffset -= blockSize;
-  } 
-  if(m_ReceiveBufferOffset > 0) // Do we have an incomplete block?
+  }
+  if (m_ReceiveBufferOffset > 0) // Do we have an incomplete block?
     std::memcpy(m_ReceiveBuffer, next_block, m_ReceiveBufferOffset);
 
-  // TODO(unassigned): Only flush when the I2NP message has been put in
-  //  the I2NPMessagesHandler
-  //  (some of these flushes won't have any effect at all)
-  m_Handler.Flush();
-
-  // Stop reading data if  there was an EOF error (connection closed by remote).
-  if (ecode == boost::asio::error::eof) {
-    Terminate();
-  } else {
-    ScheduleTermination();  // Reset termination timer
-    ReceivePayload();
+  // Flush and reset termination timer if a full message was read
+  if (m_NextMessage == nullptr) {
+    m_Handler.Flush();
+    // EOF will terminate immediately, no need to reschedule
+    if (ecode != boost::asio::error::eof)
+      ScheduleTermination();
   }
+
+  // Stop reading data if there was an EOF error (connection closed by remote).
+  if (ecode == boost::asio::error::eof)
+    Terminate();
+  else
+    ReceivePayload();
 }
 
 bool NTCPSession::DecryptNextBlock(
@@ -1102,7 +1103,8 @@ void NTCPSession::Terminate() {
         "NTCPSession:", GetFormattedSessionInfo(), "*** terminating session");
     m_IsTerminated = true;
     m_IsEstablished = false;
-    m_Socket.close();
+    boost::system::error_code ec;
+    m_Socket.close(ec);
     transports.PeerDisconnected(shared_from_this());
     m_Server.RemoveNTCPSession(shared_from_this());
     m_SendQueue.clear();

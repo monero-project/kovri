@@ -85,7 +85,9 @@ bool ParseArgs(
     ("floodfill,f", bpo::value<bool>()->default_value(false))
     ("bandwidth,b", bpo::value<std::string>()->default_value("L"))
     ("reseed-from,r", bpo::value<std::string>()->default_value(""))
-    ("reseed-skip-ssl-check", bpo::value<bool>()->default_value(false));
+    ("reseed-skip-ssl-check", bpo::value<bool>()->default_value(false))
+    ("enable-ssu", bpo::value<bool>()->default_value(true))
+    ("enable-ntcp", bpo::value<bool>()->default_value(true));
 
   bpo::options_description client("\nclient");
   client.add_options()

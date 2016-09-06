@@ -87,7 +87,7 @@ class DHKeysPairSupplier {
       std::size_t num);
 
  private:
-  const int m_QueueSize;
+  const std::size_t m_QueueSize;
   bool m_IsRunning;
   std::queue<std::unique_ptr<DHKeysPair>> m_Queue;
   std::unique_ptr<std::thread> m_Thread;

@@ -80,9 +80,8 @@ void DHKeysPairSupplier::Stop() {
 void DHKeysPairSupplier::Run() {
   LogPrint(eLogDebug, "DHKeysPairSupplier: running");
   while (m_IsRunning) {
-    std::size_t num;
-    while ((num = m_QueueSize - m_Queue.size ()) > 0)
-      CreateDHKeysPairs(num);
+    if (m_QueueSize > m_Queue.size ())
+      CreateDHKeysPairs(m_QueueSize - m_Queue.size());
     std::unique_lock<std::mutex> l(m_AcquiredMutex);
     m_Acquired.wait(l);  // wait for element gets acquired
   }
@@ -91,15 +90,13 @@ void DHKeysPairSupplier::Run() {
 void DHKeysPairSupplier::CreateDHKeysPairs(
     std::size_t num) {
   LogPrint(eLogDebug, "DHKeysPairSupplier: creating");
-  if (num > 0) {
-    for (std::size_t i = 0; i < num; i++) {
-      auto pair = std::make_unique<i2p::transport::DHKeysPair>();
-      i2p::crypto::DiffieHellman().GenerateKeyPair(
-          pair->private_key.data(),
-          pair->public_key.data());
-      std::unique_lock<std::mutex>  l(m_AcquiredMutex);
-      m_Queue.push(std::move(pair));
-    }
+  for (std::size_t i = 0; i < num; i++) {
+    auto pair = std::make_unique<i2p::transport::DHKeysPair>();
+    i2p::crypto::DiffieHellman().GenerateKeyPair(
+        pair->private_key.data(),
+        pair->public_key.data());
+    std::unique_lock<std::mutex>  l(m_AcquiredMutex);
+    m_Queue.push(std::move(pair));
   }
 }
 
@@ -137,6 +134,7 @@ Transports::Transports()
       m_PeerCleanupTimer(m_Service),
       m_NTCPServer(nullptr),
       m_SSUServer(nullptr),
+      // TODO(unassigned): get rid magic number
       m_DHKeysPairSupplier(5),  // 5 pre-generated keys
       m_TotalSentBytes(0),
       m_TotalReceivedBytes(0),

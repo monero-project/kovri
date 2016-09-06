@@ -156,8 +156,8 @@ class AddressBookFilesystemStorage
   std::size_t Load(
       std::map<std::string, i2p::data::IdentHash>& addresses);
 
-  /// @brief Saves subscriptions to file in CSV format // TODO(anonimal): why CSV?
-  /// @return Number of subscriptions saved
+  /// @brief Saves subscriptions to file in CSV format to verify addresses loaded
+  /// @return Number of addresses saved
   /// @param addresses Const reference to map of human-readable address to b32 hashes of address
   std::size_t Save(
       const std::map<std::string, i2p::data::IdentHash>& addresses);

@@ -149,12 +149,13 @@ void AddressBook::SubscriberUpdateTimer(
     if (m_SubscriptionIsLoaded
         && !m_SubscriberIsDownloading
         && m_SharedLocalDestination->IsReady()) {
-      // Pick a random subscription if user has multiple publishers
-      // TODO(anonimal): subscribers size and bounds checking
+      // Pick a random subscription if subscriptions count is > 0
+      // At first this may look questionable but, by this point,
+      // we're guaranteed to have at least one subscriber
       auto publisher =
         i2p::crypto::RandInRange<std::size_t>(0, m_Subscribers.size() - 1);
       m_SubscriberIsDownloading = true;
-      m_Subscribers[publisher]->DownloadSubscription();
+      m_Subscribers.at(publisher)->DownloadSubscription();
     } else {
       if (!m_SubscriptionIsLoaded) {
         // If subscription not available, will attempt download with subscriber
@@ -356,7 +357,7 @@ void AddressBook::InsertAddressIntoStorage(
   if (!m_Storage)
     m_Storage = GetNewStorageInstance();
   m_Storage->AddAddress(ident);
-  m_Addresses[address] = ident.GetIdentHash();  // TODO(anonimal): bounds checking
+  m_Addresses[address] = ident.GetIdentHash();
   LogPrint(eLogInfo,
       "AddressBook: ", address, "->",
       GetB32AddressFromIdentHash(ident.GetIdentHash()), " added");

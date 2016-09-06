@@ -70,7 +70,10 @@ bool AddressBookFilesystemStorage::GetAddress(
     file.seekg(0, std::ios::beg);
     auto buf = std::make_unique<std::uint8_t[]>(len);
     file.read(reinterpret_cast<char *>(buf.get()), len);
-    address.FromBuffer(buf.get(), len);  // TODO(anonimal): test return for sanity
+    // For sanity, the validity of identity length is incumbent upon the parent caller.
+    // For now, we only care about returning success for an open/available file
+    // TODO(unassigned): triple check that this is the case
+    address.FromBuffer(buf.get(), len);
     return true;
   } else {
     return false;
@@ -84,7 +87,9 @@ void AddressBookFilesystemStorage::AddAddress(
   if (file.is_open()) {
     std::size_t len = address.GetFullLen();
     auto buf = std::make_unique<std::uint8_t[]>(len);
-    address.ToBuffer(buf.get(), len); // TODO(anonimal): test return for sanity
+    // For sanity, the validity of identity length is incumbent upon the parent caller.
+    // TODO(unassigned): triple check that this is the case
+    address.ToBuffer(buf.get(), len);
     file.write(reinterpret_cast<char *>(buf.get()), len);
   } else {
     LogPrint(eLogError,
@@ -120,7 +125,7 @@ std::size_t AddressBookFilesystemStorage::Load(
         std::string addr = host.substr(pos);
         i2p::data::IdentHash ident;
         ident.FromBase32(addr);
-        addresses[name] = ident;  // TODO(anonimal): bounds checking
+        addresses[name] = ident;
         num++;
       }
     }

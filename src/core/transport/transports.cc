@@ -134,7 +134,7 @@ Transports::Transports()
       m_PeerCleanupTimer(m_Service),
       m_NTCPServer(nullptr),
       m_SSUServer(nullptr),
-      // TODO(unassigned): get rid magic number
+      // TODO(unassigned): get rid of magic number
       m_DHKeysPairSupplier(5),  // 5 pre-generated keys
       m_TotalSentBytes(0),
       m_TotalReceivedBytes(0),

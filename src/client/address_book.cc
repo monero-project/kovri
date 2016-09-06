@@ -216,8 +216,9 @@ void AddressBook::LoadSubscriptionFromPublisher() {
 }
 
 void AddressBookSubscriber::DownloadSubscription() {
+  // TODO(unassigned): exception handling
   std::thread download(&AddressBookSubscriber::DownloadSubscriptionImpl, this);
-  download.detach();  // TODO(anonimal): use join
+  download.join();
 }
 
 void AddressBookSubscriber::DownloadSubscriptionImpl() {

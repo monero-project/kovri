@@ -133,8 +133,8 @@ class AddressBook : public AddressBookDefaults {
   }
 
   /// @brief Validates and saves hosts (subscription) from stream into address book
+  /// @param stream Reference to file stream of hosts (subscription)
   /// @return False if malformed host in subscription
-  /// @param file Reference to file stream of hosts (subscription)
   bool ValidateSubscriptionThenSaveToStorage(
       std::istream& stream);
 
@@ -225,6 +225,10 @@ class AddressBook : public AddressBookDefaults {
   /// @brief Unique pointer to Boost.Asio deadline_timer
   /// @details Handles all timer-related needs for subscription fetching
   std::unique_ptr<boost::asio::deadline_timer> m_SubscriberUpdateTimer;
+
+  /// @var m_SubscriptionFileIsReady
+  /// @brief If subscription file is opened and ready for reading/writing
+  std::atomic<bool> m_SubscriptionFileIsReady;
 
   /// @var m_SubscriptionIsLoaded
   /// @brief Are hosts loaded into memory?

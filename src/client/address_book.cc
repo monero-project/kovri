@@ -180,24 +180,25 @@ void AddressBook::LoadSubscriptionFromPublisher() {
   // First, ensure we have a storage instance ready
   if (!m_Storage)
     m_Storage = GetNewStorageInstance();
-  // If so, see if we have subscription available
+  // If so, see if we have addresses from subscription already saved
   if (m_Storage->Load(m_Addresses)) {
     // If so, we don't need to download from a publisher
     m_SubscriptionIsLoaded = true;
     return;
   }
   // If available, load default subscription from file
-  auto subscription = GetDefaultSubscriptionFilename();
+  auto filename = GetDefaultSubscriptionFilename();
   std::ifstream file(
-      i2p::util::filesystem::GetFullPath(subscription),
+      i2p::util::filesystem::GetFullPath(filename),
       std::ofstream::in);
-  LogPrint(eLogInfo, "AddressBook: loading subscription ", subscription);
+  LogPrint(eLogInfo, "AddressBook: loading subscription ", filename);
   if (file.is_open()) {  // Open subscription, validate, and save to storage
+    m_SubscriptionFileIsReady = true;
     if (!ValidateSubscriptionThenSaveToStorage(file))
       LogPrint(eLogWarn,
-          "AddressBook: invalid host in ", subscription, ", not loading");
+          "AddressBook: invalid host in ", filename, ", not loading");
   } else {  // Use default publisher and download
-    LogPrint(eLogWarn, "AddressBook: ", subscription, " not found");
+    LogPrint(eLogWarn, "AddressBook: ", filename, " not found");
     if (!m_SubscriberIsDownloading) {
       if (m_Subscribers.empty()) {
         auto publisher = GetDefaultPublisherURI();
@@ -251,30 +252,28 @@ void AddressBook::HostsDownloadComplete(
   }
 }
 
+// TODO(unassigned): extend this to append new hosts (when other subscriptions are used)
 bool AddressBook::ValidateSubscriptionThenSaveToStorage(
     std::istream& stream) {
+  // Save to subscription file if file does not exist or we have fresh download
   std::unique_lock<std::mutex> lock(m_AddressBookMutex);
+  std::ofstream file;
+  if (!m_SubscriptionFileIsReady) {
+    file.open(
+        i2p::util::filesystem::GetFullPath(GetDefaultSubscriptionFilename()),
+        std::ofstream::out);
+    m_SubscriptionFileIsReady = true;
+  }
+  // Host per line and total number of host addresses
   std::string host;
   std::size_t num_addresses = 0;
-  // Save to subscription file if default file does not exist
-  // TODO(unassigned): extend this to append new hosts (when other subscriptions are used)
-  bool file_exists = false;
-  auto filename = GetDefaultSubscriptionFilename();
-  std::ofstream file;
-  if (!boost::filesystem::exists(i2p::util::filesystem::GetFullPath(filename))) {   // TODO(anonimal): throw gets into address book storage
-    file.open(
-        i2p::util::filesystem::GetFullPath(filename),
-        std::ofstream::out);
-    if (file)
-      file_exists = true;
-  }
   // Read through stream, add to address book
   while (!stream.eof()) {
     getline(stream, host);
     if (!host.length())
       continue;  // skip empty line
-    // If default subscription is not written to disk, write to disk
-    if (file_exists)
+    // File ready, write/overwrite to disk
+    if (m_SubscriptionFileIsReady)
       file << host << std::endl;
     // Parse host from address, save to address book
     std::size_t pos = host.find('=');
@@ -299,6 +298,7 @@ bool AddressBook::ValidateSubscriptionThenSaveToStorage(
     m_Storage->Save(m_Addresses);
     m_SubscriptionIsLoaded = true;
   }
+  m_SubscriptionFileIsReady = false;  // Reset for fresh download
   return m_SubscriptionIsLoaded;
 }
 

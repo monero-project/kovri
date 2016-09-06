@@ -113,11 +113,10 @@ const std::string& GetOptionLogFileName();
 class LogStreamImpl;
 class LogStream : public std::ostream {
  public:
-  LogStream();
-  ~LogStream();
-
   LogStream(
       LogStreamImpl* impl);
+
+  ~LogStream();
 
  private:
   std::unique_ptr<LogStreamImpl> m_LogStreamPimpl;
@@ -126,11 +125,10 @@ class LogStream : public std::ostream {
 class LoggerImpl;
 class Logger {
  public:
-  Logger();
-  ~Logger();
-
   Logger(
       LoggerImpl* impl);
+
+  ~Logger();
 
   /// @return Reference to info level log stream
   LogStream& Info();
@@ -151,13 +149,12 @@ class Logger {
 class LogImpl;
 class Log {
  public:
-  Log();
-  ~Log();
-
   Log(
       LogLevel min_level,
       std::ostream* out_stream,
       const std::string& log_file_name);
+
+  ~Log();
 
   /// @brief Gets global log engine
   /// @return Shared pointer to global log engine

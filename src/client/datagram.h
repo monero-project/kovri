@@ -99,16 +99,16 @@ class DatagramDestination {
  private:
   void HandleLeaseSetRequestComplete(
       std::shared_ptr<i2p::data::LeaseSet> leaseSet,
-      I2NPMessage* msg);
+      std::unique_ptr<I2NPMessage> msg);
 
-  I2NPMessage* CreateDataMessage(
+  std::unique_ptr<I2NPMessage> CreateDataMessage(
       const uint8_t* payload,
       size_t len,
       uint16_t fromPort,
       uint16_t toPort);
 
   void SendMsg(
-      I2NPMessage* msg,
+      std::unique_ptr<I2NPMessage> msg,
       std::shared_ptr<const i2p::data::LeaseSet> remote);
 
   void HandleDatagram(

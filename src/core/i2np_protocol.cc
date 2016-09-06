@@ -57,29 +57,24 @@
 
 namespace i2p {
 
-I2NPMessage* NewI2NPMessage() {
-  return new I2NPMessageBuffer<I2NP_MAX_MESSAGE_SIZE>();
+std::unique_ptr<I2NPMessage> NewI2NPMessage() {
+  return std::make_unique<I2NPMessageBuffer<I2NP_MAX_MESSAGE_SIZE>>();
 }
 
-I2NPMessage* NewI2NPShortMessage() {
-  return new I2NPMessageBuffer<I2NP_MAX_SHORT_MESSAGE_SIZE>();
+std::unique_ptr<I2NPMessage> NewI2NPShortMessage() {
+  return std::make_unique<I2NPMessageBuffer<I2NP_MAX_SHORT_MESSAGE_SIZE>>();
 }
 
-I2NPMessage* NewI2NPMessage(
+std::unique_ptr<I2NPMessage> NewI2NPMessage(
     size_t len) {
   return (len < I2NP_MAX_SHORT_MESSAGE_SIZE / 2) ?
       NewI2NPShortMessage() :
       NewI2NPMessage();
 }
 
-void DeleteI2NPMessage(
-    I2NPMessage* msg) {
-  delete msg;
-}
-
 std::shared_ptr<I2NPMessage> ToSharedI2NPMessage(
-    I2NPMessage* msg) {
-  return std::shared_ptr<I2NPMessage>(msg, DeleteI2NPMessage);
+    std::unique_ptr<I2NPMessage> msg) {
+  return std::shared_ptr<I2NPMessage>(std::move(msg));
 }
 
 void I2NPMessage::FillI2NPMessageHeader(
@@ -104,12 +99,12 @@ void I2NPMessage::RenewI2NPMessageHeader() {
       I2NP_HEADER_DEFAULT_EXPIRATION_TIME);
 }
 
-I2NPMessage* CreateI2NPMessage(
+std::unique_ptr<I2NPMessage> CreateI2NPMessage(
     I2NPMessageType msgType,
     const uint8_t* buf,
     int len,
     uint32_t replyMsgID) {
-  I2NPMessage* msg = NewI2NPMessage(len);
+  std::unique_ptr<I2NPMessage> msg = NewI2NPMessage(len);
   if (msg->len + len < msg->maxLen) {
     memcpy(msg->GetPayload(), buf, len);
     msg->len += len;
@@ -125,7 +120,7 @@ std::shared_ptr<I2NPMessage> CreateI2NPMessage(
     const uint8_t* buf,
     int len,
     std::shared_ptr<i2p::tunnel::InboundTunnel> from) {
-  I2NPMessage* msg = NewI2NPMessage();
+  std::unique_ptr<I2NPMessage> msg = NewI2NPMessage();
   if (msg->offset + len < msg->maxLen) {
     memcpy(msg->GetBuffer(), buf, len);
     msg->len = msg->offset + len;
@@ -134,12 +129,12 @@ std::shared_ptr<I2NPMessage> CreateI2NPMessage(
     LogPrint(eLogError,
         "I2NPMessage: message length ", len, " exceeds max length");
   }
-  return ToSharedI2NPMessage(msg);
+  return ToSharedI2NPMessage(std::move(msg));
 }
 
 std::shared_ptr<I2NPMessage> CreateDeliveryStatusMsg(
     uint32_t msgID) {
-  I2NPMessage* m = NewI2NPShortMessage();
+  std::unique_ptr<I2NPMessage> m = NewI2NPShortMessage();
   uint8_t* buf = m->GetPayload();
   if (msgID) {
     htobe32buf(buf + DELIVERY_STATUS_MSGID_OFFSET, msgID);
@@ -155,7 +150,7 @@ std::shared_ptr<I2NPMessage> CreateDeliveryStatusMsg(
   }
   m->len += DELIVERY_STATUS_SIZE;
   m->FillI2NPMessageHeader(e_I2NPDeliveryStatus);
-  return ToSharedI2NPMessage(m);
+  return ToSharedI2NPMessage(std::move(m));
 }
 
 std::shared_ptr<I2NPMessage> CreateRouterInfoDatabaseLookupMsg(
@@ -552,19 +547,19 @@ void HandleVariableTunnelBuildReplyMsg(
 }
 
 
-I2NPMessage* CreateTunnelDataMsg(
+std::unique_ptr<I2NPMessage> CreateTunnelDataMsg(
     const uint8_t * buf) {
-  I2NPMessage* msg = NewI2NPShortMessage();
+  std::unique_ptr<I2NPMessage> msg = NewI2NPShortMessage();
   memcpy(msg->GetPayload(), buf, i2p::tunnel::TUNNEL_DATA_MSG_SIZE);
   msg->len += i2p::tunnel::TUNNEL_DATA_MSG_SIZE;
   msg->FillI2NPMessageHeader(e_I2NPTunnelData);
   return msg;
 }
 
-I2NPMessage* CreateTunnelDataMsg(
+std::unique_ptr<I2NPMessage> CreateTunnelDataMsg(
     uint32_t tunnelID,
     const uint8_t* payload) {
-  I2NPMessage* msg = NewI2NPShortMessage();
+  std::unique_ptr<I2NPMessage> msg = NewI2NPShortMessage();
   memcpy(msg->GetPayload() + 4, payload, i2p::tunnel::TUNNEL_DATA_MSG_SIZE - 4);
   htobe32buf(msg->GetPayload(), tunnelID);
   msg->len += i2p::tunnel::TUNNEL_DATA_MSG_SIZE;
@@ -573,16 +568,16 @@ I2NPMessage* CreateTunnelDataMsg(
 }
 
 std::shared_ptr<I2NPMessage> CreateEmptyTunnelDataMsg() {
-  I2NPMessage* msg = NewI2NPShortMessage();
+  std::unique_ptr<I2NPMessage> msg = NewI2NPShortMessage();
   msg->len += i2p::tunnel::TUNNEL_DATA_MSG_SIZE;
-  return ToSharedI2NPMessage(msg);
+  return ToSharedI2NPMessage(std::move(msg));
 }
 
-I2NPMessage* CreateTunnelGatewayMsg(
+std::unique_ptr<I2NPMessage> CreateTunnelGatewayMsg(
     uint32_t tunnelID,
     const uint8_t* buf,
     size_t len) {
-  I2NPMessage* msg = NewI2NPMessage(len);
+  std::unique_ptr<I2NPMessage> msg = NewI2NPMessage(len);
   uint8_t* payload = msg->GetPayload();
   htobe32buf(payload + TUNNEL_GATEWAY_HEADER_TUNNELID_OFFSET, tunnelID);
   htobe16buf(payload + TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET, len);
@@ -606,21 +601,21 @@ std::shared_ptr<I2NPMessage> CreateTunnelGatewayMsg(
     msg->FillI2NPMessageHeader(e_I2NPTunnelGateway);
     return msg;
   } else {
-    I2NPMessage* msg1 = CreateTunnelGatewayMsg(
+    std::unique_ptr<I2NPMessage> msg1 = CreateTunnelGatewayMsg(
         tunnelID,
         msg->GetBuffer(),
         msg->GetLength());
-    return ToSharedI2NPMessage(msg1);
+    return ToSharedI2NPMessage(std::move(msg1));
   }
 }
 
-I2NPMessage* CreateTunnelGatewayMsg(
+std::unique_ptr<I2NPMessage> CreateTunnelGatewayMsg(
     uint32_t tunnelID,
     I2NPMessageType msgType,
     const uint8_t* buf,
     size_t len,
     uint32_t replyMsgID) {
-  I2NPMessage* msg = NewI2NPMessage(len);
+  std::unique_ptr<I2NPMessage> msg = NewI2NPMessage(len);
   size_t gatewayMsgOffset = I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE;
   msg->offset += gatewayMsgOffset;
   msg->len += gatewayMsgOffset;

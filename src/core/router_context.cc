@@ -59,7 +59,9 @@ RouterContext::RouterContext()
       m_Status(eRouterStatusOK),
       m_Port(0),
       m_DataPath(),
-      m_ReseedSkipSSLCheck(false) {}
+      m_ReseedSkipSSLCheck(false),
+      m_SupportsNTCP(true),
+      m_SupportsSSU(true) {}
 
 void RouterContext::Init(
     const std::string& host,
@@ -88,9 +90,9 @@ void RouterContext::NewRouterInfo() {
   routerInfo.AddSSUAddress(m_Host, m_Port, routerInfo.GetIdentHash());
   routerInfo.AddNTCPAddress(m_Host, m_Port);
   routerInfo.SetCaps(
-      i2p::data::RouterInfo::eReachable |
-      i2p::data::RouterInfo::eSSUTesting |
-      i2p::data::RouterInfo::eSSUIntroducer);  // LR, BC
+    i2p::data::RouterInfo::eReachable |
+    i2p::data::RouterInfo::eSSUTesting |
+    i2p::data::RouterInfo::eSSUIntroducer);
   routerInfo.SetProperty("netId", NETWORK_ID);
   routerInfo.SetProperty("router.version", I2P_VERSION);
   routerInfo.CreateBuffer(m_Keys);
@@ -192,15 +194,9 @@ void RouterContext::SetUnreachable() {
   m_RouterInfo.SetCaps(  // LU, B
       i2p::data::RouterInfo::eUnreachable | i2p::data::RouterInfo::eSSUTesting);
   // remove NTCP address
-  auto& addresses = m_RouterInfo.GetAddresses();
-  for (size_t i = 0; i < addresses.size(); i++) {
-    if (addresses[i].transport_style == i2p::data::RouterInfo::eTransportNTCP) {
-      addresses.erase(addresses.begin() + i);
-      break;
-    }
-  }
+  RemoveTransport(i2p::data::RouterInfo::eTransportNTCP);
   // delete previous introducers
-  for (auto& addr : addresses)
+  for (auto& addr : m_RouterInfo.GetAddresses())
     addr.introducers.clear();
   // update
   UpdateRouterInfo();
@@ -240,6 +236,29 @@ void RouterContext::SetSupportsV6(
     m_RouterInfo.EnableV6();
   else
     m_RouterInfo.DisableV6();
+  UpdateRouterInfo();
+}
+
+void RouterContext::SetSupportsNTCP(bool supportsNTCP) {
+  m_SupportsNTCP = supportsNTCP;
+  if(supportsNTCP && !m_RouterInfo.GetNTCPAddress())
+    m_RouterInfo.AddNTCPAddress(m_Host, m_Port);
+  if(!supportsNTCP)
+    RemoveTransport(i2p::data::RouterInfo::eTransportNTCP);
+  UpdateRouterInfo();
+}
+
+void RouterContext::SetSupportsSSU(bool supportsSSU) {
+  m_SupportsSSU = supportsSSU;
+  if(supportsSSU && !m_RouterInfo.GetSSUAddress())
+    m_RouterInfo.AddSSUAddress(m_Host, m_Port, m_RouterInfo.GetIdentHash());
+  if(!supportsSSU)
+    RemoveTransport(i2p::data::RouterInfo::eTransportSSU);
+  // Remove SSU-related flags
+  m_RouterInfo.SetCaps(m_RouterInfo.GetCaps()
+      & ~i2p::data::RouterInfo::eSSUTesting
+      & ~i2p::data::RouterInfo::eSSUIntroducer);
+
   UpdateRouterInfo();
 }
 
@@ -329,6 +348,17 @@ void RouterContext::SaveKeys() {
   std::unique_ptr<uint8_t> buf(new uint8_t[length]);
   m_Keys.ToBuffer(buf.get(), length);
   fk.write(reinterpret_cast<char*>(buf.get()), length);
+}
+
+void RouterContext::RemoveTransport(
+    i2p::data::RouterInfo::TransportStyle transport) {
+  auto& addresses = m_RouterInfo.GetAddresses();
+  for (size_t i = 0; i < addresses.size(); i++) {
+    if (addresses[i].transport_style == transport) {
+      addresses.erase(addresses.begin() + i);
+      break;
+    }
+  }
 }
 
 std::shared_ptr<i2p::tunnel::TunnelPool> RouterContext::GetTunnelPool() const {

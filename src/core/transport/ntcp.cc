@@ -204,9 +204,6 @@ void NTCPServer::Connect(
       context.GetRouterInfo().GetIdentHashAbbreviation(), "] ",
       address , ":",  port);
 
-  m_Service.post([conn, this]() {
-      this->AddNTCPSession(conn);
-  });
   conn->GetSocket().async_connect(
       boost::asio::ip::tcp::endpoint(
           address,
@@ -223,8 +220,8 @@ void NTCPServer::HandleConnect(
     const boost::system::error_code& ecode) {
   if (ecode) {
     LogPrint(eLogError,
-        "NTCPServer: ", conn->GetSocket().remote_endpoint(),
-        " connect error '", ecode.message(), "'");
+      "NTCPServer:  connect error '", ecode.message(), "'");
+  
     if (ecode != boost::asio::error::operation_aborted)
       i2p::data::netdb.SetUnreachable(
           conn->GetRemoteIdentity().GetIdentHash(),
@@ -238,6 +235,10 @@ void NTCPServer::HandleConnect(
       context.UpdateNTCPV6Address(
           conn->GetSocket().local_endpoint().address());
     conn->ClientLogin();
+
+    m_Service.post([conn, this]() {
+        this->AddNTCPSession(conn);
+    });
   }
 }
 

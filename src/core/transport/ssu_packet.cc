@@ -919,12 +919,11 @@ void WriteUInt32(
 
 std::size_t GetPaddingSize(
     std::size_t size) {
-  return 16 - size % 16;
+  return (size % 16) ? 16 - size % 16 : 0;
 }
 
 std::size_t GetPaddedSize(
     std::size_t size) {
-  size += static_cast<std::size_t>(SSUSize::BufferMargin);
   return size + GetPaddingSize(size);
 }
 

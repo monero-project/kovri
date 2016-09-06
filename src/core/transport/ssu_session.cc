@@ -311,9 +311,9 @@ void SSUSession::SendSessionRequest() {
   packet.GetHeader()->SetIV(iv.data());
   packet.SetDhX(m_DHKeysPair->public_key.data());
   // Fill extended options
+  std::array<std::uint8_t, 2> extended_data {{ 0x00, 0x00 }};
   if (i2p::context.GetStatus() == eRouterStatusOK) {  // we don't need relays
     packet.GetHeader()->SetExtendedOptions(true);
-    std::array<std::uint8_t, 2> extended_data {{ 0x00, 0x00 }};
     packet.GetHeader()->SetExtendedOptionsData(extended_data.data(), 2);
   }
   auto const address = GetRemoteEndpoint().address();
@@ -321,10 +321,12 @@ void SSUSession::SendSessionRequest() {
     packet.SetIPAddress(address.to_v4().to_bytes().data(), 4);
   else
     packet.SetIPAddress(address.to_v6().to_bytes().data(), 16);
-  auto const buffer_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
-  auto buffer = std::make_unique<std::uint8_t[]>(buffer_size);
+  auto const packet_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
+  // Buffer has SSUSize::BufferMargin extra bytes for computing the HMAC
+  auto buffer = std::make_unique<std::uint8_t[]>(
+      packet_size + static_cast<std::size_t>(SSUSize::BufferMargin));
   WriteAndEncrypt(&packet, buffer.get(), intro_key, intro_key);
-  m_Server.Send(buffer.get(), buffer_size, GetRemoteEndpoint());
+  m_Server.Send(buffer.get(), packet_size, GetRemoteEndpoint());
 }
 
 /**
@@ -1092,7 +1094,11 @@ void SSUSession::WriteAndEncrypt(
     const std::uint8_t* aes_key,
     const std::uint8_t* mac_key) {
   packet->GetHeader()->SetTime(i2p::util::GetSecondsSinceEpoch());
+
   std::uint8_t* buf = buffer;
+  // Write header (excluding MAC)
+  SSUPacketBuilder::WriteHeader(buf, packet->GetHeader());
+  // Write packet body
   SSUPacketBuilder::WritePacket(buf, packet);
   // Encrypt everything after the MAC and IV
   std::uint8_t* encrypted =
@@ -1108,9 +1114,9 @@ void SSUSession::WriteAndEncrypt(
   encryption.Encrypt(encrypted, encrypted_len, encrypted);
   // Compute HMAC of encryptedPayload + IV + (payloadLength ^ protocolVersion)
   // Currently, protocolVersion == 0
-  buf = encrypted;
+  buf = encrypted + encrypted_len;
   SSUPacketBuilder::WriteData(
-      encrypted,
+      buf,
       packet->GetHeader()->GetIV(),
       static_cast<std::size_t>(SSUSize::IV));
   SSUPacketBuilder::WriteUInt16(buf, encrypted_len);
@@ -1119,9 +1125,7 @@ void SSUSession::WriteAndEncrypt(
       encrypted_len + static_cast<std::size_t>(SSUSize::BufferMargin),
       mac_key,
       buffer);
-  // Write header
-  SSUPacketBuilder::WriteHeader(buffer, packet->GetHeader());
-}
+  }
 
 void SSUSession::FillHeaderAndEncrypt(
     std::uint8_t payload_type,

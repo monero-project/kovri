@@ -34,26 +34,29 @@
 
 #include "util/http.h"
 
-#include <iostream>
-#include <boost/network/uri.hpp>
-
 BOOST_AUTO_TEST_SUITE(HTTPUtilityTests)
 
-i2p::util::http::URI uri;
+i2p::util::http::HTTP http;
 
 BOOST_AUTO_TEST_CASE(UriParse) {
   // Note: cpp-netlib has better tests.
   // We simply test our implementation here.
-  BOOST_CHECK(uri.Parse("https://domain.org:8443/path/file.type"));
-  BOOST_CHECK(!uri.Parse("3;axc807uasdfh123m,nafsdklfj;;klj0a9u01q3"));
+  http.SetURI("https://domain.org:8443/path/file.type");
+  BOOST_CHECK(http.GetURI().is_valid() && !http.HostIsI2P());
+
+  http.SetURI("3;axc807uasdfh123m,nafsdklfj;;klj0a9u01q3");
+  BOOST_CHECK(!http.GetURI().is_valid());
+
+  http.SetURI("http://username:password@udhdrtrcetjm5sxzskjyr5ztpeszydbh4dpl3pl4utgqqw2v4jna.b32.i2p/hosts.txt");
+  BOOST_CHECK(http.GetURI().is_valid() && http.HostIsI2P());
 }
 
 BOOST_AUTO_TEST_CASE(DecodeEmptyUri) {
-  BOOST_CHECK_EQUAL(uri.Decode(""), "");
+  BOOST_CHECK_EQUAL(http.HTTPProxyDecode(""), "");
 }
 
 BOOST_AUTO_TEST_CASE(DecodeUri) {
-  BOOST_CHECK_EQUAL(uri.Decode("%20"), " ");
+  BOOST_CHECK_EQUAL(http.HTTPProxyDecode("%20"), " ");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

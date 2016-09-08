@@ -42,7 +42,7 @@
 #include <string>
 
 #include "identity.h"
-#include "streaming.h"
+#include "client/streaming.h"
 #include "client/destination.h"
 #include "client/i2p_service.h"
 

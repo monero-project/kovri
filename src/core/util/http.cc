@@ -32,10 +32,8 @@
 
 #include "http.h"
 
-// cpp-netlib
-#define BOOST_NETWORK_ENABLE_HTTPS
-#include <boost/network/include/http/client.hpp>
-#include <boost/network/uri.hpp>
+#include <boost/network/message/directives/header.hpp>
+#include <boost/network/message/wrappers/body.hpp>
 
 #include <exception>
 #include <functional>
@@ -44,40 +42,320 @@
 #include <vector>
 
 #include "router_context.h"
+#include "client/client_context.h"
+#include "client/address_book.h"
 #include "util/filesystem.h"
 
 namespace i2p {
 namespace util {
-namespace http {
+namespace http {  // TODO(anonimal): consider removing this namespace (its not needed)
 
-bool URI::Parse(
+// TODO(unassigned): currently unused but will be useful
+// without needing to create a new object for each given URI
+bool HTTP::Download(
     const std::string& uri) {
-  boost::network::uri::uri URI(uri);
-  if (URI.is_valid()) {
-    m_Protocol.assign(URI.scheme());
-    m_Host.assign(URI.host());
-    m_Port.assign(URI.port());
-    m_Path.assign(URI.path());
-    m_Query.assign(URI.query());
-    // Set defaults for AddressBook
-    // TODO(anonimal): this should disappear once we finish other refactoring
-    if (!m_Port.empty())
-      return true;
-    if (m_Protocol == "https") {
-      m_Port.assign("443");
-    } else {
-      m_Port.assign("80");
-    }
-    return true;
-  } else {
+  SetURI(uri);
+  return Download();
+}
+
+bool HTTP::Download() {
+  if (!GetURI().is_valid()) {
     LogPrint(eLogError, "URI: invalid URI");
     return false;
+  }
+  // TODO(anonimal): ideally, we simply swapout the request/response handler
+  // with cpp-netlib so we don't need two separate functions
+  if (!HostIsI2P())
+    return DownloadViaClearnet();
+  return DownloadViaI2P();
+}
+
+bool HTTP::HostIsI2P() {
+  auto uri = GetURI();
+  if (!(uri.host().substr(uri.host().size() - 4) == ".i2p"))
+    return false;
+  if (!uri.port().empty())
+    return true;
+  // We must assign a port if none was assigned (for internal reasons)
+  std::string port;
+  if (uri.scheme() == "https")
+    port.assign("443");
+  else
+    port.assign("80");
+  // If user supplied user:password, we must append @
+  std::string user_info;
+  if (!uri.user_info().empty())
+    user_info.assign(uri.user_info() + "@");
+  // TODO(anonimal): easier way with cpp-netlib?
+  std::string new_uri(
+      uri.scheme() + "://" + user_info
+      + uri.host() + ":" + port
+      + uri.path() + uri.query() + uri.fragment());
+  SetURI(new_uri);
+  return true;
+}
+
+bool HTTP::DownloadViaClearnet() {
+  auto uri = GetURI();
+  // Create and set options
+  Options options;
+  options.timeout(static_cast<std::uint8_t>(Timeout::Request));
+  // Ensure that we only download from certified reseed servers
+  if (!i2p::context.ReseedSkipSSLCheck()) {
+    const std::string cert = uri.host() + ".crt";
+    const boost::filesystem::path cert_path = i2p::util::filesystem::GetSSLCertsPath() / cert;
+    if (!boost::filesystem::exists(cert_path)) {
+      LogPrint(eLogError, "HTTP: certificate unavailable: ", cert_path);
+      return false;
+    }
+    // Set SSL options
+    options
+      .openssl_certificate(cert_path.string())
+      .openssl_sni_hostname(uri.host());
+  }
+  // Create client with options
+  Client client(options);
+  try {
+    // Create request
+    Request request(uri.string());  // A fully-qualified, completed URI
+    // Add required Java I2P defined user-agent
+    request << boost::network::header("User-Agent", "Wget/1.11.4");
+    // Are we requesting the same file?
+    if (uri.path() == GetPreviousPath()) {
+      // Add ETag and Last-Modified headers if previously set
+      if (!GetPreviousETag().empty())
+        request << boost::network::header("If-None-Match", GetPreviousETag());
+      if (!GetPreviousLastModified().empty())
+        request << boost::network::header("If-Modified-Since", GetPreviousLastModified());
+    } else {
+      // Set path to test against for future download (if this is a single instance)
+      SetPath(uri.path());
+    }
+    // Create response object, send request and receive response
+    Response response = client.get(request);
+    // Test HTTP response status code
+    switch (response.status()) {
+      // New download or cached version does not match, so re-download
+      case static_cast<std::uint16_t>(ResponseCode::HTTP_OK):
+        // Parse response headers for ETag and Last-Modified
+        for (auto const& header : response.headers()) {
+          if (header.first == "ETag") {
+            if (header.second != GetPreviousETag())
+              SetETag(header.second);  // Set new ETag
+          }
+          if (header.first == "Last-Modified") {
+            if (header.second != GetPreviousLastModified())
+              SetLastModified(header.second);  // Set new Last-Modified
+          }
+        }
+        // Save downloaded content
+        SetDownloadedContents(boost::network::http::body(response));
+        break;
+      // File requested is unchanged since previous download
+      case static_cast<std::uint16_t>(ResponseCode::HTTP_NOT_MODIFIED):
+        LogPrint(eLogInfo, "HTTP: no new updates available from ", uri.host());
+        break;
+      // Useless response code
+      default:
+        LogPrint(eLogWarn, "HTTP: response code: ", response.status());
+        return false;
+    }
+  } catch (const std::exception& ex) {
+    LogPrint(eLogError, "HTTP: unable to complete download: ", ex.what());
+    return false;
+  }
+  return true;
+}
+
+// TODO(anonimal): cpp-netlib refactor: request/response handler
+bool HTTP::DownloadViaI2P() {
+  // Clear buffers (for when we're only using a single instance)
+  m_Request.clear();
+  m_Response.clear();
+  // Get URI
+  auto uri = GetURI();
+  // Reference the only instantiated address book instance in the singleton client context
+  auto& address_book = i2p::client::context.GetAddressBook();
+  // For identity hash of URI host
+  i2p::data::IdentHash ident;
+  // Get URI host's ident hash then find its lease-set
+  if (address_book.CheckAddressIdentHashFound(uri.host(), ident)
+      && address_book.GetSharedLocalDestination()) {
+    std::condition_variable new_data_received;
+    std::mutex new_data_received_mutex;
+    auto lease_set = address_book.GetSharedLocalDestination()->FindLeaseSet(ident);
+    // Lease-set not available, request
+    if (!lease_set) {
+      std::unique_lock<std::mutex> lock(new_data_received_mutex);
+      address_book.GetSharedLocalDestination()->RequestDestination(
+          ident,
+          [&new_data_received, &lease_set](
+              std::shared_ptr<i2p::data::LeaseSet> ls) {
+            lease_set = ls;
+            new_data_received.notify_all();
+          });
+      // TODO(anonimal): request times need to be more consistent.
+      //   In testing, even after integration, results vary dramatically.
+      //   This could be a router issue or something amiss during the refactor.
+      if (new_data_received.wait_for(
+              lock,
+              std::chrono::seconds(
+                  static_cast<std::uint8_t>(Timeout::Request)))
+          == std::cv_status::timeout)
+        LogPrint(eLogError, "HTTP: lease-set request timeout expired");
+    }
+    // Test against requested lease-set
+    if (!lease_set) {
+      LogPrint(eLogError,
+          "HTTP: lease-set for address ", uri.host(), " not found");
+    } else {
+      PrepareI2PRequest();  // TODO(anonimal): remove after refactor
+      // Send request
+      auto stream =
+        i2p::client::context.GetAddressBook().GetSharedLocalDestination()->CreateStream(
+            lease_set,
+            std::stoi(uri.port()));
+      stream->Send(
+          reinterpret_cast<const std::uint8_t *>(m_Request.str().c_str()),
+          m_Request.str().length());
+      // Receive response
+      std::array<std::uint8_t, 4096> buf;  // Arbitrary buffer size
+      bool end_of_data = false;
+      while (!end_of_data) {
+        stream->AsyncReceive(
+            boost::asio::buffer(
+              buf.data(),
+              buf.size()),
+            [&](const boost::system::error_code& ecode,
+              std::size_t bytes_transferred) {
+                if (bytes_transferred)
+                  m_Response.write(
+                      reinterpret_cast<char *>(buf.data()),
+                      bytes_transferred);
+                if (ecode == boost::asio::error::timed_out || !stream->IsOpen())
+                  end_of_data = true;
+                new_data_received.notify_all();
+              },
+            static_cast<std::uint8_t>(Timeout::Receive));
+        std::unique_lock<std::mutex> lock(new_data_received_mutex);
+        // Check if we timeout
+        if (new_data_received.wait_for(
+                lock,
+                std::chrono::seconds(
+                    static_cast<std::uint8_t>(Timeout::Request)))
+            == std::cv_status::timeout)
+          LogPrint(eLogError,"HTTP: in-net timeout expired");
+      }
+      // Process remaining buffer
+      while (std::size_t len = stream->ReadSome(buf.data(), buf.size()))
+        m_Response.write(reinterpret_cast<char *>(buf.data()), len);
+    }
+  } else {
+    LogPrint(eLogError, "HTTP: can't resolve I2P address: ", uri.host());
+    return false;
+  }
+  return ProcessI2PResponse();  // TODO(anonimal): remove after refactor
+}
+
+// TODO(anonimal): remove after refactor
+void HTTP::PrepareI2PRequest() {
+  // Create header
+  auto uri = GetURI();
+  std::string header =
+    "GET " + uri.path() + " HTTP/1.1\r\n" +
+    "Host: " + uri.host() + "\r\n" +
+    "Accept: */*\r\n" +
+    "User-Agent: Wget/1.11.4\r\n" +
+    "Connection: Close\r\n";
+  // Add header to request
+  m_Request << header;
+  // Check fields
+  if (!GetPreviousETag().empty())  // Send previously set ETag if available
+    m_Request << "If-None-Match" << ": \"" << GetPreviousETag() << "\"\r\n";
+  if (!GetPreviousLastModified().empty())  // Send previously set Last-Modified if available
+    m_Request << "If-Modified-Since" << ": " << GetPreviousLastModified() << "\r\n";
+  m_Request << "\r\n";  // End of header
+}
+
+// TODO(anonimal): remove after refactor
+bool HTTP::ProcessI2PResponse() {
+  std::string http_version;
+  std::uint16_t response_code = 0;
+  m_Response >> http_version;
+  m_Response >> response_code;
+  if (response_code == static_cast<std::uint16_t>(ResponseCode::HTTP_OK)) {
+    bool is_chunked = false;
+    std::string header, status_message;
+    std::getline(m_Response, status_message);
+    // Read response until end of header (new line)
+    while (std::getline(m_Response, header) && header != "\r") {
+      auto colon = header.find(':');
+      if (colon != std::string::npos) {
+        std::string field = header.substr(0, colon);
+        header.resize(header.length() - 1);  // delete \r
+        // We currently don't differentiate between strong or weak ETags
+        // We currently only care if an ETag is present
+        if (field == "ETag")
+          SetETag(header.substr(colon + 1));
+        else if (field == "Last-Modified")
+          SetLastModified(header.substr(colon + 1));
+        else if (field == "Transfer-Encoding")
+          is_chunked = !header.compare(colon + 1, std::string::npos, "chunked");
+      }
+    }
+    // Get content after header
+    std::stringstream content;
+    while (std::getline(m_Response, header)) {
+      // TODO(anonimal): this can be improved but since we
+      // won't need this after the refactor, it 'works' for now
+      auto colon = header.find(':');
+      if (colon != std::string::npos)
+        continue;
+      else
+        content << header << std::endl;
+    }
+    // Test if response is chunked / save downloaded contents
+    if (!content.eof()) {
+      if (is_chunked) {
+        std::stringstream merged;
+        MergeI2PChunkedResponse(content, merged);
+        SetDownloadedContents(merged.str());
+      } else {
+        SetDownloadedContents(content.str());
+      }
+    }
+  } else if (response_code
+             == static_cast<std::uint16_t>(ResponseCode::HTTP_NOT_MODIFIED)) {
+    LogPrint(eLogInfo, "HTTP: no new updates available from ", GetURI().host());
+  } else {
+    LogPrint(eLogWarn, "HTTP: response code: ", response_code);
+    return false;
+  }
+  return true;
+}
+
+// TODO(anonimal): remove after refactor
+// Note: Transfer-Encoding is handled automatically by cpp-netlib
+void HTTP::MergeI2PChunkedResponse(
+    std::istream& response,
+    std::ostream& merged) {
+  while (!response.eof()) {
+    std::string hex_len;
+    int len;
+    std::getline(response, hex_len);
+    std::istringstream iss(hex_len);
+    iss >> std::hex >> len;
+    if (!len)
+      break;
+    auto buf = std::make_unique<char[]>(len);
+    response.read(buf.get(), len);
+    merged.write(buf.get(), len);
+    std::getline(response, hex_len);  // read \r\n after chunk
   }
 }
 
 // TODO(anonimal): research if cpp-netlib can do this better
-// Used by HTTPProxy
-std::string URI::Decode(
+std::string HTTP::HTTPProxyDecode(
     const std::string& data) {
   std::string res(data);
   for (size_t pos = res.find('%');
@@ -87,109 +365,6 @@ std::string URI::Decode(
     res.replace(pos, 3, 1, c);
   }
   return res;
-}
-
-bool HTTP::Download(
-    const std::string& address) {
-  // Validate URI
-  URI uri;
-  if (!uri.Parse(address))
-    return false;
-  namespace http = boost::network::http;
-  namespace network = boost::network;
-  http::client::options options;
-  // Ensure that we only download from certified reseed servers
-  if (!i2p::context.ReseedSkipSSLCheck()) {
-    const std::string cert = uri.m_Host + ".crt";
-    const boost::filesystem::path cert_path = i2p::util::filesystem::GetSSLCertsPath() / cert;
-    if (!boost::filesystem::exists(cert_path)) {
-      LogPrint(eLogError, "HTTP: certificate unavailable: ", cert_path);
-      return false;
-    }
-    // Set SSL options
-    options
-      .openssl_certificate(cert_path.string())
-      .openssl_sni_hostname(uri.m_Host);
-  }
-  try {
-    // Set extra options
-    options.timeout(45);  // Java I2P defined
-    http::client client(options);
-    // Prepare and initiate session
-    http::client::request request(address);
-    request << network::header("User-Agent", "Wget/1.11.4");  // Java I2P defined
-    http::client::response response = client.get(request);
-    // Assign stream our downloaded contents
-    m_Stream.assign(http::body(response));
-  } catch (const std::exception& e) {
-    LogPrint(eLogError, "HTTP: unable to complete download: ", e.what());
-    return false;
-  }
-  return true;
-}
-
-// TODO(anonimal): remove once AddressBookSubscription has been refactored
-const std::string HTTP::Header(
-    const std::string& path,
-    const std::string& host,
-    const std::string& version) {
-  std::string header =
-    "GET " + path + " HTTP/" + version + "\r\n" +
-    "Host: " + host + "\r\n" +
-    "Accept: */*\r\n" +
-    "User-Agent: Wget/1.11.4\r\n" +
-    "Connection: close\r\n";
-  return header;
-}
-
-// TODO(anonimal): remove once AddressBookSubscription has been refactored
-const std::string HTTP::GetContent(
-    std::istream& response) {
-  std::string version, statusMessage;
-  response >> version;  // HTTP version
-  response >> m_Status;  // Response code status
-  std::getline(response, statusMessage);
-  if (m_Status == 200) {  // OK
-    bool isChunked = false;
-    std::string header;
-    while (!response.eof() && header != "\r") {
-      std::getline(response, header);
-      auto colon = header.find(':');
-      if (colon != std::string::npos) {
-        std::string field = header.substr(0, colon);
-        if (field == TRANSFER_ENCODING)
-          isChunked = (header.find("chunked", colon + 1) != std::string::npos);
-      }
-    }
-    std::stringstream ss;
-    if (isChunked)
-      MergeChunkedResponse(response, ss);
-    else
-      ss << response.rdbuf();
-    return ss.str();
-  } else {
-    LogPrint("HTTP response ", m_Status);
-    return "";
-  }
-}
-
-// TODO(anonimal): remove once AddressBookSubscription has been refactored
-void HTTP::MergeChunkedResponse(
-    std::istream& response,
-    std::ostream& merged) {
-  while (!response.eof()) {
-    std::string hexLen;
-    int len;
-    std::getline(response, hexLen);
-    std::istringstream iss(hexLen);
-    iss >> std::hex >> len;
-    if (!len)
-      break;
-    auto buf = std::make_unique<char[]>(len);
-    response.read(buf.get(), len);
-    merged.write(buf.get(), len);
-    std::getline(response, hexLen);  // read \r\n after chunk
-  }
 }
 
 }  // namespace http

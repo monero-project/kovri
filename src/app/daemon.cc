@@ -264,7 +264,7 @@ void Daemon_Singleton::SetupTunnels() {
         else
           LogPrint(eLogError,
               "Daemon_Singleton: I2P server tunnel for destination ",
-              i2p::client::context.GetAddressBook().ToAddress(
+              i2p::client::context.GetAddressBook().GetB32AddressFromIdentHash(
                   local_destination->GetIdentHash()),
               " already exists");
       } else {

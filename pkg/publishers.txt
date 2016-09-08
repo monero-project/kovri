@@ -1,0 +1,1 @@
+https://downloads.getmonero.org/kovri/hosts.txt

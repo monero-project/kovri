@@ -356,7 +356,7 @@ void SOCKSHandler::SocksRequestSuccess() {
     break;
     case SOCKS5:
       LogPrint(eLogInfo, "SOCKSHandler: SOCKS5 connection success");
-      auto s = i2p::client::context.GetAddressBook().ToAddress(
+      auto s = i2p::client::context.GetAddressBook().GetB32AddressFromIdentHash(
           GetOwner()->GetLocalDestination()->GetIdentHash());
       address ad;
       ad.dns.FromString(s);

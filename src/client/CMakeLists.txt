@@ -7,6 +7,7 @@ set(CLIENT_SRC
   "i2p_tunnel/socks.cc"
   "streaming.cc"
   "address_book.cc"
+  "address_book_storage.cc"
   "destination.cc"
   "client_context.cc"
   "i2p_service.cc")

@@ -141,7 +141,7 @@ i2p::data::PrivateKeys ClientContext::LoadPrivateKeys(
   keys.FromBuffer(buf.get(), len);
   LogPrint(eLogInfo,
       "ClientContext: local address ",
-      m_AddressBook.ToAddress(keys.GetPublic().GetIdentHash()), " loaded");
+      m_AddressBook.GetB32AddressFromIdentHash(keys.GetPublic().GetIdentHash()), " loaded");
   return keys;
 }
 
@@ -164,7 +164,7 @@ std::shared_ptr<ClientDestination> ClientContext::LoadLocalDestination(
     f.write(reinterpret_cast<char *>(buf.get()), len);
     LogPrint(eLogInfo,
         "ClientContext: new private keys file ", full_path,
-        " for ", m_AddressBook.ToAddress(keys.GetPublic().GetIdentHash()),
+        " for ", m_AddressBook.GetB32AddressFromIdentHash(keys.GetPublic().GetIdentHash()),
         " created");
   }
   std::shared_ptr<ClientDestination> local_destination = nullptr;
@@ -173,7 +173,7 @@ std::shared_ptr<ClientDestination> ClientContext::LoadLocalDestination(
   if (it != m_Destinations.end()) {
     LogPrint(eLogWarn,
         "ClientContext: local destination ",
-        m_AddressBook.ToAddress(keys.GetPublic().GetIdentHash()),
+        m_AddressBook.GetB32AddressFromIdentHash(keys.GetPublic().GetIdentHash()),
         " already exists");
     local_destination = it->second;
   } else {
@@ -220,7 +220,7 @@ std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination(
   if (it != m_Destinations.end()) {
     LogPrint(eLogInfo,
         "ClientContext: local destination ",
-        m_AddressBook.ToAddress(keys.GetPublic().GetIdentHash()),
+        m_AddressBook.GetB32AddressFromIdentHash(keys.GetPublic().GetIdentHash()),
         " already exists");
     if (!it->second->IsRunning()) {
       it->second->Start();

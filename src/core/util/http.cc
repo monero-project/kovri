@@ -72,29 +72,27 @@ bool HTTP::Download() {
 
 bool HTTP::HostIsI2P() {
   auto uri = GetURI();
-  if (!(uri.host().substr(uri.host().size() - 4) == ".i2p")) {
+  if (!(uri.host().substr(uri.host().size() - 4) == ".i2p"))
     return false;
-  } else {
-    if (!uri.port().empty())
-      return true;
-    // We must assign a port if none was assigned (for internal reasons)
-    std::string port;
-    if (uri.scheme() == "https")
-      port.assign("443");
-    else
-      port.assign("80");
-    // If user supplied user:password, we must append @
-    std::string user_info;
-    if (!uri.user_info().empty())
-      user_info.assign(uri.user_info() + "@");
-    // TODO(anonimal): easier way with cpp-netlib?
-    std::string new_uri(
-        uri.scheme() + "://" + user_info
-        + uri.host() + ":" + port
-        + uri.path() + uri.query() + uri.fragment());
-    SetURI(new_uri);
+  if (!uri.port().empty())
     return true;
-  }
+  // We must assign a port if none was assigned (for internal reasons)
+  std::string port;
+  if (uri.scheme() == "https")
+    port.assign("443");
+  else
+    port.assign("80");
+  // If user supplied user:password, we must append @
+  std::string user_info;
+  if (!uri.user_info().empty())
+    user_info.assign(uri.user_info() + "@");
+  // TODO(anonimal): easier way with cpp-netlib?
+  std::string new_uri(
+      uri.scheme() + "://" + user_info
+      + uri.host() + ":" + port
+      + uri.path() + uri.query() + uri.fragment());
+  SetURI(new_uri);
+  return true;
 }
 
 bool HTTP::DownloadViaClearnet() {

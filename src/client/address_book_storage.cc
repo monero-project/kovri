@@ -60,42 +60,37 @@ bool AddressBookStorage::GetAddress(
     i2p::data::IdentityEx& address) const {
   auto filename = GetAddressBookPath() / (ident.ToBase32() + ".b32");
   std::ifstream file(filename.string(), std::ifstream::binary);
-  if (!file) {
+  if (!file)
     return false;
-  } else {
-    file.seekg(0, std::ios::end);
-    const std::size_t len = file.tellg();
-    if (len < i2p::data::DEFAULT_IDENTITY_SIZE) {
-      LogPrint(eLogError,
-          "AddressBookStorage: file ", filename, " is too short. ", len);
-      return false;
-    }
-    file.seekg(0, std::ios::beg);
-    auto buf = std::make_unique<std::uint8_t[]>(len);
-    file.read(reinterpret_cast<char *>(buf.get()), len);
-    // For sanity, the validity of identity length is incumbent upon the parent caller.
-    // For now, we only care about returning success for an open/available file
-    // TODO(unassigned): triple check that this is the case
-    address.FromBuffer(buf.get(), len);
-    return true;
+  file.seekg(0, std::ios::end);
+  const std::size_t len = file.tellg();
+  if (len < i2p::data::DEFAULT_IDENTITY_SIZE) {
+    LogPrint(eLogError,
+        "AddressBookStorage: file ", filename, " is too short. ", len);
+    return false;
   }
+  file.seekg(0, std::ios::beg);
+  auto buf = std::make_unique<std::uint8_t[]>(len);
+  file.read(reinterpret_cast<char *>(buf.get()), len);
+  // For sanity, the validity of identity length is incumbent upon the parent caller.
+  // For now, we only care about returning success for an open/available file
+  // TODO(unassigned): triple check that this is the case
+  address.FromBuffer(buf.get(), len);
+  return true;
 }
 
 void AddressBookStorage::AddAddress(
     const i2p::data::IdentityEx& address) {
   auto filename = GetAddressBookPath() / (address.GetIdentHash().ToBase32() + ".b32");
   std::ofstream file(filename.string(), std::ofstream::binary);
-  if (!file) {
-    LogPrint(eLogError,
-        "AddressBookStorage: can't open file ", filename);
-  } else {
-    const std::size_t len = address.GetFullLen();
-    auto buf = std::make_unique<std::uint8_t[]>(len);
-    // For sanity, the validity of identity length is incumbent upon the parent caller.
-    // TODO(unassigned): triple check that this is the case
-    address.ToBuffer(buf.get(), len);
-    file.write(reinterpret_cast<char *>(buf.get()), len);
-  }
+  if (!file)
+    LogPrint(eLogError, "AddressBookStorage: can't open file ", filename);
+  const std::size_t len = address.GetFullLen();
+  auto buf = std::make_unique<std::uint8_t[]>(len);
+  // For sanity, the validity of identity length is incumbent upon the parent caller.
+  // TODO(unassigned): triple check that this is the case
+  address.ToBuffer(buf.get(), len);
+  file.write(reinterpret_cast<char *>(buf.get()), len);
 }
 
 /**

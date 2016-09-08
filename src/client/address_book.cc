@@ -87,69 +87,68 @@ void AddressBook::Start(
     LogPrint(eLogError,
       "AddressBook: won't start: we need a client destination");
     return;
-  } else {
-    m_SharedLocalDestination = local_destination;
-    m_SubscriberUpdateTimer =
-      std::make_unique<boost::asio::deadline_timer>(
-          m_SharedLocalDestination->GetService());
-    m_SubscriberUpdateTimer->expires_from_now(
-        boost::posix_time::minutes(
-            static_cast<std::uint16_t>(SubscriberTimeout::InitialUpdate)));
-    m_SubscriberUpdateTimer->async_wait(
-        std::bind(
-            &AddressBook::SubscriberUpdateTimer,
-            this,
-            std::placeholders::_1));
   }
+  m_SharedLocalDestination = local_destination;
+  m_SubscriberUpdateTimer =
+    std::make_unique<boost::asio::deadline_timer>(
+        m_SharedLocalDestination->GetService());
+  m_SubscriberUpdateTimer->expires_from_now(
+      boost::posix_time::minutes(
+          static_cast<std::uint16_t>(SubscriberTimeout::InitialUpdate)));
+  m_SubscriberUpdateTimer->async_wait(
+      std::bind(
+          &AddressBook::SubscriberUpdateTimer,
+          this,
+          std::placeholders::_1));
 }
 
 void AddressBook::LoadPublishers() {
   // TODO(unassigned): this is a one-shot: we won't be able to
   // edit publisher's file manually with any effect after router start
-  if (m_Subscribers.empty()) {
-    auto publishers = GetDefaultPublishersFilename();
-    LogPrint(eLogInfo, "AddressBook: loading publisher file ", publishers);
-    std::ifstream file(i2p::util::filesystem::GetFullPath(publishers));
-    if (file) {
-      // Publisher URI
-      std::string publisher;
-      // Validate publisher URI
-      i2p::util::http::HTTP http;
-      // Read in publishers, line by line
-      while (std::getline(file, publisher)) {
-        // If found, clear whitespace before and after publisher (on the line)
-        publisher.erase(
-            std::remove_if(
-                publisher.begin(),
-                publisher.end(),
-                [](char whitespace) { return std::isspace(whitespace); }),
-            publisher.end());
-        // If found, skip empty line
-        if (!publisher.length())
-          continue;
-	// Perform URI sanity test
-	http.SetURI(publisher);
-        if (!http.GetURI().is_valid()) {
-          LogPrint(eLogWarn,
-              "AddressBook: invalid/malformed publisher URI, skipping");
-          continue;
-        }
-        // Save publisher to subscriber
-        m_Subscribers.push_back(
-            std::make_unique<AddressBookSubscriber>(*this, publisher));
+  if (!m_Subscribers.empty()) {
+    LogPrint(eLogError, "AddressBook: publisher(s) already loaded");
+    return;
+  }
+  auto publishers = GetDefaultPublishersFilename();
+  LogPrint(eLogInfo, "AddressBook: loading publisher file ", publishers);
+  std::ifstream file(i2p::util::filesystem::GetFullPath(publishers));
+  if (file) {
+    // Publisher URI
+    std::string publisher;
+    // Validate publisher URI
+    i2p::util::http::HTTP http;
+    // Read in publishers, line by line
+    while (std::getline(file, publisher)) {
+      // If found, clear whitespace before and after publisher (on the line)
+      publisher.erase(
+          std::remove_if(
+              publisher.begin(),
+              publisher.end(),
+              [](char whitespace) { return std::isspace(whitespace); }),
+          publisher.end());
+      // If found, skip empty line
+      if (!publisher.length())
+        continue;
+      // Perform URI sanity test
+      http.SetURI(publisher);
+      if (!http.GetURI().is_valid()) {
+        LogPrint(eLogWarn,
+            "AddressBook: invalid/malformed publisher URI, skipping");
+        continue;
       }
-      LogPrint(eLogInfo,
-          "AddressBook: ", m_Subscribers.size(), " publishers loaded");
-    } else {
-      auto publisher = GetDefaultPublisherURI();
-      LogPrint(eLogWarn,
-          "AddressBook: ", publishers, " unavailable; using ", publisher);
+      // Save publisher to subscriber
       m_Subscribers.push_back(
           std::make_unique<AddressBookSubscriber>(*this, publisher));
-      // TODO(anonimal): create default publisher file if file is missing
     }
+    LogPrint(eLogInfo,
+        "AddressBook: ", m_Subscribers.size(), " publishers loaded");
   } else {
-    LogPrint(eLogError, "AddressBook: publisher(s) already loaded");
+    auto publisher = GetDefaultPublisherURI();
+    LogPrint(eLogWarn,
+        "AddressBook: ", publishers, " unavailable; using ", publisher);
+    m_Subscribers.push_back(
+        std::make_unique<AddressBookSubscriber>(*this, publisher));
+    // TODO(anonimal): create default publisher file if file is missing
   }
 }
 
@@ -158,32 +157,32 @@ void AddressBook::SubscriberUpdateTimer(
   if (ecode) {
     LogPrint(eLogError,
         "AddressBook: SubscriberUpdateTimer() exception: ", ecode.message());
+    return;
+  }
+  if (m_SubscriptionIsLoaded
+      && !m_SubscriberIsDownloading
+      && m_SharedLocalDestination->IsReady()) {
+    // Pick a random subscription if subscriptions count is > 0
+    // At first this may look questionable but, by this point,
+    // we're guaranteed to have at least one subscriber
+    auto publisher =
+      i2p::crypto::RandInRange<std::size_t>(0, m_Subscribers.size() - 1);
+    m_SubscriberIsDownloading = true;
+    m_Subscribers.at(publisher)->DownloadSubscription();
   } else {
-    if (m_SubscriptionIsLoaded
-        && !m_SubscriberIsDownloading
-        && m_SharedLocalDestination->IsReady()) {
-      // Pick a random subscription if subscriptions count is > 0
-      // At first this may look questionable but, by this point,
-      // we're guaranteed to have at least one subscriber
-      auto publisher =
-        i2p::crypto::RandInRange<std::size_t>(0, m_Subscribers.size() - 1);
-      m_SubscriberIsDownloading = true;
-      m_Subscribers.at(publisher)->DownloadSubscription();
-    } else {
-      if (!m_SubscriptionIsLoaded) {
-        // If subscription not available, will attempt download with subscriber
-        LoadSubscriptionFromPublisher();
-      }
-      // Try again after timeout
-      m_SubscriberUpdateTimer->expires_from_now(
-          boost::posix_time::minutes(
-              static_cast<std::uint16_t>(SubscriberTimeout::InitialRetry)));
-      m_SubscriberUpdateTimer->async_wait(
-          std::bind(
-              &AddressBook::SubscriberUpdateTimer,
-              this,
-              std::placeholders::_1));
+    if (!m_SubscriptionIsLoaded) {
+      // If subscription not available, will attempt download with subscriber
+      LoadSubscriptionFromPublisher();
     }
+    // Try again after timeout
+    m_SubscriberUpdateTimer->expires_from_now(
+        boost::posix_time::minutes(
+            static_cast<std::uint16_t>(SubscriberTimeout::InitialRetry)));
+    m_SubscriberUpdateTimer->async_wait(
+        std::bind(
+            &AddressBook::SubscriberUpdateTimer,
+            this,
+            std::placeholders::_1));
   }
 }
 

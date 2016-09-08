@@ -33,15 +33,6 @@
 #ifndef SRC_CORE_UTIL_HTTP_H_
 #define SRC_CORE_UTIL_HTTP_H_
 
-// TODO(anonimal): cleanup headers
-
-#include <boost/algorithm/string.hpp>
-#include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/foreach.hpp>
-#include <boost/lexical_cast.hpp>
-
 // cpp-netlib
 #define BOOST_NETWORK_ENABLE_HTTPS
 #include <boost/network/include/http/client.hpp>
@@ -49,7 +40,7 @@
 
 #include <cstdint>
 #include <fstream>
-#include <iostream>
+#include <iosfwd>
 #include <map>
 #include <regex>
 #include <sstream>
@@ -57,8 +48,6 @@
 
 #include "log.h"
 #include "reseed.h"
-
-// TODO(anonimal): fix certificates for i2*.manas.ca and downloads.getmonero.org
 
 namespace i2p {
 namespace util {
@@ -71,6 +60,12 @@ enum struct Timeout : std::uint8_t {
   // Seconds
   Request = 45,  // Java I2P defined
   Receive = 30,
+};
+
+enum struct ResponseCode : std::uint16_t {
+  // TODO(anonimal): see if cpp-netlib has this readily available
+  HTTP_OK = 200,
+  HTTP_NOT_MODIFIED = 304,
 };
 
 /// @class HTTPStorage

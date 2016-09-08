@@ -33,11 +33,11 @@
 #ifndef SRC_CLIENT_ADDRESS_BOOK_H_
 #define SRC_CLIENT_ADDRESS_BOOK_H_
 
-#include <boost/asio.hpp>
+#include <boost/asio/deadline_timer.hpp>
 
 #include <atomic>
 #include <cstdint>
-#include <iostream>
+#include <iosfwd>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -128,8 +128,9 @@ class AddressBook : public AddressBookDefaults {
 
   /// @brief Creates new address book filesystem storage instance
   /// @return Unique pointer to address book filesystem storage instance
+  //std::unique_ptr<AddressBookStorage> GetNewStorageInstance() {
   std::unique_ptr<AddressBookStorage> GetNewStorageInstance() {
-    return std::make_unique<AddressBookFilesystemStorage>();
+    return std::make_unique<AddressBookStorage>();
   }
 
   /// @brief Validates and saves hosts (subscription) from stream into address book

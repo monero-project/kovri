@@ -32,8 +32,7 @@
 
 #include "address_book.h"
 
-#include <boost/filesystem.hpp>
-#include <boost/lexical_cast.hpp>
+#include <boost/asio.hpp>
 
 #include <array>
 #include <cstdint>
@@ -90,8 +89,6 @@ void AddressBook::Start(
     return;
   } else {
     m_SharedLocalDestination = local_destination;
-    // Load publishers for us to subscribe to
-    LoadPublishers();
     m_SubscriberUpdateTimer =
       std::make_unique<boost::asio::deadline_timer>(
           m_SharedLocalDestination->GetService());
@@ -112,30 +109,43 @@ void AddressBook::LoadPublishers() {
   if (m_Subscribers.empty()) {
     auto publishers = GetDefaultPublishersFilename();
     LogPrint(eLogInfo, "AddressBook: loading publisher file ", publishers);
-    std::ifstream file(
-        i2p::util::filesystem::GetFullPath(publishers),
-        std::ofstream::in);
-    if (file.is_open()) {
+    std::ifstream file(i2p::util::filesystem::GetFullPath(publishers));
+    if (file) {
+      // Publisher URI
       std::string publisher;
-      while (!file.eof()) {
-        getline(file, publisher);
+      // Validate publisher URI
+      i2p::util::http::HTTP http;
+      // Read in publishers, line by line
+      while (std::getline(file, publisher)) {
+        // If found, clear whitespace before and after publisher (on the line)
+        publisher.erase(
+            std::remove_if(
+                publisher.begin(),
+                publisher.end(),
+                [](char whitespace) { return std::isspace(whitespace); }),
+            publisher.end());
+        // If found, skip empty line
         if (!publisher.length())
-          continue;  // skip empty line
-        // Perform sanity test for valid URI
-        i2p::util::http::HTTP http(publisher);
+          continue;
+	// Perform URI sanity test
+	http.SetURI(publisher);
         if (!http.GetURI().is_valid()) {
           LogPrint(eLogWarn,
-              "AddressBook: invalid/malformed publisher address, skipping");
+              "AddressBook: invalid/malformed publisher URI, skipping");
           continue;
         }
+        // Save publisher to subscriber
         m_Subscribers.push_back(
             std::make_unique<AddressBookSubscriber>(*this, publisher));
       }
       LogPrint(eLogInfo,
           "AddressBook: ", m_Subscribers.size(), " publishers loaded");
     } else {
+      auto publisher = GetDefaultPublisherURI();
       LogPrint(eLogWarn,
-          "AddressBook: ", publishers, " not found; we'll use default publisher");
+          "AddressBook: ", publishers, " unavailable; using ", publisher);
+      m_Subscribers.push_back(
+          std::make_unique<AddressBookSubscriber>(*this, publisher));
       // TODO(anonimal): create default publisher file if file is missing
     }
   } else {
@@ -145,7 +155,10 @@ void AddressBook::LoadPublishers() {
 
 void AddressBook::SubscriberUpdateTimer(
     const boost::system::error_code& ecode) {
-  if (ecode != boost::asio::error::operation_aborted) {
+  if (ecode) {
+    LogPrint(eLogError,
+        "AddressBook: SubscriberUpdateTimer() exception: ", ecode.message());
+  } else {
     if (m_SubscriptionIsLoaded
         && !m_SubscriberIsDownloading
         && m_SharedLocalDestination->IsReady()) {
@@ -171,9 +184,6 @@ void AddressBook::SubscriberUpdateTimer(
               this,
               std::placeholders::_1));
     }
-  } else {
-    LogPrint(eLogError,
-        "AddressBook: SubscriberUpdateTimer() exception: ", ecode.message());
   }
 }
 
@@ -182,6 +192,8 @@ void AddressBook::LoadSubscriptionFromPublisher() {
   if (!m_Storage)
     m_Storage = GetNewStorageInstance();
   // If so, see if we have addresses from subscription already saved
+  // TODO(anonimal): in order to load new fresh subscriptions,
+  // we need to remove and/or work around this block and m_SubscriptionIsLoaded
   if (m_Storage->Load(m_Addresses)) {
     // If so, we don't need to download from a publisher
     m_SubscriptionIsLoaded = true;
@@ -189,11 +201,9 @@ void AddressBook::LoadSubscriptionFromPublisher() {
   }
   // If available, load default subscription from file
   auto filename = GetDefaultSubscriptionFilename();
-  std::ifstream file(
-      i2p::util::filesystem::GetFullPath(filename),
-      std::ofstream::in);
+  std::ifstream file(i2p::util::filesystem::GetFullPath(filename));
   LogPrint(eLogInfo, "AddressBook: loading subscription ", filename);
-  if (file.is_open()) {  // Open subscription, validate, and save to storage
+  if (file) {  // Open subscription, validate, and save to storage
     m_SubscriptionFileIsReady = true;
     if (!ValidateSubscriptionThenSaveToStorage(file))
       LogPrint(eLogWarn,
@@ -201,12 +211,7 @@ void AddressBook::LoadSubscriptionFromPublisher() {
   } else {  // Use default publisher and download
     LogPrint(eLogWarn, "AddressBook: ", filename, " not found");
     if (!m_SubscriberIsDownloading) {
-      if (m_Subscribers.empty()) {
-        auto publisher = GetDefaultPublisherURI();
-        LogPrint(eLogWarn, "AddressBook: using default publisher ", publisher);
-        m_Subscribers.push_back(
-            std::make_unique<AddressBookSubscriber>(*this, publisher));
-      }
+      LoadPublishers();
       m_SubscriberIsDownloading = true;
       m_Subscribers.front()->DownloadSubscription();
     } else {
@@ -222,6 +227,7 @@ void AddressBookSubscriber::DownloadSubscription() {
 }
 
 void AddressBookSubscriber::DownloadSubscriptionImpl() {
+  // TODO(anonimal): ensure thread safety
   LogPrint(eLogInfo,
       "AddressBookSubscriber: downloading subscription ", m_HTTP.GetURI().string(),
       " ETag: ", m_HTTP.GetPreviousETag(),
@@ -261,27 +267,33 @@ bool AddressBook::ValidateSubscriptionThenSaveToStorage(
   std::unique_lock<std::mutex> lock(m_AddressBookMutex);
   std::ofstream file;
   if (!m_SubscriptionFileIsReady) {
-    file.open(
-        i2p::util::filesystem::GetFullPath(GetDefaultSubscriptionFilename()),
-        std::ofstream::out);
-    m_SubscriptionFileIsReady = true;
+    file.open(i2p::util::filesystem::GetFullPath(GetDefaultSubscriptionFilename()));
+    if (file)
+      m_SubscriptionFileIsReady = true;
   }
   // Host per line and total number of host addresses
   std::string host;
   std::size_t num_addresses = 0;
   // Read through stream, add to address book
-  while (!stream.eof()) {
-    getline(stream, host);
+  while (std::getline(stream, host)) {
+    // If found, clear whitespace before and after host (on the line)
+    host.erase(
+        std::remove_if(
+            host.begin(),
+            host.end(),
+            [](char whitespace) { return std::isspace(whitespace); }),
+        host.end());
+    // If found, skip empty line
     if (!host.length())
-      continue;  // skip empty line
+      continue;
     // File ready, write/overwrite to disk
     if (m_SubscriptionFileIsReady)
-      file << host << std::endl;
+      file << host << '\n';
     // Parse host from address, save to address book
     std::size_t pos = host.find('=');
     if (pos != std::string::npos) {
-      std::string name = host.substr(0, pos++);
-      std::string addr = host.substr(pos);
+      const std::string name = host.substr(0, pos++);
+      const std::string addr = host.substr(pos);
       i2p::data::IdentityEx ident;
       if (ident.FromBase64(addr)) {
         m_Addresses[name] = ident.GetIdentHash();
@@ -294,12 +306,15 @@ bool AddressBook::ValidateSubscriptionThenSaveToStorage(
       }
     }
   }
-  LogPrint(eLogInfo, "AddressBook: ", num_addresses, " addresses processed");
+  // Flush subscription file
+  if (m_SubscriptionFileIsReady)
+    file << std::flush;
   if (num_addresses) {
     // Save list of hosts within subscription to a catalog file
     m_Storage->Save(m_Addresses);
     m_SubscriptionIsLoaded = true;
   }
+  LogPrint(eLogInfo, "AddressBook: ", num_addresses, " addresses processed");
   m_SubscriptionFileIsReady = false;  // Reset for fresh download
   return m_SubscriptionIsLoaded;
 }

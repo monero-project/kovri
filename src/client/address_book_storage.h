@@ -36,7 +36,7 @@
 #include <boost/filesystem.hpp>
 
 #include <cstdint>
-#include <iostream>
+#include <iosfwd>
 #include <map>
 #include <memory>
 #include <string>
@@ -45,7 +45,6 @@
 #include "identity.h"
 #include "core/util/filesystem.h"
 #include "router_context.h"
-#include "util/base64.h"
 #include "util/log.h"
 
 namespace i2p {
@@ -94,40 +93,12 @@ struct AddressBookDefaults {
 };
 
 /// @class AddressBookStorage
-/// @brief Interface for address book storage
-class AddressBookStorage {
- public:
-  virtual ~AddressBookStorage() {}
-
-  virtual bool GetAddress(
-      const i2p::data::IdentHash& ident,
-      i2p::data::IdentityEx& address) const = 0;
-
-  virtual void AddAddress(
-      const i2p::data::IdentityEx& address) = 0;
-
-  /**
-  // TODO(unassigned): currently unused
-  virtual void RemoveAddress(
-      const i2p::data::IdentHash& ident) = 0;
-  **/
-
-  virtual std::size_t Load(
-      std::map<std::string, i2p::data::IdentHash>& addresses) = 0;
-
-  virtual std::size_t Save(
-      const std::map<std::string, i2p::data::IdentHash>& addresses) = 0;
-};
-
-/// @class AddressBookFilesystemStorage
-/// @brief All filesystem-related address book member functions
-class AddressBookFilesystemStorage
-    : public AddressBookDefaults,
-      public AddressBookStorage {
+/// @brief All filesystem-related members
+class AddressBookStorage : public AddressBookDefaults {
  public:
   /// @details Gets/Sets address book path/directory
   /// @notes Creates directory if not available
-  AddressBookFilesystemStorage();
+  AddressBookStorage();
 
   /// @brief Gets b32 identity from storage and puts into identity buffer
   /// @return True if b32 identity is in filesystem and valid

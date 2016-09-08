@@ -72,7 +72,9 @@ bool HTTP::Download() {
 
 bool HTTP::HostIsI2P() {
   auto uri = GetURI();
-  if (uri.host().substr(uri.host().size() - 4) == ".i2p") {
+  if (!(uri.host().substr(uri.host().size() - 4) == ".i2p")) {
+    return false;
+  } else {
     if (!uri.port().empty())
       return true;
     // We must assign a port if none was assigned (for internal reasons)
@@ -83,9 +85,8 @@ bool HTTP::HostIsI2P() {
       port.assign("80");
     // If user supplied user:password, we must append @
     std::string user_info;
-    if (!uri.user_info().empty()) {
+    if (!uri.user_info().empty())
       user_info.assign(uri.user_info() + "@");
-    }
     // TODO(anonimal): easier way with cpp-netlib?
     std::string new_uri(
         uri.scheme() + "://" + user_info
@@ -93,8 +94,6 @@ bool HTTP::HostIsI2P() {
         + uri.path() + uri.query() + uri.fragment());
     SetURI(new_uri);
     return true;
-  } else {
-    return false;
   }
 }
 
@@ -102,7 +101,7 @@ bool HTTP::DownloadViaClearnet() {
   auto uri = GetURI();
   // Create and set options
   Options options;
-  options.timeout(45);  // Java I2P defined
+  options.timeout(static_cast<std::uint8_t>(Timeout::Request));
   // Ensure that we only download from certified reseed servers
   if (!i2p::context.ReseedSkipSSLCheck()) {
     const std::string cert = uri.host() + ".crt";
@@ -138,7 +137,8 @@ bool HTTP::DownloadViaClearnet() {
     Response response = client.get(request);
     // Test HTTP response status code
     switch (response.status()) {
-      case 200:  // OK  (also, cached version does not match, so we download)
+      // New download or cached version does not match, so re-download
+      case static_cast<std::uint16_t>(ResponseCode::HTTP_OK):
         // Parse response headers for ETag and Last-Modified
         for (auto const& header : response.headers()) {
           if (header.first == "ETag") {
@@ -153,9 +153,11 @@ bool HTTP::DownloadViaClearnet() {
         // Save downloaded content
         SetDownloadedContents(boost::network::http::body(response));
         break;
-      case 304:  // Not Modified
+      // File requested is unchanged since previous download
+      case static_cast<std::uint16_t>(ResponseCode::HTTP_NOT_MODIFIED):
         LogPrint(eLogInfo, "HTTP: no new updates available from ", uri.host());
         break;
+      // Useless response code
       default:
         LogPrint(eLogWarn, "HTTP: response code: ", response.status());
         return false;
@@ -194,6 +196,9 @@ bool HTTP::DownloadViaI2P() {
             lease_set = ls;
             new_data_received.notify_all();
           });
+      // TODO(anonimal): request times need to be more consistent.
+      //   In testing, even after integration, results vary dramatically.
+      //   This could be a router issue or something amiss during the refactor.
       if (new_data_received.wait_for(
               lock,
               std::chrono::seconds(
@@ -280,13 +285,12 @@ bool HTTP::ProcessI2PResponse() {
   std::uint16_t response_code = 0;
   m_Response >> http_version;
   m_Response >> response_code;
-  if (response_code == 200) {
+  if (response_code == static_cast<std::uint16_t>(ResponseCode::HTTP_OK)) {
     bool is_chunked = false;
     std::string header, status_message;
     std::getline(m_Response, status_message);
     // Read response until end of header (new line)
-    while (!m_Response.eof() && header != "\r") {
-      std::getline(m_Response, header);
+    while (std::getline(m_Response, header) && header != "\r") {
       auto colon = header.find(':');
       if (colon != std::string::npos) {
         std::string field = header.substr(0, colon);
@@ -303,10 +307,9 @@ bool HTTP::ProcessI2PResponse() {
     }
     // Get content after header
     std::stringstream content;
-    while (!m_Response.eof()) {
+    while (std::getline(m_Response, header)) {
       // TODO(anonimal): this can be improved but since we
       // won't need this after the refactor, it 'works' for now
-      std::getline(m_Response, header);
       auto colon = header.find(':');
       if (colon != std::string::npos)
         continue;
@@ -323,7 +326,8 @@ bool HTTP::ProcessI2PResponse() {
         SetDownloadedContents(content.str());
       }
     }
-  } else if (response_code == 304) {
+  } else if (response_code
+             == static_cast<std::uint16_t>(ResponseCode::HTTP_NOT_MODIFIED)) {
     LogPrint(eLogInfo, "HTTP: no new updates available from ", GetURI().host());
   } else {
     LogPrint(eLogWarn, "HTTP: response code: ", response_code);

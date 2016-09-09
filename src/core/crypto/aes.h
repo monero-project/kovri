@@ -84,7 +84,7 @@ class AESAlignedBuffer {  // 16 bytes alignment
   }
 
  private:
-  std::uint8_t m_UnalignedBuffer[Size + 15];  // up to 15 bytes alignment
+  std::uint8_t m_UnalignedBuffer[Size + 15] = {};  // up to 15 bytes alignment
   std::uint8_t* m_Buf;
 };
 

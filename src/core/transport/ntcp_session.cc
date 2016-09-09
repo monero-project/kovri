@@ -71,6 +71,10 @@ NTCPSession::NTCPSession(
       m_IsSending(false) {
   m_DHKeysPair = transports.GetNextDHKeysPair();
   m_Establisher = std::make_unique<Establisher>();
+  if(in_RemoteRouter) {
+    // Set shortened ident hash and remote endpoint for logging
+    SetRemoteIdentHashAbbreviation();
+  }
 }
 
 NTCPSession::~NTCPSession() {}
@@ -107,8 +111,6 @@ void NTCPSession::ServerLogin() {
  */
 
 void NTCPSession::ClientLogin() {
-  // Set shortened ident hash for logging
-  SetRemoteIdentHashAbbreviation();
   // Set endpoint
   auto ecode = SetRemoteEndpoint();
   if (!ecode) {

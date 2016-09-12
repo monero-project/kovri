@@ -89,9 +89,9 @@ bool Daemon_Singleton::Init() {
   }
   // Set reseed options
   // TODO(anonimal): rename as SetOption*
-  i2p::context.ReseedFrom(
+  i2p::context.SetOptionReseedFrom(
       i2p::util::config::var_map["reseed-from"].as<std::string>());
-  i2p::context.ReseedSkipSSLCheck(
+  i2p::context.SetOptionReseedSkipSSLCheck(
       i2p::util::config::var_map["reseed-skip-ssl-check"].as<bool>());
   i2p::context.SetSupportsNTCP(
       i2p::util::config::var_map["enable-ntcp"].as<bool>());
@@ -112,6 +112,14 @@ bool Daemon_Singleton::Start() {
     if (!i2p::data::netdb.Start()) {
       LogPrint(eLogError, "Daemon_Singleton: NetDb failed to start");
       return false;
+    }
+    if (i2p::data::netdb.GetNumRouters() < i2p::data::netdb.MIN_REQUIRED_ROUTERS) {
+      LogPrint(eLogInfo, "Daemon_Singleton: reseeding NetDb");
+      i2p::data::Reseed reseed;
+      if (!reseed.Start()) {
+        LogPrint(eLogError, "Daemon_Singleton: reseed failed");
+        return false;
+      }
     }
     LogPrint(eLogInfo, "Daemon_Singleton: starting transports");
     i2p::transport::transports.Start();

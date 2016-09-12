@@ -7,10 +7,9 @@ set(CORE_SRC
   "i2np_protocol.cc"
   "identity.cc"
   "lease_set.cc"
-  "net_db_requests.cc"
   "net_db.cc"
+  "net_db_requests.cc"
   "profiling.cc"
-  "reseed.cc"
   "router_context.cc"
   "router_info.cc"
   "transport/ntcp.cc"
@@ -28,9 +27,7 @@ set(CORE_SRC
   "tunnel/tunnel_pool.cc"
   "util/base64.cc"
   "util/filesystem.cc"
-  "util/http.cc"
   "util/mtu.cc"
-  "util/zip.cc"
   "util/pimpl/log.cc")
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")

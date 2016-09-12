@@ -42,8 +42,9 @@
 #include <string>
 #include <vector>
 
-#include "crypto/util/x509.h"
-#include "util/filesystem.h"
+#include "core/crypto/util/x509.h"
+#include "core/router_context.h"
+#include "core/util/filesystem.h"
 #include "util/zip.h"
 
 namespace i2p {
@@ -64,13 +65,13 @@ class Reseed {
  public:
   /// @brief Constructs stream from string
   explicit Reseed(
-      const std::string& stream)
+      const std::string& stream = i2p::context.GetOptionReseedFrom())
       : m_Stream(stream) {}
 
   /// @brief Reseed implementation
   /// @details Oversees fetching and processing of SU3
   /// @return false on failure
-  bool ReseedImpl();
+  bool Start();
 
  private:
   /// @brief Processes SU3 certificates for SU3 verification

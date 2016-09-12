@@ -46,7 +46,6 @@
 #include <sstream>
 #include <string>
 
-#include "log.h"
 #include "reseed.h"
 
 namespace i2p {

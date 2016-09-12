@@ -47,7 +47,6 @@
 #include "i2np_protocol.h"
 #include "lease_set.h"
 #include "net_db_requests.h"
-#include "reseed.h"
 #include "router_info.h"
 #include "tunnel/tunnel.h"
 #include "tunnel/tunnel_pool.h"
@@ -131,23 +130,29 @@ class NetDb {
   void PostI2NPMsg(
       std::shared_ptr<const I2NPMessage> msg);
 
-  bool Reseed();
-
+  // TODO(unassigned): std::size_t refactor
   int GetNumRouters() const {
     return m_RouterInfos.size();
   }
 
+  // TODO(unassigned): std::size_t refactor
   int GetNumFloodfills() const {
     return m_Floodfills.size();
   }
 
+  // TODO(unassigned): std::size_t refactor
   int GetNumLeaseSets() const {
     return m_LeaseSets.size();
   }
 
+  // Java i2p defined
+  const std::uint8_t MIN_REQUIRED_ROUTERS = 50;
+
  private:
   bool CreateNetDb(boost::filesystem::path directory);
-  void Load();
+  /// @brief Loads RI's from disk
+  /// @return False on failure
+  bool Load();
   void SaveUpdated();
   void Run();  // exploratory thread
   void Explore(int num_destinations);
@@ -171,8 +176,6 @@ class NetDb {
 
   // of I2NPDatabaseStoreMsg
   i2p::util::Queue<std::shared_ptr<const I2NPMessage>> m_Queue;
-
-  std::unique_ptr<i2p::data::Reseed> m_Reseed;
 
   friend class NetDbRequests;
   NetDbRequests m_Requests;

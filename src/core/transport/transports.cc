@@ -175,7 +175,7 @@ void Transports::Start() {
         i2p::data::RouterInfo::eTransportSSU && address.host.is_v4()) {
       if (!m_SSUServer) {
         LogPrint(eLogInfo, "Transports: UDP listening on port ", address.port);
-        m_SSUServer = std::make_unique<SSUServer>(address.port);
+        m_SSUServer = std::make_unique<SSUServer>(m_Service, address.port);
         m_SSUServer->Start();
         DetectExternalIP();
       } else {

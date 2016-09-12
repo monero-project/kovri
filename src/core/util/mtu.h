@@ -35,15 +35,21 @@
 
 #include <boost/asio.hpp>
 
+#include <cstdint>
+
 #include "log.h"
 
 namespace i2p {
 namespace util {
 namespace mtu {
 
-// @return the maximum transmission unit, or 576 on failure
-int GetMTU(
-    const boost::asio::ip::address& localAddress);
+// TODO(unassigned): enum class refactor once we remove namespace mtu
+const std::uint16_t MTU_MAX = 1472;
+const std::uint16_t MTU_FALLBACK = 576;
+
+// @return the maximum transmission unit or fallback on failure
+std::uint16_t GetMTU(
+    const boost::asio::ip::address& local_address);
 
 }  // namespace mtu
 }  // namespace util

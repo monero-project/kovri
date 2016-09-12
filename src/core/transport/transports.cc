@@ -165,7 +165,7 @@ void Transports::Start() {
         i2p::data::RouterInfo::eTransportNTCP && address.host.is_v4()) {
       if (!m_NTCPServer) {
         LogPrint(eLogInfo, "Transports: TCP listening on port ", address.port);
-        m_NTCPServer = std::make_unique<NTCPServer>(address.port);
+        m_NTCPServer = std::make_unique<NTCPServer>(m_Service, address.port);
         m_NTCPServer->Start();
       } else {
         LogPrint(eLogError, "Transports: TCP server already exists");

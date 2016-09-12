@@ -137,12 +137,6 @@ class SSUServer {
       uint32_t nonce);
 
  private:
-  void Run();
-
-  void RunV6();
-
-  void RunReceivers();
-
   void Receive();
 
   void ReceiveV6();

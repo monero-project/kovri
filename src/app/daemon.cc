@@ -88,16 +88,15 @@ bool Daemon_Singleton::Init() {
       i2p::context.SetLowBandwidth();
   }
   // Set reseed options
-  // TODO(anonimal): rename as SetOption*
   i2p::context.SetOptionReseedFrom(
       i2p::util::config::var_map["reseed-from"].as<std::string>());
   i2p::context.SetOptionReseedSkipSSLCheck(
       i2p::util::config::var_map["reseed-skip-ssl-check"].as<bool>());
+  // Set transport options
   i2p::context.SetSupportsNTCP(
       i2p::util::config::var_map["enable-ntcp"].as<bool>());
   i2p::context.SetSupportsSSU(
       i2p::util::config::var_map["enable-ssu"].as<bool>());
-
   // Initialize the ClientContext
   InitClientContext();
   return true;
@@ -128,22 +127,27 @@ bool Daemon_Singleton::Start() {
     LogPrint(eLogInfo, "Daemon_Singleton: starting client");
     i2p::client::context.Start();
   } catch (std::runtime_error& e) {
-    LogPrint(eLogError, "Daemon_Singleton: exception: ", e.what());
+    LogPrint(eLogError, "Daemon_Singleton: runtime start exception: ", e.what());
     return false;
   }
   return true;
 }
 
 bool Daemon_Singleton::Stop() {
-  LogPrint(eLogInfo, "Daemon_Singleton: stopping client");
-  i2p::client::context.Stop();
-  LogPrint(eLogInfo, "Daemon_Singleton: stopping tunnels");
-  i2p::tunnel::tunnels.Stop();
-  LogPrint(eLogInfo, "Daemon_Singleton: stopping transports");
-  i2p::transport::transports.Stop();
-  LogPrint(eLogInfo, "Daemon_Singleton: stopping NetDb");
-  i2p::data::netdb.Stop();
-  LogPrint(eLogInfo, "Goodbye!");
+  try {
+    LogPrint(eLogInfo, "Daemon_Singleton: stopping client");
+    i2p::client::context.Stop();
+    LogPrint(eLogInfo, "Daemon_Singleton: stopping tunnels");
+    i2p::tunnel::tunnels.Stop();
+    LogPrint(eLogInfo, "Daemon_Singleton: stopping transports");
+    i2p::transport::transports.Stop();
+    LogPrint(eLogInfo, "Daemon_Singleton: stopping NetDb");
+    i2p::data::netdb.Stop();
+    LogPrint(eLogInfo, "Goodbye!");
+  } catch (std::runtime_error& e) {
+    LogPrint(eLogError, "Daemon_Singleton: runtime stop exception: ", e.what());
+    return false;
+  }
   return true;
 }
 

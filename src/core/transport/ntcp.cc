@@ -247,7 +247,7 @@ void NTCPServer::AddNTCPSession(
   if (session) {
     LogPrint(eLogDebug,
         "NTCPServer: ", session->GetSocket().remote_endpoint(),
-        "*** adding NTCP session");
+        " *** adding NTCP session");
     std::unique_lock<std::mutex> l(m_NTCPSessionsMutex);
     m_NTCPSessions[session->GetRemoteIdentity().GetIdentHash()] = session;
   }
@@ -257,7 +257,7 @@ void NTCPServer::RemoveNTCPSession(
     std::shared_ptr<NTCPSession> session) {
   if (session) {
     LogPrint(eLogDebug,
-        "NTCPServer: ", session->GetFormattedSessionInfo(),
+        "NTCPServer:", session->GetFormattedSessionInfo(),
         "*** removing NTCP session");
     std::unique_lock<std::mutex> l(m_NTCPSessionsMutex);
     m_NTCPSessions.erase(session->GetRemoteIdentity().GetIdentHash());

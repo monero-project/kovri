@@ -41,10 +41,11 @@
 #include <string>
 #include <vector>
 
-#include "router_context.h"
-#include "client/client_context.h"
-#include "client/address_book.h"
-#include "util/filesystem.h"
+#include "address_book.h"
+#include "client_context.h"
+#include "core/router_context.h"
+#include "core/util/filesystem.h"
+#include "core/util/log.h"
 
 namespace i2p {
 namespace util {
@@ -101,7 +102,7 @@ bool HTTP::DownloadViaClearnet() {
   Options options;
   options.timeout(static_cast<std::uint8_t>(Timeout::Request));
   // Ensure that we only download from certified reseed servers
-  if (!i2p::context.ReseedSkipSSLCheck()) {
+  if (!i2p::context.GetOptionReseedSkipSSLCheck()) {
     const std::string cert = uri.host() + ".crt";
     const boost::filesystem::path cert_path = i2p::util::filesystem::GetSSLCertsPath() / cert;
     if (!boost::filesystem::exists(cert_path)) {

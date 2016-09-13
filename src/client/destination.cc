@@ -148,8 +148,6 @@ ClientDestination::~ClientDestination() {
     Stop();
   for (auto it : m_LeaseSetRequests)
     delete it.second;
-  if (m_Pool)
-    i2p::tunnel::tunnels.DeleteTunnelPool(m_Pool);
   if (m_DatagramDestination)
     delete m_DatagramDestination;
 }
@@ -204,6 +202,7 @@ void ClientDestination::Stop() {
     if (m_Pool) {
       m_Pool->SetLocalDestination(nullptr);
       i2p::tunnel::tunnels.StopTunnelPool(m_Pool);
+      i2p::tunnel::tunnels.DeleteTunnelPool(m_Pool);
     }
     m_Service.stop();
     if (m_Thread) {

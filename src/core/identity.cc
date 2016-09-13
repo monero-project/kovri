@@ -569,8 +569,8 @@ PrivateKeys PrivateKeys::CreateRandomKeys(SigningKeyType type) {
           keys.m_SigningPrivateKey,
           signingPublicKey);
     break;
-    default: // Includes 
-      LogPrint(eLogWarning,
+    default:
+      LogPrint(eLogWarn,
           "IdentityEx: Signing key type ",
           static_cast<int>(type), " is not supported, creating DSA-SHA1");
     case SIGNING_KEY_TYPE_DSA_SHA1:

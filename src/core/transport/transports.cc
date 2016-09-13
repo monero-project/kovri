@@ -239,10 +239,11 @@ void Transports::UpdateBandwidth() {
   if (m_LastBandwidthUpdateTime > 0) {
     auto delta = ts - m_LastBandwidthUpdateTime;
     if (delta > 0) {
+      // Bandwidth in bytes per second
       m_InBandwidth =
-        (m_TotalReceivedBytes - m_LastInBandwidthUpdateBytes) * 1000 / delta;  // per second
+        (m_TotalReceivedBytes - m_LastInBandwidthUpdateBytes) * 1000 / delta;
       m_OutBandwidth =
-        (m_TotalSentBytes - m_LastOutBandwidthUpdateBytes) * 1000 / delta;  // per second
+        (m_TotalSentBytes - m_LastOutBandwidthUpdateBytes) * 1000 / delta;
     }
   }
   m_LastBandwidthUpdateTime = ts;
@@ -295,10 +296,9 @@ void Transports::PostMessages(
     bool connected = false;
     try {
       auto router = i2p::data::netdb.FindRouter(ident);
-      it = m_Peers.insert(
-          std::make_pair(
-              ident,
-              Peer{ 0, router, {}, i2p::util::GetSecondsSinceEpoch(), {} })).first;
+      it = m_Peers.insert(std::make_pair(
+          ident,
+          Peer{ 0, router, {}, i2p::util::GetSecondsSinceEpoch(), {} })).first;
       connected = ConnectToPeer(ident, it->second);
     } catch (std::exception& ex) {
       LogPrint(eLogError, "Transports: PostMessages(): '", ex.what(), "'");
@@ -317,7 +317,7 @@ void Transports::PostMessages(
 bool Transports::ConnectToPeer(
     const i2p::data::IdentHash& ident,
     Peer& peer) {
-  if (!peer.router) { // We don't have the RI
+  if (!peer.router) {  // We don't have the RI
     LogPrint(eLogDebug, "Transports: RI not found, requesting");
     i2p::data::netdb.RequestDestination(
         ident,
@@ -358,14 +358,14 @@ bool Transports::ConnectToPeer(
       "no NTCP/SSU address available");
   peer.Done();
   m_Peers.erase(ident);
-  return false;  
+  return false;
 }
 
 bool Transports::ConnectToPeerNTCP(
     const i2p::data::IdentHash& ident,
     Peer& peer) {
   if (!m_NTCPServer)
-    return false; // NTCP not supported
+    return false;  // NTCP not supported
 
   LogPrint(eLogDebug,
       "Transports: attempting NTCP for peer",
@@ -396,7 +396,7 @@ bool Transports::ConnectToPeerNTCP(
 
 bool Transports::ConnectToPeerSSU(Peer& peer) {
   if (!m_SSUServer)
-    return false; // SSU not supported
+    return false;  // SSU not supported
 
   LogPrint(eLogDebug,
     "Transports: attempting SSU for peer",
@@ -510,8 +510,8 @@ void Transports::PostCloseSession(
         "Transports: SSU session [",
         router->GetIdentHashAbbreviation(), "] closed");
   }
-  auto ntcp_session =
-    m_NTCPServer ? m_NTCPServer->FindNTCPSession(router->GetIdentHash()) : nullptr;
+  auto ntcp_session = m_NTCPServer ?
+      m_NTCPServer->FindNTCPSession(router->GetIdentHash()) : nullptr;
   if (ntcp_session) {
     m_NTCPServer->RemoveNTCPSession(ntcp_session);
     LogPrint(eLogInfo,
@@ -523,7 +523,7 @@ void Transports::PostCloseSession(
 void Transports::DetectExternalIP() {
   LogPrint(eLogDebug, "Transports: detecting external IP");
 
-  if (!m_SSUServer) { // SSU not supported
+  if (!m_SSUServer) {  // SSU not supported
     LogPrint(eLogError,
         "Transports: can't detect external IP, SSU is not available");
     return;

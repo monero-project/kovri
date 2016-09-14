@@ -77,6 +77,7 @@ class AddressBook : public AddressBookDefaults {
       : m_SharedLocalDestination(nullptr),
         m_Storage(nullptr),
         m_SubscriberUpdateTimer(nullptr),
+        m_SubscriptionFileIsReady(false),
         m_SubscriptionIsLoaded(false),
         m_SubscriberIsDownloading(false) {}
 

@@ -611,10 +611,10 @@ void I2PControlSession::HandleShutdownGraceful(
 void I2PControlSession::HandleReseed(
     Response& response) {
   LogPrint(eLogInfo, "I2PControlSession: reseed requested");
-  response.SetParam(
-      constants::ROUTER_MANAGER_SHUTDOWN,
-      "");
-  i2p::data::netdb.Reseed();
+  response.SetParam(constants::ROUTER_MANAGER_SHUTDOWN, "");
+  i2p::data::Reseed reseed;
+  if (!reseed.Start())
+    LogPrint(eLogError, "I2PControlSession: reseed failed");
 }
 
 void I2PControlSession::ExpireTokens(

@@ -375,7 +375,7 @@ void I2PClientTunnel::Stop() {
 std::unique_ptr<const i2p::data::IdentHash> I2PClientTunnel::GetIdentHash() {
   if (!m_DestinationIdentHash) {
     i2p::data::IdentHash identHash;
-    if (i2p::client::context.GetAddressBook().GetIdentHash(m_Destination, identHash))
+    if (i2p::client::context.GetAddressBook().CheckAddressIdentHashFound(m_Destination, identHash))
       m_DestinationIdentHash = std::make_unique<i2p::data::IdentHash>(identHash);
     else
       LogPrint(eLogWarn,

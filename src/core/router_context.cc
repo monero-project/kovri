@@ -282,18 +282,14 @@ void RouterContext::UpdateNTCPV6Address(
   }
   if (!found) {
     // create new address
-    m_RouterInfo.AddNTCPAddress(host.to_string().c_str(), port);
-    auto mtu = i2p::util::mtu::GetMTU(host);
-    if (mtu) {
-      LogPrint(eLogDebug, "RouterContext: our v6 MTU=", mtu);
-      if (mtu > 1472)
-        mtu = 1472;
-    }
+    m_RouterInfo.AddNTCPAddress(
+        host.to_string().c_str(),
+        port);
     m_RouterInfo.AddSSUAddress(
         host.to_string().c_str(),
         port,
         GetIdentHash(),
-        mtu ? mtu : 1472);  // TODO(unassigned): ???
+        i2p::util::mtu::GetMTU(host));
     updated = true;
   }
   if (updated)

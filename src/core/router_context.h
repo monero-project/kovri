@@ -276,24 +276,24 @@ class RouterContext : public i2p::garlic::GarlicDestination {
    */
 
   /// @brief Sets user-supplied reseed stream
-  void ReseedFrom(
+  void SetOptionReseedFrom(
       const std::string& stream) {
     m_ReseedFrom = stream;
   }
 
   /// @return User-supplied reseed stream
-  std::string ReseedFrom() {
+  std::string GetOptionReseedFrom() {
     return m_ReseedFrom;
   }
 
   /// @brief Sets user-supplied reseed SSL option
-  void ReseedSkipSSLCheck(
+  void SetOptionReseedSkipSSLCheck(
       bool option) {
     m_ReseedSkipSSLCheck = option;
   }
 
   /// @return User-supplied option to skip SSL
-  bool ReseedSkipSSLCheck() {
+  bool GetOptionReseedSkipSSLCheck() {
     return m_ReseedSkipSSLCheck;
   }
 

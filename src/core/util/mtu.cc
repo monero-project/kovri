@@ -92,13 +92,12 @@ namespace mtu {
     defined(__FreeBSD_kernel__) || \
     defined(__APPLE__) || \
     defined(__OpenBSD__)
-int GetMTUUnix(
-    const boost::asio::ip::address& localAddress,
-    int fallback) {
+std::uint16_t GetMTUUnix(
+    const boost::asio::ip::address& local_address) {
   ifaddrs* ifaddr, *ifa = nullptr;
   if (getifaddrs(&ifaddr) == -1) {
     LogPrint(eLogError, "MTU: can't execute getifaddrs()");
-    return fallback;
+    return MTU_FALLBACK;
   }
   int family = 0;
   // look for interface matching local address
@@ -106,24 +105,24 @@ int GetMTUUnix(
     if (!ifa->ifa_addr)
       continue;
     family = ifa->ifa_addr->sa_family;
-    if (family == AF_INET && localAddress.is_v4()) {
+    if (family == AF_INET && local_address.is_v4()) {
       sockaddr_in* sa =  reinterpret_cast<sockaddr_in *>(ifa->ifa_addr);
-      if (!memcmp(&sa->sin_addr, localAddress.to_v4().to_bytes().data(), 4))
+      if (!memcmp(&sa->sin_addr, local_address.to_v4().to_bytes().data(), 4))
         break;  // address matches
-    } else if (family == AF_INET6 && localAddress.is_v6()) {
+    } else if (family == AF_INET6 && local_address.is_v6()) {
       sockaddr_in6* sa =  reinterpret_cast<sockaddr_in6 *>(ifa->ifa_addr);
-      if (!memcmp(&sa->sin6_addr, localAddress.to_v6().to_bytes().data(), 16))
+      if (!memcmp(&sa->sin6_addr, local_address.to_v6().to_bytes().data(), 16))
         break;  // address matches
     }
   }
-  int mtu = fallback;
+  auto mtu = MTU_FALLBACK;
   if (ifa && family) {  // interface found?
     int fd = socket(family, SOCK_DGRAM, 0);
     if (fd > 0) {
       ifreq ifr;
       // set interface for query
-      strncpy(ifr.ifr_name, ifa->ifa_name,IFNAMSIZ);
-      ifr.ifr_name[IFNAMSIZ]='\0';
+      strncpy(ifr.ifr_name, ifa->ifa_name,sizeof(ifr.ifr_name));
+      ifr.ifr_name[sizeof(ifr.ifr_name)-1]='\0';
       if (ioctl(fd, SIOCGIFMTU, &ifr) >= 0)
         mtu = ifr.ifr_mtu;  // MTU
       else
@@ -135,16 +134,15 @@ int GetMTUUnix(
   } else {
     LogPrint(eLogWarn,
         "MTU: interface for local address",
-        localAddress.to_string(), " not found");
+        local_address.to_string(), " not found");
   }
   freeifaddrs(ifaddr);
   return mtu;
 }
 
 #elif defined(_WIN32)
-int GetMTUWindowsIpv4(
-    sockaddr_in inputAddress,
-    int fallback) {
+std::uint16_t GetMTUWindowsIpv4(
+    sockaddr_in inputAddress) {
   ULONG outBufLen = 0;
   PIP_ADAPTER_ADDRESSES pAddresses = nullptr;
   PIP_ADAPTER_ADDRESSES pCurrAddresses = nullptr;
@@ -169,7 +167,7 @@ int GetMTUWindowsIpv4(
         "MTU: GetMTUWindowsIpv4() has failed:",
         "enclosed GetAdaptersAddresses() call has failed");
     FREE(pAddresses);
-    return fallback;
+    return MTU_FALLBACK;
   }
   pCurrAddresses = pAddresses;
   while (pCurrAddresses) {
@@ -199,12 +197,11 @@ int GetMTUWindowsIpv4(
       "MTU: GetMTUWindowsIpv4() error:",
       "no usable unicast ipv4 addresses found");
   FREE(pAddresses);
-  return fallback;
+  return MTU_FALLBACK;
 }
 
-int GetMTUWindowsIpv6(
-    sockaddr_in6 inputAddress,
-    int fallback) {
+std::uint16_t GetMTUWindowsIpv6(
+    sockaddr_in6 inputAddress) {
   ULONG outBufLen = 0;
   PIP_ADAPTER_ADDRESSES pAddresses = nullptr;
   PIP_ADAPTER_ADDRESSES pCurrAddresses = nullptr;
@@ -229,7 +226,7 @@ int GetMTUWindowsIpv6(
       "MTU: GetMTUWindowsIpv6() has failed:",
       "enclosed GetAdaptersAddresses() call has failed");
     FREE(pAddresses);
-    return fallback;
+    return MTU_FALLBACK;
   }
   bool found_address = false;
   pCurrAddresses = pAddresses;
@@ -268,12 +265,11 @@ int GetMTUWindowsIpv6(
       "MTU: GetMTUWindowsIpv6() error:",
       "no usable unicast ipv6 addresses found");
   FREE(pAddresses);
-  return fallback;
+  return MTU_FALLBACK;
 }
 
-int GetMTUWindows(
-    const boost::asio::ip::address& localAddress,
-    int fallback) {
+std::uint16_t GetMTUWindows(
+    const boost::asio::ip::address& localAddress) {
 #ifdef UNICODE
   string localAddress_temporary = localAddress.to_string();
   wstring localAddressUniversal(
@@ -285,36 +281,41 @@ int GetMTUWindows(
   if (localAddress.is_v4()) {
     sockaddr_in inputAddress;
     inet_pton(AF_INET, localAddressUniversal.c_str(), &(inputAddress.sin_addr));
-    return GetMTUWindowsIpv4(inputAddress, fallback);
+    return GetMTUWindowsIpv4(inputAddress, MTU_FALLBACK);
   } else if (localAddress.is_v6()) {
     sockaddr_in6 inputAddress;
     inet_pton(
         AF_INET6,
         localAddressUniversal.c_str(),
         &(inputAddress.sin6_addr));
-    return GetMTUWindowsIpv6(inputAddress, fallback);
+    return GetMTUWindowsIpv6(inputAddress, MTU_FALLBACK);
   } else {
     LogPrint(eLogError,
         "MTU: GetMTUWindows() has failed:",
         "address family is not supported");
-    return fallback;
+    return MTU_FALLBACK;
   }
 }
 #endif  // WIN32
 
-int GetMTU(
-    const boost::asio::ip::address& localAddress) {
-  const int fallback = 576;  // fallback MTU
-
+std::uint16_t GetMTU(
+    const boost::asio::ip::address& local_address) {
 #if defined(__linux__) || \
     defined(__FreeBSD_kernel__) || \
     defined(__APPLE__) || \
     defined(__OpenBSD__)
-  return GetMTUUnix(localAddress, fallback);
+  auto mtu = GetMTUUnix(local_address);
 #elif defined(WIN32)
-  return GetMTUWindows(localAddress, fallback);
+  auto mtu = GetMTUWindows(local_address);
+#else
+  auto mtu = MTU_FALLBACK;
 #endif
-  return fallback;
+  LogPrint(eLogDebug, "MTU: our MTU=", mtu);
+  if (!mtu || mtu > MTU_MAX) {
+    LogPrint(eLogDebug, "MTU: scaling MTU to ", MTU_MAX);
+    mtu = MTU_MAX;
+  }
+  return mtu;
 }
 
 }  // namespace mtu

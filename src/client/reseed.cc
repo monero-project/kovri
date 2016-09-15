@@ -42,14 +42,14 @@
 #include <string>
 #include <vector>
 
-#include "identity.h"
-#include "net_db.h"
-#include "crypto/rand.h"
-#include "crypto/signature.h"
-#include "util/filesystem.h"
+#include "core/identity.h"
+#include "core/net_db.h"
+#include "core/crypto/rand.h"
+#include "core/crypto/signature.h"
+#include "core/util/filesystem.h"
+#include "core/util/i2p_endian.h"
+#include "core/util/log.h"
 #include "util/http.h"
-#include "util/i2p_endian.h"
-#include "util/log.h"
 #include "util/zip.h"
 
 namespace i2p {
@@ -65,7 +65,7 @@ namespace data {
  * 4. Inserts extracted RI's into NetDb
  *
  */
-bool Reseed::ReseedImpl() {
+bool Reseed::Start() {
   // Load SU3 (not SSL) certificates
   LogPrint(eLogDebug, "Reseed: processing certificates...");
   if (!ProcessCerts()) {
@@ -187,11 +187,11 @@ bool Reseed::FetchStream(
     const std::string& url) {
   LogPrint(eLogInfo, "Reseed: fetching stream from ", url);
   // TODO(unassigned): abstract our downloading mechanism (see #168)
-  i2p::util::http::HTTP http;
-  if (!http.Download(url))
-    return false;
+  i2p::util::http::HTTP http(url);
+  if (!http.Download())
+    return false;  // Download failed
   // Replace our stream with downloaded stream
-  m_Stream = http.m_Stream;
+  m_Stream.assign(http.GetDownloadedContents());
   // TODO(unassigned): replace with constants if this isn't rewritten by #155/#168
   return ((m_Stream.size() > 0) && (m_Stream.size() <= 128 * 1024)); // Arbitrary size in bytes
 }

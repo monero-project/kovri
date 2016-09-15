@@ -33,150 +33,239 @@
 #ifndef SRC_CLIENT_ADDRESS_BOOK_H_
 #define SRC_CLIENT_ADDRESS_BOOK_H_
 
-#include <boost/asio.hpp>
+#include <boost/asio/deadline_timer.hpp>
 
-#include <string.h>
-
-#include <iostream>
+#include <atomic>
+#include <cstdint>
+#include <iosfwd>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
 
+#include "address_book_storage.h"
 #include "identity.h"
 #include "core/util/filesystem.h"
+#include "destination.h"
+#include "router_context.h"
 #include "util/base64.h"
+#include "util/http.h"
 #include "util/log.h"
 
 namespace i2p {
 namespace client {
 
-const char DEFAULT_SUBSCRIPTION_ADDRESS[] =
-  "http://udhdrtrcetjm5sxzskjyr5ztpeszydbh4dpl3pl4utgqqw2v4jna.b32.i2p/hosts.txt";
-const int INITIAL_SUBSCRIPTION_UPDATE_TIMEOUT = 3;  // in minutes
-const int INITIAL_SUBSCRIPTION_RETRY_TIMEOUT = 1;  // in minutes
-const int CONTINIOUS_SUBSCRIPTION_UPDATE_TIMEOUT = 720;  // in minutes (12 hours)
-const int CONTINIOUS_SUBSCRIPTION_RETRY_TIMEOUT = 5;  // in minutes
-const int SUBSCRIPTION_REQUEST_TIMEOUT = 60;  // in second
-
-inline std::string GetB32Address(
-    const i2p::data::IdentHash& ident) {
-  return ident.ToBase32().append(".b32.i2p");
-}
-
-// interface for storage
-class AddressBookStorage {
- public:
-  virtual ~AddressBookStorage() {}
-
-  virtual bool GetAddress(
-      const i2p::data::IdentHash& ident,
-      i2p::data::IdentityEx& address) const = 0;
-
-  virtual void AddAddress(
-      const i2p::data::IdentityEx& address) = 0;
-
-  virtual void RemoveAddress(
-      const i2p::data::IdentHash& ident) = 0;
-
-  virtual int Load(
-      std::map<std::string,
-      i2p::data::IdentHash>& addresses) = 0;
-
-  virtual int Save(
-      const std::map<std::string, i2p::data::IdentHash>& addresses) = 0;
+/// @enum SubscriberTimeout
+/// @brief Constants used for timeout intervals when fetching subscriptions
+/// @notes Scoped to prevent namespace pollution (otherwise, purely stylistic)
+enum struct SubscriberTimeout : std::uint16_t {
+  // Minutes
+  InitialUpdate = 3,
+  InitialRetry = 1,
+  ContinuousUpdate = 720,  // 12 hours
+  ContinuousRetry = 5,
 };
 
-class ClientDestination;
-class AddressBookSubscription;
-class AddressBook {
+class AddressBookSubscriber;
+/// @class AddressBook
+/// @brief Address book implementation
+class AddressBook : public AddressBookDefaults {
  public:
-  AddressBook();
-  ~AddressBook();
+  /// @brief Initializes defaults for address book implementation
+  AddressBook()
+      : m_SharedLocalDestination(nullptr),
+        m_Storage(nullptr),
+        m_SubscriberUpdateTimer(nullptr),
+        m_SubscriptionIsLoaded(false),
+        m_SubscriberIsDownloading(false) {}
 
+  /// @brief Stops address book implementation
+  ~AddressBook() {
+    Stop();
+  }
+
+  /// @brief Starts address book fetching and processing of spec-related files
+  /// @param local_destination Shared pointer to destination instance used to
+  ///   generate lease set and tunnel pool for downloading new subscription(s)
   void Start(
       std::shared_ptr<ClientDestination> local_destination);
 
+  /// @brief Stops and handles cleanup for address book
+  /// @details Stops timers, finishes downloading if in progress, saves
+  ///   addresses in memory to disk, cleans up memory
   void Stop();
 
-  bool GetIdentHash(
+  /// @brief Checks identity hash derived from .b32.i2p address
+  /// @return True if identity hash was found
+  /// @param address Const reference to .b32.i2p address
+  /// @param ident Reference to identity hash
+  /// @notes If identity hash is found point @param ident to found hash
+  /// @notes Used for in-net downloads only
+  bool CheckAddressIdentHashFound(
       const std::string& address,
       i2p::data::IdentHash& ident);
 
-  bool GetAddress(
-      const std::string& address,
-      i2p::data::IdentityEx& identity);
-
-  std::unique_ptr<const i2p::data::IdentHash> FindAddress(
+  /// @brief Finds address within loaded subscriptions
+  /// @returns Unique pointer to identity hash of loaded address
+  /// @param address Const reference to address
+  /// @notes Used for in-net downloads only
+  std::unique_ptr<const i2p::data::IdentHash> GetLoadedAddressIdentHash(
       const std::string& address);
 
-  std::shared_ptr<ClientDestination> GetSharedLocalDestination() const;
+  /// @brief Used for destination to fetch subscription(s) from publisher(s)
+  /// @return Shared pointer to client destination
+  std::shared_ptr<ClientDestination> GetSharedLocalDestination() const {
+    return m_SharedLocalDestination;
+  }
 
-  // for jump service
-  void InsertAddress(
+  /// @brief Inserts address into address book from HTTP Proxy jump service
+  /// @param address Const reference to human-readable address
+  /// @param base64 Const reference to Base64 address
+  void InsertAddressIntoStorage(
       const std::string& address,
       const std::string& base64);
 
-  void InsertAddress(
-      const i2p::data::IdentityEx& address);
+  /// @brief Creates new address book filesystem storage instance
+  /// @return Unique pointer to address book filesystem storage instance
+  //std::unique_ptr<AddressBookStorage> GetNewStorageInstance() {
+  std::unique_ptr<AddressBookStorage> GetNewStorageInstance() {
+    return std::make_unique<AddressBookStorage>();
+  }
 
-  void LoadHostsFromStream(
-      std::istream& f);
+  /// @brief Validates and saves hosts (subscription) from stream into address book
+  /// @param stream Reference to file stream of hosts (subscription)
+  /// @return False if malformed host in subscription
+  bool ValidateSubscriptionThenSaveToStorage(
+      std::istream& stream);
 
-  void DownloadComplete(
+  /// @brief Sets the download state as complete and resets timer as needed
+  /// @details Resets update timer according to the state of completed download
+  /// @param success True if successful download, false if not
+  /// @notes If download was successful, reset the with regular update timeout.
+  ///   If not, reset timer with more frequent update timeout.
+  void HostsDownloadComplete(
       bool success);
 
-  // This method returns the ".b32.i2p" address
-  std::string ToAddress(
+  /// @brief Returns identity hash's .b32.i2p address
+  /// @param ident Const reference to identity hash
+  /// @return Identity hash's .b32.i2p address
+  std::string GetB32AddressFromIdentHash(
       const i2p::data::IdentHash& ident) {
     return GetB32Address(ident);
   }
 
+  /**
+  // TODO(unassigned): currently unused
   std::string ToAddress(
       const i2p::data::IdentityEx& ident) {
-    return ToAddress(ident.GetIdentHash());
+    return ToAddress(ident.GetAddressIdentHash());
   }
 
+  // TODO(unassigned): currently unused
+  void InsertAddress(
+      const i2p::data::IdentityEx& address);
+
+  // TODO(unassigned): currently unused
+  bool GetAddress(
+      const std::string& address,
+      i2p::data::IdentityEx& identity);
+  **/
+
  private:
-  void StartSubscriptions();
-  void StopSubscriptions();
+  /// @brief Loads list of publishers addresses
+  /// @details If not loaded, loads from file (if available)
+  ///   and instantiates an address book subscriber instance
+  void LoadPublishers();
 
-  std::unique_ptr<AddressBookStorage> CreateStorage();
-  void LoadHosts();
-  void LoadSubscriptions();
-
-  void HandleSubscriptionsUpdateTimer(
+  /// @brief Implements subscriber update timer
+  /// @param ecode Const reference to boost error code
+  /// @details If publishers are available, download subscription (hosts.txt).
+  ///   Otherwise, retry request for subscription (hosts.txt) until downloaded
+  void SubscriberUpdateTimer(
       const boost::system::error_code& ecode);
 
+  /// @brief Loads hosts file (subscription)
+  /// @details If not on filesystem, downloads subscription from a publisher
+  void LoadSubscriptionFromPublisher();
+
+  /**
+  // TODO(unassigned): currently unused
+  /// @brief Creates new instance of storage for address book
+  /// @return Unique pointer to interface for address book storage
+  std::unique_ptr<AddressBookStorage> CreateStorage();
+  **/
+
+  /// @brief Stop subscription process
+  /// @details Cancels update requests to publishers
+  void StopSubscribing();
+
  private:
-  std::mutex m_AddressBookMutex;
-  std::map<std::string, i2p::data::IdentHash>  m_Addresses;
-  std::unique_ptr<AddressBookStorage> m_Storage;
-  volatile bool m_IsLoaded, m_IsDownloading;
-  std::vector<std::unique_ptr<AddressBookSubscription>> m_Subscriptions;
-
-  // in case if we don't know any addresses yet
-  std::unique_ptr<AddressBookSubscription> m_DefaultSubscription;
-
-  std::unique_ptr<boost::asio::deadline_timer> m_SubscriptionsUpdateTimer;
+  /// @var m_SharedLocalDestination
+  /// @brief Shared pointer to client destination instance
+  /// @notes Needed for fetching subscriptions in-net
   std::shared_ptr<ClientDestination> m_SharedLocalDestination;
+
+  /// @var m_AddressBookMutex
+  /// @brief Mutex for address book implementation when loading hosts from file
+  std::mutex m_AddressBookMutex;
+
+  /// @var m_Addresses
+  /// @brief Map of human readable addresses to identity hashes
+  std::map<std::string, i2p::data::IdentHash> m_Addresses;
+
+  /// @var m_Storage
+  /// @brief Unique pointer to address book storage implementation
+  std::unique_ptr<AddressBookStorage> m_Storage;
+
+  /// @var m_Subscribers
+  /// @brief Vector of unique pointers to respective subscriber implementation
+  std::vector<std::unique_ptr<AddressBookSubscriber>> m_Subscribers;
+
+  /// @var m_SubscriberUpdateTimer
+  /// @brief Unique pointer to Boost.Asio deadline_timer
+  /// @details Handles all timer-related needs for subscription fetching
+  std::unique_ptr<boost::asio::deadline_timer> m_SubscriberUpdateTimer;
+
+  /// @var m_SubscriptionFileIsReady
+  /// @brief If subscription file is opened and ready for reading/writing
+  std::atomic<bool> m_SubscriptionFileIsReady;
+
+  /// @var m_SubscriptionIsLoaded
+  /// @brief Are hosts loaded into memory?
+  std::atomic<bool> m_SubscriptionIsLoaded;
+
+  /// @var m_SubscriberIsDownloading
+  /// @brief Are subscriptions in the process of being downloaded?
+  std::atomic<bool> m_SubscriberIsDownloading;
 };
 
-class AddressBookSubscription {
+/// @class AddressBookSubscriber
+/// @brief Handles fetching of hosts subscription from publisher
+class AddressBookSubscriber {
  public:
-  AddressBookSubscription(
+  /// @brief Initializes defaults for address book subscription implementation
+  AddressBookSubscriber(
       AddressBook& book,
-      const std::string& link);
+      const std::string& uri)
+      : m_Book(book),
+        m_HTTP(uri) {}
 
-  void CheckSubscription();
+  /// @brief Instantiates thread that fetches in-net subscriptions
+  void DownloadSubscription();
 
  private:
-  void Request();
+  /// @brief Implementation for downloading subscription (hosts.txt)
+  /// @warning Must be run in separate thread
+  void DownloadSubscriptionImpl();
 
- private:
+  /// @var m_Book
+  /// @brief Reference to address book implementation
   AddressBook& m_Book;
-  std::string m_Link, m_Etag, m_LastModified;
+
+  /// @var m_HTTP
+  /// @brief HTTP instance for subscribing to publisher
+  i2p::util::http::HTTP m_HTTP;
 };
 
 }  // namespace client

@@ -156,20 +156,24 @@ class NTCPSession
   }
 
   /// @return Log-formatted string of session info
-  const std::string GetFormattedSessionInfo() {
+  const std::string GetFormattedSessionInfo() const {
     std::ostringstream info;
-    info << " [" << GetRemoteIdentHashAbbreviation()
-         << "] " << GetRemoteEndpoint() << " ";
+    info << " [" << GetRemoteIdentHashAbbreviation() << "] ";
+    // Only display the endpoint if it is available
+    // TODO: is there a better way to check if the endpoint is initialized?
+    if (m_RemoteEndpoint.port())
+      info << GetRemoteEndpoint() << ' ';
+
     return info.str();
   }
 
   /// @return Current session's peer's ident hash
-  const std::string& GetRemoteIdentHashAbbreviation() {
+  const std::string& GetRemoteIdentHashAbbreviation() const {
     return m_RemoteIdentHashAbbreviation;
   }
 
   /// @return Current session's endpoint address/port
-  const boost::asio::ip::tcp::endpoint& GetRemoteEndpoint() {
+  const boost::asio::ip::tcp::endpoint& GetRemoteEndpoint() const {
     return m_RemoteEndpoint;
   }
 

@@ -47,6 +47,7 @@
 #include "net_db.h"
 #include "crypto/elgamal.h"
 #include "crypto/rand.h"
+#include "identity.h"
 #include "util/log.h"
 #include "util/timestamp.h"
 
@@ -136,7 +137,7 @@ ClientDestination::ClientDestination(
   if (m_IsPublic)
     LogPrint(eLogInfo,
         "ClientDestination: created local address ",
-        i2p::client::GetB32Address(GetIdentHash()));
+        i2p::data::GetB32Address(GetIdentHash()));
   // TODO(unassigned): ???
   m_StreamingDestination =
     std::make_shared<i2p::stream::StreamingDestination> (*this);
@@ -147,8 +148,6 @@ ClientDestination::~ClientDestination() {
     Stop();
   for (auto it : m_LeaseSetRequests)
     delete it.second;
-  if (m_Pool)
-    i2p::tunnel::tunnels.DeleteTunnelPool(m_Pool);
   if (m_DatagramDestination)
     delete m_DatagramDestination;
 }
@@ -203,6 +202,7 @@ void ClientDestination::Stop() {
     if (m_Pool) {
       m_Pool->SetLocalDestination(nullptr);
       i2p::tunnel::tunnels.StopTunnelPool(m_Pool);
+      i2p::tunnel::tunnels.DeleteTunnelPool(m_Pool);
     }
     m_Service.stop();
     if (m_Thread) {

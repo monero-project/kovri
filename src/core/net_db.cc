@@ -63,26 +63,18 @@ NetDb netdb;
 
 NetDb::NetDb()
     : m_IsRunning(false),
-      m_Thread(nullptr),
-      m_Reseed(nullptr) {}
+      m_Thread(nullptr) {}
 
 NetDb::~NetDb() {
   Stop();
-  if (m_Reseed) {
-    m_Reseed.reset(nullptr);
-  }
 }
 
 bool NetDb::Start() {
-  Load();
-  if (m_RouterInfos.size() < 25) {  // reseed if # of router less than 50
-    if (!Reseed()) {
-      return false;
-    }
-  }
+  if (!Load())
+    return false;
   m_IsRunning = true;
   m_Thread = std::make_unique<std::thread>(std::bind(&NetDb::Run, this));
-  return true;
+  return m_IsRunning;
 }
 
 void NetDb::Stop() {
@@ -297,32 +289,20 @@ bool NetDb::CreateNetDb(
   return true;
 }
 
-bool NetDb::Reseed() {
-  if (m_Reseed == nullptr) {
-    m_Reseed = std::make_unique<i2p::data::Reseed>(i2p::context.ReseedFrom());
-    if (!m_Reseed->ReseedImpl()) {
-      m_Reseed.reset(nullptr);
-      LogPrint(eLogError, "NetDb: reseed failed");
-      return false;
-    }
-  }
-  return true;
-}
-
-void NetDb::Load() {
+bool NetDb::Load() {
   boost::filesystem::path p(i2p::context.GetDataPath() / m_NetDbPath);
   if (!boost::filesystem::exists(p)) {
     // seems netDb doesn't exist yet
     if (!CreateNetDb(p))
-      return;
+      return false;
   }
   // make sure we cleanup netDb from previous attempts
   m_RouterInfos.clear();
   m_Floodfills.clear();
   // load routers now
   uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
-  int num_routers = 0;
   boost::filesystem::directory_iterator end;
+  std::size_t num_routers = 0;
   for (boost::filesystem::directory_iterator it(p); it != end; ++it) {
     if (boost::filesystem::is_directory(it->status())) {
       for (boost::filesystem::directory_iterator it1(it->path());
@@ -352,6 +332,7 @@ void NetDb::Load() {
   }
   LogPrint(eLogInfo, "NetDb: ", num_routers, " routers loaded");
   LogPrint(eLogInfo, "NetDb: ", m_Floodfills.size(), " floodfills loaded");
+  return true;
 }
 
 void NetDb::SaveUpdated() {

@@ -64,7 +64,7 @@ void I2PService::CreateStream(
     int port) {
   assert(streamRequestComplete);
   i2p::data::IdentHash identHash;
-  if (i2p::client::context.GetAddressBook().GetIdentHash(dest, identHash)) {
+  if (i2p::client::context.GetAddressBook().CheckAddressIdentHashFound(dest, identHash)) {
     m_LocalDestination->CreateStream(
         streamRequestComplete,
         identHash,

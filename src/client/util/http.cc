@@ -340,18 +340,31 @@ bool HTTP::ProcessI2PResponse() {
 void HTTP::MergeI2PChunkedResponse(
     std::istream& response,
     std::ostream& merged) {
-  while (!response.eof()) {
-    std::string hex_len;
-    int len;
-    std::getline(response, hex_len);
-    std::istringstream iss(hex_len);
-    iss >> std::hex >> len;
-    if (!len)
+  // Read in hex value of length
+  std::string hex;
+  while (std::getline(response, hex)) {
+    std::istringstream hex_len(hex);
+    // Convert to integer value
+    std::size_t len(0);
+    // CID 146759 complains of TAINTED_SCALAR but we're guaranteed a useful value because:
+    // 1. The HTTP response is chunked and prepends hex value of chunk size
+    // 2. If length is null, we'll break before new buffer
+    // Note: verifying the validity of stated chunk size against ensuing content size
+    // will require more code (so, better to complete cpp-netlib refactor instead)
+    if (!(hex_len >> std::hex >> len).fail()) {
+      // If last chunk, break
+      if (!len)
+        break;
+      // Read in chunk content of chunk size
+      auto buf = std::make_unique<char[]>(len);
+      response.read(buf.get(), len);
+      merged.write(buf.get(), len);
+      std::getline(response, hex);  // read \r\n after chunk
+    } else {
+      LogPrint(eLogError,
+          "HTTP: stream error, unable to read line from chunked response");
       break;
-    auto buf = std::make_unique<char[]>(len);
-    response.read(buf.get(), len);
-    merged.write(buf.get(), len);
-    std::getline(response, hex_len);  // read \r\n after chunk
+    }
   }
 }
 

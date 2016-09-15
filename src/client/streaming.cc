@@ -72,8 +72,25 @@ Stream::Stream(
       m_NumResendAttempts(0) {
         m_RecvStreamID = i2p::crypto::Rand<uint32_t>();
         m_RemoteIdentity = remote->GetIdentity();
+        // TODO(unassigned):
+        // This type of initialization is a friendly reminder of overall poor design.
+        // Though we *should* initialize all m_CurrentRemoteLease members before use,
+        // members are "updated" (not initialized) with UpdateCurrentRemoteLease() before they are used;
+        // thus rendering discussion of tunnel gateway and ID initialization moot.
+        // Writing this TODO instead of flagging CID 135950 as a false-positive
+        if (!remote->GetLeases().empty()) {
+          auto tunnel_gateway = remote->GetLeases().front().tunnel_gateway;
+          if (tunnel_gateway) {
+            // Lease could be expired, must update with UpdateCurrentRemoteLease()
+            m_CurrentRemoteLease.tunnel_gateway = tunnel_gateway;
+          }
+        } else {
+          // Simply use remote's ident hash, must update with UpdateCurrentRemoteLease()
+          m_CurrentRemoteLease.tunnel_gateway = remote->GetIdentHash();
+        }
+        m_CurrentRemoteLease.tunnel_ID = 0;
         m_CurrentRemoteLease.end_date = 0;
-}
+      }
 
 Stream::Stream(
     boost::asio::io_service& service,
@@ -97,7 +114,7 @@ Stream::Stream(
       m_LastWindowSizeIncreaseTime(0),
       m_NumResendAttempts(0) {
         m_RecvStreamID = i2p::crypto::Rand<uint32_t>();
-}
+      }
 
 Stream::~Stream() {
   Terminate();
@@ -667,11 +684,12 @@ void Stream::SendPackets(
             it->GetBuffer(),
             it->GetLength()));
       msgs.push_back(
-          i2p::tunnel::TunnelMessageBlock  {
-          i2p::tunnel::e_DeliveryTypeTunnel,
-          m_CurrentRemoteLease.tunnel_gateway,
-          m_CurrentRemoteLease.tunnel_ID,
-          msg});
+          i2p::tunnel::TunnelMessageBlock {
+            i2p::tunnel::e_DeliveryTypeTunnel,
+            m_CurrentRemoteLease.tunnel_gateway,
+            m_CurrentRemoteLease.tunnel_ID,
+            msg
+          });
       m_NumSentBytes += it->GetLength();
     }
     m_CurrentOutboundTunnel->SendTunnelDataMsg(msgs);

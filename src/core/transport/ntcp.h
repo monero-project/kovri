@@ -54,6 +54,7 @@ namespace transport {
 class NTCPServer {
  public:
   explicit NTCPServer(
+      boost::asio::io_service& service,
       std::size_t port);
 
   ~NTCPServer();
@@ -84,8 +85,6 @@ class NTCPServer {
       const std::shared_ptr<NTCPSession>& session);
 
  private:
-  void Run();
-
   void HandleAccept(
       std::shared_ptr<NTCPSession> conn,
       const boost::system::error_code& ecode);
@@ -100,10 +99,8 @@ class NTCPServer {
 
  private:
   bool m_IsRunning;
-  std::unique_ptr<std::thread> m_Thread;
 
-  boost::asio::io_service m_Service;
-  boost::asio::io_service::work m_Work;
+  boost::asio::io_service& m_Service;
 
   boost::asio::ip::tcp::endpoint m_NTCPEndpoint, m_NTCPEndpointV6;
   std::unique_ptr<boost::asio::ip::tcp::acceptor> m_NTCPAcceptor, m_NTCPV6Acceptor;

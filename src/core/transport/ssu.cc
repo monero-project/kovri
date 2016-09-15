@@ -61,7 +61,8 @@ SSUServer::SSUServer(
       m_Socket(m_Service, m_Endpoint),
       m_SocketV6(m_Service),
       m_IntroducersUpdateTimer(m_Service),
-      m_PeerTestsCleanupTimer(m_Service) {
+      m_PeerTestsCleanupTimer(m_Service),
+      m_IsRunning(false) {
   m_Socket.set_option(boost::asio::socket_base::receive_buffer_size(65535));
   m_Socket.set_option(boost::asio::socket_base::send_buffer_size(65535));
   if (context.SupportsV6()) {

@@ -106,8 +106,8 @@ void SSUSession::CreateAESandMACKey(
         "SSUSession:", GetFormattedSessionInfo(), "couldn't create shared key");
     return;
   }
-  auto session_key = m_SessionKey;
-  auto mac_key = m_MACKey;
+  auto session_key = m_SessionKey();
+  auto mac_key = m_MACKey();
   if (shared_key.at(0) & 0x80) {
     session_key[0] = 0;
     memcpy(session_key + 1, shared_key.data(), 31);
@@ -402,6 +402,9 @@ void SSUSession::ProcessSessionCreated(
     LogPrint(eLogError,
         "SSUSession:", GetFormattedSessionInfo(),
         "SessionCreated signature verification failed");
+    // Reset the session key, Java routers might resent the message if it
+    //  failed the first time
+    m_IsSessionKey = false;
   }
 }
 
@@ -1125,7 +1128,7 @@ void SSUSession::WriteAndEncrypt(
       encrypted_len + static_cast<std::size_t>(SSUSize::BufferMargin),
       mac_key,
       buffer);
-  }
+}
 
 void SSUSession::FillHeaderAndEncrypt(
     std::uint8_t payload_type,

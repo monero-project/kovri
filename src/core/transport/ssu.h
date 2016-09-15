@@ -178,14 +178,14 @@ class SSUServer {
     std::shared_ptr<SSUSession> session;  // for Bob to Alice
   };
 
-  bool m_IsRunning;
-
   boost::asio::io_service& m_Service;
 
   boost::asio::ip::udp::endpoint m_Endpoint, m_EndpointV6;
   boost::asio::ip::udp::socket m_Socket, m_SocketV6;
 
   boost::asio::deadline_timer m_IntroducersUpdateTimer, m_PeerTestsCleanupTimer;
+
+  bool m_IsRunning;
 
   // introducers we are connected to
   std::list<boost::asio::ip::udp::endpoint> m_Introducers;

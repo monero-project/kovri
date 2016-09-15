@@ -74,7 +74,9 @@ IdentHash Identity::Hash() const {
 }
 
 IdentityEx::IdentityEx()
-    : m_Verifier(nullptr),
+    : m_StandardIdentity {},
+      m_IdentHash {},
+      m_Verifier(nullptr),
       m_ExtendedLen(0),
       m_ExtendedBuffer(nullptr) {}
 

@@ -42,6 +42,8 @@
 namespace i2p {
 namespace tunnel {
 
+// TODO(unassigned): refactor all tunnel implementation (applies across entire namespace)
+
 TunnelHopConfig::TunnelHopConfig(
     std::shared_ptr<const i2p::data::RouterInfo> r) {
   i2p::crypto::RandBytes(layerKey, 32);
@@ -53,7 +55,7 @@ TunnelHopConfig::TunnelHopConfig(
   isGateway = true;
   isEndpoint = true;
   router = r;
-  // nextRouter = nullptr;
+  nextRouter = nullptr;
   nextTunnelID = 0;
   next = nullptr;
   prev = nullptr;
@@ -159,7 +161,6 @@ TunnelConfig::TunnelConfig(
     std::vector<std::shared_ptr<const i2p::data::RouterInfo> > peers,
     std::shared_ptr<const TunnelConfig> replyTunnelConfig)
     : TunnelConfig() {
-  // replyTunnelConfig=nullptr means inbound
   TunnelHopConfig* prev = nullptr;
   for (auto it : peers) {
     auto hop = new TunnelHopConfig(it);
@@ -169,14 +170,19 @@ TunnelConfig::TunnelConfig(
       m_FirstHop = hop;
     prev = hop;
   }
-  m_LastHop = prev;
-  if (replyTunnelConfig) {  // outbound
-    m_FirstHop->isGateway = false;
-    m_LastHop->SetReplyHop(replyTunnelConfig->GetFirstHop());
-  } else {  // inbound
-    m_LastHop->SetNextRouter(i2p::context.GetSharedRouterInfo());
+  // TODO(unassigned): We shouldn't depend on the assumption that we're
+  // initialized with non-empty vector of peers (if null, we'll fall apart)
+  if (prev) {
+    m_LastHop = prev;
+    if (replyTunnelConfig) {  // outbound
+      m_FirstHop->isGateway = false;
+      m_LastHop->SetReplyHop(replyTunnelConfig->GetFirstHop());
+    } else {  // inbound
+      m_LastHop->SetNextRouter(i2p::context.GetSharedRouterInfo());
+    }
   }
 }
+
 TunnelConfig::~TunnelConfig() {
   TunnelHopConfig* hop = m_FirstHop;
   while (hop) {
@@ -240,16 +246,14 @@ std::shared_ptr<TunnelConfig> TunnelConfig::Invert() const {
   auto peers = GetPeers();
   std::reverse(peers.begin(), peers.end());
   // we use ourself as reply tunnel for outbound tunnel
-  return IsInbound() ?
-    std::make_shared<TunnelConfig>(
-        peers,
-        shared_from_this()) :
-    std::make_shared<TunnelConfig>(peers);
+  return IsInbound()
+    ? std::make_shared<TunnelConfig>(peers, shared_from_this())
+    : std::make_shared<TunnelConfig>(peers);
 }
 
 std::shared_ptr<TunnelConfig> TunnelConfig::Clone(
     std::shared_ptr<const TunnelConfig> replyTunnelConfig) const {
-  return std::make_shared<TunnelConfig> (GetPeers(), replyTunnelConfig);
+  return std::make_shared<TunnelConfig>(GetPeers(), replyTunnelConfig);
 }
 
 }  // namespace tunnel

@@ -118,7 +118,10 @@ std::uint16_t GetMTUUnix(
   auto mtu = MTU_FALLBACK;
   if (ifa && family) {  // interface found?
     int fd = socket(family, SOCK_DGRAM, 0);
-    if (fd > 0) {
+    if (fd < 0) {
+      LogPrint(eLogError,
+          "MTU: failed to create datagram socket: ", strerror(errno));
+    } else {
       ifreq ifr;
       // set interface for query
       strncpy(ifr.ifr_name, ifa->ifa_name,sizeof(ifr.ifr_name));
@@ -128,8 +131,6 @@ std::uint16_t GetMTUUnix(
       else
         LogPrint(eLogError, "MTU: failed to run ioctl");
       close(fd);
-    } else {
-      LogPrint(eLogError, "MTU: failed to create datagram socket");
     }
   } else {
     LogPrint(eLogWarn,

@@ -52,19 +52,16 @@ namespace i2p {
 namespace transport {
 
 SSUServer::SSUServer(
+    boost::asio::io_service& service,
     std::size_t port)
-    : m_Thread(nullptr),
-      m_ThreadV6(nullptr),
-      m_ReceiversThread(nullptr),
-      m_Work(m_Service),
-      m_WorkV6(m_ServiceV6),
-      m_ReceiversWork(m_ReceiversService),
+    : m_Service(service),
       m_Endpoint(boost::asio::ip::udp::v4(), port),
       m_EndpointV6(boost::asio::ip::udp::v6(), port),
-      m_Socket(m_ReceiversService, m_Endpoint),
-      m_SocketV6(m_ReceiversService),
+      m_Socket(m_Service, m_Endpoint),
+      m_SocketV6(m_Service),
       m_IntroducersUpdateTimer(m_Service),
-      m_PeerTestsCleanupTimer(m_Service) {
+      m_PeerTestsCleanupTimer(m_Service),
+      m_IsRunning(false) {
   m_Socket.set_option(boost::asio::socket_base::receive_buffer_size(65535));
   m_Socket.set_option(boost::asio::socket_base::send_buffer_size(65535));
   if (context.SupportsV6()) {
@@ -81,27 +78,12 @@ SSUServer::~SSUServer() {}
 void SSUServer::Start() {
   LogPrint(eLogDebug, "SSUServer: starting");
   m_IsRunning = true;
-  m_ReceiversThread =
-    std::make_unique<std::thread>(
-        std::bind(
-            &SSUServer::RunReceivers,
-            this));
-  m_Thread =
-    std::make_unique<std::thread>(
-        std::bind(
-            &SSUServer::Run,
-            this));
-  m_ReceiversService.post(
+  m_Service.post(
       std::bind(
           &SSUServer::Receive,
           this));
   if (context.SupportsV6()) {
-    m_ThreadV6 =
-      std::make_unique<std::thread>(
-          std::bind(
-              &SSUServer::RunV6,
-              this));
-    m_ReceiversService.post(
+    m_Service.post(
         std::bind(
             &SSUServer::ReceiveV6,
             this));
@@ -115,62 +97,8 @@ void SSUServer::Stop() {
   LogPrint(eLogDebug, "SSUServer: stopping");
   DeleteAllSessions();
   m_IsRunning = false;
-  m_Service.stop();
   m_Socket.close();
-  m_ServiceV6.stop();
   m_SocketV6.close();
-  m_ReceiversService.stop();
-  if (m_ReceiversThread) {
-    m_ReceiversThread->join();
-    m_ReceiversThread.reset(nullptr);
-  }
-  if (m_Thread) {
-    m_Thread->join();
-    m_Thread.reset(nullptr);
-  }
-  if (m_ThreadV6) {
-    m_ThreadV6->join();
-    m_ThreadV6.reset(nullptr);
-  }
-}
-
-void SSUServer::Run() {
-  while (m_IsRunning) {
-    try {
-      LogPrint(eLogDebug, "SSUServer: running ioservice");
-      m_Service.run();
-    }
-    catch (std::exception& ex) {
-      LogPrint(eLogError,
-          "SSUServer: Run() ioservice error: '", ex.what(), "'");
-    }
-  }
-}
-
-void SSUServer::RunV6() {
-  while (m_IsRunning) {
-    try {
-      LogPrint(eLogDebug, "SSUServer: running V6 ioservice");
-      m_ServiceV6.run();
-    }
-    catch (std::exception& ex) {
-      LogPrint(eLogError,
-          "SSUServer: RunV6() ioservice error: '", ex.what(), "'");
-    }
-  }
-}
-
-void SSUServer::RunReceivers() {
-  while (m_IsRunning) {
-    try {
-      LogPrint(eLogDebug, "SSUServer: running receivers ioservice");
-      m_ReceiversService.run();
-    }
-    catch (std::exception& ex) {
-      LogPrint(eLogError,
-          "SSUServer: RunReceivers() ioservice error: '", ex.what(), "'");
-    }
-  }
 }
 
 void SSUServer::AddRelay(
@@ -294,7 +222,7 @@ void SSUServer::HandleReceivedFromV6(
       packets.push_back(packet);
       more_bytes = m_SocketV6.available();
     }
-    m_ServiceV6.post(
+    m_Service.post(
         std::bind(
             &SSUServer::HandleReceivedPackets,
             this,

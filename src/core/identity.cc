@@ -74,7 +74,9 @@ IdentHash Identity::Hash() const {
 }
 
 IdentityEx::IdentityEx()
-    : m_Verifier(nullptr),
+    : m_StandardIdentity {},
+      m_IdentHash {},
+      m_Verifier(nullptr),
       m_ExtendedLen(0),
       m_ExtendedBuffer(nullptr) {}
 
@@ -569,7 +571,7 @@ PrivateKeys PrivateKeys::CreateRandomKeys(SigningKeyType type) {
           keys.m_SigningPrivateKey,
           signingPublicKey);
     break;
-    default: // Includes 
+    default:
       LogPrint(eLogWarn,
           "IdentityEx: Signing key type ",
           static_cast<int>(type), " is not supported, creating DSA-SHA1");

@@ -63,6 +63,7 @@ struct RawSSUPacket {
 class SSUServer {
  public:
   SSUServer(
+      boost::asio::io_service& service,
       std::size_t port);
 
   ~SSUServer();
@@ -91,10 +92,6 @@ class SSUServer {
 
   boost::asio::io_service& GetService() {
     return m_Service;
-  }
-
-  boost::asio::io_service& GetServiceV6() {
-    return m_ServiceV6;
   }
 
   const boost::asio::ip::udp::endpoint& GetEndpoint() const {
@@ -132,12 +129,6 @@ class SSUServer {
       std::uint32_t nonce);
 
  private:
-  void Run();
-
-  void RunV6();
-
-  void RunReceivers();
-
   void Receive();
 
   void ReceiveV6();
@@ -179,17 +170,14 @@ class SSUServer {
     std::shared_ptr<SSUSession> session;  // for Bob to Alice
   };
 
-  bool m_IsRunning;
-
-  std::unique_ptr<std::thread> m_Thread, m_ThreadV6, m_ReceiversThread;
-
-  boost::asio::io_service m_Service, m_ServiceV6, m_ReceiversService;
-  boost::asio::io_service::work m_Work, m_WorkV6, m_ReceiversWork;
+  boost::asio::io_service& m_Service;
 
   boost::asio::ip::udp::endpoint m_Endpoint, m_EndpointV6;
   boost::asio::ip::udp::socket m_Socket, m_SocketV6;
 
   boost::asio::deadline_timer m_IntroducersUpdateTimer, m_PeerTestsCleanupTimer;
+
+  bool m_IsRunning;
 
   // introducers we are connected to
   std::list<boost::asio::ip::udp::endpoint> m_Introducers;

@@ -47,10 +47,10 @@ namespace i2p {
 namespace transport {
 
 NTCPServer::NTCPServer(
+    boost::asio::io_service& service,
     std::size_t port)
     : m_IsRunning(false),
-      m_Thread(nullptr),
-      m_Work(m_Service),
+      m_Service(service),
       m_NTCPEndpoint(boost::asio::ip::tcp::v4(), port),
       m_NTCPEndpointV6(boost::asio::ip::tcp::v6(), port),
       m_NTCPAcceptor(nullptr),
@@ -62,7 +62,6 @@ void NTCPServer::Start() {
   if (!m_IsRunning) {
     LogPrint(eLogDebug, "NTCPServer: starting");
     m_IsRunning = true;
-    m_Thread = std::make_unique<std::thread>(std::bind(&NTCPServer::Run, this));
     // Create acceptors
     m_NTCPAcceptor =
       std::make_unique<boost::asio::ip::tcp::acceptor>(
@@ -92,18 +91,6 @@ void NTCPServer::Start() {
               this,
               conn,
               std::placeholders::_1));
-    }
-  }
-}
-
-void NTCPServer::Run() {
-  while (m_IsRunning) {
-    try {
-      LogPrint(eLogDebug, "NTCPServer: running ioservice");
-      m_Service.run();
-    } catch (std::exception& ex) {
-      LogPrint(eLogError,
-          "NTCPServer: ioservice error: '", ex.what(), "'");
     }
   }
 }
@@ -291,11 +278,6 @@ void NTCPServer::Stop() {
     m_IsRunning = false;
     m_NTCPAcceptor.reset(nullptr);
     m_NTCPV6Acceptor.reset(nullptr);
-    m_Service.stop();
-    if (m_Thread) {
-      m_Thread->join();
-      m_Thread.reset(nullptr);
-    }
   }
 }
 

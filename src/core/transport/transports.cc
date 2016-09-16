@@ -37,6 +37,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <ostream>
 
 #include "i2np_protocol.h"
 #include "net_db.h"
@@ -125,6 +126,11 @@ void DHKeysPairSupplier::Return(
   m_Queue.push(std::move(pair));
 }
 
+void Peer::Done() {
+  for (auto it : sessions)
+    it->Done();
+}
+
 Transports transports;
 
 Transports::Transports()
@@ -158,14 +164,14 @@ void Transports::Start() {
   m_IsRunning = true;
   m_Thread = std::make_unique<std::thread>(std::bind(&Transports::Run, this));
   // create acceptors
-  auto addresses = context.GetRouterInfo().GetAddresses();
-  for (auto& address : addresses) {
+  const auto addresses = context.GetRouterInfo().GetAddresses();
+  for (const auto& address : addresses) {
     LogPrint("Transports: creating servers for address ", address.host);
     if (address.transport_style ==
         i2p::data::RouterInfo::eTransportNTCP && address.host.is_v4()) {
       if (!m_NTCPServer) {
         LogPrint(eLogInfo, "Transports: TCP listening on port ", address.port);
-        m_NTCPServer = std::make_unique<NTCPServer>(address.port);
+        m_NTCPServer = std::make_unique<NTCPServer>(m_Service, address.port);
         m_NTCPServer->Start();
       } else {
         LogPrint(eLogError, "Transports: TCP server already exists");
@@ -175,7 +181,7 @@ void Transports::Start() {
         i2p::data::RouterInfo::eTransportSSU && address.host.is_v4()) {
       if (!m_SSUServer) {
         LogPrint(eLogInfo, "Transports: UDP listening on port ", address.port);
-        m_SSUServer = std::make_unique<SSUServer>(address.port);
+        m_SSUServer = std::make_unique<SSUServer>(m_Service, address.port);
         m_SSUServer->Start();
         DetectExternalIP();
       } else {
@@ -229,14 +235,15 @@ void Transports::Run() {
 
 void Transports::UpdateBandwidth() {
   LogPrint(eLogDebug, "Transports: updating bandwidth");
-  uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
+  const uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
   if (m_LastBandwidthUpdateTime > 0) {
     auto delta = ts - m_LastBandwidthUpdateTime;
     if (delta > 0) {
+      // Bandwidth in bytes per second
       m_InBandwidth =
-        (m_TotalReceivedBytes - m_LastInBandwidthUpdateBytes) * 1000 / delta;  // per second
+        (m_TotalReceivedBytes - m_LastInBandwidthUpdateBytes) * 1000 / delta;
       m_OutBandwidth =
-        (m_TotalSentBytes - m_LastOutBandwidthUpdateBytes) * 1000 / delta;  // per second
+        (m_TotalSentBytes - m_LastOutBandwidthUpdateBytes) * 1000 / delta;
     }
   }
   m_LastBandwidthUpdateTime = ts;
@@ -289,15 +296,15 @@ void Transports::PostMessages(
     bool connected = false;
     try {
       auto router = i2p::data::netdb.FindRouter(ident);
-      it = m_Peers.insert(
-          std::make_pair(
-              ident,
-              Peer{ 0, router, {}, i2p::util::GetSecondsSinceEpoch(), {} })).first;
+      it = m_Peers.insert(std::make_pair(
+          ident,
+          Peer{ 0, router, {}, i2p::util::GetSecondsSinceEpoch(), {} })).first;
       connected = ConnectToPeer(ident, it->second);
     } catch (std::exception& ex) {
       LogPrint(eLogError, "Transports: PostMessages(): '", ex.what(), "'");
     }
-    if (!connected) return;
+    if (!connected)
+      return;
   }
   if (!it->second.sessions.empty()) {
     it->second.sessions.front()->SendI2NPMessages(msgs);
@@ -310,58 +317,7 @@ void Transports::PostMessages(
 bool Transports::ConnectToPeer(
     const i2p::data::IdentHash& ident,
     Peer& peer) {
-  // we have RI already
-  if (peer.router) {
-    LogPrint(eLogDebug,
-        "Transports: connecting to peer",
-        GetFormattedSessionInfo(peer.router));
-    // NTCP
-    if (!peer.num_attempts && i2p::context.SupportsNTCP()) {
-      LogPrint(eLogDebug,
-          "Transports: attempting NTCP for peer",
-          GetFormattedSessionInfo(peer.router));
-      peer.num_attempts++;
-      auto address = peer.router->GetNTCPAddress(!context.SupportsV6());
-      if (address) {
-#if BOOST_VERSION >= 104900
-        if (!address->host.is_unspecified())  // we have address now
-#else
-        boost::system::error_code ecode;
-        address->host.to_string(ecode);
-        if (!ecode)
-#endif
-        {
-          if (!peer.router->UsesIntroducer() && !peer.router->IsUnreachable()) {
-            auto s = std::make_shared<NTCPSession>(*m_NTCPServer, peer.router);
-            m_NTCPServer->Connect(address->host, address->port, s);
-            return true;
-          }
-        } else {  // we don't have address
-          if (address->address_string.length() > 0) {  // trying to resolve
-            LogPrint(eLogInfo,
-                "Transports: NTCP resolving ", address->address_string);
-            NTCPResolve(address->address_string, ident);
-            return true;
-          }
-        }
-      }
-    } else if (peer.num_attempts == 1 && i2p::context.SupportsSSU()) {  // SSU
-      LogPrint(eLogDebug,
-         "Transports: attempting SSU for peer",
-          GetFormattedSessionInfo(peer.router));
-      peer.num_attempts++;
-      if (m_SSUServer) {
-        if (m_SSUServer->GetSession(peer.router))
-          return true;
-      }
-    }
-    LogPrint(eLogError,
-        "Transports:", GetFormattedSessionInfo(peer.router),
-        "no NTCP/SSU address available");
-    peer.Done();
-    m_Peers.erase(ident);
-    return false;
-  } else {  // otherwise request RI
+  if (!peer.router) {  // We don't have the RI
     LogPrint(eLogDebug, "Transports: RI not found, requesting");
     i2p::data::netdb.RequestDestination(
         ident,
@@ -370,9 +326,89 @@ bool Transports::ConnectToPeer(
             this,
             std::placeholders::_1,
             ident));
+    return true;
   }
-  return true;
+
+  // We have the RI, connect to it
+  LogPrint(eLogDebug,
+      "Transports: connecting to peer",
+      GetFormattedSessionInfo(peer.router));
+
+  // If only NTCP or SSU is supported, always try the supported transport
+  // If both are supported, SSU is used for the second attempt
+  // Peers that fail on all supported transports are removed
+  bool result = false;
+  if (!m_NTCPServer && m_SSUServer)
+    result = ConnectToPeerSSU(peer);
+  else if (m_NTCPServer && !m_SSUServer)
+    result = ConnectToPeerNTCP(ident, peer);
+  else if (peer.num_attempts == 0)
+    result = ConnectToPeerNTCP(ident, peer);
+  else if (peer.num_attempts == 1)
+    result = ConnectToPeerSSU(peer);
+
+  // Increase the number of attempts (even when no transports are available)
+  ++peer.num_attempts;
+  if (result)
+    return true;
+
+  // Couldn't connect, get rid of this peer
+  LogPrint(eLogError,
+      "Transports:", GetFormattedSessionInfo(peer.router),
+      "no NTCP/SSU address available");
+  peer.Done();
+  m_Peers.erase(ident);
+  return false;
 }
+
+bool Transports::ConnectToPeerNTCP(
+    const i2p::data::IdentHash& ident,
+    Peer& peer) {
+  if (!m_NTCPServer)
+    return false;  // NTCP not supported
+
+  LogPrint(eLogDebug,
+      "Transports: attempting NTCP for peer",
+      GetFormattedSessionInfo(peer.router));
+
+  const auto address = peer.router->GetNTCPAddress(!context.SupportsV6());
+
+  // No NTCP address found
+  if (!address)
+    return false;
+
+  if (!address->host.is_unspecified()) {
+    if (!peer.router->UsesIntroducer() && !peer.router->IsUnreachable()) {
+      auto s = std::make_shared<NTCPSession>(*m_NTCPServer, peer.router);
+      m_NTCPServer->Connect(address->host, address->port, s);
+      return true;
+    }
+  } else {  // we don't have address
+    if (address->address_string.length() > 0) {  // trying to resolve
+      LogPrint(eLogInfo,
+          "Transports: NTCP resolving ", address->address_string);
+          NTCPResolve(address->address_string, ident);
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Transports::ConnectToPeerSSU(Peer& peer) {
+  if (!m_SSUServer)
+    return false;  // SSU not supported
+
+  LogPrint(eLogDebug,
+    "Transports: attempting SSU for peer",
+    GetFormattedSessionInfo(peer.router));
+
+  if (m_SSUServer->GetSession(peer.router))
+    return true;
+
+  return false;
+}
+
+
 
 void Transports::RequestComplete(
     std::shared_ptr<const i2p::data::RouterInfo> router,
@@ -452,6 +488,7 @@ void Transports::CloseSession(
     std::shared_ptr<const i2p::data::RouterInfo> router) {
   if (!router)
     return;
+
   LogPrint(eLogDebug,
       "Transports: closing session for [",
       router->GetIdentHashAbbreviation(), "]");
@@ -473,8 +510,8 @@ void Transports::PostCloseSession(
         "Transports: SSU session [",
         router->GetIdentHashAbbreviation(), "] closed");
   }
-  auto ntcp_session =
-    m_NTCPServer ? m_NTCPServer->FindNTCPSession(router->GetIdentHash()) : nullptr;
+  auto ntcp_session = m_NTCPServer ?
+      m_NTCPServer->FindNTCPSession(router->GetIdentHash()) : nullptr;
   if (ntcp_session) {
     m_NTCPServer->RemoveNTCPSession(ntcp_session);
     LogPrint(eLogInfo,
@@ -485,22 +522,25 @@ void Transports::PostCloseSession(
 
 void Transports::DetectExternalIP() {
   LogPrint(eLogDebug, "Transports: detecting external IP");
-  if (m_SSUServer) {
-    i2p::context.SetStatus(eRouterStatusTesting);
-    for (int i = 0; i < 5; i++) {
-      auto router = i2p::data::netdb.GetRandomPeerTestRouter();
-      if (router  && router->IsSSU()) {
-        m_SSUServer->GetSession(router, true);  // peer test
-      } else {
-        // if not peer test capable routers found pick any
-        router = i2p::data::netdb.GetRandomRouter();
-        if (router && router->IsSSU())
-          m_SSUServer->GetSession(router);  // no peer test
-      }
-    }
-  } else {
+
+  if (!m_SSUServer) {  // SSU not supported
     LogPrint(eLogError,
         "Transports: can't detect external IP, SSU is not available");
+    return;
+  }
+
+  i2p::context.SetStatus(eRouterStatusTesting);
+  // TODO(unassigned): Why 5 times? (make constant)
+  for (int i = 0; i < 5; i++) {
+    auto router = i2p::data::netdb.GetRandomPeerTestRouter();
+    if (router && router->IsSSU()) {
+      m_SSUServer->GetSession(router, true);  // peer test
+    } else {
+      // if not peer test capable routers found pick any
+      router = i2p::data::netdb.GetRandomRouter();
+      if (router && router->IsSSU())
+        m_SSUServer->GetSession(router);  // no peer test
+    }
   }
 }
 
@@ -610,6 +650,17 @@ std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRandomPeer() const {
       i2p::crypto::RandInRange<size_t>(0, s - 1));
   return it->second.router;
 }
+
+std::string Transports::GetFormattedSessionInfo(
+    std::shared_ptr<const i2p::data::RouterInfo>& router) const {
+  if (router) {
+    std::ostringstream info;
+    info << " [" << router->GetIdentHashAbbreviation() << "] ";
+    return info.str();
+  }
+  return "[hash unavailable]";
+}
+
 
 }  // namespace transport
 }  // namespace i2p

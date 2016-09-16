@@ -202,8 +202,14 @@ class SOCKSHandler
       : I2PServiceHandler(parent),
         m_sock(sock),
         m_stream(nullptr),
+        m_remaining_data(nullptr),
+        m_remaining_data_len(0),
+        m_port(0),
+        m_command(0),
         m_authchosen(AUTH_UNACCEPTABLE),
-        m_addrtype(ADDR_IPV4) {
+        m_addrtype(ADDR_IPV4),
+        m_socksv(SOCKS5),
+        m_cmd(CMD_CONNECT) {
           m_address.ip = 0;
           EnterState(GET_SOCKSV);
         }

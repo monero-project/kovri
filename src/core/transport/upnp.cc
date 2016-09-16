@@ -54,6 +54,8 @@
 #include "router_context.h"
 #include "util/log.h"
 
+// TODO(unassigned): improve UPnP implementation design and ensure that client doesn't interfere
+
 // These are per-process and are safe to reuse for all threads
 #ifndef UPNPDISCOVER_SUCCESS
 /* miniupnpc 1.5 */
@@ -311,14 +313,7 @@ void UPnP::TryPortMapping(
           0,
           "0");
 #endif
-      if (r != UPNPCOMMAND_SUCCESS) {
-        LogPrint(eLogError,
-            "UPnP: AddPortMapping (", strPort.c_str(),
-            ", ", strPort.c_str(),
-            ", ", m_NetworkAddr,
-            ") failed with code ", r);
-        return;
-      } else {
+      if (r == UPNPCOMMAND_SUCCESS) {
         LogPrint(eLogInfo,
             "UPnP: port mapping successful. (", m_NetworkAddr,
             ":", strPort.c_str(),
@@ -327,9 +322,14 @@ void UPnP::TryPortMapping(
             ":", strPort.c_str(), ")");
         return;
       }
-      std::this_thread::sleep_for(std::chrono::minutes(20));  // c++11
-      // boost::this_thread::sleep_for(); // pre c++11
-      // sleep(20*60); // non-portable
+      // TODO(unassigned): do we really want to retry on *all* errors? (see upnpcommands.h)
+      LogPrint(eLogError,
+          "UPnP: AddPortMapping (", strPort.c_str(),
+          ", ", strPort.c_str(),
+          ", ", m_NetworkAddr,
+          ") failed with code ", r);
+      // Try again later
+      std::this_thread::sleep_for(std::chrono::minutes(20));
     }
   } catch (boost::thread_interrupted) {
     CloseMapping(type, port);

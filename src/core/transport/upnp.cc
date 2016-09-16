@@ -329,6 +329,7 @@ void UPnP::TryPortMapping(
           ", ", m_NetworkAddr,
           ") failed with code ", r);
       // Try again later
+      // TODO(unassigned): magic number to be addressed along with bigger refactor
       std::this_thread::sleep_for(std::chrono::minutes(20));
     }
   } catch (boost::thread_interrupted) {

@@ -72,6 +72,7 @@ class ClientContext {
 
   std::shared_ptr<ClientDestination> CreateNewLocalDestination(
       bool is_public = false,
+      // TODO(anonimal): we don't need DSA-SHA1 for default
       i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_DSA_SHA1,
       const std::map<std::string, std::string>* params = nullptr);  // transient
 

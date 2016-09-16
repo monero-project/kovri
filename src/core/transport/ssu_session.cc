@@ -106,8 +106,8 @@ void SSUSession::CreateAESandMACKey(
         "SSUSession:", GetFormattedSessionInfo(), "couldn't create shared key");
     return;
   }
-  auto session_key = m_SessionKey();
-  auto mac_key = m_MACKey();
+  uint8_t* session_key = m_SessionKey();
+  uint8_t* mac_key = m_MACKey();
   if (shared_key.at(0) & 0x80) {
     session_key[0] = 0;
     memcpy(session_key + 1, shared_key.data(), 31);
@@ -397,7 +397,8 @@ void SSUSession::ProcessSessionCreated(
     SendSessionConfirmed(
         packet->GetDhY(),
         packet->GetIPAddress(),
-        packet->GetIPAddressSize() + 2);
+        packet->GetIPAddressSize(),
+        packet->GetPort());
   } else {  // invalid signature
     LogPrint(eLogError,
         "SSUSession:", GetFormattedSessionInfo(),
@@ -515,7 +516,8 @@ void SSUSession::ProcessSessionConfirmed(SSUPacket* pkt) {
 void SSUSession::SendSessionConfirmed(
     const std::uint8_t* y,
     const std::uint8_t* our_address,
-    std::size_t our_address_len) {
+    std::size_t our_address_len,
+    std::uint16_t our_port) {
   SSUSessionConfirmedPacket packet;
   packet.SetHeader(std::make_unique<SSUHeader>(SSUPayloadType::SessionConfirmed));
   std::array<std::uint8_t, static_cast<std::size_t>(SSUSize::IV)> iv;
@@ -531,7 +533,8 @@ void SSUSession::SendSessionConfirmed(
   SignedData s;
   s.Insert(m_DHKeysPair->public_key.data(), 256);  // x
   s.Insert(y, 256);  // y
-  s.Insert(our_address, our_address_len);  // our address/port as seen by party
+  s.Insert(our_address, our_address_len);
+  s.Insert<std::uint16_t>(htobe16(our_port));
   auto const address = GetRemoteEndpoint().address();
   if (address.is_v4())  // remote IP V4
     s.Insert(address.to_v4().to_bytes().data(), 4);
@@ -543,7 +546,8 @@ void SSUSession::SendSessionConfirmed(
   s.Sign(i2p::context.GetPrivateKeys(), signature_buf.get());
   packet.SetSignature(signature_buf.get());
   auto const buffer_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
-  auto buffer = std::make_unique<std::uint8_t[]>(buffer_size);
+  auto buffer = std::make_unique<std::uint8_t[]>(
+      buffer_size + static_cast<std::size_t>(SSUSize::BufferMargin));
   WriteAndEncrypt(&packet, buffer.get(), m_SessionKey, m_MACKey);
   Send(buffer.get(), buffer_size);
 }

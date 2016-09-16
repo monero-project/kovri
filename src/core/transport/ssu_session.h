@@ -243,7 +243,8 @@ class SSUSession
   void SendSessionConfirmed(
       const std::uint8_t* y,
       const std::uint8_t* our_address,
-      std::size_t our_address_len);
+      std::size_t our_address_len,
+      std::uint16_t our_port);
 
   // Payload type 3: RelayRequest
 

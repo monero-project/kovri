@@ -312,10 +312,12 @@ std::uint32_t SSUSessionConfirmedPacket::GetSignedOnTime() const {
 
 std::size_t SSUSessionConfirmedPacket::GetSize() const {
   // This message must be a multiple of 16
-  return SSUPacket::GetSize()
-         + m_RemoteIdentity.GetFullLen()       // Identity size
-         + m_RemoteIdentity.GetSignatureLen()  // Signature size
-         + 4;                                  // Time size
+  return SSUPacketBuilder::GetPaddedSize(
+           SSUPacket::GetSize()
+         + 3                                   // Info and identity size
+         + m_RemoteIdentity.GetFullLen()       // Identity
+         + m_RemoteIdentity.GetSignatureLen()  // Signature
+         + 4);                                 // Time size
 }
 
 /**
@@ -977,16 +979,19 @@ void WriteSessionConfirmed(
     std::uint8_t*& buf,
     SSUSessionConfirmedPacket* packet) {
   std::uint8_t* const begin = buf;
-  WriteUInt8(buf, 0x00);  // 1 byte info
+  WriteUInt8(buf, 0x01);  // 1 byte info, with 1 fragment
   const std::size_t identity_size = packet->GetRemoteRouterIdentity().GetFullLen();
-  WriteUInt8(buf, identity_size);
+  WriteUInt16(buf, identity_size);
   packet->GetRemoteRouterIdentity().ToBuffer(buf, identity_size);
+  buf += identity_size;
   WriteUInt32(buf, packet->GetSignedOnTime());
-  // Padding is assumed to be present
+  // Write padding here (rather than later), because it is in the middle of the
+  // message
   const std::size_t signature_size = packet->GetRemoteRouterIdentity().GetSignatureLen();
-  //const std::size_t padding_size = GetPaddingSize(buf - begin + signature_size);
-  //i2p::crypto::RandBytes(buf, padding_size);
-  //buf += padding_size;
+  const std::size_t padding_size = GetPaddingSize(
+      packet->GetHeader()->GetSize() + buf - begin + signature_size);
+  i2p::crypto::RandBytes(buf, padding_size);
+  buf += padding_size;
   WriteData(buf, packet->GetSignature(), signature_size);
 }
 

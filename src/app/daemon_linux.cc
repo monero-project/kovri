@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "daemon.h"
+#include "./daemon.h"
 
 #ifndef _WIN32
 
@@ -90,14 +90,14 @@ bool DaemonLinux::Start() {
     chdir(d.c_str());
     // close stdin/stdout/stderr descriptors
     ::close(0);
-    if(::open("/dev/null", O_RDWR)<0)
-	    exit(1);
+    if (::open("/dev/null", O_RDWR) < 0 )
+      exit(1);
     ::close(1);
-    if(::open("/dev/null", O_RDWR)<0)
-	    exit(1);
+    if (::open("/dev/null", O_RDWR) < 0 )
+      exit(1);
     ::close(2);
-    if(::open("/dev/null", O_RDWR)<0)
-	    exit(1);
+    if (::open("/dev/null", O_RDWR) < 0 )
+      exit(1);
   }
   // Pidfile
   m_pidFile = (i2p::util::filesystem::GetDataPath() / "kovri.pid").string();

@@ -91,13 +91,13 @@ bool DaemonLinux::Start() {
     // close stdin/stdout/stderr descriptors
     ::close(0);
     if (::open("/dev/null", O_RDWR) < 0 )
-      exit(1);
+      return false;
     ::close(1);
     if (::open("/dev/null", O_RDWR) < 0 )
-      exit(1);
+      return false;
     ::close(2);
     if (::open("/dev/null", O_RDWR) < 0 )
-      exit(1);
+      return false;
   }
   // Pidfile
   m_pidFile = (i2p::util::filesystem::GetDataPath() / "kovri.pid").string();

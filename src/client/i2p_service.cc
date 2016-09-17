@@ -40,23 +40,17 @@
 namespace i2p {
 namespace client {
 
-static const i2p::data::SigningKeyType I2P_SERVICE_DEFAULT_KEY_TYPE =
-  i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256;
-
 I2PService::I2PService(
     std::shared_ptr<ClientDestination> localDestination)
     : m_LocalDestination(
-        localDestination ? localDestination :
-        i2p::client::context.CreateNewLocalDestination(
-          false,
-          I2P_SERVICE_DEFAULT_KEY_TYPE)) {}
+        localDestination
+        ? localDestination
+        : i2p::client::context.CreateNewLocalDestination()) {}
 
 I2PService::I2PService(
-    i2p::data::SigningKeyType kt)
+    i2p::data::SigningKeyType key_type)
     : m_LocalDestination(
-        i2p::client::context.CreateNewLocalDestination(
-          false,
-          kt)) {}
+        i2p::client::context.CreateNewLocalDestination(key_type)) {}
 
 void I2PService::CreateStream(
     StreamRequestComplete streamRequestComplete,

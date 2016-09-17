@@ -60,7 +60,7 @@ ClientContext::~ClientContext() {
 
 void ClientContext::Start() {
   if (!m_SharedLocalDestination) {
-    m_SharedLocalDestination = CreateNewLocalDestination();  // non-public, DSA
+    m_SharedLocalDestination = CreateNewLocalDestination();  // Non-public
     m_Destinations[m_SharedLocalDestination->GetIdentity().GetIdentHash()] =
       m_SharedLocalDestination;
     m_SharedLocalDestination->Start();
@@ -155,8 +155,7 @@ std::shared_ptr<ClientDestination> ClientContext::LoadLocalDestination(
     std::string full_path = i2p::util::filesystem::GetFullPath(filename);
     LogPrint(eLogError,
         "ClientContext: can't open file ", full_path, ", creating new one");
-    keys = i2p::data::PrivateKeys::CreateRandomKeys(
-        i2p::data::SIGNING_KEY_TYPE_ECDSA_SHA256_P256);
+    keys = i2p::data::PrivateKeys::CreateRandomKeys();  // Generate default type
     std::ofstream f(full_path, std::ofstream::binary | std::ofstream::out);
     size_t len = keys.GetFullLen();
     auto buf = std::make_unique<std::uint8_t[]>(len);

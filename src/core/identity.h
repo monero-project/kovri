@@ -193,8 +193,13 @@ const uint16_t SIGNING_KEY_TYPE_RSA_SHA384_3072 = 5;
 const uint16_t SIGNING_KEY_TYPE_RSA_SHA512_4096 = 6;
 const uint16_t SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519 = 7;
 
+// TODO(anonimal): review/implement to bump client type to EdDSA-SHA512-Ed25519
+const uint16_t DEFAULT_CLIENT_SIGNING_KEY_TYPE = SIGNING_KEY_TYPE_ECDSA_SHA256_P256;
+const uint16_t DEFAULT_ROUTER_SIGNING_KEY_TYPE = SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519;
+
 typedef uint16_t SigningKeyType;
 typedef uint16_t CryptoKeyType;
+
 
 class IdentityEx {
  public:
@@ -326,7 +331,7 @@ class PrivateKeys {  // for eepsites
   std::string ToBase64() const;
 
   static PrivateKeys CreateRandomKeys(
-      SigningKeyType type = SIGNING_KEY_TYPE_DSA_SHA1);
+      SigningKeyType type = DEFAULT_CLIENT_SIGNING_KEY_TYPE);
 
  private:
   void CreateSigner();

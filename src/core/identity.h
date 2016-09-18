@@ -213,6 +213,13 @@ class IdentityEx {
   IdentityEx(
       const IdentityEx& other);
 
+  IdentityEx( IdentityEx && other){
+      m_Verifier=std::move(other.m_Verifier);
+      m_ExtendedLen=other.m_ExtendedLen;
+      m_ExtendedBuffer=std::move(other.m_ExtendedBuffer);
+
+  }
+
   IdentityEx& operator=(const IdentityEx& other);
 
   IdentityEx& operator=(const Identity& standard);

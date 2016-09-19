@@ -90,11 +90,14 @@ bool DaemonLinux::Start() {
     chdir(d.c_str());
     // close stdin/stdout/stderr descriptors
     ::close(0);
-    ::open("/dev/null", O_RDWR);
+    if (::open("/dev/null", O_RDWR) < 0 )
+      return false;
     ::close(1);
-    ::open("/dev/null", O_RDWR);
+    if (::open("/dev/null", O_RDWR) < 0 )
+      return false;
     ::close(2);
-    ::open("/dev/null", O_RDWR);
+    if (::open("/dev/null", O_RDWR) < 0 )
+      return false;
   }
   // Pidfile
   m_pidFile = (i2p::util::filesystem::GetDataPath() / "kovri.pid").string();

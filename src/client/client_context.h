@@ -70,11 +70,13 @@ class ClientContext {
     return m_SharedLocalDestination;
   }
 
+  // Non-public
   std::shared_ptr<ClientDestination> CreateNewLocalDestination(
       bool is_public = false,
-      i2p::data::SigningKeyType sigType = i2p::data::SIGNING_KEY_TYPE_DSA_SHA1,
+      i2p::data::SigningKeyType sigType = i2p::data::DEFAULT_CLIENT_SIGNING_KEY_TYPE,
       const std::map<std::string, std::string>* params = nullptr);  // transient
 
+  // Public
   std::shared_ptr<ClientDestination> CreateNewLocalDestination(
       const i2p::data::PrivateKeys& keys,
       bool is_public = true,

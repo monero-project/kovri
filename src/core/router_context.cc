@@ -78,7 +78,7 @@ void RouterContext::Init(
 
 void RouterContext::CreateNewRouter() {
   m_Keys = i2p::data::PrivateKeys::CreateRandomKeys(
-      i2p::data::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
+      i2p::data::DEFAULT_ROUTER_SIGNING_KEY_TYPE);
   SaveKeys();
   NewRouterInfo();
 }

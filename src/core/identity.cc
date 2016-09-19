@@ -50,19 +50,26 @@
 namespace i2p {
 namespace data {
 
+// TODO(unassigned): identity implementation needs a big refactor
+
+// TODO(unassigned): keep an eye open for alignment issues and for hacks like:
+// copy public and signing keys together
+//memcpy(public_key, keys.public_key, sizeof(public_key) + sizeof(signing_key));
+
 Identity& Identity::operator=(const Keys& keys) {
-  // copy public and signing keys together
-  memcpy(public_key, keys.public_key, sizeof(public_key) + sizeof(signing_key));
+  memcpy(public_key, keys.public_key, sizeof(public_key));
   memset(&certificate, 0, sizeof(certificate));
   return *this;
 }
 
-size_t Identity::FromBuffer(
+// TODO(unassigned): unused, remove after refactor
+/*size_t Identity::FromBuffer(
     const uint8_t* buf,
     size_t) {
-  memcpy(public_key, buf, DEFAULT_IDENTITY_SIZE);
+  //memcpy(public_key, buf, DEFAULT_IDENTITY_SIZE);
+  memcpy(public_key, buf, sizeof(public_key));
   return DEFAULT_IDENTITY_SIZE;
-}
+}*/
 
 IdentHash Identity::Hash() const {
   IdentHash hash;

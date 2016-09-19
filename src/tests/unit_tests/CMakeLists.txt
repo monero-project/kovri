@@ -1,6 +1,7 @@
 set(TESTS_SRC
   "main.cc"
   "core/reseed.cc"
+  "core/transport/ssu_packet.cc"
   "core/crypto/aes.cc"
   "core/crypto/dsa.cc"
   "core/crypto/eddsa25519.cc"

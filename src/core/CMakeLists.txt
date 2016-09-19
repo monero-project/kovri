@@ -15,6 +15,7 @@ set(CORE_SRC
   "transport/ntcp.cc"
   "transport/ntcp_session.cc"
   "transport/ssu.cc"
+  "transport/ssu_packet.cc"
   "transport/ssu_data.cc"
   "transport/ssu_session.cc"
   "transport/transports.cc"
@@ -26,6 +27,7 @@ set(CORE_SRC
   "tunnel/tunnel_gateway.cc"
   "tunnel/tunnel_pool.cc"
   "util/base64.cc"
+  "util/byte_stream.cc"
   "util/filesystem.cc"
   "util/mtu.cc"
   "util/pimpl/log.cc")

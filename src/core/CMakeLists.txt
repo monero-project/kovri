@@ -27,6 +27,7 @@ set(CORE_SRC
   "tunnel/tunnel_gateway.cc"
   "tunnel/tunnel_pool.cc"
   "util/base64.cc"
+  "util/byte_stream.cc"
   "util/filesystem.cc"
   "util/mtu.cc"
   "util/pimpl/log.cc")

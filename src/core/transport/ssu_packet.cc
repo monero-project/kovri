@@ -288,7 +288,7 @@ void SSUSessionConfirmedPacket::SetRemoteRouterIdentity(
   m_RemoteIdentity = identity;
 }
 
-i2p::data::IdentityEx SSUSessionConfirmedPacket::GetRemoteRouterIdentity() const {
+i2p::data::IdentityEx& SSUSessionConfirmedPacket::GetRemoteRouterIdentity() {
   return m_RemoteIdentity;
 }
 
@@ -652,35 +652,7 @@ std::size_t SSUPeerTestPacket::GetSize() const {
 SSUPacketParser::SSUPacketParser(
     std::uint8_t* data,
     std::size_t len)
-    : m_Data(data),
-      m_Length(len) {}
-
-void SSUPacketParser::ConsumeData(
-    std::size_t amount) {
-  if (amount > m_Length)
-    throw std::length_error("SSUPacketParser: too many bytes to consume.");
-  m_Data += amount;
-  m_Length -= amount;
-}
-
-std::uint8_t* SSUPacketParser::ReadBytes(
-    std::size_t amount) {
-  std::uint8_t* ptr = m_Data;
-  ConsumeData(amount);
-  return ptr;
-}
-
-std::uint32_t SSUPacketParser::ReadUInt32() {
-  return bufbe32toh(ReadBytes(4));
-}
-
-std::uint16_t SSUPacketParser::ReadUInt16() {
-  return bufbe16toh(ReadBytes(2));
-}
-
-std::uint8_t SSUPacketParser::ReadUInt8() {
-  return *ReadBytes(1);
-}
+    : InputByteStream(data, len) {}
 
 SSUFragment SSUPacketParser::ParseFragment() {
   SSUFragment fragment;
@@ -889,170 +861,130 @@ std::unique_ptr<SSUSessionDestroyedPacket> SSUPacketParser::ParseSessionDestroye
   return packet;
 }
 
-namespace SSUPacketBuilder {
+SSUPacketBuilder::SSUPacketBuilder(
+      std::uint8_t* data,
+      std::size_t len)
+  : OutputByteStream(data, len) {}
 
-void WriteData(
-    std::uint8_t*& pos,
-    const std::uint8_t* data,
-    std::size_t len) {
-  memcpy(pos, data, len);
-  pos += len;
-}
-
-void WriteUInt8(
-    std::uint8_t*& pos,
-    std::uint8_t data) {
-  *(pos++) = data;
-}
-
-void WriteUInt16(
-    std::uint8_t*& pos,
-    std::uint16_t data) {
-  htobe16buf(pos, data);
-  pos += 2;
-}
-
-void WriteUInt32(
-    std::uint8_t*& pos,
-    std::uint32_t data) {
-  htobe32buf(pos, data);
-  pos += 4;
-}
-
-std::size_t GetPaddingSize(
+std::size_t SSUPacketBuilder::GetPaddingSize(
     std::size_t size) {
   return (size % 16) ? 16 - size % 16 : 0;
 }
 
-std::size_t GetPaddedSize(
+std::size_t SSUPacketBuilder::GetPaddedSize(
     std::size_t size) {
   return size + GetPaddingSize(size);
 }
 
-void WriteHeader(
-    std::uint8_t*& data,
-    SSUHeader* header) {
+void SSUPacketBuilder::WriteHeader(SSUHeader* header) {
   if (header->GetMAC())
-    WriteData(data, header->GetMAC(), static_cast<std::size_t>(SSUSize::MAC));
+    WriteData(header->GetMAC(), static_cast<std::size_t>(SSUSize::MAC));
   else
-    data += static_cast<std::size_t>(SSUSize::MAC);  // Write MAC later
-  WriteData(data, header->GetIV(), static_cast<std::size_t>(SSUSize::IV));
+    ProduceData(static_cast<std::size_t>(SSUSize::MAC));  // Write MAC later
+  WriteData(header->GetIV(), static_cast<std::size_t>(SSUSize::IV));
   const std::uint8_t flag =
       (static_cast<std::uint8_t>(header->GetPayloadType()) << 4) +
       (header->HasRekey() << 3) +
       (header->HasExtendedOptions() << 2);
-  WriteUInt8(data, flag);
-  WriteUInt32(data, header->GetTime());
+  WriteUInt8(flag);
+  WriteUInt32(header->GetTime());
   if (header->HasExtendedOptions()) {
     // TODO(EinMByte): Check for overflow
-    WriteUInt8(data, header->GetExtendedOptionsSize());
+    WriteUInt8(header->GetExtendedOptionsSize());
     WriteData(
-        data,
         header->GetExtendedOptionsData(),
         header->GetExtendedOptionsSize());
   }
 }
 
-void WriteSessionRequest(
-    std::uint8_t*& buf,
-    SSUSessionRequestPacket* packet) {
-  WriteData(buf, packet->GetDhX(), static_cast<std::size_t>(SSUSize::DHPublic));
-  // TODO(EinMByte): Check for overflow
-  WriteUInt8(buf, packet->GetIPAddressSize());
-  WriteData(buf, packet->GetIPAddress(), packet->GetIPAddressSize());
+void SSUPacketBuilder::WriteSessionRequest(SSUSessionRequestPacket* packet) {
+  WriteData(packet->GetDhX(), static_cast<std::size_t>(SSUSize::DHPublic));
+  WriteUInt8(packet->GetIPAddressSize());
+  WriteData(packet->GetIPAddress(), packet->GetIPAddressSize());
 }
 
-void WriteSessionCreated(
-    std::uint8_t*& buf,
-    SSUSessionCreatedPacket* packet) {
-  WriteData(buf, packet->GetDhY(), static_cast<std::size_t>(SSUSize::DHPublic));
+void SSUPacketBuilder::WriteSessionCreated(SSUSessionCreatedPacket* packet) {
+  WriteData(packet->GetDhY(), static_cast<std::size_t>(SSUSize::DHPublic));
   // TODO(EinMByte): Check for overflow
-  WriteUInt8(buf, packet->GetIPAddressSize());
-  WriteData(buf, packet->GetIPAddress(), packet->GetIPAddressSize());
-  WriteUInt16(buf, packet->GetPort());
-  WriteUInt32(buf, packet->GetRelayTag());
-  WriteUInt32(buf, packet->GetSignedOnTime());
-  WriteData(buf, packet->GetSignature(), packet->GetSignatureSize());
+  WriteUInt8(packet->GetIPAddressSize());
+  WriteData(packet->GetIPAddress(), packet->GetIPAddressSize());
+  WriteUInt16(packet->GetPort());
+  WriteUInt32(packet->GetRelayTag());
+  WriteUInt32(packet->GetSignedOnTime());
+  WriteData(packet->GetSignature(), packet->GetSignatureSize());
 }
 
-void WriteSessionConfirmed(
-    std::uint8_t*& buf,
+void SSUPacketBuilder::WriteSessionConfirmed(
     SSUSessionConfirmedPacket* packet) {
-  std::uint8_t* const begin = buf;
-  WriteUInt8(buf, 0x01);  // 1 byte info, with 1 fragment
+  std::uint8_t* const begin = m_Data;
+  WriteUInt8(0x01);  // 1 byte info, with 1 fragment
   const std::size_t identity_size = packet->GetRemoteRouterIdentity().GetFullLen();
-  WriteUInt16(buf, identity_size);
-  packet->GetRemoteRouterIdentity().ToBuffer(buf, identity_size);
-  buf += identity_size;
-  WriteUInt32(buf, packet->GetSignedOnTime());
+  WriteUInt16(identity_size);
+  std::uint8_t* const identity = m_Data;
+  ProduceData(identity_size);
+  packet->GetRemoteRouterIdentity().ToBuffer(identity, identity_size);
+
+  WriteUInt32(packet->GetSignedOnTime());
   // Write padding here (rather than later), because it is in the middle of the
   // message
   const std::size_t signature_size = packet->GetRemoteRouterIdentity().GetSignatureLen();
   const std::size_t padding_size = GetPaddingSize(
-      packet->GetHeader()->GetSize() + buf - begin + signature_size);
-  i2p::crypto::RandBytes(buf, padding_size);
-  buf += padding_size;
-  WriteData(buf, packet->GetSignature(), signature_size);
+      packet->GetHeader()->GetSize() + m_Data - begin + signature_size);
+  std::uint8_t* const padding = m_Data;
+  ProduceData(padding_size);
+  i2p::crypto::RandBytes(m_Data, padding_size);
+  WriteData(packet->GetSignature(), signature_size);
 }
 
-void WriteRelayRequest(
-    std::uint8_t*& buf,
+void SSUPacketBuilder::WriteRelayRequest(
     SSURelayRequestPacket* packet) {}
 
-void WriteRelayResponse(
-    std::uint8_t*& buf,
+void SSUPacketBuilder::WriteRelayResponse(
     SSURelayResponsePacket* packet) {}
 
-void WriteRelayIntro(
-    std::uint8_t*& buf,
+void SSUPacketBuilder::WriteRelayIntro(
     SSURelayIntroPacket* packet) {}
 
-void WriteData(
-    std::uint8_t*& buf,
+void SSUPacketBuilder::WriteData(
     SSUDataPacket* packet) {}
 
-void WritePeerTest(
-    std::uint8_t*& buf,
+void SSUPacketBuilder::WritePeerTest(
     SSUPeerTestPacket* packet) {}
 
-void WriteSessionDestroyed(
-    std::uint8_t*& buf,
+void SSUPacketBuilder::WriteSessionDestroyed(
     SSUSessionDestroyedPacket* packet) {}
 
-void WritePacket(
-    std::uint8_t*& buf,
-    SSUPacket* packet) {
+void SSUPacketBuilder::WritePacket(SSUPacket* packet) {
   switch (packet->GetHeader()->GetPayloadType()) {
     case SSUPayloadType::SessionRequest:
-      WriteSessionRequest(buf, static_cast<SSUSessionRequestPacket*>(packet));
+      WriteSessionRequest(static_cast<SSUSessionRequestPacket*>(packet));
       break;
     case SSUPayloadType::SessionCreated:
-      WriteSessionCreated(buf, static_cast<SSUSessionCreatedPacket*>(packet));
+      WriteSessionCreated(static_cast<SSUSessionCreatedPacket*>(packet));
       break;
     case SSUPayloadType::SessionConfirmed:
-      WriteSessionConfirmed(buf, static_cast<SSUSessionConfirmedPacket*>(packet));
+      WriteSessionConfirmed(static_cast<SSUSessionConfirmedPacket*>(packet));
       break;
     case SSUPayloadType::RelayRequest:
-      WriteRelayRequest(buf, static_cast<SSURelayRequestPacket*>(packet));
+      WriteRelayRequest(static_cast<SSURelayRequestPacket*>(packet));
       break;
     case SSUPayloadType::RelayResponse:
-      WriteRelayResponse(buf, static_cast<SSURelayResponsePacket*>(packet));
+      WriteRelayResponse(static_cast<SSURelayResponsePacket*>(packet));
       break;
     case SSUPayloadType::RelayIntro:
-      WriteRelayIntro(buf, static_cast<SSURelayIntroPacket*>(packet));
+      WriteRelayIntro(static_cast<SSURelayIntroPacket*>(packet));
       break;
     case SSUPayloadType::Data:
-      WriteData(buf, static_cast<SSUDataPacket*>(packet));
+      WriteData(static_cast<SSUDataPacket*>(packet));
       break;
     case SSUPayloadType::PeerTest:
-      WritePeerTest(buf, static_cast<SSUPeerTestPacket*>(packet));
+      WritePeerTest(static_cast<SSUPeerTestPacket*>(packet));
       break;
     case SSUPayloadType::SessionDestroyed:
-      WriteSessionDestroyed(buf, static_cast<SSUSessionDestroyedPacket*>(packet));
+      WriteSessionDestroyed(static_cast<SSUSessionDestroyedPacket*>(packet));
       break;
   }
 }
-}  // namespace SSUPacketBuilder
 
 }  // namespace transport
 }  // namespace i2p

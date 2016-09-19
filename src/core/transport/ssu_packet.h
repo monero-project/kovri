@@ -36,6 +36,7 @@
 #include <vector>
 
 #include "router_info.h"
+#include "util/byte_stream.h"
 
 namespace i2p {
 namespace transport {
@@ -350,8 +351,9 @@ class SSUSessionConfirmedPacket : public SSUPacket {
   void SetRemoteRouterIdentity(
       const i2p::data::IdentityEx& identity);
 
-  /// @return Router identity that was previously set when parsed
-  i2p::data::IdentityEx GetRemoteRouterIdentity() const;
+  /// @return Reference to the router identity to be included in the
+  ///         SessionConfirmed message
+  i2p::data::IdentityEx& GetRemoteRouterIdentity();
 
   /// @brief Sets 4 byte signed-on timestamp
   /// @note Assumes content is valid (based on position)
@@ -719,7 +721,7 @@ class SSUSessionDestroyedPacket : public SSUPacket {};
 
 /// @class SSUPacketParser
 /// @brief Constitutes SSU packet parsing
-class SSUPacketParser {
+class SSUPacketParser : private i2p::util::InputByteStream {
  public:
   SSUPacketParser() = default;
 
@@ -769,175 +771,87 @@ class SSUPacketParser {
   std::unique_ptr<SSUSessionDestroyedPacket> ParseSessionDestroyed();
 
  private:
-  /// @brief Advances the internal data pointer by the given amount
-  /// @param amount the amount by which to advance the data pointer
-  /// @throw std::length_error if amount exceeds the remaining data length
-  void ConsumeData(
-      std::size_t amount);
-
-  /// @brief Consume a given amount of bytes, and return a pointer to first consumed
-  ///   byte.
-  /// @return a pointer to the first byte that was consumed (m_Data + amount)
-  /// @throw std::length_error if amount exceeds the remaining data length
-  std::uint8_t* ReadBytes(
-      std::size_t amount);
-
-  /// @brief Reads a std::uint32_t, i.e. a 4 byte unsigned integer
-  /// @return the newly read std::uint32_t
-  /// @throw std::length_error if less than 4 bytes are available for reading
-  std::uint32_t ReadUInt32();
-
-  /// @brief Reads a std::uint16_t, i.e. a 2 byte unsigned integer
-  /// @return the newly read std::uint16_t
-  /// @throw std::length_error if less than 2 bytes are available for reading
-  std::uint16_t ReadUInt16();
-
-  /// @brief Reads a std::uint8_t, i.e. a single byte
-  /// @return the newly read byte as a std::uint8_t
-  /// @throw std::length_error if no bytes are available for reading
-  std::uint8_t ReadUInt8();
-
   /// @brief Parses data fragment
   /// @return A parsed data fragment
   SSUFragment ParseFragment();
-
- private:
-  std::uint8_t* m_Data;
-  std::size_t m_Length;
 };
 
-/// @namespace SSUPacketBuilder
-/// @brief Packet building implementation
-namespace SSUPacketBuilder {
+/// @class SSUPacketBuilder
+/// @brief Constitutes SSU packet building
+class SSUPacketBuilder : private i2p::util::OutputByteStream {
+  using i2p::util::OutputByteStream::WriteData; // Overload resolution
+ public:
+  using i2p::util::OutputByteStream::GetPosition; // Make public 
 
-/// @brief Writes data into buffer
-/// @note Increments buffer pointer position after writing data
-/// @param pos Reference to pointer to buffer position
-/// @param data Pointer to data to write
-/// @param len Length of data
-void WriteData(
-    std::uint8_t*& pos,
-    const std::uint8_t* data,
-    std::size_t len);
+  SSUPacketBuilder() = default;
 
-/// @brief Writes an 8-bit unsigned integer type into buffer
-/// @note Increments buffer pointer position after writing data
-/// @param pos Reference to pointer to buffer position
-/// @param data Data to write
-void WriteUInt8(
-    std::uint8_t*& pos,
-    std::uint8_t data);
+  /// @brief Constructs packet builder with a given buffer
+  /// @param data Pointer to the first byte of the buffer 
+  /// @param len Length of the buffer 
+  SSUPacketBuilder(
+      std::uint8_t* data,
+      std::size_t len);
 
-/// @brief Writes a 16-bit unsigned integer type into buffer
-/// @note Converts bytes from host to big-endian order
-/// @note Increments buffer pointer position after writing data
-/// @param pos Reference to pointer to buffer position
-/// @param data Data to write
-void WriteUInt16(
-    std::uint8_t*& pos,
-    std::uint16_t data);
+  /// @brief Calculates padding size needed for message
+  /// @details All messages contain 0 or more bytes of padding.
+  ///   Each message must be padded to a 16 byte boundary,
+  ///   as required by the AES256 encryption layer
+  /// @param size Size of message
+  static std::size_t GetPaddingSize(
+      std::size_t size);
 
-/// @brief Writes a 32-bit unsigned integer type into buffer
-/// @note Converts bytes from host to big-endian order
-/// @note Increments buffer pointer position after writing data
-/// @param pos Reference to pointer to buffer position
-/// @param data Data to write
-void WriteUInt32(
-    std::uint8_t*& pos,
-    std::uint32_t data);
+  /// @brief Gets padded size of message
+  /// @param size Size of message
+  static std::size_t GetPaddedSize(
+      std::size_t size);
 
-/// @brief Calculates padding size needed for message
-/// @details All messages contain 0 or more bytes of padding.
-///   Each message must be padded to a 16 byte boundary,
-///   as required by the AES256 encryption layer
-/// @param size Size of message
-std::size_t GetPaddingSize(
-    std::size_t size);
+  /// @brief Writes an SSU header into a data buffer.
+  /// @pre The data buffer must be sufficiently large.
+  /// @param data Reference to pointer to data
+  /// @param header Pointer to SSU header
+  void WriteHeader(SSUHeader* header);
 
-/// @brief Gets padded size of message
-/// @param size Size of message
-std::size_t GetPaddedSize(
-    std::size_t size);
+  /// @brief Writes SessionRequest message
+  /// @param packet SessionRequest packet to write
+  void WriteSessionRequest(SSUSessionRequestPacket* packet);
 
-/// @brief Writes an SSU header into a data buffer.
-/// @pre The data buffer must be sufficiently large.
-/// @param data Reference to pointer to data
-/// @param header Pointer to SSU header
-void WriteHeader(
-    std::uint8_t*& data,
-    SSUHeader* header);
+  /// @brief Writes SessionCreated message
+  /// @param packet SessionCreated packet to write
+  void WriteSessionCreated(SSUSessionCreatedPacket* packet);
 
-/// @brief Writes SessionRequest message
-/// @param buf Reference to pointer to buffer to write into
-/// @param packet SessionRequest packet to write
-void WriteSessionRequest(
-    std::uint8_t*& buf,
-    SSUSessionRequestPacket* packet);
+  /// @brief Writes SessionConfirmed message
+  /// @param packet SessionConfirmed packet to write
+  void WriteSessionConfirmed(SSUSessionConfirmedPacket* packet);
 
-/// @brief Writes SessionCreated message
-/// @param buf Reference to pointer to buffer to write into
-/// @param packet SessionCreated packet to write
-void WriteSessionCreated(
-    std::uint8_t*& buf,
-    SSUSessionCreatedPacket* packet);
+  /// @brief Writes RelayRequest message
+  /// @param packet RelayRequest packet to write
+  void WriteRelayRequest(SSURelayRequestPacket* packet);
 
-/// @brief Writes SessionConfirmed message
-/// @param buf Reference to pointer to buffer to write into
-/// @param packet SessionConfirmed packet to write
-void WriteSessionConfirmed(
-    std::uint8_t*& buf,
-    SSUSessionConfirmedPacket* packet);
+  /// @brief Writes RelayResponse message
+  /// @param packet RelayResponse packet to write
+  void WriteRelayResponse(SSURelayResponsePacket* packet);
 
-/// @brief Writes RelayRequest message
-/// @param buf Reference to pointer to buffer to write into
-/// @param packet RelayRequest packet to write
-void WriteRelayRequest(
-    std::uint8_t*& buf,
-    SSURelayRequestPacket* packet);
+  /// @brief Writes RelayIntro message
+  /// @param packet RelayIntro packet to write
+  void WriteRelayIntro(SSURelayIntroPacket* packet);
 
-/// @brief Writes RelayResponse message
-/// @param buf Reference to pointer to buffer to write into
-/// @param packet RelayResponse packet to write
-void WriteRelayResponse(
-    std::uint8_t*& buf,
-    SSURelayResponsePacket* packet);
+  /// @brief Writes Data message
+  /// @param packet Data packet to write
+  void WriteData(SSUDataPacket* packet);
 
-/// @brief Writes RelayIntro message
-/// @param buf Reference to pointer to buffer to write into
-/// @param packet RelayIntro packet to write
-void WriteRelayIntro(
-    std::uint8_t*& buf,
-    SSURelayIntroPacket* packet);
+  /// @brief Writes PeerTest message
+  /// @param packet PeerTest packet to write
+  void WritePeerTest(SSUPeerTestPacket* packet);
 
-/// @brief Writes Data message
-/// @param buf Reference to pointer to buffer to write into
-/// @param packet Data packet to write
-void WriteData(
-    std::uint8_t*& buf,
-    SSUDataPacket* packet);
+  /// @brief Writes SessionDestroyed message
+  /// @param packet SessionDestroyed packet to write
+  void WriteSessionDestroyed(SSUSessionDestroyedPacket* packet);
 
-/// @brief Writes PeerTest message
-/// @param buf Reference to pointer to buffer to write into
-/// @param packet PeerTest packet to write
-void WritePeerTest(
-    std::uint8_t*& buf,
-    SSUPeerTestPacket* packet);
-
-/// @brief Writes SessionDestroyed message
-/// @param buf Reference to pointer to buffer to write into
-/// @param packet SessionDestroyed packet to write
-void WriteSessionDestroyed(
-    std::uint8_t*& buf,
-    SSUSessionDestroyedPacket* packet);
-
-/// @brief Writes SSU packet for SSU session
-/// @param buf Reference to pointer to buffer to write into
-/// @param packet SSU packet to write
-/// @note packet is one of any payload types
-void WritePacket(
-    std::uint8_t*& buf,
-    SSUPacket* packet);
-}  // namespace SSUPacketBuilder
+  /// @brief Writes SSU packet for SSU session
+  /// @param packet SSU packet to write
+  /// @note packet is one of any payload types
+  void WritePacket(SSUPacket* packet);
+};
 
 }  // namespace transport
 }  // namespace i2p

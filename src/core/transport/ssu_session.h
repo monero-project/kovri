@@ -323,6 +323,7 @@ class SSUSession
   void WriteAndEncrypt(
     SSUPacket* packet,
     std::uint8_t* buffer,
+    std::size_t buffer_size,
     const std::uint8_t* aes_key,
     const std::uint8_t* mac_key);
 

@@ -475,17 +475,17 @@ BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_FIXTURE_TEST_SUITE(SSUPacketBuilderTests, SSUTestVectorsFixture)
 
-using namespace i2p::transport::SSUPacketBuilder;
-
 BOOST_AUTO_TEST_CASE(SSUHeaderPlain) {
-  i2p::transport::SSUHeader header(
-      i2p::transport::SSUPayloadType::SessionRequest,
+  using namespace i2p::transport;
+
+  SSUHeader header(
+      SSUPayloadType::SessionRequest,
       &header_plain.at(0),
       &header_plain.at(16),
       2864434397);
   auto buffer = std::make_unique<std::uint8_t[]>(header.GetSize());
-  std::uint8_t* buffer_ptr = buffer.get();
-  WriteHeader(buffer_ptr, &header);
+  SSUPacketBuilder builder(buffer.get(), header.GetSize());
+  builder.WriteHeader(&header);
   BOOST_CHECK_EQUAL_COLLECTIONS(
     buffer.get(),
     buffer.get() + header.GetSize(),
@@ -495,8 +495,10 @@ BOOST_AUTO_TEST_CASE(SSUHeaderPlain) {
 }
 
 BOOST_AUTO_TEST_CASE(SSUHeaderExtendedOptions) {
-  i2p::transport::SSUHeader header(
-      i2p::transport::SSUPayloadType::SessionRequest,
+  using namespace i2p::transport;
+
+  SSUHeader header(
+      SSUPayloadType::SessionRequest,
       &header_extended_options.at(0),
       &header_extended_options.at(16),
       2864434397);
@@ -504,8 +506,8 @@ BOOST_AUTO_TEST_CASE(SSUHeaderExtendedOptions) {
   header.SetExtendedOptionsData(extended_data.data(), extended_data.size());
   header.SetExtendedOptions(true);
   auto buffer = std::make_unique<std::uint8_t[]>(header.GetSize());
-  std::uint8_t* buffer_ptr = buffer.get();
-  WriteHeader(buffer_ptr, &header);
+  SSUPacketBuilder builder(buffer.get(), header.GetSize());
+  builder.WriteHeader(&header);
   BOOST_CHECK_EQUAL_COLLECTIONS(
     buffer.get(),
     buffer.get() + header.GetSize(),
@@ -514,12 +516,14 @@ BOOST_AUTO_TEST_CASE(SSUHeaderExtendedOptions) {
 }
 
 BOOST_AUTO_TEST_CASE(SessionRequestPlain) {
-  i2p::transport::SSUSessionRequestPacket packet;
+  using namespace i2p::transport;
+
+  SSUSessionRequestPacket packet;
   packet.SetDhX(&session_request.at(0));
   packet.SetIPAddress(&session_request.at(257), 4);
   auto buffer = std::make_unique<std::uint8_t[]>(packet.GetSize());
-  std::uint8_t* buffer_ptr = buffer.get();
-  WriteSessionRequest(buffer_ptr, &packet);
+  SSUPacketBuilder builder(buffer.get(), packet.GetSize());
+  builder.WriteSessionRequest(&packet);
   BOOST_CHECK_EQUAL_COLLECTIONS(
     buffer.get(),
     buffer.get() + packet.GetSize(),
@@ -528,7 +532,9 @@ BOOST_AUTO_TEST_CASE(SessionRequestPlain) {
 }
 
 BOOST_AUTO_TEST_CASE(SessionCreatedPlain) {
-  i2p::transport::SSUSessionCreatedPacket packet;
+  using namespace i2p::transport;
+
+  SSUSessionCreatedPacket packet;
   packet.SetDhY(&session_created.at(0));
   packet.SetIPAddress(&session_created.at(257), 3);
   packet.SetPort(9000);
@@ -536,8 +542,8 @@ BOOST_AUTO_TEST_CASE(SessionCreatedPlain) {
   packet.SetSignedOnTime(1466500266);
   packet.SetSignature(&session_created.at(270), 40);
   auto buffer = std::make_unique<std::uint8_t[]>(packet.GetSize());
-  std::uint8_t* buffer_ptr = buffer.get();
-  WriteSessionCreated(buffer_ptr, &packet);
+  SSUPacketBuilder builder(buffer.get(), packet.GetSize());
+  builder.WriteSessionCreated(&packet);
   BOOST_CHECK_EQUAL_COLLECTIONS(
     buffer.get(),
     buffer.get() + packet.GetSize(),

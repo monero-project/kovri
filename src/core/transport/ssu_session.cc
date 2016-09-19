@@ -321,11 +321,12 @@ void SSUSession::SendSessionRequest() {
     packet.SetIPAddress(address.to_v4().to_bytes().data(), 4);
   else
     packet.SetIPAddress(address.to_v6().to_bytes().data(), 16);
-  auto const packet_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
+  const std::size_t packet_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
+  const std::size_t buffer_size = packet_size
+      + static_cast<std::size_t>(SSUSize::BufferMargin);
   // Buffer has SSUSize::BufferMargin extra bytes for computing the HMAC
-  auto buffer = std::make_unique<std::uint8_t[]>(
-      packet_size + static_cast<std::size_t>(SSUSize::BufferMargin));
-  WriteAndEncrypt(&packet, buffer.get(), intro_key, intro_key);
+  auto buffer = std::make_unique<std::uint8_t[]>(buffer_size);
+  WriteAndEncrypt(&packet, buffer.get(), buffer_size, intro_key, intro_key);
   m_Server.Send(buffer.get(), packet_size, GetRemoteEndpoint());
 }
 
@@ -423,10 +424,11 @@ void SSUSession::SendSessionCreated(
   }
   SSUSessionCreatedPacket packet;
   packet.SetHeader(std::make_unique<SSUHeader>(SSUPayloadType::SessionCreated));
+  std::array<std::uint8_t, static_cast<std::size_t>(SSUSize::IV)> iv;
+  i2p::crypto::RandBytes(iv.data(), iv.size());
+  packet.GetHeader()->SetIV(iv.data());
   packet.SetDhY(m_DHKeysPair->public_key.data());
   packet.SetPort(GetRemoteEndpoint().port());
-  auto const signature_size = i2p::context.GetIdentity().GetSignatureLen();
-  auto signature_buf = std::make_unique<std::uint8_t[]>(signature_size);
   // signature
   // x,y, remote IP, remote port, our IP, our port, relay tag, signed on time
   SignedData s;
@@ -459,26 +461,35 @@ void SSUSession::SendSessionCreated(
   s.Insert<std::uint32_t>(relay_tag);
   s.Insert<std::uint32_t>(packet.GetSignedOnTime());
   // store for session confirmation
-  m_SessionConfirmData = std::unique_ptr<SignedData>(std::make_unique<SignedData>(s));
-  s.Sign(i2p::context.GetPrivateKeys(), signature_buf.get());  // DSA signature
-  auto buffer_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
-  auto const sig_padding_size =
-    SSUPacketBuilder::GetPaddingSize(buffer_size + signature_size);
-  i2p::crypto::RandBytes(signature_buf.get() + signature_size, sig_padding_size);
-  packet.SetSignature(signature_buf.get(), signature_size + sig_padding_size);
-  // Recompute buffer size
-  buffer_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
-  // encrypt signature and padding with newly created session key
+  m_SessionConfirmData = std::make_unique<SignedData>(s);
+
+  // Set signature size to compute the required padding size 
+  std::size_t signature_size = i2p::context.GetIdentity().GetSignatureLen();
+  packet.SetSignature(nullptr, signature_size);
+  const std::size_t sig_padding = SSUPacketBuilder::GetPaddingSize(
+      packet.GetSize());
+  // Set signature with correct size and fill the padding
+  auto signature_buf = std::make_unique<std::uint8_t[]>(
+      signature_size + sig_padding);
+  s.Sign(i2p::context.GetPrivateKeys(), signature_buf.get());
+  i2p::crypto::RandBytes(signature_buf.get() + signature_size, sig_padding);
+  packet.SetSignature(signature_buf.get(), signature_size + sig_padding);
+
+  // Encrypt signature and padding with newly created session key
   m_SessionKeyEncryption.SetIV(packet.GetHeader()->GetIV());
   m_SessionKeyEncryption.Encrypt(
       packet.GetSignature(),
       packet.GetSignatureSize(),
       packet.GetSignature());
+
+  const std::size_t packet_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
+  const std::size_t buffer_size = packet_size
+      + static_cast<std::size_t>(SSUSize::BufferMargin);
   // TODO(EinMByte): Deal with large messages in a better way
-  if (buffer_size <= static_cast<std::size_t>(SSUSize::MTUv4)) {
+  if (packet_size <= static_cast<std::size_t>(SSUSize::MTUv4)) {
     auto buffer = std::make_unique<std::uint8_t[]>(buffer_size);
-    WriteAndEncrypt(&packet, buffer.get(), intro_key, intro_key);
-    Send(buffer.get(), buffer_size);
+    WriteAndEncrypt(&packet, buffer.get(), buffer_size, intro_key, intro_key);
+    Send(buffer.get(), packet_size);
   }
 }
 
@@ -525,8 +536,8 @@ void SSUSession::SendSessionConfirmed(
   packet.GetHeader()->SetIV(iv.data());
   packet.SetRemoteRouterIdentity(i2p::context.GetIdentity());
   packet.SetSignedOnTime(i2p::util::GetSecondsSinceEpoch());
-  auto signature_buf =
-    std::make_unique<std::uint8_t[]>(i2p::context.GetIdentity().GetSignatureLen());
+  auto signature_buf = std::make_unique<std::uint8_t[]>(
+      i2p::context.GetIdentity().GetSignatureLen());
   // signature
   // x,y, our IP, our port, remote IP, remote port,
   // relay_tag, our signed on time
@@ -545,11 +556,12 @@ void SSUSession::SendSessionConfirmed(
   s.Insert(htobe32(packet.GetSignedOnTime()));
   s.Sign(i2p::context.GetPrivateKeys(), signature_buf.get());
   packet.SetSignature(signature_buf.get());
-  auto const buffer_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
-  auto buffer = std::make_unique<std::uint8_t[]>(
-      buffer_size + static_cast<std::size_t>(SSUSize::BufferMargin));
-  WriteAndEncrypt(&packet, buffer.get(), m_SessionKey, m_MACKey);
-  Send(buffer.get(), buffer_size);
+  const std::size_t packet_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
+  const std::size_t buffer_size = packet_size
+      + static_cast<std::size_t>(SSUSize::BufferMargin);
+  auto buffer = std::make_unique<std::uint8_t[]>(buffer_size);
+  WriteAndEncrypt(&packet, buffer.get(), buffer_size, m_SessionKey, m_MACKey);
+  Send(buffer.get(), packet_size);
 }
 
 /**
@@ -1098,35 +1110,36 @@ void SSUSession::FillHeaderAndEncrypt(
 void SSUSession::WriteAndEncrypt(
     SSUPacket* packet,
     std::uint8_t* buffer,
+    std::size_t buffer_size,
     const std::uint8_t* aes_key,
     const std::uint8_t* mac_key) {
   packet->GetHeader()->SetTime(i2p::util::GetSecondsSinceEpoch());
 
-  std::uint8_t* buf = buffer;
+  SSUPacketBuilder builder(buffer, buffer_size);
   // Write header (excluding MAC)
-  SSUPacketBuilder::WriteHeader(buf, packet->GetHeader());
+  builder.WriteHeader(packet->GetHeader());
   // Write packet body
-  SSUPacketBuilder::WritePacket(buf, packet);
+  builder.WritePacket(packet);
   // Encrypt everything after the MAC and IV
   std::uint8_t* encrypted =
     buffer
     + static_cast<std::size_t>(SSUSize::IV)
     + static_cast<std::size_t>(SSUSize::MAC);
-  auto encrypted_len = buf - encrypted;
+  auto encrypted_len = builder.GetPosition() - encrypted;
   // Add padding
   const std::size_t padding_size = SSUPacketBuilder::GetPaddingSize(encrypted_len);
-  i2p::crypto::RandBytes(buf, padding_size);
+  i2p::crypto::RandBytes(builder.GetPosition(), padding_size);
   encrypted_len += padding_size;
   i2p::crypto::CBCEncryption encryption(aes_key, packet->GetHeader()->GetIV());
   encryption.Encrypt(encrypted, encrypted_len, encrypted);
   // Compute HMAC of encryptedPayload + IV + (payloadLength ^ protocolVersion)
   // Currently, protocolVersion == 0
-  buf = encrypted + encrypted_len;
-  SSUPacketBuilder::WriteData(
-      buf,
+  util::OutputByteStream stream(
+      encrypted + encrypted_len, buffer_size - (encrypted - buffer));
+  stream.WriteData(
       packet->GetHeader()->GetIV(),
       static_cast<std::size_t>(SSUSize::IV));
-  SSUPacketBuilder::WriteUInt16(buf, encrypted_len);
+  stream.WriteUInt16(encrypted_len);
   i2p::crypto::HMACMD5Digest(
       encrypted,
       encrypted_len + static_cast<std::size_t>(SSUSize::BufferMargin),

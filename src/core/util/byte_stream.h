@@ -32,7 +32,8 @@
 #ifndef SRC_CORE_UTIL_BYTESTREAM_H_
 #define SRC_CORE_UTIL_BYTESTREAM_H_
 
-#include <cinttypes>
+#include <cstdint>
+#include <cstddef>
 
 namespace i2p {
 namespace util {

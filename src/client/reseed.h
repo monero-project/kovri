@@ -116,7 +116,6 @@ class Reseed {
     "https://reseed.i2p.vzaws.com:8443/",
     "https://uk.reseed.i2p2.no:444/",
     "https://us.reseed.i2p2.no:444/",
-    "https://user.mx24.eu/",
     // Note: for "Let's Encrypt" certs,
     // we currently require DST Root CA X3 (not ISRG Root X1)
     "https://i2p-0.manas.ca:8443/",

@@ -282,14 +282,14 @@ std::uint16_t GetMTUWindows(
   if (localAddress.is_v4()) {
     sockaddr_in inputAddress;
     inet_pton(AF_INET, localAddressUniversal.c_str(), &(inputAddress.sin_addr));
-    return GetMTUWindowsIpv4(inputAddress, MTU_FALLBACK);
+    return GetMTUWindowsIpv4(inputAddress);
   } else if (localAddress.is_v6()) {
     sockaddr_in6 inputAddress;
     inet_pton(
         AF_INET6,
         localAddressUniversal.c_str(),
         &(inputAddress.sin6_addr));
-    return GetMTUWindowsIpv6(inputAddress, MTU_FALLBACK);
+    return GetMTUWindowsIpv6(inputAddress);
   } else {
     LogPrint(eLogError,
         "MTU: GetMTUWindows() has failed:",

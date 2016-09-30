@@ -1,4 +1,4 @@
-# **ˈKɔːvrɪ**
+# **ˈKoʊvriː**
 
 1. To cover, veil, wrap *[(Esperanto)](https://en.wikipedia.org/wiki/Esperanto)*.
 2. A secure, private, untraceable C++ implementation of the [I2P](https://geti2p.net) anonymous network.

@@ -111,8 +111,14 @@ bool HTTP::DownloadViaClearnet() {
     }
     // Set SSL options
     options
+      .always_verify_peer(true)
       .openssl_certificate(cert_path.string())
-      .openssl_sni_hostname(uri.host());
+      .openssl_sni_hostname(uri.host())
+      .openssl_ciphers(
+          "ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES"
+          ":ECDH+3DES:DH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES"
+          ":!aNULL:!MD5")
+      .openssl_options(SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_ALL);
   }
   // Create client with options
   Client client(options);

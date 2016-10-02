@@ -44,32 +44,31 @@ namespace i2p {
 namespace crypto {
 
 /// TODO(unassigned): if we switch libraries, we should move AES-NI elsewhere.
-/// TODO(unassigned): MSVC x86-64 support?
-bool AESNIExists() {
+/// TODO(unassigned): ARM support? MSVC x86-64 support?
+bool HasAESNI() {
   unsigned int eax, ecx;  // We only need ECX
   const unsigned int flag = (1 << 25);  // ECX bit 25 for AES-NI
-  LogPrint(eLogInfo, "Crypto: checking for AES-NI...");
+  LogPrint(eLogDebug, "Crypto: checking for AES-NI...");
   __asm__ __volatile__(
       "cpuid"
       : "=a"(eax), "=c"(ecx)  // 0x2000000;
       : "a"(1), "c"(0)
       : "%ebx", "%edx");
   if ((ecx & flag) == flag) {
-    LogPrint(eLogInfo, "Crypto: AES-NI is available!");
-  } else {
-    LogPrint(eLogInfo, "Crypto: AES-NI is not available. Using library.");
-    return false;
+    LogPrint(eLogDebug, "Crypto: AES-NI is available!");
+    return true;
   }
-  return true;
+  LogPrint(eLogDebug, "Crypto: AES-NI is not available. Using library.");
+  return false;
 }
 
 // Initialize once to avoid repeated tests for AES-NI
 // TODO(unassigned): better place to initialize?
-bool aesni(AESNIExists());
+static const bool g_HasAESNI(HasAESNI());
 
 // For runtime AES-NI
 bool UsingAESNI() {
-  return aesni;
+  return g_HasAESNI;
 }
 
 /// @class ECBCryptoAESNI

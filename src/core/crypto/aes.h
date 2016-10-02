@@ -91,7 +91,7 @@ class AESAlignedBuffer {  // 16 bytes alignment
 /// @brief Checks for AES-NI support in Intel/AMD processors
 /// @note https://en.wikipedia.org/wiki/CPUID
 /// @return True if supported, false if not
-bool AESNIExists();
+bool HasAESNI();
 
 /// @brief Returns result of AESNIExists()
 /// @note Used for runtime AES-NI implementation

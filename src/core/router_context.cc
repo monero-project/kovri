@@ -319,7 +319,7 @@ bool RouterContext::Load() {
   fk.seekg(0, std::ios::end);
   const size_t len = fk.tellg();
   fk.seekg(0, std::ios::beg);
-  std::unique_ptr<uint8_t> buf(new uint8_t[len]);
+  std::unique_ptr<uint8_t[]> buf(new uint8_t[len]);
   fk.read(reinterpret_cast<char*>(buf.get()), len);
   m_Keys.FromBuffer(buf.get(), len);
 
@@ -341,7 +341,7 @@ void RouterContext::SaveKeys() {
       i2p::util::filesystem::GetFullPath(ROUTER_KEYS).c_str(),
       std::ofstream::binary | std::ofstream::out);
   const size_t length = m_Keys.GetFullLen();
-  std::unique_ptr<uint8_t> buf(new uint8_t[length]);
+  std::unique_ptr<uint8_t[]> buf(new uint8_t[length]);
   m_Keys.ToBuffer(buf.get(), length);
   fk.write(reinterpret_cast<char*>(buf.get()), length);
 }

@@ -11,7 +11,8 @@
 - Currently **pre-alpha** software; under heavy development
 
 ## Quickstart
-- Read [Build Instructions](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md) to install dependencies, build, and run kovri
+- Read [Build Instructions](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md) to install dependencies and build kovri
+- Read [User Guide](https://github.com/monero-project/kovri/blob/master/doc/USER_GUIDE.md) to get up and running with kovri
 
 ## Documentation
 - Our [FAQ](https://github.com/monero-project/kovri/blob/master/doc/FAQ.md) and other documentation are in our [doc](https://github.com/monero-project/kovri/tree/master/doc) directory

@@ -202,26 +202,5 @@ You can customize Kovri's data path to your liking. Simply export ```KOVRI_DATA_
 $ export KOVRI_DATA_PATH=$HOME/.another-kovri-data-path && make && make install-resources
 ```
 
-## Step 4. Open your NAT/Firewall
-1. Choose a port between ```9111``` and ```30777```
-2. Poke a hole in your NAT/Firewall to allow incoming TCP/UDP connections to that port
-3. Don't share this number with anyone as it will effect your anonymity!
-
-If you do not choose a port via cli or ```kovri.conf```, Kovri will randomly generate a new one on each startup. If you do not have access to your NAT, you can instead install and build with [MiniUPnP](http://miniupnp.free.fr/files/) support
-
-## Step 5. Configure Kovri
-Read the configuration files for available options
-
-## Step 6. Run Kovri
-For a full list of options:
-
-```bash
-$ ./kovri --help
-```
-
-Basic command:
-```bash
-$ ./kovri -p [your chosen port]  # or set your port in kovri.conf
-```
-
-Wait 10-15 minutes or so to get bootstrapped into the network and then point your IRC client to port 6669 and join ```#kovri``` and ```#kovri-dev```
+## Step 4. Proceed to the user guide
+Read the [user guide](https://github.com/monero-project/kovri/blob/master/doc/USER_GUIDE.md) to get started

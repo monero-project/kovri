@@ -1,6 +1,6 @@
 ## Step 1. Minimum requirements
 
-### Linux / MacOSX (10.9.5) / FreeBSD 10
+### Linux / MacOSX / FreeBSD 10
 - [Git](https://git-scm.com/download) 1.9.1
 - [GCC](https://gcc.gnu.org/) 4.9.3
 - [CMake](https://cmake.org/) 2.8.12

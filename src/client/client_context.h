@@ -88,11 +88,17 @@ class ClientContext {
   std::shared_ptr<ClientDestination> FindLocalDestination(
       const i2p::data::IdentHash& destination) const;
 
-  /// @brief Loads the private keys from the given file
-  /// @param file the relative name of the private key file
-  /// @return the loaded private keys
+  /// @brief Creates private keys from given filename if they don't exist
+  /// @param filename the relative name of the private key file
+  /// @return Created private keys
+  i2p::data::PrivateKeys CreatePrivateKeys(
+      const std::string& filename);
+
+  /// @brief Loads private keys from given filename
+  /// @param filename Relative name of the private key file
+  /// @return Loaded private keys
   i2p::data::PrivateKeys LoadPrivateKeys(
-      const std::string& file);
+      const std::string& filename);
 
   std::shared_ptr<ClientDestination> LoadLocalDestination(
       const std::string& filename,

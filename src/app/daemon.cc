@@ -284,7 +284,7 @@ void Daemon_Singleton::SetupTunnels() {
             "Daemon_Singleton: unknown section type=",
             type, " of ", name, " in ", path_tunnels_config_file);
       }
-    } catch(const std::exception& ex) {
+    } catch (const std::exception& ex) {
       LogPrint(eLogError,
           "Daemon_Singleton: can't read tunnel ", name, " params: ", ex.what());
     }

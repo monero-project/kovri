@@ -127,17 +127,39 @@ void ClientContext::RequestShutdown() {
     m_ShutdownHandler();
 }
 
+i2p::data::PrivateKeys ClientContext::CreatePrivateKeys(
+    const std::string& filename) {
+  auto file_path = i2p::util::filesystem::GetFullPath(filename);
+  std::ofstream file(file_path, std::ofstream::binary);
+  if (!file)
+    throw std::runtime_error("ClientContext: could not open private keys for writing");
+  auto keys = i2p::data::PrivateKeys::CreateRandomKeys();  // Generate default type
+  std::size_t len = keys.GetFullLen();
+  std::unique_ptr<std::uint8_t[]> buf(std::make_unique<std::uint8_t[]>(len));
+  len = keys.ToBuffer(buf.get(), len);
+  file.write(reinterpret_cast<char *>(buf.get()), len);
+  LogPrint(eLogInfo,
+      "ClientContext: new private keys file ", file_path,
+      " for ", m_AddressBook.GetB32AddressFromIdentHash(keys.GetPublic().GetIdentHash()),
+      " created");
+  return keys;
+}
+
 i2p::data::PrivateKeys ClientContext::LoadPrivateKeys(
-    const std::string& file) {
+    const std::string& filename) {
+  auto file_path = i2p::util::filesystem::GetFullPath(filename);
+  std::ifstream file(file_path, std::ifstream::binary);
+  if (!file) {
+    LogPrint(eLogWarn,
+        "ClientContext: can't open file ", file_path, ", creating new one");
+    return CreatePrivateKeys(filename);
+  }
   i2p::data::PrivateKeys keys;
-  std::string full_path = i2p::util::filesystem::GetFullPath(file);
-  std::ifstream s(full_path.c_str(), std::ifstream::binary);
-  s.exceptions(std::ifstream::failbit);
-  s.seekg(0, std::ios::end);
-  size_t len = s.tellg();
-  s.seekg(0, std::ios::beg);
-  auto buf = std::make_unique<std::uint8_t[]>(len);
-  s.read(reinterpret_cast<char *>(buf.get()), len);
+  file.seekg(0, std::ios::end);
+  const std::size_t len = file.tellg();
+  file.seekg(0, std::ios::beg);
+  std::unique_ptr<std::uint8_t[]> buf(std::make_unique<std::uint8_t[]>(len));
+  file.read(reinterpret_cast<char *>(buf.get()), len);
   keys.FromBuffer(buf.get(), len);
   LogPrint(eLogInfo,
       "ClientContext: local address ",
@@ -148,24 +170,7 @@ i2p::data::PrivateKeys ClientContext::LoadPrivateKeys(
 std::shared_ptr<ClientDestination> ClientContext::LoadLocalDestination(
     const std::string& filename,
     bool is_public) {
-  i2p::data::PrivateKeys keys;
-  try {
-    keys = LoadPrivateKeys(filename);
-  } catch(std::ios_base::failure&) {
-    std::string full_path = i2p::util::filesystem::GetFullPath(filename);
-    LogPrint(eLogError,
-        "ClientContext: can't open file ", full_path, ", creating new one");
-    keys = i2p::data::PrivateKeys::CreateRandomKeys();  // Generate default type
-    std::ofstream f(full_path, std::ofstream::binary | std::ofstream::out);
-    size_t len = keys.GetFullLen();
-    auto buf = std::make_unique<std::uint8_t[]>(len);
-    len = keys.ToBuffer(buf.get(), len);
-    f.write(reinterpret_cast<char *>(buf.get()), len);
-    LogPrint(eLogInfo,
-        "ClientContext: new private keys file ", full_path,
-        " for ", m_AddressBook.GetB32AddressFromIdentHash(keys.GetPublic().GetIdentHash()),
-        " created");
-  }
+  auto keys = LoadPrivateKeys(filename);
   std::shared_ptr<ClientDestination> local_destination = nullptr;
   std::unique_lock<std::mutex> l(m_DestinationsMutex);
   auto it = m_Destinations.find(keys.GetPublic().GetIdentHash());

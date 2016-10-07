@@ -22,12 +22,10 @@
 ## Disclaimer
 - Currently **pre-alpha** software; under heavy development
 
-## Quickstart
-- Read [Build Instructions](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md) to install dependencies and build kovri
-- Read [User Guide](https://github.com/monero-project/kovri/blob/master/doc/USER_GUIDE.md) to get up and running with kovri
-
 ## Documentation
-- Our [FAQ](https://github.com/monero-project/kovri/blob/master/doc/FAQ.md) and other documentation are in our [doc](https://github.com/monero-project/kovri/tree/master/doc) directory
+- [Build Instructions](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md) to install dependencies and build kovri
+- [User Guide](https://github.com/monero-project/kovri/blob/master/doc/USER_GUIDE.md) to get up and running with kovri
+- [FAQ](https://github.com/monero-project/kovri/blob/master/doc/FAQ.md) and other documentation [here](https://github.com/monero-project/kovri/tree/master/doc)
 
 ## Developers
 - Read our [Contributing Guide](https://github.com/monero-project/kovri/blob/master/doc/CONTRIBUTING.md) before sending a pull-request

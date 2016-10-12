@@ -221,6 +221,6 @@ set(CLIENT_NAME "${PROJECT_NAME}-client")
 set(CORE_NAME "${PROJECT_NAME}-core")
 set(TESTS_NAME "${PROJECT_NAME}-tests")
 set(BENCHMARKS_NAME "${PROJECT_NAME}-benchmarks")
-add_subdirectory(src)
 
-# vim: noai:ts=2:sw=2
+add_subdirectory(src)
+add_subdirectory(tests)

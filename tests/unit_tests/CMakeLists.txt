@@ -19,10 +19,10 @@ set(TESTS_MAIN
   "main.cc")
 
 include_directories(
-  "../../"
-  "../../app/"
-  "../../core/"
-  "../../client/")
+  "../../src/"
+  "../../src/app/"
+  "../../src/core/"
+  "../../src/client/")
 
 if(WITH_TESTS)
   find_package(

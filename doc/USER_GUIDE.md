@@ -3,13 +3,13 @@
 ## Step 1. Open your NAT/Firewall
 1. Choose a port between ```9111``` and ```30777```
 2. **Save this port to your configuration file** (`kovri.conf`)
-3. Poke a hole in your NAT/Firewall to allow incoming TCP/UDP connections to that port
+3. Poke a hole in your NAT/Firewall to allow incoming TCP/UDP connections to that port (See notes below if you don't have access)
 
 Notes:
 
 - **Don't share your port number with anyone as it will effect your anonymity!**
 - If you don't save the port, kovri will randomly generate a new one on each startup (you also have the choice to pass the port with the `--port` flag on each startup).
-- If you do not have access to your NAT, you can instead install and build with [MiniUPnP](http://miniupnp.free.fr/files/) support
+- If you do not have access to your NAT, you can instead install and build with [MiniUPnP](http://miniupnp.free.fr/files/) support. See instructions in [BUILDING](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md) for your OS. 
 
 ## Step 2. Configure Kovri
 

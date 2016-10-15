@@ -14,7 +14,7 @@
 Optional:
 
 - [Clang](http://clang.llvm.org/) 3.5 ([3.6 on FreeBSD](https://llvm.org/bugs/show_bug.cgi?id=28887))
-- [MiniUPnP](http://miniupnp.free.fr/files/) 1.6 (Recommeded if you are behind a NAT without access to it)
+- [MiniUPnP](https://github.com/miniupnp/miniupnp/releases) 1.6 (Recommeded if you are behind a NAT without access to it)
 - [Doxygen](http://www.doxygen.org/) 1.8.6
 - [Graphviz](http://graphviz.org/) 2.36
 
@@ -165,7 +165,7 @@ $ make install-resources
 
 ### Other options you can use in place of step 2:
 
-- ```make upnp``` produces vanilla binary with UPnP support (requires [MiniUPnP](http://miniupnp.free.fr/files/))
+- ```make upnp``` produces vanilla binary with UPnP support (requires [MiniUPnP](https://github.com/miniupnp/miniupnp/releases))
 - ```make optimized-hardening``` produces optimized, hardened binary
 - ```make all-options``` produces optimized, hardened, UPnP enabled binary
 - ```make tests``` produces all unit-tests and benchmarks

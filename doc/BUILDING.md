@@ -14,7 +14,7 @@
 Optional:
 
 - [Clang](http://clang.llvm.org/) 3.5 ([3.6 on FreeBSD](https://llvm.org/bugs/show_bug.cgi?id=28887))
-- [MiniUPnP](http://miniupnp.free.fr/files/) 1.6
+- [MiniUPnP](http://miniupnp.free.fr/files/) 1.6 (Recommeded if you are behind a NAT without access to it)
 - [Doxygen](http://www.doxygen.org/) 1.8.6
 - [Graphviz](http://graphviz.org/) 2.36
 
@@ -32,7 +32,7 @@ Optional dependencies:
 ```bash
 $ sudo apt-get install clang
 $ sudo apt-get install doxygen graphviz
-$ sudo apt-get install libminiupnpc-dev
+$ sudo apt-get install libminiupnpc-dev #For users behind a restrictive NAT
 ```
 
 ### Ubuntu Trusty (14.04)
@@ -51,7 +51,7 @@ Optional dependencies:
 ```bash
 $ sudo apt-get install clang-3.5
 $ sudo apt-get install doxygen graphviz
-$ sudo apt-get install libminiupnpc-dev
+$ sudo apt-get install libminiupnpc-dev #For users behind a restrictive NAT 
 ```
 
 ### Debian (stable)
@@ -88,7 +88,7 @@ Optional dependencies:
 ```bash
 $ sudo apt-get -t testing install clang
 $ sudo apt-get -t testing install doxygen graphviz
-$ sudo apt-get -t testing install libminiupnpc-dev
+$ sudo apt-get -t testing install libminiupnpc-dev #For users behind a restrictive NAT 
 ```
 
 ### Arch Linux
@@ -100,7 +100,7 @@ Optional dependencies:
 ```bash
 $ sudo pacman -S clang
 $ sudo pacman -S doxygen graphviz
-$ sudo pacman -S miniupnpc
+$ sudo pacman -S miniupnpc #For users behind a restrictive NAT 
 ```
 
 ### Mac OSX
@@ -111,7 +111,7 @@ $ brew install cmake boost openssl # clang installed by default
 Optional dependencies:
 ```bash
 $ brew install doxygen graphviz
-$ brew install miniupnpc
+$ brew install miniupnpc #For users behind a restrictive NAT 
 ```
 
 ### FreeBSD 10
@@ -127,7 +127,7 @@ $ sudo ./b2 --toolset=clang install
 Optional dependencies:
 ```bash
 $ sudo pkg install doxygen graphviz
-$ sudo pkg install miniupnpc
+$ sudo pkg install miniupnpc #For users behind a restrictive NAT 
 ```
 **Note: see FreeBSD build instructions below**
 
@@ -142,10 +142,10 @@ pacman -Su
 ```
 * For those of you already familiar with pacman, you can run the normal ```pacman -Syu``` to update, but you may get errors and need to restart MSYS2 if pacman's dependencies are updated.
 * Install dependencies: ```pacman -S make mingw-w64-x86_64-cmake mingw-w64-x86_64-gcc mingw-w64-x86_64-boost mingw-w64-x86_64-openssl```
-* Optional: ```mingw-w64-x86_64-doxygen mingw-w64-x86_64-miniupnpc```
-* Note: if using doxygen, you'll need [Graphviz](http://graphviz.org/doc/winbuild.html)
+* Optional: ```mingw-w64-x86_64-doxygen```  (you'll need [Graphviz](http://graphviz.org/doc/winbuild.html) for doxygen)
+* Note: You'll need  ``` mingw-w64-x86_64-miniupnpc``` if you are behind a restrictive NAT firewall.
 
-## Step 3. Build
+## Step 3. Build   
 
 ### 1. Clone the repository
 ```bash

@@ -1,5 +1,7 @@
 ## Step 1. Minimum requirements
 
+####Note: Due to [#403](https://github.com/monero-project/kovri/issues/403), a minimum of 1 GiB of RAM is suggested for build environments.    
+
 ### Linux / MacOSX / FreeBSD 10
 - [Git](https://git-scm.com/download) 1.9.1
 - [GCC](https://gcc.gnu.org/) 4.9.3

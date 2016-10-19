@@ -28,13 +28,6 @@
 
 #TODO(unassigned): improve this Makefile
 
-# TODO(unassigned): hack for weidai11/cryptopp#232
-# Only needed for clang but doesn't hurt with gcc
-ifeq ($(CXXFLAGS),)
-  CXXFLAGS += -maes -march=native
-  export CXXFLAGS
-endif
-
 # Get custom data path
 # If no path is given, set default path
 system := $(shell uname)

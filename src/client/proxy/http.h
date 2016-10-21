@@ -33,6 +33,8 @@
 #ifndef SRC_CLIENT_PROXY_HTTP_H_
 #define SRC_CLIENT_PROXY_HTTP_H_
 
+#include <boost/bind.hpp>
+#include <boost/optional.hpp>
 #include <boost/asio.hpp>
 
 #include <array>
@@ -40,6 +42,8 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <vector>
+#include <utility>
 
 #include "client/destination.h"
 #include "client/service.h"
@@ -47,62 +51,7 @@
 namespace kovri {
 namespace client {
 
-/// @class HTTPProxyServer
-class HTTPProxyServer
-    : public kovri::client::TCPIPAcceptor {
- public:
-  /// @param name Proxy server service name
-  /// @param address Proxy binding address
-  /// @param port Proxy binding port
-  /// @param local_destination Client destination
-  HTTPProxyServer(
-      const std::string& name,
-      const std::string& address,
-      std::uint16_t port,
-      std::shared_ptr<kovri::client::ClientDestination> local_destination = nullptr);
-
-  ~HTTPProxyServer() {}
-
- protected:
-  /// @brief Implements TCPIPAcceptor
-  std::shared_ptr<kovri::client::I2PServiceHandler> CreateHandler(
-      std::shared_ptr<boost::asio::ip::tcp::socket> socket);
-
-  /// @brief Gets name of proxy service
-  /// @return Name of proxy service
-  std::string GetName() const {
-    return m_Name;
-  }
-
- private:
-  std::string m_Name;
-};
-
-typedef HTTPProxyServer HTTPProxy;
-
-/// @class HTTPProxyHandler
-class HTTPProxyHandler
-    : public kovri::client::I2PServiceHandler,
-      public std::enable_shared_from_this<HTTPProxyHandler> {
- public:
-  /// @param parent Pointer to parent server
-  /// @param socket Shared pointer to bound socket
-  HTTPProxyHandler(
-      HTTPProxyServer* parent,
-      std::shared_ptr<boost::asio::ip::tcp::socket> socket)
-      : I2PServiceHandler(parent),
-        m_Socket(socket),
-        m_Port(0) {
-          SetState(State::get_method);
-        }
-
-  ~HTTPProxyHandler() {
-    Terminate();
-  }
-
-  void Handle() {
-    AsyncSockRead();
-  }
+struct HTTPResponseCodes{
   enum status_t {
     ok = 200,
     created = 201,
@@ -130,8 +79,7 @@ class HTTPProxyHandler
     space_unavailable = 507
   };
 
-  // this is copied from cpp-netlib.
-  // we should ultimately use cpp-netlib as a proxy when one is available.
+
   static char const* status_message(status_t status) {
     static char const ok_[] = "OK", created_[] = "Created",
                       accepted_[] = "Accepted", no_content_[] = "No Content",
@@ -152,9 +100,9 @@ class HTTPProxyHandler
                       partial_content_[] = "Partial Content",
                       request_timeout_[] = "Request Timeout",
                       precondition_failed_[] = "Precondition Failed",
+                      http_not_supported_[]= "HTTP Version Not Supported",
                       unsatisfiable_range_[] =
                           "Requested Range Not Satisfiable",
-                      http_not_supported_[]= "HTTP Version Not Supported",
                       space_unavailable_[] =
                           "Insufficient Space to Store Resource";
     switch (status) {
@@ -210,73 +158,179 @@ class HTTPProxyHandler
         return unknown_;
     }
   }
- private:
-  /// @brief Asynchronously reads data sent to proxy server
-  void AsyncSockRead();
+};
+/// @class HTTPResponse
+/// @brief response for http error messages
+class HTTPResponse{
+ public:
+  std::string m_Response;
+  explicit HTTPResponse(HTTPResponseCodes::status_t status){
+    std::string htmlbody = "<html>";
+    htmlbody+="<head>";
+    htmlbody+="<title>HTTP Error</title>";
+    htmlbody+="</head>";
+    htmlbody+="<body>";
+    htmlbody+="HTTP Error " + std::to_string(status) + " ";
+    htmlbody+=HTTPResponseCodes::status_message(status);
+    if (status == HTTPResponseCodes::status_t::service_unavailable) {
+      htmlbody+=" Please wait for the router to integrate";
+    }
+    htmlbody+="</body>";
+    htmlbody+="</html>";
 
-  /// @brief Handles buffer received from socket until read is finished
-  void HandleSockRecv(
-      const boost::system::error_code& ecode,
-      std::size_t bytes_transfered);
+    m_Response =
+    "HTTP/1.0 " + std::to_string(status) + " " +
+    HTTPResponseCodes::status_message(status)+"\r\n" +
+    "Content-type: text/html;charset=UTF-8\r\n" +
+    "Content-Encoding: UTF-8\r\n" +
+    "Content-length:" + std::to_string(htmlbody.size()) + "\r\n\r\n" + htmlbody;
+  }
+};
 
-  /// @brief Handles data received from socket
-  bool HandleData(
-      uint8_t* buf,
-      std::size_t len);
+/// @class HTTPMessage
+/// @brief defines protocol; and read from socket algorithm
+class HTTPMessage : public std::enable_shared_from_this<HTTPMessage>{
+ public:
+  std::string m_RequestLine, m_HeaderLine, m_Request, m_Body,
+    m_URL, m_Method, m_Version,  m_Path;
+  std::vector<std::string> m_Headers;
+  std::string m_Host, m_UserAgent;
+  std::string m_Address;
 
-  /// @brief Handles stream created by service through proxy handler
-  void HandleStreamRequestComplete(
-      std::shared_ptr<kovri::client::Stream> stream);
+  boost::asio::streambuf m_Buffer;
+  boost::asio::streambuf m_BodyBuffer;
+  std::vector<std::pair<std::string, std::string>> m_HeaderMap;
+  /// @brief Data for incoming request
+  std::uint16_t m_Port;
 
-  /// @enum State
-  /// @brief Parsing state
-  /// @note Only GET method currently supported
-  enum State : const std::uint8_t {
-    /// @var get_method
-    /// @brief Method sent in request
-    get_method,
-    /// @var get_url
-    /// @brief URL sent in request
-    get_url,
-    /// @var get_http_version
-    /// @brief HTTP version
-    get_http_version,
-    /// @var host
-    /// @brief Host: sent in request
-    host,
-    /// @var useragent
-    /// @brief User-Agent: sent in request
-    useragent,
-    /// @var newline
-    /// @brief Newline in request
-    newline,
-    /// @var done
-    /// @brief Done with request
-    done,
-  } m_State;
+  /// @var m_JumpService
+  /// @brief Address helpers for base64 jump service
+  const std::array<std::string, 4> m_JumpService {
+  {
+    "?i2paddresshelper=",
+    "&i2paddresshelper=",
+    "?kovrijumpservice=",
+    "&kovrijumpservice=",
+  }
+  };
+  HTTPResponse m_ErrorResponse;
+  HTTPMessage():m_Port(0), m_ErrorResponse(HTTPResponseCodes::status_t::ok) {
+  }
+  enum msg_t {
+    response,
+    request
+  };
+  /// @brief loads variables in class;
+  /// @param buf
+  /// @param len
+  /// return bool
+  bool HandleData(const std::string  &buf);
 
-  /// @brief Sets state set by handled data
-  void SetState(
-      const State& state);
-
-  /// @brief Processes original request: extracts, validates,
-  ///   calls jump service, appends original request
-  /// @return true on success
-  bool CreateHTTPRequest(
-      uint8_t *buf,
-      std::size_t len);
+  /// @brief Parses path for base64 address, inserts into address book
+  /// need to change to boolean return for testing
+  void HandleJumpService();
 
   /// @brief Performs regex, sets address/port/path, validates version
   ///   on request sent from user
   /// @return true on success
   bool ExtractIncomingRequest();
 
-  /// @brief Parses path for base64 address, inserts into address book
-  void HandleJumpService();
+  /// @brief Processes original request: extracts, validates,
+  ///   calls jump service, appends original request
+  /// @return true on success
+  bool CreateHTTPRequest();
+
+  const unsigned int HEADERBODY_LEN = 2;
+  const unsigned int REQUESTLINE_HEADERS_MIN = 1;
+};
+/// @class HTTPProxyServer
+/// setup asio service
+class HTTPProxyServer
+    : public kovri::client::TCPIPAcceptor {
+ public:
+  /// @param name Proxy server service name
+  /// @param address Proxy binding address
+  /// @param port Proxy binding port
+  /// @param local_destination Client destination
+  //
+  HTTPProxyServer(
+      const std::string& name,
+      const std::string& address,
+      std::uint16_t port,
+      std::shared_ptr<kovri::client::ClientDestination> local_destination
+              = nullptr);
+
+  ~HTTPProxyServer() {}
+
+  /// @brief Implements TCPIPAcceptor
+  std::shared_ptr<kovri::client::I2PServiceHandler> CreateHandler(
+      std::shared_ptr<boost::asio::ip::tcp::socket> socket);
+
+  /// @brief Gets name of proxy service
+  /// @return Name of proxy service
+  std::string GetName() const {
+    return m_Name;
+  }
+
+ private:
+  std::string m_Name;
+};
+
+typedef HTTPProxyServer HTTPProxy;
+
+/// @class HTTPProxyHandler
+/// @brief setup handler for asio service
+/// each service needs a handler
+class HTTPProxyHandler
+    : public kovri::client::I2PServiceHandler,
+      public std::enable_shared_from_this<HTTPProxyHandler> {
+ public:
+  HTTPMessage m_Protocol;
+  /// @param parent Pointer to parent server
+  /// @param socket Shared pointer to bound socket
+  HTTPProxyHandler(
+      HTTPProxyServer* parent,
+      std::shared_ptr<boost::asio::ip::tcp::socket> socket)
+      : I2PServiceHandler(parent),
+        m_Socket(socket) {
+        }
+
+  ~HTTPProxyHandler() {
+    Terminate();
+  }
+  void CreateStream();
+  /// @brief reads data sent to proxy server
+  /// virtual function;
+  /// handle reading the protocol
+  void Handle();
+
+  /// @brief Handles buffer received from socket if Handle successful
+  void HandleSockRecv(const boost::system::error_code & error,
+    std::size_t bytes_transfered);
+
+ private:
+  /*! @brief read from a socket
+   *
+   *AsyncSockRead             - perform async read
+   *  -AsyncHandleReadHeaders - handle read header info
+   *    -HTTPMessage::HandleData   - handle header info
+   *    -HandleSockRecv       - read body if needed
+   *      -CreateStream
+   *        -HTTPMessage::CreateHTTPStreamRequest -  create stream request
+   *        -HandleStreamRequestComplete           -  connect to i2p tunnel
+   */
+  void AsyncSockRead(std::shared_ptr<boost::asio::ip::tcp::socket> socket);
+  // @brief handle read data
+  void AsyncHandleReadHeaders(const boost::system::error_code & error,
+    std::size_t bytes_transferred);
+
+
+  /// @brief Handles stream created by service through proxy handler
+  void HandleStreamRequestComplete(
+      std::shared_ptr<kovri::client::Stream> stream);
 
   /// @brief Generic request failure handler
-  /// @param error User-defined enumerated error code
-  void HTTPRequestFailed(status_t);
+  void HTTPRequestFailed();
 
   /// @brief Tests if our sent response to browser has failed
   /// @param ecode Boost error code
@@ -297,22 +351,8 @@ class HTTPProxyHandler
 
   /// @var m_Buffer
   /// @brief Buffer for async socket read
-  std::array<std::uint8_t, static_cast<std::size_t>(Size::buffer)> m_Buffer;
+//  std::array<std::uint8_t, static_cast<std::size_t>(Size::buffer)> m_Buffer;
   std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
-
-  /// @brief Data for incoming request
-  std::string m_Request, m_URL, m_Method, m_Version, m_Address, m_Path;
-  std::string m_Host, m_UserAgent;
-  std::uint16_t m_Port;
-
-  /// @var m_JumpService
-  /// @brief Address helpers for base64 jump service
-  const std::array<std::string, 4> m_JumpService {{
-    "?i2paddresshelper=",
-    "&i2paddresshelper=",
-    "?kovrijumpservice=",
-    "&kovrijumpservice=",
-  }};
 };
 
 }  // namespace client

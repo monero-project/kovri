@@ -104,7 +104,7 @@ void NetDb::Run() {
     try {
       auto msg = m_Queue.GetNextWithTimeout(15000);  // 15 sec
       if (msg) {
-        int numMsgs = 0;
+        int num_msgs = 0;
         while (msg) {
           switch (msg->GetTypeID()) {
             case e_I2NPDatabaseStore:
@@ -125,10 +125,10 @@ void NetDb::Run() {
                   "NetDb: unexpected message type ", msg->GetTypeID());
               // i2p::HandleI2NPMessage(msg);
           }
-          if (numMsgs > 100)
+          if (num_msgs > 100)
             break;
           msg = m_Queue.Get();
-          numMsgs++;
+          num_msgs++;
         }
       }
       if (!m_IsRunning)
@@ -338,19 +338,19 @@ bool NetDb::Load() {
 void NetDb::SaveUpdated() {
   auto GetFilePath = [](
       const boost::filesystem::path& directory,
-      const RouterInfo* routerInfo) {
-    std::string s(routerInfo->GetIdentHashBase64());
-    return directory / (std::string("r") + s[0]) / ("routerInfo-" + s + ".dat");
+      const RouterInfo* router_info) {
+    std::string s(router_info->GetIdentHashBase64());
+    return directory / (std::string("r") + s[0]) / ("router_info_" + s + ".dat");
   };
-  boost::filesystem::path fullDirectory(
+  boost::filesystem::path full_directory(
       i2p::context.GetDataPath() / m_NetDbPath);
   int count = 0,
-      deletedCount = 0;
+      deleted_count = 0;
   auto total = m_RouterInfos.size();
   uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
   for (auto it : m_RouterInfos) {
     if (it.second->IsUpdated()) {
-      std::string f = GetFilePath(fullDirectory, it.second.get()).string();
+      std::string f = GetFilePath(full_directory, it.second.get()).string();
       it.second->SaveToFile(f);
       it.second->SetUpdated(false);
       it.second->SetUnreachable(false);
@@ -389,13 +389,13 @@ void NetDb::SaveUpdated() {
         // delete RI file
         if (boost::filesystem::exists(
               GetFilePath(
-                  fullDirectory,
+                  full_directory,
                   it.second.get()))) {
           boost::filesystem::remove(
               GetFilePath(
-                  fullDirectory,
+                  full_directory,
                   it.second.get()));
-          deletedCount++;
+          deleted_count++;
         }
         // delete from floodfills list
         if (it.second->IsFloodfill()) {
@@ -407,8 +407,8 @@ void NetDb::SaveUpdated() {
   }
   if (count > 0)
     LogPrint(eLogInfo, "NetDb: ", count, " new/updated routers saved");
-  if (deletedCount > 0) {
-    LogPrint(eLogInfo, "NetDb: ", deletedCount, " routers deleted");
+  if (deleted_count > 0) {
+    LogPrint(eLogInfo, "NetDb: ", deleted_count, " routers deleted");
     // clean up RouterInfos table
     std::unique_lock<std::mutex> l(m_RouterInfosMutex);
     for (auto it = m_RouterInfos.begin(); it != m_RouterInfos.end();) {
@@ -459,19 +459,19 @@ void NetDb::HandleDatabaseStoreMsg(
     LogPrint(eLogError, "NetDb: database store with zero ident, dropped");
     return;
   }
-  uint32_t replyToken = bufbe32toh(buf + DATABASE_STORE_REPLY_TOKEN_OFFSET);
+  uint32_t reply_token = bufbe32toh(buf + DATABASE_STORE_REPLY_TOKEN_OFFSET);
   size_t offset = DATABASE_STORE_HEADER_SIZE;
-  if (replyToken) {
-    auto deliveryStatus = CreateDeliveryStatusMsg(replyToken);
-    uint32_t tunnelID = bufbe32toh(buf + offset);
+  if (reply_token) {
+    auto delivery_status = CreateDeliveryStatusMsg(reply_token);
+    uint32_t tunnel_ID = bufbe32toh(buf + offset);
     offset += 4;
-    if (!tunnelID) {  // send response directly
-      i2p::transport::transports.SendMessage(buf + offset, deliveryStatus);
+    if (!tunnel_ID) {  // send response directly
+      i2p::transport::transports.SendMessage(buf + offset, delivery_status);
     } else {
       auto pool = i2p::tunnel::tunnels.GetExploratoryPool();
       auto outbound = pool ? pool->GetNextOutboundTunnel() : nullptr;
       if (outbound)
-        outbound->SendTunnelDataMsg(buf + offset, tunnelID, deliveryStatus);
+        outbound->SendTunnelDataMsg(buf + offset, tunnel_ID, delivery_status);
       else
         LogPrint(eLogError,
             "NetDb: no outbound tunnels for DatabaseStore reply found");
@@ -552,15 +552,15 @@ void NetDb::HandleDatabaseSearchReplyMsg(
           auto count = dest->GetExcludedPeers().size();
           std::size_t max_ff(7);
           if (count < max_ff) {
-            auto nextFloodfill = GetClosestFloodfill(
+            auto next_floodfill = GetClosestFloodfill(
                 dest->GetDestination(),
                 dest->GetExcludedPeers());
-            if (nextFloodfill) {
+            if (next_floodfill) {
               // tell floodfill about us
               msgs.push_back(
                   i2p::tunnel::TunnelMessageBlock {
                   i2p::tunnel::e_DeliveryTypeRouter,
-                  nextFloodfill->GetIdentHash(),
+                  next_floodfill->GetIdentHash(),
                   0,
                   CreateDatabaseStoreMsg()
                   });
@@ -568,12 +568,12 @@ void NetDb::HandleDatabaseSearchReplyMsg(
               LogPrint(eLogInfo, 
                   "NetDb: trying ", key,
                   " at ", count,
-                  " floodfill ", nextFloodfill->GetIdentHash().ToBase64());
-              auto msg = dest->CreateRequestMessage(nextFloodfill, inbound);
+                  " floodfill ", next_floodfill->GetIdentHash().ToBase64());
+              auto msg = dest->CreateRequestMessage(next_floodfill, inbound);
               msgs.push_back(
                   i2p::tunnel::TunnelMessageBlock {
                   i2p::tunnel::e_DeliveryTypeRouter,
-                  nextFloodfill->GetIdentHash(),
+                  next_floodfill->GetIdentHash(),
                   0,
                   msg
                 });
@@ -634,7 +634,7 @@ void NetDb::HandleDatabaseLookupMsg(
   uint8_t flag = buf[64];
   LogPrint(eLogInfo, "NetDb: DatabaseLookup for ", key,
       " received flags=", static_cast<int>(flag));
-  uint8_t lookupType = flag & DATABASE_LOOKUP_TYPE_FLAGS_MASK;
+  uint8_t lookup_type = flag & DATABASE_LOOKUP_TYPE_FLAGS_MASK;
   const uint8_t* excluded = buf + 65;
   uint32_t reply_tunnel_ID = 0;
   if (flag & DATABASE_LOOKUP_DELIVERY_FLAG) {  // reply to tunnel
@@ -649,7 +649,7 @@ void NetDb::HandleDatabaseLookupMsg(
     num_excluded = 0;  // TODO(unassigned): ???
   }
   std::shared_ptr<I2NPMessage> reply_msg;
-  if (lookupType == DATABASE_LOOKUP_TYPE_EXPLORATORY_LOOKUP) {
+  if (lookup_type == DATABASE_LOOKUP_TYPE_EXPLORATORY_LOOKUP) {
     LogPrint(eLogInfo,
         "NetDb: exploratory close to  ", key, " ", num_excluded, " excluded");
     std::set<IdentHash> excluded_routers;
@@ -667,8 +667,8 @@ void NetDb::HandleDatabaseLookupMsg(
     }
     reply_msg = CreateDatabaseSearchReply(ident, routers);
   } else {
-    if (lookupType == DATABASE_LOOKUP_TYPE_ROUTERINFO_LOOKUP  ||
-        lookupType == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP) {
+    if (lookup_type == DATABASE_LOOKUP_TYPE_ROUTERINFO_LOOKUP  ||
+        lookup_type == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP) {
       auto router = FindRouter(ident);
       if (router) {
         LogPrint(eLogInfo, "NetDb: requested RouterInfo ", key, " found");
@@ -677,8 +677,8 @@ void NetDb::HandleDatabaseLookupMsg(
           reply_msg = CreateDatabaseStoreMsg(router);
       }
     }
-    if (!reply_msg && (lookupType == DATABASE_LOOKUP_TYPE_LEASESET_LOOKUP  ||
-          lookupType == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP)) {
+    if (!reply_msg && (lookup_type == DATABASE_LOOKUP_TYPE_LEASESET_LOOKUP  ||
+          lookup_type == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP)) {
       auto lease_set = FindLeaseSet(ident);
       if (lease_set) {  // we don't send back our LeaseSets
         LogPrint(eLogInfo, "NetDb: requested LeaseSet ", key, " found");
@@ -708,8 +708,8 @@ void NetDb::HandleDatabaseLookupMsg(
         const uint8_t* session_key = excluded;
         uint8_t num_tags = session_key[32];
         if (num_tags > 0)  {
-          const uint8_t* sessionTag = session_key + 33;  // take first tag
-          i2p::garlic::GarlicRoutingSession garlic(session_key, sessionTag);
+          const uint8_t* session_tag = session_key + 33;  // take first tag
+          i2p::garlic::GarlicRoutingSession garlic(session_key, session_tag);
           reply_msg = garlic.WrapSingleMessage(reply_msg);
         }
       }
@@ -741,27 +741,27 @@ void NetDb::Explore(
     exploratory_pool ? exploratory_pool->GetNextOutboundTunnel() : nullptr;
   auto inbound =
     exploratory_pool ? exploratory_pool->GetNextInboundTunnel() : nullptr;
-  bool throughTunnels = outbound && inbound;
-  uint8_t randomHash[32];
+  bool through_tunnels = outbound && inbound;
+  uint8_t random_hash[32];
   std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
   std::set<const RouterInfo *> floodfills;
   // TODO(unassigned): docs
   LogPrint(eLogInfo, "NetDb: exploring new ", num_destinations, " routers");
   for (int i = 0; i < num_destinations; i++) {
-    i2p::crypto::RandBytes(randomHash, 32);
-    auto dest = m_Requests.CreateRequest(randomHash, true);  // exploratory
+    i2p::crypto::RandBytes(random_hash, 32);
+    auto dest = m_Requests.CreateRequest(random_hash, true);  // exploratory
     if (!dest) {
       LogPrint(eLogWarn,
           "NetDb: exploratory destination was already requested");
       return;
     }
-    auto floodfill = GetClosestFloodfill(randomHash, dest->GetExcludedPeers());
+    auto floodfill = GetClosestFloodfill(random_hash, dest->GetExcludedPeers());
     if (floodfill &&
         !floodfills.count(floodfill.get())) {  // request floodfill only once
       floodfills.insert(floodfill.get());
       if (i2p::transport::transports.IsConnected(floodfill->GetIdentHash()))
-        throughTunnels = false;
-      if (throughTunnels) {
+        through_tunnels = false;
+      if (through_tunnels) {
         msgs.push_back(
             i2p::tunnel::TunnelMessageBlock {
             i2p::tunnel::e_DeliveryTypeRouter,
@@ -785,10 +785,10 @@ void NetDb::Explore(
               floodfill->GetIdentHash()));
       }
     } else {
-      m_Requests.RequestComplete(randomHash, nullptr);
+      m_Requests.RequestComplete(random_hash, nullptr);
     }
   }
-  if (throughTunnels && msgs.size() > 0)
+  if (through_tunnels && msgs.size() > 0)
     outbound->SendTunnelDataMsg(msgs);
 }
 
@@ -799,16 +799,16 @@ void NetDb::Publish() {
         i2p::context.GetRouterInfo().GetIdentHash(),
         excluded);
     if (floodfill) {
-      uint32_t replyToken = i2p::crypto::Rand<uint32_t>();
+      uint32_t reply_token = i2p::crypto::Rand<uint32_t>();
       LogPrint(eLogInfo,
           "NetDb: publishing our RouterInfo to ",
           floodfill->GetIdentHashAbbreviation(),
-          ". reply token=", replyToken);
+          ". reply token=", reply_token);
       i2p::transport::transports.SendMessage(
           floodfill->GetIdentHash(),
           CreateDatabaseStoreMsg(
               i2p::context.GetSharedRouterInfo(),
-              replyToken));
+              reply_token));
       excluded.insert(floodfill->GetIdentHash());
     }
   }

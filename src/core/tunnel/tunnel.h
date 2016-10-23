@@ -80,8 +80,8 @@ class Tunnel : public TunnelBase {
   ~Tunnel();
 
   void Build(
-      uint32_t replyMsgID,
-      std::shared_ptr<OutboundTunnel> outboundTunnel = nullptr);
+      uint32_t reply_msg_ID,
+      std::shared_ptr<OutboundTunnel> outbound_tunnel = nullptr);
 
   std::shared_ptr<const TunnelConfig> GetTunnelConfig() const {
     return m_Config;
@@ -134,7 +134,7 @@ class Tunnel : public TunnelBase {
       std::shared_ptr<I2NPMessage> out);
 
   uint32_t GetNextTunnelID() const {
-    return m_Config->GetFirstHop()->tunnelID;
+    return m_Config->GetFirstHop()->tunnel_ID;
   }
 
   const i2p::data::IdentHash& GetNextIdentHash() const {
@@ -157,8 +157,8 @@ class OutboundTunnel
         m_Gateway(this) {}
 
   void SendTunnelDataMsg(
-      const uint8_t* gwHash,
-      uint32_t gwTunnel,
+      const uint8_t* gw_hash,
+      uint32_t gw_tunnel,
       std::shared_ptr<i2p::I2NPMessage> msg);
 
   // multiple messages
@@ -175,7 +175,7 @@ class OutboundTunnel
 
   // implements TunnelBase
   void HandleTunnelDataMsg(
-      std::shared_ptr<const i2p::I2NPMessage> tunnelMsg);
+      std::shared_ptr<const i2p::I2NPMessage> tunnel_msg);
 
   uint32_t GetTunnelID() const {
     return GetNextTunnelID();
@@ -204,7 +204,7 @@ class InboundTunnel
 
   // implements TunnelBase
   uint32_t GetTunnelID() const {
-    return GetTunnelConfig()->GetLastHop()->nextTunnelID;
+    return GetTunnelConfig()->GetLastHop()->next_tunnel_ID;
   }
 
  private:
@@ -220,13 +220,13 @@ class Tunnels {
   void Stop();
 
   std::shared_ptr<InboundTunnel> GetInboundTunnel(
-      uint32_t tunnelID);
+      uint32_t tunnel_ID);
 
   std::shared_ptr<InboundTunnel> GetPendingInboundTunnel(
-      uint32_t replyMsgID);
+      uint32_t reply_msg_ID);
 
   std::shared_ptr<OutboundTunnel> GetPendingOutboundTunnel(
-      uint32_t replyMsgID);
+      uint32_t reply_msg_ID);
 
   std::shared_ptr<InboundTunnel> GetNextInboundTunnel();
 
@@ -237,7 +237,7 @@ class Tunnels {
   }
 
   TransitTunnel* GetTransitTunnel(
-      uint32_t tunnelID);
+      uint32_t tunnel_ID);
 
   int GetTransitTunnelsExpirationTimeout();
 
@@ -245,10 +245,10 @@ class Tunnels {
       TransitTunnel* tunnel);
 
   void AddOutboundTunnel(
-      std::shared_ptr<OutboundTunnel> newTunnel);
+      std::shared_ptr<OutboundTunnel> new_tunnel);
 
   void AddInboundTunnel(
-      std::shared_ptr<InboundTunnel> newTunnel);
+      std::shared_ptr<InboundTunnel> new_tunnel);
 
   void PostTunnelData(
       std::shared_ptr<I2NPMessage> msg);
@@ -259,21 +259,21 @@ class Tunnels {
   template<class TTunnel>
   std::shared_ptr<TTunnel> CreateTunnel(
       std::shared_ptr<TunnelConfig> config,
-      std::shared_ptr<OutboundTunnel> outboundTunnel = nullptr);
+      std::shared_ptr<OutboundTunnel> outbound_tunnel = nullptr);
 
   void AddPendingTunnel(
-      uint32_t replyMsgID,
+      uint32_t reply_msg_ID,
       std::shared_ptr<InboundTunnel> tunnel);  // inbound
   void AddPendingTunnel(
-      uint32_t replyMsgID,
+      uint32_t reply_msg_ID,
       std::shared_ptr<OutboundTunnel> tunnel);  // outbound
 
   std::shared_ptr<TunnelPool> CreateTunnelPool(
-      i2p::garlic::GarlicDestination* localDestination,
-      int numInboundHops,
-      int numOuboundHops,
-      int numInboundTunnels,
-      int numOutboundTunnels);
+      i2p::garlic::GarlicDestination* local_destination,
+      int num_inbound_hops,
+      int num_oubound_hops,
+      int num_inbound_tunnels,
+      int num_outbound_tunnels);
 
   void DeleteTunnelPool(
       std::shared_ptr<TunnelPool> pool);
@@ -284,9 +284,9 @@ class Tunnels {
  private:
   template<class TTunnel>
   std::shared_ptr<TTunnel> GetPendingTunnel(
-      uint32_t replyMsgID,
+      uint32_t reply_msg_ID,
       const std::map<uint32_t,
-      std::shared_ptr<TTunnel> >& pendingTunnels);
+      std::shared_ptr<TTunnel> >& pending_tunnels);
 
   void HandleTunnelGatewayMsg(
       TunnelBase* tunnel,
@@ -306,7 +306,7 @@ class Tunnels {
 
   template<class PendingTunnels>
   void ManagePendingTunnels(
-      PendingTunnels& pendingTunnels);
+      PendingTunnels& pending_tunnels);
 
   void ManageTunnelPools();
 
@@ -316,9 +316,9 @@ class Tunnels {
   bool m_IsRunning;
   std::unique_ptr<std::thread> m_Thread;
 
-  // by replyMsgID
+  // by reply_msg_ID
   std::map<uint32_t, std::shared_ptr<InboundTunnel> > m_PendingInboundTunnels;
-  // by replyMsgID
+  // by reply_msg_ID
   std::map<uint32_t, std::shared_ptr<OutboundTunnel> > m_PendingOutboundTunnels;
 
   std::map<uint32_t, std::shared_ptr<InboundTunnel> > m_InboundTunnels;
@@ -353,10 +353,10 @@ class Tunnels {
   }
 
   int GetTunnelCreationSuccessRate() const {  // in percents
-    int totalNum =
+    int total_num =
       m_NumSuccesiveTunnelCreations + m_NumFailedTunnelCreations;
-    return totalNum ?
-      m_NumSuccesiveTunnelCreations * 100 / totalNum :
+    return total_num ?
+      m_NumSuccesiveTunnelCreations * 100 / total_num :
       0;
   }
 };

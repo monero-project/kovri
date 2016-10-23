@@ -61,11 +61,11 @@ class TunnelPool
     : public std::enable_shared_from_this<TunnelPool> {  // per local destination
  public:
   TunnelPool(
-      i2p::garlic::GarlicDestination* localDestination,
-      int numInboundHops,
-      int numOutboundHops,
-      int numInboundTunnels,
-      int numOutboundTunnels);
+      i2p::garlic::GarlicDestination* local_destination,
+      int num_inbound_hops,
+      int num_outbound_hops,
+      int num_inbound_tunnels,
+      int num_outbound_tunnels);
   ~TunnelPool();
 
   i2p::garlic::GarlicDestination* GetLocalDestination() const {
@@ -78,21 +78,21 @@ class TunnelPool
   }
 
   void SetExplicitPeers(
-      std::shared_ptr<std::vector<i2p::data::IdentHash> > explicitPeers);
+      std::shared_ptr<std::vector<i2p::data::IdentHash> > explicit_peers);
 
   void CreateTunnels();
 
   void TunnelCreated(
-      std::shared_ptr<InboundTunnel> createdTunnel);
+      std::shared_ptr<InboundTunnel> created_tunnel);
 
   void TunnelExpired(
-      std::shared_ptr<InboundTunnel> expiredTunnel);
+      std::shared_ptr<InboundTunnel> expired_tunnel);
 
   void TunnelCreated(
-      std::shared_ptr<OutboundTunnel> createdTunnel);
+      std::shared_ptr<OutboundTunnel> created_tunnel);
 
   void TunnelExpired(
-      std::shared_ptr<OutboundTunnel> expiredTunnel);
+      std::shared_ptr<OutboundTunnel> expired_tunnel);
 
   void RecreateInboundTunnel(
       std::shared_ptr<InboundTunnel> tunnel);
@@ -125,8 +125,8 @@ class TunnelPool
   }
 
   void SetActive(
-      bool isActive) {
-    m_IsActive = isActive;
+      bool is_active) {
+    m_IsActive = is_active;
   }
 
   void DetachTunnels();
@@ -137,7 +137,7 @@ class TunnelPool
   void CreateOutboundTunnel();
 
   void CreatePairedInboundTunnel(
-      std::shared_ptr<OutboundTunnel> outboundTunnel);
+      std::shared_ptr<OutboundTunnel> outbound_tunnel);
 
   template<class TTunnels>
   typename TTunnels::value_type GetNextTunnel(
@@ -145,15 +145,15 @@ class TunnelPool
       typename TTunnels::value_type excluded) const;
 
   std::shared_ptr<const i2p::data::RouterInfo> SelectNextHop(
-      std::shared_ptr<const i2p::data::RouterInfo> prevHop) const;
+      std::shared_ptr<const i2p::data::RouterInfo> prev_hop) const;
 
   bool SelectPeers(
       std::vector<std::shared_ptr<const i2p::data::RouterInfo> >& hops,
-      bool isInbound);
+      bool is_inbound);
 
   bool SelectExplicitPeers(
       std::vector<std::shared_ptr<const i2p::data::RouterInfo> >& hops,
-      bool isInbound);
+      bool is_inbound);
 
  private:
   i2p::garlic::GarlicDestination* m_LocalDestination;

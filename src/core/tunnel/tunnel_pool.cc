@@ -48,16 +48,16 @@ namespace i2p {
 namespace tunnel {
 
 TunnelPool::TunnelPool(
-    i2p::garlic::GarlicDestination* localDestination,
-    int numInboundHops,
-    int numOutboundHops,
-    int numInboundTunnels,
-    int numOutboundTunnels)
-    : m_LocalDestination(localDestination),
-      m_NumInboundHops(numInboundHops),
-      m_NumOutboundHops(numOutboundHops),
-      m_NumInboundTunnels(numInboundTunnels),
-      m_NumOutboundTunnels(numOutboundTunnels),
+    i2p::garlic::GarlicDestination* local_destination,
+    int num_inbound_hops,
+    int num_outbound_hops,
+    int num_inbound_tunnels,
+    int num_outbound_tunnels)
+    : m_LocalDestination(local_destination),
+      m_NumInboundHops(num_inbound_hops),
+      m_NumOutboundHops(num_outbound_hops),
+      m_NumInboundTunnels(num_inbound_tunnels),
+      m_NumOutboundTunnels(num_outbound_tunnels),
       m_IsActive(true) {}
 
 TunnelPool::~TunnelPool() {
@@ -65,8 +65,8 @@ TunnelPool::~TunnelPool() {
 }
 
 void TunnelPool::SetExplicitPeers(
-    std::shared_ptr<std::vector<i2p::data::IdentHash> > explicitPeers) {
-  m_ExplicitPeers = explicitPeers;
+    std::shared_ptr<std::vector<i2p::data::IdentHash> > explicit_peers) {
+  m_ExplicitPeers = explicit_peers;
   if (m_ExplicitPeers) {
     int size = m_ExplicitPeers->size();
     if (m_NumInboundHops > size) {
@@ -103,50 +103,50 @@ void TunnelPool::DetachTunnels() {
 }
 
 void TunnelPool::TunnelCreated(
-    std::shared_ptr<InboundTunnel> createdTunnel) {
+    std::shared_ptr<InboundTunnel> created_tunnel) {
   if (!m_IsActive)
     return;
   {
     std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
-    m_InboundTunnels.insert(createdTunnel);
+    m_InboundTunnels.insert(created_tunnel);
   }
   if (m_LocalDestination)
     m_LocalDestination->SetLeaseSetUpdated();
 }
 
 void TunnelPool::TunnelExpired(
-    std::shared_ptr<InboundTunnel> expiredTunnel) {
-  if (expiredTunnel) {
-    expiredTunnel->SetTunnelPool(nullptr);
+    std::shared_ptr<InboundTunnel> expired_tunnel) {
+  if (expired_tunnel) {
+    expired_tunnel->SetTunnelPool(nullptr);
     for (auto it : m_Tests)
-      if (it.second.second == expiredTunnel)
+      if (it.second.second == expired_tunnel)
         it.second.second = nullptr;
     std::unique_lock<std::mutex> l(m_InboundTunnelsMutex);
-    m_InboundTunnels.erase(expiredTunnel);
+    m_InboundTunnels.erase(expired_tunnel);
   }
 }
 
 void TunnelPool::TunnelCreated(
-    std::shared_ptr<OutboundTunnel> createdTunnel) {
+    std::shared_ptr<OutboundTunnel> created_tunnel) {
   if (!m_IsActive)
     return;
   {
     std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
-    m_OutboundTunnels.insert(createdTunnel);
+    m_OutboundTunnels.insert(created_tunnel);
   }
-  // CreatePairedInboundTunnel (createdTunnel);
+  // CreatePairedInboundTunnel (created_tunnel);
   // TODO(unassigned): ^ ???
 }
 
 void TunnelPool::TunnelExpired(
-    std::shared_ptr<OutboundTunnel> expiredTunnel) {
-  if (expiredTunnel) {
-    expiredTunnel->SetTunnelPool(nullptr);
+    std::shared_ptr<OutboundTunnel> expired_tunnel) {
+  if (expired_tunnel) {
+    expired_tunnel->SetTunnelPool(nullptr);
     for (auto it : m_Tests)
-      if (it.second.first == expiredTunnel)
+      if (it.second.first == expired_tunnel)
         it.second.first = nullptr;
     std::unique_lock<std::mutex> l(m_OutboundTunnelsMutex);
-    m_OutboundTunnels.erase(expiredTunnel);
+    m_OutboundTunnels.erase(expired_tunnel);
   }
 }
 
@@ -283,12 +283,12 @@ void TunnelPool::TestTunnels() {
       it2++;
     }
     if (!failed) {
-      uint32_t msgID = i2p::crypto::Rand<uint32_t>();
-      m_Tests[msgID] = std::make_pair(*it1, *it2);
+      uint32_t msg_ID = i2p::crypto::Rand<uint32_t>();
+      m_Tests[msg_ID] = std::make_pair(*it1, *it2);
       (*it1)->SendTunnelDataMsg(
           (*it2)->GetNextIdentHash(),
           (*it2)->GetNextTunnelID(),
-          CreateDeliveryStatusMsg(msgID));
+          CreateDeliveryStatusMsg(msg_ID));
       it1++;
       it2++;
     }
@@ -307,10 +307,10 @@ void TunnelPool::ProcessGarlicMessage(
 void TunnelPool::ProcessDeliveryStatus(
     std::shared_ptr<I2NPMessage> msg) {
   const uint8_t* buf = msg->GetPayload();
-  uint32_t msgID = bufbe32toh(buf);
+  uint32_t msg_ID = bufbe32toh(buf);
   buf += 4;
   uint64_t timestamp = bufbe64toh(buf);
-  auto it = m_Tests.find(msgID);
+  auto it = m_Tests.find(msg_ID);
   if (it != m_Tests.end()) {
     // restore from test failed state if any
     if (it->second.first->GetState() == e_TunnelStateTestFailed)
@@ -331,12 +331,12 @@ void TunnelPool::ProcessDeliveryStatus(
 }
 
 std::shared_ptr<const i2p::data::RouterInfo> TunnelPool::SelectNextHop(
-    std::shared_ptr<const i2p::data::RouterInfo> prevHop) const {
+    std::shared_ptr<const i2p::data::RouterInfo> prev_hop) const {
   // TODO(unassigned): implement it better
-  bool isExploratory = (m_LocalDestination == &i2p::context);
-  auto hop = isExploratory ?
-    i2p::data::netdb.GetRandomRouter(prevHop) :
-    i2p::data::netdb.GetHighBandwidthRandomRouter(prevHop);
+  bool is_exploratory = (m_LocalDestination == &i2p::context);
+  auto hop = is_exploratory ?
+    i2p::data::netdb.GetRandomRouter(prev_hop) :
+    i2p::data::netdb.GetHighBandwidthRandomRouter(prev_hop);
   if (!hop || hop->GetProfile ()->IsBad())
     hop = i2p::data::netdb.GetRandomRouter();
   return hop;
@@ -344,28 +344,28 @@ std::shared_ptr<const i2p::data::RouterInfo> TunnelPool::SelectNextHop(
 
 bool TunnelPool::SelectPeers(
     std::vector<std::shared_ptr<const i2p::data::RouterInfo> >& hops,
-    bool isInbound) {
+    bool is_inbound) {
   if (m_ExplicitPeers)
-    return SelectExplicitPeers(hops, isInbound);
-  auto prevHop = i2p::context.GetSharedRouterInfo();
-  int numHops = isInbound ?
+    return SelectExplicitPeers(hops, is_inbound);
+  auto prev_hop = i2p::context.GetSharedRouterInfo();
+  int num_hops = is_inbound ?
     m_NumInboundHops :
     m_NumOutboundHops;
   if (i2p::transport::transports.GetNumPeers() > 25) {
     auto r = i2p::transport::transports.GetRandomPeer();
     if (r && !r->GetProfile()->IsBad()) {
-      prevHop = r;
+      prev_hop = r;
       hops.push_back(r);
-      numHops--;
+      num_hops--;
     }
   }
-  for (int i = 0; i < numHops; i++) {
-    auto hop = SelectNextHop(prevHop);
+  for (int i = 0; i < num_hops; i++) {
+    auto hop = SelectNextHop(prev_hop);
     if (!hop) {
       LogPrint(eLogError, "TunnelPool: can't select next hop");
       return false;
     }
-    prevHop = hop;
+    prev_hop = hop;
     hops.push_back(hop);
   }
   return true;
@@ -373,15 +373,15 @@ bool TunnelPool::SelectPeers(
 
 bool TunnelPool::SelectExplicitPeers(
     std::vector<std::shared_ptr<const i2p::data::RouterInfo> >& hops,
-    bool isInbound) {
+    bool is_inbound) {
   int size = m_ExplicitPeers->size();
-  std::vector<int> peerIndicies;
+  std::vector<int> peer_indicies;
   for (int i = 0; i < size; i++)
-    peerIndicies.push_back(i);
-  std::random_shuffle(peerIndicies.begin(), peerIndicies.end());
-  int numHops = isInbound ? m_NumInboundHops : m_NumOutboundHops;
-  for (int i = 0; i < numHops; i++) {
-    auto& ident = (*m_ExplicitPeers)[peerIndicies[i]];
+    peer_indicies.push_back(i);
+  std::random_shuffle(peer_indicies.begin(), peer_indicies.end());
+  int num_hops = is_inbound ? m_NumInboundHops : m_NumOutboundHops;
+  for (int i = 0; i < num_hops; i++) {
+    auto& ident = (*m_ExplicitPeers)[peer_indicies[i]];
     auto r = i2p::data::netdb.FindRouter(ident);
     if (r) {
       hops.push_back(r);
@@ -396,16 +396,16 @@ bool TunnelPool::SelectExplicitPeers(
 }
 
 void TunnelPool::CreateInboundTunnel() {
-  auto outboundTunnel = GetNextOutboundTunnel();
-  if (!outboundTunnel)
-    outboundTunnel = tunnels.GetNextOutboundTunnel();
+  auto outbound_tunnel = GetNextOutboundTunnel();
+  if (!outbound_tunnel)
+    outbound_tunnel = tunnels.GetNextOutboundTunnel();
   LogPrint(eLogInfo, "TunnelPool: creating destination inbound tunnel");
   std::vector<std::shared_ptr<const i2p::data::RouterInfo> > hops;
   if (SelectPeers(hops, true)) {
     std::reverse(hops.begin(), hops.end());
     auto tunnel = tunnels.CreateTunnel<InboundTunnel> (
         std::make_shared<TunnelConfig> (hops),
-        outboundTunnel);
+        outbound_tunnel);
     tunnel->SetTunnelPool(shared_from_this());
   } else {
     LogPrint(eLogError,
@@ -415,29 +415,29 @@ void TunnelPool::CreateInboundTunnel() {
 
 void TunnelPool::RecreateInboundTunnel(
     std::shared_ptr<InboundTunnel> tunnel) {
-  auto outboundTunnel = GetNextOutboundTunnel();
-  if (!outboundTunnel)
-    outboundTunnel = tunnels.GetNextOutboundTunnel();
+  auto outbound_tunnel = GetNextOutboundTunnel();
+  if (!outbound_tunnel)
+    outbound_tunnel = tunnels.GetNextOutboundTunnel();
   LogPrint(eLogInfo, "TunnelPool: re-creating destination inbound tunnel");
-  auto newTunnel =
+  auto new_tunnel =
     tunnels.CreateTunnel<InboundTunnel> (
       tunnel->GetTunnelConfig()->Clone(),
-      outboundTunnel);
-  newTunnel->SetTunnelPool(shared_from_this());
+      outbound_tunnel);
+  new_tunnel->SetTunnelPool(shared_from_this());
 }
 
 void TunnelPool::CreateOutboundTunnel() {
-  auto inboundTunnel = GetNextInboundTunnel();
-  if (!inboundTunnel)
-    inboundTunnel = tunnels.GetNextInboundTunnel();
-  if (inboundTunnel) {
+  auto inbound_tunnel = GetNextInboundTunnel();
+  if (!inbound_tunnel)
+    inbound_tunnel = tunnels.GetNextInboundTunnel();
+  if (inbound_tunnel) {
     LogPrint(eLogInfo, "TunnelPool: creating destination outbound tunnel");
     std::vector<std::shared_ptr<const i2p::data::RouterInfo> > hops;
     if (SelectPeers(hops, false)) {
       auto tunnel = tunnels.CreateTunnel<OutboundTunnel> (
         std::make_shared<TunnelConfig> (
           hops,
-          inboundTunnel->GetTunnelConfig()));
+          inbound_tunnel->GetTunnelConfig()));
       tunnel->SetTunnelPool(shared_from_this());
     } else {
       LogPrint(eLogError,
@@ -451,15 +451,15 @@ void TunnelPool::CreateOutboundTunnel() {
 
 void TunnelPool::RecreateOutboundTunnel(
     std::shared_ptr<OutboundTunnel> tunnel) {
-  auto inboundTunnel = GetNextInboundTunnel();
-  if (!inboundTunnel)
-    inboundTunnel = tunnels.GetNextInboundTunnel();
-  if (inboundTunnel) {
+  auto inbound_tunnel = GetNextInboundTunnel();
+  if (!inbound_tunnel)
+    inbound_tunnel = tunnels.GetNextInboundTunnel();
+  if (inbound_tunnel) {
     LogPrint(eLogInfo, "TunnelPool: re-creating destination outbound tunnel");
-    auto newTunnel = tunnels.CreateTunnel<OutboundTunnel> (
+    auto new_tunnel = tunnels.CreateTunnel<OutboundTunnel> (
       tunnel->GetTunnelConfig()->Clone(
-        inboundTunnel->GetTunnelConfig()));
-    newTunnel->SetTunnelPool(shared_from_this());
+        inbound_tunnel->GetTunnelConfig()));
+    new_tunnel->SetTunnelPool(shared_from_this());
   } else {
     LogPrint(eLogError,
         "TunnelPool: can't re-create outbound tunnel, no inbound tunnels found");
@@ -467,11 +467,11 @@ void TunnelPool::RecreateOutboundTunnel(
 }
 
 void TunnelPool::CreatePairedInboundTunnel(
-    std::shared_ptr<OutboundTunnel> outboundTunnel) {
+    std::shared_ptr<OutboundTunnel> outbound_tunnel) {
   LogPrint(eLogInfo, "TunnelPool: creating paired inbound tunnel");
   auto tunnel = tunnels.CreateTunnel<InboundTunnel> (
-      outboundTunnel->GetTunnelConfig()->Invert(),
-      outboundTunnel);
+      outbound_tunnel->GetTunnelConfig()->Invert(),
+      outbound_tunnel);
   tunnel->SetTunnelPool(shared_from_this());
 }
 

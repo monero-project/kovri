@@ -12,7 +12,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright notice, this list     //
  *    of conditions and the following disclaimer in the documentation and/or other            //
  *    materials provided with the distribution.                                               //
- *                                                                                            //
+                                                                                            //
  * 3. Neither the name of the copyright holder nor the names of its contributors may be       //
  *    used to endorse or promote products derived from this software without specific         //
  *    prior written permission.                                                               //
@@ -45,15 +45,15 @@ namespace i2p {
 namespace tunnel {
 
 TransitTunnel::TransitTunnel(
-    uint32_t receiveTunnelID,
-    const uint8_t* nextIdent,
-    uint32_t nextTunnelID,
-    const uint8_t* layerKey,
-    const uint8_t* ivKey)
-    : m_TunnelID(receiveTunnelID),
-      m_NextTunnelID(nextTunnelID),
-      m_NextIdent(nextIdent) {
-  m_Encryption.SetKeys(layerKey, ivKey);
+    uint32_t receive_tunnel_ID,
+    const uint8_t* next_ident,
+    uint32_t next_tunnel_ID,
+    const uint8_t* layer_key,
+    const uint8_t* iv_key)
+    : m_TunnelID(receive_tunnel_ID),
+      m_NextTunnelID(next_tunnel_ID),
+      m_NextIdent(next_ident) {
+  m_Encryption.SetKeys(layer_key, iv_key);
 }
 
 void TransitTunnel::EncryptTunnelMsg(
@@ -67,13 +67,13 @@ void TransitTunnel::EncryptTunnelMsg(
 TransitTunnelParticipant::~TransitTunnelParticipant() {}
 
 void TransitTunnelParticipant::HandleTunnelDataMsg(
-    std::shared_ptr<const i2p::I2NPMessage> tunnelMsg) {
-  auto newMsg = CreateEmptyTunnelDataMsg();
-  EncryptTunnelMsg(tunnelMsg, newMsg);
-  m_NumTransmittedBytes += tunnelMsg->GetLength();
-  htobe32buf(newMsg->GetPayload(), GetNextTunnelID());
-  newMsg->FillI2NPMessageHeader(e_I2NPTunnelData);
-  m_TunnelDataMsgs.push_back(newMsg);
+    std::shared_ptr<const i2p::I2NPMessage> tunnel_msg) {
+  auto new_msg = CreateEmptyTunnelDataMsg();
+  EncryptTunnelMsg(tunnel_msg, new_msg);
+  m_NumTransmittedBytes += tunnel_msg->GetLength();
+  htobe32buf(new_msg->GetPayload(), GetNextTunnelID());
+  new_msg->FillI2NPMessageHeader(e_I2NPTunnelData);
+  m_TunnelDataMsgs.push_back(new_msg);
 }
 
 void TransitTunnelParticipant::FlushTunnelDataMsgs() {
@@ -108,7 +108,7 @@ void TransitTunnel::HandleTunnelDataMsg(
 void TransitTunnelGateway::SendTunnelDataMsg(
     std::shared_ptr<i2p::I2NPMessage> msg) {
   TunnelMessageBlock block;
-  block.deliveryType = e_DeliveryTypeLocal;
+  block.delivery_type = e_DeliveryTypeLocal;
   block.data = msg;
   std::unique_lock<std::mutex> l(m_SendMutex);
   m_Gateway.PutTunnelDataMsg(block);
@@ -120,49 +120,49 @@ void TransitTunnelGateway::FlushTunnelDataMsgs() {
 }
 
 void TransitTunnelEndpoint::HandleTunnelDataMsg(
-    std::shared_ptr<const i2p::I2NPMessage> tunnelMsg) {
-  auto newMsg = CreateEmptyTunnelDataMsg();
-  EncryptTunnelMsg(tunnelMsg, newMsg);
+    std::shared_ptr<const i2p::I2NPMessage> tunnel_msg) {
+  auto new_msg = CreateEmptyTunnelDataMsg();
+  EncryptTunnelMsg(tunnel_msg, new_msg);
   LogPrint(eLogDebug,
       "TransitTunnelEndpoint: endpoint for ", GetTunnelID());
-  m_Endpoint.HandleDecryptedTunnelDataMsg(newMsg);
+  m_Endpoint.HandleDecryptedTunnelDataMsg(new_msg);
 }
 
 TransitTunnel* CreateTransitTunnel(
-    uint32_t receiveTunnelID,
-    const uint8_t* nextIdent,
-    uint32_t nextTunnelID,
-    const uint8_t* layerKey,
-    const uint8_t* ivKey,
-    bool isGateway,
-    bool isEndpoint) {
-  if (isEndpoint) {
+    uint32_t receive_tunnel_ID,
+    const uint8_t* next_ident,
+    uint32_t next_tunnel_ID,
+    const uint8_t* layer_key,
+    const uint8_t* iv_key,
+    bool is_gateway,
+    bool is_endpoint) {
+  if (is_endpoint) {
     LogPrint(eLogInfo,
-        "TransitTunnel: endpoint ", receiveTunnelID, " created");
+        "TransitTunnel: endpoint ", receive_tunnel_ID, " created");
     return new TransitTunnelEndpoint(
-        receiveTunnelID,
-        nextIdent,
-        nextTunnelID,
-        layerKey,
-        ivKey);
-  } else if (isGateway) {
+        receive_tunnel_ID,
+        next_ident,
+        next_tunnel_ID,
+        layer_key,
+        iv_key);
+  } else if (is_gateway) {
     LogPrint(eLogInfo,
-        "TransitTunnel: gateway: ", receiveTunnelID, " created");
+        "TransitTunnel: gateway: ", receive_tunnel_ID, " created");
     return new TransitTunnelGateway(
-        receiveTunnelID,
-        nextIdent,
-        nextTunnelID,
-        layerKey,
-        ivKey);
+        receive_tunnel_ID,
+        next_ident,
+        next_tunnel_ID,
+        layer_key,
+        iv_key);
   } else {
     LogPrint(eLogInfo,
-        "TransitTunnel: ", receiveTunnelID, "->", nextTunnelID, " created");
+        "TransitTunnel: ", receive_tunnel_ID, "->", next_tunnel_ID, " created");
     return new TransitTunnelParticipant(
-        receiveTunnelID,
-        nextIdent,
-        nextTunnelID,
-        layerKey,
-        ivKey);
+        receive_tunnel_ID,
+        next_ident,
+        next_tunnel_ID,
+        layer_key,
+        iv_key);
   }
 }
 

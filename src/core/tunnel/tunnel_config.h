@@ -52,7 +52,7 @@ struct TunnelHopConfig {
       std::shared_ptr<const i2p::data::RouterInfo> r);
 
   void SetReplyHop(
-      const TunnelHopConfig* replyFirstHop);
+      const TunnelHopConfig* reply_first_hop);
 
   void SetNext(
       TunnelHopConfig* n);
@@ -62,35 +62,35 @@ struct TunnelHopConfig {
 
   void CreateBuildRequestRecord(
       uint8_t* record,
-      uint32_t replyMsgID) const;
+      uint32_t reply_msg_ID) const;
 
   std::shared_ptr<const i2p::data::RouterInfo> router,
-                                               nextRouter;
+                                               next_router;
 
-  uint32_t tunnelID,
-           nextTunnelID;
+  uint32_t tunnel_ID,
+           next_tunnel_ID;
 
-  uint8_t layerKey[32],
-          ivKey[32],
-          replyKey[32],
-          replyIV[16],
-          randPad[29];
+  uint8_t layer_key[32],
+          iv_key[32],
+          reply_key[32],
+          reply_IV[16],
+          rand_pad[29];
 
-  bool isGateway,
-       isEndpoint;
+  bool is_gateway,
+       is_endpoint;
 
   TunnelHopConfig *next,
                   *prev;
 
   i2p::crypto::TunnelDecryption decryption;
-  int recordIndex;  // record # in tunnel build message
+  int record_index;  // record # in tunnel build message
 };
 
 class TunnelConfig : public std::enable_shared_from_this<TunnelConfig> {
  public:
   TunnelConfig(
       std::vector<std::shared_ptr<const i2p::data::RouterInfo> > peers,
-      std::shared_ptr<const TunnelConfig> replyTunnelConfig = nullptr);
+      std::shared_ptr<const TunnelConfig> reply_tunnel_config = nullptr);
   ~TunnelConfig();
 
   TunnelHopConfig* GetFirstHop() const;
@@ -109,7 +109,7 @@ class TunnelConfig : public std::enable_shared_from_this<TunnelConfig> {
   std::shared_ptr<TunnelConfig> Invert() const;
 
   std::shared_ptr<TunnelConfig> Clone(
-      std::shared_ptr<const TunnelConfig> replyTunnelConfig = nullptr) const;
+      std::shared_ptr<const TunnelConfig> reply_tunnel_config = nullptr) const;
 
  private:
   // this constructor can't be called from outside

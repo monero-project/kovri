@@ -46,19 +46,19 @@ namespace tunnel {
 
 class TunnelEndpoint {
   struct TunnelMessageBlockEx : public TunnelMessageBlock {
-    uint8_t nextFragmentNum;
+    uint8_t next_fragment_num;
   };
 
   struct Fragment {
-    uint8_t fragmentNum;
-    bool isLastFragment;
+    uint8_t fragment_num;
+    bool is_last_fragment;
     std::shared_ptr<I2NPMessage> data;
   };
 
  public:
     TunnelEndpoint(
-        bool isInbound)
-        : m_IsInbound(isInbound),
+        bool is_inbound)
+        : m_IsInbound(is_inbound),
           m_NumReceivedBytes(0) {}
     ~TunnelEndpoint();
 
@@ -71,21 +71,21 @@ class TunnelEndpoint {
 
  private:
     void HandleFollowOnFragment(
-        uint32_t msgID,
-        bool isLastFragment,
+        uint32_t msg_ID,
+        bool is_last_fragment,
         const TunnelMessageBlockEx& m);
 
     void HandleNextMessage(
         const TunnelMessageBlock& msg);
 
     void AddOutOfSequenceFragment(
-        uint32_t msgID,
-        uint8_t fragmentNum,
-        bool isLastFragment,
+        uint32_t msg_ID,
+        uint8_t fragment_num,
+        bool is_last_fragment,
         std::shared_ptr<I2NPMessage> data);
 
     void HandleOutOfSequenceFragment(
-        uint32_t msgID,
+        uint32_t msg_ID,
         TunnelMessageBlockEx& msg);
 
  private:

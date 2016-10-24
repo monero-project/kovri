@@ -42,11 +42,11 @@ namespace data {
 
 std::shared_ptr<I2NPMessage> RequestedDestination::CreateRequestMessage(
     std::shared_ptr<const RouterInfo> router,
-    std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel) {
+    std::shared_ptr<const i2p::tunnel::InboundTunnel> reply_tunnel) {
   auto msg = i2p::CreateRouterInfoDatabaseLookupMsg(
       m_Destination,
-      replyTunnel->GetNextIdentHash(),
-      replyTunnel->GetNextTunnelID(),
+      reply_tunnel->GetNextIdentHash(),
+      reply_tunnel->GetNextTunnelID(),
       m_IsExploratory,
       &m_ExcludedPeers);
   m_ExcludedPeers.insert(router->GetIdentHash());
@@ -94,12 +94,12 @@ void NetDbRequests::Stop() {
 
 std::shared_ptr<RequestedDestination> NetDbRequests::CreateRequest(
     const IdentHash& destination,
-    bool isExploratory,
-    RequestedDestination::RequestComplete requestComplete) {
+    bool is_exploratory,
+    RequestedDestination::RequestComplete request_complete) {
   // request RouterInfo directly
   auto dest =
-    std::make_shared<RequestedDestination>(destination, isExploratory);
-  dest->SetRequestComplete(requestComplete); {
+    std::make_shared<RequestedDestination>(destination, is_exploratory);
+  dest->SetRequestComplete(request_complete); {
     std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
     if (!m_RequestedDestinations.insert(
           std::make_pair(
@@ -149,15 +149,15 @@ void NetDbRequests::ManageRequests() {
           auto pool = i2p::tunnel::tunnels.GetExploratoryPool();
           auto outbound = pool->GetNextOutboundTunnel();
           auto inbound = pool->GetNextInboundTunnel();
-          auto nextFloodfill = netdb.GetClosestFloodfill(
+          auto next_floodfill = netdb.GetClosestFloodfill(
               dest->GetDestination(),
               dest->GetExcludedPeers());
-          if (nextFloodfill && outbound && inbound) {
+          if (next_floodfill && outbound && inbound) {
             outbound->SendTunnelDataMsg(
-                nextFloodfill->GetIdentHash(),
+                next_floodfill->GetIdentHash(),
                 0,
                 dest->CreateRequestMessage(
-                  nextFloodfill,
+                  next_floodfill,
                   inbound));
           } else {
             done = true;
@@ -165,7 +165,7 @@ void NetDbRequests::ManageRequests() {
               LogPrint(eLogWarn, "NetDbRequests: no inbound tunnels");
             if (!outbound)
               LogPrint(eLogWarn, "NetDbRequests: no outbound tunnels");
-            if (!nextFloodfill)
+            if (!next_floodfill)
               LogPrint(eLogWarn, "NetDbRequests: no more floodfills");
           }
         } else {

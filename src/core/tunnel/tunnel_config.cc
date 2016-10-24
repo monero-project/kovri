@@ -46,33 +46,33 @@ namespace tunnel {
 
 TunnelHopConfig::TunnelHopConfig(
     std::shared_ptr<const i2p::data::RouterInfo> r) {
-  i2p::crypto::RandBytes(layerKey, 32);
-  i2p::crypto::RandBytes(ivKey, 32);
-  i2p::crypto::RandBytes(replyKey, 32);
-  i2p::crypto::RandBytes(replyIV, 16);
-  i2p::crypto::RandBytes(randPad, 29);
-  tunnelID = i2p::crypto::Rand<uint32_t>();
-  isGateway = true;
-  isEndpoint = true;
+  i2p::crypto::RandBytes(layer_key, 32);
+  i2p::crypto::RandBytes(iv_key, 32);
+  i2p::crypto::RandBytes(reply_key, 32);
+  i2p::crypto::RandBytes(reply_IV, 16);
+  i2p::crypto::RandBytes(rand_pad, 29);
+  tunnel_ID = i2p::crypto::Rand<uint32_t>();
+  is_gateway = true;
+  is_endpoint = true;
   router = r;
-  nextRouter = nullptr;
-  nextTunnelID = 0;
+  next_router = nullptr;
+  next_tunnel_ID = 0;
   next = nullptr;
   prev = nullptr;
 }
 
 void TunnelHopConfig::SetNextRouter(
     std::shared_ptr<const i2p::data::RouterInfo> r) {
-  nextRouter = r;
-  isEndpoint = false;
-  nextTunnelID = i2p::crypto::Rand<uint32_t>();
+  next_router = r;
+  is_endpoint = false;
+  next_tunnel_ID = i2p::crypto::Rand<uint32_t>();
 }
 
 void TunnelHopConfig::SetReplyHop(
-    const TunnelHopConfig* replyFirstHop) {
-  nextRouter = replyFirstHop->router;
-  nextTunnelID = replyFirstHop->tunnelID;
-  isEndpoint = true;
+    const TunnelHopConfig* reply_first_hop) {
+  next_router = reply_first_hop->router;
+  next_tunnel_ID = reply_first_hop->tunnel_ID;
+  is_endpoint = true;
 }
 
 void TunnelHopConfig::SetNext(
@@ -80,10 +80,10 @@ void TunnelHopConfig::SetNext(
   next = n;
   if (next) {
     next->prev = this;
-    next->isGateway = false;
-    isEndpoint = false;
-    nextRouter = next->router;
-    nextTunnelID = next->tunnelID;
+    next->is_gateway = false;
+    is_endpoint = false;
+    next_router = next->router;
+    next_tunnel_ID = next->tunnel_ID;
   }
 }
 
@@ -92,63 +92,63 @@ void TunnelHopConfig::SetPrev(
   prev = p;
   if (prev) {
     prev->next = this;
-    prev->isEndpoint = false;
-    isGateway = false;
+    prev->is_endpoint = false;
+    is_gateway = false;
   }
 }
 
 void TunnelHopConfig::CreateBuildRequestRecord(
     uint8_t* record,
-    uint32_t replyMsgID) const {
-  uint8_t clearText[BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE] = {};
+    uint32_t reply_msg_ID) const {
+  uint8_t clear_text[BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE] = {};
   htobe32buf(
-      clearText + BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET,
-      tunnelID);
+      clear_text + BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET,
+      tunnel_ID);
   memcpy(
-      clearText + BUILD_REQUEST_RECORD_OUR_IDENT_OFFSET,
+      clear_text + BUILD_REQUEST_RECORD_OUR_IDENT_OFFSET,
       router->GetIdentHash(),
       32);
   htobe32buf(
-      clearText + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET,
-      nextTunnelID);
+      clear_text + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET,
+      next_tunnel_ID);
   memcpy(
-      clearText + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
-      nextRouter->GetIdentHash(),
+      clear_text + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
+      next_router->GetIdentHash(),
       32);
   memcpy(
-      clearText + BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET,
-      layerKey,
+      clear_text + BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET,
+      layer_key,
       32);
   memcpy(
-      clearText + BUILD_REQUEST_RECORD_IV_KEY_OFFSET,
-      ivKey,
+      clear_text + BUILD_REQUEST_RECORD_IV_KEY_OFFSET,
+      iv_key,
       32);
   memcpy(
-      clearText + BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET,
-      replyKey,
+      clear_text + BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET,
+      reply_key,
       32);
   memcpy(
-      clearText + BUILD_REQUEST_RECORD_REPLY_IV_OFFSET,
-      replyIV,
+      clear_text + BUILD_REQUEST_RECORD_REPLY_IV_OFFSET,
+      reply_IV,
       16);
   uint8_t flag = 0;
-  if (isGateway)
+  if (is_gateway)
     flag |= 0x80;
-  if (isEndpoint)
+  if (is_endpoint)
     flag |= 0x40;
-  clearText[BUILD_REQUEST_RECORD_FLAG_OFFSET] = flag;
+  clear_text[BUILD_REQUEST_RECORD_FLAG_OFFSET] = flag;
   htobe32buf(
-      clearText + BUILD_REQUEST_RECORD_REQUEST_TIME_OFFSET,
+      clear_text + BUILD_REQUEST_RECORD_REQUEST_TIME_OFFSET,
       i2p::util::GetHoursSinceEpoch());
   htobe32buf(
-      clearText + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET,
-      replyMsgID);
+      clear_text + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET,
+      reply_msg_ID);
   memcpy(
-      clearText + BUILD_REQUEST_RECORD_PADDING_OFFSET,
-      randPad,
+      clear_text + BUILD_REQUEST_RECORD_PADDING_OFFSET,
+      rand_pad,
       29);
   router->GetElGamalEncryption()->Encrypt(
-      clearText,
+      clear_text,
       BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE,
       record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET);
   memcpy(
@@ -159,7 +159,7 @@ void TunnelHopConfig::CreateBuildRequestRecord(
 
 TunnelConfig::TunnelConfig(
     std::vector<std::shared_ptr<const i2p::data::RouterInfo> > peers,
-    std::shared_ptr<const TunnelConfig> replyTunnelConfig)
+    std::shared_ptr<const TunnelConfig> reply_tunnel_config)
     : TunnelConfig() {
   TunnelHopConfig* prev = nullptr;
   for (auto it : peers) {
@@ -174,9 +174,9 @@ TunnelConfig::TunnelConfig(
   // initialized with non-empty vector of peers (if null, we'll fall apart)
   if (prev) {
     m_LastHop = prev;
-    if (replyTunnelConfig) {  // outbound
-      m_FirstHop->isGateway = false;
-      m_LastHop->SetReplyHop(replyTunnelConfig->GetFirstHop());
+    if (reply_tunnel_config) {  // outbound
+      m_FirstHop->is_gateway = false;
+      m_LastHop->SetReplyHop(reply_tunnel_config->GetFirstHop());
     } else {  // inbound
       m_LastHop->SetNextRouter(i2p::context.GetSharedRouterInfo());
     }
@@ -211,7 +211,7 @@ int TunnelConfig::GetNumHops() const {
 }
 
 bool TunnelConfig::IsInbound() const {
-  return m_FirstHop->isGateway;
+  return m_FirstHop->is_gateway;
 }
 
 std::vector<std::shared_ptr<const i2p::data::RouterInfo> > TunnelConfig::GetPeers() const {
@@ -229,11 +229,11 @@ void TunnelConfig::Print(
   TunnelHopConfig* hop = m_FirstHop;
   if (!IsInbound())  // outbound
     s << "me";
-  s << "-->" << m_FirstHop->tunnelID;
+  s << "-->" << m_FirstHop->tunnel_ID;
   while (hop) {
     s << ":" << hop->router->GetIdentHashAbbreviation() << "-->";
-    if (!hop->isEndpoint)
-      s << hop->nextTunnelID;
+    if (!hop->is_endpoint)
+      s << hop->next_tunnel_ID;
     else
       return;
     hop = hop->next;
@@ -252,8 +252,8 @@ std::shared_ptr<TunnelConfig> TunnelConfig::Invert() const {
 }
 
 std::shared_ptr<TunnelConfig> TunnelConfig::Clone(
-    std::shared_ptr<const TunnelConfig> replyTunnelConfig) const {
-  return std::make_shared<TunnelConfig>(GetPeers(), replyTunnelConfig);
+    std::shared_ptr<const TunnelConfig> reply_tunnel_config) const {
+  return std::make_shared<TunnelConfig>(GetPeers(), reply_tunnel_config);
 }
 
 }  // namespace tunnel

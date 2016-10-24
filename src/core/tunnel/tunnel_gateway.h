@@ -47,7 +47,7 @@ namespace tunnel {
 class TunnelGatewayBuffer {
  public:
   TunnelGatewayBuffer(
-      uint32_t tunnelID);
+      uint32_t tunnel_ID);
   ~TunnelGatewayBuffer();
 
   void PutI2NPMsg(

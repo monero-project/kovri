@@ -51,11 +51,11 @@ namespace tunnel {
 class TransitTunnel : public TunnelBase {
  public:
   TransitTunnel(
-      uint32_t receiveTunnelID,
-      const uint8_t* nextIdent,
-      uint32_t nextTunnelID,
-      const uint8_t* layerKey,
-      const uint8_t* ivKey);
+      uint32_t receive_tunnel_ID,
+      const uint8_t* next_ident,
+      uint32_t next_tunnel_ID,
+      const uint8_t* layer_key,
+      const uint8_t* iv_key);
 
   virtual size_t GetNumTransmittedBytes() const {
     return 0;
@@ -70,7 +70,7 @@ class TransitTunnel : public TunnelBase {
       std::shared_ptr<i2p::I2NPMessage> msg);
 
   void HandleTunnelDataMsg(
-      std::shared_ptr<const i2p::I2NPMessage> tunnelMsg);
+      std::shared_ptr<const i2p::I2NPMessage> tunnel_msg);
 
   void EncryptTunnelMsg(
       std::shared_ptr<const I2NPMessage> in,
@@ -94,17 +94,17 @@ class TransitTunnel : public TunnelBase {
 class TransitTunnelParticipant : public TransitTunnel {
  public:
   TransitTunnelParticipant(
-      uint32_t receiveTunnelID,
-      const uint8_t* nextIdent,
-      uint32_t nextTunnelID,
-      const uint8_t* layerKey,
-      const uint8_t* ivKey)
+      uint32_t receive_tunnel_ID,
+      const uint8_t* next_ident,
+      uint32_t next_tunnel_ID,
+      const uint8_t* layer_key,
+      const uint8_t* iv_key)
       : TransitTunnel(
-          receiveTunnelID,
-          nextIdent,
-          nextTunnelID,
-          layerKey,
-          ivKey),
+          receive_tunnel_ID,
+          next_ident,
+          next_tunnel_ID,
+          layer_key,
+          iv_key),
       m_NumTransmittedBytes(0) {}
   ~TransitTunnelParticipant();
 
@@ -125,17 +125,17 @@ class TransitTunnelParticipant : public TransitTunnel {
 class TransitTunnelGateway : public TransitTunnel {
  public:
   TransitTunnelGateway(
-      uint32_t receiveTunnelID,
-      const uint8_t* nextIdent,
-      uint32_t nextTunnelID,
-      const uint8_t* layerKey,
-      const uint8_t* ivKey)
+      uint32_t receive_tunnel_ID,
+      const uint8_t* next_ident,
+      uint32_t next_tunnel_ID,
+      const uint8_t* layer_key,
+      const uint8_t* iv_key)
       : TransitTunnel(
-          receiveTunnelID,
-          nextIdent,
-          nextTunnelID,
-          layerKey,
-          ivKey),
+          receive_tunnel_ID,
+          next_ident,
+          next_tunnel_ID,
+          layer_key,
+          iv_key),
       m_Gateway(this) {}
 
   void SendTunnelDataMsg(
@@ -155,21 +155,21 @@ class TransitTunnelGateway : public TransitTunnel {
 class TransitTunnelEndpoint : public TransitTunnel {
  public:
   TransitTunnelEndpoint(
-      uint32_t receiveTunnelID,
-      const uint8_t* nextIdent,
-      uint32_t nextTunnelID,
-      const uint8_t* layerKey,
-      const uint8_t* ivKey)
+      uint32_t receive_tunnel_ID,
+      const uint8_t* next_ident,
+      uint32_t next_tunnel_ID,
+      const uint8_t* layer_key,
+      const uint8_t* iv_key)
       : TransitTunnel(
-          receiveTunnelID,
-          nextIdent,
-          nextTunnelID,
-          layerKey,
-          ivKey),
+          receive_tunnel_ID,
+          next_ident,
+          next_tunnel_ID,
+          layer_key,
+          iv_key),
       m_Endpoint(false) {}  // transit endpoint is always outbound
 
   void HandleTunnelDataMsg(
-      std::shared_ptr<const i2p::I2NPMessage> tunnelMsg);
+      std::shared_ptr<const i2p::I2NPMessage> tunnel_msg);
 
   size_t GetNumTransmittedBytes() const {
     return m_Endpoint.GetNumReceivedBytes();
@@ -180,13 +180,13 @@ class TransitTunnelEndpoint : public TransitTunnel {
 };
 
 TransitTunnel* CreateTransitTunnel(
-    uint32_t receiveTunnelID,
-    const uint8_t* nextIdent,
-    uint32_t nextTunnelID,
-    const uint8_t* layerKey,
-    const uint8_t* ivKey,
-    bool isGateway,
-    bool isEndpoint);
+    uint32_t receive_tunnel_ID,
+    const uint8_t* next_ident,
+    uint32_t next_tunnel_ID,
+    const uint8_t* layer_key,
+    const uint8_t* iv_key,
+    bool is_gateway,
+    bool is_endpoint);
 
 }  // namespace tunnel
 }  // namespace i2p

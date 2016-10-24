@@ -89,13 +89,13 @@ class RequestedDestination {
 
   std::shared_ptr<I2NPMessage> CreateRequestMessage(
       std::shared_ptr<const RouterInfo>,
-      std::shared_ptr<const i2p::tunnel::InboundTunnel> replyTunnel);
+      std::shared_ptr<const i2p::tunnel::InboundTunnel> reply_tunnel);
   std::shared_ptr<I2NPMessage> CreateRequestMessage(
       const IdentHash& floodfill);
 
   void SetRequestComplete(
-      const RequestComplete& requestComplete) {
-    m_RequestComplete = requestComplete;
+      const RequestComplete& request_complete) {
+    m_RequestComplete = request_complete;
   }
 
   bool IsRequestComplete() const {
@@ -120,8 +120,8 @@ class NetDbRequests {
 
   std::shared_ptr<RequestedDestination> CreateRequest(
       const IdentHash& destination,
-      bool isExploratory,
-      RequestedDestination::RequestComplete requestComplete = nullptr);
+      bool is_exploratory,
+      RequestedDestination::RequestComplete request_complete = nullptr);
 
   void RequestComplete(
       const IdentHash& ident,

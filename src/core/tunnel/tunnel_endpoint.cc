@@ -83,20 +83,20 @@ void TunnelEndpoint::HandleDecryptedTunnelDataMsg(
     while (fragment < decrypted + TUNNEL_DATA_ENCRYPTED_SIZE) {
       uint8_t flag = fragment[0];
       fragment++;
-      bool isFollowOnFragment = flag & 0x80,
-               isLastFragment = true;
-      uint32_t msgID = 0;
-      int fragmentNum = 0;
+      bool is_follow_on_fragment = flag & 0x80,
+               is_last_fragment = true;
+      uint32_t msg_ID = 0;
+      int fragment_num = 0;
       TunnelMessageBlockEx m;
-      if (!isFollowOnFragment) {
+      if (!is_follow_on_fragment) {
         // first fragment
-        m.deliveryType = (TunnelDeliveryType)((flag >> 5) & 0x03);
-        switch (m.deliveryType) {
+        m.delivery_type = (TunnelDeliveryType)((flag >> 5) & 0x03);
+        switch (m.delivery_type) {
           case e_DeliveryTypeLocal:  // 0
           break;
           case e_DeliveryTypeTunnel:  // 1
-            m.tunnelID = bufbe32toh(fragment);
-            fragment += 4;  // tunnelID
+            m.tunnel_ID = bufbe32toh(fragment);
+            fragment += 4;  // tunnel_ID
             m.hash = i2p::data::IdentHash(fragment);
             fragment += 32;  // hash
           break;
@@ -106,19 +106,19 @@ void TunnelEndpoint::HandleDecryptedTunnelDataMsg(
           break;
           default: {}
         }
-        bool isFragmented = flag & 0x08;
-        if (isFragmented) {
+        bool is_fragmented = flag & 0x08;
+        if (is_fragmented) {
           // Message ID
-          msgID = bufbe32toh(fragment);
+          msg_ID = bufbe32toh(fragment);
           fragment += 4;
-          isLastFragment = false;
+          is_last_fragment = false;
         }
       } else {
         // follow on
-        msgID = bufbe32toh(fragment);  // MessageID
+        msg_ID = bufbe32toh(fragment);  // MessageID
         fragment += 4;
-        fragmentNum = (flag >> 1) & 0x3F;  // 6 bits
-        isLastFragment = flag & 0x01;
+        fragment_num = (flag >> 1) & 0x3F;  // 6 bits
+        is_last_fragment = flag & 0x01;
       }
       uint16_t size = bufbe16toh(fragment);
       fragment += 2;
@@ -134,28 +134,28 @@ void TunnelEndpoint::HandleDecryptedTunnelDataMsg(
       } else {
         m.data = msg;
       }
-      if (!isFollowOnFragment && isLastFragment) {
+      if (!is_follow_on_fragment && is_last_fragment) {
         HandleNextMessage(m);
       } else {
-        if (msgID) {  // msgID is presented, assume message is fragmented
-          if (!isFollowOnFragment) {  // create new incomplete message
-            m.nextFragmentNum = 1;
+        if (msg_ID) {  // msg_ID is presented, assume message is fragmented
+          if (!is_follow_on_fragment) {  // create new incomplete message
+            m.next_fragment_num = 1;
             auto ret = m_IncompleteMessages.insert(
-                std::pair<uint32_t, TunnelMessageBlockEx>(msgID, m));
+                std::pair<uint32_t, TunnelMessageBlockEx>(msg_ID, m));
             if (ret.second)
-              HandleOutOfSequenceFragment(msgID, ret.first->second);
+              HandleOutOfSequenceFragment(msg_ID, ret.first->second);
             else
               LogPrint(eLogError,
                   "TunnelEndpoint: incomplete message ",
-                  msgID, "already exists");
+                  msg_ID, "already exists");
           } else {
-            m.nextFragmentNum = fragmentNum;
-            HandleFollowOnFragment(msgID, isLastFragment, m);
+            m.next_fragment_num = fragment_num;
+            HandleFollowOnFragment(msg_ID, is_last_fragment, m);
           }
         } else {
           LogPrint(eLogError,
               "TunnelEndpoint: message is fragmented, "
-              "but msgID is not presented");
+              "but msg_ID is not presented");
         }
       }
       fragment += size;
@@ -167,110 +167,110 @@ void TunnelEndpoint::HandleDecryptedTunnelDataMsg(
 }
 
 void TunnelEndpoint::HandleFollowOnFragment(
-    uint32_t msgID,
-    bool isLastFragment,
+    uint32_t msg_ID,
+    bool is_last_fragment,
     const TunnelMessageBlockEx& m) {
   auto fragment = m.data->GetBuffer();
   auto size = m.data->GetLength();
-  auto it = m_IncompleteMessages.find(msgID);
+  auto it = m_IncompleteMessages.find(msg_ID);
   if (it != m_IncompleteMessages.end()) {
     auto& msg = it->second;
-    if (m.nextFragmentNum == msg.nextFragmentNum) {
+    if (m.next_fragment_num == msg.next_fragment_num) {
       // check if message is not too long
       if (msg.data->len + size < I2NP_MAX_MESSAGE_SIZE) {
-        if (msg.data->len + size > msg.data->maxLen) {
+        if (msg.data->len + size > msg.data->max_len) {
           LogPrint(eLogInfo,
               "TunnelEndpoint: I2NP message size ",
-              msg.data->maxLen, " is not enough");
-          auto newMsg = ToSharedI2NPMessage(NewI2NPMessage());
-          *newMsg = *(msg.data);
-          msg.data = newMsg;
+              msg.data->max_len, " is not enough");
+          auto new_msg = ToSharedI2NPMessage(NewI2NPMessage());
+          *new_msg = *(msg.data);
+          msg.data = new_msg;
         }
         // concatenate fragment
         memcpy(msg.data->buf + msg.data->len, fragment, size);
         msg.data->len += size;
-        if (isLastFragment) {
+        if (is_last_fragment) {
           // message complete
           HandleNextMessage(msg);
           m_IncompleteMessages.erase(it);
         } else {
-          msg.nextFragmentNum++;
-          HandleOutOfSequenceFragment(msgID, msg);
+          msg.next_fragment_num++;
+          HandleOutOfSequenceFragment(msg_ID, msg);
         }
       } else {
         LogPrint(eLogError,
-            "TunnelEndpoint: fragment ", m.nextFragmentNum,
-            " of message ", msgID,
+            "TunnelEndpoint: fragment ", m.next_fragment_num,
+            " of message ", msg_ID,
             "exceeds max I2NP message size. Message dropped");
         m_IncompleteMessages.erase(it);
       }
     } else {
       LogPrint(eLogInfo,
           "TunnelEndpoint: unexpected fragment: ",
-          static_cast<int>(m.nextFragmentNum),
+          static_cast<int>(m.next_fragment_num),
           " instead: ",
-          static_cast<int>(msg.nextFragmentNum),
-          " of message ", msgID, ". Saved");
+          static_cast<int>(msg.next_fragment_num),
+          " of message ", msg_ID, ". Saved");
       AddOutOfSequenceFragment(
-          msgID,
-          m.nextFragmentNum,
-          isLastFragment,
+          msg_ID,
+          m.next_fragment_num,
+          is_last_fragment,
           m.data);
     }
   } else {
     LogPrint(eLogInfo,
         "TunnelEndpoint: first fragment of message ",
-        msgID, " not found. Saved");
+        msg_ID, " not found. Saved");
     AddOutOfSequenceFragment(
-        msgID,
-        m.nextFragmentNum,
-        isLastFragment,
+        msg_ID,
+        m.next_fragment_num,
+        is_last_fragment,
         m.data);
   }
 }
 
 void TunnelEndpoint::AddOutOfSequenceFragment(
-    uint32_t msgID,
-    uint8_t fragmentNum,
-    bool isLastFragment,
+    uint32_t msg_ID,
+    uint8_t fragment_num,
+    bool is_last_fragment,
     std::shared_ptr<I2NPMessage> data) {
-  auto it = m_OutOfSequenceFragments.find(msgID);
+  auto it = m_OutOfSequenceFragments.find(msg_ID);
   if (it == m_OutOfSequenceFragments.end())
     m_OutOfSequenceFragments.insert(
         std::pair<uint32_t, Fragment> (
-          msgID,
-          {fragmentNum, isLastFragment, data}));
+          msg_ID,
+          {fragment_num, is_last_fragment, data}));
 }
 
 void TunnelEndpoint::HandleOutOfSequenceFragment(
-    uint32_t msgID, TunnelMessageBlockEx& msg) {
-  auto it = m_OutOfSequenceFragments.find(msgID);
+    uint32_t msg_ID, TunnelMessageBlockEx& msg) {
+  auto it = m_OutOfSequenceFragments.find(msg_ID);
   if (it != m_OutOfSequenceFragments.end()) {
-    if (it->second.fragmentNum == msg.nextFragmentNum) {
+    if (it->second.fragment_num == msg.next_fragment_num) {
       LogPrint(eLogInfo,
           "TunnelEndpoint: out-of-sequence fragment ",
-          static_cast<int>(it->second.fragmentNum),
-          " of message ", msgID, " found");
+          static_cast<int>(it->second.fragment_num),
+          " of message ", msg_ID, " found");
       auto size = it->second.data->GetLength();
-      if (msg.data->len + size > msg.data->maxLen) {
+      if (msg.data->len + size > msg.data->max_len) {
         LogPrint(eLogInfo,
             "TunnelEndpoint: I2NP message size ",
-            msg.data->maxLen, " is not enough");
-        auto newMsg = ToSharedI2NPMessage(NewI2NPMessage());
-        *newMsg = *(msg.data);
-        msg.data = newMsg;
+            msg.data->max_len, " is not enough");
+        auto new_msg = ToSharedI2NPMessage(NewI2NPMessage());
+        *new_msg = *(msg.data);
+        msg.data = new_msg;
       }
       memcpy(  // concatenate out-of-sync fragment
           msg.data->buf + msg.data->len,
           it->second.data->GetBuffer(),
           size);
       msg.data->len += size;
-      if (it->second.isLastFragment) {
+      if (it->second.is_last_fragment) {
         // message complete
         HandleNextMessage(msg);
-        m_IncompleteMessages.erase(msgID);
+        m_IncompleteMessages.erase(msg_ID);
       } else {
-        msg.nextFragmentNum++;
+        msg.next_fragment_num++;
       }
       m_OutOfSequenceFragments.erase(it);
     }
@@ -283,7 +283,7 @@ void TunnelEndpoint::HandleNextMessage(
       "TunnelEndpoint: HandleNextMessage(): handle fragment of ",
       msg.data->GetLength(), " bytes, msg type: ",
       static_cast<int>(msg.data->GetTypeID()));
-  switch (msg.deliveryType) {
+  switch (msg.delivery_type) {
     case e_DeliveryTypeLocal:
       i2p::HandleI2NPMessage(msg.data);
     break;
@@ -291,7 +291,7 @@ void TunnelEndpoint::HandleNextMessage(
       i2p::transport::transports.SendMessage(
           msg.hash,
           i2p::CreateTunnelGatewayMsg(
-            msg.tunnelID,
+            msg.tunnel_ID,
             msg.data));
     break;
     case e_DeliveryTypeRouter:
@@ -301,8 +301,8 @@ void TunnelEndpoint::HandleNextMessage(
       } else {
         // to somebody else
         if (!m_IsInbound) {  // outbound transit tunnel
-        /*  auto typeID = msg.data->GetTypeID ();
-          if (typeID == eI2NPDatabaseStore || typeID == eI2NPDatabaseSearchReply )
+        /*  auto type_ID = msg.data->GetTypeID ();
+          if (type_ID == eI2NPDatabaseStore || type_ID == eI2NPDatabaseSearchReply )
             // catch RI or reply with new list of routers
             i2p::data::netdb.PostI2NPMsg (msg.data);*/
           // TODO(unassigned): ^ ???
@@ -317,7 +317,7 @@ void TunnelEndpoint::HandleNextMessage(
     default:
       LogPrint(eLogError,
           "TunnelMessage: unknown delivery type ",
-          static_cast<int>(msg.deliveryType));
+          static_cast<int>(msg.delivery_type));
   }
 }
 

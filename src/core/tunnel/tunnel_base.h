@@ -55,9 +55,9 @@ enum TunnelDeliveryType {
 };
 
 struct TunnelMessageBlock {
-  TunnelDeliveryType deliveryType;
+  TunnelDeliveryType delivery_type;
   i2p::data::IdentHash hash;
-  uint32_t tunnelID;
+  uint32_t tunnel_ID;
   std::shared_ptr<I2NPMessage> data;
 };
 
@@ -70,7 +70,7 @@ class TunnelBase {
   virtual ~TunnelBase() {}
 
   virtual void HandleTunnelDataMsg(
-      std::shared_ptr<const i2p::I2NPMessage> tunnelMsg) = 0;
+      std::shared_ptr<const i2p::I2NPMessage> tunnel_msg) = 0;
 
   virtual void SendTunnelDataMsg(
       std::shared_ptr<i2p::I2NPMessage> msg) = 0;

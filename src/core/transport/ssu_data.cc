@@ -50,9 +50,9 @@ namespace transport {
 void IncompleteMessage::AttachNextFragment(
     const std::uint8_t* fragment,
     std::size_t fragment_size) {
-  if (msg->len + fragment_size > msg->maxLen) {
+  if (msg->len + fragment_size > msg->max_len) {
     LogPrint(eLogInfo,
-        "Transport: SSU I2NP message size ", msg->maxLen, " is not enough");
+        "Transport: SSU I2NP message size ", msg->max_len, " is not enough");
     auto new_msg = ToSharedI2NPMessage(NewI2NPMessage());
     *new_msg = *msg;
     msg = new_msg;

@@ -141,7 +141,7 @@ void TunnelEndpoint::HandleDecryptedTunnelDataMsg(
           if (!is_follow_on_fragment) {  // create new incomplete message
             m.next_fragment_num = 1;
             auto ret = m_IncompleteMessages.insert(
-                std::pair<uint32_t, TunnelMessageBlockEx>(msgID, m));
+                std::pair<uint32_t, TunnelMessageBlockEx>(msg_ID, m));
             if (ret.second)
               HandleOutOfSequenceFragment(msg_ID, ret.first->second);
             else
@@ -178,7 +178,7 @@ void TunnelEndpoint::HandleFollowOnFragment(
     if (m.next_fragment_num == msg.next_fragment_num) {
       // check if message is not too long
       if (msg.data->len + size < I2NP_MAX_MESSAGE_SIZE) {
-        if (msg.data->len + size > msg.data->maxLen) {
+        if (msg.data->len + size > msg.data->max_len) {
           LogPrint(eLogInfo,
               "TunnelEndpoint: I2NP message size ",
               msg.data->max_len, " is not enough");

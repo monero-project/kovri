@@ -69,7 +69,7 @@ void TunnelGatewayBuffer::PutI2NPMsg(
   uint8_t di[43];  // max delivery instruction length is 43 for tunnel
   size_t di_len = 1;  // flag
   if (block.delivery_type != e_DeliveryTypeLocal) {  // tunnel or router
-    if (block.deliveryType == e_DeliveryTypeTunnel) {
+    if (block.delivery_type == e_DeliveryTypeTunnel) {
       htobe32buf(di + di_len, block.tunnel_ID);
       di_len += 4;  // tunnel_ID
     }

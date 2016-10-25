@@ -374,9 +374,9 @@ void I2PClientTunnel::Stop() {
 /* HACK: maybe we should create a caching IdentHash provider in AddressBook */
 std::unique_ptr<const i2p::data::IdentHash> I2PClientTunnel::GetIdentHash() {
   if (!m_DestinationIdentHash) {
-    i2p::data::IdentHash identHash;
-    if (i2p::client::context.GetAddressBook().CheckAddressIdentHashFound(m_Destination, identHash))
-      m_DestinationIdentHash = std::make_unique<i2p::data::IdentHash>(identHash);
+    i2p::data::IdentHash ident_hash;
+    if (i2p::client::context.GetAddressBook().CheckAddressIdentHashFound(m_Destination, ident_hash))
+      m_DestinationIdentHash = std::make_unique<i2p::data::IdentHash>(ident_hash);
     else
       LogPrint(eLogWarn,
           "I2PClientTunnel: remote destination ", m_Destination, " not found");
@@ -388,11 +388,11 @@ std::string I2PClientTunnel::GetName() const { return m_TunnelName; }
 
 std::shared_ptr<I2PServiceHandler> I2PClientTunnel::CreateHandler(
     std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
-  auto identHash = GetIdentHash();
-  if (identHash)
+  auto ident_hash = GetIdentHash();
+  if (ident_hash)
     return std::make_shared<I2PClientTunnelHandler>(
         this,
-        *identHash,
+        *ident_hash,
         m_DestinationPort,
         socket);
   else
@@ -517,16 +517,16 @@ void I2PServerTunnel::UpdatePort(
 void I2PServerTunnel::UpdateStreamingPort(
     int port) const {
   if (port > 0) {
-    uint16_t localPort = port;
-    m_PortDestination->UpdateLocalPort(localPort);
+    uint16_t local_port = port;
+    m_PortDestination->UpdateLocalPort(local_port);
   } else {
     throw std::logic_error("Streaming port cannot be negative");
   }
 }
 
 void I2PServerTunnel::SetAccessList(
-    const std::set<i2p::data::IdentHash>& accessList) {
-  m_AccessList = accessList;
+    const std::set<i2p::data::IdentHash>& access_list) {
+  m_AccessList = access_list;
   m_IsAccessList = true;
 }
 

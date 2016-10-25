@@ -155,8 +155,8 @@ class I2PClientTunnel : public TCPIPAcceptor {
       const std::string& destination,
       const std::string& address,
       int port,
-      std::shared_ptr<ClientDestination> localDestination,
-      int destinationPort = 0);
+      std::shared_ptr<ClientDestination> local_destination,
+      int destination_port = 0);
 
   ~I2PClientTunnel() {}
 
@@ -178,7 +178,7 @@ class I2PServerTunnel : public I2PService {
       const std::string& name,
       const std::string& address,
       int port,
-      std::shared_ptr<ClientDestination> localDestination,
+      std::shared_ptr<ClientDestination> local_destination,
       int inport = 0);
 
   void Start();
@@ -186,7 +186,7 @@ class I2PServerTunnel : public I2PService {
   void Stop();
 
   void SetAccessList(
-      const std::set<i2p::data::IdentHash>& accessList);
+      const std::set<i2p::data::IdentHash>& access_list);
 
   // set access list given csv
   void SetAccessListString(
@@ -223,7 +223,7 @@ class I2PServerTunnel : public I2PService {
       const boost::system::error_code& ecode,
       boost::asio::ip::tcp::resolver::iterator it,
       std::shared_ptr<boost::asio::ip::tcp::resolver> resolver,
-      bool acceptAfter = true);
+      bool accept_after = true);
 
   void Accept();
 
@@ -249,7 +249,7 @@ class I2PServerTunnelHTTP: public I2PServerTunnel {
       const std::string& name,
       const std::string& address,
       int port,
-      std::shared_ptr<ClientDestination> localDestination,
+      std::shared_ptr<ClientDestination> local_destination,
       int inport = 0);
 
  private:

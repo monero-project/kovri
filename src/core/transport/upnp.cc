@@ -342,10 +342,8 @@ void UPnP::TryPortMapping(
 void UPnP::CloseMapping(
     int type,
     int port) {
-  std::string upnp_type,
-              upnp_port(
-                  std::to_string(
-                    port));
+  std::string upnp_type;
+  std::string upnp_port(std::to_string(port));
   switch (type) {
     case I2P_UPNP_TCP:
       upnp_type = "TCP";

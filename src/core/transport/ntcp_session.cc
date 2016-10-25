@@ -251,8 +251,8 @@ void NTCPSession::SendPhase2() {
       m_Establisher->phase2.encrypted.hxy.data(),
       xy.data(),
       static_cast<std::size_t>(NTCPSize::pub_key) * 2);
-  std::uint32_t ts_b = htobe32(i2p::util::GetSecondsSinceEpoch());
-  m_Establisher->phase2.encrypted.timestamp = ts_b;
+  std::uint32_t ts_B = htobe32(i2p::util::GetSecondsSinceEpoch());
+  m_Establisher->phase2.encrypted.timestamp = ts_B;
   i2p::crypto::RandBytes(
       m_Establisher->phase2.encrypted.padding.data(),
       static_cast<std::size_t>(NTCPSize::padding));
@@ -281,13 +281,13 @@ void NTCPSession::SendPhase2() {
           shared_from_this(),
           std::placeholders::_1,
           std::placeholders::_2,
-          ts_b));
+          ts_B));
 }
 
 void NTCPSession::HandlePhase2Sent(
     const boost::system::error_code& ecode,
     std::size_t /*bytes_transferred*/,
-    std::uint32_t ts_b) {
+    std::uint32_t ts_B) {
   if (ecode) {
     LogPrint(eLogError,
         "NTCPSession:", GetFormattedSessionInfo(),
@@ -309,7 +309,7 @@ void NTCPSession::HandlePhase2Sent(
             shared_from_this(),
             std::placeholders::_1,
             std::placeholders::_2,
-            ts_b));
+            ts_B));
   }
 }
 
@@ -437,8 +437,8 @@ void NTCPSession::SendPhase3() {
     i2p::context.GetIdentity().ToBuffer(
         buf,
         static_cast<std::size_t>(NTCPSize::buffer));
-  std::uint32_t ts_a = htobe32(i2p::util::GetSecondsSinceEpoch());
-  htobuf32(buf, ts_a);
+  std::uint32_t ts_A = htobe32(i2p::util::GetSecondsSinceEpoch());
+  htobuf32(buf, ts_A);
   buf += static_cast<std::size_t>(NTCPSize::phase3_alice_ts);
   std::size_t signature_len = keys.GetPublic().GetSignatureLen();
   std::size_t len = (buf - m_ReceiveBuffer) + signature_len;
@@ -459,7 +459,7 @@ void NTCPSession::SendPhase3() {
   s.Insert(
       m_RemoteIdentity.GetIdentHash(),
       static_cast<std::size_t>(NTCPSize::hash));
-  s.Insert(ts_a);  // timestamp Alice
+  s.Insert(ts_A);  // timestamp Alice
   s.Insert(m_Establisher->phase2.encrypted.timestamp);  // timestamp Bob
   s.Sign(keys, buf);
   m_Encryption.Encrypt(
@@ -479,13 +479,13 @@ void NTCPSession::SendPhase3() {
           shared_from_this(),
           std::placeholders::_1,
           std::placeholders::_2,
-          ts_a));
+          ts_A));
 }
 
 void NTCPSession::HandlePhase3Sent(
     const boost::system::error_code& ecode,
     std::size_t /*bytes_transferred*/,
-    std::uint32_t ts_a) {
+    std::uint32_t ts_A) {
   if (ecode) {
     LogPrint(eLogError,
         "NTCPSession:", GetFormattedSessionInfo(),
@@ -511,14 +511,14 @@ void NTCPSession::HandlePhase3Sent(
             shared_from_this(),
             std::placeholders::_1,
             std::placeholders::_2,
-            ts_a));
+            ts_A));
   }
 }
 
 void NTCPSession::HandlePhase3Received(
     const boost::system::error_code& ecode,
     std::size_t bytes_transferred,
-    std::uint32_t ts_b) {
+    std::uint32_t ts_B) {
   if (ecode) {
     LogPrint(eLogError,
         "NTCPSession:", GetFormattedSessionInfo(),
@@ -569,10 +569,10 @@ void NTCPSession::HandlePhase3Received(
               shared_from_this(),
               std::placeholders::_1,
               std::placeholders::_2,
-              ts_b,
+              ts_B,
               padding_len));
     } else {
-      HandlePhase3(ts_b, padding_len);
+      HandlePhase3(ts_B, padding_len);
     }
   }
 }
@@ -580,7 +580,7 @@ void NTCPSession::HandlePhase3Received(
 void NTCPSession::HandlePhase3ExtraReceived(
     const boost::system::error_code& ecode,
     std::size_t bytes_transferred,
-    std::uint32_t ts_b,
+    std::uint32_t ts_B,
     std::size_t padding_len) {
   if (ecode) {
     LogPrint(eLogError,
@@ -595,12 +595,12 @@ void NTCPSession::HandlePhase3ExtraReceived(
         bytes_transferred,
         m_ReceiveBuffer +
           static_cast<std::size_t>(NTCPSize::phase3_unencrypted));
-    HandlePhase3(ts_b, padding_len);
+    HandlePhase3(ts_B, padding_len);
   }
 }
 
 void NTCPSession::HandlePhase3(
-    std::uint32_t ts_b,
+    std::uint32_t ts_B,
     std::size_t padding_len) {
   LogPrint(eLogDebug,
       "NTCPSession:", GetFormattedSessionInfo(), "*** Phase3, handling");
@@ -608,7 +608,7 @@ void NTCPSession::HandlePhase3(
     m_ReceiveBuffer +
     m_RemoteIdentity.GetFullLen() +
     static_cast<std::size_t>(NTCPSize::phase3_alice_ri);
-  std::uint32_t ts_a = buf32toh(buf);
+  std::uint32_t ts_A = buf32toh(buf);
   buf += static_cast<std::size_t>(NTCPSize::phase3_alice_ts);
   buf += padding_len;
   SignedData s;
@@ -621,8 +621,8 @@ void NTCPSession::HandlePhase3(
   s.Insert(
       i2p::context.GetRouterInfo().GetIdentHash(),
       static_cast<std::size_t>(NTCPSize::hash));
-  s.Insert(ts_a);
-  s.Insert(ts_b);
+  s.Insert(ts_A);
+  s.Insert(ts_B);
   if (!s.Verify(m_RemoteIdentity, buf)) {
     LogPrint(eLogError,
         "NTCPSession:", GetFormattedSessionInfo(),
@@ -634,7 +634,7 @@ void NTCPSession::HandlePhase3(
   LogPrint(eLogDebug,
       "NTCPSession:", GetFormattedSessionInfo(),
       "*** Phase3 successful, proceeding to Phase4");
-  SendPhase4(ts_a, ts_b);
+  SendPhase4(ts_A, ts_B);
 }
 
 /**
@@ -644,8 +644,8 @@ void NTCPSession::HandlePhase3(
  */
 
 void NTCPSession::SendPhase4(
-    std::uint32_t ts_a,
-    std::uint32_t ts_b) {
+    std::uint32_t ts_A,
+    std::uint32_t ts_B) {
   LogPrint(eLogDebug,
       "NTCPSession:", GetFormattedSessionInfo(), "*** Phase4, preparing");
   SignedData s;
@@ -658,8 +658,8 @@ void NTCPSession::SendPhase4(
   s.Insert(
       m_RemoteIdentity.GetIdentHash(),
       static_cast<std::size_t>(NTCPSize::hash));
-  s.Insert(ts_a);
-  s.Insert(ts_b);
+  s.Insert(ts_A);
+  s.Insert(ts_B);
   auto keys = i2p::context.GetPrivateKeys();
   auto signature_len = keys.GetPublic().GetSignatureLen();
   s.Sign(keys, m_ReceiveBuffer);
@@ -710,7 +710,7 @@ void NTCPSession::HandlePhase4Sent(
 void NTCPSession::HandlePhase4Received(
     const boost::system::error_code& ecode,
     std::size_t bytes_transferred,
-    std::uint32_t ts_a) {
+    std::uint32_t ts_A) {
   if (ecode) {
     LogPrint(eLogError,
         "NTCPSession:", GetFormattedSessionInfo(),
@@ -738,7 +738,7 @@ void NTCPSession::HandlePhase4Received(
     s.Insert(
         i2p::context.GetRouterInfo().GetIdentHash(),
         static_cast<std::size_t>(NTCPSize::hash));
-    s.Insert(ts_a);  // Timestamp Alice
+    s.Insert(ts_A);  // Timestamp Alice
     s.Insert(m_Establisher->phase2.encrypted.timestamp);  // Timestamp Bob
     if (!s.Verify(m_RemoteIdentity, m_ReceiveBuffer)) {
       LogPrint(eLogError,

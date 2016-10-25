@@ -48,7 +48,7 @@ class TunnelEncryption {  // with double IV encryption
   ~TunnelEncryption();
 
   void SetKeys(
-      const AESKey& layerKey,
+      const AESKey& layer_key,
       const AESKey& iv_key);
 
   void Encrypt(
@@ -67,7 +67,7 @@ class TunnelDecryption {  // with double IV encryption
   ~TunnelDecryption();
 
   void SetKeys(
-      const AESKey& layerKey,
+      const AESKey& layer_key,
       const AESKey& iv_key);
 
   void Decrypt(

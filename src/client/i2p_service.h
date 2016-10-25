@@ -51,7 +51,7 @@ class I2PServiceHandler;
 class I2PService {
  public:
   explicit I2PService(
-      std::shared_ptr<ClientDestination> localDestination = nullptr);
+      std::shared_ptr<ClientDestination> local_destination = nullptr);
   explicit I2PService(
       i2p::data::SigningKeyType kt);
   virtual ~I2PService() { ClearHandlers(); }
@@ -83,7 +83,7 @@ class I2PService {
   }
 
   void CreateStream(
-      StreamRequestComplete streamRequestComplete,
+      StreamRequestComplete stream_request_complete,
       const std::string& dest,
       int port = 0);
 
@@ -148,8 +148,8 @@ class TCPIPAcceptor : public I2PService {
   TCPIPAcceptor(
       const std::string& address,
       int port,
-      std::shared_ptr<ClientDestination> localDestination = nullptr)
-      : I2PService(localDestination),
+      std::shared_ptr<ClientDestination> local_destination = nullptr)
+      : I2PService(local_destination),
         m_Address(address),
         m_Acceptor(
             GetService(),

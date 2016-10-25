@@ -186,12 +186,12 @@ class NTCPSession
   void SendTimeSyncMessage();
 
   void SetIsEstablished(
-      bool isEstablished) {
-    m_IsEstablished = isEstablished;
+      bool is_established) {
+    m_IsEstablished = is_established;
   }
 
   void CreateAESKey(
-      std::uint8_t* pubKey,
+      std::uint8_t* pub_key,
       i2p::crypto::AESKey& key);
 
   // Client
@@ -208,19 +208,19 @@ class NTCPSession
   void HandlePhase3Sent(
       const boost::system::error_code& ecode,
       std::size_t bytes_transferred,
-      std::uint32_t tsA);
+      std::uint32_t ts_A);
 
   void HandlePhase4Received(
       const boost::system::error_code& ecode,
       std::size_t bytes_transferred,
-      std::uint32_t tsA);
+      std::uint32_t ts_A);
 
   // Server
   void SendPhase2();
 
   void SendPhase4(
-      std::uint32_t tsA,
-      std::uint32_t tsB);
+      std::uint32_t ts_A,
+      std::uint32_t ts_B);
 
   void HandlePhase1Received(
       const boost::system::error_code& ecode,
@@ -229,21 +229,21 @@ class NTCPSession
   void HandlePhase2Sent(
       const boost::system::error_code& ecode,
       std::size_t bytes_transferred,
-      std::uint32_t tsB);
+      std::uint32_t ts_B);
 
   void HandlePhase3Received(
       const boost::system::error_code& ecode,
       std::size_t bytes_transferred,
-      std::uint32_t tsB);
+      std::uint32_t ts_B);
 
   void HandlePhase3ExtraReceived(
       const boost::system::error_code& ecode,
       std::size_t bytes_transferred,
-      std::uint32_t tsB,
+      std::uint32_t ts_B,
       std::size_t padding_len);
 
   void HandlePhase3(
-      std::uint32_t tsB,
+      std::uint32_t ts_B,
       std::size_t padding_len);
 
   void HandlePhase4Sent(

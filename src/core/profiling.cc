@@ -46,8 +46,8 @@ namespace i2p {
 namespace data {
 
 RouterProfile::RouterProfile(
-    const IdentHash& identHash)
-    : m_IdentHash(identHash),
+    const IdentHash& ident_hash)
+    : m_IdentHash(ident_hash),
       m_LastUpdateTime(boost::posix_time::second_clock::local_time()),
       m_NumTunnelsAgreed(0),
       m_NumTunnelsDeclined(0),
@@ -201,25 +201,25 @@ bool RouterProfile::IsLowReplyRate() const {
 }
 
 bool RouterProfile::IsBad() {
-  auto isBad =
+  auto is_bad =
     IsAlwaysDeclining() || IsLowPartcipationRate() /*|| IsLowReplyRate ()*/;
-  if (isBad && m_NumTimesRejected > 10 * (m_NumTimesTaken + 1)) {
+  if (is_bad && m_NumTimesRejected > 10 * (m_NumTimesTaken + 1)) {
     // reset profile
     m_NumTunnelsAgreed = 0;
     m_NumTunnelsDeclined = 0;
     m_NumTunnelsNonReplied = 0;
-    isBad = false;
+    is_bad = false;
   }
-  if (isBad)
+  if (is_bad)
     m_NumTimesRejected++;
   else
     m_NumTimesTaken++;
-  return isBad;
+  return is_bad;
 }
 
 std::shared_ptr<RouterProfile> GetRouterProfile(
-    const IdentHash& identHash) {
-  auto profile = std::make_shared<RouterProfile>(identHash);
+    const IdentHash& ident_hash) {
+  auto profile = std::make_shared<RouterProfile>(ident_hash);
   profile->Load();  // if possible
   return profile;
 }
@@ -236,11 +236,11 @@ void DeleteObsoleteProfiles() {
         for (boost::filesystem::directory_iterator it1(it->path());
             it1 != end;
             ++it1) {
-          auto lastModified =
+          auto last_modified =
             boost::posix_time::from_time_t(
                 boost::filesystem::last_write_time(
                   it1->path()));
-          if ((ts - lastModified).hours() >= PEER_PROFILE_EXPIRATION_TIMEOUT) {
+          if ((ts - last_modified).hours() >= PEER_PROFILE_EXPIRATION_TIMEOUT) {
             boost::filesystem::remove(it1->path());
             num++;
           }

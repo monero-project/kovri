@@ -279,8 +279,8 @@ void ClientDestination::HandleI2NPMessage(
     const uint8_t* buf,
     size_t,
     std::shared_ptr<i2p::tunnel::InboundTunnel> from) {
-  uint8_t typeID = buf[I2NP_HEADER_TYPEID_OFFSET];
-  switch (typeID) {
+  uint8_t type_ID = buf[I2NP_HEADER_TYPEID_OFFSET];
+  switch (type_ID) {
     case e_I2NPData:
       HandleDataMessage(
           buf + I2NP_HEADER_SIZE,
@@ -319,9 +319,9 @@ void ClientDestination::HandleI2NPMessage(
 void ClientDestination::HandleDatabaseStoreMessage(
     const uint8_t* buf,
     size_t len) {
-  uint32_t replyToken = bufbe32toh(buf + DATABASE_STORE_REPLY_TOKEN_OFFSET);
+  uint32_t reply_token = bufbe32toh(buf + DATABASE_STORE_REPLY_TOKEN_OFFSET);
   size_t offset = DATABASE_STORE_HEADER_SIZE;
-  if (replyToken) {
+  if (reply_token) {
     LogPrint(eLogInfo,
         "ClientDestination: reply token is ignored for DatabaseStore");
     offset += 36;
@@ -382,18 +382,18 @@ void ClientDestination::HandleDatabaseSearchReplyMessage(
     bool found = false;
     if (request->excluded.size() < MAX_NUM_FLOODFILLS_PER_REQUEST) {
       for (int i = 0; i < num; i++) {
-        i2p::data::IdentHash peerHash(buf + 33 + i * 32);
-        auto floodfill = i2p::data::netdb.FindRouter(peerHash);
+        i2p::data::IdentHash peer_hash(buf + 33 + i * 32);
+        auto floodfill = i2p::data::netdb.FindRouter(peer_hash);
         if (floodfill) {
           LogPrint(eLogInfo,
               "ClientDestination: requesting ",
-              key.ToBase64(), " at ", peerHash.ToBase64());
+              key.ToBase64(), " at ", peer_hash.ToBase64());
           if (SendLeaseSetRequest(key, floodfill, request))
             found = true;
         } else {
           LogPrint(eLogInfo,
               "ClientDestination: found new floodfill, requesting it");
-          i2p::data::netdb.RequestDestination(peerHash);
+          i2p::data::netdb.RequestDestination(peer_hash);
         }
       }
       if (!found)
@@ -678,10 +678,10 @@ bool ClientDestination::SendLeaseSetRequest(
   auto reply_tunnel = m_Pool->GetNextInboundTunnel();
   if (!reply_tunnel)
     LogPrint(eLogError, "ClientDestination: no inbound tunnels found");
-  auto outboundTunnel = m_Pool->GetNextOutboundTunnel();
-  if (!outboundTunnel)
+  auto outbound_tunnel = m_Pool->GetNextOutboundTunnel();
+  if (!outbound_tunnel)
     LogPrint(eLogError, "ClientDestination: no outbound tunnels found");
-  if (reply_tunnel && outboundTunnel) {
+  if (reply_tunnel && outbound_tunnel) {
     request->excluded.insert(next_floodfill->GetIdentHash());
     request->request_time = i2p::util::GetSecondsSinceEpoch();
     request->request_timeout_timer.cancel();
@@ -698,7 +698,7 @@ bool ClientDestination::SendLeaseSetRequest(
             reply_tunnel.get(),
             reply_key,
             reply_tag));
-    outboundTunnel->SendTunnelDataMsg({
+    outbound_tunnel->SendTunnelDataMsg({
         i2p::tunnel::TunnelMessageBlock {
             i2p::tunnel::e_DeliveryTypeRouter,
             next_floodfill->GetIdentHash(),

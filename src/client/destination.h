@@ -137,7 +137,7 @@ class ClientDestination : public i2p::garlic::GarlicDestination {
 
   // following methods operate with default streaming destination
   void CreateStream(
-      StreamRequestComplete streamRequestComplete,
+      StreamRequestComplete stream_request_complete,
       const i2p::data::IdentHash& dest,
       int port = 0);
 

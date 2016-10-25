@@ -112,8 +112,8 @@ class GarlicRoutingSession
       bool attach_lease_set);
 
   GarlicRoutingSession(
-      const std::uint8_t* sessionKey,
-      const SessionTag& sessionTag);  // one time encryption
+      const std::uint8_t* session_key,
+      const SessionTag& session_tag);  // one time encryption
 
   ~GarlicRoutingSession();
 

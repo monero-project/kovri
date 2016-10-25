@@ -84,12 +84,12 @@ const int INITIAL_RTO = 9000;  // in milliseconds
 struct Packet {
   size_t len, offset;
   uint8_t buf[MAX_PACKET_SIZE];
-  uint64_t sendTime;
+  uint64_t send_time;
 
   Packet()
       : len(0),
         offset(0),
-        sendTime(0) {}
+        send_time(0) {}
 
   uint8_t* GetBuffer() {
     return buf + offset;
@@ -347,9 +347,9 @@ class StreamingDestination {
 
   StreamingDestination(
       i2p::client::ClientDestination& owner,
-      uint16_t localPort = 0)
+      uint16_t local_port = 0)
       : m_Owner(owner),
-        m_LocalPort(localPort) {}
+        m_LocalPort(local_port) {}
   ~StreamingDestination() {}
 
   void Start();

@@ -344,8 +344,8 @@ CryptoKeyType IdentityEx::GetCryptoKeyType() const {
 }
 
 void IdentityEx::CreateVerifier() const  {
-  auto keyType = GetSigningKeyType();
-  switch (keyType) {
+  auto key_type = GetSigningKeyType();
+  switch (key_type) {
     case SIGNING_KEY_TYPE_DSA_SHA1:
       m_Verifier = std::make_unique<i2p::crypto::DSAVerifier>(m_StandardIdentity.signing_key);
     break;
@@ -405,7 +405,7 @@ void IdentityEx::CreateVerifier() const  {
     default:
       LogPrint(eLogWarn,
           "IdentityEx: signing key type ",
-          static_cast<int>(keyType), " is not supported");
+          static_cast<int>(key_type), " is not supported");
   }
 }
 
@@ -452,9 +452,9 @@ size_t PrivateKeys::FromBuffer(
   size_t ret = m_Public.FromBuffer(buf, len);
   memcpy(m_PrivateKey, buf + ret, 256);  // private key always 256
   ret += 256;
-  size_t signingPrivateKeySize = m_Public.GetSigningPrivateKeyLen();
-  memcpy(m_SigningPrivateKey, buf + ret, signingPrivateKeySize);
-  ret += signingPrivateKeySize;
+  size_t signing_private_key_size = m_Public.GetSigningPrivateKeyLen();
+  memcpy(m_SigningPrivateKey, buf + ret, signing_private_key_size);
+  ret += signing_private_key_size;
   m_Signer.reset(nullptr);
   CreateSigner();
   return ret;
@@ -466,9 +466,9 @@ size_t PrivateKeys::ToBuffer(
   size_t ret = m_Public.ToBuffer(buf, len);
   memcpy(buf + ret, m_PrivateKey, 256);  // private key always 256
   ret += 256;
-  size_t signingPrivateKeySize = m_Public.GetSigningPrivateKeyLen();
-  memcpy(buf + ret, m_SigningPrivateKey, signingPrivateKeySize);
-  ret += signingPrivateKeySize;
+  size_t signing_private_key_size = m_Public.GetSigningPrivateKeyLen();
+  memcpy(buf + ret, m_SigningPrivateKey, signing_private_key_size);
+  ret += signing_private_key_size;
   return ret;
 }
 
@@ -538,45 +538,45 @@ void PrivateKeys::CreateSigner() {
 PrivateKeys PrivateKeys::CreateRandomKeys(SigningKeyType type) {
   PrivateKeys keys;
   // signature
-  uint8_t signingPublicKey[512];  // signing public key is 512 bytes max
+  uint8_t signing_public_key[512];  // signing public key is 512 bytes max
   switch (type) {
     case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
       i2p::crypto::CreateECDSAP256RandomKeys(
           keys.m_SigningPrivateKey,
-          signingPublicKey);
+          signing_public_key);
     break;
     case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
       i2p::crypto::CreateECDSAP384RandomKeys(
           keys.m_SigningPrivateKey,
-          signingPublicKey);
+          signing_public_key);
     break;
     case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
       i2p::crypto::CreateECDSAP521RandomKeys(
           keys.m_SigningPrivateKey,
-          signingPublicKey);
+          signing_public_key);
     break;
     case SIGNING_KEY_TYPE_RSA_SHA256_2048:
       i2p::crypto::CreateRSARandomKeys(
           i2p::crypto::RSASHA2562048_KEY_LENGTH,
           keys.m_SigningPrivateKey,
-          signingPublicKey);
+          signing_public_key);
     break;
     case SIGNING_KEY_TYPE_RSA_SHA384_3072:
       i2p::crypto::CreateRSARandomKeys(
           i2p::crypto::RSASHA3843072_KEY_LENGTH,
           keys.m_SigningPrivateKey,
-          signingPublicKey);
+          signing_public_key);
     break;
     case SIGNING_KEY_TYPE_RSA_SHA512_4096:
       i2p::crypto::CreateRSARandomKeys(
           i2p::crypto::RSASHA5124096_KEY_LENGTH,
           keys.m_SigningPrivateKey,
-          signingPublicKey);
+          signing_public_key);
     break;
     case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
       i2p::crypto::CreateEDDSARandomKeys(
           keys.m_SigningPrivateKey,
-          signingPublicKey);
+          signing_public_key);
     break;
     default:
       LogPrint(eLogWarn,
@@ -589,7 +589,7 @@ PrivateKeys PrivateKeys::CreateRandomKeys(SigningKeyType type) {
   uint8_t public_key[256];
   i2p::crypto::GenerateElGamalKeyPair(keys.m_PrivateKey, public_key);
   // identity
-  keys.m_Public = IdentityEx(public_key, signingPublicKey, type);
+  keys.m_Public = IdentityEx(public_key, signing_public_key, type);
   keys.CreateSigner();
   return keys;
 }

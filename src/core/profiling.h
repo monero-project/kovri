@@ -59,7 +59,7 @@ const int PEER_PROFILE_EXPIRATION_TIMEOUT = 72;  // in hours (3 days)
 
 class RouterProfile {
  public:
-  explicit RouterProfile(const IdentHash& identHash);
+  explicit RouterProfile(const IdentHash& ident_hash);
   RouterProfile& operator=(const RouterProfile&) = default;
 
   void Save();
@@ -94,7 +94,7 @@ class RouterProfile {
 };
 
 std::shared_ptr<RouterProfile> GetRouterProfile(
-    const IdentHash& identHash);
+    const IdentHash& ident_hash);
 
 void DeleteObsoleteProfiles();
 

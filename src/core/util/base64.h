@@ -42,62 +42,62 @@ namespace util {
   /*
    * Base64 encodes an array of bytes.
    * @return the number of characters written to the output buffer
-   * @param InBuffer array of input bytes to be encoded
-   * @param InCount length of the input array
-   * @param OutBuffer array to store output characters
+   * @param in_buffer array of input bytes to be encoded
+   * @param in_count length of the input array
+   * @param out_buffer array to store output characters
    * @param len length of the output buffer
    * @note zero is returned when the output buffer is too small
    */
   size_t ByteStreamToBase64(
-      const uint8_t* InBuffer,
-      size_t InCount,
-      char* OutBuffer,
+      const uint8_t* in_buffer,
+      size_t in_count,
+      char* out_buffer,
       size_t len);
   /**
    * Decodes base 64 encoded data to an array of bytes.
    * @return the number of bytes written to the output buffer
-   * @param InBuffer array of input characters to be decoded
-   * @param InCount length of the input array
-   * @param OutBuffer array to store output bytes
+   * @param in_buffer array of input characters to be decoded
+   * @param in_count length of the input array
+   * @param out_buffer array to store output bytes
    * @param len length of the output buffer
    * @todo Do not return a negative value on failure, size_t could be unsigned.
    * @note zero is returned when the output buffer is too small
    */
   size_t Base64ToByteStream(
-      const char* InBuffer,
-      size_t InCount,
-      uint8_t* OutBuffer,
+      const char* in_buffer,
+      size_t in_count,
+      uint8_t* out_buffer,
       size_t len);
 
   const char* GetBase64SubstitutionTable();
   /**
    * Decodes base 32 encoded data to an array of bytes.
    * @return the number of bytes written to the output buffer
-   * @param inBuf array of input characters to be decoded
+   * @param in_buf array of input characters to be decoded
    * @param len length of the input buffer
-   * @param outBuf array to store output bytes
-   * @param outLen length of the output array
+   * @param out_buf array to store output bytes
+   * @param out_len length of the output array
    * @note zero is returned when the output buffer is too small
    */
   size_t Base32ToByteStream(
-      const char* inBuf,
+      const char* in_buf,
       size_t len,
-      uint8_t* outBuf,
-      size_t outLen);
+      uint8_t* out_buf,
+      size_t out_len);
   /**
    * Base 32 encodes an array of bytes.
    * @return the number of bytes written to the output buffer
-   * @param inBuf array of input bytes to be encoded
+   * @param in_buf array of input bytes to be encoded
    * @param len length of the input buffer
-   * @param outBuf array to store output characters
-   * @param outLen length of the output array
+   * @param out_buf array to store output characters
+   * @param out_len length of the output array
    * @note zero is returned when the output buffer is too small
    */
   size_t ByteStreamToBase32(
-      const uint8_t* inBuf,
+      const uint8_t* in_buf,
       size_t len,
-      char* outBuf,
-      size_t outLen);
+      char* out_buf,
+      size_t out_len);
 
 }  // namespace util
 }  // namespace i2p

@@ -41,10 +41,10 @@ namespace i2p {
 namespace client {
 
 I2PService::I2PService(
-    std::shared_ptr<ClientDestination> localDestination)
+    std::shared_ptr<ClientDestination> local_destination)
     : m_LocalDestination(
-        localDestination
-        ? localDestination
+        local_destination
+        ? local_destination
         : i2p::client::context.CreateNewLocalDestination()) {}
 
 I2PService::I2PService(
@@ -53,20 +53,20 @@ I2PService::I2PService(
         i2p::client::context.CreateNewLocalDestination(key_type)) {}
 
 void I2PService::CreateStream(
-    StreamRequestComplete streamRequestComplete,
+    StreamRequestComplete stream_request_complete,
     const std::string& dest,
     int port) {
-  assert(streamRequestComplete);
-  i2p::data::IdentHash identHash;
-  if (i2p::client::context.GetAddressBook().CheckAddressIdentHashFound(dest, identHash)) {
+  assert(stream_request_complete);
+  i2p::data::IdentHash ident_hash;
+  if (i2p::client::context.GetAddressBook().CheckAddressIdentHashFound(dest, ident_hash)) {
     m_LocalDestination->CreateStream(
-        streamRequestComplete,
-        identHash,
+        stream_request_complete,
+        ident_hash,
         port);
   } else {
     LogPrint(eLogWarn,
         "I2PService: remote destination ", dest, " not found");
-    streamRequestComplete(nullptr);
+    stream_request_complete(nullptr);
   }
 }
 
@@ -102,15 +102,15 @@ void TCPIPAcceptor::Rebind(
 }
 
 void TCPIPAcceptor::Accept() {
-  auto newSocket =
+  auto new_socket =
     std::make_shared<boost::asio::ip::tcp::socket> (GetService());
   m_Acceptor.async_accept(
-      *newSocket,
+      *new_socket,
       std::bind(
         &TCPIPAcceptor::HandleAccept,
         this,
         std::placeholders::_1,
-        newSocket));
+        new_socket));
 }
 
 void TCPIPAcceptor::HandleAccept(

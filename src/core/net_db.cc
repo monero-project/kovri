@@ -387,16 +387,11 @@ void NetDb::SaveUpdated() {
       if (it.second->IsUnreachable()) {
         total--;
         // delete RI file
-        if (boost::filesystem::exists(
-              GetFilePath(
-                  full_directory,
-                  it.second.get()))) {
-          boost::filesystem::remove(
-              GetFilePath(
-                  full_directory,
-                  it.second.get()));
-          deleted_count++;
-        }
+        bool is_removed =
+	  boost::filesystem::remove(
+	      GetFilePath(full_directory, it.second.get()));
+	 if (is_removed)
+	   deleted_count++;
         // delete from floodfills list
         if (it.second->IsFloodfill()) {
           std::unique_lock<std::mutex> l(m_FloodfillsMutex);

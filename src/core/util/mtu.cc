@@ -143,8 +143,8 @@ std::uint16_t GetMTUUnix(
 
 #elif defined(_WIN32)
 std::uint16_t GetMTUWindowsIpv4(
-    sockaddr_in inputAddress) {
-  ULONG outBufLen = 0;
+    sockaddr_in input_address) {
+  ULONG out_buf_len = 0;
   PIP_ADAPTER_ADDRESSES pAddresses = nullptr;
   PIP_ADAPTER_ADDRESSES pCurrAddresses = nullptr;
   PIP_ADAPTER_UNICAST_ADDRESS pUnicast = nullptr;
@@ -153,17 +153,17 @@ std::uint16_t GetMTUWindowsIpv4(
         GAA_FLAG_INCLUDE_PREFIX,
         nullptr,
         pAddresses,
-        &outBufLen) == ERROR_BUFFER_OVERFLOW) {
+        &out_buf_len) == ERROR_BUFFER_OVERFLOW) {
     FREE(pAddresses);
-    pAddresses = reinterpret_cast<IP_ADAPTER_ADDRESSES *> (MALLOC(outBufLen));
+    pAddresses = reinterpret_cast<IP_ADAPTER_ADDRESSES *> (MALLOC(out_buf_len));
   }
-  DWORD dwRetVal = GetAdaptersAddresses(
+  DWORD dw_ret_val = GetAdaptersAddresses(
       AF_INET,
       GAA_FLAG_INCLUDE_PREFIX,
       nullptr,
       pAddresses,
-      &outBufLen);
-  if (dwRetVal != NO_ERROR) {
+      &out_buf_len);
+  if (dw_ret_val != NO_ERROR) {
     LogPrint(eLogError,
         "MTU: GetMTUWindowsIpv4() has failed:",
         "enclosed GetAdaptersAddresses() call has failed");
@@ -172,20 +172,20 @@ std::uint16_t GetMTUWindowsIpv4(
   }
   pCurrAddresses = pAddresses;
   while (pCurrAddresses) {
-    PIP_ADAPTER_UNICAST_ADDRESS firstUnicastAddress =
-      pCurrAddresses->FirstUnicastAddress;
-    pUnicast = pCurrAddresses->FirstUnicastAddress;
+    PIP_ADAPTER_UNICAST_ADDRESS first_unicast_address =
+      pCurrAddresses->first_unicast_address;
+    pUnicast = pCurrAddresses->first_unicast_address;
     if (pUnicast == nullptr) {
       LogPrint(eLogError,
           "MTU: GetMTUWindowsIpv4() has failed:",
           "not a unicast ipv4 address; this is not supported");
     }
     for (int i = 0; pUnicast != nullptr; ++i) {
-      LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
-      sockaddr_in* localInterfaceAddress =
-        reinterpret_cast<sockaddr_in *>(lpAddr);
-      if (localInterfaceAddress->sin_addr.S_un.S_addr ==
-          inputAddress.sin_addr.S_un.S_addr) {
+      LPSOCKADDR lp_addr = pUnicast->Address.lp_sock_addr;
+      sockaddr_in* local_interface_address =
+        reinterpret_cast<sockaddr_in *>(lp_addr);
+      if (local_interface_address->sin_addr.S_un.S_addr ==
+          input_address.sin_addr.S_un.S_addr) {
         auto result = pAddresses->Mtu;
         FREE(pAddresses);
         return result;
@@ -202,8 +202,8 @@ std::uint16_t GetMTUWindowsIpv4(
 }
 
 std::uint16_t GetMTUWindowsIpv6(
-    sockaddr_in6 inputAddress) {
-  ULONG outBufLen = 0;
+    sockaddr_in6 input_address) {
+  ULONG out_buf_len = 0;
   PIP_ADAPTER_ADDRESSES pAddresses = nullptr;
   PIP_ADAPTER_ADDRESSES pCurrAddresses = nullptr;
   PIP_ADAPTER_UNICAST_ADDRESS pUnicast = nullptr;
@@ -212,17 +212,17 @@ std::uint16_t GetMTUWindowsIpv6(
         GAA_FLAG_INCLUDE_PREFIX,
         nullptr,
         pAddresses,
-        &outBufLen) == ERROR_BUFFER_OVERFLOW) {
+        &out_buf_len) == ERROR_BUFFER_OVERFLOW) {
     FREE(pAddresses);
-    pAddresses = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(MALLOC(outBufLen));
+    pAddresses = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(MALLOC(out_buf_len));
   }
-  DWORD dwRetVal = GetAdaptersAddresses(
+  DWORD dw_ret_val = GetAdaptersAddresses(
       AF_INET6,
       GAA_FLAG_INCLUDE_PREFIX,
       nullptr,
       pAddresses,
-      &outBufLen);
-  if (dwRetVal != NO_ERROR) {
+      &out_buf_len);
+  if (dw_ret_val != NO_ERROR) {
     LogPrint(eLogError,
       "MTU: GetMTUWindowsIpv6() has failed:",
       "enclosed GetAdaptersAddresses() call has failed");
@@ -232,21 +232,21 @@ std::uint16_t GetMTUWindowsIpv6(
   bool found_address = false;
   pCurrAddresses = pAddresses;
   while (pCurrAddresses) {
-    PIP_ADAPTER_UNICAST_ADDRESS firstUnicastAddress =
-      pCurrAddresses->FirstUnicastAddress;
-    pUnicast = pCurrAddresses->FirstUnicastAddress;
+    PIP_ADAPTER_UNICAST_ADDRESS first_unicast_address =
+      pCurrAddresses->first_unicast_address;
+    pUnicast = pCurrAddresses->first_unicast_address;
     if (pUnicast == nullptr) {
       LogPrint(eLogError,
           "MTU: GetMTUWindowsIpv6() has failed:",
           "not a unicast ipv6 address; this is not supported");
     }
     for (int i = 0; pUnicast != nullptr; ++i) {
-      LPSOCKADDR lpAddr = pUnicast->Address.lpSockaddr;
-      sockaddr_in6 *localInterfaceAddress =
-        reinterpret_cast<sockaddr_in6 *>(lpAddr);
+      LPSOCKADDR lp_addr = pUnicast->Address.lp_sock_addr;
+      sockaddr_in6 *local_interface_address =
+        reinterpret_cast<sockaddr_in6 *>(lp_addr);
       for (int j = 0; j != 8; ++j) {
-        if (localInterfaceAddress->sin6_addr.u.Word[j] !=
-            inputAddress.sin6_addr.u.Word[j]) {
+        if (local_interface_address->sin6_addr.u.Word[j] !=
+            input_address.sin6_addr.u.Word[j]) {
           break;
         } else {
           found_address = true;
@@ -270,26 +270,26 @@ std::uint16_t GetMTUWindowsIpv6(
 }
 
 std::uint16_t GetMTUWindows(
-    const boost::asio::ip::address& localAddress) {
+    const boost::asio::ip::address& local_address) {
 #ifdef UNICODE
-  string localAddress_temporary = localAddress.to_string();
-  wstring localAddressUniversal(
-      localAddress_temporary.begin(),
-      localAddress_temporary.end());
+  string local_address_temporary = local_address.to_string();
+  wstring local_address_universal(
+      local_address_temporary.begin(),
+      local_address_temporary.end());
 #else
-  std::string localAddressUniversal = localAddress.to_string();
+  std::string local_address_universal = local_address.to_string();
 #endif
-  if (localAddress.is_v4()) {
-    sockaddr_in inputAddress;
-    inet_pton(AF_INET, localAddressUniversal.c_str(), &(inputAddress.sin_addr));
-    return GetMTUWindowsIpv4(inputAddress);
-  } else if (localAddress.is_v6()) {
-    sockaddr_in6 inputAddress;
+  if (local_address.is_v4()) {
+    sockaddr_in input_address;
+    inet_pton(AF_INET, local_address_universal.c_str(), &(input_address.sin_addr));
+    return GetMTUWindowsIpv4(input_address);
+  } else if (local_address.is_v6()) {
+    sockaddr_in6 input_address;
     inet_pton(
         AF_INET6,
-        localAddressUniversal.c_str(),
-        &(inputAddress.sin6_addr));
-    return GetMTUWindowsIpv6(inputAddress);
+        local_address_universal.c_str(),
+        &(input_address.sin6_addr));
+    return GetMTUWindowsIpv6(input_address);
   } else {
     LogPrint(eLogError,
         "MTU: GetMTUWindows() has failed:",

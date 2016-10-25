@@ -179,13 +179,13 @@ class Transports {
       const i2p::data::IdentHash& ident) const;
 
   void UpdateSentBytes(
-      std::uint64_t numBytes) {
-    m_TotalSentBytes += numBytes;
+      std::uint64_t num_bytes) {
+    m_TotalSentBytes += num_bytes;
   }
 
   void UpdateReceivedBytes(
-      std::uint64_t numBytes) {
-    m_TotalReceivedBytes += numBytes;
+      std::uint64_t num_bytes) {
+    m_TotalReceivedBytes += num_bytes;
   }
 
   std::uint64_t GetTotalSentBytes() const {

@@ -501,11 +501,11 @@ void Transports::CloseSession(
 
 void Transports::PostCloseSession(
     std::shared_ptr<const i2p::data::RouterInfo> router) {
-  auto ssuSession =
+  auto ssu_session =
     m_SSUServer ? m_SSUServer->FindSession(router) : nullptr;
   // try SSU first
-  if (ssuSession) {
-    m_SSUServer->DeleteSession(ssuSession);
+  if (ssu_session) {
+    m_SSUServer->DeleteSession(ssu_session);
     LogPrint(eLogInfo,
         "Transports: SSU session [",
         router->GetIdentHashAbbreviation(), "] closed");

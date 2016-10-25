@@ -707,12 +707,12 @@ void SOCKSHandler::HandleStreamRequestComplete(
 
 SOCKSServer::SOCKSServer(
     const std::string& address, int port,
-    std::shared_ptr<i2p::client::ClientDestination> localDestination)
+    std::shared_ptr<i2p::client::ClientDestination> local_destination)
     : TCPIPAcceptor(
         address,
         port,
-        localDestination ?
-        localDestination :
+        local_destination ?
+        local_destination :
         i2p::client::context.GetSharedLocalDestination()) {}
 
 std::shared_ptr<i2p::client::I2PServiceHandler> SOCKSServer::CreateHandler(

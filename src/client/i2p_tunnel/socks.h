@@ -50,7 +50,7 @@ class SOCKSServer : public i2p::client::TCPIPAcceptor {
   SOCKSServer(
       const std::string& address,
       int port,
-      std::shared_ptr<i2p::client::ClientDestination> localDestination = nullptr);
+      std::shared_ptr<i2p::client::ClientDestination> local_destination = nullptr);
   ~SOCKSServer() {}
 
  protected:

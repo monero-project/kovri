@@ -249,7 +249,7 @@ void UPnP::Discover() {
       sizeof(m_NetworkAddr));
   if (r == 1) {
     r = UPNP_GetExternalIPAddressFunc(
-        m_upnpUrls.control_url,
+        m_upnpUrls.controlURL,
         m_upnpData.first.servicetype,
         m_externalIPAddress);
     if (r != UPNPCOMMAND_SUCCESS) {
@@ -275,57 +275,57 @@ void UPnP::Discover() {
 void UPnP::TryPortMapping(
     int type,
     int port) {
-  std::string type;
-  std::string port(std::to_string(port));
+  std::string strType;
+  std::string strPort(std::to_string(port));
   switch (type) {
     case I2P_UPNP_TCP:
-      type = "TCP";
+      strType = "TCP";
       break;
     case I2P_UPNP_UDP:
     default:
-      type = "UDP";
+      strType = "UDP";
   }
   int r;
-  std::string desc = "Kovri";
+  std::string strDesc = "Kovri";
   try {
     for (;;) {
 #ifndef UPNPDISCOVER_SUCCESS
       /* miniupnpc 1.5 */
       r = UPNP_AddPortMappingFunc(
-          m_upnpUrls.control_url,
+          m_upnpUrls.controlURL,
           m_upnpData.first.servicetype,
-          port.c_str(),
-          port.c_str(),
+          strPort.c_str(),
+          strPort.c_str(),
           m_NetworkAddr,
-          desc.c_str(),
-          type.c_str(),
+          strDesc.c_str(),
+          strType.c_str(),
           0);
 #else
       /* miniupnpc 1.6 */
       r = UPNP_AddPortMappingFunc(
-          m_upnpUrls.control_url,
+          m_upnpUrls.controlURL,
           m_upnpData.first.servicetype,
-          port.c_str(),
-          port.c_str(),
+          strPort.c_str(),
+          strPort.c_str(),
           m_NetworkAddr,
-          desc.c_str(),
-          type.c_str(),
+          strDesc.c_str(),
+          strType.c_str(),
           0,
           "0");
 #endif
       if (r == UPNPCOMMAND_SUCCESS) {
         LogPrint(eLogInfo,
             "UPnP: port mapping successful. (", m_NetworkAddr,
-            ":", port.c_str(),
-            " type ", type.c_str() ,
+            ":", strPort.c_str(),
+            " type ", strType.c_str() ,
             " -> ", m_externalIPAddress,
-            ":", port.c_str(), ")");
+            ":", strPort.c_str(), ")");
         return;
       }
       // TODO(unassigned): do we really want to retry on *all* errors? (see upnpcommands.h)
       LogPrint(eLogError,
-          "UPnP: AddPortMapping (", port.c_str(),
-          ", ", port.c_str(),
+          "UPnP: AddPortMapping (", strPort.c_str(),
+          ", ", strPort.c_str(),
           ", ", m_NetworkAddr,
           ") failed with code ", r);
       // Try again later
@@ -342,24 +342,24 @@ void UPnP::TryPortMapping(
 void UPnP::CloseMapping(
     int type,
     int port) {
-  std::string type,
-              port(
+  std::string strType,
+              strPort(
                   std::to_string(
                     port));
   switch (type) {
     case I2P_UPNP_TCP:
-      type = "TCP";
+      strType = "TCP";
       break;
     case I2P_UPNP_UDP:
     default:
-      type = "UDP";
+      strType = "UDP";
   }
   int r = 0;
   r = UPNP_DeletePortMappingFunc(
-      m_upnpUrls.control_url,
+      m_upnpUrls.controlURL,
       m_upnpData.first.servicetype,
-     port.c_str(),
-      type.c_str(),
+     strPort.c_str(),
+      strType.c_str(),
       0);
   LogPrint(eLogInfo,
       "UPnP: UPNP_DeletePortMappingFunc() returned : ", r, "\n");

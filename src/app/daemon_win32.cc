@@ -56,9 +56,9 @@ bool DaemonWin32::Init() {
     m_IsDaemon = 1;
   else
     m_IsDaemon = 0;
-  std::string serviceControl =
+  std::string service_control =
     i2p::util::config::var_map["service"].as<std::string>();
-  if (serviceControl == "install") {
+  if (service_control == "install") {
     InstallService(
         SERVICE_NAME,               // Name of service
         SERVICE_DISPLAY_NAME,       // Name to display
@@ -67,7 +67,7 @@ bool DaemonWin32::Init() {
         SERVICE_ACCOUNT,            // Service running account
         SERVICE_PASSWORD);          // Password of the account
     exit(0);
-  } else if (serviceControl == "remove") {
+  } else if (service_control == "remove") {
     UninstallService(SERVICE_NAME);
     exit(0);
   }

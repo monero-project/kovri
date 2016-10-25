@@ -324,12 +324,12 @@ void Daemon_Singleton::ReloadTunnels() {
       auto host_str = value.get<std::string>(I2P_SERVER_TUNNEL_HOST, "");
       auto port = value.get<int>(I2P_SERVER_TUNNEL_PORT, 0);
       auto in_port = value.get(I2P_SERVER_TUNNEL_INPORT, 0);
-      auto accessList = value.get(I2P_SERVER_TUNNEL_ACCESS_LIST, "");
+      auto access_list = value.get(I2P_SERVER_TUNNEL_ACCESS_LIST, "");
       i2p::client::context.UpdateServerTunnel(
           tunnel_name,
           key_file,
           host_str,
-          accessList,
+          access_list,
           port,
           in_port,
           (type == I2P_TUNNELS_SECTION_TYPE_HTTP));

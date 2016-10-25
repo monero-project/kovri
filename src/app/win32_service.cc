@@ -45,44 +45,44 @@
 
 I2PService *I2PService::m_Service = NULL;
 
-BOOL I2PService::isService() {
-  BOOL bIsService = FALSE;
-  HWINSTA hWinStation = GetProcessWindowStation();
-  if (hWinStation != NULL) {
+BOOL I2PService::IsService() {
+  BOOL is_service = FALSE;
+  HWINSTA h_win_station = GetProcessWindowStation();
+  if (h_win_station != NULL) {
     USEROBJECTFLAGS uof = { 0 };
     if (GetUserObjectInformation(hWinStation, UOI_FLAGS, &uof,
       sizeof(USEROBJECTFLAGS), NULL) && ((uof.dwFlags & WSF_VISIBLE) == 0)) {
-        bIsService = TRUE;
+        is_service = TRUE;
     }
   }
-  return bIsService;
+  return is_service;
 }
 
 BOOL I2PService::Run(
     I2PService &service) {
   m_Service = &service;
-  SERVICE_TABLE_ENTRY serviceTable[] = {
+  SERVICE_TABLE_ENTRY service_table[] = {
     { service.m_Name, ServiceMain },
     { NULL, NULL }
   };
-  return StartServiceCtrlDispatcher(serviceTable);
+  return StartServiceCtrlDispatcher(service_table);
 }
 
 void WINAPI I2PService::ServiceMain(
-    DWORD dwArgc,
-    PSTR *pszArgv) {
+    DWORD dw_argc,
+    PSTR *psz_argv) {
   assert(m_Service != NULL);
   m_Service->m_StatusHandle = RegisterServiceCtrlHandler(
     m_Service->m_Name, ServiceCtrlHandler);
   if (m_Service->m_StatusHandle == NULL) {
     throw GetLastError();
   }
-  m_Service->Start(dwArgc, pszArgv);
+  m_Service->Start(dw_argc, psz_argv);
 }
 
 void WINAPI I2PService::ServiceCtrlHandler(
-    DWORD dwCtrl) {
-  switch (dwCtrl) {
+    DWORD dw_ctrl) {
+  switch (dw_ctrl) {
     case SERVICE_CONTROL_STOP: m_Service->Stop(); break;
     case SERVICE_CONTROL_PAUSE: m_Service->Pause(); break;
     case SERVICE_CONTROL_CONTINUE: m_Service->Continue(); break;
@@ -93,30 +93,30 @@ void WINAPI I2PService::ServiceCtrlHandler(
 }
 
 I2PService::I2PService(
-    PSTR pszServiceName,
-    BOOL fCanStop,
-    BOOL fCanShutdown,
-    BOOL fCanPauseContinue) {
-  if (pszServiceName == NULL) {
+    PSTR psz_service_name,
+    BOOL can_stop,
+    BOOL can_shutdown,
+    BOOL can_pause_continue) {
+  if (psz_service_name == NULL) {
     m_Name = "";  // TODO(unassigned): why?
   } else {
-    m_Name = pszServiceName;
+    m_Name = psz_service_name;
   }
   m_StatusHandle = NULL;
   m_Status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
   m_Status.dwCurrentState = SERVICE_START_PENDING;
-  DWORD dwControlsAccepted = 0;
-  if (fCanStop)
-    dwControlsAccepted |= SERVICE_ACCEPT_STOP;
-  if (fCanShutdown)
-    dwControlsAccepted |= SERVICE_ACCEPT_SHUTDOWN;
-  if (fCanPauseContinue)
-    dwControlsAccepted |= SERVICE_ACCEPT_PAUSE_CONTINUE;
-  m_Status.dwControlsAccepted = dwControlsAccepted;
-  m_Status.dwWin32ExitCode = NO_ERROR;
-  m_Status.dwServiceSpecificExitCode = 0;
-  m_Status.dwCheckPoint = 0;
-  m_Status.dwWaitHint = 0;
+  DWORD dw_controls_accepted = 0;
+  if (can_stop)
+    dw_controls_accepted |= SERVICE_ACCEPT_STOP;
+  if (can_shutdown)
+    dw_controls_accepted |= SERVICE_ACCEPT_SHUTDOWN;
+  if (can_pause_continue)
+    dw_controls_accepted |= SERVICE_ACCEPT_PAUSE_CONTINUE;
+  m_Status.dw_controls_accepted = dw_controls_accepted;
+  m_Status.dw_win32_exit_code = NO_ERROR;
+  m_Status.dw_service_specific_exit_code = 0;
+  m_Status.dw_check_point = 0;
+  m_Status.dw_wait_hint = 0;
   m_Stopping = FALSE;
   // Create a manual-reset event that is not signaled at first to indicate
   // the stopped signal of the service.
@@ -134,15 +134,15 @@ I2PService::~I2PService(void) {
 }
 
 void I2PService::Start(
-    DWORD dwArgc,
-    PSTR *pszArgv) {
+    DWORD dw_argc,
+    PSTR *psz_argv) {
   try {
     SetServiceStatus(SERVICE_START_PENDING);
-    OnStart(dwArgc, pszArgv);
+    OnStart(dw_argc, psz_argv);
     SetServiceStatus(SERVICE_RUNNING);
-  } catch (DWORD dwError) {
-    LogPrint(eLogError, "I2PService::Start() execption: ", dwError);
-    SetServiceStatus(SERVICE_STOPPED, dwError);
+  } catch (DWORD dw_error) {
+    LogPrint(eLogError, "I2PService::Start() execption: ", dw_error);
+    SetServiceStatus(SERVICE_STOPPED, dw_error);
   } catch (...) {
     LogPrint(eLogError,
         "I2PService: Win32Service failed to start.", EVENTLOG_ERROR_TYPE);
@@ -151,8 +151,8 @@ void I2PService::Start(
 }
 
 void I2PService::OnStart(
-    DWORD dwArgc,
-    PSTR *pszArgv) {
+    DWORD dw_argc,
+    PSTR *psz_argv) {
   // TODO(unassigned): unused args
   LogPrint(eLogInfo, "I2PServiceWin32: Service in OnStart()",
     EVENTLOG_INFORMATION_TYPE);
@@ -172,19 +172,19 @@ void I2PService::WorkerThread() {
 }
 
 void I2PService::Stop() {
-  DWORD dwOriginalState = m_Status.dwCurrentState;
+  DWORD dw_original_state = m_Status.dwCurrentState;
   try {
     SetServiceStatus(SERVICE_STOP_PENDING);
     OnStop();
     SetServiceStatus(SERVICE_STOPPED);
-  } catch (DWORD dwError) {
-    LogPrint(eLogError, "I2PService::Stop() exception: ", dwError);
+  } catch (DWORD dw_error) {
+    LogPrint(eLogError, "I2PService::Stop() exception: ", dw_error);
 
-    SetServiceStatus(dwOriginalState);
+    SetServiceStatus(dw_original_state);
   } catch (...) {
     LogPrint(eLogError,
         "I2PService: Win32Service failed to stop.", EVENTLOG_ERROR_TYPE);
-    SetServiceStatus(dwOriginalState);
+    SetServiceStatus(dw_original_state);
   }
 }
 
@@ -206,8 +206,8 @@ void I2PService::Pause() {
     SetServiceStatus(SERVICE_PAUSE_PENDING);
     OnPause();
     SetServiceStatus(SERVICE_PAUSED);
-  } catch (DWORD dwError) {
-    LogPrint(eLogError, "I2PService::Pause() exception: ", dwError);
+  } catch (DWORD dw_error) {
+    LogPrint(eLogError, "I2PService::Pause() exception: ", dw_error);
     SetServiceStatus(SERVICE_RUNNING);
   } catch (...) {
     LogPrint(eLogError,
@@ -223,8 +223,8 @@ void I2PService::Continue() {
     SetServiceStatus(SERVICE_CONTINUE_PENDING);
     OnContinue();
     SetServiceStatus(SERVICE_RUNNING);
-  } catch (DWORD dwError) {
-    LogPrint(eLogError, "I2PService::Continue() exception: ", dwError);
+  } catch (DWORD dw_error) {
+    LogPrint(eLogError, "I2PService::Continue() exception: ", dw_error);
     SetServiceStatus(SERVICE_PAUSED);
   } catch (...) {
     LogPrint(eLogError,
@@ -239,8 +239,8 @@ void I2PService::Shutdown() {
   try {
     OnShutdown();
     SetServiceStatus(SERVICE_STOPPED);
-  } catch (DWORD dwError) {
-    LogPrint(eLogError, "I2PService::Shutdown() exception: ", dwError);
+  } catch (DWORD dw_error) {
+    LogPrint(eLogError, "I2PService::Shutdown() exception: ", dw_error);
   } catch (...) {
     LogPrint(eLogError,
         "I2PService: Win32Service failed to shut down.", EVENTLOG_ERROR_TYPE);
@@ -250,127 +250,127 @@ void I2PService::Shutdown() {
 void I2PService::OnShutdown() {}
 
 void I2PService::SetServiceStatus(
-    DWORD dwCurrentState,
-    DWORD dwWin32ExitCode,
-    DWORD dwWaitHint) {
-  static DWORD dwCheckPoint = 1;
-  m_Status.dwCurrentState = dwCurrentState;
-  m_Status.dwWin32ExitCode = dwWin32ExitCode;
-  m_Status.dwWaitHint = dwWaitHint;
-  m_Status.dwCheckPoint =
-    ((dwCurrentState == SERVICE_RUNNING) ||
-    (dwCurrentState == SERVICE_STOPPED)) ? 0 : dwCheckPoint++;
+    DWORD dw_current_state,
+    DWORD dw_win32_exit_code,
+    DWORD dw_wait_hint) {
+  static DWORD dw_check_point = 1;
+  m_Status.dw_current_state = dw_current_state;
+  m_Status.dw_win32_exit_code = dw_win32_exit_code;
+  m_Status.dw_wait_hint = dw_wait_hint;
+  m_Status.dw_check_point =
+    ((dw_current_state == SERVICE_RUNNING) ||
+    (dw_current_state == SERVICE_STOPPED)) ? 0 : dw_check_point++;
   ::SetServiceStatus(m_StatusHandle, &m_Status);
 }
 
 //*****************************************************************************
 
-void FreeHandles(SC_HANDLE schSCManager, SC_HANDLE schService) {
-  if (schSCManager) {
-    CloseServiceHandle(schSCManager);
-    schSCManager = NULL;
+void FreeHandles(SC_HANDLE sch_sc_manager, SC_HANDLE sch_service) {
+  if (sch_sc_manager) {
+    CloseServiceHandle(sch_sc_manager);
+    sch_sc_manager = NULL;
   }
-  if (schService) {
-    CloseServiceHandle(schService);
-    schService = NULL;
+  if (sch_service) {
+    CloseServiceHandle(sch_service);
+    sch_service = NULL;
   }
 }
 
 void InstallService(
-    PSTR pszServiceName,
-    PSTR pszDisplayName,
-    DWORD dwStartType,
-    PSTR pszDependencies,
-    PSTR pszAccount,
-    PSTR pszPassword) {
-  printf("Try to install Win32Service (%s).\n", pszServiceName);
-  char szPath[MAX_PATH];
-  SC_HANDLE schSCManager = NULL;
-  SC_HANDLE schService = NULL;
-  if (GetModuleFileName(NULL, szPath, ARRAYSIZE(szPath)) == 0) {
+    PSTR psz_service_name,
+    PSTR psz_display_name,
+    DWORD dw_start_type,
+    PSTR psz_dependencies,
+    PSTR psz_account,
+    PSTR psz_password) {
+  printf("Try to install Win32Service (%s).\n", psz_service_name);
+  char sz_path[MAX_PATH];
+  SC_HANDLE sch_sc_manager = NULL;
+  SC_HANDLE sch_service = NULL;
+  if (GetModuleFileName(NULL, sz_path, ARRAYSIZE(sz_path)) == 0) {
     printf("GetModuleFileName failed w/err 0x%08lx\n", GetLastError());
-    FreeHandles(schSCManager, schService);
+    FreeHandles(sch_sc_manager, sch_service);
     return;
   }
   // Open the local default service control manager database
-  schSCManager = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT |
+  sch_sc_manager = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT |
     SC_MANAGER_CREATE_SERVICE);
-  if (schSCManager == NULL) {
+  if (sch_sc_manager == NULL) {
     printf("OpenSCManager failed w/err 0x%08lx\n", GetLastError());
-    FreeHandles(schSCManager, schService);
+    FreeHandles(sch_sc_manager, sch_service);
     return;
   }
   // Install the service into SCM by calling CreateService
-  schService = CreateService(
-    schSCManager,                   // SCManager database
-    pszServiceName,                 // Name of service
-    pszDisplayName,                 // Name to display
+  sch_service = CreateService(
+    sch_sc_manager,                   // SCManager database
+    psz_service_name,                 // Name of service
+    psz_display_name,                 // Name to display
     SERVICE_QUERY_STATUS,           // Desired access
     SERVICE_WIN32_OWN_PROCESS,      // Service type
-    dwStartType,                    // Service start type
+    dw_start_type,                    // Service start type
     SERVICE_ERROR_NORMAL,           // Error control type
-    szPath,                         // Service's binary
+    sz_path,                         // Service's binary
     NULL,                           // No load ordering group
     NULL,                           // No tag identifier
-    pszDependencies,                // Dependencies
-    pszAccount,                     // Service running account
-    pszPassword);                   // Password of the account
+    psz_dependencies,                // Dependencies
+    psz_account,                     // Service running account
+    psz_password);                   // Password of the account
 
-  if (schService == NULL) {
+  if (sch_service == NULL) {
     printf("CreateService failed w/err 0x%08lx\n", GetLastError());
-    FreeHandles(schSCManager, schService);
+    FreeHandles(sch_sc_manager, sch_service);
     return;
   }
-  printf("Win32Service is installed as %s.\n", pszServiceName);
+  printf("Win32Service is installed as %s.\n", psz_service_name);
   // Centralized cleanup for all allocated resources.
-  FreeHandles(schSCManager, schService);
+  FreeHandles(sch_sc_manager, sch_service);
 }
 
-void UninstallService(PSTR pszServiceName) {
-  printf("Try to uninstall Win32Service (%s).\n", pszServiceName);
-  SC_HANDLE schSCManager = NULL;
-  SC_HANDLE schService = NULL;
-  SERVICE_STATUS ssSvcStatus = {};
+void UninstallService(PSTR psz_service_name) {
+  printf("Try to uninstall Win32Service (%s).\n", psz_service_name);
+  SC_HANDLE sch_sc_manager = NULL;
+  SC_HANDLE sch_service = NULL;
+  SERVICE_STATUS ss_svc_status = {};
   // Open the local default service control manager database
-  schSCManager = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT);
-  if (schSCManager == NULL) {
+  sch_sc_manager = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT);
+  if (sch_sc_manager == NULL) {
     printf("OpenSCManager failed w/err 0x%08lx\n", GetLastError());
-    FreeHandles(schSCManager, schService);
+    FreeHandles(sch_sc_manager, sch_service);
     return;
   }
   // Open the service with delete, stop, and query status permissions
-  schService = OpenService(schSCManager, pszServiceName, SERVICE_STOP |
+  sch_service = OpenService(sch_sc_manager, psz_service_name, SERVICE_STOP |
     SERVICE_QUERY_STATUS | DELETE);
-  if (schService == NULL) {
+  if (sch_service == NULL) {
     printf("OpenService failed w/err 0x%08lx\n", GetLastError());
-    FreeHandles(schSCManager, schService);
+    FreeHandles(sch_sc_manager, sch_service);
     return;
   }
   // Try to stop the service
-  if (ControlService(schService, SERVICE_CONTROL_STOP, &ssSvcStatus)) {
-    printf("Stopping %s.\n", pszServiceName);
+  if (ControlService(sch_service, SERVICE_CONTROL_STOP, &ss_svc_status)) {
+    printf("Stopping %s.\n", psz_service_name);
     Sleep(1000);
-    while (QueryServiceStatus(schService, &ssSvcStatus)) {
-      if (ssSvcStatus.dwCurrentState == SERVICE_STOP_PENDING) {
+    while (QueryServiceStatus(schService, &ss_svc_status)) {
+      if (ss_svc_status.dw_current_state == SERVICE_STOP_PENDING) {
         printf(".");
         Sleep(1000);
       } else {
         break;
       }
     }
-    if (ssSvcStatus.dwCurrentState == SERVICE_STOPPED) {
-      printf("\n%s is stopped.\n", pszServiceName);
+    if (ss_svc_status.dw_current_state == SERVICE_STOPPED) {
+      printf("\n%s is stopped.\n", psz_service_name);
     } else {
-      printf("\n%s failed to stop.\n", pszServiceName);
+      printf("\n%s failed to stop.\n", psz_service_name);
     }
   }
   // Now remove the service by calling DeleteService.
-  if (!DeleteService(schService)) {
+  if (!DeleteService(sch_service)) {
     printf("DeleteService failed w/err 0x%08lx\n", GetLastError());
-    FreeHandles(schSCManager, schService);
+    FreeHandles(schSCManager, sch_service);
     return;
   }
-  printf("%s is removed.\n", pszServiceName);
+  printf("%s is removed.\n", psz_service_name);
   // Centralized cleanup for all allocated resources.
-  FreeHandles(schSCManager, schService);
+  FreeHandles(sch_sc_manager, sch_service);
 }

@@ -99,14 +99,14 @@ void DatagramDestination::SendDatagramTo(
     const uint8_t* payload,
     size_t len,
     const i2p::data::IdentHash& ident,
-    uint16_t fromPort,
-    uint16_t toPort) {
+    uint16_t from_port,
+    uint16_t to_port) {
   uint8_t buf[MAX_DATAGRAM_SIZE];
-  auto identityLen = m_Owner.GetIdentity().ToBuffer(buf, MAX_DATAGRAM_SIZE);
-  uint8_t* signature = buf + identityLen;
-  auto signatureLen = m_Owner.GetIdentity().GetSignatureLen();
-  uint8_t* buf1 = signature + signatureLen;
-  size_t headerLen = identityLen + signatureLen;
+  auto identity_len = m_Owner.GetIdentity().ToBuffer(buf, MAX_DATAGRAM_SIZE);
+  uint8_t* signature = buf + identity_len;
+  auto signature_len = m_Owner.GetIdentity().GetSignatureLen();
+  uint8_t* buf1 = signature + signature_len;
+  size_t header_len = identity_len + signature_len;
   memcpy(buf1, payload, len);
   if (m_Owner.GetIdentity().GetSigningKeyType()
       == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1) {
@@ -117,7 +117,7 @@ void DatagramDestination::SendDatagramTo(
     m_Owner.Sign(buf1, len, signature);
   }
   std::unique_ptr<I2NPMessage> msg
-      = CreateDataMessage(buf, len + headerLen, fromPort, toPort);
+      = CreateDataMessage(buf, len + header_len, from_port, to_port);
   std::shared_ptr<const i2p::data::LeaseSet> remote
       = m_Owner.FindLeaseSet(ident);
 
@@ -147,9 +147,9 @@ void DatagramDestination::HandleLeaseSetRequestComplete(
 void DatagramDestination::SendMsg(
     std::unique_ptr<I2NPMessage> msg,
     std::shared_ptr<const i2p::data::LeaseSet> remote) {
-  auto outboundTunnel = m_Owner.GetTunnelPool()->GetNextOutboundTunnel();
+  auto outbound_tunnel = m_Owner.GetTunnelPool()->GetNextOutboundTunnel();
   auto leases = remote->GetNonExpiredLeases();
-  if (!leases.empty() && outboundTunnel) {
+  if (!leases.empty() && outbound_tunnel) {
     std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
     uint32_t i = i2p::crypto::RandInRange<uint32_t>(0, leases.size() - 1);
     auto garlic = m_Owner.WrapMessage(
@@ -161,9 +161,9 @@ void DatagramDestination::SendMsg(
                                         leases[i].tunnel_gateway,
                                         leases[i].tunnel_ID,
                                         garlic});
-    outboundTunnel->SendTunnelDataMsg(msgs);
+    outbound_tunnel->SendTunnelDataMsg(msgs);
   } else {
-    if (outboundTunnel)
+    if (outbound_tunnel)
       LogPrint(eLogWarn,
           "DatagramDestination: failed to send datagram: all leases expired");
     else
@@ -173,31 +173,31 @@ void DatagramDestination::SendMsg(
 }
 
 void DatagramDestination::HandleDatagram(
-    uint16_t fromPort,
-    uint16_t toPort,
+    uint16_t from_port,
+    uint16_t to_port,
     const uint8_t* buf,
     size_t len) {
   i2p::data::IdentityEx identity;
-  size_t identityLen = identity.FromBuffer(buf, len);
-  const uint8_t* signature = buf + identityLen;
-  size_t headerLen = identityLen + identity.GetSignatureLen();
+  size_t identity_len = identity.FromBuffer(buf, len);
+  const uint8_t* signature = buf + identity_len;
+  size_t header_len = identity_len + identity.GetSignatureLen();
   bool verified = false;
   if (identity.GetSigningKeyType() == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1) {
     uint8_t hash[32];
-    i2p::crypto::SHA256().CalculateDigest(hash, buf + headerLen, len - headerLen);
+    i2p::crypto::SHA256().CalculateDigest(hash, buf + header_len, len - header_len);
     verified = identity.Verify(hash, 32, signature);
   } else {
     verified =
-      identity.Verify(buf + headerLen, len - headerLen, signature);
+      identity.Verify(buf + header_len, len - header_len, signature);
   }
   if (verified) {
-    auto it = m_ReceiversByPorts.find(toPort);
+    auto it = m_ReceiversByPorts.find(to_port);
     if (it != m_ReceiversByPorts.end())
         it->second(
-            identity, fromPort, toPort, buf + headerLen, len - headerLen);
+            identity, from_port, to_port, buf + header_len, len - header_len);
     else if (m_Receiver != nullptr)
         m_Receiver(
-            identity, fromPort, toPort, buf + headerLen, len - headerLen);
+            identity, from_port, to_port, buf + header_len, len - header_len);
     else
         LogPrint(eLogWarn,
             "DatagramDestination: receiver for datagram is not set");
@@ -208,30 +208,30 @@ void DatagramDestination::HandleDatagram(
 }
 
 void DatagramDestination::HandleDataMessagePayload(
-    uint16_t fromPort,
-    uint16_t toPort,
+    uint16_t from_port,
+    uint16_t to_port,
     const uint8_t* buf,
     size_t len) {
   // Gunzip it
   i2p::crypto::util::Gunzip decompressor;
   decompressor.Put(buf, len);
   uint8_t uncompressed[MAX_DATAGRAM_SIZE];
-  auto uncompressedLen = decompressor.MaxRetrievable();
-  if (uncompressedLen <= MAX_DATAGRAM_SIZE) {
-    decompressor.Get(uncompressed, uncompressedLen);
-    HandleDatagram(fromPort, toPort, uncompressed, uncompressedLen);
+  auto uncompressed_len = decompressor.MaxRetrievable();
+  if (uncompressed_len <= MAX_DATAGRAM_SIZE) {
+    decompressor.Get(uncompressed, uncompressed_len);
+    HandleDatagram(from_port, to_port, uncompressed, uncompressed_len);
   } else {
     LogPrint(eLogWarn,
         "DatagramDestination: the received datagram size ",
-        uncompressedLen, " exceeds max size");
+        uncompressed_len, " exceeds max size");
   }
 }
 
 std::unique_ptr<I2NPMessage> DatagramDestination::CreateDataMessage(
     const uint8_t* payload,
     size_t len,
-    uint16_t fromPort,
-    uint16_t toPort) {
+    uint16_t from_port,
+    uint16_t to_port) {
   std::unique_ptr<I2NPMessage> msg = NewI2NPMessage();
   i2p::crypto::util::Gzip compressor;  // default level
   compressor.Put(payload, len);
@@ -240,8 +240,8 @@ std::unique_ptr<I2NPMessage> DatagramDestination::CreateDataMessage(
   htobe32buf(buf, size);  // length
   buf += 4;
   compressor.Get(buf, size);
-  htobe16buf(buf + 4, fromPort);  // source port
-  htobe16buf(buf + 6, toPort);  // destination port
+  htobe16buf(buf + 4, from_port);  // source port
+  htobe16buf(buf + 6, to_port);  // destination port
   buf[9] = i2p::client::PROTOCOL_TYPE_DATAGRAM;  // datagram protocol
   msg->len += size + 4;
   msg->FillI2NPMessageHeader(e_I2NPData);

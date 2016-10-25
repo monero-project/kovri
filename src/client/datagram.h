@@ -52,8 +52,8 @@ const size_t MAX_DATAGRAM_SIZE = 32768;
 class DatagramDestination {
   typedef std::function<void (
       const i2p::data::IdentityEx& from,
-      uint16_t fromPort,
-      uint16_t toPort,
+      uint16_t from_port,
+      uint16_t to_port,
       const uint8_t* buf,
       size_t len)>
     Receiver;
@@ -67,12 +67,12 @@ class DatagramDestination {
       const uint8_t* payload,
       size_t len,
       const i2p::data::IdentHash& ident,
-      uint16_t fromPort = 0,
-      uint16_t toPort = 0);
+      uint16_t from_port = 0,
+      uint16_t to_port = 0);
 
   void HandleDataMessagePayload(
-      uint16_t fromPort,
-      uint16_t toPort,
+      uint16_t from_port,
+      uint16_t to_port,
       const uint8_t* buf,
       size_t len);
 
@@ -98,22 +98,22 @@ class DatagramDestination {
 
  private:
   void HandleLeaseSetRequestComplete(
-      std::shared_ptr<i2p::data::LeaseSet> leaseSet,
+      std::shared_ptr<i2p::data::LeaseSet> lease_set,
       std::unique_ptr<I2NPMessage> msg);
 
   std::unique_ptr<I2NPMessage> CreateDataMessage(
       const uint8_t* payload,
       size_t len,
-      uint16_t fromPort,
-      uint16_t toPort);
+      uint16_t from_port,
+      uint16_t to_port);
 
   void SendMsg(
       std::unique_ptr<I2NPMessage> msg,
       std::shared_ptr<const i2p::data::LeaseSet> remote);
 
   void HandleDatagram(
-      uint16_t fromPort,
-      uint16_t toPort,
+      uint16_t from_port,
+      uint16_t to_port,
       const uint8_t* buf,
       size_t len);
 

@@ -87,7 +87,7 @@ bool DaemonLinux::Start() {
       LogPrint("Error, could not create process group.");
       return false;
     }
-    std::string d(kovri::app::util::GetDataPath().string());  // makes copy
+    std::string d(kovri::app::GetDataPath().string());  // makes copy
     chdir(d.c_str());
     // close stdin/stdout/stderr descriptors
     ::close(0);
@@ -101,7 +101,7 @@ bool DaemonLinux::Start() {
       return false;
   }
   // Pidfile
-  m_pidFile = (kovri::app::util::GetDataPath() / "kovri.pid").string();
+  m_pidFile = (kovri::app::GetDataPath() / "kovri.pid").string();
   m_pidFilehandle = open(
       m_pidFile.c_str(),
       O_RDWR | O_CREAT,

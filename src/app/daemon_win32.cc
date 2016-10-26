@@ -58,7 +58,7 @@ bool DaemonWin32::Init() {
   else
     m_IsDaemon = 0;
   std::string service_control =
-    kovri::app::util::var_map["service"].as<std::string>();
+    kovri::app::var_map["service"].as<std::string>();
   if (service_control == "install") {
     InstallService(
         SERVICE_NAME,               // Name of service

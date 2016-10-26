@@ -38,7 +38,6 @@
 
 namespace kovri {
 namespace app {
-namespace util {
 
 namespace bpo = boost::program_options;
 bpo::variables_map var_map;
@@ -181,6 +180,5 @@ bool SetLoggingOptions() {
   return true;
 }
 
-}  // namespace util
 }  // namespace app
 }  // namespace kovri

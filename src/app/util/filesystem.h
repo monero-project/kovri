@@ -46,7 +46,6 @@
 
 namespace kovri {
 namespace app {
-namespace util {
 
 /**
  * Change the application name.
@@ -73,7 +72,6 @@ const boost::filesystem::path& GetDataPath();
 /// @return the default directory for app data
 boost::filesystem::path GetDefaultDataPath();
 
-}  // namespace util
 }  // namespace app
 }  // namespace kovri
 

@@ -62,8 +62,6 @@ const char I2P_SERVER_TUNNEL_KEYS[] = "keys";
 const char I2P_SERVER_TUNNEL_INPORT[] = "inport";
 const char I2P_SERVER_TUNNEL_ACCESS_LIST[] = "accesslist";
 
-namespace util {
-
 /// @var var_map
 /// @brief Variable map for command-line and config file args
 extern boost::program_options::variables_map var_map;
@@ -90,7 +88,6 @@ void ParseConfigFile(
 ///   before router context and client context are initialized
 bool SetLoggingOptions();
 
-}  // namespace util
 }  // namespace app
 }  // namespace kovri
 

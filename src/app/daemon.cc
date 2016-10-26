@@ -55,7 +55,7 @@
 #include "util/config.h"
 
 namespace kovri {
-namespace util {
+namespace app {
 
 Daemon_Singleton::Daemon_Singleton()
     : m_IsDaemon(false),
@@ -67,20 +67,20 @@ Daemon_Singleton::~Daemon_Singleton() {}
 bool Daemon_Singleton::Init() {
   LogPrint(eLogInfo, "Daemon_Singleton: initializing");
   kovri::context.Init(
-      kovri::util::config::var_map["host"].as<std::string>(),
-      kovri::util::config::var_map["port"].as<int>(),
-      kovri::util::filesystem::GetDataPath());
-  m_IsDaemon = kovri::util::config::var_map["daemon"].as<bool>();
-  auto port = kovri::util::config::var_map["port"].as<int>();
+      kovri::app::util::var_map["host"].as<std::string>(),
+      kovri::app::util::var_map["port"].as<int>(),
+      kovri::app::util::GetDataPath());
+  m_IsDaemon = kovri::app::util::var_map["daemon"].as<bool>();
+  auto port = kovri::app::util::var_map["port"].as<int>();
   kovri::context.UpdatePort(port);
   kovri::context.UpdateAddress(
       boost::asio::ip::address::from_string(
-          kovri::util::config::var_map["host"].as<std::string>()));
+          kovri::app::util::var_map["host"].as<std::string>()));
   kovri::context.SetSupportsV6(
-      kovri::util::config::var_map["v6"].as<bool>());
+      kovri::app::util::var_map["v6"].as<bool>());
   kovri::context.SetFloodfill(
-      kovri::util::config::var_map["floodfill"].as<bool>());
-  auto bandwidth = kovri::util::config::var_map["bandwidth"].as<std::string>();
+      kovri::app::util::var_map["floodfill"].as<bool>());
+  auto bandwidth = kovri::app::util::var_map["bandwidth"].as<std::string>();
   if (bandwidth.length() > 0) {
     if (bandwidth[0] > 'L')
       kovri::context.SetHighBandwidth();
@@ -89,14 +89,14 @@ bool Daemon_Singleton::Init() {
   }
   // Set reseed options
   kovri::context.SetOptionReseedFrom(
-      kovri::util::config::var_map["reseed-from"].as<std::string>());
+      kovri::app::util::var_map["reseed-from"].as<std::string>());
   kovri::context.SetOptionReseedSkipSSLCheck(
-      kovri::util::config::var_map["reseed-skip-ssl-check"].as<bool>());
+      kovri::app::util::var_map["reseed-skip-ssl-check"].as<bool>());
   // Set transport options
   kovri::context.SetSupportsNTCP(
-      kovri::util::config::var_map["enable-ntcp"].as<bool>());
+      kovri::app::util::var_map["enable-ntcp"].as<bool>());
   kovri::context.SetSupportsSSU(
-      kovri::util::config::var_map["enable-ssu"].as<bool>());
+      kovri::app::util::var_map["enable-ssu"].as<bool>());
   // Initialize the ClientContext
   InitClientContext();
   return true;
@@ -105,7 +105,7 @@ bool Daemon_Singleton::Init() {
 bool Daemon_Singleton::Start() {
   LogPrint(eLogInfo,
       "Daemon_Singleton: listening on port ",
-      kovri::util::config::var_map["port"].as<int>());
+      kovri::app::util::var_map["port"].as<int>());
   try {
     LogPrint(eLogInfo, "Daemon_Singleton: starting NetDb");
     if (!kovri::data::netdb.Start()) {
@@ -165,28 +165,28 @@ void Daemon_Singleton::InitClientContext() {
   std::shared_ptr<kovri::client::ClientDestination> local_destination;
   // Setup proxies and services
   auto proxy_keys =
-    kovri::util::config::var_map["proxykeys"].as<std::string>();
+    kovri::app::util::var_map["proxykeys"].as<std::string>();
   if (proxy_keys.length() > 0)
     local_destination = kovri::client::context.LoadLocalDestination(
         proxy_keys,
         false);
   kovri::client::context.SetHTTPProxy(std::make_unique<kovri::proxy::HTTPProxy>(
       "HTTP Proxy",  // TODO(unassigned): what if we want to change the name?
-      kovri::util::config::var_map["httpproxyaddress"].as<std::string>(),
-      kovri::util::config::var_map["httpproxyport"].as<int>(),
+      kovri::app::util::var_map["httpproxyaddress"].as<std::string>(),
+      kovri::app::util::var_map["httpproxyport"].as<int>(),
       local_destination));
   kovri::client::context.SetSOCKSProxy(std::make_unique<kovri::proxy::SOCKSProxy>(
-      kovri::util::config::var_map["socksproxyaddress"].as<std::string>(),
-      kovri::util::config::var_map["socksproxyport"].as<int>(),
+      kovri::app::util::var_map["socksproxyaddress"].as<std::string>(),
+      kovri::app::util::var_map["socksproxyport"].as<int>(),
       local_destination));
-  auto i2pcontrol_port = kovri::util::config::var_map["i2pcontrolport"].as<int>();
+  auto i2pcontrol_port = kovri::app::util::var_map["i2pcontrolport"].as<int>();
   if (i2pcontrol_port) {
     kovri::client::context.SetI2PControlService(
         std::make_unique<kovri::client::i2pcontrol::I2PControlService>(
             kovri::client::context.GetIoService(),
-            kovri::util::config::var_map["i2pcontroladdress"].as<std::string>(),
+            kovri::app::util::var_map["i2pcontroladdress"].as<std::string>(),
             i2pcontrol_port,
-            kovri::util::config::var_map["i2pcontrolpassword"].as<std::string>()));
+            kovri::app::util::var_map["i2pcontrolpassword"].as<std::string>()));
   }
   // Setup client and server tunnels
   SetupTunnels();
@@ -195,7 +195,7 @@ void Daemon_Singleton::InitClientContext() {
 void Daemon_Singleton::SetupTunnels() {
   boost::property_tree::ptree pt;
   auto path_tunnels_config_file =
-    kovri::util::filesystem::GetTunnelsConfigFile().string();
+    kovri::app::util::GetTunnelsConfigFile().string();
   try {
     boost::property_tree::read_ini(path_tunnels_config_file, pt);
   } catch(const std::exception& ex) {
@@ -298,7 +298,7 @@ void Daemon_Singleton::SetupTunnels() {
 void Daemon_Singleton::ReloadTunnels() {
   boost::property_tree::ptree pt;
   auto tunnels_config_file =
-    kovri::util::filesystem::GetTunnelsConfigFile().string();
+    kovri::app::util::GetTunnelsConfigFile().string();
   try {
     boost::property_tree::read_ini(tunnels_config_file, pt);
   } catch (const std::exception& ex) {
@@ -375,5 +375,5 @@ void Daemon_Singleton::ReloadTunnels() {
       });
 }
 
-}  // namespace util
+}  // namespace app
 }  // namespace kovri

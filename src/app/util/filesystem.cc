@@ -42,8 +42,8 @@
 #include "config.h"
 
 namespace kovri {
+namespace app {
 namespace util {
-namespace filesystem {
 
 std::string app_name("kovri");
 
@@ -58,15 +58,15 @@ std::string GetAppName() {
 
 boost::filesystem::path GetConfigFile() {
   boost::filesystem::path kovri_conf(
-      kovri::util::config::var_map["kovriconf"].as<std::string>());
+      kovri::app::util::var_map["kovriconf"].as<std::string>());
   if (!kovri_conf.is_complete())
-        kovri_conf = GetDataPath() / kovri_conf;
+    kovri_conf = GetDataPath() / kovri_conf;
   return kovri_conf;
 }
 
 boost::filesystem::path GetTunnelsConfigFile() {
   boost::filesystem::path tunnels_conf(
-      kovri::util::config::var_map["tunnelsconf"].as<std::string>());
+      kovri::app::util::var_map["tunnelsconf"].as<std::string>());
   if (!tunnels_conf.is_complete())
     tunnels_conf = GetDataPath() / tunnels_conf;
   return tunnels_conf;
@@ -146,6 +146,6 @@ boost::filesystem::path GetDefaultDataPath() {
 #endif
 }
 
-}  // namespace filesystem
 }  // namespace util
+}  // namespace app
 }  // namespace kovri

@@ -36,15 +36,15 @@
 #include <string>
 
 #ifdef _WIN32
-#define Daemon kovri::util::DaemonWin32::Instance()
+#define Daemon kovri::app::DaemonWin32::Instance()
 #else
-#define Daemon kovri::util::DaemonLinux::Instance()
+#define Daemon kovri::app::DaemonLinux::Instance()
 #endif
 
 #include "core/util/log.h"
 
 namespace kovri {
-namespace util {
+namespace app {
 
 class Daemon_Singleton {
  public:
@@ -96,7 +96,7 @@ class DaemonLinux : public Daemon_Singleton {
 };
 #endif
 
-}  // namespace util
+}  // namespace app
 }  // namespace kovri
 
 #endif  // SRC_APP_DAEMON_H_

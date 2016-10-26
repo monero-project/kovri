@@ -43,7 +43,7 @@
 #include "filesystem.h"
 
 namespace kovri {
-namespace util {
+namespace app {
 
 const char I2P_TUNNELS_SECTION_TYPE[] = "type";
 const char I2P_TUNNELS_SECTION_TYPE_CLIENT[] = "client";
@@ -62,7 +62,7 @@ const char I2P_SERVER_TUNNEL_KEYS[] = "keys";
 const char I2P_SERVER_TUNNEL_INPORT[] = "inport";
 const char I2P_SERVER_TUNNEL_ACCESS_LIST[] = "accesslist";
 
-namespace config {
+namespace util {
 
 /// @var var_map
 /// @brief Variable map for command-line and config file args
@@ -90,8 +90,8 @@ void ParseConfigFile(
 ///   before router context and client context are initialized
 bool SetLoggingOptions();
 
-}  // namespace config
 }  // namespace util
+}  // namespace app
 }  // namespace kovri
 
 #endif  // SRC_APP_UTIL_CONFIG_H_

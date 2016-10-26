@@ -42,7 +42,7 @@
 #include "win32_service.h"
 
 namespace kovri {
-namespace util {
+namespace app {
 
 bool DaemonWin32::Init() {
   // TODO(unassigned): use Boost.Locale
@@ -57,7 +57,7 @@ bool DaemonWin32::Init() {
   else
     m_IsDaemon = 0;
   std::string service_control =
-    kovri::util::config::var_map["service"].as<std::string>();
+    kovri::app::util::var_map["service"].as<std::string>();
   if (service_control == "install") {
     InstallService(
         SERVICE_NAME,               // Name of service
@@ -98,7 +98,7 @@ bool DaemonWin32::Stop() {
   return Daemon_Singleton::Stop();
 }
 
-}  // namespace util
+}  // namespace app
 }  // namespace kovri
 
 #endif

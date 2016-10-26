@@ -37,8 +37,8 @@
 #include "crypto/rand.h"
 
 namespace kovri {
+namespace app {
 namespace util {
-namespace config {
 
 namespace bpo = boost::program_options;
 bpo::variables_map var_map;
@@ -69,15 +69,15 @@ bool ParseArgs(
     ("log-to-console", bpo::value<bool>()->default_value(true))
     ("log-to-file", bpo::value<bool>()->default_value(true))
     ("log-file-name", bpo::value<std::string>()->default_value(
-        (kovri::util::filesystem::GetLogsPath() / "kovri_%1N.log").string()))
+        (kovri::util::filesystem::GetLogsPath() / "kovri_%1N.log").string()))  // TODO(anonimal): #330
     ("log-levels", bpo::value<std::vector<std::string>>()->
                    // Note: we set a default value during validation and
                    // leave blank here to prevent bad_any_cast exception.
                    default_value(std::vector<std::string>(), "")->multitoken())
     ("kovriconf,c", bpo::value<std::string>(&kovri_config)->default_value(
-        kovri::util::filesystem::GetFullPath("kovri.conf")))
+        kovri::util::filesystem::GetFullPath("kovri.conf")))  // TODO(anonimal): #330
     ("tunnelsconf,t", bpo::value<std::string>(&tunnels_config)->default_value(
-        kovri::util::filesystem::GetFullPath("tunnels.conf")));
+        kovri::util::filesystem::GetFullPath("tunnels.conf")));  // TODO(anonimal): #330
 
   bpo::options_description network("\nnetwork");
   network.add_options()
@@ -181,6 +181,6 @@ bool SetLoggingOptions() {
   return true;
 }
 
-}  // namespace config
 }  // namespace util
+}  // namespace app
 }  // namespace kovri

@@ -45,8 +45,8 @@
 #include "core/util/filesystem.h"
 
 namespace kovri {
+namespace app {
 namespace util {
-namespace filesystem {
 
 /**
  * Change the application name.
@@ -73,8 +73,8 @@ const boost::filesystem::path& GetDataPath();
 /// @return the default directory for app data
 boost::filesystem::path GetDefaultDataPath();
 
-}  // namespace filesystem
 }  // namespace util
+}  // namespace app
 }  // namespace kovri
 
 #endif  // SRC_APP_UTIL_FILE_SYSTEM_H_

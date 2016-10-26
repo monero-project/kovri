@@ -69,7 +69,7 @@ void handle_signal(int sig) {
 }
 
 namespace kovri {
-namespace util {
+namespace app {
 
 bool DaemonLinux::Start() {
   if (m_IsDaemon == 1) {
@@ -86,7 +86,7 @@ bool DaemonLinux::Start() {
       LogPrint("Error, could not create process group.");
       return false;
     }
-    std::string d(kovri::util::filesystem::GetDataPath().string());  // makes copy
+    std::string d(kovri::app::util::GetDataPath().string());  // makes copy
     chdir(d.c_str());
     // close stdin/stdout/stderr descriptors
     ::close(0);
@@ -100,7 +100,7 @@ bool DaemonLinux::Start() {
       return false;
   }
   // Pidfile
-  m_pidFile = (kovri::util::filesystem::GetDataPath() / "kovri.pid").string();
+  m_pidFile = (kovri::app::util::GetDataPath() / "kovri.pid").string();
   m_pidFilehandle = open(
       m_pidFile.c_str(),
       O_RDWR | O_CREAT,
@@ -141,7 +141,7 @@ void DaemonLinux::Reload() {
   Daemon_Singleton::Reload();
 }
 
-}  // namespace util
+}  // namespace app
 }  // namespace kovri
 
 #endif

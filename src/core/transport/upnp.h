@@ -49,7 +49,7 @@
 #define I2P_UPNP_TCP 1
 #define I2P_UPNP_UDP 2
 
-namespace i2p {
+namespace kovri {
 namespace transport {
 
 class UPnP {
@@ -95,7 +95,7 @@ class UPnP {
 };
 
 }  // namespace transport
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // USE_UPNP
 #endif  // SRC_CORE_TRANSPORT_UPNP_H_

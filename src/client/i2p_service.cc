@@ -37,7 +37,7 @@
 #include "client_context.h"
 #include "i2p_service.h"
 
-namespace i2p {
+namespace kovri {
 namespace client {
 
 I2PService::I2PService(
@@ -45,20 +45,20 @@ I2PService::I2PService(
     : m_LocalDestination(
         local_destination
         ? local_destination
-        : i2p::client::context.CreateNewLocalDestination()) {}
+        : kovri::client::context.CreateNewLocalDestination()) {}
 
 I2PService::I2PService(
-    i2p::data::SigningKeyType key_type)
+    kovri::data::SigningKeyType key_type)
     : m_LocalDestination(
-        i2p::client::context.CreateNewLocalDestination(key_type)) {}
+        kovri::client::context.CreateNewLocalDestination(key_type)) {}
 
 void I2PService::CreateStream(
     StreamRequestComplete stream_request_complete,
     const std::string& dest,
     int port) {
   assert(stream_request_complete);
-  i2p::data::IdentHash ident_hash;
-  if (i2p::client::context.GetAddressBook().CheckAddressIdentHashFound(dest, ident_hash)) {
+  kovri::data::IdentHash ident_hash;
+  if (kovri::client::context.GetAddressBook().CheckAddressIdentHashFound(dest, ident_hash)) {
     m_LocalDestination->CreateStream(
         stream_request_complete,
         ident_hash,
@@ -136,4 +136,4 @@ void TCPIPAcceptor::HandleAccept(
 }
 
 }  // namespace client
-}  // namespace i2p
+}  // namespace kovri

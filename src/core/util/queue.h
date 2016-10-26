@@ -40,7 +40,7 @@
 #include <thread>
 #include <vector>
 
-namespace i2p {
+namespace kovri {
 namespace util {
 
 template<typename Element>
@@ -189,6 +189,6 @@ class MsgQueue : public Queue<Msg *> {
 };
 
 }  // namespace util
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_UTIL_QUEUE_H_

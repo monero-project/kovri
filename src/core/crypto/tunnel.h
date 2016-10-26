@@ -38,7 +38,7 @@
 
 #include "aes.h"
 
-namespace i2p {
+namespace kovri {
 namespace crypto {
 
 /// @class TunnelEncryption
@@ -80,6 +80,6 @@ class TunnelDecryption {  // with double IV encryption
 };
 
 }  // namespace crypto
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_TUNNEL_H_

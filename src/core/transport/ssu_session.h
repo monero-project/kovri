@@ -46,7 +46,7 @@
 #include "crypto/aes.h"
 #include "crypto/hmac.h"
 
-namespace i2p {
+namespace kovri {
 namespace transport {
 
 enum SessionState {
@@ -117,7 +117,7 @@ class SSUSession
   SSUSession(
       SSUServer& server,
       boost::asio::ip::udp::endpoint& remote_endpoint,
-      std::shared_ptr<const i2p::data::RouterInfo> router = nullptr,
+      std::shared_ptr<const kovri::data::RouterInfo> router = nullptr,
       bool peer_test = false);
 
   ~SSUSession();
@@ -374,16 +374,16 @@ class SSUSession
   bool m_IsSessionKey;
   std::uint32_t m_RelayTag;
   SSUData m_Data;
-  i2p::crypto::CBCEncryption m_SessionKeyEncryption;
-  i2p::crypto::CBCDecryption m_SessionKeyDecryption;
-  i2p::crypto::AESKey m_SessionKey;
-  i2p::crypto::MACKey m_MACKey;
+  kovri::crypto::CBCEncryption m_SessionKeyEncryption;
+  kovri::crypto::CBCDecryption m_SessionKeyDecryption;
+  kovri::crypto::AESKey m_SessionKey;
+  kovri::crypto::MACKey m_MACKey;
   std::uint32_t m_CreationTime;  // seconds since epoch
   std::unique_ptr<SignedData> m_SessionConfirmData;
   bool m_IsDataReceived;
 };
 
 }  // namespace transport
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_TRANSPORT_SSU_SESSION_H_

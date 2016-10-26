@@ -84,7 +84,7 @@ int inet_pton(
 }
 #endif
 
-namespace i2p {
+namespace kovri {
 namespace util {
 namespace mtu {
 
@@ -321,4 +321,4 @@ std::uint16_t GetMTU(
 
 }  // namespace mtu
 }  // namespace util
-}  // namespace i2p
+}  // namespace kovri

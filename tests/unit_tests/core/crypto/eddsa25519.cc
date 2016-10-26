@@ -57,20 +57,20 @@ struct EDDSAFixture {
     0xed, 0x62
   };
 
-  i2p::crypto::EDDSA25519Verifier verifier;
-  i2p::crypto::EDDSA25519Signer signer;
+  kovri::crypto::EDDSA25519Verifier verifier;
+  kovri::crypto::EDDSA25519Signer signer;
 };
 
 BOOST_FIXTURE_TEST_CASE(EdDSA25519KeyLength, EDDSAFixture) {
   BOOST_CHECK_EQUAL(
       verifier.GetPublicKeyLen(),
-      i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH);
+      kovri::crypto::EDDSA25519_PUBLIC_KEY_LENGTH);
 }
 
 BOOST_FIXTURE_TEST_CASE(EdDSA25519SignatureLength, EDDSAFixture) {
   BOOST_CHECK_EQUAL(
       verifier.GetSignatureLen(),
-      i2p::crypto::EDDSA25519_SIGNATURE_LENGTH);
+      kovri::crypto::EDDSA25519_SIGNATURE_LENGTH);
 }
 
 BOOST_FIXTURE_TEST_CASE(EdDSA25519Sign, EDDSAFixture) {

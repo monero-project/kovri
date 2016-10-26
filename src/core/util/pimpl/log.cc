@@ -49,7 +49,7 @@
 #include <string>
 #include <vector>
 
-namespace i2p {
+namespace kovri {
 namespace util {
 namespace log {
 
@@ -505,4 +505,4 @@ std::ostream& operator<<(
 
 }  // namespace log
 }  // namespace util
-}  // namespace i2p
+}  // namespace kovri

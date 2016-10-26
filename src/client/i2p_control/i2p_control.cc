@@ -51,7 +51,7 @@
 #include "util/log.h"
 #include "util/timestamp.h"
 
-namespace i2p {
+namespace kovri {
 namespace client {
 namespace i2pcontrol {
 
@@ -94,15 +94,15 @@ std::string JsonObject::ToString() const {
 }
 
 JsonObject TunnelToJsonObject(
-    i2p::tunnel::Tunnel* tunnel) {
+    kovri::tunnel::Tunnel* tunnel) {
   JsonObject obj;
   std::stringstream ss;
   tunnel->GetTunnelConfig()->Print(ss);  // TODO(unassigned): use a JsonObject
   obj["layout"] = JsonObject(ss.str());
   const auto state = tunnel->GetState();
-  if (state == i2p::tunnel::e_TunnelStateFailed)
+  if (state == kovri::tunnel::e_TunnelStateFailed)
      obj["state"] = JsonObject("failed");
-  else if (state == i2p::tunnel::e_TunnelStateExpiring)
+  else if (state == kovri::tunnel::e_TunnelStateExpiring)
      obj["state"] = JsonObject("expiring");
   return obj;
 }
@@ -205,7 +205,7 @@ I2PControlSession::I2PControlSession(
       m_ShutdownTimer(ios),
       m_ExpireTokensTimer(ios) {
 
-  namespace constants = i2p::client::i2pcontrol::constants;
+  namespace constants = kovri::client::i2pcontrol::constants;
 
   // Method handlers
   m_MethodHandlers[constants::METHOD_AUTHENTICATE] =
@@ -350,7 +350,7 @@ bool I2PControlSession::Authenticate(
 std::string I2PControlSession::GenerateToken() const {
   // Generate random data for token
   std::array<std::uint8_t, constants::TOKEN_SIZE> rand = {};
-  i2p::crypto::RandBytes(rand.data(), constants::TOKEN_SIZE);
+  kovri::crypto::RandBytes(rand.data(), constants::TOKEN_SIZE);
   // Create base16 token from random data
   std::stringstream token;
   for (std::size_t i(0); i < rand.size(); i++)
@@ -452,7 +452,7 @@ void I2PControlSession::HandleUptime(
     Response& response) {
   response.SetParam(
       constants::ROUTER_INFO_UPTIME,
-      static_cast<int>(i2p::context.GetUptime())*1000);
+      static_cast<int>(kovri::context.GetUptime())*1000);
 }
 
 void I2PControlSession::HandleVersion(
@@ -474,62 +474,62 @@ void I2PControlSession::HandleDatapath(
     Response& response) {
   response.SetParam(
       constants::ROUTER_INFO_DATAPATH,
-      i2p::context.GetDataPath().string());
+      kovri::context.GetDataPath().string());
 }
 
 void I2PControlSession::HandleNetDbKnownPeers(
     Response& response) {
   response.SetParam(
       constants::ROUTER_INFO_NETDB_KNOWNPEERS,
-      i2p::data::netdb.GetNumRouters());
+      kovri::data::netdb.GetNumRouters());
 }
 
 void I2PControlSession::HandleNetDbActivePeers(
     Response& response) {
   response.SetParam(
       constants::ROUTER_INFO_NETDB_ACTIVEPEERS,
-      static_cast<int>(i2p::transport::transports.GetPeers().size()));
+      static_cast<int>(kovri::transport::transports.GetPeers().size()));
 }
 
 void I2PControlSession::HandleNetDbFloodfills(
     Response& response) {
   response.SetParam(
       constants::ROUTER_INFO_NETDB_FLOODFILLS,
-      static_cast<int>(i2p::data::netdb.GetNumFloodfills()));
+      static_cast<int>(kovri::data::netdb.GetNumFloodfills()));
 }
 
 void I2PControlSession::HandleNetDbLeaseSets(
     Response& response) {
   response.SetParam(
       constants::ROUTER_INFO_NETDB_LEASESETS,
-      static_cast<int>(i2p::data::netdb.GetNumLeaseSets()));
+      static_cast<int>(kovri::data::netdb.GetNumLeaseSets()));
 }
 
 void I2PControlSession::HandleNetStatus(
     Response& response) {
   response.SetParam(
       constants::ROUTER_INFO_NET_STATUS,
-      static_cast<int>(i2p::context.GetStatus()));
+      static_cast<int>(kovri::context.GetStatus()));
 }
 
 void I2PControlSession::HandleTunnelsParticipating(
     Response& response) {
   response.SetParam(
       constants::ROUTER_INFO_TUNNELS_PARTICIPATING,
-      static_cast<int>(i2p::tunnel::tunnels.GetTransitTunnels().size()));
+      static_cast<int>(kovri::tunnel::tunnels.GetTransitTunnels().size()));
 }
 
 void I2PControlSession::HandleTunnelsCreationSuccess(
     Response& response) {
   response.SetParam(
       constants::ROUTER_INFO_TUNNELS_CREATION_SUCCESS,
-      i2p::tunnel::tunnels.GetTunnelCreationSuccessRate());
+      kovri::tunnel::tunnels.GetTunnelCreationSuccessRate());
 }
 
 void I2PControlSession::HandleTunnelsInList(
     Response& response) {
   JsonObject list;
-  for (auto pair : i2p::tunnel::tunnels.GetInboundTunnels()) {
+  for (auto pair : kovri::tunnel::tunnels.GetInboundTunnels()) {
     const std::string id = std::to_string(pair.first);
     list[id] = TunnelToJsonObject(pair.second.get());
     list[id]["bytes"] = JsonObject(
@@ -543,7 +543,7 @@ void I2PControlSession::HandleTunnelsInList(
 void I2PControlSession::HandleTunnelsOutList(
     Response& response) {
   JsonObject list;
-  for (auto tunnel : i2p::tunnel::tunnels.GetOutboundTunnels()) {
+  for (auto tunnel : kovri::tunnel::tunnels.GetOutboundTunnels()) {
     const std::string id = std::to_string(
         tunnel->GetTunnelID());
     list[id] = TunnelToJsonObject(tunnel.get());
@@ -559,14 +559,14 @@ void I2PControlSession::HandleInBandwidth1S(
     Response& response) {
   response.SetParam(
       constants::ROUTER_INFO_BW_IB_1S,
-      static_cast<double>(i2p::transport::transports.GetInBandwidth()));
+      static_cast<double>(kovri::transport::transports.GetInBandwidth()));
 }
 
 void I2PControlSession::HandleOutBandwidth1S(
     Response& response) {
   response.SetParam(
       constants::ROUTER_INFO_BW_OB_1S,
-      static_cast<double>(i2p::transport::transports.GetOutBandwidth()));
+      static_cast<double>(kovri::transport::transports.GetOutBandwidth()));
 }
 
 void I2PControlSession::HandleShutdown(
@@ -580,16 +580,16 @@ void I2PControlSession::HandleShutdown(
       [this](
         const boost::system::error_code&) {
       std::lock_guard<std::mutex> lock(m_ShutdownMutex);
-      i2p::client::context.RequestShutdown();
+      kovri::client::context.RequestShutdown();
       });
 }
 
 void I2PControlSession::HandleShutdownGraceful(
     Response& response) {
   // Stop accepting tunnels
-  i2p::context.SetAcceptsTunnels(false);
+  kovri::context.SetAcceptsTunnels(false);
   // Get tunnel expiry time
-  int timeout = i2p::tunnel::tunnels.GetTransitTunnelsExpirationTimeout();
+  int timeout = kovri::tunnel::tunnels.GetTransitTunnelsExpirationTimeout();
   LogPrint(eLogInfo,
       "I2PControlSession: graceful shutdown requested."
       "Will shutdown after ", timeout, " seconds");
@@ -604,7 +604,7 @@ void I2PControlSession::HandleShutdownGraceful(
       [this](
         const boost::system::error_code&) {
       std::lock_guard<std::mutex> lock(m_ShutdownMutex);
-      i2p::client::context.RequestShutdown();
+      kovri::client::context.RequestShutdown();
       });
 }
 
@@ -612,7 +612,7 @@ void I2PControlSession::HandleReseed(
     Response& response) {
   LogPrint(eLogInfo, "I2PControlSession: reseed requested");
   response.SetParam(constants::ROUTER_MANAGER_SHUTDOWN, "");
-  i2p::data::Reseed reseed;
+  kovri::data::Reseed reseed;
   if (!reseed.Start())
     LogPrint(eLogError, "I2PControlSession: reseed failed");
 }
@@ -646,4 +646,4 @@ void I2PControlSession::StartExpireTokensJob() {
 
 }  // namespace i2pcontrol
 }  // namespace client
-}  // namespace i2p
+}  // namespace kovri

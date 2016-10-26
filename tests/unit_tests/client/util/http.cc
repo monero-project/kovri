@@ -36,7 +36,7 @@
 
 BOOST_AUTO_TEST_SUITE(HTTPUtilityTests)
 
-i2p::util::http::HTTP http;
+kovri::util::http::HTTP http;
 
 BOOST_AUTO_TEST_CASE(UriParse) {
   // Note: cpp-netlib has better tests.

@@ -39,7 +39,7 @@
 
 #include "identity.h"
 
-namespace i2p {
+namespace kovri {
 namespace data {
 
 const char PEER_PROFILES_DIRECTORY[] = "peerProfiles";
@@ -99,6 +99,6 @@ std::shared_ptr<RouterProfile> GetRouterProfile(
 void DeleteObsoleteProfiles();
 
 }  // namespace data
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_PROFILING_H_

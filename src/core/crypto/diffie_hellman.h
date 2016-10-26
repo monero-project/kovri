@@ -34,7 +34,7 @@
 #include <memory>
 #include <cstdint>
 
-namespace i2p {
+namespace kovri {
 namespace crypto {
 
 /// @class DiffieHellman
@@ -67,6 +67,6 @@ class DiffieHellman {
 };
 
 }  // namespace crypto
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_DIFFIEHELLMAN_H_

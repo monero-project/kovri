@@ -83,7 +83,7 @@ class X509FixtureImpl : X509Fixture {
       : ss(cert) {}
 
   bool GetSigningKey() {
-    i2p::crypto::util::X509 x509;
+    kovri::crypto::util::X509 x509;
     auto key = x509.GetSigningKey(ss);
     return key.empty();
   }

@@ -47,7 +47,7 @@
 #include "router_context.h"
 #include "util/log.h"
 
-namespace i2p {
+namespace kovri {
 namespace client {
 
 /// @class AddressBookDefaults
@@ -105,43 +105,43 @@ class AddressBookStorage : public AddressBookDefaults {
   /// @param ident Const reference to identity hash from filesystem
   /// @param address Reference to identity address buffer
   bool GetAddress(
-      const i2p::data::IdentHash& ident,
-      i2p::data::IdentityEx& address) const;
+      const kovri::data::IdentHash& ident,
+      kovri::data::IdentityEx& address) const;
 
   /// @brief Adds identity to address book storage
   /// @param address Const reference to identity address buffer
   void AddAddress(
-      const i2p::data::IdentityEx& address);
+      const kovri::data::IdentityEx& address);
 
   /**
   // TODO(unassigned): currently unused
   /// @brief Removes .b32 address filename from filesystem
   /// @param ident Reference to identity hash to be removed
   void RemoveAddress(
-      const i2p::data::IdentHash& ident);
+      const kovri::data::IdentHash& ident);
   **/
 
   /// @brief Loads subscriptions from file into memory
   /// @return Number of subscriptions loaded
   /// @param addresses Reference to map of human-readable addresses to hashes
   std::size_t Load(
-      std::map<std::string, i2p::data::IdentHash>& addresses);
+      std::map<std::string, kovri::data::IdentHash>& addresses);
 
   /// @brief Saves subscriptions to file in CSV format to verify addresses loaded
   /// @return Number of addresses saved
   /// @param addresses Const reference to map of human-readable address to b32 hashes of address
   std::size_t Save(
-      const std::map<std::string, i2p::data::IdentHash>& addresses);
+      const std::map<std::string, kovri::data::IdentHash>& addresses);
 
  private:
   /// @brief Gets data path and appends address book's path
   /// @return Boost.Filesystem path of address book path
   boost::filesystem::path GetAddressBookPath() const {
-    return i2p::context.GetDataPath() / GetDefaultPathname();
+    return kovri::context.GetDataPath() / GetDefaultPathname();
   }
 };
 
 }  // namespace client
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CLIENT_ADDRESSBOOK_STORAGE_H_

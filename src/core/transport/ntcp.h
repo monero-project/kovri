@@ -48,7 +48,7 @@
 #include "router_info.h"
 #include "transport_session.h"
 
-namespace i2p {
+namespace kovri {
 namespace transport {
 
 class NTCPServer {
@@ -70,7 +70,7 @@ class NTCPServer {
       std::shared_ptr<NTCPSession> session);
 
   std::shared_ptr<NTCPSession> FindNTCPSession(
-      const i2p::data::IdentHash& ident);
+      const kovri::data::IdentHash& ident);
 
   void Connect(
       const boost::asio::ip::address& address,
@@ -106,7 +106,7 @@ class NTCPServer {
   std::unique_ptr<boost::asio::ip::tcp::acceptor> m_NTCPAcceptor, m_NTCPV6Acceptor;
 
   std::mutex m_NTCPSessionsMutex;
-  std::map<i2p::data::IdentHash, std::shared_ptr<NTCPSession>> m_NTCPSessions;
+  std::map<kovri::data::IdentHash, std::shared_ptr<NTCPSession>> m_NTCPSessions;
 
   // IP -> ban expiration time in seconds
   std::map<boost::asio::ip::address, uint32_t> m_BanList;
@@ -119,6 +119,6 @@ class NTCPServer {
 };
 
 }  // namespace transport
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_TRANSPORT_NTCP_H_

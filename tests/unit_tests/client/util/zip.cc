@@ -148,7 +148,7 @@ class ZIPFixtureImpl : ZIPFixture {
     std::vector<unsigned char> bad_bytes = good_bytes;
     std::fill_n(bad_bytes.begin() + offset, amount, byte);
     std::string str(bad_bytes.begin(), bad_bytes.end());
-    i2p::util::ZIP zip(str, str.size());
+    kovri::util::ZIP zip(str, str.size());
     return zip.Unzip();
   }
 };

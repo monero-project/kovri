@@ -47,7 +47,7 @@
 #include "router_info.h"
 #include "ssu_packet.h"
 
-namespace i2p {
+namespace kovri {
 namespace transport {
 
 /// @enum SSUDuration
@@ -135,10 +135,10 @@ class SSUData {
   void FlushReceivedMessage();
 
   void Send(
-      std::shared_ptr<i2p::I2NPMessage> msg);
+      std::shared_ptr<kovri::I2NPMessage> msg);
 
   void UpdatePacketSize(
-      const i2p::data::IdentHash& remote_ident);
+      const kovri::data::IdentHash& remote_ident);
 
  private:
   void SendMsgACK(
@@ -174,7 +174,7 @@ class SSUData {
       const boost::system::error_code& ecode);
 
   void AdjustPacketSize(
-      const i2p::data::RouterInfo& remoteRouter);
+      const kovri::data::RouterInfo& remoteRouter);
 
  private:
   SSUSession& m_Session;
@@ -184,10 +184,10 @@ class SSUData {
   boost::asio::deadline_timer m_ResendTimer, m_DecayTimer,
                               m_IncompleteMessagesCleanupTimer;
   std::size_t m_MaxPacketSize, m_PacketSize;
-  i2p::I2NPMessagesHandler m_Handler;
+  kovri::I2NPMessagesHandler m_Handler;
 };
 
 }  // namespace transport
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_TRANSPORT_SSU_DATA_H_

@@ -40,7 +40,7 @@
 #include "core/util/i2p_endian.h"
 #include "core/util/log.h"
 
-namespace i2p {
+namespace kovri {
 namespace util {
 
 /**
@@ -197,7 +197,7 @@ bool ZIP::DecompressLocalFile() {
       case static_cast<std::size_t>(Method::deflate): {
         LogPrint(eLogDebug, "ZIP: file uses compression method 'deflate'");
         // Instantiate decompressor
-        i2p::crypto::util::DeflateDecompressor decompressor;
+        kovri::crypto::util::DeflateDecompressor decompressor;
         // Put in data to decompress
         decompressor.Put(
             m_Data->compressed.data(),
@@ -251,4 +251,4 @@ bool ZIP::DecompressLocalFile() {
 }
 
 }  // namespace util
-}  // namespace i2p
+}  // namespace kovri

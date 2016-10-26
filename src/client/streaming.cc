@@ -43,13 +43,13 @@
 #include "util/log.h"
 #include "util/timestamp.h"
 
-namespace i2p {
+namespace kovri {
 namespace stream {
 
 Stream::Stream(
     boost::asio::io_service& service,
     StreamingDestination& local,
-    std::shared_ptr<const i2p::data::LeaseSet> remote,
+    std::shared_ptr<const kovri::data::LeaseSet> remote,
     int port)
     : m_Service(service),
       m_SendStreamID(0),
@@ -70,7 +70,7 @@ Stream::Stream(
       m_RTO(INITIAL_RTO),
       m_LastWindowSizeIncreaseTime(0),
       m_NumResendAttempts(0) {
-        m_RecvStreamID = i2p::crypto::Rand<uint32_t>();
+        m_RecvStreamID = kovri::crypto::Rand<uint32_t>();
         m_RemoteIdentity = remote->GetIdentity();
         // TODO(unassigned):
         // This type of initialization is a friendly reminder of overall poor design.
@@ -114,7 +114,7 @@ Stream::Stream(
       m_RTO(INITIAL_RTO),
       m_LastWindowSizeIncreaseTime(0),
       m_NumResendAttempts(0) {
-        m_RecvStreamID = i2p::crypto::Rand<uint32_t>();
+        m_RecvStreamID = kovri::crypto::Rand<uint32_t>();
       }
 
 Stream::~Stream() {
@@ -296,7 +296,7 @@ void Stream::ProcessPacket(
 void Stream::ProcessAck(
     Packet * packet) {
   bool acknowledged = false;
-  auto ts = i2p::util::GetMillisecondsSinceEpoch();
+  auto ts = kovri::util::GetMillisecondsSinceEpoch();
   uint32_t ack_through = packet->GetAckThrough();
   int nack_count = packet->GetNACKCount();
   for (auto it = m_SentPackets.begin(); it != m_SentPackets.end();) {
@@ -463,7 +463,7 @@ void Stream::SendBuffer() {
     m_IsAckSendScheduled = false;
     m_AckSendTimer.cancel();
     bool is_empty = m_SentPackets.empty();
-    auto ts = i2p::util::GetMillisecondsSinceEpoch();
+    auto ts = kovri::util::GetMillisecondsSinceEpoch();
     for (auto it : packets) {
       it->send_time = ts;
       m_SentPackets.insert(it);
@@ -672,21 +672,21 @@ void Stream::SendPackets(
     LogPrint(eLogError, "Stream: no outbound tunnels in the pool");
     return;
   }
-  auto ts = i2p::util::GetMillisecondsSinceEpoch();
+  auto ts = kovri::util::GetMillisecondsSinceEpoch();
   if (!m_CurrentRemoteLease.end_date ||
       ts >= m_CurrentRemoteLease.end_date -
-      i2p::tunnel::TUNNEL_EXPIRATION_THRESHOLD * 1000)
+      kovri::tunnel::TUNNEL_EXPIRATION_THRESHOLD * 1000)
     UpdateCurrentRemoteLease(true);
   if (ts < m_CurrentRemoteLease.end_date) {
-    std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
+    std::vector<kovri::tunnel::TunnelMessageBlock> msgs;
     for (auto it : packets) {
       auto msg = m_RoutingSession->WrapSingleMessage(
           CreateDataMessage(
             it->GetBuffer(),
             it->GetLength()));
       msgs.push_back(
-          i2p::tunnel::TunnelMessageBlock {
-            i2p::tunnel::e_DeliveryTypeTunnel,
+          kovri::tunnel::TunnelMessageBlock {
+            kovri::tunnel::e_DeliveryTypeTunnel,
             m_CurrentRemoteLease.tunnel_gateway,
             m_CurrentRemoteLease.tunnel_ID,
             msg
@@ -724,7 +724,7 @@ void Stream::HandleResendTimer(
       return;
     }
     // collect packets to resend
-    auto ts = i2p::util::GetMillisecondsSinceEpoch();
+    auto ts = kovri::util::GetMillisecondsSinceEpoch();
     std::vector<Packet *> packets;
     for (auto it : m_SentPackets) {
       if (ts >= it->send_time + m_RTO) {
@@ -822,7 +822,7 @@ void Stream::UpdateCurrentRemoteLease(
       }
       if (!updated) {
         uint32_t i =
-          i2p::crypto::RandInRange<uint32_t>(
+          kovri::crypto::RandInRange<uint32_t>(
               0, leases.size() - 1);
         if (m_CurrentRemoteLease.end_date &&
             leases[i].tunnel_ID == m_CurrentRemoteLease.tunnel_ID)
@@ -844,8 +844,8 @@ std::shared_ptr<I2NPMessage> Stream::CreateDataMessage(
     const uint8_t* payload,
     size_t len) {
   auto msg = ToSharedI2NPMessage(NewI2NPShortMessage());
-  i2p::crypto::util::Gzip compressor;
-  if (len <= i2p::stream::COMPRESSION_THRESHOLD_SIZE)
+  kovri::crypto::util::Gzip compressor;
+  if (len <= kovri::stream::COMPRESSION_THRESHOLD_SIZE)
     compressor.SetDeflateLevel(
         compressor.GetMinDeflateLevel());
   else
@@ -865,7 +865,7 @@ std::shared_ptr<I2NPMessage> Stream::CreateDataMessage(
   // destination port
   htobe16buf(buf + 6, m_Port);
   // streaming protocol
-  buf[9] = i2p::client::PROTOCOL_TYPE_STREAMING;
+  buf[9] = kovri::client::PROTOCOL_TYPE_STREAMING;
   msg->len += size + 4;
   msg->FillI2NPMessageHeader(e_I2NPData);
   return msg;
@@ -922,7 +922,7 @@ void StreamingDestination::HandleNextPacket(
 }
 
 std::shared_ptr<Stream> StreamingDestination::CreateNewOutgoingStream(
-    std::shared_ptr<const i2p::data::LeaseSet> remote,
+    std::shared_ptr<const kovri::data::LeaseSet> remote,
     int port) {
   auto s = std::make_shared<Stream>(m_Owner.GetService(), *this, remote, port);
   std::unique_lock<std::mutex> l(m_StreamsMutex);
@@ -951,7 +951,7 @@ void StreamingDestination::HandleDataMessagePayload(
     const uint8_t* buf,
     size_t len) {
   // Gunzip it
-  i2p::crypto::util::Gunzip decompressor;
+  kovri::crypto::util::Gunzip decompressor;
   decompressor.Put(buf, len);
   Packet* uncompressed = new Packet;
   uncompressed->offset = 0;
@@ -968,4 +968,4 @@ void StreamingDestination::HandleDataMessagePayload(
 }
 
 }  // namespace stream
-}  // namespace i2p
+}  // namespace kovri

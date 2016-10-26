@@ -52,7 +52,7 @@
 #include "tunnel_pool.h"
 #include "util/queue.h"
 
-namespace i2p {
+namespace kovri {
 namespace tunnel {
 
 const int TUNNEL_EXPIRATION_TIMEOUT = 660,    // 11 minutes
@@ -127,7 +127,7 @@ class Tunnel : public TunnelBase {
 
   // implements TunnelBase
   void SendTunnelDataMsg(
-      std::shared_ptr<i2p::I2NPMessage> msg);
+      std::shared_ptr<kovri::I2NPMessage> msg);
 
   void EncryptTunnelMsg(
       std::shared_ptr<const I2NPMessage> in,
@@ -137,7 +137,7 @@ class Tunnel : public TunnelBase {
     return m_Config->GetFirstHop()->tunnel_ID;
   }
 
-  const i2p::data::IdentHash& GetNextIdentHash() const {
+  const kovri::data::IdentHash& GetNextIdentHash() const {
     return m_Config->GetFirstHop()->router->GetIdentHash();
   }
 
@@ -159,13 +159,13 @@ class OutboundTunnel
   void SendTunnelDataMsg(
       const uint8_t* gw_hash,
       uint32_t gw_tunnel,
-      std::shared_ptr<i2p::I2NPMessage> msg);
+      std::shared_ptr<kovri::I2NPMessage> msg);
 
   // multiple messages
   void SendTunnelDataMsg(
       const std::vector<TunnelMessageBlock>& msgs);
 
-  std::shared_ptr<const i2p::data::RouterInfo> GetEndpointRouter() const {
+  std::shared_ptr<const kovri::data::RouterInfo> GetEndpointRouter() const {
     return GetTunnelConfig()->GetLastHop()->router;
   }
 
@@ -175,7 +175,7 @@ class OutboundTunnel
 
   // implements TunnelBase
   void HandleTunnelDataMsg(
-      std::shared_ptr<const i2p::I2NPMessage> tunnel_msg);
+      std::shared_ptr<const kovri::I2NPMessage> tunnel_msg);
 
   uint32_t GetTunnelID() const {
     return GetNextTunnelID();
@@ -269,7 +269,7 @@ class Tunnels {
       std::shared_ptr<OutboundTunnel> tunnel);  // outbound
 
   std::shared_ptr<TunnelPool> CreateTunnelPool(
-      i2p::garlic::GarlicDestination* local_destination,
+      kovri::garlic::GarlicDestination* local_destination,
       int num_inbound_hops,
       int num_oubound_hops,
       int num_inbound_tunnels,
@@ -328,7 +328,7 @@ class Tunnels {
   std::mutex m_PoolsMutex;
   std::list<std::shared_ptr<TunnelPool>> m_Pools;
   std::shared_ptr<TunnelPool> m_ExploratoryPool;
-  i2p::util::Queue<std::shared_ptr<I2NPMessage> > m_Queue;
+  kovri::util::Queue<std::shared_ptr<I2NPMessage> > m_Queue;
 
   // some stats
   int m_NumSuccesiveTunnelCreations,
@@ -364,6 +364,6 @@ class Tunnels {
 extern Tunnels tunnels;
 
 }  // namespace tunnel
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_TUNNEL_TUNNEL_H_

@@ -47,7 +47,7 @@
 #include "identity.h"
 #include "util/log.h"
 
-namespace i2p {
+namespace kovri {
 namespace crypto {
 namespace util {
 
@@ -215,4 +215,4 @@ const std::map<std::string, PublicKey> X509::GetSigningKey(
 
 }  // namespace util
 }  // namespace crypto
-}  // namespace i2p
+}  // namespace kovri

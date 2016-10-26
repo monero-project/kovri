@@ -35,7 +35,7 @@
 #include <cstdint>
 #include <cstddef>
 
-namespace i2p {
+namespace kovri {
 namespace util {
 
 /// @class InputByteStream
@@ -134,6 +134,6 @@ class OutputByteStream {
 };
 
 } // namespace util
-} // namespace i2p
+} // namespace kovri
 
 #endif  // SRC_CORE_UTIL_BYTESTREAM_H_

@@ -48,7 +48,7 @@
 #include "util/log.h"
 #include "util/timestamp.h"
 
-namespace i2p {
+namespace kovri {
 namespace data {
 
 RouterInfo::RouterInfo()
@@ -106,7 +106,7 @@ void RouterInfo::Update(
 void RouterInfo::SetRouterIdentity(
     const IdentityEx& identity) {
   m_RouterIdentity = identity;
-  m_Timestamp = i2p::util::GetMillisecondsSinceEpoch();
+  m_Timestamp = kovri::util::GetMillisecondsSinceEpoch();
 }
 
 bool RouterInfo::LoadFile() {
@@ -216,7 +216,7 @@ void RouterInfo::ReadFromStream(
       } else if (!strcmp(key, "mtu")) {
         address.mtu = boost::lexical_cast<int>(value);
       } else if (!strcmp(key, "key")) {
-        i2p::util::Base64ToByteStream(value, strlen(value), address.key, 32);
+        kovri::util::Base64ToByteStream(value, strlen(value), address.key, 32);
       } else if (!strcmp(key, "caps")) {
         ExtractCaps(value);
       } else if (key[0] == 'i') {
@@ -237,7 +237,7 @@ void RouterInfo::ReadFromStream(
         } else if (!strcmp(key, "itag")) {
           introducer.tag = boost::lexical_cast<uint32_t>(value);
         } else if (!strcmp(key, "ikey")) {
-          i2p::util::Base64ToByteStream(
+          kovri::util::Base64ToByteStream(
               value,
               strlen(value),
               introducer.key,
@@ -386,7 +386,7 @@ void RouterInfo::WriteToStream(
           properties << '=';
           char value[64];
           size_t len =
-            i2p::util::ByteStreamToBase64(introducer.key, 32, value, 64);
+            kovri::util::ByteStreamToBase64(introducer.key, 32, value, 64);
           value[len] = 0;
           WriteString(value, properties);
           properties << ';';
@@ -421,7 +421,7 @@ void RouterInfo::WriteToStream(
       WriteString("key", properties);
       properties << '=';
       char value[64];
-      size_t len = i2p::util::ByteStreamToBase64(address.key, 32, value, 64);
+      size_t len = kovri::util::ByteStreamToBase64(address.key, 32, value, 64);
       value[len] = 0;
       WriteString(value, properties);
       properties << ';';
@@ -468,7 +468,7 @@ const uint8_t* RouterInfo::LoadBuffer() {
 }
 
 void RouterInfo::CreateBuffer(const PrivateKeys& privateKeys) {
-  m_Timestamp = i2p::util::GetMillisecondsSinceEpoch();  // refresh timestamp
+  m_Timestamp = kovri::util::GetMillisecondsSinceEpoch();  // refresh timestamp
   std::stringstream s;
   uint8_t ident[1024];
   auto ident_len = privateKeys.GetPublic().ToBuffer(ident, 1024);
@@ -648,7 +648,7 @@ void RouterInfo::DisableV6() {
     m_SupportedTransports &= ~eNTCPV6;
     for (size_t i = 0; i < m_Addresses.size(); i++) {
       if (m_Addresses[i].transport_style ==
-          i2p::data::RouterInfo::eTransportNTCP &&
+          kovri::data::RouterInfo::eTransportNTCP &&
           m_Addresses[i].host.is_v6()) {
         m_Addresses.erase(m_Addresses.begin() + i);
         break;
@@ -658,7 +658,7 @@ void RouterInfo::DisableV6() {
     m_SupportedTransports &= ~eSSUV6;
     for (size_t i = 0; i < m_Addresses.size(); i++) {
       if (m_Addresses[i].transport_style ==
-          i2p::data::RouterInfo::eTransportSSU &&
+          kovri::data::RouterInfo::eTransportSSU &&
           m_Addresses[i].host.is_v6()) {
         m_Addresses.erase(m_Addresses.begin() + i);
         break;
@@ -706,4 +706,4 @@ std::shared_ptr<RouterProfile> RouterInfo::GetProfile() const {
 }
 
 }  // namespace data
-}  // namespace i2p
+}  // namespace kovri

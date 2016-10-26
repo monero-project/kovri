@@ -38,7 +38,7 @@
 #include "crypto_const.h"
 #include "util/log.h"
 
-namespace i2p {
+namespace kovri {
 namespace crypto {
 
 /// @class DiffieHellmanImpl
@@ -47,7 +47,7 @@ class DiffieHellman::DiffieHellmanImpl {
  public:
   /// @brief Initializes with ElGamal constants on construction
   DiffieHellmanImpl()
-      : m_DH(i2p::crypto::elgp, i2p::crypto::elgg) {}
+      : m_DH(kovri::crypto::elgp, kovri::crypto::elgg) {}
 
   /// @brief Generate private/public key pair
   /// @param private_key Private key
@@ -111,4 +111,4 @@ bool DiffieHellman::Agree(
 }
 
 }  // namespace crypto
-}  // namespace i2p
+}  // namespace kovri

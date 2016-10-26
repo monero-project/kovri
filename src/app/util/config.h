@@ -42,7 +42,7 @@
 #include "core/version.h"
 #include "filesystem.h"
 
-namespace i2p {
+namespace kovri {
 namespace util {
 
 const char I2P_TUNNELS_SECTION_TYPE[] = "type";
@@ -92,6 +92,6 @@ bool SetLoggingOptions();
 
 }  // namespace config
 }  // namespace util
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_APP_UTIL_CONFIG_H_

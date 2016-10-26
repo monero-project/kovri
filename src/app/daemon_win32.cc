@@ -41,7 +41,7 @@
 
 #include "win32_service.h"
 
-namespace i2p {
+namespace kovri {
 namespace util {
 
 bool DaemonWin32::Init() {
@@ -57,7 +57,7 @@ bool DaemonWin32::Init() {
   else
     m_IsDaemon = 0;
   std::string service_control =
-    i2p::util::config::var_map["service"].as<std::string>();
+    kovri::util::config::var_map["service"].as<std::string>();
   if (service_control == "install") {
     InstallService(
         SERVICE_NAME,               // Name of service
@@ -99,6 +99,6 @@ bool DaemonWin32::Stop() {
 }
 
 }  // namespace util
-}  // namespace i2p
+}  // namespace kovri
 
 #endif

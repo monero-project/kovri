@@ -38,7 +38,7 @@
 #include "util/log.h"
 #include "util/timestamp.h"
 
-namespace i2p {
+namespace kovri {
 namespace transport {
 
 /**
@@ -284,11 +284,11 @@ std::size_t SSUSessionCreatedPacket::GetSize() const {
  */
 
 void SSUSessionConfirmedPacket::SetRemoteRouterIdentity(
-    const i2p::data::IdentityEx& identity) {
+    const kovri::data::IdentityEx& identity) {
   m_RemoteIdentity = identity;
 }
 
-i2p::data::IdentityEx& SSUSessionConfirmedPacket::GetRemoteRouterIdentity() {
+kovri::data::IdentityEx& SSUSessionConfirmedPacket::GetRemoteRouterIdentity() {
   return m_RemoteIdentity;
 }
 
@@ -763,7 +763,7 @@ std::unique_ptr<SSUSessionConfirmedPacket> SSUPacketParser::ParseSessionConfirme
   auto packet = std::make_unique<SSUSessionConfirmedPacket>();
   ConsumeData(1);  // Skip info byte
   std::uint16_t identity_size = ReadUInt16();
-  i2p::data::IdentityEx identity;
+  kovri::data::IdentityEx identity;
   identity.FromBuffer(ReadBytes(identity_size), identity_size);
   packet->SetRemoteRouterIdentity(identity);
   packet->SetSignedOnTime(ReadUInt32());
@@ -932,7 +932,7 @@ void SSUPacketBuilder::WriteSessionConfirmed(
       packet->GetHeader()->GetSize() + m_Data - begin + signature_size);
   std::uint8_t* const padding = m_Data;
   ProduceData(padding_size);
-  i2p::crypto::RandBytes(m_Data, padding_size);
+  kovri::crypto::RandBytes(m_Data, padding_size);
   WriteData(packet->GetSignature(), signature_size);
 }
 
@@ -987,4 +987,4 @@ void SSUPacketBuilder::WritePacket(SSUPacket* packet) {
 }
 
 }  // namespace transport
-}  // namespace i2p
+}  // namespace kovri

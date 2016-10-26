@@ -39,7 +39,7 @@
 #include <sstream>
 #include <string>
 
-namespace i2p {
+namespace kovri {
 namespace util {
 namespace filesystem {
 
@@ -96,6 +96,6 @@ const boost::filesystem::path GetLogsPath();
 
 }  // namespace filesystem
 }  // namespace util
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_UTIL_FILESYSTEM_H_

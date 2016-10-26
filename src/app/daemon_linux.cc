@@ -68,7 +68,7 @@ void handle_signal(int sig) {
   }
 }
 
-namespace i2p {
+namespace kovri {
 namespace util {
 
 bool DaemonLinux::Start() {
@@ -86,7 +86,7 @@ bool DaemonLinux::Start() {
       LogPrint("Error, could not create process group.");
       return false;
     }
-    std::string d(i2p::util::filesystem::GetDataPath().string());  // makes copy
+    std::string d(kovri::util::filesystem::GetDataPath().string());  // makes copy
     chdir(d.c_str());
     // close stdin/stdout/stderr descriptors
     ::close(0);
@@ -100,7 +100,7 @@ bool DaemonLinux::Start() {
       return false;
   }
   // Pidfile
-  m_pidFile = (i2p::util::filesystem::GetDataPath() / "kovri.pid").string();
+  m_pidFile = (kovri::util::filesystem::GetDataPath() / "kovri.pid").string();
   m_pidFilehandle = open(
       m_pidFile.c_str(),
       O_RDWR | O_CREAT,
@@ -142,6 +142,6 @@ void DaemonLinux::Reload() {
 }
 
 }  // namespace util
-}  // namespace i2p
+}  // namespace kovri
 
 #endif

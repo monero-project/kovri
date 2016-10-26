@@ -40,7 +40,7 @@
 #include "util/i2p_endian.h"
 #include "util/log.h"
 
-namespace i2p {
+namespace kovri {
 namespace tunnel {
 
 TunnelGatewayBuffer::TunnelGatewayBuffer(
@@ -48,7 +48,7 @@ TunnelGatewayBuffer::TunnelGatewayBuffer(
     : m_TunnelID(tunnel_ID),
       m_CurrentTunnelDataMsg(nullptr),
       m_RemainingSize(0) {
-  i2p::crypto::RandBytes(
+  kovri::crypto::RandBytes(
       m_NonZeroRandomBuffer,
       TUNNEL_DATA_MAX_PAYLOAD_SIZE);
   for (size_t i = 0; i < TUNNEL_DATA_MAX_PAYLOAD_SIZE; i++)
@@ -195,10 +195,10 @@ void TunnelGatewayBuffer::CompleteCurrentTunnelDataMessage() {
     m_CurrentTunnelDataMsg->len - TUNNEL_DATA_MSG_SIZE - I2NP_HEADER_SIZE;
   uint8_t* buf = m_CurrentTunnelDataMsg->GetPayload();
   htobe32buf(buf, m_TunnelID);
-  i2p::crypto::RandBytes(buf + 4, 16);  // original IV
+  kovri::crypto::RandBytes(buf + 4, 16);  // original IV
   memcpy(payload + size, buf + 4, 16);  // copy IV for checksum
   uint8_t hash[32];
-  i2p::crypto::SHA256().CalculateDigest(hash, payload, size + 16);
+  kovri::crypto::SHA256().CalculateDigest(hash, payload, size + 16);
   memcpy(buf + 20, hash, 4);  // checksum
   // XXX: WTF?!
   payload[-1] = 0;  // zero
@@ -206,7 +206,7 @@ void TunnelGatewayBuffer::CompleteCurrentTunnelDataMessage() {
   if (padding_size > 0) {
     // non-zero padding
     uint32_t random_offset =
-      i2p::crypto::RandInRange<uint32_t>(
+      kovri::crypto::RandInRange<uint32_t>(
         0,
         TUNNEL_DATA_MAX_PAYLOAD_SIZE - padding_size);
     memcpy(
@@ -241,12 +241,12 @@ void TunnelGateway::SendBuffer() {
     tunnel_msg->FillI2NPMessageHeader(e_I2NPTunnelData);
     m_NumSentBytes += TUNNEL_DATA_MSG_SIZE;
   }
-  i2p::transport::transports.SendMessages(
+  kovri::transport::transports.SendMessages(
       m_Tunnel->GetNextIdentHash(),
       tunnel_msgs);
   m_Buffer.ClearTunnelDataMsgs();
 }
 
 }  // namespace tunnel
-}  // namespace i2p
+}  // namespace kovri
 

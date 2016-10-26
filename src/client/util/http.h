@@ -48,7 +48,7 @@
 
 #include "reseed.h"
 
-namespace i2p {
+namespace kovri {
 namespace util {
 namespace http {  // TODO(anonimal): consider removing this namespace (its not needed)
 
@@ -258,6 +258,6 @@ class HTTP : public HTTPStorage {
 
 }  // namespace http
 }  // namespace util
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_UTIL_HTTP_H_

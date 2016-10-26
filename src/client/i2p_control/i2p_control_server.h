@@ -45,7 +45,7 @@
 
 #include "i2p_control.h"
 
-namespace i2p {
+namespace kovri {
 namespace client {
 namespace i2pcontrol {
 
@@ -106,6 +106,6 @@ class I2PControlService {
 
 }  // namespace i2pcontrol
 }  // namespace client
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CLIENT_I2P_CONTROL_I2P_CONTROL_SERVER_H_

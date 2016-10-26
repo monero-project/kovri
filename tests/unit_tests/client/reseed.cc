@@ -216,8 +216,8 @@ struct SU3Fixture {
   };
 
   // Map the signature for verification
-  i2p::crypto::util::PublicKey pubkey = signing_key.data();
-  std::map<std::string, i2p::crypto::util::PublicKey> x509 {
+  kovri::crypto::util::PublicKey pubkey = signing_key.data();
+  std::map<std::string, kovri::crypto::util::PublicKey> x509 {
     { "anonimal@mail.i2p", pubkey },
   };
 };
@@ -243,7 +243,7 @@ class SU3FixtureImpl : SU3Fixture {
     std::vector<unsigned char> bad_bytes = good_bytes;
     std::fill_n(bad_bytes.begin() + offset, amount, byte);
     std::string str(bad_bytes.begin(), bad_bytes.end());
-    i2p::data::SU3 su3(str, x509);
+    kovri::data::SU3 su3(str, x509);
     return su3.SU3Impl();
   }
 };

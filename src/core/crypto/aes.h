@@ -40,7 +40,7 @@
 
 #include "identity.h"
 
-namespace i2p {
+namespace kovri {
 namespace crypto {
 
 struct CipherBlock {
@@ -63,7 +63,7 @@ struct CipherBlock {
   }
 };
 
-typedef i2p::data::Tag<32> AESKey;
+typedef kovri::data::Tag<32> AESKey;
 
 template<std::size_t Size>
 class AESAlignedBuffer {  // 16 bytes alignment
@@ -227,6 +227,6 @@ class CBCDecryption {
 };
 
 }  // namespace crypto
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_AES_H_

@@ -44,11 +44,11 @@
 #include "tunnel/tunnel_base.h"
 #include "util/log.h"
 
-namespace i2p {
+namespace kovri {
 namespace datagram {
 
 DatagramDestination::DatagramDestination(
-    i2p::client::ClientDestination& owner)
+    kovri::client::ClientDestination& owner)
     : m_Owner(owner),
       m_Receiver(nullptr) {}
 
@@ -98,7 +98,7 @@ T* release(const ReleasableSharedPtr<T>& smart_ptr) {
 void DatagramDestination::SendDatagramTo(
     const uint8_t* payload,
     size_t len,
-    const i2p::data::IdentHash& ident,
+    const kovri::data::IdentHash& ident,
     uint16_t from_port,
     uint16_t to_port) {
   uint8_t buf[MAX_DATAGRAM_SIZE];
@@ -109,16 +109,16 @@ void DatagramDestination::SendDatagramTo(
   size_t header_len = identity_len + signature_len;
   memcpy(buf1, payload, len);
   if (m_Owner.GetIdentity().GetSigningKeyType()
-      == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1) {
+      == kovri::data::SIGNING_KEY_TYPE_DSA_SHA1) {
     uint8_t hash[32];
-    i2p::crypto::SHA256().CalculateDigest(hash, buf1, len);
+    kovri::crypto::SHA256().CalculateDigest(hash, buf1, len);
     m_Owner.Sign(hash, 32, signature);
   } else {
     m_Owner.Sign(buf1, len, signature);
   }
   std::unique_ptr<I2NPMessage> msg
       = CreateDataMessage(buf, len + header_len, from_port, to_port);
-  std::shared_ptr<const i2p::data::LeaseSet> remote
+  std::shared_ptr<const kovri::data::LeaseSet> remote
       = m_Owner.FindLeaseSet(ident);
 
   ReleasableSharedPtr<I2NPMessage> temp_msg
@@ -130,7 +130,7 @@ void DatagramDestination::SendDatagramTo(
   } else {
     m_Owner.RequestDestination(
         ident,
-        [this, temp_msg](const std::shared_ptr<i2p::data::LeaseSet>& remote) {
+        [this, temp_msg](const std::shared_ptr<kovri::data::LeaseSet>& remote) {
           HandleLeaseSetRequestComplete(
               remote, std::unique_ptr<I2NPMessage>(release(temp_msg)));
         });
@@ -138,7 +138,7 @@ void DatagramDestination::SendDatagramTo(
 }
 
 void DatagramDestination::HandleLeaseSetRequestComplete(
-    std::shared_ptr<i2p::data::LeaseSet> remote,
+    std::shared_ptr<kovri::data::LeaseSet> remote,
     std::unique_ptr<I2NPMessage> msg) {
   if (remote)
     SendMsg(std::move(msg), remote);
@@ -146,18 +146,18 @@ void DatagramDestination::HandleLeaseSetRequestComplete(
 
 void DatagramDestination::SendMsg(
     std::unique_ptr<I2NPMessage> msg,
-    std::shared_ptr<const i2p::data::LeaseSet> remote) {
+    std::shared_ptr<const kovri::data::LeaseSet> remote) {
   auto outbound_tunnel = m_Owner.GetTunnelPool()->GetNextOutboundTunnel();
   auto leases = remote->GetNonExpiredLeases();
   if (!leases.empty() && outbound_tunnel) {
-    std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
-    uint32_t i = i2p::crypto::RandInRange<uint32_t>(0, leases.size() - 1);
+    std::vector<kovri::tunnel::TunnelMessageBlock> msgs;
+    uint32_t i = kovri::crypto::RandInRange<uint32_t>(0, leases.size() - 1);
     auto garlic = m_Owner.WrapMessage(
         remote,
         ToSharedI2NPMessage(std::move(msg)),
         true);
     msgs.push_back(
-        i2p::tunnel::TunnelMessageBlock{i2p::tunnel::e_DeliveryTypeTunnel,
+        kovri::tunnel::TunnelMessageBlock{kovri::tunnel::e_DeliveryTypeTunnel,
                                         leases[i].tunnel_gateway,
                                         leases[i].tunnel_ID,
                                         garlic});
@@ -177,14 +177,14 @@ void DatagramDestination::HandleDatagram(
     uint16_t to_port,
     const uint8_t* buf,
     size_t len) {
-  i2p::data::IdentityEx identity;
+  kovri::data::IdentityEx identity;
   size_t identity_len = identity.FromBuffer(buf, len);
   const uint8_t* signature = buf + identity_len;
   size_t header_len = identity_len + identity.GetSignatureLen();
   bool verified = false;
-  if (identity.GetSigningKeyType() == i2p::data::SIGNING_KEY_TYPE_DSA_SHA1) {
+  if (identity.GetSigningKeyType() == kovri::data::SIGNING_KEY_TYPE_DSA_SHA1) {
     uint8_t hash[32];
-    i2p::crypto::SHA256().CalculateDigest(hash, buf + header_len, len - header_len);
+    kovri::crypto::SHA256().CalculateDigest(hash, buf + header_len, len - header_len);
     verified = identity.Verify(hash, 32, signature);
   } else {
     verified =
@@ -213,7 +213,7 @@ void DatagramDestination::HandleDataMessagePayload(
     const uint8_t* buf,
     size_t len) {
   // Gunzip it
-  i2p::crypto::util::Gunzip decompressor;
+  kovri::crypto::util::Gunzip decompressor;
   decompressor.Put(buf, len);
   uint8_t uncompressed[MAX_DATAGRAM_SIZE];
   auto uncompressed_len = decompressor.MaxRetrievable();
@@ -233,7 +233,7 @@ std::unique_ptr<I2NPMessage> DatagramDestination::CreateDataMessage(
     uint16_t from_port,
     uint16_t to_port) {
   std::unique_ptr<I2NPMessage> msg = NewI2NPMessage();
-  i2p::crypto::util::Gzip compressor;  // default level
+  kovri::crypto::util::Gzip compressor;  // default level
   compressor.Put(payload, len);
   std::size_t size = compressor.MaxRetrievable();
   uint8_t* buf = msg->GetPayload();
@@ -242,11 +242,11 @@ std::unique_ptr<I2NPMessage> DatagramDestination::CreateDataMessage(
   compressor.Get(buf, size);
   htobe16buf(buf + 4, from_port);  // source port
   htobe16buf(buf + 6, to_port);  // destination port
-  buf[9] = i2p::client::PROTOCOL_TYPE_DATAGRAM;  // datagram protocol
+  buf[9] = kovri::client::PROTOCOL_TYPE_DATAGRAM;  // datagram protocol
   msg->len += size + 4;
   msg->FillI2NPMessageHeader(e_I2NPData);
   return msg;
 }
 
 }  // namespace datagram
-}  // namespace i2p
+}  // namespace kovri

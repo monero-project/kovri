@@ -36,25 +36,25 @@
 
 #include "router_context.h"
 
-namespace i2p {
+namespace kovri {
 namespace util {
 namespace filesystem {
 
 boost::filesystem::path GetSU3CertsPath() {
-  return i2p::context.GetDataPath() / "certificates" / "su3";
+  return kovri::context.GetDataPath() / "certificates" / "su3";
 }
 
 boost::filesystem::path GetSSLCertsPath() {
-  return i2p::context.GetDataPath() / "certificates" / "ssl";
+  return kovri::context.GetDataPath() / "certificates" / "ssl";
 }
 
 const boost::filesystem::path GetLogsPath() {
-  return i2p::context.GetDataPath() / "logs";
+  return kovri::context.GetDataPath() / "logs";
 }
 
 std::string GetFullPath(
     const std::string& filename) {
-  std::string full_path = i2p::context.GetDataPath().string();
+  std::string full_path = kovri::context.GetDataPath().string();
 #ifdef _WIN32
   full_path.append("\\");
 #else
@@ -66,4 +66,4 @@ std::string GetFullPath(
 
 }  // namespace filesystem
 }  // namespace util
-}  // namespace i2p
+}  // namespace kovri

@@ -52,7 +52,7 @@
 #include "util/http.h"
 #include "util/zip.h"
 
-namespace i2p {
+namespace kovri {
 namespace data {
 
 /**
@@ -98,7 +98,7 @@ bool Reseed::Start() {
   }
   // Insert extracted RI's into NetDb
   for (auto const& router : su3.m_RouterInfos)
-    if (!i2p::data::netdb.AddRouterInfo(
+    if (!kovri::data::netdb.AddRouterInfo(
           router.second.data(),
           router.second.size()))
       return false;
@@ -108,14 +108,14 @@ bool Reseed::Start() {
 
 bool Reseed::ProcessCerts() {
   // Test if directory exists
-  boost::filesystem::path path = i2p::util::filesystem::GetSU3CertsPath();
+  boost::filesystem::path path = kovri::util::filesystem::GetSU3CertsPath();
   boost::filesystem::directory_iterator it(path), end;
   if (!boost::filesystem::exists(path)) {
     LogPrint(eLogError, "Reseed: certificates ", path, " don't exist");
     return false;
   }
   // Instantiate X.509 object
-  i2p::crypto::util::X509 x509;
+  kovri::crypto::util::X509 x509;
   // Iterate through directory and get signing key from each certificate
   std::size_t num_certs = 0;
   BOOST_FOREACH(boost::filesystem::path const& cert, std::make_pair(it, end)) {
@@ -174,7 +174,7 @@ bool Reseed::FetchStream() {
   } else {
     m_Stream =
       m_Hosts.at(
-          i2p::crypto::RandInRange<std::size_t>(0, m_Hosts.size() - 1)) +
+          kovri::crypto::RandInRange<std::size_t>(0, m_Hosts.size() - 1)) +
       m_Filename;
     if (FetchStream(m_Stream))
       return true;
@@ -187,7 +187,7 @@ bool Reseed::FetchStream(
     const std::string& url) {
   LogPrint(eLogInfo, "Reseed: fetching stream from ", url);
   // TODO(unassigned): abstract our downloading mechanism (see #168)
-  i2p::util::http::HTTP http(url);
+  kovri::util::http::HTTP http(url);
   if (!http.Download())
     return false;  // Download failed
   // Replace our stream with downloaded stream
@@ -276,7 +276,7 @@ bool SU3::PrepareStream() {
     // Prepare signature length
     m_Stream.Read(m_Data->signature_length, Size::signature_length);
     m_Data->signature_length = be16toh(m_Data->signature_length);
-    if (m_Data->signature_length != sizeof(i2p::crypto::util::PublicKey)) {  // Temporary (see #160)
+    if (m_Data->signature_length != sizeof(kovri::crypto::util::PublicKey)) {  // Temporary (see #160)
       LogPrint(eLogError, "SU3: invalid signature length");
       return false;
     }
@@ -399,7 +399,7 @@ bool SU3::VerifySignature() {
   // Verify hash of content data and signature
   switch (m_Data->signature_type) {
     case SIGNING_KEY_TYPE_RSA_SHA512_4096: {
-      i2p::crypto::RSASHA5124096RawVerifier verifier(signing_key_it->second);
+      kovri::crypto::RSASHA5124096RawVerifier verifier(signing_key_it->second);
       verifier.Update(m_Data->content.data(), m_Data->content.size());
       if (!verifier.Verify(m_Data->signature.data())) {
         LogPrint(eLogError, "SU3: signature failed");
@@ -422,7 +422,7 @@ bool SU3::VerifySignature() {
 
 bool SU3::ExtractContent() {
   LogPrint(eLogDebug, "SU3: unzipping stream");
-  i2p::util::ZIP zip(
+  kovri::util::ZIP zip(
       m_Stream.Str(),
       m_Data->content_length,
       m_Data->content_position);
@@ -437,4 +437,4 @@ bool SU3::ExtractContent() {
 }
 
 }  // namespace data
-}  // namespace i2p
+}  // namespace kovri

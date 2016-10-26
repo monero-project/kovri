@@ -41,15 +41,15 @@
 #include "router_info.h"
 #include "crypto/tunnel.h"
 
-namespace i2p {
+namespace kovri {
 namespace tunnel {
 
 struct TunnelHopConfig {
   explicit TunnelHopConfig(
-      std::shared_ptr<const i2p::data::RouterInfo> r);
+      std::shared_ptr<const kovri::data::RouterInfo> r);
 
   void SetNextRouter(
-      std::shared_ptr<const i2p::data::RouterInfo> r);
+      std::shared_ptr<const kovri::data::RouterInfo> r);
 
   void SetReplyHop(
       const TunnelHopConfig* reply_first_hop);
@@ -64,7 +64,7 @@ struct TunnelHopConfig {
       uint8_t* record,
       uint32_t reply_msg_ID) const;
 
-  std::shared_ptr<const i2p::data::RouterInfo> router,
+  std::shared_ptr<const kovri::data::RouterInfo> router,
                                                next_router;
 
   uint32_t tunnel_ID,
@@ -82,14 +82,14 @@ struct TunnelHopConfig {
   TunnelHopConfig *next,
                   *prev;
 
-  i2p::crypto::TunnelDecryption decryption;
+  kovri::crypto::TunnelDecryption decryption;
   int record_index;  // record # in tunnel build message
 };
 
 class TunnelConfig : public std::enable_shared_from_this<TunnelConfig> {
  public:
   TunnelConfig(
-      std::vector<std::shared_ptr<const i2p::data::RouterInfo> > peers,
+      std::vector<std::shared_ptr<const kovri::data::RouterInfo> > peers,
       std::shared_ptr<const TunnelConfig> reply_tunnel_config = nullptr);
   ~TunnelConfig();
 
@@ -101,7 +101,7 @@ class TunnelConfig : public std::enable_shared_from_this<TunnelConfig> {
 
   bool IsInbound() const;
 
-  std::vector<std::shared_ptr<const i2p::data::RouterInfo> > GetPeers() const;
+  std::vector<std::shared_ptr<const kovri::data::RouterInfo> > GetPeers() const;
 
   void Print(
       std::stringstream& s) const;
@@ -123,6 +123,6 @@ class TunnelConfig : public std::enable_shared_from_this<TunnelConfig> {
 };
 
 }  // namespace tunnel
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_TUNNEL_TUNNEL_CONFIG_H_

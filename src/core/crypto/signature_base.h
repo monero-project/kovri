@@ -35,7 +35,7 @@
 
 #include <cstdint>
 
-namespace i2p {
+namespace kovri {
 namespace crypto {
 
 class Verifier {
@@ -75,6 +75,6 @@ class RawVerifier {
 };
 
 }  // namespace crypto
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_SIGNATUREBASE_H_

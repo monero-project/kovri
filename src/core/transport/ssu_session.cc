@@ -48,7 +48,7 @@
 #include "util/log.h"
 #include "util/timestamp.h"
 
-namespace i2p {
+namespace kovri {
 namespace transport {
 
 std::uint8_t* SSUSessionPacket::MAC() const {
@@ -76,7 +76,7 @@ std::uint8_t* SSUSessionPacket::Encrypted() const {
 SSUSession::SSUSession(
     SSUServer& server,
     boost::asio::ip::udp::endpoint& remote_endpoint,
-    std::shared_ptr<const i2p::data::RouterInfo> router,
+    std::shared_ptr<const kovri::data::RouterInfo> router,
     bool peer_test)
     : TransportSession(router),
       m_Server(server),
@@ -88,7 +88,7 @@ SSUSession::SSUSession(
       m_RelayTag(0),
       m_Data(*this),
       m_IsDataReceived(false) {
-  m_CreationTime = i2p::util::GetSecondsSinceEpoch();
+  m_CreationTime = kovri::util::GetSecondsSinceEpoch();
 }
 
 SSUSession::~SSUSession() {}
@@ -99,7 +99,7 @@ boost::asio::io_service& SSUSession::GetService() {
 
 void SSUSession::CreateAESandMACKey(
     const std::uint8_t* pub_key) {
-  i2p::crypto::DiffieHellman dh;
+  kovri::crypto::DiffieHellman dh;
   std::array<std::uint8_t, 256> shared_key;
   if (!dh.Agree(shared_key.data(), m_DHKeysPair->private_key.data(), pub_key)) {
     LogPrint(eLogError,
@@ -128,7 +128,7 @@ void SSUSession::CreateAESandMACKey(
       }
     }
     memcpy(session_key, non_zero, 32);
-    i2p::crypto::SHA256().CalculateDigest(
+    kovri::crypto::SHA256().CalculateDigest(
         mac_key,
         non_zero,
         64 - (non_zero - shared_key.data()));
@@ -153,7 +153,7 @@ void SSUSession::ProcessNextMessage(
       "SSUSession:", GetFormattedSessionInfo(),
       "--> ", len, " bytes transferred, ",
       GetNumReceivedBytes(), " total bytes received");
-  i2p::transport::transports.UpdateReceivedBytes(len);
+  kovri::transport::transports.UpdateReceivedBytes(len);
   if (m_State == SessionStateIntroduced) {
     // HolePunch received
     LogPrint("SSUSession: SSU HolePunch of ", len, " bytes received");
@@ -177,7 +177,7 @@ void SSUSession::ProcessNextMessage(
         }
       } else {
         // try own intro key
-        auto address = i2p::context.GetRouterInfo().GetSSUAddress();
+        auto address = kovri::context.GetRouterInfo().GetSSUAddress();
         if (!address) {
           LogPrint(eLogError,
               "SSUSession: ProcessNextMessage(): SSU is not supported");
@@ -307,12 +307,12 @@ void SSUSession::SendSessionRequest() {
   SSUSessionRequestPacket packet;
   packet.SetHeader(std::make_unique<SSUHeader>(SSUPayloadType::SessionRequest));
   std::array<std::uint8_t, static_cast<std::size_t>(SSUSize::IV)> iv;
-  i2p::crypto::RandBytes(iv.data(), iv.size());
+  kovri::crypto::RandBytes(iv.data(), iv.size());
   packet.GetHeader()->SetIV(iv.data());
   packet.SetDhX(m_DHKeysPair->public_key.data());
   // Fill extended options
   std::array<std::uint8_t, 2> extended_data {{ 0x00, 0x00 }};
-  if (i2p::context.GetStatus() == eRouterStatusOK) {  // we don't need relays
+  if (kovri::context.GetStatus() == eRouterStatusOK) {  // we don't need relays
     packet.GetHeader()->SetExtendedOptions(true);
     packet.GetHeader()->SetExtendedOptionsData(extended_data.data(), 2);
   }
@@ -371,7 +371,7 @@ void SSUSession::ProcessSessionCreated(
       "SSUSession:", GetFormattedSessionInfo(),
       "ProcessSessionCreated(): our external address is ",
       our_IP.to_string(), ":", packet->GetPort());
-  i2p::context.UpdateAddress(our_IP);
+  kovri::context.UpdateAddress(our_IP);
   if (GetRemoteEndpoint().address().is_v4()) {
     // remote IP v4
     s.Insert(GetRemoteEndpoint().address().to_v4().to_bytes().data(), 4);
@@ -414,8 +414,8 @@ void SSUSession::SendSessionCreated(
     const std::uint8_t* x) {
   auto intro_key = GetIntroKey();
   auto address = IsV6() ?
-    i2p::context.GetRouterInfo().GetSSUV6Address() :
-    i2p::context.GetRouterInfo().GetSSUAddress(true);  // v4 only
+    kovri::context.GetRouterInfo().GetSSUV6Address() :
+    kovri::context.GetRouterInfo().GetSSUAddress(true);  // v4 only
   if (!intro_key || !address) {
     LogPrint(eLogError,
         "SSUSession:", GetFormattedSessionInfo(),
@@ -425,7 +425,7 @@ void SSUSession::SendSessionCreated(
   SSUSessionCreatedPacket packet;
   packet.SetHeader(std::make_unique<SSUHeader>(SSUPayloadType::SessionCreated));
   std::array<std::uint8_t, static_cast<std::size_t>(SSUSize::IV)> iv;
-  i2p::crypto::RandBytes(iv.data(), iv.size());
+  kovri::crypto::RandBytes(iv.data(), iv.size());
   packet.GetHeader()->SetIV(iv.data());
   packet.SetDhY(m_DHKeysPair->public_key.data());
   packet.SetPort(GetRemoteEndpoint().port());
@@ -450,29 +450,29 @@ void SSUSession::SendSessionCreated(
   s.Insert<std::uint16_t> (htobe16(address->port));  // our port
 
   std::uint32_t relay_tag = 0;
-  if (i2p::context.GetRouterInfo().IsIntroducer()) {
-    relay_tag = i2p::crypto::Rand<std::uint32_t>();
+  if (kovri::context.GetRouterInfo().IsIntroducer()) {
+    relay_tag = kovri::crypto::Rand<std::uint32_t>();
     if (!relay_tag)
       relay_tag = 1;
     m_Server.AddRelay(relay_tag, GetRemoteEndpoint());
   }
   packet.SetRelayTag(relay_tag);
-  packet.SetSignedOnTime(i2p::util::GetSecondsSinceEpoch());
+  packet.SetSignedOnTime(kovri::util::GetSecondsSinceEpoch());
   s.Insert<std::uint32_t>(relay_tag);
   s.Insert<std::uint32_t>(packet.GetSignedOnTime());
   // store for session confirmation
   m_SessionConfirmData = std::make_unique<SignedData>(s);
 
   // Set signature size to compute the required padding size 
-  std::size_t signature_size = i2p::context.GetIdentity().GetSignatureLen();
+  std::size_t signature_size = kovri::context.GetIdentity().GetSignatureLen();
   packet.SetSignature(nullptr, signature_size);
   const std::size_t sig_padding = SSUPacketBuilder::GetPaddingSize(
       packet.GetSize());
   // Set signature with correct size and fill the padding
   auto signature_buf = std::make_unique<std::uint8_t[]>(
       signature_size + sig_padding);
-  s.Sign(i2p::context.GetPrivateKeys(), signature_buf.get());
-  i2p::crypto::RandBytes(signature_buf.get() + signature_size, sig_padding);
+  s.Sign(kovri::context.GetPrivateKeys(), signature_buf.get());
+  kovri::crypto::RandBytes(signature_buf.get() + signature_size, sig_padding);
   packet.SetSignature(signature_buf.get(), signature_size + sig_padding);
 
   // Encrypt signature and padding with newly created session key
@@ -532,12 +532,12 @@ void SSUSession::SendSessionConfirmed(
   SSUSessionConfirmedPacket packet;
   packet.SetHeader(std::make_unique<SSUHeader>(SSUPayloadType::SessionConfirmed));
   std::array<std::uint8_t, static_cast<std::size_t>(SSUSize::IV)> iv;
-  i2p::crypto::RandBytes(iv.data(), iv.size());
+  kovri::crypto::RandBytes(iv.data(), iv.size());
   packet.GetHeader()->SetIV(iv.data());
-  packet.SetRemoteRouterIdentity(i2p::context.GetIdentity());
-  packet.SetSignedOnTime(i2p::util::GetSecondsSinceEpoch());
+  packet.SetRemoteRouterIdentity(kovri::context.GetIdentity());
+  packet.SetSignedOnTime(kovri::util::GetSecondsSinceEpoch());
   auto signature_buf = std::make_unique<std::uint8_t[]>(
-      i2p::context.GetIdentity().GetSignatureLen());
+      kovri::context.GetIdentity().GetSignatureLen());
   // signature
   // x,y, our IP, our port, remote IP, remote port,
   // relay_tag, our signed on time
@@ -554,7 +554,7 @@ void SSUSession::SendSessionConfirmed(
   s.Insert<std::uint16_t>(htobe16(GetRemoteEndpoint().port()));  // remote port
   s.Insert(htobe32(m_RelayTag));
   s.Insert(htobe32(packet.GetSignedOnTime()));
-  s.Sign(i2p::context.GetPrivateKeys(), signature_buf.get());
+  s.Sign(kovri::context.GetPrivateKeys(), signature_buf.get());
   packet.SetSignature(signature_buf.get());
   const std::size_t packet_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
   const std::size_t buffer_size = packet_size
@@ -588,7 +588,7 @@ void SSUSession::ProcessRelayRequest(
 void SSUSession::SendRelayRequest(
     std::uint32_t introducer_tag,
     const std::uint8_t* introducer_key) {
-  auto address = i2p::context.GetRouterInfo().GetSSUAddress();
+  auto address = kovri::context.GetRouterInfo().GetSSUAddress();
   if (!address) {
     LogPrint(eLogError,
         "SSUSession:", GetFormattedSessionInfo(),
@@ -607,9 +607,9 @@ void SSUSession::SendRelayRequest(
   payload++;
   memcpy(payload, (const std::uint8_t *)address->key, 32);
   payload += 32;
-  htobe32buf(payload, i2p::crypto::Rand<std::uint32_t>());  // nonce
+  htobe32buf(payload, kovri::crypto::Rand<std::uint32_t>());  // nonce
   std::array<std::uint8_t, 16> iv;
-  i2p::crypto::RandBytes(iv.data(), iv.size());
+  kovri::crypto::RandBytes(iv.data(), iv.size());
   if (m_State == SessionStateEstablished) {
     FillHeaderAndEncrypt(
         static_cast<std::uint8_t>(SSUPayloadType::RelayRequest),
@@ -658,7 +658,7 @@ void SSUSession::ProcessRelayResponse(SSUPacket* pkt) {
       "SSUSession:", GetFormattedSessionInfo(),
       "ProcessRelayResponse(): our external address is ",
       our_IP.to_string(), ":", packet->GetPortAlice());
-  i2p::context.UpdateAddress(our_IP);
+  kovri::context.UpdateAddress(our_IP);
 }
 
 void SSUSession::SendRelayResponse(
@@ -711,7 +711,7 @@ void SSUSession::SendRelayResponse(
   } else {
     // encrypt with Alice's intro key
     std::array<std::uint8_t, 16> iv;
-    i2p::crypto::RandBytes(iv.data(), iv.size());
+    kovri::crypto::RandBytes(iv.data(), iv.size());
     FillHeaderAndEncrypt(
         static_cast<std::uint8_t>(SSUPayloadType::RelayResponse),
         buf.data(),
@@ -775,7 +775,7 @@ void SSUSession::SendRelayIntro(
   payload += 2;  // port
   *payload = 0;  // challenge size
   std::array<std::uint8_t, 16> iv;
-  i2p::crypto::RandBytes(iv.data(), iv.size());  // random iv
+  kovri::crypto::RandBytes(iv.data(), iv.size());  // random iv
   FillHeaderAndEncrypt(
       static_cast<std::uint8_t>(SSUPayloadType::RelayIntro),
       buf.data(),
@@ -834,13 +834,13 @@ void SSUSession::ProcessPeerTest(
         LogPrint(eLogDebug,
             "SSUSession:", GetFormattedSessionInfo(),
             "PeerTest from Bob. We are Alice");
-        if (i2p::context.GetStatus() == eRouterStatusTesting)  // still not OK
-          i2p::context.SetStatus(eRouterStatusFirewalled);
+        if (kovri::context.GetStatus() == eRouterStatusTesting)  // still not OK
+          kovri::context.SetStatus(eRouterStatusFirewalled);
       } else {
         LogPrint(eLogDebug,
             "SSUSession:", GetFormattedSessionInfo(),
             "first PeerTest from Charlie. We are Alice");
-        i2p::context.SetStatus(eRouterStatusOK);
+        kovri::context.SetStatus(eRouterStatusOK);
         m_Server.UpdatePeerTest(
             packet->GetNonce(),
             PeerTestParticipantAlice2);
@@ -864,7 +864,7 @@ void SSUSession::ProcessPeerTest(
         LogPrint(eLogDebug,
             "SSUSession:", GetFormattedSessionInfo(),
             "second PeerTest from Charlie. We are Alice");
-        i2p::context.SetStatus(eRouterStatusOK);
+        kovri::context.SetStatus(eRouterStatusOK);
         m_Server.RemovePeerTest(packet->GetNonce());
       }
       break;
@@ -966,7 +966,7 @@ void SSUSession::SendPeerTest(
   // intro key
   if (to_address) {
     // send our intro key to address instead it's own
-    auto addr = i2p::context.GetRouterInfo().GetSSUAddress();
+    auto addr = kovri::context.GetRouterInfo().GetSSUAddress();
     if (addr)
       memcpy(payload, addr->key, 32);  // intro key
     else
@@ -978,7 +978,7 @@ void SSUSession::SendPeerTest(
   }
   // send
   std::array<std::uint8_t, 16> iv;
-  i2p::crypto::RandBytes(iv.data(), iv.size());
+  kovri::crypto::RandBytes(iv.data(), iv.size());
   if (to_address) {
     // encrypt message with specified intro key
     FillHeaderAndEncrypt(
@@ -1006,14 +1006,14 @@ void SSUSession::SendPeerTest() {
   // we are Alice
   LogPrint(eLogDebug,
       "SSUSession: <--", GetFormattedSessionInfo(), "sending PeerTest");
-  auto address = i2p::context.GetRouterInfo().GetSSUAddress();
+  auto address = kovri::context.GetRouterInfo().GetSSUAddress();
   if (!address) {
     LogPrint(eLogError,
         "SSUSession:", GetFormattedSessionInfo(),
         "SSU is not supported, can't send PeerTest");
     return;
   }
-  auto nonce = i2p::crypto::Rand<std::uint32_t>();
+  auto nonce = kovri::crypto::Rand<std::uint32_t>();
   if (!nonce)
     nonce = 1;
   m_PeerTest = false;
@@ -1089,10 +1089,10 @@ void SSUSession::FillHeaderAndEncrypt(
   SSUSessionPacket pkt(buf, len);
   memcpy(pkt.IV(), iv, 16);
   pkt.PutFlag(flag | (payload_type << 4));  // MSB is 0
-  pkt.PutTime(i2p::util::GetSecondsSinceEpoch());
+  pkt.PutTime(kovri::util::GetSecondsSinceEpoch());
   auto encrypted = pkt.Encrypted();
   auto encrypted_len = len - (encrypted - buf);
-  i2p::crypto::CBCEncryption encryption(aes_key, iv);
+  kovri::crypto::CBCEncryption encryption(aes_key, iv);
   encryption.Encrypt(
       encrypted,
       encrypted_len,
@@ -1100,7 +1100,7 @@ void SSUSession::FillHeaderAndEncrypt(
   // assume actual buffer size is 18 (16 + 2) bytes more
   memcpy(buf + len, iv, 16);
   htobe16buf(buf + len + 16, encrypted_len);
-  i2p::crypto::HMACMD5Digest(
+  kovri::crypto::HMACMD5Digest(
       encrypted,
       encrypted_len + 18,
       mac_key,
@@ -1113,7 +1113,7 @@ void SSUSession::WriteAndEncrypt(
     std::size_t buffer_size,
     const std::uint8_t* aes_key,
     const std::uint8_t* mac_key) {
-  packet->GetHeader()->SetTime(i2p::util::GetSecondsSinceEpoch());
+  packet->GetHeader()->SetTime(kovri::util::GetSecondsSinceEpoch());
 
   SSUPacketBuilder builder(buffer, buffer_size);
   // Write header (excluding MAC)
@@ -1128,9 +1128,9 @@ void SSUSession::WriteAndEncrypt(
   auto encrypted_len = builder.GetPosition() - encrypted;
   // Add padding
   const std::size_t padding_size = SSUPacketBuilder::GetPaddingSize(encrypted_len);
-  i2p::crypto::RandBytes(builder.GetPosition(), padding_size);
+  kovri::crypto::RandBytes(builder.GetPosition(), padding_size);
   encrypted_len += padding_size;
-  i2p::crypto::CBCEncryption encryption(aes_key, packet->GetHeader()->GetIV());
+  kovri::crypto::CBCEncryption encryption(aes_key, packet->GetHeader()->GetIV());
   encryption.Encrypt(encrypted, encrypted_len, encrypted);
   // Compute HMAC of encryptedPayload + IV + (payloadLength ^ protocolVersion)
   // Currently, protocolVersion == 0
@@ -1140,7 +1140,7 @@ void SSUSession::WriteAndEncrypt(
       packet->GetHeader()->GetIV(),
       static_cast<std::size_t>(SSUSize::IV));
   stream.WriteUInt16(encrypted_len);
-  i2p::crypto::HMACMD5Digest(
+  kovri::crypto::HMACMD5Digest(
       encrypted,
       encrypted_len + static_cast<std::size_t>(SSUSize::BufferMargin),
       mac_key,
@@ -1158,10 +1158,10 @@ void SSUSession::FillHeaderAndEncrypt(
     return;
   }
   SSUSessionPacket pkt(buf, len);
-  i2p::crypto::RandBytes(pkt.IV(), 16);  // random iv
+  kovri::crypto::RandBytes(pkt.IV(), 16);  // random iv
   m_SessionKeyEncryption.SetIV(pkt.IV());
   pkt.PutFlag(payload_type << 4);  // MSB is 0
-  pkt.PutTime(i2p::util::GetSecondsSinceEpoch());
+  pkt.PutTime(kovri::util::GetSecondsSinceEpoch());
   auto encrypted = pkt.Encrypted();
   auto encrypted_len = len - (encrypted - buf);
   m_SessionKeyEncryption.Encrypt(
@@ -1171,7 +1171,7 @@ void SSUSession::FillHeaderAndEncrypt(
   // assume actual buffer size is 18 (16 + 2) bytes more
   memcpy(buf + len, pkt.IV(), 16);
   htobe16buf(buf + len + 16, encrypted_len);
-  i2p::crypto::HMACMD5Digest(
+  kovri::crypto::HMACMD5Digest(
       encrypted,
       encrypted_len + 18,
       m_MACKey,
@@ -1191,7 +1191,7 @@ void SSUSession::Decrypt(
   SSUSessionPacket pkt(buf, len);
   auto encrypted = pkt.Encrypted();
   auto encrypted_len = len - (encrypted - buf);
-  i2p::crypto::CBCDecryption decryption;
+  kovri::crypto::CBCDecryption decryption;
   decryption.SetKey(aes_key);
   decryption.SetIV(pkt.IV());
   decryption.Decrypt(
@@ -1238,7 +1238,7 @@ bool SSUSession::Validate(
   memcpy(buf + len, pkt.IV(), 16);
   htobe16buf(buf + len + 16, encrypted_len);
   std::array<std::uint8_t, 16> digest;
-  i2p::crypto::HMACMD5Digest(
+  kovri::crypto::HMACMD5Digest(
       encrypted,
       encrypted_len + 18,
       mac_key,
@@ -1387,7 +1387,7 @@ const std::uint8_t* SSUSession::GetIntroKey() const {
     return address ? (const std::uint8_t *)address->key : nullptr;
   } else {
     // we are server
-    auto address = i2p::context.GetRouterInfo().GetSSUAddress();
+    auto address = kovri::context.GetRouterInfo().GetSSUAddress();
     return address ? (const std::uint8_t *)address->key : nullptr;
   }
 }
@@ -1439,10 +1439,10 @@ void SSUSession::Send(
       "SSUSession:", GetFormattedSessionInfo(),
       "<-- ", size, " bytes transferred, ",
       GetNumSentBytes(), " total bytes sent");
-  i2p::transport::transports.UpdateSentBytes(size);
+  kovri::transport::transports.UpdateSentBytes(size);
   m_Server.Send(buf, size, GetRemoteEndpoint());
 }
 
 }  // namespace transport
-}  // namespace i2p
+}  // namespace kovri
 

@@ -43,7 +43,7 @@
 #include "identity.h"
 #include "util/log.h"
 
-namespace i2p {
+namespace kovri {
 namespace client {
 
 ClientContext context;
@@ -127,13 +127,13 @@ void ClientContext::RequestShutdown() {
     m_ShutdownHandler();
 }
 
-i2p::data::PrivateKeys ClientContext::CreatePrivateKeys(
+kovri::data::PrivateKeys ClientContext::CreatePrivateKeys(
     const std::string& filename) {
-  auto file_path = i2p::util::filesystem::GetFullPath(filename);
+  auto file_path = kovri::util::filesystem::GetFullPath(filename);
   std::ofstream file(file_path, std::ofstream::binary);
   if (!file)
     throw std::runtime_error("ClientContext: could not open private keys for writing");
-  auto keys = i2p::data::PrivateKeys::CreateRandomKeys();  // Generate default type
+  auto keys = kovri::data::PrivateKeys::CreateRandomKeys();  // Generate default type
   std::size_t len = keys.GetFullLen();
   std::unique_ptr<std::uint8_t[]> buf(std::make_unique<std::uint8_t[]>(len));
   len = keys.ToBuffer(buf.get(), len);
@@ -145,16 +145,16 @@ i2p::data::PrivateKeys ClientContext::CreatePrivateKeys(
   return keys;
 }
 
-i2p::data::PrivateKeys ClientContext::LoadPrivateKeys(
+kovri::data::PrivateKeys ClientContext::LoadPrivateKeys(
     const std::string& filename) {
-  auto file_path = i2p::util::filesystem::GetFullPath(filename);
+  auto file_path = kovri::util::filesystem::GetFullPath(filename);
   std::ifstream file(file_path, std::ifstream::binary);
   if (!file) {
     LogPrint(eLogWarn,
         "ClientContext: can't open file ", file_path, ", creating new one");
     return CreatePrivateKeys(filename);
   }
-  i2p::data::PrivateKeys keys;
+  kovri::data::PrivateKeys keys;
   file.seekg(0, std::ios::end);
   const std::size_t len = file.tellg();
   file.seekg(0, std::ios::beg);
@@ -190,10 +190,10 @@ std::shared_ptr<ClientDestination> ClientContext::LoadLocalDestination(
 
 std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination(
     bool is_public,
-    i2p::data::SigningKeyType sig_type,
+    kovri::data::SigningKeyType sig_type,
     const std::map<std::string, std::string>* params) {
-  i2p::data::PrivateKeys keys =
-    i2p::data::PrivateKeys::CreateRandomKeys(sig_type);
+  kovri::data::PrivateKeys keys =
+    kovri::data::PrivateKeys::CreateRandomKeys(sig_type);
   auto local_destination =
     std::make_shared<ClientDestination>(keys, is_public, params);
   std::unique_lock<std::mutex> l(m_DestinationsMutex);
@@ -217,7 +217,7 @@ void ClientContext::DeleteLocalDestination(
 }
 
 std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination(
-    const i2p::data::PrivateKeys& keys,
+    const kovri::data::PrivateKeys& keys,
     bool is_public,
     const std::map<std::string, std::string>* params) {
   auto it = m_Destinations.find(keys.GetPublic().GetIdentHash());
@@ -241,7 +241,7 @@ std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination(
 }
 
 std::shared_ptr<ClientDestination> ClientContext::FindLocalDestination(
-    const i2p::data::IdentHash& destination) const {
+    const kovri::data::IdentHash& destination) const {
   auto it = m_Destinations.find(destination);
   if (it != m_Destinations.end())
     return it->second;
@@ -280,8 +280,8 @@ void ClientContext::UpdateServerTunnel(
     bool http) {
   bool create_tunnel = false;
   try {
-    i2p::data::PrivateKeys keys = LoadPrivateKeys(key_file);
-    i2p::data::IdentHash i = keys.GetPublic().GetIdentHash();
+    kovri::data::PrivateKeys keys = LoadPrivateKeys(key_file);
+    kovri::data::IdentHash i = keys.GetPublic().GetIdentHash();
     // check if it exists in existing local servers
     auto tunnel = GetServerTunnel(i);
     if (tunnel == nullptr) {
@@ -305,7 +305,7 @@ void ClientContext::UpdateServerTunnel(
   }
   if (create_tunnel) {
       // Create the server tunnel
-      auto local_destination = i2p::client::context.LoadLocalDestination(
+      auto local_destination = kovri::client::context.LoadLocalDestination(
           key_file, true);
       auto server_tunnel = http ?
           std::make_unique<I2PServerTunnelHTTP>(
@@ -386,7 +386,7 @@ bool ClientContext::InsertClientTunnel(
 }
 
 bool ClientContext::InsertServerTunnel(
-    const i2p::data::IdentHash& id,
+    const kovri::data::IdentHash& id,
     std::unique_ptr<I2PServerTunnel> tunnel) {
   std::lock_guard<std::mutex> lock(m_ServerMutex);
   return m_ServerTunnels.insert(
@@ -394,17 +394,17 @@ bool ClientContext::InsertServerTunnel(
 }
 
 void ClientContext::SetI2PControlService(
-    std::unique_ptr<i2p::client::i2pcontrol::I2PControlService> service) {
+    std::unique_ptr<kovri::client::i2pcontrol::I2PControlService> service) {
   m_I2PControlService = std::move(service);
 }
 
 void ClientContext::SetHTTPProxy(
-    std::unique_ptr<i2p::proxy::HTTPProxy> proxy) {
+    std::unique_ptr<kovri::proxy::HTTPProxy> proxy) {
   m_HttpProxy = std::move(proxy);
 }
 
 void ClientContext::SetSOCKSProxy(
-    std::unique_ptr<i2p::proxy::SOCKSProxy> proxy) {
+    std::unique_ptr<kovri::proxy::SOCKSProxy> proxy) {
   m_SocksProxy = std::move(proxy);
 }
 
@@ -420,7 +420,7 @@ std::unique_ptr<I2PServerTunnel> ClientContext::GetServerTunnel(
 }
 
 std::unique_ptr<I2PServerTunnel> ClientContext::GetServerTunnel(
-    const i2p::data::IdentHash& id) {
+    const kovri::data::IdentHash& id) {
   std::lock_guard<std::mutex> lock(m_ServerMutex);
   auto it = m_ServerTunnels.find(id);
   return it == m_ServerTunnels.end() ? nullptr : std::move(it->second);
@@ -449,4 +449,4 @@ boost::asio::io_service& ClientContext::GetIoService() {
 }
 
 }  // namespace client
-}  // namespace i2p
+}  // namespace kovri

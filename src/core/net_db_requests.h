@@ -42,7 +42,7 @@
 #include "identity.h"
 #include "router_info.h"
 
-namespace i2p {
+namespace kovri {
 namespace data {
 
 class RequestedDestination {
@@ -89,7 +89,7 @@ class RequestedDestination {
 
   std::shared_ptr<I2NPMessage> CreateRequestMessage(
       std::shared_ptr<const RouterInfo>,
-      std::shared_ptr<const i2p::tunnel::InboundTunnel> reply_tunnel);
+      std::shared_ptr<const kovri::tunnel::InboundTunnel> reply_tunnel);
   std::shared_ptr<I2NPMessage> CreateRequestMessage(
       const IdentHash& floodfill);
 
@@ -139,6 +139,6 @@ class NetDbRequests {
 };
 
 }  // namespace data
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_NET_DB_REQUESTS_H_

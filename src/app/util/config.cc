@@ -36,7 +36,7 @@
 #include "core/util/log.h"
 #include "crypto/rand.h"
 
-namespace i2p {
+namespace kovri {
 namespace util {
 namespace config {
 
@@ -49,7 +49,7 @@ bool ParseArgs(
   // Random generated port if none is supplied via CLI or config
   // See: i2p.i2p/router/java/src/net/i2p/router/transport/udp/UDPEndpoint.java
   // TODO(unassigned): move this elsewhere (outside of ParseArgs()) when possible
-  size_t port = i2p::crypto::RandInRange<size_t>(9111, 30777);
+  size_t port = kovri::crypto::RandInRange<size_t>(9111, 30777);
   // Configuration files
   std::string kovri_config, tunnels_config;
   // Default visible option
@@ -69,15 +69,15 @@ bool ParseArgs(
     ("log-to-console", bpo::value<bool>()->default_value(true))
     ("log-to-file", bpo::value<bool>()->default_value(true))
     ("log-file-name", bpo::value<std::string>()->default_value(
-        (i2p::util::filesystem::GetLogsPath() / "kovri_%1N.log").string()))
+        (kovri::util::filesystem::GetLogsPath() / "kovri_%1N.log").string()))
     ("log-levels", bpo::value<std::vector<std::string>>()->
                    // Note: we set a default value during validation and
                    // leave blank here to prevent bad_any_cast exception.
                    default_value(std::vector<std::string>(), "")->multitoken())
     ("kovriconf,c", bpo::value<std::string>(&kovri_config)->default_value(
-        i2p::util::filesystem::GetFullPath("kovri.conf")))
+        kovri::util::filesystem::GetFullPath("kovri.conf")))
     ("tunnelsconf,t", bpo::value<std::string>(&tunnels_config)->default_value(
-        i2p::util::filesystem::GetFullPath("tunnels.conf")));
+        kovri::util::filesystem::GetFullPath("tunnels.conf")));
 
   bpo::options_description network("\nnetwork");
   network.add_options()
@@ -145,7 +145,7 @@ void ParseConfigFile(
 }
 
 bool SetLoggingOptions() {
-  namespace log = i2p::util::log;
+  namespace log = kovri::util::log;
   /**
    * TODO(unassigned): write custom validator for log-levels
    * so we can set values via config file.
@@ -183,4 +183,4 @@ bool SetLoggingOptions() {
 
 }  // namespace config
 }  // namespace util
-}  // namespace i2p
+}  // namespace kovri

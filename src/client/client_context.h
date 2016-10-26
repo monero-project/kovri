@@ -46,7 +46,7 @@
 #include "i2p_tunnel/i2p_tunnel.h"
 #include "i2p_tunnel/socks.h"
 
-namespace i2p {
+namespace kovri {
 namespace client {
 
 class ClientContext {
@@ -73,12 +73,12 @@ class ClientContext {
   // Non-public
   std::shared_ptr<ClientDestination> CreateNewLocalDestination(
       bool is_public = false,
-      i2p::data::SigningKeyType sigType = i2p::data::DEFAULT_CLIENT_SIGNING_KEY_TYPE,
+      kovri::data::SigningKeyType sigType = kovri::data::DEFAULT_CLIENT_SIGNING_KEY_TYPE,
       const std::map<std::string, std::string>* params = nullptr);  // transient
 
   // Public
   std::shared_ptr<ClientDestination> CreateNewLocalDestination(
-      const i2p::data::PrivateKeys& keys,
+      const kovri::data::PrivateKeys& keys,
       bool is_public = true,
       const std::map<std::string, std::string>* params = nullptr);
 
@@ -86,18 +86,18 @@ class ClientContext {
       std::shared_ptr<ClientDestination> destination);
 
   std::shared_ptr<ClientDestination> FindLocalDestination(
-      const i2p::data::IdentHash& destination) const;
+      const kovri::data::IdentHash& destination) const;
 
   /// @brief Creates private keys from given filename if they don't exist
   /// @param filename the relative name of the private key file
   /// @return Created private keys
-  i2p::data::PrivateKeys CreatePrivateKeys(
+  kovri::data::PrivateKeys CreatePrivateKeys(
       const std::string& filename);
 
   /// @brief Loads private keys from given filename
   /// @param filename Relative name of the private key file
   /// @return Loaded private keys
-  i2p::data::PrivateKeys LoadPrivateKeys(
+  kovri::data::PrivateKeys LoadPrivateKeys(
       const std::string& filename);
 
   std::shared_ptr<ClientDestination> LoadLocalDestination(
@@ -154,21 +154,21 @@ class ClientContext {
   /// @brief Inserts a server tunnel.
   /// @return true if the tunnel was inserted, false otherwise
   bool InsertServerTunnel(
-      const i2p::data::IdentHash& id,
+      const kovri::data::IdentHash& id,
       std::unique_ptr<I2PServerTunnel> tunnel);
 
   /// @brief Sets the I2PControl service
   /// @param service a pointer to the I2PControlService
   void SetI2PControlService(
-      std::unique_ptr<i2p::client::i2pcontrol::I2PControlService> service);
+      std::unique_ptr<kovri::client::i2pcontrol::I2PControlService> service);
 
   /// @brief Sets the HTTP proxy.
   /// @param proxy a pointer to the HTTPProxy
-  void SetHTTPProxy(std::unique_ptr<i2p::proxy::HTTPProxy> proxy);
+  void SetHTTPProxy(std::unique_ptr<kovri::proxy::HTTPProxy> proxy);
 
   /// @brief Sets the SOCKS proxy.
   /// @param proxy a pointer to the SOCKSProxy
-  void SetSOCKSProxy(std::unique_ptr<i2p::proxy::SOCKSProxy> proxy);
+  void SetSOCKSProxy(std::unique_ptr<kovri::proxy::SOCKSProxy> proxy);
 
   /// @return the client tunnel with the given name, or nullptr
   std::unique_ptr<I2PServerTunnel> GetServerTunnel(
@@ -176,7 +176,7 @@ class ClientContext {
 
   /// @return the server tunnel with the given identity hash, or nullptr
   std::unique_ptr<I2PServerTunnel> GetServerTunnel(
-      const i2p::data::IdentHash& id);
+      const kovri::data::IdentHash& id);
 
   /// @return the client tunnel with the given name, or nullptr
   std::unique_ptr<I2PClientTunnel> GetClientTunnel(
@@ -190,13 +190,13 @@ class ClientContext {
 
  private:
   std::mutex m_DestinationsMutex;
-  std::map<i2p::data::IdentHash, std::shared_ptr<ClientDestination>> m_Destinations;
+  std::map<kovri::data::IdentHash, std::shared_ptr<ClientDestination>> m_Destinations;
   std::shared_ptr<ClientDestination> m_SharedLocalDestination;
 
   AddressBook m_AddressBook;
 
-  std::unique_ptr<i2p::proxy::HTTPProxy> m_HttpProxy;
-  std::unique_ptr<i2p::proxy::SOCKSProxy> m_SocksProxy;
+  std::unique_ptr<kovri::proxy::HTTPProxy> m_HttpProxy;
+  std::unique_ptr<kovri::proxy::SOCKSProxy> m_SocksProxy;
 
   std::mutex m_ClientMutex;
   // port->tunnel
@@ -204,14 +204,14 @@ class ClientContext {
 
   std::mutex m_ServerMutex;
   // destination->tunnel
-  std::map<i2p::data::IdentHash, std::unique_ptr<I2PServerTunnel>> m_ServerTunnels;
+  std::map<kovri::data::IdentHash, std::unique_ptr<I2PServerTunnel>> m_ServerTunnels;
 
 
   // types for accessing client / server tunnel map entries
   typedef std::pair<const int,
                     std::unique_ptr<I2PClientTunnel>> ClientTunnelEntry;
 
-  typedef std::pair<const i2p::data::IdentHash,
+  typedef std::pair<const kovri::data::IdentHash,
                     std::unique_ptr<I2PServerTunnel>> ServerTunnelEntry;
 
   boost::asio::io_service m_Service;
@@ -223,6 +223,6 @@ class ClientContext {
 extern ClientContext context;
 
 }  // namespace client
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CLIENT_CLIENT_CONTEXT_H_

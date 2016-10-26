@@ -40,7 +40,7 @@
 #include "aesni_macros.h"
 #include "util/log.h"
 
-namespace i2p {
+namespace kovri {
 namespace crypto {
 
 /// TODO(unassigned): if we switch libraries, we should move AES-NI elsewhere.
@@ -589,4 +589,4 @@ void CBCDecryption::Decrypt(
 }
 
 }  //  namespace crypto
-}  //  namespace i2p
+}  //  namespace kovri

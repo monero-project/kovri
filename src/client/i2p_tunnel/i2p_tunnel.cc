@@ -41,13 +41,13 @@
 #include "client/destination.h"
 #include "util/log.h"
 
-namespace i2p {
+namespace kovri {
 namespace client {
 
 I2PTunnelConnection::I2PTunnelConnection(
     I2PService* owner,
     std::shared_ptr<boost::asio::ip::tcp::socket> socket,
-    std::shared_ptr<const i2p::data::LeaseSet> lease_set,
+    std::shared_ptr<const kovri::data::LeaseSet> lease_set,
     int port)
     : I2PServiceHandler(owner),
       m_Socket(socket),
@@ -61,7 +61,7 @@ I2PTunnelConnection::I2PTunnelConnection(
 I2PTunnelConnection::I2PTunnelConnection(
     I2PService* owner,
     std::shared_ptr<boost::asio::ip::tcp::socket> socket,
-    std::shared_ptr<i2p::stream::Stream> stream)
+    std::shared_ptr<kovri::stream::Stream> stream)
     : I2PServiceHandler(owner),
       m_Socket(socket),
       m_Stream(stream),
@@ -70,7 +70,7 @@ I2PTunnelConnection::I2PTunnelConnection(
 
 I2PTunnelConnection::I2PTunnelConnection(
     I2PService* owner,
-    std::shared_ptr<i2p::stream::Stream> stream,
+    std::shared_ptr<kovri::stream::Stream> stream,
     std::shared_ptr<boost::asio::ip::tcp::socket> socket,
     const boost::asio::ip::tcp::endpoint& target,
     bool quiet)
@@ -232,7 +232,7 @@ void I2PTunnelConnection::HandleConnect(
 
 I2PTunnelConnectionHTTP::I2PTunnelConnectionHTTP(
     I2PService* owner,
-    std::shared_ptr<i2p::stream::Stream> stream,
+    std::shared_ptr<kovri::stream::Stream> stream,
     std::shared_ptr<boost::asio::ip::tcp::socket> socket,
     const boost::asio::ip::tcp::endpoint& target,
     const std::string& host)
@@ -285,7 +285,7 @@ class I2PClientTunnelHandler
  public:
   I2PClientTunnelHandler(
       I2PClientTunnel* parent,
-      i2p::data::IdentHash destination,
+      kovri::data::IdentHash destination,
       int destination_port,
       std::shared_ptr<boost::asio::ip::tcp::socket> socket)
     : I2PServiceHandler(parent),
@@ -296,8 +296,8 @@ class I2PClientTunnelHandler
   void Terminate();
 
  private:
-  void HandleStreamRequestComplete(std::shared_ptr<i2p::stream::Stream> stream);
-  i2p::data::IdentHash m_DestinationIdentHash;
+  void HandleStreamRequestComplete(std::shared_ptr<kovri::stream::Stream> stream);
+  kovri::data::IdentHash m_DestinationIdentHash;
   int m_DestinationPort;
   std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
 };
@@ -313,7 +313,7 @@ void I2PClientTunnelHandler::Handle() {
 }
 
 void I2PClientTunnelHandler::HandleStreamRequestComplete(
-    std::shared_ptr<i2p::stream::Stream> stream) {
+    std::shared_ptr<kovri::stream::Stream> stream) {
   if (stream) {
     if (Kill())
       return;
@@ -372,11 +372,11 @@ void I2PClientTunnel::Stop() {
 }
 
 /* HACK: maybe we should create a caching IdentHash provider in AddressBook */
-std::unique_ptr<const i2p::data::IdentHash> I2PClientTunnel::GetIdentHash() {
+std::unique_ptr<const kovri::data::IdentHash> I2PClientTunnel::GetIdentHash() {
   if (!m_DestinationIdentHash) {
-    i2p::data::IdentHash ident_hash;
-    if (i2p::client::context.GetAddressBook().CheckAddressIdentHashFound(m_Destination, ident_hash))
-      m_DestinationIdentHash = std::make_unique<i2p::data::IdentHash>(ident_hash);
+    kovri::data::IdentHash ident_hash;
+    if (kovri::client::context.GetAddressBook().CheckAddressIdentHashFound(m_Destination, ident_hash))
+      m_DestinationIdentHash = std::make_unique<kovri::data::IdentHash>(ident_hash);
     else
       LogPrint(eLogWarn,
           "I2PClientTunnel: remote destination ", m_Destination, " not found");
@@ -525,7 +525,7 @@ void I2PServerTunnel::UpdateStreamingPort(
 }
 
 void I2PServerTunnel::SetAccessList(
-    const std::set<i2p::data::IdentHash>& access_list) {
+    const std::set<kovri::data::IdentHash>& access_list) {
   m_AccessList = access_list;
   m_IsAccessList = true;
 }
@@ -552,7 +552,7 @@ void I2PServerTunnel::Accept() {
 }
 
 void I2PServerTunnel::HandleAccept(
-    std::shared_ptr<i2p::stream::Stream> stream) {
+    std::shared_ptr<kovri::stream::Stream> stream) {
   if (stream) {
     if (m_IsAccessList) {
       if (!m_AccessList.count(stream->GetRemoteIdentity().GetIdentHash())) {
@@ -569,7 +569,7 @@ void I2PServerTunnel::HandleAccept(
 }
 
 void I2PServerTunnel::CreateI2PConnection(
-    std::shared_ptr<i2p::stream::Stream> stream) {
+    std::shared_ptr<kovri::stream::Stream> stream) {
   auto conn =
     std::make_shared<I2PTunnelConnection>(
         this,
@@ -596,7 +596,7 @@ I2PServerTunnelHTTP::I2PServerTunnelHTTP(
           inport) {}
 
 void I2PServerTunnelHTTP::CreateI2PConnection(
-    std::shared_ptr<i2p::stream::Stream> stream) {
+    std::shared_ptr<kovri::stream::Stream> stream) {
   auto conn =
     std::make_shared<I2PTunnelConnectionHTTP>(
         this,
@@ -609,12 +609,12 @@ void I2PServerTunnelHTTP::CreateI2PConnection(
 }
 void I2PServerTunnel::SetAccessListString(
     const std::string& idents_str) {
-  std::set<i2p::data::IdentHash> idents;
+  std::set<kovri::data::IdentHash> idents;
   if (idents_str.length() > 0) {
     size_t pos = 0, comma;
     do {
       comma = idents_str.find(',', pos);
-      i2p::data::IdentHash ident;
+      kovri::data::IdentHash ident;
       ident.FromBase32(
           idents_str.substr(
               pos,
@@ -629,4 +629,4 @@ void I2PServerTunnel::SetAccessListString(
 }
 
 }  // namespace client
-}  // namespace i2p
+}  // namespace kovri

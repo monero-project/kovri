@@ -35,7 +35,7 @@
 
 #include <cryptopp/integer.h>
 
-namespace i2p {
+namespace kovri {
 namespace crypto {
 
 struct CryptoConstants {
@@ -64,6 +64,6 @@ const CryptoConstants& GetCryptoConstants();
 const int rsae = 65537;
 
 }  // namespace crypto
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_PIMPL_CRYPTOPP_CRYPTOCONST_H_

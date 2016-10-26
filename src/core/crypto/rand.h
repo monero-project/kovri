@@ -36,7 +36,7 @@
 #include <cstdlib>
 #include <stdexcept>
 
-namespace i2p {
+namespace kovri {
 namespace crypto {
 
   /// @brief Generates CSPRNG bytes
@@ -83,6 +83,6 @@ namespace crypto {
   }
 
 }  // namespace crypto
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_RAND_H_

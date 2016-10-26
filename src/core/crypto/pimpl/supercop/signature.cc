@@ -38,7 +38,7 @@
 #include "ed25519/ed25519_ref10.h"
 #include "crypto/rand.h"
 
-namespace i2p {
+namespace kovri {
 namespace crypto {
 
 /**
@@ -156,7 +156,7 @@ void EDDSA25519Signer::Sign(
 void CreateEDDSARandomKeys(
     std::uint8_t* privateKey,
     std::uint8_t* publicKey) {
-  i2p::crypto::RandBytes(
+  kovri::crypto::RandBytes(
       privateKey,
       EDDSA25519_PRIVATE_KEY_LENGTH);
   ed25519_ref10_pubkey(
@@ -165,4 +165,4 @@ void CreateEDDSARandomKeys(
 }
 
 }  // namespace crypto
-}  // namespace i2p
+}  // namespace kovri

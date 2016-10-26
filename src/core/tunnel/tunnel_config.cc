@@ -39,19 +39,19 @@
 #include "router_context.h"
 #include "util/timestamp.h"
 
-namespace i2p {
+namespace kovri {
 namespace tunnel {
 
 // TODO(unassigned): refactor all tunnel implementation (applies across entire namespace)
 
 TunnelHopConfig::TunnelHopConfig(
-    std::shared_ptr<const i2p::data::RouterInfo> r) {
-  i2p::crypto::RandBytes(layer_key, 32);
-  i2p::crypto::RandBytes(iv_key, 32);
-  i2p::crypto::RandBytes(reply_key, 32);
-  i2p::crypto::RandBytes(reply_IV, 16);
-  i2p::crypto::RandBytes(rand_pad, 29);
-  tunnel_ID = i2p::crypto::Rand<uint32_t>();
+    std::shared_ptr<const kovri::data::RouterInfo> r) {
+  kovri::crypto::RandBytes(layer_key, 32);
+  kovri::crypto::RandBytes(iv_key, 32);
+  kovri::crypto::RandBytes(reply_key, 32);
+  kovri::crypto::RandBytes(reply_IV, 16);
+  kovri::crypto::RandBytes(rand_pad, 29);
+  tunnel_ID = kovri::crypto::Rand<uint32_t>();
   is_gateway = true;
   is_endpoint = true;
   router = r;
@@ -62,10 +62,10 @@ TunnelHopConfig::TunnelHopConfig(
 }
 
 void TunnelHopConfig::SetNextRouter(
-    std::shared_ptr<const i2p::data::RouterInfo> r) {
+    std::shared_ptr<const kovri::data::RouterInfo> r) {
   next_router = r;
   is_endpoint = false;
-  next_tunnel_ID = i2p::crypto::Rand<uint32_t>();
+  next_tunnel_ID = kovri::crypto::Rand<uint32_t>();
 }
 
 void TunnelHopConfig::SetReplyHop(
@@ -139,7 +139,7 @@ void TunnelHopConfig::CreateBuildRequestRecord(
   clear_text[BUILD_REQUEST_RECORD_FLAG_OFFSET] = flag;
   htobe32buf(
       clear_text + BUILD_REQUEST_RECORD_REQUEST_TIME_OFFSET,
-      i2p::util::GetHoursSinceEpoch());
+      kovri::util::GetHoursSinceEpoch());
   htobe32buf(
       clear_text + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET,
       reply_msg_ID);
@@ -158,7 +158,7 @@ void TunnelHopConfig::CreateBuildRequestRecord(
 }
 
 TunnelConfig::TunnelConfig(
-    std::vector<std::shared_ptr<const i2p::data::RouterInfo> > peers,
+    std::vector<std::shared_ptr<const kovri::data::RouterInfo> > peers,
     std::shared_ptr<const TunnelConfig> reply_tunnel_config)
     : TunnelConfig() {
   TunnelHopConfig* prev = nullptr;
@@ -178,7 +178,7 @@ TunnelConfig::TunnelConfig(
       m_FirstHop->is_gateway = false;
       m_LastHop->SetReplyHop(reply_tunnel_config->GetFirstHop());
     } else {  // inbound
-      m_LastHop->SetNextRouter(i2p::context.GetSharedRouterInfo());
+      m_LastHop->SetNextRouter(kovri::context.GetSharedRouterInfo());
     }
   }
 }
@@ -214,8 +214,8 @@ bool TunnelConfig::IsInbound() const {
   return m_FirstHop->is_gateway;
 }
 
-std::vector<std::shared_ptr<const i2p::data::RouterInfo> > TunnelConfig::GetPeers() const {
-  std::vector<std::shared_ptr<const i2p::data::RouterInfo> > peers;
+std::vector<std::shared_ptr<const kovri::data::RouterInfo> > TunnelConfig::GetPeers() const {
+  std::vector<std::shared_ptr<const kovri::data::RouterInfo> > peers;
   TunnelHopConfig* hop = m_FirstHop;
   while (hop) {
     peers.push_back(hop->router);
@@ -257,4 +257,4 @@ std::shared_ptr<TunnelConfig> TunnelConfig::Clone(
 }
 
 }  // namespace tunnel
-}  // namespace i2p
+}  // namespace kovri

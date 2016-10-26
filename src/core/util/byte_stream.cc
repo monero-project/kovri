@@ -34,7 +34,7 @@
 #include "i2p_endian.h"
 #include <stdexcept>
 
-namespace i2p {
+namespace kovri {
 namespace util {
 
 InputByteStream::InputByteStream(
@@ -109,4 +109,4 @@ uint8_t* OutputByteStream::GetPosition() const {
 }
 
 } // namespace util
-} // namespace i2p
+} // namespace kovri

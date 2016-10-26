@@ -49,7 +49,7 @@
 #include "identity.h"
 #include "router_info.h"
 
-namespace i2p {
+namespace kovri {
 
 const char ROUTER_INFO[] = "router.info";
 const char ROUTER_KEYS[] = "router.keys";
@@ -64,7 +64,7 @@ enum RouterStatus {
   eRouterStatusFirewalled = 2
 };
 
-class RouterContext : public i2p::garlic::GarlicDestination {
+class RouterContext : public kovri::garlic::GarlicDestination {
  public:
   RouterContext();
 
@@ -77,15 +77,15 @@ class RouterContext : public i2p::garlic::GarlicDestination {
       const boost::filesystem::path& dataPath);
 
   // @return This RouterContext's RouterInfo
-  i2p::data::RouterInfo& GetRouterInfo() {
+  kovri::data::RouterInfo& GetRouterInfo() {
     return m_RouterInfo;
   }
 
   // @return This RouterContext's RouterInfo wrapped in a smart pointer
-  std::shared_ptr<const i2p::data::RouterInfo> GetSharedRouterInfo() const  {
-    return std::shared_ptr<const i2p::data::RouterInfo>(
+  std::shared_ptr<const kovri::data::RouterInfo> GetSharedRouterInfo() const  {
+    return std::shared_ptr<const kovri::data::RouterInfo>(
         &m_RouterInfo,
-        [](const i2p::data::RouterInfo *) {});
+        [](const kovri::data::RouterInfo *) {});
   }
 
   // @return How long this RouterContext has been online in seconds since epoch
@@ -134,7 +134,7 @@ class RouterContext : public i2p::garlic::GarlicDestination {
   // @param routerInfo the RouterInfo to use in the Introducer
   // @param tag
   bool AddIntroducer(
-      const i2p::data::RouterInfo& routerInfo,
+      const kovri::data::RouterInfo& routerInfo,
       uint32_t tag);
 
   // Remove and SSU introducer given its endpoint.
@@ -225,7 +225,7 @@ class RouterContext : public i2p::garlic::GarlicDestination {
   void UpdateStats();
 
   // implements LocalDestination
-  const i2p::data::PrivateKeys& GetPrivateKeys() const {
+  const kovri::data::PrivateKeys& GetPrivateKeys() const {
     return m_Keys;
   }
 
@@ -240,16 +240,16 @@ class RouterContext : public i2p::garlic::GarlicDestination {
   void SetLeaseSetUpdated() {}
 
   // implements GarlicDestination
-  std::shared_ptr<const i2p::data::LeaseSet> GetLeaseSet() {
+  std::shared_ptr<const kovri::data::LeaseSet> GetLeaseSet() {
     return nullptr;
   }
 
-  std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool() const;
+  std::shared_ptr<kovri::tunnel::TunnelPool> GetTunnelPool() const;
 
   void HandleI2NPMessage(
       const uint8_t* buf,
       size_t len,
-      std::shared_ptr<i2p::tunnel::InboundTunnel> from);
+      std::shared_ptr<kovri::tunnel::InboundTunnel> from);
 
   // override GarlicDestination
   void ProcessGarlicMessage(
@@ -303,11 +303,11 @@ class RouterContext : public i2p::garlic::GarlicDestination {
   void UpdateRouterInfo();
   bool Load();
   void SaveKeys();
-  void RemoveTransport(i2p::data::RouterInfo::TransportStyle transport);
+  void RemoveTransport(kovri::data::RouterInfo::TransportStyle transport);
 
  private:
-  i2p::data::RouterInfo m_RouterInfo;
-  i2p::data::PrivateKeys m_Keys;
+  kovri::data::RouterInfo m_RouterInfo;
+  kovri::data::PrivateKeys m_Keys;
   uint64_t m_LastUpdateTime;
   bool m_AcceptsTunnels, m_IsFloodfill;
   uint64_t m_StartupTime;  // in seconds since epoch
@@ -323,6 +323,6 @@ class RouterContext : public i2p::garlic::GarlicDestination {
 
 extern RouterContext context;
 
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_ROUTER_CONTEXT_H_

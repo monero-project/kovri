@@ -38,7 +38,7 @@
 
 #include "signature_base.h"
 
-namespace i2p {
+namespace kovri {
 namespace crypto {
 
 /**
@@ -537,6 +537,6 @@ void CreateEDDSARandomKeys(
 
 
 }  // namespace crypto
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_SIGNATURE_H_

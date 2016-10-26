@@ -41,7 +41,7 @@
 #include "util/i2p_endian.h"
 #include "util/log.h"
 
-namespace i2p {
+namespace kovri {
 namespace tunnel {
 
 TransitTunnel::TransitTunnel(
@@ -67,7 +67,7 @@ void TransitTunnel::EncryptTunnelMsg(
 TransitTunnelParticipant::~TransitTunnelParticipant() {}
 
 void TransitTunnelParticipant::HandleTunnelDataMsg(
-    std::shared_ptr<const i2p::I2NPMessage> tunnel_msg) {
+    std::shared_ptr<const kovri::I2NPMessage> tunnel_msg) {
   auto new_msg = CreateEmptyTunnelDataMsg();
   EncryptTunnelMsg(tunnel_msg, new_msg);
   m_NumTransmittedBytes += tunnel_msg->GetLength();
@@ -84,7 +84,7 @@ void TransitTunnelParticipant::FlushTunnelDataMsgs() {
           "TransitTunnelParticipant: ", GetTunnelID(),
           "->", GetNextTunnelID(),
           " ", num);
-    i2p::transport::transports.SendMessages(
+    kovri::transport::transports.SendMessages(
         GetNextIdentHash(),
         m_TunnelDataMsgs);
     m_TunnelDataMsgs.clear();
@@ -92,21 +92,21 @@ void TransitTunnelParticipant::FlushTunnelDataMsgs() {
 }
 
 void TransitTunnel::SendTunnelDataMsg(
-    std::shared_ptr<i2p::I2NPMessage>) {
+    std::shared_ptr<kovri::I2NPMessage>) {
   LogPrint(eLogError,
       "TransitTunnel: we are not a gateway for transit tunnel: ",
       m_TunnelID);
 }
 
 void TransitTunnel::HandleTunnelDataMsg(
-    std::shared_ptr<const i2p::I2NPMessage>) {
+    std::shared_ptr<const kovri::I2NPMessage>) {
   LogPrint(eLogError,
       "TransitTunnel: incoming tunnel message is not supported: ",
       m_TunnelID);
 }
 
 void TransitTunnelGateway::SendTunnelDataMsg(
-    std::shared_ptr<i2p::I2NPMessage> msg) {
+    std::shared_ptr<kovri::I2NPMessage> msg) {
   TunnelMessageBlock block;
   block.delivery_type = e_DeliveryTypeLocal;
   block.data = msg;
@@ -120,7 +120,7 @@ void TransitTunnelGateway::FlushTunnelDataMsgs() {
 }
 
 void TransitTunnelEndpoint::HandleTunnelDataMsg(
-    std::shared_ptr<const i2p::I2NPMessage> tunnel_msg) {
+    std::shared_ptr<const kovri::I2NPMessage> tunnel_msg) {
   auto new_msg = CreateEmptyTunnelDataMsg();
   EncryptTunnelMsg(tunnel_msg, new_msg);
   LogPrint(eLogDebug,
@@ -167,4 +167,4 @@ TransitTunnel* CreateTransitTunnel(
 }
 
 }  // namespace tunnel
-}  // namespace i2p
+}  // namespace kovri

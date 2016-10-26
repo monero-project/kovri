@@ -44,12 +44,12 @@
 #include "client/destination.h"
 #include "client/i2p_service.h"
 
-namespace i2p {
+namespace kovri {
 namespace proxy {
 
 /// @class HTTPProxyServer
 class HTTPProxyServer
-    : public i2p::client::TCPIPAcceptor {
+    : public kovri::client::TCPIPAcceptor {
  public:
   /// @param name Proxy server service name
   /// @param address Proxy binding address
@@ -59,13 +59,13 @@ class HTTPProxyServer
       const std::string& name,
       const std::string& address,
       std::uint16_t port,
-      std::shared_ptr<i2p::client::ClientDestination> local_destination = nullptr);
+      std::shared_ptr<kovri::client::ClientDestination> local_destination = nullptr);
 
   ~HTTPProxyServer() {}
 
  protected:
   /// @brief Implements TCPIPAcceptor
-  std::shared_ptr<i2p::client::I2PServiceHandler> CreateHandler(
+  std::shared_ptr<kovri::client::I2PServiceHandler> CreateHandler(
       std::shared_ptr<boost::asio::ip::tcp::socket> socket);
 
   /// @brief Gets name of proxy service
@@ -82,7 +82,7 @@ typedef HTTPProxyServer HTTPProxy;
 
 /// @class HTTPProxyHandler
 class HTTPProxyHandler
-    : public i2p::client::I2PServiceHandler,
+    : public kovri::client::I2PServiceHandler,
       public std::enable_shared_from_this<HTTPProxyHandler> {
  public:
   /// @param parent Pointer to parent server
@@ -120,7 +120,7 @@ class HTTPProxyHandler
 
   /// @brief Handles stream created by service through proxy handler
   void HandleStreamRequestComplete(
-      std::shared_ptr<i2p::stream::Stream> stream);
+      std::shared_ptr<kovri::stream::Stream> stream);
 
   /// @enum State
   /// @brief Parsing state
@@ -210,6 +210,6 @@ class HTTPProxyHandler
 };
 
 }  // namespace proxy
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CLIENT_I2P_TUNNEL_HTTP_PROXY_H_

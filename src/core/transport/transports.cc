@@ -46,7 +46,7 @@
 #include "crypto/rand.h"
 #include "util/log.h"
 
-namespace i2p {
+namespace kovri {
 namespace transport {
 
 DHKeysPairSupplier::DHKeysPairSupplier(
@@ -92,8 +92,8 @@ void DHKeysPairSupplier::CreateDHKeysPairs(
     std::size_t num) {
   LogPrint(eLogDebug, "DHKeysPairSupplier: creating");
   for (std::size_t i = 0; i < num; i++) {
-    auto pair = std::make_unique<i2p::transport::DHKeysPair>();
-    i2p::crypto::DiffieHellman().GenerateKeyPair(
+    auto pair = std::make_unique<kovri::transport::DHKeysPair>();
+    kovri::crypto::DiffieHellman().GenerateKeyPair(
         pair->private_key.data(),
         pair->public_key.data());
     std::unique_lock<std::mutex>  l(m_AcquiredMutex);
@@ -113,7 +113,7 @@ std::unique_ptr<DHKeysPair> DHKeysPairSupplier::Acquire() {
   l.unlock();
   // queue is empty, create new key pair
   auto pair = std::make_unique<DHKeysPair>();
-  i2p::crypto::DiffieHellman().GenerateKeyPair(
+  kovri::crypto::DiffieHellman().GenerateKeyPair(
       pair->private_key.data(),
       pair->public_key.data());
   return pair;
@@ -168,7 +168,7 @@ void Transports::Start() {
   for (const auto& address : addresses) {
     LogPrint("Transports: creating servers for address ", address.host);
     if (address.transport_style ==
-        i2p::data::RouterInfo::eTransportNTCP && address.host.is_v4()) {
+        kovri::data::RouterInfo::eTransportNTCP && address.host.is_v4()) {
       if (!m_NTCPServer) {
         LogPrint(eLogInfo, "Transports: TCP listening on port ", address.port);
         m_NTCPServer = std::make_unique<NTCPServer>(m_Service, address.port);
@@ -178,7 +178,7 @@ void Transports::Start() {
       }
     }
     if (address.transport_style ==
-        i2p::data::RouterInfo::eTransportSSU && address.host.is_v4()) {
+        kovri::data::RouterInfo::eTransportSSU && address.host.is_v4()) {
       if (!m_SSUServer) {
         LogPrint(eLogInfo, "Transports: UDP listening on port ", address.port);
         m_SSUServer = std::make_unique<SSUServer>(m_Service, address.port);
@@ -235,7 +235,7 @@ void Transports::Run() {
 
 void Transports::UpdateBandwidth() {
   LogPrint(eLogDebug, "Transports: updating bandwidth");
-  const uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
+  const uint64_t ts = kovri::util::GetMillisecondsSinceEpoch();
   if (m_LastBandwidthUpdateTime > 0) {
     auto delta = ts - m_LastBandwidthUpdateTime;
     if (delta > 0) {
@@ -256,23 +256,23 @@ bool Transports::IsBandwidthExceeded() const {
     LogPrint(eLogDebug, "Transports: bandwidth has been exceeded");
     return true;
   }
-  if (i2p::context.GetRouterInfo().IsHighBandwidth())
+  if (kovri::context.GetRouterInfo().IsHighBandwidth())
     LogPrint(eLogDebug, "Transports: bandwidth has not been exceeded");
   return false;
 }
 
 void Transports::SendMessage(
-    const i2p::data::IdentHash& ident,
-    std::shared_ptr<i2p::I2NPMessage> msg) {
+    const kovri::data::IdentHash& ident,
+    std::shared_ptr<kovri::I2NPMessage> msg) {
   LogPrint(eLogDebug, "Transports: sending messages");
   SendMessages(
       ident,
-      std::vector<std::shared_ptr<i2p::I2NPMessage>> {msg});
+      std::vector<std::shared_ptr<kovri::I2NPMessage>> {msg});
 }
 
 void Transports::SendMessages(
-    const i2p::data::IdentHash& ident,
-    const std::vector<std::shared_ptr<i2p::I2NPMessage>>& msgs) {
+    const kovri::data::IdentHash& ident,
+    const std::vector<std::shared_ptr<kovri::I2NPMessage>>& msgs) {
   m_Service.post(
       std::bind(
           &Transports::PostMessages,
@@ -282,23 +282,23 @@ void Transports::SendMessages(
 }
 
 void Transports::PostMessages(
-    i2p::data::IdentHash ident,
-    std::vector<std::shared_ptr<i2p::I2NPMessage>> msgs) {
+    kovri::data::IdentHash ident,
+    std::vector<std::shared_ptr<kovri::I2NPMessage>> msgs) {
   LogPrint(eLogDebug, "Transports: posting messages");
-  if (ident == i2p::context.GetRouterInfo().GetIdentHash()) {
+  if (ident == kovri::context.GetRouterInfo().GetIdentHash()) {
     // we send it to ourself
     for (auto msg : msgs)
-      i2p::HandleI2NPMessage(msg);
+      kovri::HandleI2NPMessage(msg);
     return;
   }
   auto it = m_Peers.find(ident);
   if (it == m_Peers.end()) {
     bool connected = false;
     try {
-      auto router = i2p::data::netdb.FindRouter(ident);
+      auto router = kovri::data::netdb.FindRouter(ident);
       it = m_Peers.insert(std::make_pair(
           ident,
-          Peer{ 0, router, {}, i2p::util::GetSecondsSinceEpoch(), {} })).first;
+          Peer{ 0, router, {}, kovri::util::GetSecondsSinceEpoch(), {} })).first;
       connected = ConnectToPeer(ident, it->second);
     } catch (std::exception& ex) {
       LogPrint(eLogError, "Transports: PostMessages(): '", ex.what(), "'");
@@ -315,11 +315,11 @@ void Transports::PostMessages(
 }
 
 bool Transports::ConnectToPeer(
-    const i2p::data::IdentHash& ident,
+    const kovri::data::IdentHash& ident,
     Peer& peer) {
   if (!peer.router) {  // We don't have the RI
     LogPrint(eLogDebug, "Transports: RI not found, requesting");
-    i2p::data::netdb.RequestDestination(
+    kovri::data::netdb.RequestDestination(
         ident,
         std::bind(
             &Transports::RequestComplete,
@@ -362,7 +362,7 @@ bool Transports::ConnectToPeer(
 }
 
 bool Transports::ConnectToPeerNTCP(
-    const i2p::data::IdentHash& ident,
+    const kovri::data::IdentHash& ident,
     Peer& peer) {
   if (!m_NTCPServer)
     return false;  // NTCP not supported
@@ -411,8 +411,8 @@ bool Transports::ConnectToPeerSSU(Peer& peer) {
 
 
 void Transports::RequestComplete(
-    std::shared_ptr<const i2p::data::RouterInfo> router,
-    const i2p::data::IdentHash& ident) {
+    std::shared_ptr<const kovri::data::RouterInfo> router,
+    const kovri::data::IdentHash& ident) {
   m_Service.post(
       std::bind(
           &Transports::HandleRequestComplete,
@@ -422,8 +422,8 @@ void Transports::RequestComplete(
 }
 
 void Transports::HandleRequestComplete(
-    std::shared_ptr<const i2p::data::RouterInfo> router,
-    const i2p::data::IdentHash& ident) {
+    std::shared_ptr<const kovri::data::RouterInfo> router,
+    const kovri::data::IdentHash& ident) {
   auto it = m_Peers.find(ident);
   if (it != m_Peers.end()) {
     if (router) {
@@ -441,7 +441,7 @@ void Transports::HandleRequestComplete(
 
 void Transports::NTCPResolve(
     const std::string& addr,
-    const i2p::data::IdentHash& ident) {
+    const kovri::data::IdentHash& ident) {
   auto resolver =
     std::make_shared<boost::asio::ip::tcp::resolver>(m_Service);
   resolver->async_resolve(
@@ -460,7 +460,7 @@ void Transports::NTCPResolve(
 void Transports::HandleNTCPResolve(
     const boost::system::error_code& ecode,
     boost::asio::ip::tcp::resolver::iterator it,
-    i2p::data::IdentHash ident,
+    kovri::data::IdentHash ident,
     std::shared_ptr<boost::asio::ip::tcp::resolver>) {
   auto it1 = m_Peers.find(ident);
   if (it1 != m_Peers.end()) {
@@ -485,7 +485,7 @@ void Transports::HandleNTCPResolve(
 
 // TODO(unassigned): why is this never called anywhere?
 void Transports::CloseSession(
-    std::shared_ptr<const i2p::data::RouterInfo> router) {
+    std::shared_ptr<const kovri::data::RouterInfo> router) {
   if (!router)
     return;
 
@@ -500,7 +500,7 @@ void Transports::CloseSession(
 }
 
 void Transports::PostCloseSession(
-    std::shared_ptr<const i2p::data::RouterInfo> router) {
+    std::shared_ptr<const kovri::data::RouterInfo> router) {
   auto ssu_session =
     m_SSUServer ? m_SSUServer->FindSession(router) : nullptr;
   // try SSU first
@@ -529,15 +529,15 @@ void Transports::DetectExternalIP() {
     return;
   }
 
-  i2p::context.SetStatus(eRouterStatusTesting);
+  kovri::context.SetStatus(eRouterStatusTesting);
   // TODO(unassigned): Why 5 times? (make constant)
   for (int i = 0; i < 5; i++) {
-    auto router = i2p::data::netdb.GetRandomPeerTestRouter();
+    auto router = kovri::data::netdb.GetRandomPeerTestRouter();
     if (router && router->IsSSU()) {
       m_SSUServer->GetSession(router, true);  // peer test
     } else {
       // if not peer test capable routers found pick any
-      router = i2p::data::netdb.GetRandomRouter();
+      router = kovri::data::netdb.GetRandomRouter();
       if (router && router->IsSSU())
         m_SSUServer->GetSession(router);  // no peer test
     }
@@ -572,7 +572,7 @@ void Transports::PeerConnected(
           std::make_pair(
               ident,
               Peer{ 0, nullptr, { session },
-              i2p::util::GetSecondsSinceEpoch(), {} }));
+              kovri::util::GetSecondsSinceEpoch(), {} }));
     }
   });
 }
@@ -596,7 +596,7 @@ void Transports::PeerDisconnected(
 }
 
 bool Transports::IsConnected(
-    const i2p::data::IdentHash& ident) const {
+    const kovri::data::IdentHash& ident) const {
   LogPrint(eLogDebug, "Transports: testing if connected");
   auto it = m_Peers.find(ident);
   if (it != m_Peers.end()) {
@@ -611,7 +611,7 @@ void Transports::HandlePeerCleanupTimer(
     const boost::system::error_code& ecode) {
   LogPrint(eLogDebug, "Transports: handling peer cleanup timer");
   if (ecode != boost::asio::error::operation_aborted) {
-    auto ts = i2p::util::GetSecondsSinceEpoch();
+    auto ts = kovri::util::GetSecondsSinceEpoch();
     for (auto it = m_Peers.begin(); it != m_Peers.end();) {
       if (it->second.sessions.empty() &&
           ts > it->second.creation_time + SESSION_CREATION_TIMEOUT) {
@@ -626,7 +626,7 @@ void Transports::HandlePeerCleanupTimer(
     }
     UpdateBandwidth();  // TODO(unassigned): use separate timer(s) for it
     // if still testing, repeat peer test
-    if (i2p::context.GetStatus() == eRouterStatusTesting)
+    if (kovri::context.GetStatus() == eRouterStatusTesting)
       DetectExternalIP();
     m_PeerCleanupTimer.expires_from_now(
         boost::posix_time::seconds(
@@ -639,7 +639,7 @@ void Transports::HandlePeerCleanupTimer(
   }
 }
 
-std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRandomPeer() const {
+std::shared_ptr<const kovri::data::RouterInfo> Transports::GetRandomPeer() const {
   LogPrint(eLogDebug, "Transports: getting random peer");
   if (m_Peers.empty())  // ensure m.Peers.size() >= 1
     return nullptr;
@@ -647,12 +647,12 @@ std::shared_ptr<const i2p::data::RouterInfo> Transports::GetRandomPeer() const {
   auto it = m_Peers.begin();
   std::advance(
       it,
-      i2p::crypto::RandInRange<size_t>(0, s - 1));
+      kovri::crypto::RandInRange<size_t>(0, s - 1));
   return it->second.router;
 }
 
 std::string Transports::GetFormattedSessionInfo(
-    std::shared_ptr<const i2p::data::RouterInfo>& router) const {
+    std::shared_ptr<const kovri::data::RouterInfo>& router) const {
   if (router) {
     std::ostringstream info;
     info << " [" << router->GetIdentHashAbbreviation() << "] ";
@@ -663,5 +663,5 @@ std::string Transports::GetFormattedSessionInfo(
 
 
 }  // namespace transport
-}  // namespace i2p
+}  // namespace kovri
 

@@ -43,7 +43,7 @@
 
 #include "core/tunnel/tunnel.h"
 
-namespace i2p {
+namespace kovri {
 namespace client {
 namespace i2pcontrol {
 
@@ -160,7 +160,7 @@ class JsonObject {
 };
 
 JsonObject TunnelToJsonObject(
-    i2p::tunnel::Tunnel* tunnel);
+    kovri::tunnel::Tunnel* tunnel);
 
 /**
  * @class I2PControlSession
@@ -329,6 +329,6 @@ class I2PControlSession
 
 }  // namespace i2pcontrol
 }  // namespace client
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CLIENT_I2P_CONTROL_I2P_CONTROL_H_

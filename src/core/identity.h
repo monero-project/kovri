@@ -43,7 +43,7 @@
 #include "crypto/signature_base.h"
 #include "util/base64.h"
 
-namespace i2p {
+namespace kovri {
 namespace data {
 
 // TODO(unassigned): review/consider moving this class into core/util
@@ -104,26 +104,26 @@ class Tag {
 
   std::string ToBase64() const {
     char str[Size * 2];
-    int l = i2p::util::ByteStreamToBase64(m_Buf, Size, str, Size * 2);
+    int l = kovri::util::ByteStreamToBase64(m_Buf, Size, str, Size * 2);
     str[l] = 0;
     return std::string(str);
   }
 
   std::string ToBase32() const {
     char str[Size * 2];
-    int l = i2p::util::ByteStreamToBase32(m_Buf, Size, str, Size * 2);
+    int l = kovri::util::ByteStreamToBase32(m_Buf, Size, str, Size * 2);
     str[l] = 0;
     return std::string(str);
   }
 
   void FromBase32(
       const std::string& s) {
-    i2p::util::Base32ToByteStream(s.c_str(), s.length(), m_Buf, Size);
+    kovri::util::Base32ToByteStream(s.c_str(), s.length(), m_Buf, Size);
   }
 
   void FromBase64(
       const std::string& s) {
-    i2p::util::Base64ToByteStream(s.c_str(), s.length(), m_Buf, Size);
+    kovri::util::Base64ToByteStream(s.c_str(), s.length(), m_Buf, Size);
   }
 
  private:
@@ -135,7 +135,7 @@ class Tag {
 typedef Tag<32> IdentHash;
 
 inline std::string GetB32Address(
-    const i2p::data::IdentHash& ident) {
+    const kovri::data::IdentHash& ident) {
   return ident.ToBase32().append(".b32.i2p");
 }
 
@@ -270,7 +270,7 @@ class IdentityEx {
  private:
   Identity m_StandardIdentity;
   IdentHash m_IdentHash;
-  mutable std::unique_ptr<i2p::crypto::Verifier> m_Verifier;
+  mutable std::unique_ptr<kovri::crypto::Verifier> m_Verifier;
   size_t m_ExtendedLen;
   std::unique_ptr<std::uint8_t[]> m_ExtendedBuffer;
 };
@@ -341,7 +341,7 @@ class PrivateKeys {  // for eepsites
   uint8_t m_PrivateKey[256];
   // assume private key doesn't exceed 1024 bytes
   uint8_t m_SigningPrivateKey[1024];
-  std::unique_ptr<i2p::crypto::Signer> m_Signer;
+  std::unique_ptr<kovri::crypto::Signer> m_Signer;
 };
 
 // kademlia
@@ -383,16 +383,16 @@ class RoutingDestination {
 
   virtual bool IsDestination() const = 0;  // for garlic
 
-  std::unique_ptr<const i2p::crypto::ElGamalEncryption>& GetElGamalEncryption() const {
+  std::unique_ptr<const kovri::crypto::ElGamalEncryption>& GetElGamalEncryption() const {
     if (!m_ElGamalEncryption)
       m_ElGamalEncryption.reset(
-          new i2p::crypto::ElGamalEncryption(GetEncryptionPublicKey()));
+          new kovri::crypto::ElGamalEncryption(GetEncryptionPublicKey()));
     return m_ElGamalEncryption;
   }
 
  private:
   // use lazy initialization
-  mutable std::unique_ptr<const i2p::crypto::ElGamalEncryption> m_ElGamalEncryption;
+  mutable std::unique_ptr<const kovri::crypto::ElGamalEncryption> m_ElGamalEncryption;
 };
 
 class LocalDestination {
@@ -425,6 +425,6 @@ class LocalDestination {
 };
 
 }  // namespace data
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_IDENTITY_H_

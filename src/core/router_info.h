@@ -46,7 +46,7 @@
 #include "identity.h"
 #include "profiling.h"
 
-namespace i2p {
+namespace kovri {
 namespace data {
 
 const char CAPS_FLAG_FLOODFILL = 'f';
@@ -346,6 +346,6 @@ class RouterInfo : public RoutingDestination {
 };
 
 }  // namespace data
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_ROUTER_INFO_H_

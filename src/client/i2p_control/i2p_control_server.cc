@@ -43,7 +43,7 @@
 #include "util/log.h"
 #include "util/timestamp.h"
 
-namespace i2p {
+namespace kovri {
 namespace client {
 namespace i2pcontrol {
 
@@ -235,4 +235,4 @@ void I2PControlService::HandleResponseSent(
 
 }  // namespace i2pcontrol
 }  // namespace client
-}  // namespace i2p
+}  // namespace kovri

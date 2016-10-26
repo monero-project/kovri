@@ -43,7 +43,7 @@
 #include "crypto/rand.h"
 #include "util/log.h"
 
-namespace i2p {
+namespace kovri {
 namespace crypto {
 
 /// @class ElGamalEncryptionImpl
@@ -172,4 +172,4 @@ void GenerateElGamalKeyPair(
 }
 
 }  //  namespace crypto
-}  //  namespace i2p
+}  //  namespace kovri

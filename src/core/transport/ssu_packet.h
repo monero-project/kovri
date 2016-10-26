@@ -38,7 +38,7 @@
 #include "router_info.h"
 #include "util/byte_stream.h"
 
-namespace i2p {
+namespace kovri {
 namespace transport {
 
 /// @enum SSUSize
@@ -349,11 +349,11 @@ class SSUSessionConfirmedPacket : public SSUPacket {
   /// @brief Sets Alice's remote router identity fragment
   /// @note Assumes content is valid (based on position)
   void SetRemoteRouterIdentity(
-      const i2p::data::IdentityEx& identity);
+      const kovri::data::IdentityEx& identity);
 
   /// @return Reference to the router identity to be included in the
   ///         SessionConfirmed message
-  i2p::data::IdentityEx& GetRemoteRouterIdentity();
+  kovri::data::IdentityEx& GetRemoteRouterIdentity();
 
   /// @brief Sets 4 byte signed-on timestamp
   /// @note Assumes content is valid (based on position)
@@ -378,7 +378,7 @@ class SSUSessionConfirmedPacket : public SSUPacket {
   std::size_t GetSize() const;
 
  private:
-  i2p::data::IdentityEx m_RemoteIdentity;
+  kovri::data::IdentityEx m_RemoteIdentity;
   std::uint8_t* m_Signature;
   std::uint32_t m_SignedOnTime;
 };
@@ -721,7 +721,7 @@ class SSUSessionDestroyedPacket : public SSUPacket {};
 
 /// @class SSUPacketParser
 /// @brief Constitutes SSU packet parsing
-class SSUPacketParser : private i2p::util::InputByteStream {
+class SSUPacketParser : private kovri::util::InputByteStream {
  public:
   SSUPacketParser() = default;
 
@@ -778,10 +778,10 @@ class SSUPacketParser : private i2p::util::InputByteStream {
 
 /// @class SSUPacketBuilder
 /// @brief Constitutes SSU packet building
-class SSUPacketBuilder : private i2p::util::OutputByteStream {
-  using i2p::util::OutputByteStream::WriteData; // Overload resolution
+class SSUPacketBuilder : private kovri::util::OutputByteStream {
+  using kovri::util::OutputByteStream::WriteData; // Overload resolution
  public:
-  using i2p::util::OutputByteStream::GetPosition; // Make public 
+  using kovri::util::OutputByteStream::GetPosition; // Make public 
 
   SSUPacketBuilder() = default;
 
@@ -854,6 +854,6 @@ class SSUPacketBuilder : private i2p::util::OutputByteStream {
 };
 
 }  // namespace transport
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_TRANSPORT_SSUPACKET_H_

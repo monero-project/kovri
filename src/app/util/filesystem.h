@@ -44,7 +44,7 @@
 #include "core/util/log.h"
 #include "core/util/filesystem.h"
 
-namespace i2p {
+namespace kovri {
 namespace util {
 namespace filesystem {
 
@@ -75,6 +75,6 @@ boost::filesystem::path GetDefaultDataPath();
 
 }  // namespace filesystem
 }  // namespace util
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_APP_UTIL_FILE_SYSTEM_H_

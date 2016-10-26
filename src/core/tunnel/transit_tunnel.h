@@ -45,7 +45,7 @@
 #include "tunnel_gateway.h"
 #include "crypto/tunnel.h"
 
-namespace i2p {
+namespace kovri {
 namespace tunnel {
 
 class TransitTunnel : public TunnelBase {
@@ -67,10 +67,10 @@ class TransitTunnel : public TunnelBase {
 
   // implements TunnelBase
   void SendTunnelDataMsg(
-      std::shared_ptr<i2p::I2NPMessage> msg);
+      std::shared_ptr<kovri::I2NPMessage> msg);
 
   void HandleTunnelDataMsg(
-      std::shared_ptr<const i2p::I2NPMessage> tunnel_msg);
+      std::shared_ptr<const kovri::I2NPMessage> tunnel_msg);
 
   void EncryptTunnelMsg(
       std::shared_ptr<const I2NPMessage> in,
@@ -80,15 +80,15 @@ class TransitTunnel : public TunnelBase {
     return m_NextTunnelID;
   }
 
-  const i2p::data::IdentHash& GetNextIdentHash() const {
+  const kovri::data::IdentHash& GetNextIdentHash() const {
     return m_NextIdent;
   }
 
  private:
   uint32_t m_TunnelID,
            m_NextTunnelID;
-  i2p::data::IdentHash m_NextIdent;
-  i2p::crypto::TunnelEncryption m_Encryption;
+  kovri::data::IdentHash m_NextIdent;
+  kovri::crypto::TunnelEncryption m_Encryption;
 };
 
 class TransitTunnelParticipant : public TransitTunnel {
@@ -113,13 +113,13 @@ class TransitTunnelParticipant : public TransitTunnel {
   }
 
   void HandleTunnelDataMsg(
-      std::shared_ptr<const i2p::I2NPMessage> tunnelMsg);
+      std::shared_ptr<const kovri::I2NPMessage> tunnelMsg);
 
   void FlushTunnelDataMsgs();
 
  private:
   size_t m_NumTransmittedBytes;
-  std::vector<std::shared_ptr<i2p::I2NPMessage> > m_TunnelDataMsgs;
+  std::vector<std::shared_ptr<kovri::I2NPMessage> > m_TunnelDataMsgs;
 };
 
 class TransitTunnelGateway : public TransitTunnel {
@@ -139,7 +139,7 @@ class TransitTunnelGateway : public TransitTunnel {
       m_Gateway(this) {}
 
   void SendTunnelDataMsg(
-      std::shared_ptr<i2p::I2NPMessage> msg);
+      std::shared_ptr<kovri::I2NPMessage> msg);
 
   void FlushTunnelDataMsgs();
 
@@ -169,7 +169,7 @@ class TransitTunnelEndpoint : public TransitTunnel {
       m_Endpoint(false) {}  // transit endpoint is always outbound
 
   void HandleTunnelDataMsg(
-      std::shared_ptr<const i2p::I2NPMessage> tunnel_msg);
+      std::shared_ptr<const kovri::I2NPMessage> tunnel_msg);
 
   size_t GetNumTransmittedBytes() const {
     return m_Endpoint.GetNumReceivedBytes();
@@ -189,6 +189,6 @@ TransitTunnel* CreateTransitTunnel(
     bool is_endpoint);
 
 }  // namespace tunnel
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_TUNNEL_TRANSIT_TUNNEL_H_

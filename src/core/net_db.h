@@ -52,7 +52,7 @@
 #include "tunnel/tunnel_pool.h"
 #include "util/queue.h"
 
-namespace i2p {
+namespace kovri {
 namespace data {
 
 class NetDb {
@@ -77,7 +77,7 @@ class NetDb {
       const IdentHash& ident,
       const uint8_t* buf,
       int len,
-      std::shared_ptr<i2p::tunnel::InboundTunnel> from);
+      std::shared_ptr<kovri::tunnel::InboundTunnel> from);
 
   std::shared_ptr<RouterInfo> FindRouter(
       const IdentHash& ident) const;
@@ -175,7 +175,7 @@ class NetDb {
   std::unique_ptr<std::thread> m_Thread;
 
   // of I2NPDatabaseStoreMsg
-  i2p::util::Queue<std::shared_ptr<const I2NPMessage>> m_Queue;
+  kovri::util::Queue<std::shared_ptr<const I2NPMessage>> m_Queue;
 
   friend class NetDbRequests;
   NetDbRequests m_Requests;
@@ -186,6 +186,6 @@ class NetDb {
 extern NetDb netdb;
 
 }  // namespace data
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_NET_DB_H_

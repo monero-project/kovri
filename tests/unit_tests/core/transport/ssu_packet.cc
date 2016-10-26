@@ -308,7 +308,7 @@ struct SSUTestVectorsFixture {
 BOOST_AUTO_TEST_SUITE(SSUHeaderTests)
 
 BOOST_AUTO_TEST_CASE(GetPayloadType) {
-  using namespace i2p::transport;
+  using namespace kovri::transport;
   SSUHeader header;
   header.SetPayloadType(0);
   BOOST_CHECK(header.GetPayloadType() == SSUPayloadType::SessionRequest);
@@ -331,7 +331,7 @@ BOOST_AUTO_TEST_CASE(GetPayloadType) {
 }
 
 BOOST_AUTO_TEST_CASE(SetPayloadTypeInvalid) {
-  i2p::transport::SSUHeader header;
+  kovri::transport::SSUHeader header;
   BOOST_CHECK_THROW(header.SetPayloadType(9);, std::invalid_argument);
   BOOST_CHECK_THROW(header.SetPayloadType(-1);, std::invalid_argument);
 }
@@ -347,7 +347,7 @@ BOOST_AUTO_TEST_SUITE_END()
 BOOST_FIXTURE_TEST_SUITE(SSUPacketParserTests, SSUTestVectorsFixture)
 
 BOOST_AUTO_TEST_CASE(SSUHeaderPlain) {
-  using namespace i2p::transport;
+  using namespace kovri::transport;
   SSUPacketParser parser(header_plain.data(), header_plain.size());
   std::unique_ptr<SSUHeader> header;
   BOOST_CHECK_NO_THROW(header = parser.ParseHeader());
@@ -359,7 +359,7 @@ BOOST_AUTO_TEST_CASE(SSUHeaderPlain) {
 }
 
 BOOST_AUTO_TEST_CASE(SSUHeaderExtendedOptions) {
-  using namespace i2p::transport;
+  using namespace kovri::transport;
   SSUPacketParser parser(header_extended_options.data(), header_extended_options.size());
   std::unique_ptr<SSUHeader> header;
   BOOST_CHECK_NO_THROW(header = parser.ParseHeader());
@@ -371,7 +371,7 @@ BOOST_AUTO_TEST_CASE(SSUHeaderExtendedOptions) {
 }
 
 BOOST_AUTO_TEST_CASE(SessionRequestPlain) {
-  using namespace i2p::transport;
+  using namespace kovri::transport;
   SSUPacketParser parser(session_request.data(), session_request.size());
   std::unique_ptr<SSUSessionRequestPacket> packet;
   BOOST_CHECK_NO_THROW(packet = parser.ParseSessionRequest());
@@ -379,7 +379,7 @@ BOOST_AUTO_TEST_CASE(SessionRequestPlain) {
 }
 
 BOOST_AUTO_TEST_CASE(SessionCreatedPlain) {
-  using namespace i2p::transport;
+  using namespace kovri::transport;
   SSUPacketParser parser(session_created.data(), session_created.size());
   std::unique_ptr<SSUSessionCreatedPacket> packet;
   BOOST_CHECK_NO_THROW(packet = parser.ParseSessionCreated());
@@ -393,7 +393,7 @@ BOOST_AUTO_TEST_CASE(SessionCreatedPlain) {
 }
 
 BOOST_AUTO_TEST_CASE(RelayRequestPlain) {
-  using namespace i2p::transport;
+  using namespace kovri::transport;
   SSUPacketParser parser(relay_request.data(), relay_request.size());
   std::unique_ptr<SSURelayRequestPacket> packet;
   BOOST_CHECK_NO_THROW(packet = parser.ParseRelayRequest());
@@ -412,7 +412,7 @@ BOOST_AUTO_TEST_CASE(RelayRequestPlain) {
 }
 
 BOOST_AUTO_TEST_CASE(RelayResponsePlain) {
-  using namespace i2p::transport;
+  using namespace kovri::transport;
   SSUPacketParser parser(relay_response.data(), relay_response.size());
   std::unique_ptr<SSURelayResponsePacket> packet;
   BOOST_CHECK_NO_THROW(packet = parser.ParseRelayResponse());
@@ -434,7 +434,7 @@ BOOST_AUTO_TEST_CASE(RelayResponsePlain) {
 }
 
 BOOST_AUTO_TEST_CASE(RelayIntroPlain) {
-  using namespace i2p::transport;
+  using namespace kovri::transport;
   SSUPacketParser parser(relay_intro.data(), relay_intro.size());
   std::unique_ptr<SSURelayIntroPacket> packet;
   BOOST_CHECK_NO_THROW(packet = parser.ParseRelayIntro());
@@ -450,7 +450,7 @@ BOOST_AUTO_TEST_CASE(RelayIntroPlain) {
 }
 
 BOOST_AUTO_TEST_CASE(DataOneFragmentPlain) {
-  using namespace i2p::transport;
+  using namespace kovri::transport;
   SSUPacketParser parser(data_single_fragment.data(), data_single_fragment.size());
   std::unique_ptr<SSUDataPacket> packet;
   BOOST_CHECK_NO_THROW(packet = parser.ParseData());
@@ -458,7 +458,7 @@ BOOST_AUTO_TEST_CASE(DataOneFragmentPlain) {
 }
 
 BOOST_AUTO_TEST_CASE(DataMultFragmentsPlain) {
-  using namespace i2p::transport;
+  using namespace kovri::transport;
   SSUPacketParser parser(data_multi_fragment.data(), data_multi_fragment.size());
   std::unique_ptr<SSUDataPacket> packet;
   BOOST_CHECK_NO_THROW(packet = parser.ParseData());
@@ -476,7 +476,7 @@ BOOST_AUTO_TEST_SUITE_END()
 BOOST_FIXTURE_TEST_SUITE(SSUPacketBuilderTests, SSUTestVectorsFixture)
 
 BOOST_AUTO_TEST_CASE(SSUHeaderPlain) {
-  using namespace i2p::transport;
+  using namespace kovri::transport;
 
   SSUHeader header(
       SSUPayloadType::SessionRequest,
@@ -495,7 +495,7 @@ BOOST_AUTO_TEST_CASE(SSUHeaderPlain) {
 }
 
 BOOST_AUTO_TEST_CASE(SSUHeaderExtendedOptions) {
-  using namespace i2p::transport;
+  using namespace kovri::transport;
 
   SSUHeader header(
       SSUPayloadType::SessionRequest,
@@ -516,7 +516,7 @@ BOOST_AUTO_TEST_CASE(SSUHeaderExtendedOptions) {
 }
 
 BOOST_AUTO_TEST_CASE(SessionRequestPlain) {
-  using namespace i2p::transport;
+  using namespace kovri::transport;
 
   SSUSessionRequestPacket packet;
   packet.SetDhX(&session_request.at(0));
@@ -532,7 +532,7 @@ BOOST_AUTO_TEST_CASE(SessionRequestPlain) {
 }
 
 BOOST_AUTO_TEST_CASE(SessionCreatedPlain) {
-  using namespace i2p::transport;
+  using namespace kovri::transport;
 
   SSUSessionCreatedPacket packet;
   packet.SetDhY(&session_created.at(0));

@@ -51,7 +51,7 @@
 #include "util/http.h"
 #include "util/log.h"
 
-namespace i2p {
+namespace kovri {
 namespace client {
 
 /**
@@ -111,12 +111,12 @@ void AddressBook::LoadPublishers() {
   }
   auto publishers = GetDefaultPublishersFilename();
   LogPrint(eLogInfo, "AddressBook: loading publisher file ", publishers);
-  std::ifstream file(i2p::util::filesystem::GetFullPath(publishers));
+  std::ifstream file(kovri::util::filesystem::GetFullPath(publishers));
   if (file) {
     // Publisher URI
     std::string publisher;
     // Validate publisher URI
-    i2p::util::http::HTTP http;
+    kovri::util::http::HTTP http;
     // Read in publishers, line by line
     while (std::getline(file, publisher)) {
       // If found, clear whitespace before and after publisher (on the line)
@@ -166,7 +166,7 @@ void AddressBook::SubscriberUpdateTimer(
     // At first this may look questionable but, by this point,
     // we're guaranteed to have at least one subscriber
     auto publisher =
-      i2p::crypto::RandInRange<std::size_t>(0, m_Subscribers.size() - 1);
+      kovri::crypto::RandInRange<std::size_t>(0, m_Subscribers.size() - 1);
     m_SubscriberIsDownloading = true;
     m_Subscribers.at(publisher)->DownloadSubscription();
   } else {
@@ -200,7 +200,7 @@ void AddressBook::LoadSubscriptionFromPublisher() {
   }
   // If available, load default subscription from file
   auto filename = GetDefaultSubscriptionFilename();
-  std::ifstream file(i2p::util::filesystem::GetFullPath(filename));
+  std::ifstream file(kovri::util::filesystem::GetFullPath(filename));
   LogPrint(eLogInfo, "AddressBook: loading subscription ", filename);
   if (file) {  // Open subscription, validate, and save to storage
     m_SubscriptionFileIsReady = true;
@@ -266,7 +266,7 @@ bool AddressBook::ValidateSubscriptionThenSaveToStorage(
   std::unique_lock<std::mutex> lock(m_AddressBookMutex);
   std::ofstream file;
   if (!m_SubscriptionFileIsReady) {
-    file.open(i2p::util::filesystem::GetFullPath(GetDefaultSubscriptionFilename()));
+    file.open(kovri::util::filesystem::GetFullPath(GetDefaultSubscriptionFilename()));
     if (file)
       m_SubscriptionFileIsReady = true;
   }
@@ -293,7 +293,7 @@ bool AddressBook::ValidateSubscriptionThenSaveToStorage(
     if (pos != std::string::npos) {
       const std::string name = host.substr(0, pos++);
       const std::string addr = host.substr(pos);
-      i2p::data::IdentityEx ident;
+      kovri::data::IdentityEx ident;
       if (ident.FromBase64(addr)) {
         m_Addresses[name] = ident.GetIdentHash();
         m_Storage->AddAddress(ident);
@@ -321,10 +321,10 @@ bool AddressBook::ValidateSubscriptionThenSaveToStorage(
 // For in-net download only
 bool AddressBook::CheckAddressIdentHashFound(
     const std::string& address,
-    i2p::data::IdentHash& ident) {
+    kovri::data::IdentHash& ident) {
   auto pos = address.find(".b32.i2p");
   if (pos != std::string::npos) {
-    if (!i2p::util::Base32ToByteStream(address.c_str(), pos, ident, 32)) {
+    if (!kovri::util::Base32ToByteStream(address.c_str(), pos, ident, 32)) {
       LogPrint(eLogError, "AddressBook: invalid base32 address");
       return false;
     }
@@ -342,7 +342,7 @@ bool AddressBook::CheckAddressIdentHashFound(
     }
   }
   // If not .b32, test for full base64 address
-  i2p::data::IdentityEx dest;
+  kovri::data::IdentityEx dest;
   if (!dest.FromBase64(address))
     return false;  // Invalid base64 address
   ident = dest.GetIdentHash();
@@ -350,14 +350,14 @@ bool AddressBook::CheckAddressIdentHashFound(
 }
 
 // For in-net download only
-std::unique_ptr<const i2p::data::IdentHash> AddressBook::GetLoadedAddressIdentHash(
+std::unique_ptr<const kovri::data::IdentHash> AddressBook::GetLoadedAddressIdentHash(
     const std::string& address) {
   if (!m_SubscriptionIsLoaded)
     LoadSubscriptionFromPublisher();
   if (m_SubscriptionIsLoaded) {
     auto it = m_Addresses.find(address);
     if (it != m_Addresses.end()) {
-      return std::make_unique<const i2p::data::IdentHash>(it->second);
+      return std::make_unique<const kovri::data::IdentHash>(it->second);
     }
   }
   return nullptr;
@@ -367,7 +367,7 @@ std::unique_ptr<const i2p::data::IdentHash> AddressBook::GetLoadedAddressIdentHa
 void AddressBook::InsertAddressIntoStorage(
     const std::string& address,
     const std::string& base64) {
-  i2p::data::IdentityEx ident;
+  kovri::data::IdentityEx ident;
   ident.FromBase64(base64);
   if (!m_Storage)
     m_Storage = GetNewStorageInstance();
@@ -389,7 +389,7 @@ void AddressBook::Stop() {
     LogPrint(eLogInfo,
         "AddressBook: subscription is downloading, waiting for termination");
     for (std::size_t seconds = 0;
-         seconds < static_cast<std::uint16_t>(i2p::util::http::Timeout::Receive);
+         seconds < static_cast<std::uint16_t>(kovri::util::http::Timeout::Receive);
          seconds++) {
       if (!m_SubscriberIsDownloading) {
         LogPrint(eLogInfo, "AddressBook: subscription download complete");
@@ -411,7 +411,7 @@ void AddressBook::Stop() {
 /*
 // TODO(unassigned): currently unused
 void AddressBook::InsertAddress(
-    const i2p::data::IdentityEx& address) {
+    const kovri::data::IdentityEx& address) {
   if (!m_Storage)
     m_Storage = GetNewStorageInstance();
   m_Storage->AddAddress(address);
@@ -420,14 +420,14 @@ void AddressBook::InsertAddress(
 // TODO(unassigned): currently unused
 bool AddressBook::GetAddress(
     const std::string& address,
-    i2p::data::IdentityEx& identity) {
+    kovri::data::IdentityEx& identity) {
   if (!m_Storage)
     m_Storage = GetNewStorageInstance();
-  i2p::data::IdentHash ident;
+  kovri::data::IdentHash ident;
   if (!GetAddressIdentHash(address, ident)) return false;
   return m_Storage->GetAddress(ident, identity);
 }
 */
 
 }  // namespace client
-}  // namespace i2p
+}  // namespace kovri

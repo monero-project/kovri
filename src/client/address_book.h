@@ -53,7 +53,7 @@
 #include "util/http.h"
 #include "util/log.h"
 
-namespace i2p {
+namespace kovri {
 namespace client {
 
 /// @enum SubscriberTimeout
@@ -105,13 +105,13 @@ class AddressBook : public AddressBookDefaults {
   /// @notes Used for in-net downloads only
   bool CheckAddressIdentHashFound(
       const std::string& address,
-      i2p::data::IdentHash& ident);
+      kovri::data::IdentHash& ident);
 
   /// @brief Finds address within loaded subscriptions
   /// @returns Unique pointer to identity hash of loaded address
   /// @param address Const reference to address
   /// @notes Used for in-net downloads only
-  std::unique_ptr<const i2p::data::IdentHash> GetLoadedAddressIdentHash(
+  std::unique_ptr<const kovri::data::IdentHash> GetLoadedAddressIdentHash(
       const std::string& address);
 
   /// @brief Used for destination to fetch subscription(s) from publisher(s)
@@ -152,25 +152,25 @@ class AddressBook : public AddressBookDefaults {
   /// @param ident Const reference to identity hash
   /// @return Identity hash's .b32.i2p address
   std::string GetB32AddressFromIdentHash(
-      const i2p::data::IdentHash& ident) {
+      const kovri::data::IdentHash& ident) {
     return GetB32Address(ident);
   }
 
   /**
   // TODO(unassigned): currently unused
   std::string ToAddress(
-      const i2p::data::IdentityEx& ident) {
+      const kovri::data::IdentityEx& ident) {
     return ToAddress(ident.GetAddressIdentHash());
   }
 
   // TODO(unassigned): currently unused
   void InsertAddress(
-      const i2p::data::IdentityEx& address);
+      const kovri::data::IdentityEx& address);
 
   // TODO(unassigned): currently unused
   bool GetAddress(
       const std::string& address,
-      i2p::data::IdentityEx& identity);
+      kovri::data::IdentityEx& identity);
   **/
 
  private:
@@ -213,7 +213,7 @@ class AddressBook : public AddressBookDefaults {
 
   /// @var m_Addresses
   /// @brief Map of human readable addresses to identity hashes
-  std::map<std::string, i2p::data::IdentHash> m_Addresses;
+  std::map<std::string, kovri::data::IdentHash> m_Addresses;
 
   /// @var m_Storage
   /// @brief Unique pointer to address book storage implementation
@@ -266,10 +266,10 @@ class AddressBookSubscriber {
 
   /// @var m_HTTP
   /// @brief HTTP instance for subscribing to publisher
-  i2p::util::http::HTTP m_HTTP;
+  kovri::util::http::HTTP m_HTTP;
 };
 
 }  // namespace client
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CLIENT_ADDRESS_BOOK_H_

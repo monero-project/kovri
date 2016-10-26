@@ -43,7 +43,7 @@
 #include "util/log.h"
 #include "util/timestamp.h"
 
-namespace i2p {
+namespace kovri {
 namespace transport {
 
 NTCPServer::NTCPServer(
@@ -106,7 +106,7 @@ void NTCPServer::HandleAccept(
       LogPrint(eLogInfo, "NTCPServer: connected from ", ep);
       auto it = m_BanList.find(ep.address());
       if (it != m_BanList.end()) {
-        uint32_t ts = i2p::util::GetSecondsSinceEpoch();
+        uint32_t ts = kovri::util::GetSecondsSinceEpoch();
         if (ts < it->second) {
           LogPrint(eLogInfo,
               "NTCPServer: ", ep.address(), " is banned for ",
@@ -150,7 +150,7 @@ void NTCPServer::HandleAcceptV6(
           "NTCPServer: V6 connected from ", ep);
       auto it = m_BanList.find(ep.address());
       if (it != m_BanList.end()) {
-        uint32_t ts = i2p::util::GetSecondsSinceEpoch();
+        uint32_t ts = kovri::util::GetSecondsSinceEpoch();
         if (ts < it->second) {
           LogPrint(eLogInfo,
               "NTCPServer: ", ep.address(), " is banned for ",
@@ -210,7 +210,7 @@ void NTCPServer::HandleConnect(
       "NTCPServer:  connect error '", ecode.message(), "'");
   
     if (ecode != boost::asio::error::operation_aborted)
-      i2p::data::netdb.SetUnreachable(
+      kovri::data::netdb.SetUnreachable(
           conn->GetRemoteIdentity().GetIdentHash(),
           true);
     conn->Terminate();
@@ -252,7 +252,7 @@ void NTCPServer::RemoveNTCPSession(
 }
 
 std::shared_ptr<NTCPSession> NTCPServer::FindNTCPSession(
-    const i2p::data::IdentHash& ident) {
+    const kovri::data::IdentHash& ident) {
   LogPrint(eLogDebug, "NTCPServer: finding NTCP session");
   std::unique_lock<std::mutex> l(m_NTCPSessionsMutex);
   auto it = m_NTCPSessions.find(ident);
@@ -263,7 +263,7 @@ std::shared_ptr<NTCPSession> NTCPServer::FindNTCPSession(
 
 void NTCPServer::Ban(
     const std::shared_ptr<NTCPSession>& session) {
-  uint32_t ts = i2p::util::GetSecondsSinceEpoch();
+  uint32_t ts = kovri::util::GetSecondsSinceEpoch();
   m_BanList[session->GetRemoteEndpoint().address()] =
     ts + static_cast<std::size_t>(NTCPTimeoutLength::ban_expiration);
   LogPrint(eLogInfo,
@@ -282,5 +282,5 @@ void NTCPServer::Stop() {
 }
 
 }  // namespace transport
-}  // namespace i2p
+}  // namespace kovri
 

@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
   LogPrint("Version ", KOVRI_VERSION);
   // Prepare configuration settings
   try {
-    if (!i2p::util::config::ParseArgs(argc, argv))
+    if (!kovri::util::config::ParseArgs(argc, argv))
       return EXIT_FAILURE;
   } catch(const std::exception& ex) {
     LogPrint(eLogError, "Main: ", ex.what(), "\nTry using --help instead");

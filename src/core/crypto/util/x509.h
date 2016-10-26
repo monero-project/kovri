@@ -38,14 +38,14 @@
 #include <iosfwd>
 #include <string>
 
-#include "identity.h"  // i2p::data::tag
+#include "identity.h"  // kovri::data::tag
 
-namespace i2p {
+namespace kovri {
 namespace crypto {
 namespace util {
 
 // Placed here for use across implementations
-typedef i2p::data::Tag<512> PublicKey;
+typedef kovri::data::Tag<512> PublicKey;
 
 /// @class X509
 /// @brief Processes X.509 certificate
@@ -70,6 +70,6 @@ class X509 {
 
 }  // namespace util
 }  // namespace crypto
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_UTIL_X509_H_

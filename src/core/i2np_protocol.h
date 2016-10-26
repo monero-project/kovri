@@ -46,7 +46,7 @@
 #include "crypto/hash.h"
 #include "util/i2p_endian.h"
 
-namespace i2p {
+namespace kovri {
 
              // I2NP header
 const size_t I2NP_HEADER_TYPEID_OFFSET = 0,
@@ -146,7 +146,7 @@ class TunnelPool;
 struct I2NPMessage {
   uint8_t* buf;
   size_t len, offset, max_len;
-  std::shared_ptr<i2p::tunnel::InboundTunnel> from;
+  std::shared_ptr<kovri::tunnel::InboundTunnel> from;
 
   I2NPMessage()
       : buf(nullptr),
@@ -205,7 +205,7 @@ struct I2NPMessage {
 
   void UpdateChks() {
     uint8_t hash[32];
-    i2p::crypto::SHA256().CalculateDigest(hash, GetPayload(), GetPayloadLength());
+    kovri::crypto::SHA256().CalculateDigest(hash, GetPayload(), GetPayloadLength());
     GetHeader()[I2NP_HEADER_CHKS_OFFSET] = hash[0];
   }
 
@@ -320,7 +320,7 @@ std::unique_ptr<I2NPMessage> CreateI2NPMessage(
 std::shared_ptr<I2NPMessage> CreateI2NPMessage(
     const uint8_t* buf,
     int len,
-    std::shared_ptr<i2p::tunnel::InboundTunnel> from = nullptr);
+    std::shared_ptr<kovri::tunnel::InboundTunnel> from = nullptr);
 
 std::shared_ptr<I2NPMessage> CreateDeliveryStatusMsg(uint32_t msg_ID);
 
@@ -329,24 +329,24 @@ std::shared_ptr<I2NPMessage> CreateRouterInfoDatabaseLookupMsg(
     const uint8_t * from,
     uint32_t reply_tunnel_ID,
     bool exploratory = false,
-    std::set<i2p::data::IdentHash>* excluded_peers = nullptr);
+    std::set<kovri::data::IdentHash>* excluded_peers = nullptr);
 
 std::shared_ptr<I2NPMessage> CreateLeaseSetDatabaseLookupMsg(
-    const i2p::data::IdentHash& dest,
-    const std::set<i2p::data::IdentHash>& excluded_floodfills,
-    const i2p::tunnel::InboundTunnel* reply_tunnel,
+    const kovri::data::IdentHash& dest,
+    const std::set<kovri::data::IdentHash>& excluded_floodfills,
+    const kovri::tunnel::InboundTunnel* reply_tunnel,
     const uint8_t* reply_key,
     const uint8_t* reply_tag);
 
 std::shared_ptr<I2NPMessage> CreateDatabaseSearchReply(
-    const i2p::data::IdentHash& ident,
-    std::vector<i2p::data::IdentHash> routers);
+    const kovri::data::IdentHash& ident,
+    std::vector<kovri::data::IdentHash> routers);
 
 std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg(
-    std::shared_ptr<const i2p::data::RouterInfo> router = nullptr,
+    std::shared_ptr<const kovri::data::RouterInfo> router = nullptr,
     uint32_t reply_token = 0);
 std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg(
-    std::shared_ptr<const i2p::data::LeaseSet> lease_set,
+    std::shared_ptr<const kovri::data::LeaseSet> lease_set,
     uint32_t reply_token = 0);
 
 bool HandleBuildRequestRecords(
@@ -417,6 +417,6 @@ class I2NPMessagesHandler {
                                              m_TunnelGatewayMsgs;
 };
 
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_I2NP_PROTOCOL_H_

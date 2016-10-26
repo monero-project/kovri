@@ -51,11 +51,11 @@
 #include "crypto/aes.h"
 #include "util/i2p_endian.h"
 
-namespace i2p {
+namespace kovri {
 namespace transport {
 
 struct RawSSUPacket {
-  i2p::crypto::AESAlignedBuffer<1500> buf;
+  kovri::crypto::AESAlignedBuffer<1500> buf;
   boost::asio::ip::udp::endpoint from;
   std::size_t len;
 };
@@ -73,11 +73,11 @@ class SSUServer {
   void Stop();
 
   std::shared_ptr<SSUSession> GetSession(
-      std::shared_ptr<const i2p::data::RouterInfo> router,
+      std::shared_ptr<const kovri::data::RouterInfo> router,
       bool peer_test = false);
 
   std::shared_ptr<SSUSession> FindSession(
-      std::shared_ptr<const i2p::data::RouterInfo> router) const;
+      std::shared_ptr<const kovri::data::RouterInfo> router) const;
 
   std::shared_ptr<SSUSession> FindSession(
       const boost::asio::ip::udp::endpoint& ep) const;
@@ -194,6 +194,6 @@ class SSUServer {
 };
 
 }  // namespace transport
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_TRANSPORT_SSU_H_

@@ -34,7 +34,7 @@
 #include <cstdint>
 #include <memory>
 
-namespace i2p {
+namespace kovri {
 namespace crypto {
 namespace util {
 
@@ -77,6 +77,6 @@ class Adler32 {
 
 }  // namespace util
 }  // namespace crypto
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_UTIL_CHECKSUM_H_

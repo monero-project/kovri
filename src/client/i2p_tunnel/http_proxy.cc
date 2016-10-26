@@ -50,7 +50,7 @@
 #include "util/http.h"
 #include "util/i2p_endian.h"
 
-namespace i2p {
+namespace kovri {
 namespace proxy {
 
 //
@@ -61,16 +61,16 @@ HTTPProxyServer::HTTPProxyServer(
     const std::string& name,
     const std::string& address,
     std::uint16_t port,
-    std::shared_ptr<i2p::client::ClientDestination> local_destination)
+    std::shared_ptr<kovri::client::ClientDestination> local_destination)
     : TCPIPAcceptor(
           address,
           port,
           local_destination ?
             local_destination :
-            i2p::client::context.GetSharedLocalDestination()),
+            kovri::client::context.GetSharedLocalDestination()),
       m_Name(name) {}
 
-std::shared_ptr<i2p::client::I2PServiceHandler> HTTPProxyServer::CreateHandler(
+std::shared_ptr<kovri::client::I2PServiceHandler> HTTPProxyServer::CreateHandler(
     std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
   return std::make_shared<HTTPProxyHandler>(this, socket);
 }
@@ -205,13 +205,13 @@ bool HTTPProxyHandler::HandleData(
 }
 
 void HTTPProxyHandler::HandleStreamRequestComplete(
-    std::shared_ptr<i2p::stream::Stream> stream) {
+    std::shared_ptr<kovri::stream::Stream> stream) {
   if (stream) {
     if (Kill())
       return;
     LogPrint(eLogInfo, "HTTPProxyHandler: new I2PTunnel connection");
     auto connection =
-      std::make_shared<i2p::client::I2PTunnelConnection>(
+      std::make_shared<kovri::client::I2PTunnelConnection>(
           GetOwner(),
           m_Socket,
           stream);
@@ -309,7 +309,7 @@ void HTTPProxyHandler::HandleJumpService() {
   }
   auto base64 = m_Path.substr(pos + m_JumpService.at(0).size());
   // We must decode
-  i2p::util::http::HTTP uri;
+  kovri::util::http::HTTP uri;
   base64 = uri.HTTPProxyDecode(base64);
   // Insert into address book
   LogPrint(eLogDebug,
@@ -319,7 +319,7 @@ void HTTPProxyHandler::HandleJumpService() {
   // We should ask the user for confirmation before proceeding.
   // Previous reference: http://pastethis.i2p/raw/pn5fL4YNJL7OSWj3Sc6N/
   // We *could* redirect the user again to avoid dirtiness in the browser
-  i2p::client::context.GetAddressBook().InsertAddressIntoStorage(m_Address, base64);
+  kovri::client::context.GetAddressBook().InsertAddressIntoStorage(m_Address, base64);
   m_Path.erase(pos);
 }
 
@@ -366,4 +366,4 @@ void HTTPProxyHandler::Terminate() {
 }
 
 }  // namespace proxy
-}  // namespace i2p
+}  // namespace kovri

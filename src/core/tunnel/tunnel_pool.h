@@ -50,7 +50,7 @@
 #include "router_info.h"
 #include "tunnel_base.h"
 
-namespace i2p {
+namespace kovri {
 namespace tunnel {
 
 class Tunnel;
@@ -61,24 +61,24 @@ class TunnelPool
     : public std::enable_shared_from_this<TunnelPool> {  // per local destination
  public:
   TunnelPool(
-      i2p::garlic::GarlicDestination* local_destination,
+      kovri::garlic::GarlicDestination* local_destination,
       int num_inbound_hops,
       int num_outbound_hops,
       int num_inbound_tunnels,
       int num_outbound_tunnels);
   ~TunnelPool();
 
-  i2p::garlic::GarlicDestination* GetLocalDestination() const {
+  kovri::garlic::GarlicDestination* GetLocalDestination() const {
     return m_LocalDestination;
   }
 
   void SetLocalDestination(
-      i2p::garlic::GarlicDestination* destination) {
+      kovri::garlic::GarlicDestination* destination) {
     m_LocalDestination = destination;
   }
 
   void SetExplicitPeers(
-      std::shared_ptr<std::vector<i2p::data::IdentHash> > explicit_peers);
+      std::shared_ptr<std::vector<kovri::data::IdentHash> > explicit_peers);
 
   void CreateTunnels();
 
@@ -144,24 +144,24 @@ class TunnelPool
       TTunnels& tunnels,
       typename TTunnels::value_type excluded) const;
 
-  std::shared_ptr<const i2p::data::RouterInfo> SelectNextHop(
-      std::shared_ptr<const i2p::data::RouterInfo> prev_hop) const;
+  std::shared_ptr<const kovri::data::RouterInfo> SelectNextHop(
+      std::shared_ptr<const kovri::data::RouterInfo> prev_hop) const;
 
   bool SelectPeers(
-      std::vector<std::shared_ptr<const i2p::data::RouterInfo> >& hops,
+      std::vector<std::shared_ptr<const kovri::data::RouterInfo> >& hops,
       bool is_inbound);
 
   bool SelectExplicitPeers(
-      std::vector<std::shared_ptr<const i2p::data::RouterInfo> >& hops,
+      std::vector<std::shared_ptr<const kovri::data::RouterInfo> >& hops,
       bool is_inbound);
 
  private:
-  i2p::garlic::GarlicDestination* m_LocalDestination;
+  kovri::garlic::GarlicDestination* m_LocalDestination;
   int m_NumInboundHops,
       m_NumOutboundHops,
       m_NumInboundTunnels,
       m_NumOutboundTunnels;
-  std::shared_ptr<std::vector<i2p::data::IdentHash> > m_ExplicitPeers;
+  std::shared_ptr<std::vector<kovri::data::IdentHash> > m_ExplicitPeers;
   mutable std::mutex m_InboundTunnelsMutex;
 
   // recent tunnel appears first
@@ -184,6 +184,6 @@ class TunnelPool
 };
 
 }  // namespace tunnel
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_TUNNEL_TUNNEL_POOL_H_

@@ -38,7 +38,7 @@
 #include "crypto/aes.h"
 #include "tunnel/tunnel_base.h"
 
-namespace i2p {
+namespace kovri {
 namespace crypto {
 
 /// @class TunnelEncryptionImpl
@@ -93,7 +93,7 @@ class TunnelEncryption::TunnelEncryptionImpl {
       m_CBCLayerEncryption.SetIV(out);
       m_CBCLayerEncryption.Encrypt(  // data
           in + 16,
-          i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE,
+          kovri::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE,
           out + 16);
       m_IVEncryption.Encrypt(  // double iv
           reinterpret_cast<CipherBlock *>(out),
@@ -178,7 +178,7 @@ class TunnelDecryption::TunnelDecryptionImpl {
       m_CBCLayerDecryption.SetIV(out);
       m_CBCLayerDecryption.Decrypt(  // data
           in + 16,
-          i2p::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE,
+          kovri::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE,
           out + 16);
       m_IVDecryption.Decrypt(  // double iv
           reinterpret_cast<CipherBlock *>(out),
@@ -211,4 +211,4 @@ void TunnelDecryption::Decrypt(
 }
 
 }  // namespace crypto
-}  // namespace i2p
+}  // namespace kovri

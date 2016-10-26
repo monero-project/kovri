@@ -41,7 +41,7 @@
 #include "identity.h"
 #include "util/timestamp.h"
 
-namespace i2p {
+namespace kovri {
 namespace tunnel {
 
 const size_t TUNNEL_DATA_MSG_SIZE = 1028;
@@ -56,7 +56,7 @@ enum TunnelDeliveryType {
 
 struct TunnelMessageBlock {
   TunnelDeliveryType delivery_type;
-  i2p::data::IdentHash hash;
+  kovri::data::IdentHash hash;
   uint32_t tunnel_ID;
   std::shared_ptr<I2NPMessage> data;
 };
@@ -64,16 +64,16 @@ struct TunnelMessageBlock {
 class TunnelBase {
  public:
   TunnelBase()
-      : m_CreationTime(i2p::util::GetSecondsSinceEpoch()) {}
+      : m_CreationTime(kovri::util::GetSecondsSinceEpoch()) {}
       // WARNING!!! GetSecondsSinceEpoch() returns uint64_t
       // TODO(unassigned): ^
   virtual ~TunnelBase() {}
 
   virtual void HandleTunnelDataMsg(
-      std::shared_ptr<const i2p::I2NPMessage> tunnel_msg) = 0;
+      std::shared_ptr<const kovri::I2NPMessage> tunnel_msg) = 0;
 
   virtual void SendTunnelDataMsg(
-      std::shared_ptr<i2p::I2NPMessage> msg) = 0;
+      std::shared_ptr<kovri::I2NPMessage> msg) = 0;
 
   virtual void FlushTunnelDataMsgs() {}
 
@@ -83,7 +83,7 @@ class TunnelBase {
 
   virtual uint32_t GetNextTunnelID() const = 0;
 
-  virtual const i2p::data::IdentHash& GetNextIdentHash() const = 0;
+  virtual const kovri::data::IdentHash& GetNextIdentHash() const = 0;
 
   virtual uint32_t GetTunnelID() const = 0;  // as known at our side
 
@@ -112,6 +112,6 @@ struct TunnelCreationTimeCmp {
 };
 
 }  // namespace tunnel
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_TUNNEL_TUNNEL_BASE_H_

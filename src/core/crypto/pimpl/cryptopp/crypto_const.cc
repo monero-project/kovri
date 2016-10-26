@@ -34,7 +34,7 @@
 
 #include <inttypes.h>
 
-namespace i2p {
+namespace kovri {
 namespace crypto {
 
 const std::uint8_t elgp_[256]= {
@@ -95,4 +95,4 @@ const CryptoConstants& GetCryptoConstants() {
 }
 
 }  // namespace crypto
-}  // namespace i2p
+}  // namespace kovri

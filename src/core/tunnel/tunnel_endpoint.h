@@ -41,7 +41,7 @@
 #include "i2np_protocol.h"
 #include "tunnel_base.h"
 
-namespace i2p {
+namespace kovri {
 namespace tunnel {
 
 class TunnelEndpoint {
@@ -96,6 +96,6 @@ class TunnelEndpoint {
 };
 
 }  // namespace tunnel
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_TUNNEL_TUNNEL_ENDPOINT_H_

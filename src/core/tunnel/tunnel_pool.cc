@@ -44,11 +44,11 @@
 #include "util/timestamp.h"
 #include "util/log.h"
 
-namespace i2p {
+namespace kovri {
 namespace tunnel {
 
 TunnelPool::TunnelPool(
-    i2p::garlic::GarlicDestination* local_destination,
+    kovri::garlic::GarlicDestination* local_destination,
     int num_inbound_hops,
     int num_outbound_hops,
     int num_inbound_tunnels,
@@ -65,7 +65,7 @@ TunnelPool::~TunnelPool() {
 }
 
 void TunnelPool::SetExplicitPeers(
-    std::shared_ptr<std::vector<i2p::data::IdentHash> > explicit_peers) {
+    std::shared_ptr<std::vector<kovri::data::IdentHash> > explicit_peers) {
   m_ExplicitPeers = explicit_peers;
   if (m_ExplicitPeers) {
     int size = m_ExplicitPeers->size();
@@ -183,7 +183,7 @@ typename TTunnels::value_type TunnelPool::GetNextTunnel(
     typename TTunnels::value_type excluded) const {
   if (tunnels.empty ())
     return nullptr;
-  uint32_t ind = i2p::crypto::RandInRange<uint32_t>(0, tunnels.size() / 2);
+  uint32_t ind = kovri::crypto::RandInRange<uint32_t>(0, tunnels.size() / 2);
   uint32_t i = 0;
   typename TTunnels::value_type tunnel = nullptr;
   for (auto it : tunnels) {
@@ -283,7 +283,7 @@ void TunnelPool::TestTunnels() {
       it2++;
     }
     if (!failed) {
-      uint32_t msg_ID = i2p::crypto::Rand<uint32_t>();
+      uint32_t msg_ID = kovri::crypto::Rand<uint32_t>();
       m_Tests[msg_ID] = std::make_pair(*it1, *it2);
       (*it1)->SendTunnelDataMsg(
           (*it2)->GetNextIdentHash(),
@@ -319,7 +319,7 @@ void TunnelPool::ProcessDeliveryStatus(
       it->second.second->SetState(e_TunnelStateEstablished);
     LogPrint(eLogInfo,
         "TunnelPool: tunnel test ", it->first,
-        " successful: ", i2p::util::GetMillisecondsSinceEpoch() - timestamp,
+        " successful: ", kovri::util::GetMillisecondsSinceEpoch() - timestamp,
         " milliseconds");
     m_Tests.erase(it);
   } else {
@@ -330,29 +330,29 @@ void TunnelPool::ProcessDeliveryStatus(
   }
 }
 
-std::shared_ptr<const i2p::data::RouterInfo> TunnelPool::SelectNextHop(
-    std::shared_ptr<const i2p::data::RouterInfo> prev_hop) const {
+std::shared_ptr<const kovri::data::RouterInfo> TunnelPool::SelectNextHop(
+    std::shared_ptr<const kovri::data::RouterInfo> prev_hop) const {
   // TODO(unassigned): implement it better
-  bool is_exploratory = (m_LocalDestination == &i2p::context);
+  bool is_exploratory = (m_LocalDestination == &kovri::context);
   auto hop = is_exploratory ?
-    i2p::data::netdb.GetRandomRouter(prev_hop) :
-    i2p::data::netdb.GetHighBandwidthRandomRouter(prev_hop);
+    kovri::data::netdb.GetRandomRouter(prev_hop) :
+    kovri::data::netdb.GetHighBandwidthRandomRouter(prev_hop);
   if (!hop || hop->GetProfile ()->IsBad())
-    hop = i2p::data::netdb.GetRandomRouter();
+    hop = kovri::data::netdb.GetRandomRouter();
   return hop;
 }
 
 bool TunnelPool::SelectPeers(
-    std::vector<std::shared_ptr<const i2p::data::RouterInfo> >& hops,
+    std::vector<std::shared_ptr<const kovri::data::RouterInfo> >& hops,
     bool is_inbound) {
   if (m_ExplicitPeers)
     return SelectExplicitPeers(hops, is_inbound);
-  auto prev_hop = i2p::context.GetSharedRouterInfo();
+  auto prev_hop = kovri::context.GetSharedRouterInfo();
   int num_hops = is_inbound ?
     m_NumInboundHops :
     m_NumOutboundHops;
-  if (i2p::transport::transports.GetNumPeers() > 25) {
-    auto r = i2p::transport::transports.GetRandomPeer();
+  if (kovri::transport::transports.GetNumPeers() > 25) {
+    auto r = kovri::transport::transports.GetRandomPeer();
     if (r && !r->GetProfile()->IsBad()) {
       prev_hop = r;
       hops.push_back(r);
@@ -372,7 +372,7 @@ bool TunnelPool::SelectPeers(
 }
 
 bool TunnelPool::SelectExplicitPeers(
-    std::vector<std::shared_ptr<const i2p::data::RouterInfo> >& hops,
+    std::vector<std::shared_ptr<const kovri::data::RouterInfo> >& hops,
     bool is_inbound) {
   int size = m_ExplicitPeers->size();
   std::vector<int> peer_indicies;
@@ -382,13 +382,13 @@ bool TunnelPool::SelectExplicitPeers(
   int num_hops = is_inbound ? m_NumInboundHops : m_NumOutboundHops;
   for (int i = 0; i < num_hops; i++) {
     auto& ident = (*m_ExplicitPeers)[peer_indicies[i]];
-    auto r = i2p::data::netdb.FindRouter(ident);
+    auto r = kovri::data::netdb.FindRouter(ident);
     if (r) {
       hops.push_back(r);
     } else {
       LogPrint(eLogInfo,
           "TunnelPool: can't find router for ", ident.ToBase64());
-      i2p::data::netdb.RequestDestination(ident);
+      kovri::data::netdb.RequestDestination(ident);
       return false;
     }
   }
@@ -400,7 +400,7 @@ void TunnelPool::CreateInboundTunnel() {
   if (!outbound_tunnel)
     outbound_tunnel = tunnels.GetNextOutboundTunnel();
   LogPrint(eLogInfo, "TunnelPool: creating destination inbound tunnel");
-  std::vector<std::shared_ptr<const i2p::data::RouterInfo> > hops;
+  std::vector<std::shared_ptr<const kovri::data::RouterInfo> > hops;
   if (SelectPeers(hops, true)) {
     std::reverse(hops.begin(), hops.end());
     auto tunnel = tunnels.CreateTunnel<InboundTunnel> (
@@ -432,7 +432,7 @@ void TunnelPool::CreateOutboundTunnel() {
     inbound_tunnel = tunnels.GetNextInboundTunnel();
   if (inbound_tunnel) {
     LogPrint(eLogInfo, "TunnelPool: creating destination outbound tunnel");
-    std::vector<std::shared_ptr<const i2p::data::RouterInfo> > hops;
+    std::vector<std::shared_ptr<const kovri::data::RouterInfo> > hops;
     if (SelectPeers(hops, false)) {
       auto tunnel = tunnels.CreateTunnel<OutboundTunnel> (
         std::make_shared<TunnelConfig> (
@@ -476,4 +476,4 @@ void TunnelPool::CreatePairedInboundTunnel(
 }
 
 }  // namespace tunnel
-}  // namespace i2p
+}  // namespace kovri

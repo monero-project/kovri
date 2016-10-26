@@ -44,7 +44,7 @@
 #include "util/i2p_endian.h"
 #include "util/log.h"
 
-namespace i2p {
+namespace kovri {
 namespace tunnel {
 
 TunnelEndpoint::~TunnelEndpoint() {}
@@ -68,7 +68,7 @@ void TunnelEndpoint::HandleDecryptedTunnelDataMsg(
         msg->GetPayload() + 4,
         16);
     uint8_t hash[32];
-    i2p::crypto::SHA256().CalculateDigest(
+    kovri::crypto::SHA256().CalculateDigest(
         hash,
         fragment,
         // payload + iv
@@ -97,11 +97,11 @@ void TunnelEndpoint::HandleDecryptedTunnelDataMsg(
           case e_DeliveryTypeTunnel:  // 1
             m.tunnel_ID = bufbe32toh(fragment);
             fragment += 4;  // tunnel_ID
-            m.hash = i2p::data::IdentHash(fragment);
+            m.hash = kovri::data::IdentHash(fragment);
             fragment += 32;  // hash
           break;
           case e_DeliveryTypeRouter:  // 2
-            m.hash = i2p::data::IdentHash(fragment);
+            m.hash = kovri::data::IdentHash(fragment);
             fragment += 32;  // to hash
           break;
           default: {}
@@ -285,28 +285,28 @@ void TunnelEndpoint::HandleNextMessage(
       static_cast<int>(msg.data->GetTypeID()));
   switch (msg.delivery_type) {
     case e_DeliveryTypeLocal:
-      i2p::HandleI2NPMessage(msg.data);
+      kovri::HandleI2NPMessage(msg.data);
     break;
     case e_DeliveryTypeTunnel:
-      i2p::transport::transports.SendMessage(
+      kovri::transport::transports.SendMessage(
           msg.hash,
-          i2p::CreateTunnelGatewayMsg(
+          kovri::CreateTunnelGatewayMsg(
             msg.tunnel_ID,
             msg.data));
     break;
     case e_DeliveryTypeRouter:
       // check if message is sent to us
-      if (msg.hash == i2p::context.GetRouterInfo().GetIdentHash()) {
-        i2p::HandleI2NPMessage(msg.data);
+      if (msg.hash == kovri::context.GetRouterInfo().GetIdentHash()) {
+        kovri::HandleI2NPMessage(msg.data);
       } else {
         // to somebody else
         if (!m_IsInbound) {  // outbound transit tunnel
         /*  auto type_ID = msg.data->GetTypeID ();
           if (type_ID == eI2NPDatabaseStore || type_ID == eI2NPDatabaseSearchReply )
             // catch RI or reply with new list of routers
-            i2p::data::netdb.PostI2NPMsg (msg.data);*/
+            kovri::data::netdb.PostI2NPMsg (msg.data);*/
           // TODO(unassigned): ^ ???
-          i2p::transport::transports.SendMessage(msg.hash, msg.data);
+          kovri::transport::transports.SendMessage(msg.hash, msg.data);
         } else {  // we shouldn't send this message. possible leakage
           LogPrint(eLogError,
               "TunnelEndpoint: message to another router "
@@ -322,4 +322,4 @@ void TunnelEndpoint::HandleNextMessage(
 }
 
 }  // namespace tunnel
-}  // namespace i2p
+}  // namespace kovri

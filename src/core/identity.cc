@@ -47,7 +47,7 @@
 #include "util/i2p_endian.h"
 #include "util/log.h"
 
-namespace i2p {
+namespace kovri {
 namespace data {
 
 // TODO(unassigned): identity implementation needs a big refactor
@@ -73,7 +73,7 @@ Identity& Identity::operator=(const Keys& keys) {
 
 IdentHash Identity::Hash() const {
   IdentHash hash;
-  i2p::crypto::SHA256().CalculateDigest(
+  kovri::crypto::SHA256().CalculateDigest(
       hash,
       public_key,
       DEFAULT_IDENTITY_SIZE);
@@ -101,66 +101,66 @@ IdentityEx::IdentityEx(
     switch (type) {
       case SIGNING_KEY_TYPE_ECDSA_SHA256_P256: {
         size_t padding =
-          128 - i2p::crypto::ECDSAP256_KEY_LENGTH;  // 64 = 128 - 64
-        i2p::crypto::RandBytes(
+          128 - kovri::crypto::ECDSAP256_KEY_LENGTH;  // 64 = 128 - 64
+        kovri::crypto::RandBytes(
             m_StandardIdentity.signing_key,
             padding);
         memcpy(
             m_StandardIdentity.signing_key + padding,
             signing_key,
-            i2p::crypto::ECDSAP256_KEY_LENGTH);
+            kovri::crypto::ECDSAP256_KEY_LENGTH);
         break;
       }
       case SIGNING_KEY_TYPE_ECDSA_SHA384_P384: {
         size_t padding =
-          128 - i2p::crypto::ECDSAP384_KEY_LENGTH;  // 32 = 128 - 96
-        i2p::crypto::RandBytes(
+          128 - kovri::crypto::ECDSAP384_KEY_LENGTH;  // 32 = 128 - 96
+        kovri::crypto::RandBytes(
             m_StandardIdentity.signing_key,
             padding);
         memcpy(
             m_StandardIdentity.signing_key + padding,
             signing_key,
-            i2p::crypto::ECDSAP384_KEY_LENGTH);
+            kovri::crypto::ECDSAP384_KEY_LENGTH);
         break;
       }
       case SIGNING_KEY_TYPE_ECDSA_SHA512_P521: {
         memcpy(m_StandardIdentity.signing_key, signing_key, 128);
-        excess_len = i2p::crypto::ECDSAP521_KEY_LENGTH - 128;  // 4 = 132 - 128
+        excess_len = kovri::crypto::ECDSAP521_KEY_LENGTH - 128;  // 4 = 132 - 128
         excess_buf = std::make_unique<std::uint8_t[]>(excess_len);
         memcpy(excess_buf.get(), signing_key + 128, excess_len);
         break;
       }
       case SIGNING_KEY_TYPE_RSA_SHA256_2048: {
         memcpy(m_StandardIdentity.signing_key, signing_key, 128);
-        excess_len = i2p::crypto::RSASHA2562048_KEY_LENGTH - 128;  // 128 = 256 - 128
+        excess_len = kovri::crypto::RSASHA2562048_KEY_LENGTH - 128;  // 128 = 256 - 128
         excess_buf = std::make_unique<std::uint8_t[]>(excess_len);
         memcpy(excess_buf.get(), signing_key + 128, excess_len);
         break;
       }
       case SIGNING_KEY_TYPE_RSA_SHA384_3072: {
         memcpy(m_StandardIdentity.signing_key, signing_key, 128);
-        excess_len = i2p::crypto::RSASHA3843072_KEY_LENGTH - 128;  // 256 = 384 - 128
+        excess_len = kovri::crypto::RSASHA3843072_KEY_LENGTH - 128;  // 256 = 384 - 128
         excess_buf = std::make_unique<std::uint8_t[]>(excess_len);
         memcpy(excess_buf.get(), signing_key + 128, excess_len);
         break;
       }
       case SIGNING_KEY_TYPE_RSA_SHA512_4096: {
         memcpy(m_StandardIdentity.signing_key, signing_key, 128);
-        excess_len = i2p::crypto::RSASHA5124096_KEY_LENGTH - 128;  // 384 = 512 - 128
+        excess_len = kovri::crypto::RSASHA5124096_KEY_LENGTH - 128;  // 384 = 512 - 128
         excess_buf = std::make_unique<std::uint8_t[]>(excess_len);
         memcpy(excess_buf.get(), signing_key + 128, excess_len);
         break;
       }
       case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519: {
         size_t padding =
-          128 - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH;  // 96 = 128 - 32
-        i2p::crypto::RandBytes(
+          128 - kovri::crypto::EDDSA25519_PUBLIC_KEY_LENGTH;  // 96 = 128 - 32
+        kovri::crypto::RandBytes(
             m_StandardIdentity.signing_key,
             padding);
         memcpy(
             m_StandardIdentity.signing_key + padding,
             signing_key,
-            i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH);
+            kovri::crypto::EDDSA25519_PUBLIC_KEY_LENGTH);
         break;
       }
       default:
@@ -182,7 +182,7 @@ IdentityEx::IdentityEx(
     // calculate ident hash
     auto buf = std::make_unique<std::uint8_t[]>(GetFullLen());
     ToBuffer(buf.get(), GetFullLen());
-    i2p::crypto::SHA256().CalculateDigest(m_IdentHash, buf.get(), GetFullLen());
+    kovri::crypto::SHA256().CalculateDigest(m_IdentHash, buf.get(), GetFullLen());
   } else {  // DSA-SHA1
     memcpy(
         m_StandardIdentity.signing_key,
@@ -265,7 +265,7 @@ size_t IdentityEx::FromBuffer(
     m_ExtendedLen = 0;
     m_ExtendedBuffer.reset(nullptr);
   }
-  i2p::crypto::SHA256().CalculateDigest(m_IdentHash, buf, GetFullLen());
+  kovri::crypto::SHA256().CalculateDigest(m_IdentHash, buf, GetFullLen());
   m_Verifier.reset(nullptr);
   return GetFullLen();
 }
@@ -282,7 +282,7 @@ size_t IdentityEx::ToBuffer(
 size_t IdentityEx::FromBase64(
     const std::string& s) {
   uint8_t buf[1024];
-  auto len = i2p::util::Base64ToByteStream(s.c_str(), s.length(), buf, 1024);
+  auto len = kovri::util::Base64ToByteStream(s.c_str(), s.length(), buf, 1024);
   return FromBuffer(buf, len);
 }
 
@@ -290,7 +290,7 @@ std::string IdentityEx::ToBase64() const {
   uint8_t buf[1024];
   char str[1536];
   size_t l = ToBuffer(buf, 1024);
-  size_t l1 = i2p::util::ByteStreamToBase64(buf, l, str, 1536);
+  size_t l1 = kovri::util::ByteStreamToBase64(buf, l, str, 1536);
   str[l1] = 0;
   return std::string(str);
 }
@@ -316,7 +316,7 @@ size_t IdentityEx::GetSignatureLen() const {
     CreateVerifier();
   if (m_Verifier)
     return m_Verifier->GetSignatureLen();
-  return i2p::crypto::DSA_SIGNATURE_LENGTH;
+  return kovri::crypto::DSA_SIGNATURE_LENGTH;
 }
 bool IdentityEx::Verify(
     const uint8_t* buf,
@@ -347,58 +347,58 @@ void IdentityEx::CreateVerifier() const  {
   auto key_type = GetSigningKeyType();
   switch (key_type) {
     case SIGNING_KEY_TYPE_DSA_SHA1:
-      m_Verifier = std::make_unique<i2p::crypto::DSAVerifier>(m_StandardIdentity.signing_key);
+      m_Verifier = std::make_unique<kovri::crypto::DSAVerifier>(m_StandardIdentity.signing_key);
     break;
     case SIGNING_KEY_TYPE_ECDSA_SHA256_P256: {
-      size_t padding = 128 - i2p::crypto::ECDSAP256_KEY_LENGTH;  // 64 = 128 - 64
+      size_t padding = 128 - kovri::crypto::ECDSAP256_KEY_LENGTH;  // 64 = 128 - 64
       m_Verifier =
-        std::make_unique<i2p::crypto::ECDSAP256Verifier>(
+        std::make_unique<kovri::crypto::ECDSAP256Verifier>(
             m_StandardIdentity.signing_key + padding);
       break;
     }
     case SIGNING_KEY_TYPE_ECDSA_SHA384_P384: {
-      size_t padding = 128 - i2p::crypto::ECDSAP384_KEY_LENGTH;  // 32 = 128 - 96
+      size_t padding = 128 - kovri::crypto::ECDSAP384_KEY_LENGTH;  // 32 = 128 - 96
       m_Verifier =
-        std::make_unique<i2p::crypto::ECDSAP384Verifier>(
+        std::make_unique<kovri::crypto::ECDSAP384Verifier>(
             m_StandardIdentity.signing_key + padding);
       break;
     }
     case SIGNING_KEY_TYPE_ECDSA_SHA512_P521: {
-      uint8_t signing_key[i2p::crypto::ECDSAP521_KEY_LENGTH];
+      uint8_t signing_key[kovri::crypto::ECDSAP521_KEY_LENGTH];
       memcpy(signing_key, m_StandardIdentity.signing_key, 128);
-      size_t excess_len = i2p::crypto::ECDSAP521_KEY_LENGTH - 128;  // 4 = 132- 128
+      size_t excess_len = kovri::crypto::ECDSAP521_KEY_LENGTH - 128;  // 4 = 132- 128
       memcpy(signing_key + 128, m_ExtendedBuffer.get() + 4, excess_len);  // right after signing and crypto key types
-      m_Verifier = std::make_unique<i2p::crypto::ECDSAP521Verifier>(signing_key);
+      m_Verifier = std::make_unique<kovri::crypto::ECDSAP521Verifier>(signing_key);
       break;
     }
     case SIGNING_KEY_TYPE_RSA_SHA256_2048: {
-      uint8_t signing_key[i2p::crypto::RSASHA2562048_KEY_LENGTH];
+      uint8_t signing_key[kovri::crypto::RSASHA2562048_KEY_LENGTH];
       memcpy(signing_key, m_StandardIdentity.signing_key, 128);
-      size_t excess_len = i2p::crypto::RSASHA2562048_KEY_LENGTH - 128;  // 128 = 256- 128
+      size_t excess_len = kovri::crypto::RSASHA2562048_KEY_LENGTH - 128;  // 128 = 256- 128
       memcpy(signing_key + 128, m_ExtendedBuffer.get() + 4, excess_len);
-      m_Verifier = std::make_unique<i2p::crypto::RSASHA2562048Verifier>(signing_key);
+      m_Verifier = std::make_unique<kovri::crypto::RSASHA2562048Verifier>(signing_key);
       break;
     }
     case SIGNING_KEY_TYPE_RSA_SHA384_3072: {
-      uint8_t signing_key[i2p::crypto::RSASHA3843072_KEY_LENGTH];
+      uint8_t signing_key[kovri::crypto::RSASHA3843072_KEY_LENGTH];
       memcpy(signing_key, m_StandardIdentity.signing_key, 128);
-      size_t excess_len = i2p::crypto::RSASHA3843072_KEY_LENGTH - 128;  // 256 = 384- 128
+      size_t excess_len = kovri::crypto::RSASHA3843072_KEY_LENGTH - 128;  // 256 = 384- 128
       memcpy(signing_key + 128, m_ExtendedBuffer.get() + 4, excess_len);
-      m_Verifier = std::make_unique<i2p::crypto::RSASHA3843072Verifier>(signing_key);
+      m_Verifier = std::make_unique<kovri::crypto::RSASHA3843072Verifier>(signing_key);
       break;
     }
     case SIGNING_KEY_TYPE_RSA_SHA512_4096: {
-      uint8_t signing_key[i2p::crypto::RSASHA5124096_KEY_LENGTH];
+      uint8_t signing_key[kovri::crypto::RSASHA5124096_KEY_LENGTH];
       memcpy(signing_key, m_StandardIdentity.signing_key, 128);
-      size_t excess_len = i2p::crypto::RSASHA5124096_KEY_LENGTH - 128;  // 384 = 512- 128
+      size_t excess_len = kovri::crypto::RSASHA5124096_KEY_LENGTH - 128;  // 384 = 512- 128
       memcpy(signing_key + 128, m_ExtendedBuffer.get() + 4, excess_len);
-      m_Verifier = std::make_unique<i2p::crypto::RSASHA5124096Verifier>(signing_key);
+      m_Verifier = std::make_unique<kovri::crypto::RSASHA5124096Verifier>(signing_key);
       break;
     }
     case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519: {
-      size_t padding = 128 - i2p::crypto::EDDSA25519_PUBLIC_KEY_LENGTH;  // 96 = 128 - 32
+      size_t padding = 128 - kovri::crypto::EDDSA25519_PUBLIC_KEY_LENGTH;  // 96 = 128 - 32
       m_Verifier =
-        std::make_unique<i2p::crypto::EDDSA25519Verifier>(
+        std::make_unique<kovri::crypto::EDDSA25519Verifier>(
             m_StandardIdentity.signing_key + padding);
       break;
     }
@@ -475,7 +475,7 @@ size_t PrivateKeys::ToBuffer(
 size_t PrivateKeys::FromBase64(
     const std::string& s) {
   auto buf = std::make_unique<std::uint8_t[]>(s.length());
-  size_t l = i2p::util::Base64ToByteStream(
+  size_t l = kovri::util::Base64ToByteStream(
       s.c_str(),
       s.length(),
       buf.get(),
@@ -488,7 +488,7 @@ std::string PrivateKeys::ToBase64() const {
   auto buf = std::make_unique<std::uint8_t[]>(GetFullLen());
   auto str = std::make_unique<char[]>(GetFullLen() * 2);
   size_t l = ToBuffer(buf.get(), GetFullLen());
-  size_t l1 = i2p::util::ByteStreamToBase64(buf.get(), l, str.get(), GetFullLen() * 2);
+  size_t l1 = kovri::util::ByteStreamToBase64(buf.get(), l, str.get(), GetFullLen() * 2);
   str[l1] = 0;
   std::string ret(str.get());
   return ret;
@@ -505,28 +505,28 @@ void PrivateKeys::Sign(
 void PrivateKeys::CreateSigner() {
   switch (m_Public.GetSigningKeyType()) {
     case SIGNING_KEY_TYPE_DSA_SHA1:
-      m_Signer = std::make_unique<i2p::crypto::DSASigner>(m_SigningPrivateKey);
+      m_Signer = std::make_unique<kovri::crypto::DSASigner>(m_SigningPrivateKey);
     break;
     case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
-      m_Signer = std::make_unique<i2p::crypto::ECDSAP256Signer>(m_SigningPrivateKey);
+      m_Signer = std::make_unique<kovri::crypto::ECDSAP256Signer>(m_SigningPrivateKey);
     break;
     case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
-      m_Signer = std::make_unique<i2p::crypto::ECDSAP384Signer>(m_SigningPrivateKey);
+      m_Signer = std::make_unique<kovri::crypto::ECDSAP384Signer>(m_SigningPrivateKey);
     break;
     case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
-      m_Signer = std::make_unique<i2p::crypto::ECDSAP521Signer>(m_SigningPrivateKey);
+      m_Signer = std::make_unique<kovri::crypto::ECDSAP521Signer>(m_SigningPrivateKey);
     break;
     case SIGNING_KEY_TYPE_RSA_SHA256_2048:
-      m_Signer = std::make_unique<i2p::crypto::RSASHA2562048Signer>(m_SigningPrivateKey);
+      m_Signer = std::make_unique<kovri::crypto::RSASHA2562048Signer>(m_SigningPrivateKey);
     break;
     case SIGNING_KEY_TYPE_RSA_SHA384_3072:
-      m_Signer = std::make_unique<i2p::crypto::RSASHA3843072Signer>(m_SigningPrivateKey);
+      m_Signer = std::make_unique<kovri::crypto::RSASHA3843072Signer>(m_SigningPrivateKey);
     break;
     case SIGNING_KEY_TYPE_RSA_SHA512_4096:
-      m_Signer = std::make_unique<i2p::crypto::RSASHA5124096Signer>(m_SigningPrivateKey);
+      m_Signer = std::make_unique<kovri::crypto::RSASHA5124096Signer>(m_SigningPrivateKey);
     break;
     case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
-      m_Signer = std::make_unique<i2p::crypto::EDDSA25519Signer>(m_SigningPrivateKey);
+      m_Signer = std::make_unique<kovri::crypto::EDDSA25519Signer>(m_SigningPrivateKey);
     break;
     default:
       LogPrint(eLogWarn,
@@ -541,40 +541,40 @@ PrivateKeys PrivateKeys::CreateRandomKeys(SigningKeyType type) {
   uint8_t signing_public_key[512];  // signing public key is 512 bytes max
   switch (type) {
     case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
-      i2p::crypto::CreateECDSAP256RandomKeys(
+      kovri::crypto::CreateECDSAP256RandomKeys(
           keys.m_SigningPrivateKey,
           signing_public_key);
     break;
     case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
-      i2p::crypto::CreateECDSAP384RandomKeys(
+      kovri::crypto::CreateECDSAP384RandomKeys(
           keys.m_SigningPrivateKey,
           signing_public_key);
     break;
     case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
-      i2p::crypto::CreateECDSAP521RandomKeys(
+      kovri::crypto::CreateECDSAP521RandomKeys(
           keys.m_SigningPrivateKey,
           signing_public_key);
     break;
     case SIGNING_KEY_TYPE_RSA_SHA256_2048:
-      i2p::crypto::CreateRSARandomKeys(
-          i2p::crypto::RSASHA2562048_KEY_LENGTH,
+      kovri::crypto::CreateRSARandomKeys(
+          kovri::crypto::RSASHA2562048_KEY_LENGTH,
           keys.m_SigningPrivateKey,
           signing_public_key);
     break;
     case SIGNING_KEY_TYPE_RSA_SHA384_3072:
-      i2p::crypto::CreateRSARandomKeys(
-          i2p::crypto::RSASHA3843072_KEY_LENGTH,
+      kovri::crypto::CreateRSARandomKeys(
+          kovri::crypto::RSASHA3843072_KEY_LENGTH,
           keys.m_SigningPrivateKey,
           signing_public_key);
     break;
     case SIGNING_KEY_TYPE_RSA_SHA512_4096:
-      i2p::crypto::CreateRSARandomKeys(
-          i2p::crypto::RSASHA5124096_KEY_LENGTH,
+      kovri::crypto::CreateRSARandomKeys(
+          kovri::crypto::RSASHA5124096_KEY_LENGTH,
           keys.m_SigningPrivateKey,
           signing_public_key);
     break;
     case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
-      i2p::crypto::CreateEDDSARandomKeys(
+      kovri::crypto::CreateEDDSARandomKeys(
           keys.m_SigningPrivateKey,
           signing_public_key);
     break;
@@ -583,11 +583,11 @@ PrivateKeys PrivateKeys::CreateRandomKeys(SigningKeyType type) {
           "IdentityEx: Signing key type ",
           static_cast<int>(type), " is not supported, creating DSA-SHA1");
     case SIGNING_KEY_TYPE_DSA_SHA1:
-      return PrivateKeys(i2p::data::CreateRandomKeys());  // DSA-SHA1
+      return PrivateKeys(kovri::data::CreateRandomKeys());  // DSA-SHA1
   }
   // encryption
   uint8_t public_key[256];
-  i2p::crypto::GenerateElGamalKeyPair(keys.m_PrivateKey, public_key);
+  kovri::crypto::GenerateElGamalKeyPair(keys.m_PrivateKey, public_key);
   // identity
   keys.m_Public = IdentityEx(public_key, signing_public_key, type);
   keys.CreateSigner();
@@ -597,11 +597,11 @@ PrivateKeys PrivateKeys::CreateRandomKeys(SigningKeyType type) {
 Keys CreateRandomKeys() {
   Keys keys;
   // encryption
-  i2p::crypto::GenerateElGamalKeyPair(
+  kovri::crypto::GenerateElGamalKeyPair(
       keys.private_key,
       keys.public_key);
   // signing
-  i2p::crypto::CreateDSARandomKeys(
+  kovri::crypto::CreateDSARandomKeys(
       keys.signing_private_key,
       keys.signing_key);
   return keys;
@@ -633,7 +633,7 @@ IdentHash CreateRoutingKey(
       tm.tm_mday);
 #endif
   IdentHash key;
-  i2p::crypto::SHA256().CalculateDigest((uint8_t *)key, buf, 40);
+  kovri::crypto::SHA256().CalculateDigest((uint8_t *)key, buf, 40);
   return key;
 }
 
@@ -650,4 +650,4 @@ XORMetric operator^(
 }
 
 }  // namespace data
-}  // namespace i2p
+}  // namespace kovri

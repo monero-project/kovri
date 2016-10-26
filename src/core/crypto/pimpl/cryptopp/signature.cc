@@ -48,7 +48,7 @@
 #include "crypto/rand.h"
 #include "util/log.h"
 
-namespace i2p {
+namespace kovri {
 namespace crypto {
 
 /**
@@ -152,7 +152,7 @@ void CreateDSARandomKeys(
   CryptoPP::Integer dsax;
   try {
     do {
-      i2p::crypto::RandBytes(key_buf.data(), DSA_PRIVATE_KEY_LENGTH);
+      kovri::crypto::RandBytes(key_buf.data(), DSA_PRIVATE_KEY_LENGTH);
       dsax = CryptoPP::Integer(key_buf.data(), DSA_PRIVATE_KEY_LENGTH);
     } while (dsax.IsZero() || dsax >= dsaq);
     CryptoPP::DSA::PrivateKey private_key;
@@ -775,7 +775,7 @@ class RSARawVerifier {
           signature,
           key_length),
       CryptoPP::Integer(
-          i2p::crypto::rsae),
+          kovri::crypto::rsae),
       n));  // s^e mod n
     std::uint8_t EnSigBuf[key_length];
     enSig.Encode(EnSigBuf, key_length);
@@ -830,4 +830,4 @@ bool RSASHA5124096RawVerifier::Verify(
 }
 
 }  // namespace crypto
-}  // namespace i2p
+}  // namespace kovri

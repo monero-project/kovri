@@ -50,7 +50,7 @@
 #include "util/log.h"
 #include "util/timestamp.h"
 
-namespace i2p {
+namespace kovri {
 namespace tunnel {
 
 Tunnel::Tunnel(
@@ -86,7 +86,7 @@ void Tunnel::Build(
     hop->CreateBuildRequestRecord(
         records + idx * TUNNEL_BUILD_RECORD_SIZE,
         // we set reply_msg_ID for last hop only
-        hop->next ? i2p::crypto::Rand<uint32_t>() : reply_msg_ID);
+        hop->next ? kovri::crypto::Rand<uint32_t>() : reply_msg_ID);
     hop->record_index = idx;
     i++;
     hop = hop->next;
@@ -94,12 +94,12 @@ void Tunnel::Build(
   // fill up fake records with random data
   for (int i = num_hops; i < num_records; i++) {
     int idx = record_indicies[i];
-    i2p::crypto::RandBytes(
+    kovri::crypto::RandBytes(
         records + idx * TUNNEL_BUILD_RECORD_SIZE,
         TUNNEL_BUILD_RECORD_SIZE);
   }
   // decrypt real records
-  i2p::crypto::CBCDecryption decryption;
+  kovri::crypto::CBCDecryption decryption;
   hop = m_Config->GetLastHop()->prev;
   while (hop) {
     decryption.SetKey(hop->reply_key);
@@ -122,7 +122,7 @@ void Tunnel::Build(
         0,
         ToSharedI2NPMessage(std::move(msg)));
   else
-    i2p::transport::transports.SendMessage(
+    kovri::transport::transports.SendMessage(
         GetNextIdentHash(),
         ToSharedI2NPMessage(std::move(msg)));
 }
@@ -133,7 +133,7 @@ bool Tunnel::HandleTunnelBuildResponse(
   LogPrint(eLogDebug,
       "Tunnel: TunnelBuildResponse ",
       static_cast<int>(msg[0]), " records.");
-  i2p::crypto::CBCDecryption decryption;
+  kovri::crypto::CBCDecryption decryption;
   TunnelHopConfig* hop = m_Config->GetLastHop();
   while (hop) {
     decryption.SetKey(hop->reply_key);
@@ -193,7 +193,7 @@ void Tunnel::EncryptTunnelMsg(
 }
 
 void Tunnel::SendTunnelDataMsg(
-    std::shared_ptr<i2p::I2NPMessage>) {
+    std::shared_ptr<kovri::I2NPMessage>) {
   // TODO(unassigned): review for missing code
   LogPrint(eLogInfo,
       "Tunnel: can't send I2NP messages without delivery instructions");
@@ -213,7 +213,7 @@ void InboundTunnel::HandleTunnelDataMsg(
 void OutboundTunnel::SendTunnelDataMsg(
     const uint8_t* gw_hash,
     uint32_t gw_tunnel,
-    std::shared_ptr<i2p::I2NPMessage> msg) {
+    std::shared_ptr<kovri::I2NPMessage> msg) {
   TunnelMessageBlock block;
   if (gw_hash) {
     block.hash = gw_hash;
@@ -240,7 +240,7 @@ void OutboundTunnel::SendTunnelDataMsg(
 }
 
 void OutboundTunnel::HandleTunnelDataMsg(
-    std::shared_ptr<const i2p::I2NPMessage>) {
+    std::shared_ptr<const kovri::I2NPMessage>) {
   LogPrint(eLogError,
       "OutboundTunnel: incoming message for outbound tunnel ",
       GetTunnelID());
@@ -321,7 +321,7 @@ std::shared_ptr<InboundTunnel> Tunnels::GetNextInboundTunnel() {
 std::shared_ptr<OutboundTunnel> Tunnels::GetNextOutboundTunnel() {
   // TODO(unassigned): integer size
   uint32_t s = m_OutboundTunnels.size();
-  uint32_t ind = i2p::crypto::RandInRange<uint32_t>(uint32_t{0}, s - 1);
+  uint32_t ind = kovri::crypto::RandInRange<uint32_t>(uint32_t{0}, s - 1);
   uint32_t i = 0;
   std::shared_ptr<OutboundTunnel> tunnel;
   for (auto it : m_OutboundTunnels) {
@@ -336,7 +336,7 @@ std::shared_ptr<OutboundTunnel> Tunnels::GetNextOutboundTunnel() {
 }
 
 std::shared_ptr<TunnelPool> Tunnels::CreateTunnelPool(
-    i2p::garlic::GarlicDestination* local_destination,
+    kovri::garlic::GarlicDestination* local_destination,
     int num_inbound_hops,
     int num_outbound_hops,
     int num_inbound_tunnels,
@@ -460,7 +460,7 @@ void Tunnels::Run() {
         }
         while (msg);
       }
-      uint64_t ts = i2p::util::GetSecondsSinceEpoch();
+      uint64_t ts = kovri::util::GetSecondsSinceEpoch();
       if (ts - last_ts >= 15) {  // manage tunnels every 15 seconds
         ManageTunnels();
         last_ts = ts;
@@ -491,7 +491,7 @@ void Tunnels::HandleTunnelGatewayMsg(
   if (type_ID == e_I2NPDatabaseStore || type_ID == e_I2NPDatabaseSearchReply)
     // transit DatabaseStore my contain new/updated RI
     // or DatabaseSearchReply with new routers
-    i2p::data::netdb.PostI2NPMsg(msg);
+    kovri::data::netdb.PostI2NPMsg(msg);
   tunnel->SendTunnelDataMsg(msg);
 }
 
@@ -512,7 +512,7 @@ template<class PendingTunnels>
 void Tunnels::ManagePendingTunnels(
     PendingTunnels& pending_tunnels) {
   // check pending tunnel. delete failed or timeout
-  uint64_t ts = i2p::util::GetSecondsSinceEpoch();
+  uint64_t ts = kovri::util::GetSecondsSinceEpoch();
   for (auto it = pending_tunnels.begin(); it != pending_tunnels.end();) {
     auto tunnel = it->second;
     switch (tunnel->GetState()) {
@@ -558,7 +558,7 @@ void Tunnels::ManagePendingTunnels(
 }
 
 void Tunnels::ManageOutboundTunnels() {
-  uint64_t ts = i2p::util::GetSecondsSinceEpoch(); {
+  uint64_t ts = kovri::util::GetSecondsSinceEpoch(); {
     for (auto it = m_OutboundTunnels.begin(); it != m_OutboundTunnels.end();) {
       auto tunnel = *it;
       if (ts > tunnel->GetCreationTime() + TUNNEL_EXPIRATION_TIMEOUT) {
@@ -589,19 +589,19 @@ void Tunnels::ManageOutboundTunnels() {
   if (m_OutboundTunnels.size() < 5) {
     // trying to create one more outbound tunnel
     auto inbound_tunnel = GetNextInboundTunnel();
-    auto router = i2p::data::netdb.GetRandomRouter();
+    auto router = kovri::data::netdb.GetRandomRouter();
     if (!inbound_tunnel || !router)
       return;
     LogPrint(eLogInfo, "Tunnels: creating one hop outbound tunnel");
     CreateTunnel<OutboundTunnel> (
         std::make_shared<TunnelConfig> (
-          std::vector<std::shared_ptr<const i2p::data::RouterInfo> > { router },
+          std::vector<std::shared_ptr<const kovri::data::RouterInfo> > { router },
           inbound_tunnel->GetTunnelConfig()));
   }
 }
 
 void Tunnels::ManageInboundTunnels() {
-  uint64_t ts = i2p::util::GetSecondsSinceEpoch(); {
+  uint64_t ts = kovri::util::GetSecondsSinceEpoch(); {
     for (auto it = m_InboundTunnels.begin(); it != m_InboundTunnels.end();) {
       auto tunnel = it->second;
       if (ts > tunnel->GetCreationTime() + TUNNEL_EXPIRATION_TIMEOUT) {
@@ -636,21 +636,21 @@ void Tunnels::ManageInboundTunnels() {
     if (!m_ExploratoryPool)
       m_ExploratoryPool =
         // 2-hop exploratory, 5 tunnels
-        CreateTunnelPool(&i2p::context, 2, 2, 5, 5);
+        CreateTunnelPool(&kovri::context, 2, 2, 5, 5);
     return;
   }
   if (m_OutboundTunnels.empty() || m_InboundTunnels.size() < 5) {
     // trying to create one more inbound tunnel
-    auto router = i2p::data::netdb.GetRandomRouter();
+    auto router = kovri::data::netdb.GetRandomRouter();
     LogPrint(eLogInfo, "Tunnels: creating one hop inbound tunnel");
     CreateTunnel<InboundTunnel> (
         std::make_shared<TunnelConfig> (
-          std::vector<std::shared_ptr<const i2p::data::RouterInfo> > {router}));
+          std::vector<std::shared_ptr<const kovri::data::RouterInfo> > {router}));
   }
 }
 
 void Tunnels::ManageTransitTunnels() {
-  uint32_t ts = i2p::util::GetSecondsSinceEpoch();
+  uint32_t ts = kovri::util::GetSecondsSinceEpoch();
   for (auto it = m_TransitTunnels.begin(); it != m_TransitTunnels.end();) {
     if (ts > it->second->GetCreationTime() + TUNNEL_EXPIRATION_TIMEOUT) {
       auto tmp = it->second;
@@ -693,7 +693,7 @@ std::shared_ptr<TTunnel> Tunnels::CreateTunnel(
     std::shared_ptr<TunnelConfig> config,
     std::shared_ptr<OutboundTunnel> outbound_tunnel) {
   auto new_tunnel = std::make_shared<TTunnel> (config);
-  uint32_t reply_msg_ID = i2p::crypto::Rand<uint32_t>();
+  uint32_t reply_msg_ID = kovri::crypto::Rand<uint32_t>();
   AddPendingTunnel(reply_msg_ID, new_tunnel);
   new_tunnel->Build(reply_msg_ID, outbound_tunnel);
   return new_tunnel;
@@ -741,14 +741,14 @@ void Tunnels::AddInboundTunnel(
 void Tunnels::CreateZeroHopsInboundTunnel() {
   CreateTunnel<InboundTunnel> (
       std::make_shared<TunnelConfig> (
-        std::vector<std::shared_ptr<const i2p::data::RouterInfo> > {
-        i2p::context.GetSharedRouterInfo()
+        std::vector<std::shared_ptr<const kovri::data::RouterInfo> > {
+        kovri::context.GetSharedRouterInfo()
       }));
 }
 
 int Tunnels::GetTransitTunnelsExpirationTimeout() {
   int timeout = 0;
-  uint32_t ts = i2p::util::GetSecondsSinceEpoch();
+  uint32_t ts = kovri::util::GetSecondsSinceEpoch();
   std::unique_lock<std::mutex> l(m_TransitTunnelsMutex);
   for (auto it : m_TransitTunnels) {
     int t = it.second->GetCreationTime() + TUNNEL_EXPIRATION_TIMEOUT - ts;
@@ -759,4 +759,4 @@ int Tunnels::GetTransitTunnelsExpirationTimeout() {
 }
 
 }  // namespace tunnel
-}  // namespace i2p
+}  // namespace kovri

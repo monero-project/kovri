@@ -43,7 +43,7 @@
 #include "identity.h"
 #include "lease_set.h"
 
-namespace i2p {
+namespace kovri {
 namespace client { class ClientDestination; }
 namespace datagram {
 
@@ -51,7 +51,7 @@ const size_t MAX_DATAGRAM_SIZE = 32768;
 
 class DatagramDestination {
   typedef std::function<void (
-      const i2p::data::IdentityEx& from,
+      const kovri::data::IdentityEx& from,
       uint16_t from_port,
       uint16_t to_port,
       const uint8_t* buf,
@@ -60,13 +60,13 @@ class DatagramDestination {
 
  public:
   explicit DatagramDestination(
-      i2p::client::ClientDestination& owner);
+      kovri::client::ClientDestination& owner);
   ~DatagramDestination() {}
 
   void SendDatagramTo(
       const uint8_t* payload,
       size_t len,
-      const i2p::data::IdentHash& ident,
+      const kovri::data::IdentHash& ident,
       uint16_t from_port = 0,
       uint16_t to_port = 0);
 
@@ -98,7 +98,7 @@ class DatagramDestination {
 
  private:
   void HandleLeaseSetRequestComplete(
-      std::shared_ptr<i2p::data::LeaseSet> lease_set,
+      std::shared_ptr<kovri::data::LeaseSet> lease_set,
       std::unique_ptr<I2NPMessage> msg);
 
   std::unique_ptr<I2NPMessage> CreateDataMessage(
@@ -109,7 +109,7 @@ class DatagramDestination {
 
   void SendMsg(
       std::unique_ptr<I2NPMessage> msg,
-      std::shared_ptr<const i2p::data::LeaseSet> remote);
+      std::shared_ptr<const kovri::data::LeaseSet> remote);
 
   void HandleDatagram(
       uint16_t from_port,
@@ -118,12 +118,12 @@ class DatagramDestination {
       size_t len);
 
  private:
-  i2p::client::ClientDestination& m_Owner;
+  kovri::client::ClientDestination& m_Owner;
   Receiver m_Receiver;  // default
   std::map<uint16_t, Receiver> m_ReceiversByPorts;
 };
 
 }  // namespace datagram
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CLIENT_DATAGRAM_H_

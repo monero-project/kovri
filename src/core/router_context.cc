@@ -47,7 +47,7 @@
 #include "util/timestamp.h"
 #include "util/filesystem.h"
 
-namespace i2p {
+namespace kovri {
 
 RouterContext context;
 
@@ -70,29 +70,29 @@ void RouterContext::Init(
   m_Host = host;
   m_Port = port;
   m_DataPath = dataPath;
-  m_StartupTime = i2p::util::GetSecondsSinceEpoch();
+  m_StartupTime = kovri::util::GetSecondsSinceEpoch();
   if (!Load())
     CreateNewRouter();
   UpdateRouterInfo();
 }
 
 void RouterContext::CreateNewRouter() {
-  m_Keys = i2p::data::PrivateKeys::CreateRandomKeys(
-      i2p::data::DEFAULT_ROUTER_SIGNING_KEY_TYPE);
+  m_Keys = kovri::data::PrivateKeys::CreateRandomKeys(
+      kovri::data::DEFAULT_ROUTER_SIGNING_KEY_TYPE);
   SaveKeys();
   NewRouterInfo();
 }
 
 void RouterContext::NewRouterInfo() {
-  i2p::data::RouterInfo routerInfo;
+  kovri::data::RouterInfo routerInfo;
   routerInfo.SetRouterIdentity(
       GetIdentity());
   routerInfo.AddSSUAddress(m_Host, m_Port, routerInfo.GetIdentHash());
   routerInfo.AddNTCPAddress(m_Host, m_Port);
   routerInfo.SetCaps(
-    i2p::data::RouterInfo::eReachable |
-    i2p::data::RouterInfo::eSSUTesting |
-    i2p::data::RouterInfo::eSSUIntroducer);
+    kovri::data::RouterInfo::eReachable |
+    kovri::data::RouterInfo::eSSUTesting |
+    kovri::data::RouterInfo::eSSUIntroducer);
   routerInfo.SetProperty("netId", NETWORK_ID);
   routerInfo.SetProperty("router.version", I2P_VERSION);
   routerInfo.CreateBuffer(m_Keys);
@@ -103,8 +103,8 @@ void RouterContext::NewRouterInfo() {
 
 void RouterContext::UpdateRouterInfo() {
   m_RouterInfo.CreateBuffer(m_Keys);
-  m_RouterInfo.SaveToFile(i2p::util::filesystem::GetFullPath(ROUTER_INFO));
-  m_LastUpdateTime = i2p::util::GetSecondsSinceEpoch();
+  m_RouterInfo.SaveToFile(kovri::util::filesystem::GetFullPath(ROUTER_INFO));
+  m_LastUpdateTime = kovri::util::GetSecondsSinceEpoch();
 }
 
 void RouterContext::UpdatePort(
@@ -129,13 +129,13 @@ void RouterContext::UpdateAddress(
       updated = true;
     }
   }
-  auto ts = i2p::util::GetSecondsSinceEpoch();
+  auto ts = kovri::util::GetSecondsSinceEpoch();
   if (updated || ts > m_LastUpdateTime + ROUTER_INFO_UPDATE_INTERVAL)
     UpdateRouterInfo();
 }
 
 bool RouterContext::AddIntroducer(
-    const i2p::data::RouterInfo& routerInfo,
+    const kovri::data::RouterInfo& routerInfo,
     uint32_t tag) {
   bool ret = false;
   auto address = routerInfo.GetSSUAddress();
@@ -158,10 +158,10 @@ void RouterContext::SetFloodfill(
   m_IsFloodfill = floodfill;
   if (floodfill) {
     m_RouterInfo.SetCaps(
-        m_RouterInfo.GetCaps() | i2p::data::RouterInfo::eFloodfill);
+        m_RouterInfo.GetCaps() | kovri::data::RouterInfo::eFloodfill);
   } else {
     m_RouterInfo.SetCaps(
-        m_RouterInfo.GetCaps() & ~i2p::data::RouterInfo::eFloodfill);
+        m_RouterInfo.GetCaps() & ~kovri::data::RouterInfo::eFloodfill);
     // we don't publish number of routers and leaseset for non-floodfill
     m_RouterInfo.DeleteProperty(ROUTER_INFO_PROPERTY_LEASESETS);
     m_RouterInfo.DeleteProperty(ROUTER_INFO_PROPERTY_ROUTERS);
@@ -172,7 +172,7 @@ void RouterContext::SetFloodfill(
 void RouterContext::SetHighBandwidth() {
   if (!m_RouterInfo.IsHighBandwidth()) {
     m_RouterInfo.SetCaps(
-        m_RouterInfo.GetCaps() | i2p::data::RouterInfo::eHighBandwidth);
+        m_RouterInfo.GetCaps() | kovri::data::RouterInfo::eHighBandwidth);
     UpdateRouterInfo();
   }
 }
@@ -180,21 +180,21 @@ void RouterContext::SetHighBandwidth() {
 void RouterContext::SetLowBandwidth() {
   if (m_RouterInfo.IsHighBandwidth()) {
     m_RouterInfo.SetCaps(
-        m_RouterInfo.GetCaps() & ~i2p::data::RouterInfo::eHighBandwidth);
+        m_RouterInfo.GetCaps() & ~kovri::data::RouterInfo::eHighBandwidth);
     UpdateRouterInfo();
   }
 }
 
 bool RouterContext::IsUnreachable() const {
-  return m_RouterInfo.GetCaps() & i2p::data::RouterInfo::eUnreachable;
+  return m_RouterInfo.GetCaps() & kovri::data::RouterInfo::eUnreachable;
 }
 
 void RouterContext::SetUnreachable() {
   // set caps
   m_RouterInfo.SetCaps(  // LU, B
-      i2p::data::RouterInfo::eUnreachable | i2p::data::RouterInfo::eSSUTesting);
+      kovri::data::RouterInfo::eUnreachable | kovri::data::RouterInfo::eSSUTesting);
   // remove NTCP address
-  RemoveTransport(i2p::data::RouterInfo::eTransportNTCP);
+  RemoveTransport(kovri::data::RouterInfo::eTransportNTCP);
   // delete previous introducers
   for (auto& addr : m_RouterInfo.GetAddresses())
     addr.introducers.clear();
@@ -205,17 +205,17 @@ void RouterContext::SetUnreachable() {
 void RouterContext::SetReachable() {
   // update caps
   uint8_t caps = m_RouterInfo.GetCaps();
-  caps &= ~i2p::data::RouterInfo::eUnreachable;
-  caps |= i2p::data::RouterInfo::eReachable;
-  caps |= i2p::data::RouterInfo::eSSUIntroducer;
+  caps &= ~kovri::data::RouterInfo::eUnreachable;
+  caps |= kovri::data::RouterInfo::eReachable;
+  caps |= kovri::data::RouterInfo::eSSUIntroducer;
   if (m_IsFloodfill)
-    caps |= i2p::data::RouterInfo::eFloodfill;
+    caps |= kovri::data::RouterInfo::eFloodfill;
   m_RouterInfo.SetCaps(caps);
 
   // insert NTCP back
   auto& addresses = m_RouterInfo.GetAddresses();
   for (size_t i = 0; i < addresses.size(); i++) {
-    if (addresses[i].transport_style == i2p::data::RouterInfo::eTransportSSU) {
+    if (addresses[i].transport_style == kovri::data::RouterInfo::eTransportSSU) {
       // insert NTCP address with host/port form SSU
       m_RouterInfo.AddNTCPAddress(
           addresses[i].host.to_string().c_str(),
@@ -244,7 +244,7 @@ void RouterContext::SetSupportsNTCP(bool supportsNTCP) {
   if(supportsNTCP && !m_RouterInfo.GetNTCPAddress())
     m_RouterInfo.AddNTCPAddress(m_Host, m_Port);
   if(!supportsNTCP)
-    RemoveTransport(i2p::data::RouterInfo::eTransportNTCP);
+    RemoveTransport(kovri::data::RouterInfo::eTransportNTCP);
   UpdateRouterInfo();
 }
 
@@ -253,11 +253,11 @@ void RouterContext::SetSupportsSSU(bool supportsSSU) {
   if(supportsSSU && !m_RouterInfo.GetSSUAddress())
     m_RouterInfo.AddSSUAddress(m_Host, m_Port, m_RouterInfo.GetIdentHash());
   if(!supportsSSU)
-    RemoveTransport(i2p::data::RouterInfo::eTransportSSU);
+    RemoveTransport(kovri::data::RouterInfo::eTransportSSU);
   // Remove SSU-related flags
   m_RouterInfo.SetCaps(m_RouterInfo.GetCaps()
-      & ~i2p::data::RouterInfo::eSSUTesting
-      & ~i2p::data::RouterInfo::eSSUIntroducer);
+      & ~kovri::data::RouterInfo::eSSUTesting
+      & ~kovri::data::RouterInfo::eSSUIntroducer);
 
   UpdateRouterInfo();
 }
@@ -270,7 +270,7 @@ void RouterContext::UpdateNTCPV6Address(
   auto& addresses = m_RouterInfo.GetAddresses();
   for (auto& addr : addresses) {
     if (addr.host.is_v6() &&
-        addr.transport_style == i2p::data::RouterInfo::eTransportNTCP) {
+        addr.transport_style == kovri::data::RouterInfo::eTransportNTCP) {
       if (addr.host != host) {
         addr.host = host;
         updated = true;
@@ -289,7 +289,7 @@ void RouterContext::UpdateNTCPV6Address(
         host.to_string().c_str(),
         port,
         GetIdentHash(),
-        i2p::util::mtu::GetMTU(host));
+        kovri::util::mtu::GetMTU(host));
     updated = true;
   }
   if (updated)
@@ -301,17 +301,17 @@ void RouterContext::UpdateStats() {
     // update routers and leasesets
     m_RouterInfo.SetProperty(
         ROUTER_INFO_PROPERTY_LEASESETS,
-        boost::lexical_cast<std::string>(i2p::data::netdb.GetNumLeaseSets()));
+        boost::lexical_cast<std::string>(kovri::data::netdb.GetNumLeaseSets()));
     m_RouterInfo.SetProperty(
         ROUTER_INFO_PROPERTY_ROUTERS,
-        boost::lexical_cast<std::string>(i2p::data::netdb.GetNumRouters()));
+        boost::lexical_cast<std::string>(kovri::data::netdb.GetNumRouters()));
     UpdateRouterInfo();
   }
 }
 
 bool RouterContext::Load() {
   std::ifstream fk(
-      i2p::util::filesystem::GetFullPath(ROUTER_KEYS).c_str(),
+      kovri::util::filesystem::GetFullPath(ROUTER_KEYS).c_str(),
       std::ifstream::binary | std::ofstream::in);
   if (!fk.is_open())
     return false;
@@ -323,8 +323,8 @@ bool RouterContext::Load() {
   fk.read(reinterpret_cast<char*>(buf.get()), len);
   m_Keys.FromBuffer(buf.get(), len);
 
-  i2p::data::RouterInfo routerInfo(
-      i2p::util::filesystem::GetFullPath(ROUTER_INFO));
+  kovri::data::RouterInfo routerInfo(
+      kovri::util::filesystem::GetFullPath(ROUTER_INFO));
   m_RouterInfo.Update(
       routerInfo.GetBuffer(),
       routerInfo.GetBufferLen());
@@ -338,7 +338,7 @@ bool RouterContext::Load() {
 
 void RouterContext::SaveKeys() {
   std::ofstream fk(
-      i2p::util::filesystem::GetFullPath(ROUTER_KEYS).c_str(),
+      kovri::util::filesystem::GetFullPath(ROUTER_KEYS).c_str(),
       std::ofstream::binary | std::ofstream::out);
   const size_t len = m_Keys.GetFullLen();
   std::unique_ptr<uint8_t[]> buf(std::make_unique<uint8_t[]>(len));
@@ -347,7 +347,7 @@ void RouterContext::SaveKeys() {
 }
 
 void RouterContext::RemoveTransport(
-    i2p::data::RouterInfo::TransportStyle transport) {
+    kovri::data::RouterInfo::TransportStyle transport) {
   auto& addresses = m_RouterInfo.GetAddresses();
   for (size_t i = 0; i < addresses.size(); i++) {
     if (addresses[i].transport_style == transport) {
@@ -357,15 +357,15 @@ void RouterContext::RemoveTransport(
   }
 }
 
-std::shared_ptr<i2p::tunnel::TunnelPool> RouterContext::GetTunnelPool() const {
-  return i2p::tunnel::tunnels.GetExploratoryPool();
+std::shared_ptr<kovri::tunnel::TunnelPool> RouterContext::GetTunnelPool() const {
+  return kovri::tunnel::tunnels.GetExploratoryPool();
 }
 
 void RouterContext::HandleI2NPMessage(
     const uint8_t* buf,
     size_t,
-    std::shared_ptr<i2p::tunnel::InboundTunnel> from) {
-  i2p::HandleI2NPMessage(
+    std::shared_ptr<kovri::tunnel::InboundTunnel> from) {
+  kovri::HandleI2NPMessage(
       CreateI2NPMessage(
         buf,
         GetI2NPMessageLength(buf),
@@ -375,17 +375,17 @@ void RouterContext::HandleI2NPMessage(
 void RouterContext::ProcessGarlicMessage(
     std::shared_ptr<I2NPMessage> msg) {
   std::unique_lock<std::mutex> l(m_GarlicMutex);
-  i2p::garlic::GarlicDestination::ProcessGarlicMessage(msg);
+  kovri::garlic::GarlicDestination::ProcessGarlicMessage(msg);
 }
 
 void RouterContext::ProcessDeliveryStatusMessage(
     std::shared_ptr<I2NPMessage> msg) {
   std::unique_lock<std::mutex> l(m_GarlicMutex);
-  i2p::garlic::GarlicDestination::ProcessDeliveryStatusMessage(msg);
+  kovri::garlic::GarlicDestination::ProcessDeliveryStatusMessage(msg);
 }
 
 uint32_t RouterContext::GetUptime() const {
-  return i2p::util::GetSecondsSinceEpoch () - m_StartupTime;
+  return kovri::util::GetSecondsSinceEpoch () - m_StartupTime;
 }
 
-}  // namespace i2p
+}  // namespace kovri

@@ -50,7 +50,7 @@
 #include "transport_session.h"
 #include "crypto/aes.h"
 
-namespace i2p {
+namespace kovri {
 namespace transport {
 
 enum struct NTCPSize : const std::size_t {
@@ -72,7 +72,7 @@ enum struct NTCPSize : const std::size_t {
   phase3_signature = 40,
   phase3_unencrypted =
     phase3_alice_ri +
-    i2p::data::DEFAULT_IDENTITY_SIZE +  // 387
+    kovri::data::DEFAULT_IDENTITY_SIZE +  // 387
     phase3_alice_ts +
     phase3_padding +
     phase3_signature,  // Total = 448
@@ -110,7 +110,7 @@ class NTCPSession
  public:
   NTCPSession(
       NTCPServer& server,
-      std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter = nullptr);
+      std::shared_ptr<const kovri::data::RouterInfo> in_RemoteRouter = nullptr);
 
   ~NTCPSession();
 
@@ -192,7 +192,7 @@ class NTCPSession
 
   void CreateAESKey(
       std::uint8_t* pub_key,
-      i2p::crypto::AESKey& key);
+      kovri::crypto::AESKey& key);
 
   // Client
   void SendPhase3();
@@ -263,7 +263,7 @@ class NTCPSession
   /// @brief Send payload (I2NP message)
   /// @param msg shared pointer to payload (I2NPMessage)
   void SendPayload(
-      std::shared_ptr<i2p::I2NPMessage> msg);
+      std::shared_ptr<kovri::I2NPMessage> msg);
 
   /// @brief Send payload (I2NP messages)
   /// @param msg shared pointer to payload (I2NPMessages)
@@ -293,8 +293,8 @@ class NTCPSession
   boost::asio::deadline_timer m_TerminationTimer;
   bool m_IsEstablished, m_IsTerminated;
 
-  i2p::crypto::CBCDecryption m_Decryption;
-  i2p::crypto::CBCEncryption m_Encryption;
+  kovri::crypto::CBCDecryption m_Decryption;
+  kovri::crypto::CBCEncryption m_Encryption;
 
   struct Establisher {
     NTCPPhase1 phase1;
@@ -303,24 +303,24 @@ class NTCPSession
 
   std::unique_ptr<Establisher> m_Establisher;
 
-  i2p::crypto::AESAlignedBuffer<
+  kovri::crypto::AESAlignedBuffer<
     static_cast<std::size_t>(NTCPSize::buffer) +
     static_cast<std::size_t>(NTCPSize::iv)> m_ReceiveBuffer;
 
-  i2p::crypto::AESAlignedBuffer<
+  kovri::crypto::AESAlignedBuffer<
     static_cast<std::size_t>(NTCPSize::iv)> m_TimeSyncBuffer;
 
   std::size_t m_ReceiveBufferOffset;
 
   std::shared_ptr<I2NPMessage> m_NextMessage;
   std::size_t m_NextMessageOffset;
-  i2p::I2NPMessagesHandler m_Handler;
+  kovri::I2NPMessagesHandler m_Handler;
 
   bool m_IsSending;
   std::vector<std::shared_ptr<I2NPMessage>> m_SendQueue;
 };
 
 }  // namespace transport
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_TRANSPORT_NTCP_SESSION_H_

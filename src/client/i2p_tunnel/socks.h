@@ -42,20 +42,20 @@
 
 #include "client/i2p_service.h"
 
-namespace i2p {
+namespace kovri {
 namespace proxy {
 
-class SOCKSServer : public i2p::client::TCPIPAcceptor {
+class SOCKSServer : public kovri::client::TCPIPAcceptor {
  public:
   SOCKSServer(
       const std::string& address,
       int port,
-      std::shared_ptr<i2p::client::ClientDestination> local_destination = nullptr);
+      std::shared_ptr<kovri::client::ClientDestination> local_destination = nullptr);
   ~SOCKSServer() {}
 
  protected:
   // Implements TCPIPAcceptor
-  std::shared_ptr<i2p::client::I2PServiceHandler> CreateHandler(
+  std::shared_ptr<kovri::client::I2PServiceHandler> CreateHandler(
       std::shared_ptr<boost::asio::ip::tcp::socket> socket);
 
   std::string GetName() const { return "SOCKS"; }
@@ -64,6 +64,6 @@ class SOCKSServer : public i2p::client::TCPIPAcceptor {
 typedef SOCKSServer SOCKSProxy;
 
 }  // namespace proxy
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CLIENT_I2PTUNNEL_SOCKS_H_

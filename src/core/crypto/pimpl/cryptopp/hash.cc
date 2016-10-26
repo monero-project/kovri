@@ -37,7 +37,7 @@
 
 #include "util/log.h"
 
-namespace i2p {
+namespace kovri {
 namespace crypto {
 
 /**
@@ -225,4 +225,4 @@ void SHA512::Final(
 }
 
 }  //  namespace crypto
-}  //  namespace i2p
+}  //  namespace kovri

@@ -36,7 +36,7 @@
 #include <inttypes.h>
 #include <string.h>
 
-namespace i2p {
+namespace kovri {
 namespace util {
 
   /*
@@ -100,6 +100,6 @@ namespace util {
       size_t out_len);
 
 }  // namespace util
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_UTIL_BASE64_H_

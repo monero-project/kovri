@@ -39,7 +39,7 @@
 
 #include "log.h"
 
-namespace i2p {
+namespace kovri {
 namespace util {
 namespace mtu {
 
@@ -53,6 +53,6 @@ std::uint16_t GetMTU(
 
 }  // namespace mtu
 }  // namespace util
-}  // namespace i2p
+}  // namespace kovri
 
 #endif // SRC_CORE_UTIL_MTU_H_

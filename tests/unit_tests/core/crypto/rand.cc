@@ -58,7 +58,7 @@ template <class T>
 T Range<T>::Test() {
   do {
     repeated = result;
-    result = i2p::crypto::RandInRange<T>(min, max);
+    result = kovri::crypto::RandInRange<T>(min, max);
     count++;
   } while ((count != 100));  // Arbitrary number
   return ((result >= min) &&

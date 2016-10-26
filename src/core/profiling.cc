@@ -42,7 +42,7 @@
 #include "util/log.h"
 #include "router_context.h"
 
-namespace i2p {
+namespace kovri {
 namespace data {
 
 RouterProfile::RouterProfile(
@@ -95,14 +95,14 @@ void RouterProfile::Save() {
       PEER_PROFILE_SECTION_USAGE,
       usage);
   // save to file
-  auto path = i2p::context.GetDataPath() / PEER_PROFILES_DIRECTORY;
+  auto path = kovri::context.GetDataPath() / PEER_PROFILES_DIRECTORY;
   if (!boost::filesystem::exists(path)) {
     // Create directory is necessary
     if (!boost::filesystem::create_directory(path)) {
       LogPrint(eLogError, "RouterProfile: failed to create directory ", path);
       return;
     }
-    const char* chars = i2p::util::GetBase64SubstitutionTable();  // 64 bytes
+    const char* chars = kovri::util::GetBase64SubstitutionTable();  // 64 bytes
     for (int i = 0; i < 64; i++) {
       auto path1 = path / (std::string("p") + chars[i]);
       if (!boost::filesystem::create_directory(path1)) {
@@ -123,7 +123,7 @@ void RouterProfile::Save() {
 
 void RouterProfile::Load() {
   std::string base64 = m_IdentHash.ToBase64();
-  auto path = i2p::context.GetDataPath() / PEER_PROFILES_DIRECTORY;
+  auto path = kovri::context.GetDataPath() / PEER_PROFILES_DIRECTORY;
   path /= std::string("p") + base64[0];
   auto filename = path / (std::string(PEER_PROFILE_PREFIX) + base64 + ".txt");
   if (boost::filesystem::exists(filename)) {
@@ -228,7 +228,7 @@ void DeleteObsoleteProfiles() {
   int num = 0;
   auto ts = boost::posix_time::second_clock::local_time();
   boost::filesystem::path p(
-      i2p::context.GetDataPath() / PEER_PROFILES_DIRECTORY);
+      kovri::context.GetDataPath() / PEER_PROFILES_DIRECTORY);
   if (boost::filesystem::exists(p)) {
     boost::filesystem::directory_iterator end;
     for (boost::filesystem::directory_iterator it(p); it != end; ++it) {
@@ -252,4 +252,4 @@ void DeleteObsoleteProfiles() {
 }
 
 }  // namespace data
-}  // namespace i2p
+}  // namespace kovri

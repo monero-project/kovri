@@ -38,7 +38,7 @@
 
 #include "util/log.h"
 
-namespace i2p {
+namespace kovri {
 namespace crypto {
 namespace util {
 
@@ -316,4 +316,4 @@ std::size_t Gunzip::MaxRetrievable() {
 
 }  // namespace util
 }  // namespace crypto
-}  // namespace i2p
+}  // namespace kovri

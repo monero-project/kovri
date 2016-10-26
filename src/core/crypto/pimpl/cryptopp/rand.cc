@@ -32,7 +32,7 @@
 
 #include <cryptopp/osrng.h>
 
-namespace i2p {
+namespace kovri {
 namespace crypto {
 
 void RandBytes(
@@ -43,4 +43,4 @@ void RandBytes(
 }
 
 }  // namespace crypto
-}  // namespace i2p
+}  // namespace kovri

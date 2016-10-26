@@ -44,7 +44,7 @@
 #include "util/log.h"
 #include "util/timestamp.h"
 
-namespace i2p {
+namespace kovri {
 namespace transport {
 
 void IncompleteMessage::AttachNextFragment(
@@ -92,7 +92,7 @@ void SSUData::Stop() {
 }
 
 void SSUData::AdjustPacketSize(
-    const i2p::data::RouterInfo& remote_router) {
+    const kovri::data::RouterInfo& remote_router) {
   LogPrint(eLogDebug,
       "SSUData: adjusting packet size");
   auto ssu_address = remote_router.GetSSUAddress();
@@ -124,11 +124,11 @@ void SSUData::AdjustPacketSize(
 }
 
 void SSUData::UpdatePacketSize(
-    const i2p::data::IdentHash& remote_ident) {
+    const kovri::data::IdentHash& remote_ident) {
   LogPrint(eLogDebug,
       "SSUData:", m_Session.GetFormattedSessionInfo(),
       "updating packet size");
-  auto router_info = i2p::data::netdb.FindRouter(remote_ident);
+  auto router_info = kovri::data::netdb.FindRouter(remote_ident);
   if (router_info)
     AdjustPacketSize(*router_info);
 }
@@ -276,7 +276,7 @@ void SSUData::ProcessFragments(
         if (incomplete_message->saved_fragments.insert(
               std::unique_ptr<Fragment>(std::move(saved_fragment))).second)
           incomplete_message->last_fragment_insert_time =
-            i2p::util::GetSecondsSinceEpoch();
+            kovri::util::GetSecondsSinceEpoch();
         else
           LogPrint(eLogWarn,
               "SSUData:", m_Session.GetFormattedSessionInfo(),
@@ -373,7 +373,7 @@ void SSUData::ProcessMessage(
 }
 
 void SSUData::Send(
-    std::shared_ptr<i2p::I2NPMessage> msg) {
+    std::shared_ptr<kovri::I2NPMessage> msg) {
   LogPrint(eLogDebug,
       "SSUData:", m_Session.GetFormattedSessionInfo(),
       "sending message");
@@ -394,7 +394,7 @@ void SSUData::Send(
   std::unique_ptr<SentMessage>& sent_message = ret.first->second;
   if (ret.second) {
     sent_message->next_resend_time =
-      i2p::util::GetSecondsSinceEpoch()
+      kovri::util::GetSecondsSinceEpoch()
       + static_cast<std::size_t>(SSUDuration::ResendInterval);
     sent_message->num_resends = 0;
   }
@@ -526,7 +526,7 @@ void SSUData::HandleResendTimer(
       "SSUData:", m_Session.GetFormattedSessionInfo(),
       "handling resend timer");
   if (ecode != boost::asio::error::operation_aborted) {
-    auto ts = i2p::util::GetSecondsSinceEpoch();
+    auto ts = kovri::util::GetSecondsSinceEpoch();
     for (auto it = m_SentMessages.begin(); it != m_SentMessages.end();) {
       if (ts >= it->second->next_resend_time) {
         if (it->second->num_resends < static_cast<std::size_t>(SSUDuration::MaxResends)) {
@@ -604,7 +604,7 @@ void SSUData::HandleIncompleteMessagesCleanupTimer(
       "SSUData:", m_Session.GetFormattedSessionInfo(),
       "handling incomplete messages cleanup");
   if (ecode != boost::asio::error::operation_aborted) {
-    auto ts = i2p::util::GetSecondsSinceEpoch();
+    auto ts = kovri::util::GetSecondsSinceEpoch();
     for (auto it = m_IncompleteMessages.begin(); it != m_IncompleteMessages.end();) {
       if (ts > it->second->last_fragment_insert_time +
           static_cast<std::size_t>(SSUDuration::IncompleteMessagesCleanupTimeout)) {
@@ -623,5 +623,5 @@ void SSUData::HandleIncompleteMessagesCleanupTimer(
 }
 
 }  // namespace transport
-}  // namespace i2p
+}  // namespace kovri
 

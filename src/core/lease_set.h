@@ -40,7 +40,7 @@
 
 #include "identity.h"
 
-namespace i2p {
+namespace kovri {
 // TODO(unassigned): remove this forward declaration after cleaning up core/tunnel
 namespace tunnel { class TunnelPool; }
 namespace data {
@@ -66,7 +66,7 @@ class LeaseSet : public RoutingDestination {
       std::size_t len);
 
   explicit LeaseSet(
-      const i2p::tunnel::TunnelPool& pool);
+      const kovri::tunnel::TunnelPool& pool);
 
   ~LeaseSet() {}
 
@@ -128,6 +128,6 @@ class LeaseSet : public RoutingDestination {
 };
 
 }  // namespace data
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_LEASE_SET_H_

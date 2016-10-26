@@ -37,7 +37,7 @@
 
 #include <chrono>
 
-namespace i2p {
+namespace kovri {
 namespace util {
 
 inline uint64_t GetMillisecondsSinceEpoch() {
@@ -56,6 +56,6 @@ inline uint64_t GetSecondsSinceEpoch() {
 }
 
 }  // namespace util
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_UTIL_TIMESTAMP_H_

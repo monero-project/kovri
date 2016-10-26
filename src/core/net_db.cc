@@ -54,7 +54,7 @@
 #include "util/log.h"
 #include "util/timestamp.h"
 
-namespace i2p {
+namespace kovri {
 namespace data {
 
 const char NetDb::m_NetDbPath[] = "netDb";
@@ -123,7 +123,7 @@ void NetDb::Run() {
               // TODO(unassigned): error handling
               LogPrint(eLogError,
                   "NetDb: unexpected message type ", msg->GetTypeID());
-              // i2p::HandleI2NPMessage(msg);
+              // kovri::HandleI2NPMessage(msg);
           }
           if (num_msgs > 100)
             break;
@@ -133,7 +133,7 @@ void NetDb::Run() {
       }
       if (!m_IsRunning)
         break;
-      uint64_t ts = i2p::util::GetSecondsSinceEpoch();
+      uint64_t ts = kovri::util::GetSecondsSinceEpoch();
       if (ts - last_manage_request >= 15) {  // manage requests every 15 seconds
         m_Requests.ManageRequests();
         last_manage_request = ts;
@@ -213,7 +213,7 @@ void NetDb::AddLeaseSet(
     const IdentHash& ident,
     const uint8_t* buf,
     int len,
-    std::shared_ptr<i2p::tunnel::InboundTunnel> from) {
+    std::shared_ptr<kovri::tunnel::InboundTunnel> from) {
   if (!from) {  // unsolicited LS must be received directly
     auto it = m_LeaseSets.find(ident);
     if (it != m_LeaseSets.end()) {
@@ -273,7 +273,7 @@ bool NetDb::CreateNetDb(
     return false;
   }
   // list of chars might appear in base64 string
-  const char* chars = i2p::util::GetBase64SubstitutionTable();  // 64 bytes
+  const char* chars = kovri::util::GetBase64SubstitutionTable();  // 64 bytes
   boost::filesystem::path suffix;
   for (int i = 0; i < 64; i++) {
 #ifndef _WIN32
@@ -290,7 +290,7 @@ bool NetDb::CreateNetDb(
 }
 
 bool NetDb::Load() {
-  boost::filesystem::path p(i2p::context.GetDataPath() / m_NetDbPath);
+  boost::filesystem::path p(kovri::context.GetDataPath() / m_NetDbPath);
   if (!boost::filesystem::exists(p)) {
     // seems netDb doesn't exist yet
     if (!CreateNetDb(p))
@@ -300,7 +300,7 @@ bool NetDb::Load() {
   m_RouterInfos.clear();
   m_Floodfills.clear();
   // load routers now
-  uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
+  uint64_t ts = kovri::util::GetMillisecondsSinceEpoch();
   boost::filesystem::directory_iterator end;
   std::size_t num_routers = 0;
   for (boost::filesystem::directory_iterator it(p); it != end; ++it) {
@@ -343,11 +343,11 @@ void NetDb::SaveUpdated() {
     return directory / (std::string("r") + s[0]) / ("router_info_" + s + ".dat");
   };
   boost::filesystem::path full_directory(
-      i2p::context.GetDataPath() / m_NetDbPath);
+      kovri::context.GetDataPath() / m_NetDbPath);
   int count = 0,
       deleted_count = 0;
   auto total = m_RouterInfos.size();
-  uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
+  uint64_t ts = kovri::util::GetMillisecondsSinceEpoch();
   for (auto it : m_RouterInfos) {
     if (it.second->IsUpdated()) {
       std::string f = GetFilePath(full_directory, it.second.get()).string();
@@ -362,10 +362,10 @@ void NetDb::SaveUpdated() {
           ts > it.second->GetTimestamp() + 3600 * 1000LL) {  // 1 hour
         it.second->SetUnreachable(true);
       } else if (total > 75 && ts >
-          (i2p::context.GetStartupTime() + 600) * 1000LL) {
+          (kovri::context.GetStartupTime() + 600) * 1000LL) {
         // ^ routers don't expire if less than 25
         // or uptime is less than 10 minutes
-        if (i2p::context.IsFloodfill()) {
+        if (kovri::context.IsFloodfill()) {
           if (ts > it.second->GetTimestamp() + 3600 * 1000LL) {
             it.second->SetUnreachable(true);
             total--;
@@ -435,7 +435,7 @@ void NetDb::RequestDestination(
         destination,
         dest->GetExcludedPeers());
   if (floodfill) {
-    i2p::transport::transports.SendMessage(
+    kovri::transport::transports.SendMessage(
         floodfill->GetIdentHash(),
         dest->CreateRequestMessage(
             floodfill->GetIdentHash()));
@@ -461,9 +461,9 @@ void NetDb::HandleDatabaseStoreMsg(
     uint32_t tunnel_ID = bufbe32toh(buf + offset);
     offset += 4;
     if (!tunnel_ID) {  // send response directly
-      i2p::transport::transports.SendMessage(buf + offset, delivery_status);
+      kovri::transport::transports.SendMessage(buf + offset, delivery_status);
     } else {
-      auto pool = i2p::tunnel::tunnels.GetExploratoryPool();
+      auto pool = kovri::tunnel::tunnels.GetExploratoryPool();
       auto outbound = pool ? pool->GetNextOutboundTunnel() : nullptr;
       if (outbound)
         outbound->SendTunnelDataMsg(buf + offset, tunnel_ID, delivery_status);
@@ -486,7 +486,7 @@ void NetDb::HandleDatabaseStoreMsg(
       for (int i = 0; i < 3; i++) {
         auto floodfill = GetClosestFloodfill(ident, excluded);
         if (floodfill)
-          i2p::transport::transports.SendMessage(
+          kovri::transport::transports.SendMessage(
               floodfill->GetIdentHash(),
               flood_msg);
       }
@@ -505,7 +505,7 @@ void NetDb::HandleDatabaseStoreMsg(
       return;
     }
     try {
-      i2p::crypto::util::Gunzip decompressor;
+      kovri::crypto::util::Gunzip decompressor;
       decompressor.Put(buf + offset, size);
       uint8_t uncompressed[2048];
       size_t uncompressed_size = decompressor.MaxRetrievable();
@@ -528,7 +528,7 @@ void NetDb::HandleDatabaseSearchReplyMsg(
     std::shared_ptr<const I2NPMessage> msg) {
   const uint8_t* buf = msg->GetPayload();
   char key[48];
-  int l = i2p::util::ByteStreamToBase64(buf, 32, key, 48);
+  int l = kovri::util::ByteStreamToBase64(buf, 32, key, 48);
   key[l] = 0;
   int num = buf[32];  // num
   LogPrint(eLogInfo, "NetDb: DatabaseSearchReply for ", key, " num=", num);
@@ -537,13 +537,13 @@ void NetDb::HandleDatabaseSearchReplyMsg(
   if (dest) {
     bool delete_dest = true;
     if (num > 0) {
-      auto pool = i2p::tunnel::tunnels.GetExploratoryPool();
+      auto pool = kovri::tunnel::tunnels.GetExploratoryPool();
       auto outbound = pool ? pool->GetNextOutboundTunnel() : nullptr;
       auto inbound = pool ? pool->GetNextInboundTunnel() : nullptr;
       if (!dest->IsExploratory()) {
         // reply to our destination. Try other floodfills
         if (outbound && inbound) {
-          std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
+          std::vector<kovri::tunnel::TunnelMessageBlock> msgs;
           auto count = dest->GetExcludedPeers().size();
           std::size_t max_ff(7);
           if (count < max_ff) {
@@ -553,8 +553,8 @@ void NetDb::HandleDatabaseSearchReplyMsg(
             if (next_floodfill) {
               // tell floodfill about us
               msgs.push_back(
-                  i2p::tunnel::TunnelMessageBlock {
-                  i2p::tunnel::e_DeliveryTypeRouter,
+                  kovri::tunnel::TunnelMessageBlock {
+                  kovri::tunnel::e_DeliveryTypeRouter,
                   next_floodfill->GetIdentHash(),
                   0,
                   CreateDatabaseStoreMsg()
@@ -566,8 +566,8 @@ void NetDb::HandleDatabaseSearchReplyMsg(
                   " floodfill ", next_floodfill->GetIdentHash().ToBase64());
               auto msg = dest->CreateRequestMessage(next_floodfill, inbound);
               msgs.push_back(
-                  i2p::tunnel::TunnelMessageBlock {
-                  i2p::tunnel::e_DeliveryTypeRouter,
+                  kovri::tunnel::TunnelMessageBlock {
+                  kovri::tunnel::e_DeliveryTypeRouter,
                   next_floodfill->GetIdentHash(),
                   0,
                   msg
@@ -597,12 +597,12 @@ void NetDb::HandleDatabaseSearchReplyMsg(
   for (int i = 0; i < num; i++) {
     const uint8_t* router = buf + 33 + i * 32;
     char peer_hash[48];
-    int l1 = i2p::util::ByteStreamToBase64(router, 32, peer_hash, 48);
+    int l1 = kovri::util::ByteStreamToBase64(router, 32, peer_hash, 48);
     peer_hash[l1] = 0;
     LogPrint(eLogInfo, "NetDb: ", i, ": ", peer_hash);
     auto r = FindRouter(router);
     if (!r ||
-        i2p::util::GetMillisecondsSinceEpoch() >
+        kovri::util::GetMillisecondsSinceEpoch() >
         r->GetTimestamp() + 3600 * 1000LL)  {
       // router with ident not found or too old (1 hour)
       LogPrint(eLogInfo,
@@ -624,7 +624,7 @@ void NetDb::HandleDatabaseLookupMsg(
     return;
   }
   char key[48];
-  int l = i2p::util::ByteStreamToBase64(buf, 32, key, 48);
+  int l = kovri::util::ByteStreamToBase64(buf, 32, key, 48);
   key[l] = 0;
   uint8_t flag = buf[64];
   LogPrint(eLogInfo, "NetDb: DatabaseLookup for ", key,
@@ -704,11 +704,11 @@ void NetDb::HandleDatabaseLookupMsg(
         uint8_t num_tags = session_key[32];
         if (num_tags > 0)  {
           const uint8_t* session_tag = session_key + 33;  // take first tag
-          i2p::garlic::GarlicRoutingSession garlic(session_key, session_tag);
+          kovri::garlic::GarlicRoutingSession garlic(session_key, session_tag);
           reply_msg = garlic.WrapSingleMessage(reply_msg);
         }
       }
-      auto exploratory_pool = i2p::tunnel::tunnels.GetExploratoryPool();
+      auto exploratory_pool = kovri::tunnel::tunnels.GetExploratoryPool();
       auto outbound =
         exploratory_pool ? exploratory_pool->GetNextOutboundTunnel() : nullptr;
       if (outbound)
@@ -717,13 +717,13 @@ void NetDb::HandleDatabaseLookupMsg(
             reply_tunnel_ID,
             reply_msg);
       else
-        i2p::transport::transports.SendMessage(
+        kovri::transport::transports.SendMessage(
             buf+32,
-            i2p::CreateTunnelGatewayMsg(
+            kovri::CreateTunnelGatewayMsg(
                 reply_tunnel_ID,
                 reply_msg));
     } else {
-      i2p::transport::transports.SendMessage(buf+32, reply_msg);
+      kovri::transport::transports.SendMessage(buf+32, reply_msg);
     }
   }
 }
@@ -731,19 +731,19 @@ void NetDb::HandleDatabaseLookupMsg(
 void NetDb::Explore(
     int num_destinations) {
   // new requests
-  auto exploratory_pool = i2p::tunnel::tunnels.GetExploratoryPool();
+  auto exploratory_pool = kovri::tunnel::tunnels.GetExploratoryPool();
   auto outbound =
     exploratory_pool ? exploratory_pool->GetNextOutboundTunnel() : nullptr;
   auto inbound =
     exploratory_pool ? exploratory_pool->GetNextInboundTunnel() : nullptr;
   bool through_tunnels = outbound && inbound;
   uint8_t random_hash[32];
-  std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
+  std::vector<kovri::tunnel::TunnelMessageBlock> msgs;
   std::set<const RouterInfo *> floodfills;
   // TODO(unassigned): docs
   LogPrint(eLogInfo, "NetDb: exploring new ", num_destinations, " routers");
   for (int i = 0; i < num_destinations; i++) {
-    i2p::crypto::RandBytes(random_hash, 32);
+    kovri::crypto::RandBytes(random_hash, 32);
     auto dest = m_Requests.CreateRequest(random_hash, true);  // exploratory
     if (!dest) {
       LogPrint(eLogWarn,
@@ -754,19 +754,19 @@ void NetDb::Explore(
     if (floodfill &&
         !floodfills.count(floodfill.get())) {  // request floodfill only once
       floodfills.insert(floodfill.get());
-      if (i2p::transport::transports.IsConnected(floodfill->GetIdentHash()))
+      if (kovri::transport::transports.IsConnected(floodfill->GetIdentHash()))
         through_tunnels = false;
       if (through_tunnels) {
         msgs.push_back(
-            i2p::tunnel::TunnelMessageBlock {
-            i2p::tunnel::e_DeliveryTypeRouter,
+            kovri::tunnel::TunnelMessageBlock {
+            kovri::tunnel::e_DeliveryTypeRouter,
             floodfill->GetIdentHash(),
             0,
             CreateDatabaseStoreMsg()  // tell floodfill about us
           });
         msgs.push_back(
-            i2p::tunnel::TunnelMessageBlock  {
-            i2p::tunnel::e_DeliveryTypeRouter,
+            kovri::tunnel::TunnelMessageBlock  {
+            kovri::tunnel::e_DeliveryTypeRouter,
             floodfill->GetIdentHash(),
             0,
             dest->CreateRequestMessage(
@@ -774,7 +774,7 @@ void NetDb::Explore(
                 inbound)  // explore
           });
       } else {
-        i2p::transport::transports.SendMessage(
+        kovri::transport::transports.SendMessage(
             floodfill->GetIdentHash(),
             dest->CreateRequestMessage(
               floodfill->GetIdentHash()));
@@ -791,18 +791,18 @@ void NetDb::Publish() {
   std::set<IdentHash> excluded;  // TODO(unassigned): fill up later
   for (int i = 0; i < 2; i++) {
     auto floodfill = GetClosestFloodfill(
-        i2p::context.GetRouterInfo().GetIdentHash(),
+        kovri::context.GetRouterInfo().GetIdentHash(),
         excluded);
     if (floodfill) {
-      uint32_t reply_token = i2p::crypto::Rand<uint32_t>();
+      uint32_t reply_token = kovri::crypto::Rand<uint32_t>();
       LogPrint(eLogInfo,
           "NetDb: publishing our RouterInfo to ",
           floodfill->GetIdentHashAbbreviation(),
           ". reply token=", reply_token);
-      i2p::transport::transports.SendMessage(
+      kovri::transport::transports.SendMessage(
           floodfill->GetIdentHash(),
           CreateDatabaseStoreMsg(
-              i2p::context.GetSharedRouterInfo(),
+              kovri::context.GetSharedRouterInfo(),
               reply_token));
       excluded.insert(floodfill->GetIdentHash());
     }
@@ -853,7 +853,7 @@ std::shared_ptr<const RouterInfo> NetDb::GetHighBandwidthRandomRouter(
 template<typename Filter>
 std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter(
     Filter filter) const {
-  uint32_t ind = i2p::crypto::RandInRange<uint32_t>(0, m_RouterInfos.size() - 1);
+  uint32_t ind = kovri::crypto::RandInRange<uint32_t>(0, m_RouterInfos.size() - 1);
   for (int j = 0; j < 2; j++) {
     uint32_t i = 0;
     std::unique_lock<std::mutex> l(m_RouterInfosMutex);
@@ -972,4 +972,4 @@ void NetDb::ManageLeaseSets() {
 }
 
 }  // namespace data
-}  // namespace i2p
+}  // namespace kovri

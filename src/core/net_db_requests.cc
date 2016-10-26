@@ -37,33 +37,33 @@
 #include "transport/transports.h"
 #include "util/log.h"
 
-namespace i2p {
+namespace kovri {
 namespace data {
 
 std::shared_ptr<I2NPMessage> RequestedDestination::CreateRequestMessage(
     std::shared_ptr<const RouterInfo> router,
-    std::shared_ptr<const i2p::tunnel::InboundTunnel> reply_tunnel) {
-  auto msg = i2p::CreateRouterInfoDatabaseLookupMsg(
+    std::shared_ptr<const kovri::tunnel::InboundTunnel> reply_tunnel) {
+  auto msg = kovri::CreateRouterInfoDatabaseLookupMsg(
       m_Destination,
       reply_tunnel->GetNextIdentHash(),
       reply_tunnel->GetNextTunnelID(),
       m_IsExploratory,
       &m_ExcludedPeers);
   m_ExcludedPeers.insert(router->GetIdentHash());
-  m_CreationTime = i2p::util::GetSecondsSinceEpoch();
+  m_CreationTime = kovri::util::GetSecondsSinceEpoch();
   return msg;
 }
 
 std::shared_ptr<I2NPMessage> RequestedDestination::CreateRequestMessage(
     const IdentHash& floodfill) {
-  auto msg = i2p::CreateRouterInfoDatabaseLookupMsg(
+  auto msg = kovri::CreateRouterInfoDatabaseLookupMsg(
       m_Destination,
-      i2p::context.GetRouterInfo().GetIdentHash(),
+      kovri::context.GetRouterInfo().GetIdentHash(),
       0,
       false,
       &m_ExcludedPeers);
   m_ExcludedPeers.insert(floodfill);
-  m_CreationTime = i2p::util::GetSecondsSinceEpoch();
+  m_CreationTime = kovri::util::GetSecondsSinceEpoch();
   return msg;
 }
 
@@ -133,7 +133,7 @@ std::shared_ptr<RequestedDestination> NetDbRequests::FindRequest(
 }
 
 void NetDbRequests::ManageRequests() {
-  uint64_t ts = i2p::util::GetSecondsSinceEpoch();
+  uint64_t ts = kovri::util::GetSecondsSinceEpoch();
   std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
   for (auto it = m_RequestedDestinations.begin();
       it != m_RequestedDestinations.end();) {
@@ -146,7 +146,7 @@ void NetDbRequests::ManageRequests() {
         auto count = dest->GetExcludedPeers().size();
         std::size_t attempts(7);
         if (!dest->IsExploratory() && count < attempts) {
-          auto pool = i2p::tunnel::tunnels.GetExploratoryPool();
+          auto pool = kovri::tunnel::tunnels.GetExploratoryPool();
           auto outbound = pool->GetNextOutboundTunnel();
           auto inbound = pool->GetNextInboundTunnel();
           auto next_floodfill = netdb.GetClosestFloodfill(
@@ -187,5 +187,5 @@ void NetDbRequests::ManageRequests() {
 }
 
 }  // namespace data
-}  // namespace i2p
+}  // namespace kovri
 

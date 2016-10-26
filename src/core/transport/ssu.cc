@@ -48,7 +48,7 @@
 #include "util/log.h"
 #include "util/timestamp.h"
 
-namespace i2p {
+namespace kovri {
 namespace transport {
 
 SSUServer::SSUServer(
@@ -274,7 +274,7 @@ void SSUServer::HandleReceivedPackets(
 }
 
 std::shared_ptr<SSUSession> SSUServer::FindSession(
-    std::shared_ptr<const i2p::data::RouterInfo> router) const {
+    std::shared_ptr<const kovri::data::RouterInfo> router) const {
   LogPrint(eLogDebug, "SSUServer: finding session from RI");
   if (!router)
     return nullptr;
@@ -303,7 +303,7 @@ std::shared_ptr<SSUSession> SSUServer::FindSession(
 }
 
 std::shared_ptr<SSUSession> SSUServer::GetSession(
-    std::shared_ptr<const i2p::data::RouterInfo> router,
+    std::shared_ptr<const kovri::data::RouterInfo> router,
     bool peer_test) {
   LogPrint(eLogDebug, "SSUServer: getting session");
   std::shared_ptr<SSUSession> session;
@@ -338,7 +338,7 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
           auto num_introducers = address->introducers.size();
           if (num_introducers > 0) {
             std::shared_ptr<SSUSession> introducer_session;
-            const i2p::data::RouterInfo::Introducer* introducer = nullptr;
+            const kovri::data::RouterInfo::Introducer* introducer = nullptr;
             // we might have a session to introducer already
             for (std::size_t i = 0; i < num_introducers; i++) {
               introducer = &(address->introducers[i]);
@@ -377,7 +377,7 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
                 introducer->port);
             session->WaitForIntroduction();
             // if we are unreachable
-            if (i2p::context.GetRouterInfo().UsesIntroducer()) {
+            if (kovri::context.GetRouterInfo().UsesIntroducer()) {
               std::array<std::uint8_t, 1> buf {};
               Send(buf.data(), 0, remote_endpoint);  // send HolePunch
             }
@@ -429,7 +429,7 @@ std::shared_ptr<SSUSession> SSUServer::GetRandomSession(
       filtered_sessions.push_back(session.second);
   if (filtered_sessions.size() > 0) {
     std::size_t s = filtered_sessions.size();
-    std::size_t ind = i2p::crypto::RandInRange<std::size_t>(0, s - 1);
+    std::size_t ind = kovri::crypto::RandInRange<std::size_t>(0, s - 1);
     return filtered_sessions[ind];
   }
   return nullptr;
@@ -448,7 +448,7 @@ std::shared_ptr<SSUSession> SSUServer::GetRandomEstablishedSession(
 std::set<SSUSession *> SSUServer::FindIntroducers(
     std::size_t max_num_introducers) {
   LogPrint(eLogDebug, "SSUServer: finding introducers");
-  std::uint32_t ts = i2p::util::GetSecondsSinceEpoch();
+  std::uint32_t ts = kovri::util::GetSecondsSinceEpoch();
   std::set<SSUSession *> ret;
   for (std::size_t i = 0; i < max_num_introducers; i++) {
     auto session =
@@ -485,18 +485,18 @@ void SSUServer::HandleIntroducersUpdateTimer(
       "SSUServer: handling introducers update timer");
   if (ecode != boost::asio::error::operation_aborted) {
     // timeout expired
-    if (i2p::context.GetStatus() == eRouterStatusTesting) {
+    if (kovri::context.GetStatus() == eRouterStatusTesting) {
       // we still don't know if we need introducers
       ScheduleIntroducersUpdateTimer();
       return;
     }
-    if (i2p::context.GetStatus () == eRouterStatusOK)
+    if (kovri::context.GetStatus () == eRouterStatusOK)
       return;  // we don't need introducers anymore
     // we are firewalled
-    if (!i2p::context.IsUnreachable()) i2p::context.SetUnreachable();
+    if (!kovri::context.IsUnreachable()) kovri::context.SetUnreachable();
     std::list<boost::asio::ip::udp::endpoint> new_list;
     std::size_t num_introducers = 0;
-    std::uint32_t ts = i2p::util::GetSecondsSinceEpoch();  // Timestamp
+    std::uint32_t ts = kovri::util::GetSecondsSinceEpoch();  // Timestamp
     for (auto introducer : m_Introducers) {
       auto session = FindSession(introducer);
       if (session &&
@@ -506,7 +506,7 @@ void SSUServer::HandleIntroducersUpdateTimer(
         new_list.push_back(introducer);
         num_introducers++;
       } else {
-        i2p::context.RemoveIntroducer(introducer);
+        kovri::context.RemoveIntroducer(introducer);
       }
     }
     if (num_introducers < static_cast<std::size_t>(SSUSize::MaxIntroducers)) {
@@ -517,7 +517,7 @@ void SSUServer::HandleIntroducersUpdateTimer(
         for (auto it : introducers) {
           auto router = it->GetRemoteRouter();
           if (router &&
-              i2p::context.AddIntroducer(*router, it->GetRelayTag())) {
+              kovri::context.AddIntroducer(*router, it->GetRelayTag())) {
             new_list.push_back(it->GetRemoteEndpoint());
             if (new_list.size() >= static_cast<std::size_t>(SSUSize::MaxIntroducers))
               break;
@@ -527,7 +527,7 @@ void SSUServer::HandleIntroducersUpdateTimer(
     }
     m_Introducers = new_list;
     if (m_Introducers.empty()) {
-      auto introducer = i2p::data::netdb.GetRandomIntroducer();
+      auto introducer = kovri::data::netdb.GetRandomIntroducer();
       if (introducer)
         GetSession(introducer);
     }
@@ -541,7 +541,7 @@ void SSUServer::NewPeerTest(
     std::shared_ptr<SSUSession> session) {
   LogPrint(eLogDebug, "SSUServer: new peer test");
   m_PeerTests[nonce] = {
-    i2p::util::GetMillisecondsSinceEpoch(),
+    kovri::util::GetMillisecondsSinceEpoch(),
     role,
     session
   };
@@ -599,7 +599,7 @@ void SSUServer::HandlePeerTestsCleanupTimer(
   LogPrint(eLogDebug, "SSUServer: handling PeerTests cleanup timer");
   if (ecode != boost::asio::error::operation_aborted) {
     std::size_t num_deleted = 0;
-    std::uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
+    std::uint64_t ts = kovri::util::GetMillisecondsSinceEpoch();
     for (auto it = m_PeerTests.begin(); it != m_PeerTests.end();) {
       if (ts > it->second.creationTime
                + static_cast<std::size_t>(SSUDuration::PeerTestTimeout)
@@ -618,5 +618,5 @@ void SSUServer::HandlePeerTestsCleanupTimer(
 }
 
 }  // namespace transport
-}  // namespace i2p
+}  // namespace kovri
 

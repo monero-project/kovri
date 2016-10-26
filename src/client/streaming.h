@@ -54,7 +54,7 @@
 #include "tunnel/tunnel.h"
 #include "util/i2p_endian.h"
 
-namespace i2p {
+namespace kovri {
 namespace client { class ClientDestination; }
 namespace stream {
 
@@ -170,7 +170,7 @@ class Stream : public std::enable_shared_from_this<Stream> {
   Stream(
       boost::asio::io_service& service,
       StreamingDestination& local,
-      std::shared_ptr<const i2p::data::LeaseSet> remote,
+      std::shared_ptr<const kovri::data::LeaseSet> remote,
       int port = 0);
   // Incoming
   Stream(
@@ -186,11 +186,11 @@ class Stream : public std::enable_shared_from_this<Stream> {
     return m_RecvStreamID;
   }
 
-  std::shared_ptr<const i2p::data::LeaseSet> GetRemoteLeaseSet() const {
+  std::shared_ptr<const kovri::data::LeaseSet> GetRemoteLeaseSet() const {
     return m_RemoteLeaseSet;
   }
 
-  const i2p::data::IdentityEx& GetRemoteIdentity() const {
+  const kovri::data::IdentityEx& GetRemoteIdentity() const {
     return m_RemoteIdentity;
   }
 
@@ -321,11 +321,11 @@ class Stream : public std::enable_shared_from_this<Stream> {
   StreamStatus m_Status;
   bool m_IsAckSendScheduled;
   StreamingDestination& m_LocalDestination;
-  i2p::data::IdentityEx m_RemoteIdentity;
-  std::shared_ptr<const i2p::data::LeaseSet> m_RemoteLeaseSet;
-  std::shared_ptr<i2p::garlic::GarlicRoutingSession> m_RoutingSession;
-  i2p::data::Lease m_CurrentRemoteLease;
-  std::shared_ptr<i2p::tunnel::OutboundTunnel> m_CurrentOutboundTunnel;
+  kovri::data::IdentityEx m_RemoteIdentity;
+  std::shared_ptr<const kovri::data::LeaseSet> m_RemoteLeaseSet;
+  std::shared_ptr<kovri::garlic::GarlicRoutingSession> m_RoutingSession;
+  kovri::data::Lease m_CurrentRemoteLease;
+  std::shared_ptr<kovri::tunnel::OutboundTunnel> m_CurrentOutboundTunnel;
   std::queue<Packet*> m_ReceiveQueue;
   std::set<Packet*, PacketCmp> m_SavedPackets;
   std::set<Packet*, PacketCmp> m_SentPackets;
@@ -346,7 +346,7 @@ class StreamingDestination {
   typedef std::function<void (std::shared_ptr<Stream>)> Acceptor;
 
   StreamingDestination(
-      i2p::client::ClientDestination& owner,
+      kovri::client::ClientDestination& owner,
       uint16_t local_port = 0)
       : m_Owner(owner),
         m_LocalPort(local_port) {}
@@ -357,7 +357,7 @@ class StreamingDestination {
   void Stop();
 
   std::shared_ptr<Stream> CreateNewOutgoingStream(
-      std::shared_ptr<const i2p::data::LeaseSet> remote,
+      std::shared_ptr<const kovri::data::LeaseSet> remote,
       int port = 0);
 
   void DeleteStream(
@@ -378,7 +378,7 @@ class StreamingDestination {
     return m_Acceptor != nullptr;
   }
 
-  i2p::client::ClientDestination& GetOwner() {
+  kovri::client::ClientDestination& GetOwner() {
     return m_Owner;
   }
 
@@ -401,7 +401,7 @@ class StreamingDestination {
   std::shared_ptr<Stream> CreateNewIncomingStream();
 
  private:
-  i2p::client::ClientDestination& m_Owner;
+  kovri::client::ClientDestination& m_Owner;
   uint16_t m_LocalPort;
   std::mutex m_StreamsMutex;
   std::map<uint32_t, std::shared_ptr<Stream> > m_Streams;
@@ -460,6 +460,6 @@ void Stream::HandleReceiveTimer(
 }
 
 }  // namespace stream
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CLIENT_STREAMING_H_

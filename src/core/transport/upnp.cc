@@ -136,7 +136,7 @@ F GetKnownProcAddressImpl(
 }
 #define GetKnownProcAddress(hmod, func) GetKnownProcAddressImpl(hmod, #func, func##Func);
 
-namespace i2p {
+namespace kovri {
 namespace transport {
 
 UPnP::UPnP()
@@ -260,7 +260,7 @@ void UPnP::Discover() {
       if (m_externalIPAddress[0]) {
         LogPrint(eLogInfo,
             "UPnP: external IP address: ", m_externalIPAddress);
-        i2p::context.UpdateAddress(
+        kovri::context.UpdateAddress(
             boost::asio::ip::address::from_string(
               m_externalIPAddress));
         return;
@@ -375,6 +375,6 @@ void UPnP::Close() {
 }
 
 }  // namespace transport
-}  // namespace i2p
+}  // namespace kovri
 
 #endif

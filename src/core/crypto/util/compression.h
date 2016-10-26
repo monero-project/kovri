@@ -34,7 +34,7 @@
 #include <memory>
 #include <cstdint>
 
-namespace i2p {
+namespace kovri {
 namespace crypto {
 namespace util {
 
@@ -168,6 +168,6 @@ class Gunzip {
 
 }  // namespace util
 }  // namespace crypto
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_UTIL_COMPRESSION_H_

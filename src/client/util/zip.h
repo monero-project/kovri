@@ -42,7 +42,7 @@
 
 #include "core/util/filesystem.h"
 
-namespace i2p {
+namespace kovri {
 namespace util {
 
 /**
@@ -149,13 +149,13 @@ class ZIP {
   };
 
   // ZIP stream
-  i2p::util::filesystem::StringStream m_Stream;
+  kovri::util::filesystem::StringStream m_Stream;
 
   // ZIP spec-defined data
   std::unique_ptr<Data> m_Data;
 };
 
 }  // namespace util
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_UTIL_ZIP_H_

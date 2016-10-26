@@ -41,7 +41,7 @@
 #include "i2np_protocol.h"
 #include "tunnel_base.h"
 
-namespace i2p {
+namespace kovri {
 namespace tunnel {
 
 class TunnelGatewayBuffer {
@@ -99,6 +99,6 @@ class TunnelGateway {
 };
 
 }  // namespace tunnel
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_TUNNEL_TUNNEL_GATEWAY_H_

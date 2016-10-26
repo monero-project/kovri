@@ -43,7 +43,7 @@
 #include "identity.h"
 #include "router_info.h"
 
-namespace i2p {
+namespace kovri {
 namespace transport {
 
 struct DHKeysPair {  // transient keys for transport sessions
@@ -71,7 +71,7 @@ class SignedData {
   }
 
   bool Verify(
-      const i2p::data::IdentityEx& ident,
+      const kovri::data::IdentityEx& ident,
       const std::uint8_t* signature) const {
     return ident.Verify(
         (const std::uint8_t *)m_Stream.str().c_str(),
@@ -80,7 +80,7 @@ class SignedData {
   }
 
   void Sign(
-      const i2p::data::PrivateKeys& keys,
+      const kovri::data::PrivateKeys& keys,
       std::uint8_t* signature) const {
     keys.Sign(
         (const std::uint8_t *)m_Stream.str().c_str(),
@@ -95,7 +95,7 @@ class SignedData {
 class TransportSession {
  public:
   TransportSession(
-      std::shared_ptr<const i2p::data::RouterInfo> in_RemoteRouter)
+      std::shared_ptr<const kovri::data::RouterInfo> in_RemoteRouter)
       : m_RemoteRouter(in_RemoteRouter),
         m_DHKeysPair(nullptr),
         m_NumSentBytes(0),
@@ -109,11 +109,11 @@ class TransportSession {
 
   virtual void Done() = 0;
 
-  std::shared_ptr<const i2p::data::RouterInfo> GetRemoteRouter() {
+  std::shared_ptr<const kovri::data::RouterInfo> GetRemoteRouter() {
     return m_RemoteRouter;
   }
 
-  const i2p::data::IdentityEx& GetRemoteIdentity() {
+  const kovri::data::IdentityEx& GetRemoteIdentity() {
     return m_RemoteIdentity;
   }
 
@@ -133,14 +133,14 @@ class TransportSession {
       const std::vector<std::shared_ptr<I2NPMessage> >& msgs) = 0;
 
  protected:
-  std::shared_ptr<const i2p::data::RouterInfo> m_RemoteRouter;
-  i2p::data::IdentityEx m_RemoteIdentity;
+  std::shared_ptr<const kovri::data::RouterInfo> m_RemoteRouter;
+  kovri::data::IdentityEx m_RemoteIdentity;
   std::unique_ptr<DHKeysPair> m_DHKeysPair;  // X - for client and Y - for server
   std::size_t m_NumSentBytes, m_NumReceivedBytes;
   bool m_IsOutbound;
 };
 
 }  // namespace transport
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CORE_TRANSPORT_TRANSPORT_SESSION_H_

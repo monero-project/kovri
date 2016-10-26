@@ -44,14 +44,15 @@
 #include <string>
 #include <vector>
 
-#include "address_book_storage.h"
-#include "identity.h"
+#include "client/address_book_storage.h"
+#include "client/destination.h"
+#include "client/util/http.h"
+
+#include "core/identity.h"
+#include "core/router_context.h"
+#include "core/util/base64.h"
 #include "core/util/filesystem.h"
-#include "destination.h"
-#include "router_context.h"
-#include "util/base64.h"
-#include "util/http.h"
-#include "util/log.h"
+#include "core/util/log.h"
 
 namespace kovri {
 namespace client {
@@ -266,7 +267,7 @@ class AddressBookSubscriber {
 
   /// @var m_HTTP
   /// @brief HTTP instance for subscribing to publisher
-  kovri::util::http::HTTP m_HTTP;
+  HTTP m_HTTP;
 };
 
 }  // namespace client

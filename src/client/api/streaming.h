@@ -47,16 +47,17 @@
 #include <string>
 #include <vector>
 
-#include "garlic.h"
-#include "i2np_protocol.h"
-#include "identity.h"
-#include "lease_set.h"
-#include "tunnel/tunnel.h"
-#include "util/i2p_endian.h"
+#include "core/garlic.h"
+#include "core/i2np_protocol.h"
+#include "core/identity.h"
+#include "core/lease_set.h"
+#include "core/tunnel/tunnel.h"
+#include "core/util/i2p_endian.h"
 
 namespace kovri {
-namespace client { class ClientDestination; }
-namespace stream {
+namespace client {
+
+class ClientDestination;  // TODO(unassigned): remove forward declaration
 
 const uint16_t PACKET_FLAG_SYNCHRONIZE = 0x0001;
 const uint16_t PACKET_FLAG_CLOSE = 0x0002;
@@ -459,7 +460,7 @@ void Stream::HandleReceiveTimer(
   }
 }
 
-}  // namespace stream
+}  // namespace client
 }  // namespace kovri
 
-#endif  // SRC_CLIENT_STREAMING_H_
+#endif  // SRC_CLIENT_API_STREAMING_H_

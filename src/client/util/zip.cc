@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "zip.h"
+#include "client/util/zip.h"
 
 #include <istream>
 #include <string>
@@ -41,7 +41,7 @@
 #include "core/util/log.h"
 
 namespace kovri {
-namespace util {
+namespace client {
 
 /**
  * ZIP implementation
@@ -250,5 +250,5 @@ bool ZIP::DecompressLocalFile() {
   return true;
 }
 
-}  // namespace util
+}  // namespace client
 }  // namespace kovri

@@ -30,22 +30,23 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "socks.h"
+#include "client/proxy/socks.h"
 
 #include <atomic>
 #include <cassert>
 #include <cstring>
 #include <string>
 
-#include "identity.h"
-#include "i2p_tunnel/i2p_tunnel.h"
-#include "streaming.h"
-#include "client/client_context.h"
+#include "client/api/streaming.h"
+#include "client/context.h"
 #include "client/destination.h"
-#include "util/i2p_endian.h"
+#include "client/tunnel.h"
+
+#include "core/identity.h"
+#include "core/util/i2p_endian.h"
 
 namespace kovri {
-namespace proxy {
+namespace client {
 
 static const size_t SOCKS_BUFFER_SIZE = 8192;
 // Limit for socks5 and bad idea to traverse
@@ -176,11 +177,11 @@ class SOCKSHandler
       const boost::system::error_code & ecode);
 
   void HandleStreamRequestComplete(
-      std::shared_ptr<kovri::stream::Stream> stream);
+      std::shared_ptr<kovri::client::Stream> stream);
 
   uint8_t m_sock_buff[SOCKS_BUFFER_SIZE];
   std::shared_ptr<boost::asio::ip::tcp::socket> m_sock;
-  std::shared_ptr<kovri::stream::Stream> m_stream;
+  std::shared_ptr<kovri::client::Stream> m_stream;
   uint8_t *m_remaining_data;  // Data left to be sent
   uint8_t m_response[7+MAX_SOCKS_HOSTNAME_SIZE];
   address m_address;  // Address
@@ -693,7 +694,7 @@ void SOCKSHandler::SentSocksResponse(
 }
 
 void SOCKSHandler::HandleStreamRequestComplete(
-    std::shared_ptr<kovri::stream::Stream> stream) {
+    std::shared_ptr<kovri::client::Stream> stream) {
   if (stream) {
     m_stream = stream;
     SocksRequestSuccess();
@@ -720,5 +721,5 @@ std::shared_ptr<kovri::client::I2PServiceHandler> SOCKSServer::CreateHandler(
   return std::make_shared<SOCKSHandler> (this, socket);
 }
 
-}  // namespace proxy
+}  // namespace client
 }  // namespace kovri

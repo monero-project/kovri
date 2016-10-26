@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "address_book_storage.h"
+#include "client/address_book_storage.h"
 
 #include <boost/filesystem.hpp>
 
@@ -40,8 +40,8 @@
 #include <memory>
 #include <string>
 
-#include "identity.h"
-#include "util/log.h"
+#include "core/identity.h"
+#include "core/util/log.h"
 
 namespace kovri {
 namespace client {

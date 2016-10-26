@@ -46,11 +46,10 @@
 #include <sstream>
 #include <string>
 
-#include "reseed.h"
+#include "client/reseed.h"
 
 namespace kovri {
-namespace util {
-namespace http {  // TODO(anonimal): consider removing this namespace (its not needed)
+namespace client {
 
 /// @enum Timeout
 /// @brief Constants used for HTTP timeout lengths when downloading
@@ -256,8 +255,7 @@ class HTTP : public HTTPStorage {
   std::stringstream m_Request, m_Response;
 };
 
-}  // namespace http
-}  // namespace util
+}  // namespace client
 }  // namespace kovri
 
-#endif  // SRC_CORE_UTIL_HTTP_H_
+#endif  // SRC_CLIENT_UTIL_HTTP_H_

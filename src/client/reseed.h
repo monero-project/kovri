@@ -42,13 +42,14 @@
 #include <string>
 #include <vector>
 
+#include "client/util/zip.h"
+
 #include "core/crypto/util/x509.h"
 #include "core/router_context.h"
 #include "core/util/filesystem.h"
-#include "util/zip.h"
 
 namespace kovri {
-namespace data {
+namespace client {
 
 /**
  * Reseed/SU3 specification can be found at
@@ -194,7 +195,7 @@ class SU3 {
 
   struct Data {
     std::array<char, static_cast<std::uint8_t>(Size::magic_number)> magic_number;
-    SigningKeyType signature_type;
+    kovri::data::SigningKeyType signature_type;
     std::uint16_t signature_length;
     std::uint8_t version_length;  // Seconds since epoch, in ASCII. $(date +%s)
     std::uint8_t signer_id_length;
@@ -216,7 +217,7 @@ class SU3 {
   std::unique_ptr<Data> m_Data;
 };
 
-}  // namespace data
+}  // namespace client
 }  // namespace kovri
 
-#endif  // SRC_CORE_RESEED_H_
+#endif  // SRC_CLIENT_RESEED_H_

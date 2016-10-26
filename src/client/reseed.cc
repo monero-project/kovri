@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "reseed.h"
+#include "client/reseed.h"
 
 #include <boost/filesystem.hpp>
 
@@ -42,18 +42,19 @@
 #include <string>
 #include <vector>
 
-#include "core/identity.h"
-#include "core/net_db.h"
+#include "client/util/http.h"
+#include "client/util/zip.h"
+
 #include "core/crypto/rand.h"
 #include "core/crypto/signature.h"
+#include "core/identity.h"
+#include "core/net_db.h"
 #include "core/util/filesystem.h"
 #include "core/util/i2p_endian.h"
 #include "core/util/log.h"
-#include "util/http.h"
-#include "util/zip.h"
 
 namespace kovri {
-namespace data {
+namespace client {
 
 /**
  *
@@ -187,7 +188,7 @@ bool Reseed::FetchStream(
     const std::string& url) {
   LogPrint(eLogInfo, "Reseed: fetching stream from ", url);
   // TODO(unassigned): abstract our downloading mechanism (see #168)
-  kovri::util::http::HTTP http(url);
+  HTTP http(url);
   if (!http.Download())
     return false;  // Download failed
   // Replace our stream with downloaded stream
@@ -269,7 +270,7 @@ bool SU3::PrepareStream() {
     // Prepare signature type
     m_Stream.Read(m_Data->signature_type, Size::signature_type);
     m_Data->signature_type = be16toh(m_Data->signature_type);
-    if (m_Data->signature_type != SIGNING_KEY_TYPE_RSA_SHA512_4096) {  // Temporary (see #160)
+    if (m_Data->signature_type != kovri::data::SIGNING_KEY_TYPE_RSA_SHA512_4096) {  // Temporary (see #160)
       LogPrint(eLogError, "SU3: signature type not supported");
       return false;
     }
@@ -398,7 +399,7 @@ bool SU3::VerifySignature() {
   }
   // Verify hash of content data and signature
   switch (m_Data->signature_type) {
-    case SIGNING_KEY_TYPE_RSA_SHA512_4096: {
+    case kovri::data::SIGNING_KEY_TYPE_RSA_SHA512_4096: {
       kovri::crypto::RSASHA5124096RawVerifier verifier(signing_key_it->second);
       verifier.Update(m_Data->content.data(), m_Data->content.size());
       if (!verifier.Verify(m_Data->signature.data())) {
@@ -422,7 +423,7 @@ bool SU3::VerifySignature() {
 
 bool SU3::ExtractContent() {
   LogPrint(eLogDebug, "SU3: unzipping stream");
-  kovri::util::ZIP zip(
+  kovri::client::ZIP zip(
       m_Stream.Str(),
       m_Data->content_length,
       m_Data->content_position);
@@ -436,5 +437,5 @@ bool SU3::ExtractContent() {
   return true;
 }
 
-}  // namespace data
+}  // namespace client
 }  // namespace kovri

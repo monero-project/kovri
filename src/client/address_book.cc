@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "address_book.h"
+#include "client/address_book.h"
 
 #include <boost/asio.hpp>
 
@@ -43,13 +43,14 @@
 #include <map>
 #include <memory>
 
-#include "address_book_storage.h"
-#include "destination.h"
-#include "identity.h"
-#include "net_db.h"
-#include "crypto/rand.h"
-#include "util/http.h"
-#include "util/log.h"
+#include "client/address_book_storage.h"
+#include "client/destination.h"
+#include "client/util/http.h"
+
+#include "core/crypto/rand.h"
+#include "core/identity.h"
+#include "core/net_db.h"
+#include "core/util/log.h"
 
 namespace kovri {
 namespace client {
@@ -116,7 +117,7 @@ void AddressBook::LoadPublishers() {
     // Publisher URI
     std::string publisher;
     // Validate publisher URI
-    kovri::util::http::HTTP http;
+    HTTP http;
     // Read in publishers, line by line
     while (std::getline(file, publisher)) {
       // If found, clear whitespace before and after publisher (on the line)
@@ -389,7 +390,7 @@ void AddressBook::Stop() {
     LogPrint(eLogInfo,
         "AddressBook: subscription is downloading, waiting for termination");
     for (std::size_t seconds = 0;
-         seconds < static_cast<std::uint16_t>(kovri::util::http::Timeout::Receive);
+         seconds < static_cast<std::uint16_t>(kovri::client::Timeout::Receive);
          seconds++) {
       if (!m_SubscriberIsDownloading) {
         LogPrint(eLogInfo, "AddressBook: subscription download complete");

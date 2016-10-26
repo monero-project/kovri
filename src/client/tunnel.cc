@@ -30,16 +30,17 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "i2p_tunnel.h"
+#include "client/tunnel.h"
 
 #include <cassert>
 #include <memory>
 #include <set>
 #include <string>
 
-#include "client/client_context.h"
+#include "client/context.h"
 #include "client/destination.h"
-#include "util/log.h"
+
+#include "core/util/log.h"
 
 namespace kovri {
 namespace client {
@@ -61,7 +62,7 @@ I2PTunnelConnection::I2PTunnelConnection(
 I2PTunnelConnection::I2PTunnelConnection(
     I2PService* owner,
     std::shared_ptr<boost::asio::ip::tcp::socket> socket,
-    std::shared_ptr<kovri::stream::Stream> stream)
+    std::shared_ptr<kovri::client::Stream> stream)
     : I2PServiceHandler(owner),
       m_Socket(socket),
       m_Stream(stream),
@@ -70,7 +71,7 @@ I2PTunnelConnection::I2PTunnelConnection(
 
 I2PTunnelConnection::I2PTunnelConnection(
     I2PService* owner,
-    std::shared_ptr<kovri::stream::Stream> stream,
+    std::shared_ptr<kovri::client::Stream> stream,
     std::shared_ptr<boost::asio::ip::tcp::socket> socket,
     const boost::asio::ip::tcp::endpoint& target,
     bool quiet)
@@ -232,7 +233,7 @@ void I2PTunnelConnection::HandleConnect(
 
 I2PTunnelConnectionHTTP::I2PTunnelConnectionHTTP(
     I2PService* owner,
-    std::shared_ptr<kovri::stream::Stream> stream,
+    std::shared_ptr<kovri::client::Stream> stream,
     std::shared_ptr<boost::asio::ip::tcp::socket> socket,
     const boost::asio::ip::tcp::endpoint& target,
     const std::string& host)
@@ -296,7 +297,7 @@ class I2PClientTunnelHandler
   void Terminate();
 
  private:
-  void HandleStreamRequestComplete(std::shared_ptr<kovri::stream::Stream> stream);
+  void HandleStreamRequestComplete(std::shared_ptr<kovri::client::Stream> stream);
   kovri::data::IdentHash m_DestinationIdentHash;
   int m_DestinationPort;
   std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
@@ -313,7 +314,7 @@ void I2PClientTunnelHandler::Handle() {
 }
 
 void I2PClientTunnelHandler::HandleStreamRequestComplete(
-    std::shared_ptr<kovri::stream::Stream> stream) {
+    std::shared_ptr<kovri::client::Stream> stream) {
   if (stream) {
     if (Kill())
       return;
@@ -552,7 +553,7 @@ void I2PServerTunnel::Accept() {
 }
 
 void I2PServerTunnel::HandleAccept(
-    std::shared_ptr<kovri::stream::Stream> stream) {
+    std::shared_ptr<kovri::client::Stream> stream) {
   if (stream) {
     if (m_IsAccessList) {
       if (!m_AccessList.count(stream->GetRemoteIdentity().GetIdentHash())) {
@@ -569,7 +570,7 @@ void I2PServerTunnel::HandleAccept(
 }
 
 void I2PServerTunnel::CreateI2PConnection(
-    std::shared_ptr<kovri::stream::Stream> stream) {
+    std::shared_ptr<kovri::client::Stream> stream) {
   auto conn =
     std::make_shared<I2PTunnelConnection>(
         this,
@@ -596,7 +597,7 @@ I2PServerTunnelHTTP::I2PServerTunnelHTTP(
           inport) {}
 
 void I2PServerTunnelHTTP::CreateI2PConnection(
-    std::shared_ptr<kovri::stream::Stream> stream) {
+    std::shared_ptr<kovri::client::Stream> stream) {
   auto conn =
     std::make_shared<I2PTunnelConnectionHTTP>(
         this,

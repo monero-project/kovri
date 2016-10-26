@@ -40,10 +40,10 @@
 #include <set>
 #include <string>
 
-#include "client/i2p_service.h"
+#include "client/service.h"
 
 namespace kovri {
-namespace proxy {
+namespace client {
 
 class SOCKSServer : public kovri::client::TCPIPAcceptor {
  public:
@@ -63,7 +63,7 @@ class SOCKSServer : public kovri::client::TCPIPAcceptor {
 
 typedef SOCKSServer SOCKSProxy;
 
-}  // namespace proxy
+}  // namespace client
 }  // namespace kovri
 
-#endif  // SRC_CLIENT_I2PTUNNEL_SOCKS_H_
+#endif  // SRC_CLIENT_PROXY_SOCKS_H_

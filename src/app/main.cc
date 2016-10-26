@@ -32,8 +32,9 @@
 
 #include <thread>
 
-#include "daemon.h"
-#include "util/config.h"
+#include "app/daemon.h"
+#include "app/util/config.h"
+
 #include "core/util/log.h"
 
 int main(int argc, char* argv[]) {

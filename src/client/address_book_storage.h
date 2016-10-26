@@ -42,10 +42,10 @@
 #include <string>
 #include <vector>
 
-#include "identity.h"
+#include "core/identity.h"
+#include "core/router_context.h"
 #include "core/util/filesystem.h"
-#include "router_context.h"
-#include "util/log.h"
+#include "core/util/log.h"
 
 namespace kovri {
 namespace client {

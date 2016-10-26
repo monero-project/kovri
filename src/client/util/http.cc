@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "http.h"
+#include "client/util/http.h"
 
 #include <boost/network/message/directives/header.hpp>
 #include <boost/network/message/wrappers/body.hpp>
@@ -41,15 +41,15 @@
 #include <string>
 #include <vector>
 
-#include "address_book.h"
-#include "client_context.h"
+#include "client/address_book.h"
+#include "client/context.h"
+
 #include "core/router_context.h"
 #include "core/util/filesystem.h"
 #include "core/util/log.h"
 
 namespace kovri {
-namespace util {
-namespace http {  // TODO(anonimal): consider removing this namespace (its not needed)
+namespace client {
 
 // TODO(unassigned): currently unused but will be useful
 // without needing to create a new object for each given URI
@@ -387,6 +387,5 @@ std::string HTTP::HTTPProxyDecode(
   return res;
 }
 
-}  // namespace http
-}  // namespace util
+}  // namespace client
 }  // namespace kovri

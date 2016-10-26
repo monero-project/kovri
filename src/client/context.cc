@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "client_context.h"
+#include "client/context.h"
 
 #include <fstream>
 #include <iostream>
@@ -40,8 +40,8 @@
 #include <string>
 #include <vector>
 
-#include "identity.h"
-#include "util/log.h"
+#include "core/identity.h"
+#include "core/util/log.h"
 
 namespace kovri {
 namespace client {
@@ -394,17 +394,17 @@ bool ClientContext::InsertServerTunnel(
 }
 
 void ClientContext::SetI2PControlService(
-    std::unique_ptr<kovri::client::i2pcontrol::I2PControlService> service) {
+    std::unique_ptr<kovri::client::I2PControlService> service) {
   m_I2PControlService = std::move(service);
 }
 
 void ClientContext::SetHTTPProxy(
-    std::unique_ptr<kovri::proxy::HTTPProxy> proxy) {
+    std::unique_ptr<HTTPProxy> proxy) {
   m_HttpProxy = std::move(proxy);
 }
 
 void ClientContext::SetSOCKSProxy(
-    std::unique_ptr<kovri::proxy::SOCKSProxy> proxy) {
+    std::unique_ptr<kovri::client::SOCKSProxy> proxy) {
   m_SocksProxy = std::move(proxy);
 }
 

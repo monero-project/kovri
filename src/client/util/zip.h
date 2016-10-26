@@ -43,7 +43,7 @@
 #include "core/util/filesystem.h"
 
 namespace kovri {
-namespace util {
+namespace client {
 
 /**
  * We currently implement a very minimal adherence to the ZIP specification:
@@ -155,7 +155,7 @@ class ZIP {
   std::unique_ptr<Data> m_Data;
 };
 
-}  // namespace util
+}  // namespace client
 }  // namespace kovri
 
-#endif  // SRC_CORE_UTIL_ZIP_H_
+#endif  // SRC_CLIENT_UTIL_ZIP_H_

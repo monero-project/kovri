@@ -30,110 +30,101 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include <string>
+#ifndef SRC_CLIENT_DATAGRAM_H_
+#define SRC_CLIENT_DATAGRAM_H_
 
-#include "destination.h"
-#include "identity.h"
-#include "client_context.h"
-#include "i2p_service.h"
+#include <inttypes.h>
+
+#include <functional>
+#include <map>
+#include <memory>
+
+#include "core/i2np_protocol.h"
+#include "core/identity.h"
+#include "core/lease_set.h"
 
 namespace kovri {
 namespace client {
 
-I2PService::I2PService(
-    std::shared_ptr<ClientDestination> local_destination)
-    : m_LocalDestination(
-        local_destination
-        ? local_destination
-        : kovri::client::context.CreateNewLocalDestination()) {}
+class ClientDestination;  // TODO(unassigned): remove forward declaration
 
-I2PService::I2PService(
-    kovri::data::SigningKeyType key_type)
-    : m_LocalDestination(
-        kovri::client::context.CreateNewLocalDestination(key_type)) {}
+const size_t MAX_DATAGRAM_SIZE = 32768;
 
-void I2PService::CreateStream(
-    StreamRequestComplete stream_request_complete,
-    const std::string& dest,
-    int port) {
-  assert(stream_request_complete);
-  kovri::data::IdentHash ident_hash;
-  if (kovri::client::context.GetAddressBook().CheckAddressIdentHashFound(dest, ident_hash)) {
-    m_LocalDestination->CreateStream(
-        stream_request_complete,
-        ident_hash,
-        port);
-  } else {
-    LogPrint(eLogWarn,
-        "I2PService: remote destination ", dest, " not found");
-    stream_request_complete(nullptr);
+class DatagramDestination {
+  typedef std::function<void (
+      const kovri::data::IdentityEx& from,
+      uint16_t from_port,
+      uint16_t to_port,
+      const uint8_t* buf,
+      size_t len)>
+    Receiver;
+
+ public:
+  explicit DatagramDestination(
+      kovri::client::ClientDestination& owner);
+  ~DatagramDestination() {}
+
+  void SendDatagramTo(
+      const uint8_t* payload,
+      size_t len,
+      const kovri::data::IdentHash& ident,
+      uint16_t from_port = 0,
+      uint16_t to_port = 0);
+
+  void HandleDataMessagePayload(
+      uint16_t from_port,
+      uint16_t to_port,
+      const uint8_t* buf,
+      size_t len);
+
+  void SetReceiver(
+      const Receiver& receiver) {
+    m_Receiver = receiver;
   }
-}
 
-void TCPIPAcceptor::Start() {
-  m_Acceptor.listen();
-  Accept();
-}
-
-void TCPIPAcceptor::Stop() {
-  m_Acceptor.close();
-  m_Timer.cancel();
-  ClearHandlers();
-}
-
-void TCPIPAcceptor::Rebind(
-    const std::string& addr,
-    uint16_t port) {
-  LogPrint(eLogInfo,
-      "I2PService: re-bind ", GetName(), " to ", addr, ":", port);
-  // stop everything with us
-  m_Acceptor.cancel();
-  Stop();
-  // make new acceptor
-  m_Acceptor =
-    boost::asio::ip::tcp::acceptor(
-        GetService(),
-        boost::asio::ip::tcp::endpoint(
-            boost::asio::ip::address::from_string(
-              addr),
-            port));
-  // start everything again
-  Start();
-}
-
-void TCPIPAcceptor::Accept() {
-  auto new_socket =
-    std::make_shared<boost::asio::ip::tcp::socket> (GetService());
-  m_Acceptor.async_accept(
-      *new_socket,
-      std::bind(
-        &TCPIPAcceptor::HandleAccept,
-        this,
-        std::placeholders::_1,
-        new_socket));
-}
-
-void TCPIPAcceptor::HandleAccept(
-    const boost::system::error_code& ecode,
-    std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
-  if (!ecode) {
-    LogPrint(eLogDebug,
-        "I2PService: ", GetName(), " accepted");
-    auto handler = CreateHandler(socket);
-    if (handler) {
-      AddHandler(handler);
-      handler->Handle();
-    } else {
-      socket->close();
-    }
-    Accept();
-  } else {
-    if (ecode != boost::asio::error::operation_aborted)
-      LogPrint(eLogError,
-          "I2PService: ", GetName(),
-          " closing socket on accept because: ", ecode.message());
+  void ResetReceiver() {
+    m_Receiver = nullptr;
   }
-}
+
+  void SetReceiver(
+      const Receiver& receiver,
+      uint16_t port) {
+    m_ReceiversByPorts[port] = receiver;
+  }
+
+  void ResetReceiver(
+      uint16_t port) {
+    m_ReceiversByPorts.erase(port);
+  }
+
+ private:
+  void HandleLeaseSetRequestComplete(
+      std::shared_ptr<kovri::data::LeaseSet> lease_set,
+      std::unique_ptr<I2NPMessage> msg);
+
+  std::unique_ptr<I2NPMessage> CreateDataMessage(
+      const uint8_t* payload,
+      size_t len,
+      uint16_t from_port,
+      uint16_t to_port);
+
+  void SendMsg(
+      std::unique_ptr<I2NPMessage> msg,
+      std::shared_ptr<const kovri::data::LeaseSet> remote);
+
+  void HandleDatagram(
+      uint16_t from_port,
+      uint16_t to_port,
+      const uint8_t* buf,
+      size_t len);
+
+ private:
+  kovri::client::ClientDestination& m_Owner;
+  Receiver m_Receiver;  // default
+  std::map<uint16_t, Receiver> m_ReceiversByPorts;
+};
 
 }  // namespace client
 }  // namespace kovri
+
+#endif  // SRC_CLIENT_API_DATAGRAM_H_

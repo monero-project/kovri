@@ -30,82 +30,112 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CLIENT_I2P_CONTROL_I2P_CONTROL_SERVER_H_
-#define SRC_CLIENT_I2P_CONTROL_I2P_CONTROL_SERVER_H_
+#include "client/service.h"
 
-#include <inttypes.h>
-
-#include <boost/asio.hpp>
-
-#include <array>
-#include <memory>
-#include <sstream>
 #include <string>
-#include <thread>
 
-#include "i2p_control.h"
+#include "client/context.h"
+#include "client/destination.h"
+
+#include "core/identity.h"
 
 namespace kovri {
 namespace client {
-namespace i2pcontrol {
 
-const size_t I2P_CONTROL_MAX_REQUEST_SIZE = 1024;
-typedef std::array<char, I2P_CONTROL_MAX_REQUEST_SIZE> I2PControlBuffer;
+I2PService::I2PService(
+    std::shared_ptr<ClientDestination> local_destination)
+    : m_LocalDestination(
+        local_destination
+        ? local_destination
+        : kovri::client::context.CreateNewLocalDestination()) {}
 
-class I2PControlService {
- public:
-  I2PControlService(
-      boost::asio::io_service& service,
-      const std::string& address,
-      int port,
-      const std::string& password);
+I2PService::I2PService(
+    kovri::data::SigningKeyType key_type)
+    : m_LocalDestination(
+        kovri::client::context.CreateNewLocalDestination(key_type)) {}
 
-  ~I2PControlService();
+void I2PService::CreateStream(
+    StreamRequestComplete stream_request_complete,
+    const std::string& dest,
+    int port) {
+  assert(stream_request_complete);
+  kovri::data::IdentHash ident_hash;
+  if (kovri::client::context.GetAddressBook().CheckAddressIdentHashFound(dest, ident_hash)) {
+    m_LocalDestination->CreateStream(
+        stream_request_complete,
+        ident_hash,
+        port);
+  } else {
+    LogPrint(eLogWarn,
+        "I2PService: remote destination ", dest, " not found");
+    stream_request_complete(nullptr);
+  }
+}
 
-  void Start();
-  void Stop();
+void TCPIPAcceptor::Start() {
+  m_Acceptor.listen();
+  Accept();
+}
 
- private:
-  void Run();
-  void Accept();
+void TCPIPAcceptor::Stop() {
+  m_Acceptor.close();
+  m_Timer.cancel();
+  ClearHandlers();
+}
 
-  void HandleAccept(
-      const boost::system::error_code& ecode,
-      std::shared_ptr<boost::asio::ip::tcp::socket> socket);
+void TCPIPAcceptor::Rebind(
+    const std::string& addr,
+    uint16_t port) {
+  LogPrint(eLogInfo,
+      "I2PService: re-bind ", GetName(), " to ", addr, ":", port);
+  // stop everything with us
+  m_Acceptor.cancel();
+  Stop();
+  // make new acceptor
+  m_Acceptor =
+    boost::asio::ip::tcp::acceptor(
+        GetService(),
+        boost::asio::ip::tcp::endpoint(
+            boost::asio::ip::address::from_string(
+              addr),
+            port));
+  // start everything again
+  Start();
+}
 
-  void ReadRequest(
-      std::shared_ptr<boost::asio::ip::tcp::socket> socket);
+void TCPIPAcceptor::Accept() {
+  auto new_socket =
+    std::make_shared<boost::asio::ip::tcp::socket> (GetService());
+  m_Acceptor.async_accept(
+      *new_socket,
+      std::bind(
+        &TCPIPAcceptor::HandleAccept,
+        this,
+        std::placeholders::_1,
+        new_socket));
+}
 
-  void HandleRequestReceived(
-      const boost::system::error_code& ecode,
-      size_t bytes_transferred,
-      std::shared_ptr<boost::asio::ip::tcp::socket> socket,
-      std::shared_ptr<I2PControlBuffer> buf);
+void TCPIPAcceptor::HandleAccept(
+    const boost::system::error_code& ecode,
+    std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
+  if (!ecode) {
+    LogPrint(eLogDebug,
+        "I2PService: ", GetName(), " accepted");
+    auto handler = CreateHandler(socket);
+    if (handler) {
+      AddHandler(handler);
+      handler->Handle();
+    } else {
+      socket->close();
+    }
+    Accept();
+  } else {
+    if (ecode != boost::asio::error::operation_aborted)
+      LogPrint(eLogError,
+          "I2PService: ", GetName(),
+          " closing socket on accept because: ", ecode.message());
+  }
+}
 
-  void SendResponse(
-      std::shared_ptr<boost::asio::ip::tcp::socket> socket,
-      std::shared_ptr<I2PControlBuffer> buf,
-      const std::string& response,
-      bool isHtml);
-
-  void HandleResponseSent(
-      const boost::system::error_code& ecode,
-      std::size_t bytes_transferred,
-      std::shared_ptr<boost::asio::ip::tcp::socket> socket,
-      std::shared_ptr<I2PControlBuffer> buf);
-
- private:
-  std::shared_ptr<I2PControlSession> m_Session;
-
-  bool m_IsRunning;
-  std::unique_ptr<std::thread> m_Thread;
-
-  boost::asio::io_service& m_Service;
-  boost::asio::ip::tcp::acceptor m_Acceptor;
-};
-
-}  // namespace i2pcontrol
 }  // namespace client
 }  // namespace kovri
-
-#endif  // SRC_CLIENT_I2P_CONTROL_I2P_CONTROL_SERVER_H_

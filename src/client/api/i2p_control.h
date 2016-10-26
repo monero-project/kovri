@@ -45,9 +45,6 @@
 
 namespace kovri {
 namespace client {
-namespace i2pcontrol {
-
-namespace constants {
 
 const char DEFAULT_PASSWORD[] = "itoopie";
 const uint64_t TOKEN_LIFETIME = 600;  // Token lifetime in seconds
@@ -129,8 +126,6 @@ const char ROUTER_INFO_BW_OB_1S[] =
 const char ROUTER_MANAGER_SHUTDOWN[] = "Shutdown";
 const char ROUTER_MANAGER_SHUTDOWN_GRACEFUL[] = "ShutdownGraceful";
 const char ROUTER_MANAGER_RESEED[] = "Reseed";
-
-}  // namespace constants
 
 /**
  * @class JsonObject
@@ -239,7 +234,7 @@ class I2PControlSession
   // @param pass the password required to authenticate (i.e. obtains a token)
   I2PControlSession(
       boost::asio::io_service& ios,
-      const std::string& pass = constants::DEFAULT_PASSWORD);
+      const std::string& pass = DEFAULT_PASSWORD);
 
   // Starts the I2PControlSession.
   // In essence, this starts the expireTokensTimer.
@@ -327,8 +322,7 @@ class I2PControlSession
                               m_ExpireTokensTimer;
 };
 
-}  // namespace i2pcontrol
 }  // namespace client
 }  // namespace kovri
 
-#endif  // SRC_CLIENT_I2P_CONTROL_I2P_CONTROL_H_
+#endif  // SRC_CLIENT_API_I2P_CONTROL_H_

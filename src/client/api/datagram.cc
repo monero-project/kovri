@@ -30,22 +30,23 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "datagram.h"
+#include "client/api/datagram.h"
 
 #include <string.h>
 
 #include <vector>
 
-#include "router_context.h"
 #include "client/destination.h"
-#include "crypto/hash.h"
-#include "crypto/rand.h"
-#include "crypto/util/compression.h"
-#include "tunnel/tunnel_base.h"
-#include "util/log.h"
+
+#include "core/crypto/hash.h"
+#include "core/crypto/rand.h"
+#include "core/crypto/util/compression.h"
+#include "core/router_context.h"
+#include "core/tunnel/tunnel_base.h"
+#include "core/util/log.h"
 
 namespace kovri {
-namespace datagram {
+namespace client {
 
 DatagramDestination::DatagramDestination(
     kovri::client::ClientDestination& owner)
@@ -248,5 +249,5 @@ std::unique_ptr<I2NPMessage> DatagramDestination::CreateDataMessage(
   return msg;
 }
 
-}  // namespace datagram
+}  // namespace client
 }  // namespace kovri

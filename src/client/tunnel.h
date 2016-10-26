@@ -41,10 +41,11 @@
 #include <sstream>
 #include <string>
 
-#include "identity.h"
-#include "client/streaming.h"
+#include "client/api/streaming.h"
 #include "client/destination.h"
-#include "client/i2p_service.h"
+#include "client/service.h"
+
+#include "core/identity.h"
 
 namespace kovri {
 namespace client {
@@ -69,12 +70,12 @@ class I2PTunnelConnection
   I2PTunnelConnection(
       I2PService* owner,
       std::shared_ptr<boost::asio::ip::tcp::socket> socket,
-      std::shared_ptr<kovri::stream::Stream> stream);
+      std::shared_ptr<kovri::client::Stream> stream);
 
   // From I2P
   I2PTunnelConnection(
       I2PService* owner,
-      std::shared_ptr<kovri::stream::Stream> stream,
+      std::shared_ptr<kovri::client::Stream> stream,
       std::shared_ptr<boost::asio::ip::tcp::socket> socket,
       const boost::asio::ip::tcp::endpoint& target,
       bool quiet = true);
@@ -118,7 +119,7 @@ class I2PTunnelConnection
   m_StreamBuffer[I2P_TUNNEL_CONNECTION_BUFFER_SIZE];
 
   std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
-  std::shared_ptr<kovri::stream::Stream> m_Stream;
+  std::shared_ptr<kovri::client::Stream> m_Stream;
   boost::asio::ip::tcp::endpoint m_RemoteEndpoint;
   bool m_IsQuiet;  // don't send destination
 };
@@ -127,7 +128,7 @@ class I2PTunnelConnectionHTTP: public I2PTunnelConnection {
  public:
   I2PTunnelConnectionHTTP(
       I2PService* owner,
-      std::shared_ptr<kovri::stream::Stream> stream,
+      std::shared_ptr<kovri::client::Stream> stream,
       std::shared_ptr<boost::asio::ip::tcp::socket> socket,
       const boost::asio::ip::tcp::endpoint& target,
       const std::string& host);
@@ -228,17 +229,17 @@ class I2PServerTunnel : public I2PService {
   void Accept();
 
   void HandleAccept(
-      std::shared_ptr<kovri::stream::Stream> stream);
+      std::shared_ptr<kovri::client::Stream> stream);
 
   virtual void CreateI2PConnection(
-      std::shared_ptr<kovri::stream::Stream> stream);
+      std::shared_ptr<kovri::client::Stream> stream);
 
  private:
   std::string m_Address;
   std::string m_TunnelName;
   int m_Port;
   boost::asio::ip::tcp::endpoint m_Endpoint;
-  std::shared_ptr<kovri::stream::StreamingDestination> m_PortDestination;
+  std::shared_ptr<kovri::client::StreamingDestination> m_PortDestination;
   std::set<kovri::data::IdentHash> m_AccessList;
   bool m_IsAccessList;
 };
@@ -254,10 +255,10 @@ class I2PServerTunnelHTTP: public I2PServerTunnel {
 
  private:
   void CreateI2PConnection(
-      std::shared_ptr<kovri::stream::Stream> stream);
+      std::shared_ptr<kovri::client::Stream> stream);
 };
 
 }  // namespace client
 }  // namespace kovri
 
-#endif  // SRC_CLIENT_I2P_TUNNEL_I2P_TUNNEL_H_
+#endif  // SRC_CLIENT_TUNNEL_H_

@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "http_proxy.h"
+#include "client/proxy/http.h"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/regex.hpp>
@@ -42,16 +42,17 @@
 #include <memory>
 #include <string>
 
-#include "i2p_tunnel.h"
-#include "identity.h"
-#include "streaming.h"
-#include "client/client_context.h"
+#include "client/api/streaming.h"
+#include "client/context.h"
 #include "client/destination.h"
-#include "util/http.h"
-#include "util/i2p_endian.h"
+#include "client/tunnel.h"
+#include "client/util/http.h"
+
+#include "core/identity.h"
+#include "core/util/i2p_endian.h"
 
 namespace kovri {
-namespace proxy {
+namespace client {
 
 //
 // Server
@@ -205,7 +206,7 @@ bool HTTPProxyHandler::HandleData(
 }
 
 void HTTPProxyHandler::HandleStreamRequestComplete(
-    std::shared_ptr<kovri::stream::Stream> stream) {
+    std::shared_ptr<kovri::client::Stream> stream) {
   if (stream) {
     if (Kill())
       return;
@@ -309,7 +310,7 @@ void HTTPProxyHandler::HandleJumpService() {
   }
   auto base64 = m_Path.substr(pos + m_JumpService.at(0).size());
   // We must decode
-  kovri::util::http::HTTP uri;
+  HTTP uri;
   base64 = uri.HTTPProxyDecode(base64);
   // Insert into address book
   LogPrint(eLogDebug,
@@ -365,5 +366,5 @@ void HTTPProxyHandler::Terminate() {
   Done(shared_from_this());
 }
 
-}  // namespace proxy
+}  // namespace client
 }  // namespace kovri

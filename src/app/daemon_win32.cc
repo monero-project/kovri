@@ -34,12 +34,13 @@
 
 #include "daemon.h"
 
-#include "util/config.h"
-#include "util/log.h"
+#include "app/util/config.h"
+
+#include "core/util/log.h"
 
 #ifdef _WIN32
 
-#include "win32_service.h"
+#include "app/win32_service.h"
 
 namespace kovri {
 namespace app {

@@ -33,18 +33,19 @@
 #include <algorithm>
 #include <vector>
 
-#include "router_context.h"
-#include "router_info.h"
-#include "streaming.h"
+#include "client/api/streaming.h"
 #include "client/destination.h"
-#include "crypto/rand.h"
-#include "crypto/util/compression.h"
-#include "tunnel/tunnel.h"
-#include "util/log.h"
-#include "util/timestamp.h"
+
+#include "core/crypto/rand.h"
+#include "core/crypto/util/compression.h"
+#include "core/router_context.h"
+#include "core/router_info.h"
+#include "core/tunnel/tunnel.h"
+#include "core/util/log.h"
+#include "core/util/timestamp.h"
 
 namespace kovri {
-namespace stream {
+namespace client {
 
 Stream::Stream(
     boost::asio::io_service& service,
@@ -845,7 +846,7 @@ std::shared_ptr<I2NPMessage> Stream::CreateDataMessage(
     size_t len) {
   auto msg = ToSharedI2NPMessage(NewI2NPShortMessage());
   kovri::crypto::util::Gzip compressor;
-  if (len <= kovri::stream::COMPRESSION_THRESHOLD_SIZE)
+  if (len <= kovri::client::COMPRESSION_THRESHOLD_SIZE)
     compressor.SetDeflateLevel(
         compressor.GetMinDeflateLevel());
   else
@@ -967,5 +968,5 @@ void StreamingDestination::HandleDataMessagePayload(
   }
 }
 
-}  // namespace stream
+}  // namespace client
 }  // namespace kovri

@@ -39,12 +39,12 @@
 #include <string>
 #include <utility>
 
-#include "address_book.h"
-#include "destination.h"
-#include "i2p_control/i2p_control_server.h"
-#include "i2p_tunnel/http_proxy.h"
-#include "i2p_tunnel/i2p_tunnel.h"
-#include "i2p_tunnel/socks.h"
+#include "client/address_book.h"
+#include "client/api/i2p_control_server.h"
+#include "client/destination.h"
+#include "client/proxy/http.h"
+#include "client/proxy/socks.h"
+#include "client/tunnel.h"
 
 namespace kovri {
 namespace client {
@@ -160,15 +160,15 @@ class ClientContext {
   /// @brief Sets the I2PControl service
   /// @param service a pointer to the I2PControlService
   void SetI2PControlService(
-      std::unique_ptr<kovri::client::i2pcontrol::I2PControlService> service);
+      std::unique_ptr<kovri::client::I2PControlService> service);
 
   /// @brief Sets the HTTP proxy.
   /// @param proxy a pointer to the HTTPProxy
-  void SetHTTPProxy(std::unique_ptr<kovri::proxy::HTTPProxy> proxy);
+  void SetHTTPProxy(std::unique_ptr<HTTPProxy> proxy);
 
   /// @brief Sets the SOCKS proxy.
   /// @param proxy a pointer to the SOCKSProxy
-  void SetSOCKSProxy(std::unique_ptr<kovri::proxy::SOCKSProxy> proxy);
+  void SetSOCKSProxy(std::unique_ptr<kovri::client::SOCKSProxy> proxy);
 
   /// @return the client tunnel with the given name, or nullptr
   std::unique_ptr<I2PServerTunnel> GetServerTunnel(
@@ -195,8 +195,8 @@ class ClientContext {
 
   AddressBook m_AddressBook;
 
-  std::unique_ptr<kovri::proxy::HTTPProxy> m_HttpProxy;
-  std::unique_ptr<kovri::proxy::SOCKSProxy> m_SocksProxy;
+  std::unique_ptr<HTTPProxy> m_HttpProxy;
+  std::unique_ptr<kovri::client::SOCKSProxy> m_SocksProxy;
 
   std::mutex m_ClientMutex;
   // port->tunnel
@@ -215,7 +215,7 @@ class ClientContext {
                     std::unique_ptr<I2PServerTunnel>> ServerTunnelEntry;
 
   boost::asio::io_service m_Service;
-  std::unique_ptr<i2pcontrol::I2PControlService> m_I2PControlService;
+  std::unique_ptr<I2PControlService> m_I2PControlService;
 
   std::function<void(void)> m_ShutdownHandler;
 };
@@ -225,4 +225,4 @@ extern ClientContext context;
 }  // namespace client
 }  // namespace kovri
 
-#endif  // SRC_CLIENT_CLIENT_CONTEXT_H_
+#endif  // SRC_CLIENT_CONTEXT_H_

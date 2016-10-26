@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "i2p_control_server.h"
+#include "client/api/i2p_control_server.h"
 
 #include <boost/date_time/local_time/local_time.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -40,12 +40,11 @@
 #include <memory>
 
 #include "core/version.h"
-#include "util/log.h"
-#include "util/timestamp.h"
+#include "core/util/log.h"
+#include "core/util/timestamp.h"
 
 namespace kovri {
 namespace client {
-namespace i2pcontrol {
 
 I2PControlService::I2PControlService(
   boost::asio::io_service& service,
@@ -233,6 +232,5 @@ void I2PControlService::HandleResponseSent(
   socket->close();
 }
 
-}  // namespace i2pcontrol
 }  // namespace client
 }  // namespace kovri

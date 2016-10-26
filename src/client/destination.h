@@ -43,13 +43,14 @@
 #include <string>
 #include <thread>
 
-#include "garlic.h"
-#include "identity.h"
-#include "lease_set.h"
-#include "net_db.h"
-#include "datagram.h"
-#include "streaming.h"
-#include "tunnel/tunnel_pool.h"
+#include "client/api/datagram.h"
+#include "client/api/streaming.h"
+
+#include "core/garlic.h"
+#include "core/identity.h"
+#include "core/lease_set.h"
+#include "core/net_db.h"
+#include "core/tunnel/tunnel_pool.h"
 
 namespace kovri {
 namespace client {
@@ -75,7 +76,7 @@ const int DEFAULT_OUTBOUND_TUNNELS_QUANTITY = 5;
 const char I2CP_PARAM_EXPLICIT_PEERS[] = "explicitPeers";
 const int STREAM_REQUEST_TIMEOUT = 60;  // in seconds
 
-typedef std::function<void (std::shared_ptr<kovri::stream::Stream> stream)> StreamRequestComplete;
+typedef std::function<void (std::shared_ptr<kovri::client::Stream> stream)> StreamRequestComplete;
 
 class ClientDestination : public kovri::garlic::GarlicDestination {
   typedef std::function<void (std::shared_ptr<kovri::data::LeaseSet> leaseSet)> RequestComplete;
@@ -129,10 +130,10 @@ class ClientDestination : public kovri::garlic::GarlicDestination {
       RequestComplete request_complete = nullptr);
 
   // streaming
-  std::shared_ptr<kovri::stream::StreamingDestination> CreateStreamingDestination(
+  std::shared_ptr<kovri::client::StreamingDestination> CreateStreamingDestination(
       int port);  // additional
 
-  std::shared_ptr<kovri::stream::StreamingDestination> GetStreamingDestination(
+  std::shared_ptr<kovri::client::StreamingDestination> GetStreamingDestination(
       int port = 0) const;
 
   // following methods operate with default streaming destination
@@ -141,23 +142,23 @@ class ClientDestination : public kovri::garlic::GarlicDestination {
       const kovri::data::IdentHash& dest,
       int port = 0);
 
-  std::shared_ptr<kovri::stream::Stream> CreateStream(
+  std::shared_ptr<kovri::client::Stream> CreateStream(
       std::shared_ptr<const kovri::data::LeaseSet> remote,
       int port = 0);
 
   void AcceptStreams(
-      const kovri::stream::StreamingDestination::Acceptor& acceptor);
+      const kovri::client::StreamingDestination::Acceptor& acceptor);
 
   void StopAcceptingStreams();
 
   bool IsAcceptingStreams() const;
 
   // datagram
-  kovri::datagram::DatagramDestination* GetDatagramDestination() const {
+  DatagramDestination* GetDatagramDestination() const {
     return m_DatagramDestination;
   }
 
-  kovri::datagram::DatagramDestination* CreateDatagramDestination();
+  DatagramDestination* CreateDatagramDestination();
 
   // implements LocalDestination
   const kovri::data::PrivateKeys& GetPrivateKeys() const {
@@ -264,12 +265,12 @@ class ClientDestination : public kovri::garlic::GarlicDestination {
   uint32_t m_PublishReplyToken;
   std::set<kovri::data::IdentHash> m_ExcludedFloodfills;  // for publishing
 
-  std::shared_ptr<kovri::stream::StreamingDestination> m_StreamingDestination;  // default
+  std::shared_ptr<kovri::client::StreamingDestination> m_StreamingDestination;  // default
 
   std::map<uint16_t,
-           std::shared_ptr<kovri::stream::StreamingDestination>> m_StreamingDestinationsByPorts;
+           std::shared_ptr<kovri::client::StreamingDestination>> m_StreamingDestinationsByPorts;
 
-  kovri::datagram::DatagramDestination* m_DatagramDestination;
+  DatagramDestination* m_DatagramDestination;
 
   boost::asio::deadline_timer m_PublishConfirmationTimer, m_CleanupTimer;
 };

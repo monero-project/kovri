@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "daemon.h"
+#include "app/daemon.h"
 
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -40,19 +40,21 @@
 #include <thread>
 #include <vector>
 
-#include "client/client_context.h"
-#include "destination.h"
-#include "garlic.h"
-#include "net_db.h"
-#include "router_context.h"
-#include "router_info.h"
-#include "version.h"
-#include "streaming.h"
+#include "app/util/config.h"
+
+#include "client/api/streaming.h"
+#include "client/context.h"
+#include "client/destination.h"
+
+#include "core/garlic.h"
+#include "core/net_db.h"
+#include "core/router_context.h"
+#include "core/router_info.h"
+#include "core/transport/ntcp_session.h"
+#include "core/transport/transports.h"
+#include "core/tunnel/tunnel.h"
 #include "core/util/log.h"
-#include "transport/ntcp_session.h"
-#include "transport/transports.h"
-#include "tunnel/tunnel.h"
-#include "util/config.h"
+#include "core/version.h"
 
 namespace kovri {
 namespace app {
@@ -114,7 +116,7 @@ bool Daemon_Singleton::Start() {
     }
     if (kovri::data::netdb.GetNumRouters() < kovri::data::netdb.MIN_REQUIRED_ROUTERS) {
       LogPrint(eLogInfo, "Daemon_Singleton: reseeding NetDb");
-      kovri::data::Reseed reseed;
+      kovri::client::Reseed reseed;
       if (!reseed.Start()) {
         LogPrint(eLogError, "Daemon_Singleton: reseed failed");
         return false;
@@ -170,19 +172,19 @@ void Daemon_Singleton::InitClientContext() {
     local_destination = kovri::client::context.LoadLocalDestination(
         proxy_keys,
         false);
-  kovri::client::context.SetHTTPProxy(std::make_unique<kovri::proxy::HTTPProxy>(
+  kovri::client::context.SetHTTPProxy(std::make_unique<kovri::client::HTTPProxy>(
       "HTTP Proxy",  // TODO(unassigned): what if we want to change the name?
       kovri::app::util::var_map["httpproxyaddress"].as<std::string>(),
       kovri::app::util::var_map["httpproxyport"].as<int>(),
       local_destination));
-  kovri::client::context.SetSOCKSProxy(std::make_unique<kovri::proxy::SOCKSProxy>(
+  kovri::client::context.SetSOCKSProxy(std::make_unique<kovri::client::SOCKSProxy>(
       kovri::app::util::var_map["socksproxyaddress"].as<std::string>(),
       kovri::app::util::var_map["socksproxyport"].as<int>(),
       local_destination));
   auto i2pcontrol_port = kovri::app::util::var_map["i2pcontrolport"].as<int>();
   if (i2pcontrol_port) {
     kovri::client::context.SetI2PControlService(
-        std::make_unique<kovri::client::i2pcontrol::I2PControlService>(
+        std::make_unique<kovri::client::I2PControlService>(
             kovri::client::context.GetIoService(),
             kovri::app::util::var_map["i2pcontroladdress"].as<std::string>(),
             i2pcontrol_port,

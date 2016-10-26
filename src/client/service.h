@@ -41,8 +41,9 @@
 #include <string>
 #include <unordered_set>
 
-#include "destination.h"
-#include "identity.h"
+#include "client/destination.h"
+
+#include "core/identity.h"
 
 namespace kovri {
 namespace client {
@@ -223,4 +224,4 @@ class TCPIPAcceptor : public I2PService {
 }  // namespace client
 }  // namespace kovri
 
-#endif  // SRC_CLIENT_I2P_SERVICE_H_
+#endif  // SRC_CLIENT_SERVICE_H_

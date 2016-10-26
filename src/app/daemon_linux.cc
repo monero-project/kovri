@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "daemon.h"
+#include "app/daemon.h"
 
 #ifndef _WIN32
 
@@ -42,9 +42,10 @@
 
 #include <string>
 
+#include "app/util/config.h"
+#include "app/util/filesystem.h"
+
 #include "core/util/log.h"
-#include "util/config.h"
-#include "util/filesystem.h"
 
 void handle_signal(int sig) {
   switch (sig) {

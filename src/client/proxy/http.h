@@ -42,10 +42,10 @@
 #include <unordered_map>
 
 #include "client/destination.h"
-#include "client/i2p_service.h"
+#include "client/service.h"
 
 namespace kovri {
-namespace proxy {
+namespace client {
 
 /// @class HTTPProxyServer
 class HTTPProxyServer
@@ -120,7 +120,7 @@ class HTTPProxyHandler
 
   /// @brief Handles stream created by service through proxy handler
   void HandleStreamRequestComplete(
-      std::shared_ptr<kovri::stream::Stream> stream);
+      std::shared_ptr<kovri::client::Stream> stream);
 
   /// @enum State
   /// @brief Parsing state
@@ -209,7 +209,7 @@ class HTTPProxyHandler
   }};
 };
 
-}  // namespace proxy
+}  // namespace client
 }  // namespace kovri
 
-#endif  // SRC_CLIENT_I2P_TUNNEL_HTTP_PROXY_H_
+#endif  // SRC_CLIENT_PROXY_HTTP_H_

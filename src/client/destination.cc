@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "destination.h"
+#include "client/destination.h"
 
 #include <boost/lexical_cast.hpp>
 
@@ -43,13 +43,14 @@
 #include <utility>
 #include <vector>
 
-#include "address_book.h"
-#include "net_db.h"
-#include "crypto/elgamal.h"
-#include "crypto/rand.h"
-#include "identity.h"
-#include "util/log.h"
-#include "util/timestamp.h"
+#include "client/address_book.h"
+
+#include "core/crypto/elgamal.h"
+#include "core/crypto/rand.h"
+#include "core/identity.h"
+#include "core/net_db.h"
+#include "core/util/log.h"
+#include "core/util/timestamp.h"
 
 namespace kovri {
 namespace client {
@@ -140,7 +141,7 @@ ClientDestination::ClientDestination(
         kovri::data::GetB32Address(GetIdentHash()));
   // TODO(unassigned): ???
   m_StreamingDestination =
-    std::make_shared<kovri::stream::StreamingDestination> (*this);
+    std::make_shared<kovri::client::StreamingDestination> (*this);
 }
 
 ClientDestination::~ClientDestination() {
@@ -561,7 +562,7 @@ void ClientDestination::CreateStream(
   }
 }
 
-std::shared_ptr<kovri::stream::Stream> ClientDestination::CreateStream(
+std::shared_ptr<kovri::client::Stream> ClientDestination::CreateStream(
     std::shared_ptr<const kovri::data::LeaseSet> remote,
     int port) {
   if (m_StreamingDestination)
@@ -570,7 +571,7 @@ std::shared_ptr<kovri::stream::Stream> ClientDestination::CreateStream(
     return nullptr;
 }
 
-std::shared_ptr<kovri::stream::StreamingDestination> ClientDestination::GetStreamingDestination(
+std::shared_ptr<kovri::client::StreamingDestination> ClientDestination::GetStreamingDestination(
     int port) const {
   if (port) {
     auto it = m_StreamingDestinationsByPorts.find(port);
@@ -582,7 +583,7 @@ std::shared_ptr<kovri::stream::StreamingDestination> ClientDestination::GetStrea
 }
 
 void ClientDestination::AcceptStreams(
-    const kovri::stream::StreamingDestination::Acceptor& acceptor) {
+    const kovri::client::StreamingDestination::Acceptor& acceptor) {
   if (m_StreamingDestination)
     m_StreamingDestination->SetAcceptor(acceptor);
 }
@@ -598,10 +599,10 @@ bool ClientDestination::IsAcceptingStreams() const {
   return false;
 }
 
-std::shared_ptr<kovri::stream::StreamingDestination> ClientDestination::CreateStreamingDestination(
+std::shared_ptr<kovri::client::StreamingDestination> ClientDestination::CreateStreamingDestination(
     int port) {
   auto dest =
-    std::make_shared<kovri::stream::StreamingDestination> (
+    std::make_shared<kovri::client::StreamingDestination> (
         *this,
         port);
   if (port)
@@ -611,9 +612,9 @@ std::shared_ptr<kovri::stream::StreamingDestination> ClientDestination::CreateSt
   return dest;
 }
 
-kovri::datagram::DatagramDestination* ClientDestination::CreateDatagramDestination() {
+DatagramDestination* ClientDestination::CreateDatagramDestination() {
   if (!m_DatagramDestination)
-    m_DatagramDestination = new kovri::datagram::DatagramDestination(*this);
+    m_DatagramDestination = new DatagramDestination(*this);
   return m_DatagramDestination;
 }
 

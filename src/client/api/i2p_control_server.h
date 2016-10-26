@@ -30,100 +30,80 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CLIENT_DATAGRAM_H_
-#define SRC_CLIENT_DATAGRAM_H_
+#ifndef SRC_CLIENT_I2P_CONTROL_I2P_CONTROL_SERVER_H_
+#define SRC_CLIENT_I2P_CONTROL_I2P_CONTROL_SERVER_H_
 
 #include <inttypes.h>
 
-#include <functional>
-#include <map>
-#include <memory>
+#include <boost/asio.hpp>
 
-#include "i2np_protocol.h"
-#include "identity.h"
-#include "lease_set.h"
+#include <array>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <thread>
+
+#include "client/api/i2p_control.h"
 
 namespace kovri {
-namespace client { class ClientDestination; }
-namespace datagram {
+namespace client {
 
-const size_t MAX_DATAGRAM_SIZE = 32768;
+const size_t I2P_CONTROL_MAX_REQUEST_SIZE = 1024;
+typedef std::array<char, I2P_CONTROL_MAX_REQUEST_SIZE> I2PControlBuffer;
 
-class DatagramDestination {
-  typedef std::function<void (
-      const kovri::data::IdentityEx& from,
-      uint16_t from_port,
-      uint16_t to_port,
-      const uint8_t* buf,
-      size_t len)>
-    Receiver;
-
+class I2PControlService {
  public:
-  explicit DatagramDestination(
-      kovri::client::ClientDestination& owner);
-  ~DatagramDestination() {}
+  I2PControlService(
+      boost::asio::io_service& service,
+      const std::string& address,
+      int port,
+      const std::string& password);
 
-  void SendDatagramTo(
-      const uint8_t* payload,
-      size_t len,
-      const kovri::data::IdentHash& ident,
-      uint16_t from_port = 0,
-      uint16_t to_port = 0);
+  ~I2PControlService();
 
-  void HandleDataMessagePayload(
-      uint16_t from_port,
-      uint16_t to_port,
-      const uint8_t* buf,
-      size_t len);
-
-  void SetReceiver(
-      const Receiver& receiver) {
-    m_Receiver = receiver;
-  }
-
-  void ResetReceiver() {
-    m_Receiver = nullptr;
-  }
-
-  void SetReceiver(
-      const Receiver& receiver,
-      uint16_t port) {
-    m_ReceiversByPorts[port] = receiver;
-  }
-
-  void ResetReceiver(
-      uint16_t port) {
-    m_ReceiversByPorts.erase(port);
-  }
+  void Start();
+  void Stop();
 
  private:
-  void HandleLeaseSetRequestComplete(
-      std::shared_ptr<kovri::data::LeaseSet> lease_set,
-      std::unique_ptr<I2NPMessage> msg);
+  void Run();
+  void Accept();
 
-  std::unique_ptr<I2NPMessage> CreateDataMessage(
-      const uint8_t* payload,
-      size_t len,
-      uint16_t from_port,
-      uint16_t to_port);
+  void HandleAccept(
+      const boost::system::error_code& ecode,
+      std::shared_ptr<boost::asio::ip::tcp::socket> socket);
 
-  void SendMsg(
-      std::unique_ptr<I2NPMessage> msg,
-      std::shared_ptr<const kovri::data::LeaseSet> remote);
+  void ReadRequest(
+      std::shared_ptr<boost::asio::ip::tcp::socket> socket);
 
-  void HandleDatagram(
-      uint16_t from_port,
-      uint16_t to_port,
-      const uint8_t* buf,
-      size_t len);
+  void HandleRequestReceived(
+      const boost::system::error_code& ecode,
+      size_t bytes_transferred,
+      std::shared_ptr<boost::asio::ip::tcp::socket> socket,
+      std::shared_ptr<I2PControlBuffer> buf);
+
+  void SendResponse(
+      std::shared_ptr<boost::asio::ip::tcp::socket> socket,
+      std::shared_ptr<I2PControlBuffer> buf,
+      const std::string& response,
+      bool isHtml);
+
+  void HandleResponseSent(
+      const boost::system::error_code& ecode,
+      std::size_t bytes_transferred,
+      std::shared_ptr<boost::asio::ip::tcp::socket> socket,
+      std::shared_ptr<I2PControlBuffer> buf);
 
  private:
-  kovri::client::ClientDestination& m_Owner;
-  Receiver m_Receiver;  // default
-  std::map<uint16_t, Receiver> m_ReceiversByPorts;
+  std::shared_ptr<I2PControlSession> m_Session;
+
+  bool m_IsRunning;
+  std::unique_ptr<std::thread> m_Thread;
+
+  boost::asio::io_service& m_Service;
+  boost::asio::ip::tcp::acceptor m_Acceptor;
 };
 
-}  // namespace datagram
+}  // namespace client
 }  // namespace kovri
 
-#endif  // SRC_CLIENT_DATAGRAM_H_
+#endif  // SRC_CLIENT_API_I2P_CONTROL_SERVER_H_

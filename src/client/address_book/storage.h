@@ -145,4 +145,4 @@ class AddressBookStorage : public AddressBookDefaults {
 }  // namespace client
 }  // namespace kovri
 
-#endif  // SRC_CLIENT_ADDRESSBOOK_STORAGE_H_
+#endif  // SRC_CLIENT_ADDRESS_BOOK_STORAGE_H_

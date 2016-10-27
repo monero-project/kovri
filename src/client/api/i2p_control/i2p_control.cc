@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "client/api/i2p_control.h"
+#include "client/api/i2p_control/i2p_control.h"
 
 #include <boost/property_tree/json_parser.hpp>
 

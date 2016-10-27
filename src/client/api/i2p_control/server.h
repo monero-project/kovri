@@ -43,7 +43,7 @@
 #include <string>
 #include <thread>
 
-#include "client/api/i2p_control.h"
+#include "client/api/i2p_control/i2p_control.h"
 
 namespace kovri {
 namespace client {

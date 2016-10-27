@@ -44,7 +44,7 @@
 #include <string>
 #include <vector>
 
-#include "client/address_book_storage.h"
+#include "client/address_book/storage.h"
 #include "client/destination.h"
 #include "client/util/http.h"
 
@@ -274,4 +274,4 @@ class AddressBookSubscriber {
 }  // namespace client
 }  // namespace kovri
 
-#endif  // SRC_CLIENT_ADDRESS_BOOK_H_
+#endif  // SRC_CLIENT_ADDRESS_BOOK_ADDRESS_BOOK_H_

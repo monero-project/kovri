@@ -1,9 +1,9 @@
 set(CLIENT_SRC
-  "address_book.cc"
-  "address_book_storage.cc"
+  "address_book/address_book.cc"
+  "address_book/storage.cc"
   "api/datagram.cc"
-  "api/i2p_control.cc"
-  "api/i2p_control_server.cc"
+  "api/i2p_control/i2p_control.cc"
+  "api/i2p_control/server.cc"
   "api/streaming.cc"
   "context.cc"
   "destination.cc"

@@ -43,7 +43,7 @@
 #include <utility>
 #include <vector>
 
-#include "client/address_book.h"
+#include "client/address_book/address_book.h"
 
 #include "core/crypto/elgamal.h"
 #include "core/crypto/rand.h"

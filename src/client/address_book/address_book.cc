@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "client/address_book.h"
+#include "client/address_book/address_book.h"
 
 #include <boost/asio.hpp>
 
@@ -43,7 +43,7 @@
 #include <map>
 #include <memory>
 
-#include "client/address_book_storage.h"
+#include "client/address_book/storage.h"
 #include "client/destination.h"
 #include "client/util/http.h"
 

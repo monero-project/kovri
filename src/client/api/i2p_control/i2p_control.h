@@ -325,4 +325,4 @@ class I2PControlSession
 }  // namespace client
 }  // namespace kovri
 
-#endif  // SRC_CLIENT_API_I2P_CONTROL_H_
+#endif  // SRC_CLIENT_API_I2P_CONTROL_I2P_CONTROL_H_

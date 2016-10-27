@@ -55,6 +55,17 @@
 namespace i2p {
 namespace data {
 
+/// @enum NetDbDuration
+/// @brief Constants defining different refresh intervals
+///   for various NetDb operations
+enum struct NetDbDuration : const std::size_t {
+  WaitForMessageTimeout = 15000,  // 15 seconds
+  ManageRequestsInterval = 15,  // seconds
+  SaveInterval = 60,  // seconds
+  PublishRouterInfoInterval = 2400,  // 40 minutes
+  ExploreTunnelsInterval = 30,  // seconds
+};
+
 class NetDb {
  public:
   NetDb();

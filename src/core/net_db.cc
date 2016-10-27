@@ -102,7 +102,9 @@ void NetDb::Run() {
            last_manage_request = 0;
   while (m_IsRunning) {
     try {
-      auto msg = m_Queue.GetNextWithTimeout(15000);  // 15 sec
+      auto msg =
+	m_Queue.GetNextWithTimeout(
+	     static_cast<std::size_t>(NetDbDuration::WaitForMessageTimeout));  // 15 sec
       if (msg) {
         int num_msgs = 0;
         while (msg) {
@@ -134,26 +136,31 @@ void NetDb::Run() {
       if (!m_IsRunning)
         break;
       uint64_t ts = i2p::util::GetSecondsSinceEpoch();
-      if (ts - last_manage_request >= 15) {  // manage requests every 15 seconds
+      if (ts - last_manage_request >=
+          static_cast<std::size_t>(NetDbDuration::ManageRequestsInterval)) {  // manage requests every 15 seconds
         m_Requests.ManageRequests();
         last_manage_request = ts;
       }
       // save routers, manage leasesets and validate subscriptions every minute
-      if (ts - last_save >= 60) {
+      if (ts - last_save >= static_cast<std::size_t>(NetDbDuration::SaveInterval)) {
         if (last_save) {
           SaveUpdated();
           ManageLeaseSets();
         }
         last_save = ts;
       }
-      if (ts - last_publish >= 2400) {  // publish every 40 minutes
+      if (ts - last_publish >=
+	  static_cast<std::size_t>(NetDbDuration::PublishRouterInfoInterval)) {  // publish every 40 minutes
         Publish();
         last_publish = ts;
       }
-      if (ts - last_exploratory >= 30) {  // exploratory every 30 seconds
+      if (ts - last_exploratory >=
+          static_cast<std::size_t>(NetDbDuration::ExploreTunnelsInterval)) {  // exploratory every 30 seconds
         auto num_routers = m_RouterInfos.size();
         // TODO(anonimal): research these numbers
-        if (num_routers < 2500 || ts - last_exploratory >= 90) {
+        if (num_routers < 2500 ||
+	    ts - last_exploratory >=
+	    static_cast<std::size_t>(NetDbDuration::ExploreTunnelsInterval)) {
           if (num_routers > 0) {
             num_routers = 800 / num_routers;
           }
@@ -309,11 +316,11 @@ bool NetDb::Load() {
           it1 != end;
           ++it1) {
 #if BOOST_VERSION > 10500
-        const std::string& fullPath = it1->path().string();
+        const std::string& full_path = it1->path().string();
 #else
-        const std::string& fullPath = it1->path();
+        const std::string& full_path = it1->path();
 #endif
-        auto r = std::make_shared<RouterInfo>(fullPath);
+        auto r = std::make_shared<RouterInfo>(full_path);
         if (!r->IsUnreachable() &&
             (!r->UsesIntroducer() ||
              ts < r->GetTimestamp() + 3600 * 1000LL)) {  // 1 hour
@@ -324,8 +331,8 @@ bool NetDb::Load() {
             m_Floodfills.push_back(r);
           num_routers++;
         } else {
-          if (boost::filesystem::exists(fullPath))
-            boost::filesystem::remove(fullPath);
+          if (boost::filesystem::exists(full_path))
+            boost::filesystem::remove(full_path);
         }
       }
     }

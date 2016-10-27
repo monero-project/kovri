@@ -741,7 +741,7 @@ void NetDb::Explore(
   std::vector<i2p::tunnel::TunnelMessageBlock> msgs;
   std::set<const RouterInfo *> floodfills;
   // TODO(unassigned): docs
-  LogPrint(eLogInfo, "NetDb: exploring new ", num_destinations, " routers");
+  LogPrint(eLogInfo, "NetDb: exploring ", num_destinations, " new routers");
   for (int i = 0; i < num_destinations; i++) {
     i2p::crypto::RandBytes(random_hash, 32);
     auto dest = m_Requests.CreateRequest(random_hash, true);  // exploratory

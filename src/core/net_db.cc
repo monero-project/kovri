@@ -104,7 +104,7 @@ void NetDb::Run() {
     try {
       auto msg =
 	m_Queue.GetNextWithTimeout(
-	     static_cast<std::size_t>(NetDbDuration::WaitForMessageTimeout));  // 15 sec
+            static_cast<std::size_t>(NetDbDuration::WaitForMessageTimeout));  // 15 sec
       if (msg) {
         int num_msgs = 0;
         while (msg) {
@@ -159,8 +159,8 @@ void NetDb::Run() {
         auto num_routers = m_RouterInfos.size();
         // TODO(anonimal): research these numbers
         if (num_routers < 2500 ||
-	    ts - last_exploratory >=
-	    static_cast<std::size_t>(NetDbDuration::ExploreTunnelsInterval)) {
+            ts - last_exploratory >=
+            static_cast<std::size_t>(NetDbDuration::ExploreTunnelsInterval)) {
           if (num_routers > 0) {
             num_routers = 800 / num_routers;
           }

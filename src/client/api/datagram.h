@@ -39,9 +39,9 @@
 #include <map>
 #include <memory>
 
-#include "core/i2np_protocol.h"
-#include "core/identity.h"
-#include "core/lease_set.h"
+#include "core/router/i2np.h"
+#include "core/router/identity.h"
+#include "core/router/lease_set.h"
 
 namespace kovri {
 namespace client {
@@ -52,7 +52,7 @@ const size_t MAX_DATAGRAM_SIZE = 32768;
 
 class DatagramDestination {
   typedef std::function<void (
-      const kovri::data::IdentityEx& from,
+      const kovri::core::IdentityEx& from,
       uint16_t from_port,
       uint16_t to_port,
       const uint8_t* buf,
@@ -67,7 +67,7 @@ class DatagramDestination {
   void SendDatagramTo(
       const uint8_t* payload,
       size_t len,
-      const kovri::data::IdentHash& ident,
+      const kovri::core::IdentHash& ident,
       uint16_t from_port = 0,
       uint16_t to_port = 0);
 
@@ -99,7 +99,7 @@ class DatagramDestination {
 
  private:
   void HandleLeaseSetRequestComplete(
-      std::shared_ptr<kovri::data::LeaseSet> lease_set,
+      std::shared_ptr<kovri::core::LeaseSet> lease_set,
       std::unique_ptr<I2NPMessage> msg);
 
   std::unique_ptr<I2NPMessage> CreateDataMessage(
@@ -110,7 +110,7 @@ class DatagramDestination {
 
   void SendMsg(
       std::unique_ptr<I2NPMessage> msg,
-      std::shared_ptr<const kovri::data::LeaseSet> remote);
+      std::shared_ptr<const kovri::core::LeaseSet> remote);
 
   void HandleDatagram(
       uint16_t from_port,

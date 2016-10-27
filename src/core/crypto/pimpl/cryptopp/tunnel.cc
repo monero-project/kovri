@@ -30,16 +30,18 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "crypto/tunnel.h"
+#include "core/crypto/tunnel.h"
 
 #include <cstdint>
 
 #include "aesni_macros.h"
-#include "crypto/aes.h"
-#include "tunnel/tunnel_base.h"
+
+#include "core/crypto/aes.h"
+
+#include "core/router/tunnel/base.h"
 
 namespace kovri {
-namespace crypto {
+namespace core {
 
 /// @class TunnelEncryptionImpl
 /// @brief Tunnel encryption implementation
@@ -93,7 +95,7 @@ class TunnelEncryption::TunnelEncryptionImpl {
       m_CBCLayerEncryption.SetIV(out);
       m_CBCLayerEncryption.Encrypt(  // data
           in + 16,
-          kovri::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE,
+          kovri::core::TUNNEL_DATA_ENCRYPTED_SIZE,
           out + 16);
       m_IVEncryption.Encrypt(  // double iv
           reinterpret_cast<CipherBlock *>(out),
@@ -178,7 +180,7 @@ class TunnelDecryption::TunnelDecryptionImpl {
       m_CBCLayerDecryption.SetIV(out);
       m_CBCLayerDecryption.Decrypt(  // data
           in + 16,
-          kovri::tunnel::TUNNEL_DATA_ENCRYPTED_SIZE,
+          kovri::core::TUNNEL_DATA_ENCRYPTED_SIZE,
           out + 16);
       m_IVDecryption.Decrypt(  // double iv
           reinterpret_cast<CipherBlock *>(out),
@@ -210,5 +212,5 @@ void TunnelDecryption::Decrypt(
   m_TunnelDecryptionPimpl->Decrypt(in, out);
 }
 
-}  // namespace crypto
+}  // namespace core
 }  // namespace kovri

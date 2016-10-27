@@ -44,7 +44,8 @@
 #include "client/address_book.h"
 #include "client/context.h"
 
-#include "core/router_context.h"
+#include "core/router/context.h"
+
 #include "core/util/filesystem.h"
 #include "core/util/log.h"
 
@@ -104,7 +105,7 @@ bool HTTP::DownloadViaClearnet() {
   // Ensure that we only download from certified reseed servers
   if (!kovri::context.GetOptionReseedSkipSSLCheck()) {
     const std::string cert = uri.host() + ".crt";
-    const boost::filesystem::path cert_path = kovri::util::filesystem::GetSSLCertsPath() / cert;
+    const boost::filesystem::path cert_path = kovri::core::GetSSLCertsPath() / cert;
     if (!boost::filesystem::exists(cert_path)) {
       LogPrint(eLogError, "HTTP: certificate unavailable: ", cert_path);
       return false;
@@ -184,7 +185,7 @@ bool HTTP::DownloadViaI2P() {
   // Reference the only instantiated address book instance in the singleton client context
   auto& address_book = kovri::client::context.GetAddressBook();
   // For identity hash of URI host
-  kovri::data::IdentHash ident;
+  kovri::core::IdentHash ident;
   // Get URI host's ident hash then find its lease-set
   if (address_book.CheckAddressIdentHashFound(uri.host(), ident)
       && address_book.GetSharedLocalDestination()) {
@@ -197,7 +198,7 @@ bool HTTP::DownloadViaI2P() {
       address_book.GetSharedLocalDestination()->RequestDestination(
           ident,
           [&new_data_received, &lease_set](
-              std::shared_ptr<kovri::data::LeaseSet> ls) {
+              std::shared_ptr<kovri::core::LeaseSet> ls) {
             lease_set = ls;
             new_data_received.notify_all();
           });

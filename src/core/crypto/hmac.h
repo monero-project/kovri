@@ -36,16 +36,17 @@
 #include <inttypes.h>
 #include <string.h>
 
-#include "hash.h"
-#include "identity.h"
+#include "core/crypto/hash.h"
+
+#include "core/router/identity.h"
 
 namespace kovri {
-namespace crypto {
+namespace core {
 
 const uint64_t IPAD = 0x3636363636363636;
 const uint64_t OPAD = 0x5C5C5C5C5C5C5C5C;
 
-typedef kovri::data::Tag<32> MACKey;
+typedef kovri::core::Tag<32> MACKey;
 
 inline void HMACMD5Digest(
     uint8_t* msg,
@@ -69,7 +70,7 @@ inline void HMACMD5Digest(
   memcpy(buf + 8, msg, len);
   // calculate first hash
   uint8_t hash[16];  // MD5
-  kovri::crypto::MD5().CalculateDigest(
+  kovri::core::MD5().CalculateDigest(
       hash,
       reinterpret_cast<uint8_t *>(buf),
       len + 64);
@@ -87,13 +88,13 @@ inline void HMACMD5Digest(
   // fill next 16 bytes with zeros (first hash size assumed 32 bytes in I2P)
   memset(buf + 10, 0, 16);
   // calculate digest
-  kovri::crypto::MD5().CalculateDigest(
+  kovri::core::MD5().CalculateDigest(
       digest,
       reinterpret_cast<uint8_t *>(buf),
       96);
 }
 
-}  // namespace crypto
+}  // namespace core
 }  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_HMAC_H_

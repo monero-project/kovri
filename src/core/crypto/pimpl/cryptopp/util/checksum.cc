@@ -28,17 +28,16 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#include "crypto/util/checksum.h"
+#include "core/crypto/util/checksum.h"
 
 #include <cryptopp/adler32.h>
 
 #include <cstdint>
 
-#include "util/log.h"
+#include "core/util/log.h"
 
 namespace kovri {
-namespace crypto {
-namespace util {
+namespace core {
 
 /// @class Adler32Impl
 /// @brief Adler-32 implementation
@@ -96,6 +95,5 @@ std::size_t Adler32::VerifyDigest(
   return m_Adler32Pimpl->VerifyDigest(digest, input, length);
 }
 
-}  // namespace util
-}  // namespace crypto
+}  // namespace core
 }  // namespace kovri

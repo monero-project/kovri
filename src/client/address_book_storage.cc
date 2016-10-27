@@ -40,7 +40,8 @@
 #include <memory>
 #include <string>
 
-#include "core/identity.h"
+#include "core/router/identity.h"
+
 #include "core/util/log.h"
 
 namespace kovri {
@@ -56,15 +57,15 @@ AddressBookStorage::AddressBookStorage() {
 }
 
 bool AddressBookStorage::GetAddress(
-    const kovri::data::IdentHash& ident,
-    kovri::data::IdentityEx& address) const {
+    const kovri::core::IdentHash& ident,
+    kovri::core::IdentityEx& address) const {
   auto filename = GetAddressBookPath() / (ident.ToBase32() + ".b32");
   std::ifstream file(filename.string(), std::ifstream::binary);
   if (!file)
     return false;
   file.seekg(0, std::ios::end);
   const std::size_t len = file.tellg();
-  if (len < kovri::data::DEFAULT_IDENTITY_SIZE) {
+  if (len < kovri::core::DEFAULT_IDENTITY_SIZE) {
     LogPrint(eLogError,
         "AddressBookStorage: file ", filename, " is too short. ", len);
     return false;
@@ -80,7 +81,7 @@ bool AddressBookStorage::GetAddress(
 }
 
 void AddressBookStorage::AddAddress(
-    const kovri::data::IdentityEx& address) {
+    const kovri::core::IdentityEx& address) {
   auto filename = GetAddressBookPath() / (address.GetIdentHash().ToBase32() + ".b32");
   std::ofstream file(filename.string(), std::ofstream::binary);
   if (!file)
@@ -96,7 +97,7 @@ void AddressBookStorage::AddAddress(
 /**
 // TODO(unassigned): currently unused
 void AddressBookStorage::RemoveAddress(
-    const kovri::data::IdentHash& ident) {
+    const kovri::core::IdentHash& ident) {
   auto filename = GetPath() / (ident.ToBase32() + ".b32");
   if (boost::filesystem::exists(filename))
     boost::filesystem::remove(filename);
@@ -104,7 +105,7 @@ void AddressBookStorage::RemoveAddress(
 **/
 
 std::size_t AddressBookStorage::Load(
-    std::map<std::string, kovri::data::IdentHash>& addresses) {
+    std::map<std::string, kovri::core::IdentHash>& addresses) {
   std::size_t num = 0;
   auto filename = GetAddressBookPath() / GetDefaultAddressesFilename();
   std::ifstream file(filename.string());
@@ -122,7 +123,7 @@ std::size_t AddressBookStorage::Load(
       if (pos != std::string::npos) {
         std::string name = host.substr(0, pos++);
         std::string addr = host.substr(pos);
-        kovri::data::IdentHash ident;
+        kovri::core::IdentHash ident;
         ident.FromBase32(addr);
         addresses[name] = ident;
         num++;
@@ -135,7 +136,7 @@ std::size_t AddressBookStorage::Load(
 }
 
 std::size_t AddressBookStorage::Save(
-    const std::map<std::string, kovri::data::IdentHash>& addresses) {
+    const std::map<std::string, kovri::core::IdentHash>& addresses) {
   std::size_t num = 0;
   auto filename = GetAddressBookPath() / GetDefaultAddressesFilename();
   std::ofstream file(filename.string(), std::ofstream::out);

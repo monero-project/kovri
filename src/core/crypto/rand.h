@@ -37,7 +37,7 @@
 #include <stdexcept>
 
 namespace kovri {
-namespace crypto {
+namespace core {
 
   /// @brief Generates CSPRNG bytes
   /// @param data Buffer to store result
@@ -82,7 +82,7 @@ namespace crypto {
     return ret;
   }
 
-}  // namespace crypto
+}  // namespace core
 }  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_RAND_H_

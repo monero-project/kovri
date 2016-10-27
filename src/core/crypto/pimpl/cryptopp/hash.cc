@@ -28,17 +28,17 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#include "crypto/hash.h"
+#include "core/crypto/hash.h"
 
 #include <cryptopp/md5.h>
 #include <cryptopp/sha.h>
 
 #include <cstdint>
 
-#include "util/log.h"
+#include "core/util/log.h"
 
 namespace kovri {
-namespace crypto {
+namespace core {
 
 /**
  *
@@ -224,5 +224,5 @@ void SHA512::Final(
   m_SHA512Pimpl->Final(digest);
 }
 
-}  //  namespace crypto
+}  //  namespace core
 }  //  namespace kovri

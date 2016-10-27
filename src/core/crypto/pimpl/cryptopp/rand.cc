@@ -28,12 +28,12 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#include "crypto/rand.h"
+#include "core/crypto/rand.h"
 
 #include <cryptopp/osrng.h>
 
 namespace kovri {
-namespace crypto {
+namespace core {
 
 void RandBytes(
     std::uint8_t* dataptr,
@@ -42,5 +42,5 @@ void RandBytes(
   prng.GenerateBlock(dataptr, datalen);
 }
 
-}  // namespace crypto
+}  // namespace core
 }  // namespace kovri

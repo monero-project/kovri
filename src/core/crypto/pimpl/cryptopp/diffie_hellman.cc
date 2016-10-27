@@ -28,7 +28,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#include "crypto/diffie_hellman.h"
+#include "core/crypto/diffie_hellman.h"
 
 #include <cryptopp/dh.h>
 #include <cryptopp/osrng.h>
@@ -36,10 +36,11 @@
 #include <cstdint>
 
 #include "crypto_const.h"
-#include "util/log.h"
+
+#include "core/util/log.h"
 
 namespace kovri {
-namespace crypto {
+namespace core {
 
 /// @class DiffieHellmanImpl
 /// @brief Diffie-Hellman implementation
@@ -47,7 +48,7 @@ class DiffieHellman::DiffieHellmanImpl {
  public:
   /// @brief Initializes with ElGamal constants on construction
   DiffieHellmanImpl()
-      : m_DH(kovri::crypto::elgp, kovri::crypto::elgg) {}
+      : m_DH(kovri::core::elgp, kovri::core::elgg) {}
 
   /// @brief Generate private/public key pair
   /// @param private_key Private key
@@ -110,5 +111,5 @@ bool DiffieHellman::Agree(
       other_public_key);
 }
 
-}  // namespace crypto
+}  // namespace core
 }  // namespace kovri

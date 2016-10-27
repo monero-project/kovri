@@ -50,8 +50,7 @@
 #include <vector>
 
 namespace kovri {
-namespace util {
-namespace log {
+namespace core {
 
 /**
  *
@@ -503,6 +502,5 @@ std::ostream& operator<<(
   return out_stream;
 }
 
-}  // namespace log
-}  // namespace util
+}  // namespace core
 }  // namespace kovri

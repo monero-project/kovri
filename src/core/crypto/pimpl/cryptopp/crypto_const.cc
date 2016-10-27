@@ -35,7 +35,7 @@
 #include <inttypes.h>
 
 namespace kovri {
-namespace crypto {
+namespace core {
 
 const std::uint8_t elgp_[256]= {
   0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xC9, 0x0F, 0xDA, 0xA2, 0x21, 0x68, 0xC2, 0x34,
@@ -94,5 +94,5 @@ const CryptoConstants& GetCryptoConstants() {
   return cryptoConstants;
 }
 
-}  // namespace crypto
+}  // namespace core
 }  // namespace kovri

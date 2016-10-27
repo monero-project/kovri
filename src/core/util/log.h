@@ -40,8 +40,7 @@
 #include <vector>
 
 namespace kovri {
-namespace util {
-namespace log {
+namespace core {
 
 /**
  *
@@ -69,10 +68,10 @@ enum LogLevel {
   eLogLevelError
 };
 
-#define eLogDebug kovri::util::log::eLogLevelDebug
-#define eLogInfo kovri::util::log::eLogLevelInfo
-#define eLogWarn kovri::util::log::eLogLevelWarn
-#define eLogError kovri::util::log::eLogLevelError
+#define eLogDebug kovri::core::eLogLevelDebug
+#define eLogInfo kovri::core::eLogLevelInfo
+#define eLogWarn kovri::core::eLogLevelWarn
+#define eLogError kovri::core::eLogLevelError
 
 /// @typedef LogLevelsMap
 /// @brief Map of log levels
@@ -169,8 +168,7 @@ class Log {
   std::shared_ptr<Logger> m_DefaultLogger;
 };
 
-}  // namespace log
-}  // namespace util
+}  // namespace core
 }  // namespace kovri
 
 /**
@@ -198,9 +196,9 @@ void DeprecatedLog(
 // TODO(unassigned): more efficient way to execute this function.
 template<typename... Args>
 void DeprecatedLogPrint(
-    kovri::util::log::LogLevel level,
+    kovri::core::LogLevel level,
     Args... args) {
-  auto logger = kovri::util::log::Log::GetGlobalLogEngine();
+  auto logger = kovri::core::Log::GetGlobalLogEngine();
   if (!logger) {
     // fallback logging to std::clog
     DeprecatedLog(std::clog, args...);
@@ -214,7 +212,7 @@ void DeprecatedLogPrint(
     return;
   }
   // Get global log levels
-  auto global_levels = kovri::util::log::GetGlobalLogLevels();
+  auto global_levels = kovri::core::GetGlobalLogLevels();
   // Print log after testing arg level against global levels
   if (level == eLogDebug) {
     for (auto& current_level : global_levels) {

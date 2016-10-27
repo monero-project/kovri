@@ -38,14 +38,13 @@
 #include <iosfwd>
 #include <string>
 
-#include "identity.h"  // kovri::data::tag
+#include "core/router/identity.h"  // kovri::core::tag
 
 namespace kovri {
-namespace crypto {
-namespace util {
+namespace core {
 
 // Placed here for use across implementations
-typedef kovri::data::Tag<512> PublicKey;
+typedef kovri::core::Tag<512> PublicKey;
 
 /// @class X509
 /// @brief Processes X.509 certificate
@@ -68,8 +67,7 @@ class X509 {
   std::unique_ptr<X509Impl> m_X509Pimpl;
 };
 
-}  // namespace util
-}  // namespace crypto
+}  // namespace core
 }  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_UTIL_X509_H_

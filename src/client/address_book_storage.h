@@ -42,8 +42,9 @@
 #include <string>
 #include <vector>
 
-#include "core/identity.h"
-#include "core/router_context.h"
+#include "core/router/identity.h"
+#include "core/router/context.h"
+
 #include "core/util/filesystem.h"
 #include "core/util/log.h"
 
@@ -105,33 +106,33 @@ class AddressBookStorage : public AddressBookDefaults {
   /// @param ident Const reference to identity hash from filesystem
   /// @param address Reference to identity address buffer
   bool GetAddress(
-      const kovri::data::IdentHash& ident,
-      kovri::data::IdentityEx& address) const;
+      const kovri::core::IdentHash& ident,
+      kovri::core::IdentityEx& address) const;
 
   /// @brief Adds identity to address book storage
   /// @param address Const reference to identity address buffer
   void AddAddress(
-      const kovri::data::IdentityEx& address);
+      const kovri::core::IdentityEx& address);
 
   /**
   // TODO(unassigned): currently unused
   /// @brief Removes .b32 address filename from filesystem
   /// @param ident Reference to identity hash to be removed
   void RemoveAddress(
-      const kovri::data::IdentHash& ident);
+      const kovri::core::IdentHash& ident);
   **/
 
   /// @brief Loads subscriptions from file into memory
   /// @return Number of subscriptions loaded
   /// @param addresses Reference to map of human-readable addresses to hashes
   std::size_t Load(
-      std::map<std::string, kovri::data::IdentHash>& addresses);
+      std::map<std::string, kovri::core::IdentHash>& addresses);
 
   /// @brief Saves subscriptions to file in CSV format to verify addresses loaded
   /// @return Number of addresses saved
   /// @param addresses Const reference to map of human-readable address to b32 hashes of address
   std::size_t Save(
-      const std::map<std::string, kovri::data::IdentHash>& addresses);
+      const std::map<std::string, kovri::core::IdentHash>& addresses);
 
  private:
   /// @brief Gets data path and appends address book's path

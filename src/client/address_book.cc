@@ -48,8 +48,10 @@
 #include "client/util/http.h"
 
 #include "core/crypto/rand.h"
-#include "core/identity.h"
-#include "core/net_db.h"
+
+#include "core/router/identity.h"
+#include "core/router/net_db/net_db.h"
+
 #include "core/util/log.h"
 
 namespace kovri {
@@ -112,7 +114,7 @@ void AddressBook::LoadPublishers() {
   }
   auto publishers = GetDefaultPublishersFilename();
   LogPrint(eLogInfo, "AddressBook: loading publisher file ", publishers);
-  std::ifstream file(kovri::util::filesystem::GetFullPath(publishers));
+  std::ifstream file(kovri::core::GetFullPath(publishers));
   if (file) {
     // Publisher URI
     std::string publisher;
@@ -167,7 +169,7 @@ void AddressBook::SubscriberUpdateTimer(
     // At first this may look questionable but, by this point,
     // we're guaranteed to have at least one subscriber
     auto publisher =
-      kovri::crypto::RandInRange<std::size_t>(0, m_Subscribers.size() - 1);
+      kovri::core::RandInRange<std::size_t>(0, m_Subscribers.size() - 1);
     m_SubscriberIsDownloading = true;
     m_Subscribers.at(publisher)->DownloadSubscription();
   } else {
@@ -201,7 +203,7 @@ void AddressBook::LoadSubscriptionFromPublisher() {
   }
   // If available, load default subscription from file
   auto filename = GetDefaultSubscriptionFilename();
-  std::ifstream file(kovri::util::filesystem::GetFullPath(filename));
+  std::ifstream file(kovri::core::GetFullPath(filename));
   LogPrint(eLogInfo, "AddressBook: loading subscription ", filename);
   if (file) {  // Open subscription, validate, and save to storage
     m_SubscriptionFileIsReady = true;
@@ -267,7 +269,7 @@ bool AddressBook::ValidateSubscriptionThenSaveToStorage(
   std::unique_lock<std::mutex> lock(m_AddressBookMutex);
   std::ofstream file;
   if (!m_SubscriptionFileIsReady) {
-    file.open(kovri::util::filesystem::GetFullPath(GetDefaultSubscriptionFilename()));
+    file.open(kovri::core::GetFullPath(GetDefaultSubscriptionFilename()));
     if (file)
       m_SubscriptionFileIsReady = true;
   }
@@ -294,7 +296,7 @@ bool AddressBook::ValidateSubscriptionThenSaveToStorage(
     if (pos != std::string::npos) {
       const std::string name = host.substr(0, pos++);
       const std::string addr = host.substr(pos);
-      kovri::data::IdentityEx ident;
+      kovri::core::IdentityEx ident;
       if (ident.FromBase64(addr)) {
         m_Addresses[name] = ident.GetIdentHash();
         m_Storage->AddAddress(ident);
@@ -322,10 +324,10 @@ bool AddressBook::ValidateSubscriptionThenSaveToStorage(
 // For in-net download only
 bool AddressBook::CheckAddressIdentHashFound(
     const std::string& address,
-    kovri::data::IdentHash& ident) {
+    kovri::core::IdentHash& ident) {
   auto pos = address.find(".b32.i2p");
   if (pos != std::string::npos) {
-    if (!kovri::util::Base32ToByteStream(address.c_str(), pos, ident, 32)) {
+    if (!kovri::core::Base32ToByteStream(address.c_str(), pos, ident, 32)) {
       LogPrint(eLogError, "AddressBook: invalid base32 address");
       return false;
     }
@@ -343,7 +345,7 @@ bool AddressBook::CheckAddressIdentHashFound(
     }
   }
   // If not .b32, test for full base64 address
-  kovri::data::IdentityEx dest;
+  kovri::core::IdentityEx dest;
   if (!dest.FromBase64(address))
     return false;  // Invalid base64 address
   ident = dest.GetIdentHash();
@@ -351,14 +353,14 @@ bool AddressBook::CheckAddressIdentHashFound(
 }
 
 // For in-net download only
-std::unique_ptr<const kovri::data::IdentHash> AddressBook::GetLoadedAddressIdentHash(
+std::unique_ptr<const kovri::core::IdentHash> AddressBook::GetLoadedAddressIdentHash(
     const std::string& address) {
   if (!m_SubscriptionIsLoaded)
     LoadSubscriptionFromPublisher();
   if (m_SubscriptionIsLoaded) {
     auto it = m_Addresses.find(address);
     if (it != m_Addresses.end()) {
-      return std::make_unique<const kovri::data::IdentHash>(it->second);
+      return std::make_unique<const kovri::core::IdentHash>(it->second);
     }
   }
   return nullptr;
@@ -368,7 +370,7 @@ std::unique_ptr<const kovri::data::IdentHash> AddressBook::GetLoadedAddressIdent
 void AddressBook::InsertAddressIntoStorage(
     const std::string& address,
     const std::string& base64) {
-  kovri::data::IdentityEx ident;
+  kovri::core::IdentityEx ident;
   ident.FromBase64(base64);
   if (!m_Storage)
     m_Storage = GetNewStorageInstance();
@@ -412,7 +414,7 @@ void AddressBook::Stop() {
 /*
 // TODO(unassigned): currently unused
 void AddressBook::InsertAddress(
-    const kovri::data::IdentityEx& address) {
+    const kovri::core::IdentityEx& address) {
   if (!m_Storage)
     m_Storage = GetNewStorageInstance();
   m_Storage->AddAddress(address);
@@ -421,10 +423,10 @@ void AddressBook::InsertAddress(
 // TODO(unassigned): currently unused
 bool AddressBook::GetAddress(
     const std::string& address,
-    kovri::data::IdentityEx& identity) {
+    kovri::core::IdentityEx& identity) {
   if (!m_Storage)
     m_Storage = GetNewStorageInstance();
-  kovri::data::IdentHash ident;
+  kovri::core::IdentHash ident;
   if (!GetAddressIdentHash(address, ident)) return false;
   return m_Storage->GetAddress(ident, identity);
 }

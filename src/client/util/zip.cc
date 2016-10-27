@@ -37,6 +37,7 @@
 #include <vector>
 
 #include "core/crypto/util/compression.h"
+
 #include "core/util/i2p_endian.h"
 #include "core/util/log.h"
 
@@ -197,7 +198,7 @@ bool ZIP::DecompressLocalFile() {
       case static_cast<std::size_t>(Method::deflate): {
         LogPrint(eLogDebug, "ZIP: file uses compression method 'deflate'");
         // Instantiate decompressor
-        kovri::crypto::util::DeflateDecompressor decompressor;
+        kovri::core::DeflateDecompressor decompressor;
         // Put in data to decompress
         decompressor.Put(
             m_Data->compressed.data(),

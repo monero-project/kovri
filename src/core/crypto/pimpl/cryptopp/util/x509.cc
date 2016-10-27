@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "crypto/util/x509.h"
+#include "core/crypto/util/x509.h"
 
 #include <cryptopp/base64.h>
 #include <cryptopp/filters.h>
@@ -44,12 +44,12 @@
 #include <unordered_map>
 #include <vector>
 
-#include "identity.h"
-#include "util/log.h"
+#include "core/router/identity.h"
+
+#include "core/util/log.h"
 
 namespace kovri {
-namespace crypto {
-namespace util {
+namespace core {
 
 /// @class X509Impl
 /// @brief X.509 implementation
@@ -213,6 +213,5 @@ const std::map<std::string, PublicKey> X509::GetSigningKey(
   return m_SigningKeys = m_X509Pimpl->GetSigningKey(certificate);
 }
 
-}  // namespace util
-}  // namespace crypto
+}  // namespace core
 }  // namespace kovri

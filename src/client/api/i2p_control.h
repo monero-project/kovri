@@ -41,7 +41,7 @@
 #include <mutex>
 #include <string>
 
-#include "core/tunnel/tunnel.h"
+#include "core/router/tunnel/tunnel.h"
 
 namespace kovri {
 namespace client {
@@ -155,7 +155,7 @@ class JsonObject {
 };
 
 JsonObject TunnelToJsonObject(
-    kovri::tunnel::Tunnel* tunnel);
+    kovri::core::Tunnel* tunnel);
 
 /**
  * @class I2PControlSession

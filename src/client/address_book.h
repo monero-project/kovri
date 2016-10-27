@@ -48,8 +48,9 @@
 #include "client/destination.h"
 #include "client/util/http.h"
 
-#include "core/identity.h"
-#include "core/router_context.h"
+#include "core/router/identity.h"
+#include "core/router/context.h"
+
 #include "core/util/base64.h"
 #include "core/util/filesystem.h"
 #include "core/util/log.h"
@@ -106,13 +107,13 @@ class AddressBook : public AddressBookDefaults {
   /// @notes Used for in-net downloads only
   bool CheckAddressIdentHashFound(
       const std::string& address,
-      kovri::data::IdentHash& ident);
+      kovri::core::IdentHash& ident);
 
   /// @brief Finds address within loaded subscriptions
   /// @returns Unique pointer to identity hash of loaded address
   /// @param address Const reference to address
   /// @notes Used for in-net downloads only
-  std::unique_ptr<const kovri::data::IdentHash> GetLoadedAddressIdentHash(
+  std::unique_ptr<const kovri::core::IdentHash> GetLoadedAddressIdentHash(
       const std::string& address);
 
   /// @brief Used for destination to fetch subscription(s) from publisher(s)
@@ -153,25 +154,25 @@ class AddressBook : public AddressBookDefaults {
   /// @param ident Const reference to identity hash
   /// @return Identity hash's .b32.i2p address
   std::string GetB32AddressFromIdentHash(
-      const kovri::data::IdentHash& ident) {
+      const kovri::core::IdentHash& ident) {
     return GetB32Address(ident);
   }
 
   /**
   // TODO(unassigned): currently unused
   std::string ToAddress(
-      const kovri::data::IdentityEx& ident) {
+      const kovri::core::IdentityEx& ident) {
     return ToAddress(ident.GetAddressIdentHash());
   }
 
   // TODO(unassigned): currently unused
   void InsertAddress(
-      const kovri::data::IdentityEx& address);
+      const kovri::core::IdentityEx& address);
 
   // TODO(unassigned): currently unused
   bool GetAddress(
       const std::string& address,
-      kovri::data::IdentityEx& identity);
+      kovri::core::IdentityEx& identity);
   **/
 
  private:
@@ -214,7 +215,7 @@ class AddressBook : public AddressBookDefaults {
 
   /// @var m_Addresses
   /// @brief Map of human readable addresses to identity hashes
-  std::map<std::string, kovri::data::IdentHash> m_Addresses;
+  std::map<std::string, kovri::core::IdentHash> m_Addresses;
 
   /// @var m_Storage
   /// @brief Unique pointer to address book storage implementation

@@ -47,8 +47,10 @@
 
 #include "core/crypto/rand.h"
 #include "core/crypto/signature.h"
-#include "core/identity.h"
-#include "core/net_db.h"
+
+#include "core/router/identity.h"
+#include "core/router/net_db/net_db.h"
+
 #include "core/util/filesystem.h"
 #include "core/util/i2p_endian.h"
 #include "core/util/log.h"
@@ -99,7 +101,7 @@ bool Reseed::Start() {
   }
   // Insert extracted RI's into NetDb
   for (auto const& router : su3.m_RouterInfos)
-    if (!kovri::data::netdb.AddRouterInfo(
+    if (!kovri::core::netdb.AddRouterInfo(
           router.second.data(),
           router.second.size()))
       return false;
@@ -109,14 +111,14 @@ bool Reseed::Start() {
 
 bool Reseed::ProcessCerts() {
   // Test if directory exists
-  boost::filesystem::path path = kovri::util::filesystem::GetSU3CertsPath();
+  boost::filesystem::path path = kovri::core::GetSU3CertsPath();
   boost::filesystem::directory_iterator it(path), end;
   if (!boost::filesystem::exists(path)) {
     LogPrint(eLogError, "Reseed: certificates ", path, " don't exist");
     return false;
   }
   // Instantiate X.509 object
-  kovri::crypto::util::X509 x509;
+  kovri::core::X509 x509;
   // Iterate through directory and get signing key from each certificate
   std::size_t num_certs = 0;
   BOOST_FOREACH(boost::filesystem::path const& cert, std::make_pair(it, end)) {
@@ -175,7 +177,7 @@ bool Reseed::FetchStream() {
   } else {
     m_Stream =
       m_Hosts.at(
-          kovri::crypto::RandInRange<std::size_t>(0, m_Hosts.size() - 1)) +
+          kovri::core::RandInRange<std::size_t>(0, m_Hosts.size() - 1)) +
       m_Filename;
     if (FetchStream(m_Stream))
       return true;
@@ -270,14 +272,14 @@ bool SU3::PrepareStream() {
     // Prepare signature type
     m_Stream.Read(m_Data->signature_type, Size::signature_type);
     m_Data->signature_type = be16toh(m_Data->signature_type);
-    if (m_Data->signature_type != kovri::data::SIGNING_KEY_TYPE_RSA_SHA512_4096) {  // Temporary (see #160)
+    if (m_Data->signature_type != kovri::core::SIGNING_KEY_TYPE_RSA_SHA512_4096) {  // Temporary (see #160)
       LogPrint(eLogError, "SU3: signature type not supported");
       return false;
     }
     // Prepare signature length
     m_Stream.Read(m_Data->signature_length, Size::signature_length);
     m_Data->signature_length = be16toh(m_Data->signature_length);
-    if (m_Data->signature_length != sizeof(kovri::crypto::util::PublicKey)) {  // Temporary (see #160)
+    if (m_Data->signature_length != sizeof(kovri::core::PublicKey)) {  // Temporary (see #160)
       LogPrint(eLogError, "SU3: invalid signature length");
       return false;
     }
@@ -399,8 +401,8 @@ bool SU3::VerifySignature() {
   }
   // Verify hash of content data and signature
   switch (m_Data->signature_type) {
-    case kovri::data::SIGNING_KEY_TYPE_RSA_SHA512_4096: {
-      kovri::crypto::RSASHA5124096RawVerifier verifier(signing_key_it->second);
+    case kovri::core::SIGNING_KEY_TYPE_RSA_SHA512_4096: {
+      kovri::core::RSASHA5124096RawVerifier verifier(signing_key_it->second);
       verifier.Update(m_Data->content.data(), m_Data->content.size());
       if (!verifier.Verify(m_Data->signature.data())) {
         LogPrint(eLogError, "SU3: signature failed");

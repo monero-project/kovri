@@ -34,11 +34,10 @@
 
 #include <string>
 
-#include "router_context.h"
+#include "core/router/context.h"
 
 namespace kovri {
-namespace util {
-namespace filesystem {
+namespace core {
 
 boost::filesystem::path GetSU3CertsPath() {
   return kovri::context.GetDataPath() / "certificates" / "su3";
@@ -64,6 +63,5 @@ std::string GetFullPath(
   return full_path;
 }
 
-}  // namespace filesystem
-}  // namespace util
+}  // namespace core
 }  // namespace kovri

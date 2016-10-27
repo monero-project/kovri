@@ -37,7 +37,7 @@
 #include "client/context.h"
 #include "client/destination.h"
 
-#include "core/identity.h"
+#include "core/router/identity.h"
 
 namespace kovri {
 namespace client {
@@ -50,7 +50,7 @@ I2PService::I2PService(
         : kovri::client::context.CreateNewLocalDestination()) {}
 
 I2PService::I2PService(
-    kovri::data::SigningKeyType key_type)
+    kovri::core::SigningKeyType key_type)
     : m_LocalDestination(
         kovri::client::context.CreateNewLocalDestination(key_type)) {}
 
@@ -59,7 +59,7 @@ void I2PService::CreateStream(
     const std::string& dest,
     int port) {
   assert(stream_request_complete);
-  kovri::data::IdentHash ident_hash;
+  kovri::core::IdentHash ident_hash;
   if (kovri::client::context.GetAddressBook().CheckAddressIdentHashFound(dest, ident_hash)) {
     m_LocalDestination->CreateStream(
         stream_request_complete,

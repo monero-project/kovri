@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "crypto/signature.h"
+#include "core/crypto/signature.h"
 
 #include <cryptopp/asn.h>
 #include <cryptopp/dsa.h>
@@ -45,11 +45,13 @@
 #include <memory>
 
 #include "crypto_const.h"
-#include "crypto/rand.h"
-#include "util/log.h"
+
+#include "core/crypto/rand.h"
+
+#include "core/util/log.h"
 
 namespace kovri {
-namespace crypto {
+namespace core {
 
 /**
  *
@@ -152,7 +154,7 @@ void CreateDSARandomKeys(
   CryptoPP::Integer dsax;
   try {
     do {
-      kovri::crypto::RandBytes(key_buf.data(), DSA_PRIVATE_KEY_LENGTH);
+      kovri::core::RandBytes(key_buf.data(), DSA_PRIVATE_KEY_LENGTH);
       dsax = CryptoPP::Integer(key_buf.data(), DSA_PRIVATE_KEY_LENGTH);
     } while (dsax.IsZero() || dsax >= dsaq);
     CryptoPP::DSA::PrivateKey private_key;
@@ -775,7 +777,7 @@ class RSARawVerifier {
           signature,
           key_length),
       CryptoPP::Integer(
-          kovri::crypto::rsae),
+          kovri::core::rsae),
       n));  // s^e mod n
     std::uint8_t EnSigBuf[key_length];
     enSig.Encode(EnSigBuf, key_length);
@@ -829,5 +831,5 @@ bool RSASHA5124096RawVerifier::Verify(
   return m_RSASHA5124096RawVerifierPimpl->Verify(signature);
 }
 
-}  // namespace crypto
+}  // namespace core
 }  // namespace kovri

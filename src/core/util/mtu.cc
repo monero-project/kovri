@@ -85,8 +85,7 @@ int inet_pton(
 #endif
 
 namespace kovri {
-namespace util {
-namespace mtu {
+namespace core {
 
 #if defined(__linux__) || \
     defined(__FreeBSD_kernel__) || \
@@ -319,6 +318,5 @@ std::uint16_t GetMTU(
   return mtu;
 }
 
-}  // namespace mtu
-}  // namespace util
+}  // namespace core
 }  // namespace kovri

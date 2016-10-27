@@ -47,11 +47,12 @@
 #include <string>
 #include <vector>
 
-#include "core/garlic.h"
-#include "core/i2np_protocol.h"
-#include "core/identity.h"
-#include "core/lease_set.h"
-#include "core/tunnel/tunnel.h"
+#include "core/router/garlic.h"
+#include "core/router/i2np.h"
+#include "core/router/identity.h"
+#include "core/router/lease_set.h"
+#include "core/router/tunnel/tunnel.h"
+
 #include "core/util/i2p_endian.h"
 
 namespace kovri {
@@ -171,7 +172,7 @@ class Stream : public std::enable_shared_from_this<Stream> {
   Stream(
       boost::asio::io_service& service,
       StreamingDestination& local,
-      std::shared_ptr<const kovri::data::LeaseSet> remote,
+      std::shared_ptr<const kovri::core::LeaseSet> remote,
       int port = 0);
   // Incoming
   Stream(
@@ -187,11 +188,11 @@ class Stream : public std::enable_shared_from_this<Stream> {
     return m_RecvStreamID;
   }
 
-  std::shared_ptr<const kovri::data::LeaseSet> GetRemoteLeaseSet() const {
+  std::shared_ptr<const kovri::core::LeaseSet> GetRemoteLeaseSet() const {
     return m_RemoteLeaseSet;
   }
 
-  const kovri::data::IdentityEx& GetRemoteIdentity() const {
+  const kovri::core::IdentityEx& GetRemoteIdentity() const {
     return m_RemoteIdentity;
   }
 
@@ -322,11 +323,11 @@ class Stream : public std::enable_shared_from_this<Stream> {
   StreamStatus m_Status;
   bool m_IsAckSendScheduled;
   StreamingDestination& m_LocalDestination;
-  kovri::data::IdentityEx m_RemoteIdentity;
-  std::shared_ptr<const kovri::data::LeaseSet> m_RemoteLeaseSet;
-  std::shared_ptr<kovri::garlic::GarlicRoutingSession> m_RoutingSession;
-  kovri::data::Lease m_CurrentRemoteLease;
-  std::shared_ptr<kovri::tunnel::OutboundTunnel> m_CurrentOutboundTunnel;
+  kovri::core::IdentityEx m_RemoteIdentity;
+  std::shared_ptr<const kovri::core::LeaseSet> m_RemoteLeaseSet;
+  std::shared_ptr<kovri::core::GarlicRoutingSession> m_RoutingSession;
+  kovri::core::Lease m_CurrentRemoteLease;
+  std::shared_ptr<kovri::core::OutboundTunnel> m_CurrentOutboundTunnel;
   std::queue<Packet*> m_ReceiveQueue;
   std::set<Packet*, PacketCmp> m_SavedPackets;
   std::set<Packet*, PacketCmp> m_SentPackets;
@@ -358,7 +359,7 @@ class StreamingDestination {
   void Stop();
 
   std::shared_ptr<Stream> CreateNewOutgoingStream(
-      std::shared_ptr<const kovri::data::LeaseSet> remote,
+      std::shared_ptr<const kovri::core::LeaseSet> remote,
       int port = 0);
 
   void DeleteStream(

@@ -73,12 +73,12 @@ class ClientContext {
   // Non-public
   std::shared_ptr<ClientDestination> CreateNewLocalDestination(
       bool is_public = false,
-      kovri::data::SigningKeyType sigType = kovri::data::DEFAULT_CLIENT_SIGNING_KEY_TYPE,
+      kovri::core::SigningKeyType sigType = kovri::core::DEFAULT_CLIENT_SIGNING_KEY_TYPE,
       const std::map<std::string, std::string>* params = nullptr);  // transient
 
   // Public
   std::shared_ptr<ClientDestination> CreateNewLocalDestination(
-      const kovri::data::PrivateKeys& keys,
+      const kovri::core::PrivateKeys& keys,
       bool is_public = true,
       const std::map<std::string, std::string>* params = nullptr);
 
@@ -86,18 +86,18 @@ class ClientContext {
       std::shared_ptr<ClientDestination> destination);
 
   std::shared_ptr<ClientDestination> FindLocalDestination(
-      const kovri::data::IdentHash& destination) const;
+      const kovri::core::IdentHash& destination) const;
 
   /// @brief Creates private keys from given filename if they don't exist
   /// @param filename the relative name of the private key file
   /// @return Created private keys
-  kovri::data::PrivateKeys CreatePrivateKeys(
+  kovri::core::PrivateKeys CreatePrivateKeys(
       const std::string& filename);
 
   /// @brief Loads private keys from given filename
   /// @param filename Relative name of the private key file
   /// @return Loaded private keys
-  kovri::data::PrivateKeys LoadPrivateKeys(
+  kovri::core::PrivateKeys LoadPrivateKeys(
       const std::string& filename);
 
   std::shared_ptr<ClientDestination> LoadLocalDestination(
@@ -154,7 +154,7 @@ class ClientContext {
   /// @brief Inserts a server tunnel.
   /// @return true if the tunnel was inserted, false otherwise
   bool InsertServerTunnel(
-      const kovri::data::IdentHash& id,
+      const kovri::core::IdentHash& id,
       std::unique_ptr<I2PServerTunnel> tunnel);
 
   /// @brief Sets the I2PControl service
@@ -176,7 +176,7 @@ class ClientContext {
 
   /// @return the server tunnel with the given identity hash, or nullptr
   std::unique_ptr<I2PServerTunnel> GetServerTunnel(
-      const kovri::data::IdentHash& id);
+      const kovri::core::IdentHash& id);
 
   /// @return the client tunnel with the given name, or nullptr
   std::unique_ptr<I2PClientTunnel> GetClientTunnel(
@@ -190,7 +190,7 @@ class ClientContext {
 
  private:
   std::mutex m_DestinationsMutex;
-  std::map<kovri::data::IdentHash, std::shared_ptr<ClientDestination>> m_Destinations;
+  std::map<kovri::core::IdentHash, std::shared_ptr<ClientDestination>> m_Destinations;
   std::shared_ptr<ClientDestination> m_SharedLocalDestination;
 
   AddressBook m_AddressBook;
@@ -204,14 +204,14 @@ class ClientContext {
 
   std::mutex m_ServerMutex;
   // destination->tunnel
-  std::map<kovri::data::IdentHash, std::unique_ptr<I2PServerTunnel>> m_ServerTunnels;
+  std::map<kovri::core::IdentHash, std::unique_ptr<I2PServerTunnel>> m_ServerTunnels;
 
 
   // types for accessing client / server tunnel map entries
   typedef std::pair<const int,
                     std::unique_ptr<I2PClientTunnel>> ClientTunnelEntry;
 
-  typedef std::pair<const kovri::data::IdentHash,
+  typedef std::pair<const kovri::core::IdentHash,
                     std::unique_ptr<I2PServerTunnel>> ServerTunnelEntry;
 
   boost::asio::io_service m_Service;

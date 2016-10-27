@@ -48,7 +48,7 @@ namespace client {
 I2PTunnelConnection::I2PTunnelConnection(
     I2PService* owner,
     std::shared_ptr<boost::asio::ip::tcp::socket> socket,
-    std::shared_ptr<const kovri::data::LeaseSet> lease_set,
+    std::shared_ptr<const kovri::core::LeaseSet> lease_set,
     int port)
     : I2PServiceHandler(owner),
       m_Socket(socket),
@@ -286,7 +286,7 @@ class I2PClientTunnelHandler
  public:
   I2PClientTunnelHandler(
       I2PClientTunnel* parent,
-      kovri::data::IdentHash destination,
+      kovri::core::IdentHash destination,
       int destination_port,
       std::shared_ptr<boost::asio::ip::tcp::socket> socket)
     : I2PServiceHandler(parent),
@@ -298,7 +298,7 @@ class I2PClientTunnelHandler
 
  private:
   void HandleStreamRequestComplete(std::shared_ptr<kovri::client::Stream> stream);
-  kovri::data::IdentHash m_DestinationIdentHash;
+  kovri::core::IdentHash m_DestinationIdentHash;
   int m_DestinationPort;
   std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
 };
@@ -373,11 +373,11 @@ void I2PClientTunnel::Stop() {
 }
 
 /* HACK: maybe we should create a caching IdentHash provider in AddressBook */
-std::unique_ptr<const kovri::data::IdentHash> I2PClientTunnel::GetIdentHash() {
+std::unique_ptr<const kovri::core::IdentHash> I2PClientTunnel::GetIdentHash() {
   if (!m_DestinationIdentHash) {
-    kovri::data::IdentHash ident_hash;
+    kovri::core::IdentHash ident_hash;
     if (kovri::client::context.GetAddressBook().CheckAddressIdentHashFound(m_Destination, ident_hash))
-      m_DestinationIdentHash = std::make_unique<kovri::data::IdentHash>(ident_hash);
+      m_DestinationIdentHash = std::make_unique<kovri::core::IdentHash>(ident_hash);
     else
       LogPrint(eLogWarn,
           "I2PClientTunnel: remote destination ", m_Destination, " not found");
@@ -526,7 +526,7 @@ void I2PServerTunnel::UpdateStreamingPort(
 }
 
 void I2PServerTunnel::SetAccessList(
-    const std::set<kovri::data::IdentHash>& access_list) {
+    const std::set<kovri::core::IdentHash>& access_list) {
   m_AccessList = access_list;
   m_IsAccessList = true;
 }
@@ -610,12 +610,12 @@ void I2PServerTunnelHTTP::CreateI2PConnection(
 }
 void I2PServerTunnel::SetAccessListString(
     const std::string& idents_str) {
-  std::set<kovri::data::IdentHash> idents;
+  std::set<kovri::core::IdentHash> idents;
   if (idents_str.length() > 0) {
     size_t pos = 0, comma;
     do {
       comma = idents_str.find(',', pos);
-      kovri::data::IdentHash ident;
+      kovri::core::IdentHash ident;
       ident.FromBase32(
           idents_str.substr(
               pos,

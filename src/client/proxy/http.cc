@@ -48,7 +48,8 @@
 #include "client/tunnel.h"
 #include "client/util/http.h"
 
-#include "core/identity.h"
+#include "core/router/identity.h"
+
 #include "core/util/i2p_endian.h"
 
 namespace kovri {

@@ -41,7 +41,7 @@
 #include <vector>
 
 namespace kovri {
-namespace util {
+namespace core {
 
 template<typename Element>
 class Queue {
@@ -188,7 +188,7 @@ class MsgQueue : public Queue<Msg *> {
   std::thread m_Thread;
 };
 
-}  // namespace util
+}  // namespace core
 }  // namespace kovri
 
 #endif  // SRC_CORE_UTIL_QUEUE_H_

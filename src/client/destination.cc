@@ -47,8 +47,10 @@
 
 #include "core/crypto/elgamal.h"
 #include "core/crypto/rand.h"
-#include "core/identity.h"
-#include "core/net_db.h"
+
+#include "core/router/identity.h"
+#include "core/router/net_db/net_db.h"
+
 #include "core/util/log.h"
 #include "core/util/timestamp.h"
 
@@ -56,7 +58,7 @@ namespace kovri {
 namespace client {
 
 ClientDestination::ClientDestination(
-    const kovri::data::PrivateKeys& keys,
+    const kovri::core::PrivateKeys& keys,
     bool is_public,
     const std::map<std::string, std::string> * params)
     : m_IsRunning(false),
@@ -68,14 +70,14 @@ ClientDestination::ClientDestination(
       m_DatagramDestination(nullptr),
       m_PublishConfirmationTimer(m_Service),
       m_CleanupTimer(m_Service) {
-  kovri::crypto::GenerateElGamalKeyPair(
+  kovri::core::GenerateElGamalKeyPair(
       m_EncryptionPrivateKey,
       m_EncryptionPublicKey);
   int inbound_tunnel_len = DEFAULT_INBOUND_TUNNEL_LENGTH,
       outbound_tunnel_len = DEFAULT_OUTBOUND_TUNNEL_LENGTH,
       inbound_tunnels_quantity = DEFAULT_INBOUND_TUNNELS_QUANTITY,
       outbound_tunnels_quantity = DEFAULT_OUTBOUND_TUNNELS_QUANTITY;
-  std::shared_ptr<std::vector<kovri::data::IdentHash> > explicit_peers;
+  std::shared_ptr<std::vector<kovri::core::IdentHash> > explicit_peers;
   if (params) {
     auto it = params->find(I2CP_PARAM_INBOUND_TUNNEL_LENGTH);
     if (it != params->end()) {
@@ -114,11 +116,11 @@ ClientDestination::ClientDestination(
     }
     it = params->find(I2CP_PARAM_EXPLICIT_PEERS);
     if (it != params->end()) {
-      explicit_peers = std::make_shared<std::vector<kovri::data::IdentHash> >();
+      explicit_peers = std::make_shared<std::vector<kovri::core::IdentHash> >();
       std::stringstream ss(it->second);
       std::string b64;
       while (std::getline(ss, b64, ',')) {
-        kovri::data::IdentHash ident;
+        kovri::core::IdentHash ident;
         ident.FromBase64(b64);
         explicit_peers->push_back(ident);
       }
@@ -127,7 +129,7 @@ ClientDestination::ClientDestination(
     }
   }
   m_Pool =
-    kovri::tunnel::tunnels.CreateTunnelPool(
+    kovri::core::tunnels.CreateTunnelPool(
         this,
         inbound_tunnel_len,
         outbound_tunnel_len,
@@ -138,7 +140,7 @@ ClientDestination::ClientDestination(
   if (m_IsPublic)
     LogPrint(eLogInfo,
         "ClientDestination: created local address ",
-        kovri::data::GetB32Address(GetIdentHash()));
+        kovri::core::GetB32Address(GetIdentHash()));
   // TODO(unassigned): ???
   m_StreamingDestination =
     std::make_shared<kovri::client::StreamingDestination> (*this);
@@ -202,8 +204,8 @@ void ClientDestination::Stop() {
     }
     if (m_Pool) {
       m_Pool->SetLocalDestination(nullptr);
-      kovri::tunnel::tunnels.StopTunnelPool(m_Pool);
-      kovri::tunnel::tunnels.DeleteTunnelPool(m_Pool);
+      kovri::core::tunnels.StopTunnelPool(m_Pool);
+      kovri::core::tunnels.DeleteTunnelPool(m_Pool);
     }
     m_Service.stop();
     if (m_Thread) {
@@ -213,8 +215,8 @@ void ClientDestination::Stop() {
   }
 }
 
-std::shared_ptr<const kovri::data::LeaseSet> ClientDestination::FindLeaseSet(
-    const kovri::data::IdentHash& ident) {
+std::shared_ptr<const kovri::core::LeaseSet> ClientDestination::FindLeaseSet(
+    const kovri::core::IdentHash& ident) {
   auto it = m_RemoteLeaseSets.find(ident);
   if (it != m_RemoteLeaseSets.end()) {
     if (it->second->HasNonExpiredLeases())
@@ -223,7 +225,7 @@ std::shared_ptr<const kovri::data::LeaseSet> ClientDestination::FindLeaseSet(
       LogPrint(eLogInfo,
           "ClientDestination: all leases of remote LeaseSet expired");
   } else {
-    auto ls = kovri::data::netdb.FindLeaseSet(ident);
+    auto ls = kovri::core::netdb.FindLeaseSet(ident);
     if (ls) {
       m_RemoteLeaseSets[ident] = ls;
       return ls;
@@ -232,7 +234,7 @@ std::shared_ptr<const kovri::data::LeaseSet> ClientDestination::FindLeaseSet(
   return nullptr;
 }
 
-std::shared_ptr<const kovri::data::LeaseSet> ClientDestination::GetLeaseSet() {
+std::shared_ptr<const kovri::core::LeaseSet> ClientDestination::GetLeaseSet() {
   if (!m_Pool)
     return nullptr;
   if (!m_LeaseSet)
@@ -241,7 +243,7 @@ std::shared_ptr<const kovri::data::LeaseSet> ClientDestination::GetLeaseSet() {
 }
 
 void ClientDestination::UpdateLeaseSet() {
-  m_LeaseSet.reset(new kovri::data::LeaseSet(*m_Pool));
+  m_LeaseSet.reset(new kovri::core::LeaseSet(*m_Pool));
 }
 
 bool ClientDestination::SubmitSessionKey(
@@ -279,7 +281,7 @@ void ClientDestination::ProcessDeliveryStatusMessage(
 void ClientDestination::HandleI2NPMessage(
     const uint8_t* buf,
     size_t,
-    std::shared_ptr<kovri::tunnel::InboundTunnel> from) {
+    std::shared_ptr<kovri::core::InboundTunnel> from) {
   uint8_t type_ID = buf[I2NP_HEADER_TYPEID_OFFSET];
   switch (type_ID) {
     case e_I2NPData:
@@ -328,7 +330,7 @@ void ClientDestination::HandleDatabaseStoreMessage(
     offset += 36;
   }
   // LeaseSet
-  std::shared_ptr<kovri::data::LeaseSet> lease_set;
+  std::shared_ptr<kovri::core::LeaseSet> lease_set;
   if (buf[DATABASE_STORE_TYPE_OFFSET] == 1) {
     LogPrint(eLogDebug, "ClientDestination: remote LeaseSet");
     auto it = m_RemoteLeaseSets.find(buf + DATABASE_STORE_KEY_OFFSET);
@@ -344,7 +346,7 @@ void ClientDestination::HandleDatabaseStoreMessage(
       }
     } else {
       lease_set =
-        std::make_shared<kovri::data::LeaseSet> (buf + offset, len - offset);
+        std::make_shared<kovri::core::LeaseSet> (buf + offset, len - offset);
       if (lease_set->IsValid()) {
         LogPrint(eLogDebug, "ClientDestination: new remote LeaseSet added");
         m_RemoteLeaseSets[buf + DATABASE_STORE_KEY_OFFSET] = lease_set;
@@ -372,7 +374,7 @@ void ClientDestination::HandleDatabaseStoreMessage(
 void ClientDestination::HandleDatabaseSearchReplyMessage(
     const uint8_t* buf,
     size_t) {
-  kovri::data::IdentHash key(buf);
+  kovri::core::IdentHash key(buf);
   int num = buf[32];  // num
   LogPrint(eLogInfo,
       "ClientDestination: DatabaseSearchReply for ",
@@ -383,8 +385,8 @@ void ClientDestination::HandleDatabaseSearchReplyMessage(
     bool found = false;
     if (request->excluded.size() < MAX_NUM_FLOODFILLS_PER_REQUEST) {
       for (int i = 0; i < num; i++) {
-        kovri::data::IdentHash peer_hash(buf + 33 + i * 32);
-        auto floodfill = kovri::data::netdb.FindRouter(peer_hash);
+        kovri::core::IdentHash peer_hash(buf + 33 + i * 32);
+        auto floodfill = kovri::core::netdb.FindRouter(peer_hash);
         if (floodfill) {
           LogPrint(eLogInfo,
               "ClientDestination: requesting ",
@@ -394,7 +396,7 @@ void ClientDestination::HandleDatabaseSearchReplyMessage(
         } else {
           LogPrint(eLogInfo,
               "ClientDestination: found new floodfill, requesting it");
-          kovri::data::netdb.RequestDestination(peer_hash);
+          kovri::core::netdb.RequestDestination(peer_hash);
         }
       }
       if (!found)
@@ -426,12 +428,12 @@ void ClientDestination::HandleDeliveryStatusMessage(
     m_ExcludedFloodfills.clear();
     m_PublishReplyToken = 0;
   } else {
-    kovri::garlic::GarlicDestination::HandleDeliveryStatusMessage(msg);
+    kovri::core::GarlicDestination::HandleDeliveryStatusMessage(msg);
   }
 }
 
 void ClientDestination::SetLeaseSetUpdated() {
-  kovri::garlic::GarlicDestination::SetLeaseSetUpdated();
+  kovri::core::GarlicDestination::SetLeaseSetUpdated();
   UpdateLeaseSet();
   if (m_IsPublic)
     Publish();
@@ -453,9 +455,9 @@ void ClientDestination::Publish() {
         "ClientDestination: can't publish LeaseSet, no outbound tunnels");
     return;
   }
-  std::set<kovri::data::IdentHash> excluded;
+  std::set<kovri::core::IdentHash> excluded;
   auto floodfill =
-    kovri::data::netdb.GetClosestFloodfill(
+    kovri::core::netdb.GetClosestFloodfill(
         m_LeaseSet->GetIdentHash(),
         m_ExcludedFloodfills);
   if (!floodfill) {
@@ -467,7 +469,7 @@ void ClientDestination::Publish() {
   m_ExcludedFloodfills.insert(floodfill->GetIdentHash());
   LogPrint(eLogDebug,
       "ClientDestination: publish LeaseSet of ", GetIdentHash().ToBase32());
-  m_PublishReplyToken = kovri::crypto::Rand<uint32_t>();
+  m_PublishReplyToken = kovri::core::Rand<uint32_t>();
   auto msg =
     WrapMessage(
         floodfill,
@@ -537,7 +539,7 @@ void ClientDestination::HandleDataMessage(
 
 void ClientDestination::CreateStream(
     StreamRequestComplete stream_request_complete,
-    const kovri::data::IdentHash& dest,
+    const kovri::core::IdentHash& dest,
     int port) {
   assert(stream_request_complete);
   auto lease_set = FindLeaseSet(dest);
@@ -550,7 +552,7 @@ void ClientDestination::CreateStream(
     RequestDestination(
         dest,
         [this, stream_request_complete, port](
-          std::shared_ptr<kovri::data::LeaseSet> ls) {
+          std::shared_ptr<kovri::core::LeaseSet> ls) {
         if (ls)
           stream_request_complete(
               CreateStream(
@@ -563,7 +565,7 @@ void ClientDestination::CreateStream(
 }
 
 std::shared_ptr<kovri::client::Stream> ClientDestination::CreateStream(
-    std::shared_ptr<const kovri::data::LeaseSet> remote,
+    std::shared_ptr<const kovri::core::LeaseSet> remote,
     int port) {
   if (m_StreamingDestination)
     return m_StreamingDestination->CreateNewOutgoingStream(remote, port);
@@ -619,7 +621,7 @@ DatagramDestination* ClientDestination::CreateDatagramDestination() {
 }
 
 bool ClientDestination::RequestDestination(
-    const kovri::data::IdentHash& dest,
+    const kovri::core::IdentHash& dest,
     RequestComplete request_complete) {
   if (!m_Pool || !IsReady()) {
     if (request_complete)
@@ -636,11 +638,11 @@ bool ClientDestination::RequestDestination(
 }
 
 void ClientDestination::RequestLeaseSet(
-    const kovri::data::IdentHash& dest,
+    const kovri::core::IdentHash& dest,
     RequestComplete request_complete) {
-  std::set<kovri::data::IdentHash> excluded;
+  std::set<kovri::core::IdentHash> excluded;
   auto floodfill =
-    kovri::data::netdb.GetClosestFloodfill(
+    kovri::core::netdb.GetClosestFloodfill(
         dest,
         excluded);
   if (floodfill) {
@@ -648,7 +650,7 @@ void ClientDestination::RequestLeaseSet(
     request->request_complete = request_complete;
     auto ret =
       m_LeaseSetRequests.insert(
-          std::pair<kovri::data::IdentHash, LeaseSetRequest *>(
+          std::pair<kovri::core::IdentHash, LeaseSetRequest *>(
             dest,
             request));
     if (ret.second) {  // inserted
@@ -673,8 +675,8 @@ void ClientDestination::RequestLeaseSet(
 }
 
 bool ClientDestination::SendLeaseSetRequest(
-    const kovri::data::IdentHash& dest,
-    std::shared_ptr<const kovri::data::RouterInfo> next_floodfill,
+    const kovri::core::IdentHash& dest,
+    std::shared_ptr<const kovri::core::RouterInfo> next_floodfill,
     LeaseSetRequest* request) {
   auto reply_tunnel = m_Pool->GetNextInboundTunnel();
   if (!reply_tunnel)
@@ -684,11 +686,11 @@ bool ClientDestination::SendLeaseSetRequest(
     LogPrint(eLogError, "ClientDestination: no outbound tunnels found");
   if (reply_tunnel && outbound_tunnel) {
     request->excluded.insert(next_floodfill->GetIdentHash());
-    request->request_time = kovri::util::GetSecondsSinceEpoch();
+    request->request_time = kovri::core::GetSecondsSinceEpoch();
     request->request_timeout_timer.cancel();
     uint8_t reply_key[32], reply_tag[32];
-    kovri::crypto::RandBytes(reply_key, 32);  // random session key
-    kovri::crypto::RandBytes(reply_tag, 32);  // random session tag
+    kovri::core::RandBytes(reply_key, 32);  // random session key
+    kovri::core::RandBytes(reply_tag, 32);  // random session tag
     AddSessionKey(reply_key, reply_tag);
     auto msg =
       WrapMessage(
@@ -700,8 +702,8 @@ bool ClientDestination::SendLeaseSetRequest(
             reply_key,
             reply_tag));
     outbound_tunnel->SendTunnelDataMsg({
-        kovri::tunnel::TunnelMessageBlock {
-            kovri::tunnel::e_DeliveryTypeRouter,
+        kovri::core::TunnelMessageBlock {
+            kovri::core::e_DeliveryTypeRouter,
             next_floodfill->GetIdentHash(),
             0,
             msg
@@ -724,15 +726,15 @@ bool ClientDestination::SendLeaseSetRequest(
 
 void ClientDestination::HandleRequestTimoutTimer(
     const boost::system::error_code& ecode,
-    const kovri::data::IdentHash& dest) {
+    const kovri::core::IdentHash& dest) {
   if (ecode != boost::asio::error::operation_aborted) {
     auto it = m_LeaseSetRequests.find(dest);
     if (it != m_LeaseSetRequests.end()) {
       bool done = false;
-      uint64_t ts = kovri::util::GetSecondsSinceEpoch();
+      uint64_t ts = kovri::core::GetSecondsSinceEpoch();
       if (ts < it->second->request_time + MAX_LEASESET_REQUEST_TIMEOUT) {
         auto floodfill =
-          kovri::data::netdb.GetClosestFloodfill(
+          kovri::core::netdb.GetClosestFloodfill(
               dest,
               it->second->excluded);
         if (floodfill)

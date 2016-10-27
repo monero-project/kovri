@@ -30,16 +30,17 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "crypto/signature.h"
+#include "core/crypto/signature.h"
 
 #include <cstring>
 #include <cstdint>
 
+#include "core/crypto/rand.h"
+
 #include "ed25519/ed25519_ref10.h"
-#include "crypto/rand.h"
 
 namespace kovri {
-namespace crypto {
+namespace core {
 
 /**
  *
@@ -156,7 +157,7 @@ void EDDSA25519Signer::Sign(
 void CreateEDDSARandomKeys(
     std::uint8_t* privateKey,
     std::uint8_t* publicKey) {
-  kovri::crypto::RandBytes(
+  kovri::core::RandBytes(
       privateKey,
       EDDSA25519_PRIVATE_KEY_LENGTH);
   ed25519_ref10_pubkey(
@@ -164,5 +165,5 @@ void CreateEDDSARandomKeys(
       privateKey);
 }
 
-}  // namespace crypto
+}  // namespace core
 }  // namespace kovri

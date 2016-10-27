@@ -6,7 +6,7 @@
 inline void crypto_hash_sha512(unsigned char* output, const unsigned char* input,
  size_t len)
 {
-  kovri::crypto::SHA512().CalculateDigest(output, input, len);
+  kovri::core::SHA512().CalculateDigest(output, input, len);
 }
 
 inline void crypto_hash_sha512_2(unsigned char* out,
@@ -14,7 +14,7 @@ inline void crypto_hash_sha512_2(unsigned char* out,
     const unsigned char* in2, size_t len2
 )
 {
-  kovri::crypto::SHA512 hash;
+  kovri::core::SHA512 hash;
   hash.Update(in1, len1);
   hash.Update(in2, len2);
   hash.Final(out);
@@ -26,7 +26,7 @@ inline void crypto_hash_sha512_3(unsigned char* out,
     const unsigned char* in3, size_t len3
 )
 {
-  kovri::crypto::SHA512 hash;
+  kovri::core::SHA512 hash;
   hash.Update(in1, len1);
   hash.Update(in2, len2);
   hash.Update(in3, len3);

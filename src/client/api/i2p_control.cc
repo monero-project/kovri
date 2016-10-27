@@ -44,10 +44,12 @@
 #include "client/context.h"
 
 #include "core/crypto/rand.h"
-#include "core/net_db.h"
-#include "core/router_context.h"
-#include "core/transport/transports.h"
-#include "core/tunnel/tunnel.h"
+
+#include "core/router/context.h"
+#include "core/router/net_db/net_db.h"
+#include "core/router/transports/transports.h"
+#include "core/router/tunnel/tunnel.h"
+
 #include "core/util/log.h"
 #include "core/util/timestamp.h"
 #include "core/version.h"
@@ -94,15 +96,15 @@ std::string JsonObject::ToString() const {
 }
 
 JsonObject TunnelToJsonObject(
-    kovri::tunnel::Tunnel* tunnel) {
+    kovri::core::Tunnel* tunnel) {
   JsonObject obj;
   std::stringstream ss;
   tunnel->GetTunnelConfig()->Print(ss);  // TODO(unassigned): use a JsonObject
   obj["layout"] = JsonObject(ss.str());
   const auto state = tunnel->GetState();
-  if (state == kovri::tunnel::e_TunnelStateFailed)
+  if (state == kovri::core::e_TunnelStateFailed)
      obj["state"] = JsonObject("failed");
-  else if (state == kovri::tunnel::e_TunnelStateExpiring)
+  else if (state == kovri::core::e_TunnelStateExpiring)
      obj["state"] = JsonObject("expiring");
   return obj;
 }
@@ -333,7 +335,7 @@ bool I2PControlSession::Authenticate(
     if (it == m_Tokens.end()) {
       response.SetError(ErrorCode::e_NonexistentToken);
       return false;
-    } else if (util::GetSecondsSinceEpoch() - it->second >
+    } else if (kovri::core::GetSecondsSinceEpoch() - it->second >
         TOKEN_LIFETIME) {
       response.SetError(ErrorCode::e_ExpiredToken);
       return false;
@@ -348,7 +350,7 @@ bool I2PControlSession::Authenticate(
 std::string I2PControlSession::GenerateToken() const {
   // Generate random data for token
   std::array<std::uint8_t, TOKEN_SIZE> rand = {};
-  kovri::crypto::RandBytes(rand.data(), TOKEN_SIZE);
+  kovri::core::RandBytes(rand.data(), TOKEN_SIZE);
   // Create base16 token from random data
   std::stringstream token;
   for (std::size_t i(0); i < rand.size(); i++)
@@ -382,7 +384,7 @@ void I2PControlSession::HandleAuthenticate(
   m_Tokens.insert(
       std::make_pair(
         token,
-        util::GetSecondsSinceEpoch()));
+        kovri::core::GetSecondsSinceEpoch()));
 }
 
 void I2PControlSession::HandleEcho(
@@ -479,28 +481,28 @@ void I2PControlSession::HandleNetDbKnownPeers(
     Response& response) {
   response.SetParam(
       ROUTER_INFO_NETDB_KNOWNPEERS,
-      kovri::data::netdb.GetNumRouters());
+      kovri::core::netdb.GetNumRouters());
 }
 
 void I2PControlSession::HandleNetDbActivePeers(
     Response& response) {
   response.SetParam(
       ROUTER_INFO_NETDB_ACTIVEPEERS,
-      static_cast<int>(kovri::transport::transports.GetPeers().size()));
+      static_cast<int>(kovri::core::transports.GetPeers().size()));
 }
 
 void I2PControlSession::HandleNetDbFloodfills(
     Response& response) {
   response.SetParam(
       ROUTER_INFO_NETDB_FLOODFILLS,
-      static_cast<int>(kovri::data::netdb.GetNumFloodfills()));
+      static_cast<int>(kovri::core::netdb.GetNumFloodfills()));
 }
 
 void I2PControlSession::HandleNetDbLeaseSets(
     Response& response) {
   response.SetParam(
       ROUTER_INFO_NETDB_LEASESETS,
-      static_cast<int>(kovri::data::netdb.GetNumLeaseSets()));
+      static_cast<int>(kovri::core::netdb.GetNumLeaseSets()));
 }
 
 void I2PControlSession::HandleNetStatus(
@@ -514,20 +516,20 @@ void I2PControlSession::HandleTunnelsParticipating(
     Response& response) {
   response.SetParam(
       ROUTER_INFO_TUNNELS_PARTICIPATING,
-      static_cast<int>(kovri::tunnel::tunnels.GetTransitTunnels().size()));
+      static_cast<int>(kovri::core::tunnels.GetTransitTunnels().size()));
 }
 
 void I2PControlSession::HandleTunnelsCreationSuccess(
     Response& response) {
   response.SetParam(
       ROUTER_INFO_TUNNELS_CREATION_SUCCESS,
-      kovri::tunnel::tunnels.GetTunnelCreationSuccessRate());
+      kovri::core::tunnels.GetTunnelCreationSuccessRate());
 }
 
 void I2PControlSession::HandleTunnelsInList(
     Response& response) {
   JsonObject list;
-  for (auto pair : kovri::tunnel::tunnels.GetInboundTunnels()) {
+  for (auto pair : kovri::core::tunnels.GetInboundTunnels()) {
     const std::string id = std::to_string(pair.first);
     list[id] = TunnelToJsonObject(pair.second.get());
     list[id]["bytes"] = JsonObject(
@@ -541,7 +543,7 @@ void I2PControlSession::HandleTunnelsInList(
 void I2PControlSession::HandleTunnelsOutList(
     Response& response) {
   JsonObject list;
-  for (auto tunnel : kovri::tunnel::tunnels.GetOutboundTunnels()) {
+  for (auto tunnel : kovri::core::tunnels.GetOutboundTunnels()) {
     const std::string id = std::to_string(
         tunnel->GetTunnelID());
     list[id] = TunnelToJsonObject(tunnel.get());
@@ -557,14 +559,14 @@ void I2PControlSession::HandleInBandwidth1S(
     Response& response) {
   response.SetParam(
       ROUTER_INFO_BW_IB_1S,
-      static_cast<double>(kovri::transport::transports.GetInBandwidth()));
+      static_cast<double>(kovri::core::transports.GetInBandwidth()));
 }
 
 void I2PControlSession::HandleOutBandwidth1S(
     Response& response) {
   response.SetParam(
       ROUTER_INFO_BW_OB_1S,
-      static_cast<double>(kovri::transport::transports.GetOutBandwidth()));
+      static_cast<double>(kovri::core::transports.GetOutBandwidth()));
 }
 
 void I2PControlSession::HandleShutdown(
@@ -587,7 +589,7 @@ void I2PControlSession::HandleShutdownGraceful(
   // Stop accepting tunnels
   kovri::context.SetAcceptsTunnels(false);
   // Get tunnel expiry time
-  int timeout = kovri::tunnel::tunnels.GetTransitTunnelsExpirationTimeout();
+  int timeout = kovri::core::tunnels.GetTransitTunnelsExpirationTimeout();
   LogPrint(eLogInfo,
       "I2PControlSession: graceful shutdown requested."
       "Will shutdown after ", timeout, " seconds");
@@ -621,7 +623,7 @@ void I2PControlSession::ExpireTokens(
     return;  // Do not restart timer, shutting down
   StartExpireTokensJob();
   LogPrint(eLogDebug, "I2PControlSession: expiring tokens");
-  const uint64_t now = util::GetSecondsSinceEpoch();
+  const uint64_t now = kovri::core::GetSecondsSinceEpoch();
   std::lock_guard<std::mutex> lock(m_TokensMutex);
   for (auto it = m_Tokens.begin(); it != m_Tokens.end(); ) {
     if (now - it->second > TOKEN_LIFETIME)

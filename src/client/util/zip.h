@@ -149,7 +149,7 @@ class ZIP {
   };
 
   // ZIP stream
-  kovri::util::filesystem::StringStream m_Stream;
+  kovri::core::StringStream m_Stream;
 
   // ZIP spec-defined data
   std::unique_ptr<Data> m_Data;

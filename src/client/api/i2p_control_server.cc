@@ -40,6 +40,7 @@
 #include <memory>
 
 #include "core/version.h"
+
 #include "core/util/log.h"
 #include "core/util/timestamp.h"
 

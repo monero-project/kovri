@@ -35,7 +35,7 @@
 #include <cstdint>
 
 namespace kovri {
-namespace crypto {
+namespace core {
 
 /// @class DiffieHellman
 /// @brief Diffie-Hellman
@@ -66,7 +66,7 @@ class DiffieHellman {
   std::unique_ptr<DiffieHellmanImpl> m_DiffieHellmanPimpl;
 };
 
-}  // namespace crypto
+}  // namespace core
 }  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_DIFFIEHELLMAN_H_

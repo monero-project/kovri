@@ -36,7 +36,7 @@
 #include <cstdint>
 
 namespace kovri {
-namespace crypto {
+namespace core {
 
 class Verifier {
  public:
@@ -74,7 +74,7 @@ class RawVerifier {
       const std::uint8_t* signature) = 0;
 };
 
-}  // namespace crypto
+}  // namespace core
 }  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_SIGNATUREBASE_H_

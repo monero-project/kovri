@@ -37,7 +37,7 @@
 #include <string.h>
 
 namespace kovri {
-namespace util {
+namespace core {
 
   /*
    * Base64 encodes an array of bytes.
@@ -99,7 +99,7 @@ namespace util {
       char* out_buf,
       size_t out_len);
 
-}  // namespace util
+}  // namespace core
 }  // namespace kovri
 
 #endif  // SRC_CORE_UTIL_BASE64_H_

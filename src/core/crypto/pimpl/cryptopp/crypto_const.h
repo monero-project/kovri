@@ -36,7 +36,7 @@
 #include <cryptopp/integer.h>
 
 namespace kovri {
-namespace crypto {
+namespace core {
 
 struct CryptoConstants {
   // ElGamal/Diffie-Hellman
@@ -63,7 +63,7 @@ const CryptoConstants& GetCryptoConstants();
 // RSA
 const int rsae = 65537;
 
-}  // namespace crypto
+}  // namespace core
 }  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_PIMPL_CRYPTOPP_CRYPTOCONST_H_

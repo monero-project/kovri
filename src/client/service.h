@@ -43,7 +43,7 @@
 
 #include "client/destination.h"
 
-#include "core/identity.h"
+#include "core/router/identity.h"
 
 namespace kovri {
 namespace client {
@@ -54,7 +54,7 @@ class I2PService {
   explicit I2PService(
       std::shared_ptr<ClientDestination> local_destination = nullptr);
   explicit I2PService(
-      kovri::data::SigningKeyType kt);
+      kovri::core::SigningKeyType kt);
   virtual ~I2PService() { ClearHandlers(); }
 
   inline void AddHandler(
@@ -164,7 +164,7 @@ class TCPIPAcceptor : public I2PService {
   TCPIPAcceptor(
       const std::string& address,
       int port,
-      kovri::data::SigningKeyType kt)
+      kovri::core::SigningKeyType kt)
     : I2PService(kt),
       m_Address(address),
       m_Acceptor(

@@ -28,7 +28,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#include "crypto/util/compression.h"
+#include "core/crypto/util/compression.h"
 
 #include <cryptopp/crc.h>
 #include <cryptopp/gzip.h>
@@ -36,11 +36,10 @@
 
 #include <cstdint>
 
-#include "util/log.h"
+#include "core/util/log.h"
 
 namespace kovri {
-namespace crypto {
-namespace util {
+namespace core {
 
 /// @class DeflateDecompressorImpl
 /// @brief RFC 1951 DEFLATE Decompressor
@@ -314,6 +313,5 @@ std::size_t Gunzip::MaxRetrievable() {
   return m_GunzipPimpl->MaxRetrievable();
 }
 
-}  // namespace util
-}  // namespace crypto
+}  // namespace core
 }  // namespace kovri

@@ -35,7 +35,7 @@
 #include <stdlib.h>
 
 namespace kovri {
-namespace util {
+namespace core {
 
 static void iT64Build(void);
 
@@ -249,5 +249,5 @@ size_t ByteStreamToBase32(
   return ret;
 }
 
-}  // namespace util
+}  // namespace core
 }  // namespace kovri

@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "crypto/elgamal.h"
+#include "core/crypto/elgamal.h"
 
 #include <cryptopp/integer.h>
 #include <cryptopp/osrng.h>
@@ -39,12 +39,14 @@
 #include <array>
 
 #include "crypto_const.h"
-#include "crypto/diffie_hellman.h"
-#include "crypto/rand.h"
-#include "util/log.h"
+
+#include "core/crypto/diffie_hellman.h"
+#include "core/crypto/rand.h"
+
+#include "core/util/log.h"
 
 namespace kovri {
-namespace crypto {
+namespace core {
 
 /// @class ElGamalEncryptionImpl
 /// @brief ElGamal encryption
@@ -171,5 +173,5 @@ void GenerateElGamalKeyPair(
   }
 }
 
-}  //  namespace crypto
+}  //  namespace core
 }  //  namespace kovri

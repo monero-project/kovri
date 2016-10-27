@@ -45,7 +45,7 @@
 #include "client/destination.h"
 #include "client/service.h"
 
-#include "core/identity.h"
+#include "core/router/identity.h"
 
 namespace kovri {
 namespace client {
@@ -63,7 +63,7 @@ class I2PTunnelConnection
   I2PTunnelConnection(
       I2PService* owner,
       std::shared_ptr<boost::asio::ip::tcp::socket> socket,
-      std::shared_ptr<const kovri::data::LeaseSet> lease_set,
+      std::shared_ptr<const kovri::core::LeaseSet> lease_set,
       int port = 0);
 
   // To I2P using simplified API
@@ -166,10 +166,10 @@ class I2PClientTunnel : public TCPIPAcceptor {
   std::string GetName() const;
 
  private:
-  std::unique_ptr<const kovri::data::IdentHash> GetIdentHash();
+  std::unique_ptr<const kovri::core::IdentHash> GetIdentHash();
   std::string m_TunnelName;
   std::string m_Destination;
-  std::unique_ptr<const kovri::data::IdentHash> m_DestinationIdentHash;
+  std::unique_ptr<const kovri::core::IdentHash> m_DestinationIdentHash;
   int m_DestinationPort;
 };
 
@@ -187,7 +187,7 @@ class I2PServerTunnel : public I2PService {
   void Stop();
 
   void SetAccessList(
-      const std::set<kovri::data::IdentHash>& access_list);
+      const std::set<kovri::core::IdentHash>& access_list);
 
   // set access list given csv
   void SetAccessListString(
@@ -240,7 +240,7 @@ class I2PServerTunnel : public I2PService {
   int m_Port;
   boost::asio::ip::tcp::endpoint m_Endpoint;
   std::shared_ptr<kovri::client::StreamingDestination> m_PortDestination;
-  std::set<kovri::data::IdentHash> m_AccessList;
+  std::set<kovri::core::IdentHash> m_AccessList;
   bool m_IsAccessList;
 };
 

@@ -40,8 +40,7 @@
 #include <string>
 
 namespace kovri {
-namespace util {
-namespace filesystem {
+namespace core {
 
 /// @class StringStream
 /// @details A wrapper for casting and strongly-typed classes
@@ -94,8 +93,7 @@ boost::filesystem::path GetSSLCertsPath();
 /// @return the path to log storage
 const boost::filesystem::path GetLogsPath();
 
-}  // namespace filesystem
-}  // namespace util
+}  // namespace core
 }  // namespace kovri
 
 #endif  // SRC_CORE_UTIL_FILESYSTEM_H_

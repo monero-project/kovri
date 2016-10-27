@@ -36,10 +36,10 @@
 #include <cstdint>
 #include <memory>
 
-#include "aes.h"
+#include "core/crypto/aes.h"
 
 namespace kovri {
-namespace crypto {
+namespace core {
 
 /// @class TunnelEncryption
 class TunnelEncryption {  // with double IV encryption
@@ -79,7 +79,7 @@ class TunnelDecryption {  // with double IV encryption
   std::unique_ptr<TunnelDecryptionImpl> m_TunnelDecryptionPimpl;
 };
 
-}  // namespace crypto
+}  // namespace core
 }  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_TUNNEL_H_

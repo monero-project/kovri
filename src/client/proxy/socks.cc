@@ -42,7 +42,8 @@
 #include "client/destination.h"
 #include "client/tunnel.h"
 
-#include "core/identity.h"
+#include "core/router/identity.h"
+
 #include "core/util/i2p_endian.h"
 
 namespace kovri {

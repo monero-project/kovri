@@ -36,7 +36,7 @@
 #include <cstddef>
 
 namespace kovri {
-namespace util {
+namespace core {
 
 /// @class InputByteStream
 /// @brief Wraps an array of bytes to provide stream-like functionality.
@@ -133,7 +133,7 @@ class OutputByteStream {
   std::size_t m_Length; ///< Remaining length of the stream
 };
 
-} // namespace util
+} // namespace core
 } // namespace kovri
 
 #endif  // SRC_CORE_UTIL_BYTESTREAM_H_

@@ -45,7 +45,9 @@
 #include "client/util/zip.h"
 
 #include "core/crypto/util/x509.h"
-#include "core/router_context.h"
+
+#include "core/router/context.h"
+
 #include "core/util/filesystem.h"
 
 namespace kovri {
@@ -97,10 +99,10 @@ class Reseed {
 
  private:
   // X.509 object used for SU3 verification
-  kovri::crypto::util::X509 m_X509;
+  kovri::core::X509 m_X509;
 
   // X.509 signing keys for SU3 verification
-  std::map<std::string, kovri::crypto::util::PublicKey> m_SigningKeys;
+  std::map<std::string, kovri::core::PublicKey> m_SigningKeys;
 
   // The URI which will be the SU3
   std::string m_Stream;
@@ -133,7 +135,7 @@ class Reseed {
 class SU3 {
  public:
   SU3(const std::string& su3,
-      std::map<std::string, kovri::crypto::util::PublicKey>& keys)
+      std::map<std::string, kovri::core::PublicKey>& keys)
       : m_Stream(su3),
         m_SigningKeys(keys),
         m_Data(std::make_unique<Data>()) {}
@@ -195,7 +197,7 @@ class SU3 {
 
   struct Data {
     std::array<char, static_cast<std::uint8_t>(Size::magic_number)> magic_number;
-    kovri::data::SigningKeyType signature_type;
+    kovri::core::SigningKeyType signature_type;
     std::uint16_t signature_length;
     std::uint8_t version_length;  // Seconds since epoch, in ASCII. $(date +%s)
     std::uint8_t signer_id_length;
@@ -208,10 +210,10 @@ class SU3 {
   };
 
   // Complete SU3 Stream
-  kovri::util::filesystem::StringStream m_Stream;
+  kovri::core::StringStream m_Stream;
 
   // X.509 signing keys for SU3 verification
-  std::map<std::string, kovri::crypto::util::PublicKey> m_SigningKeys;
+  std::map<std::string, kovri::core::PublicKey> m_SigningKeys;
 
   // Spec-defined data
   std::unique_ptr<Data> m_Data;

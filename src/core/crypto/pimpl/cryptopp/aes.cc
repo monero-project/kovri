@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "crypto/aes.h"
+#include "core/crypto/aes.h"
 
 #include <cryptopp/aes.h>
 #include <cryptopp/modes.h>
@@ -38,10 +38,11 @@
 #include <stdlib.h>
 
 #include "aesni_macros.h"
-#include "util/log.h"
+
+#include "core/util/log.h"
 
 namespace kovri {
-namespace crypto {
+namespace core {
 
 /// TODO(unassigned): if we switch libraries, we should move AES-NI elsewhere.
 /// TODO(unassigned): ARM support? MSVC x86-64 support?
@@ -588,5 +589,5 @@ void CBCDecryption::Decrypt(
   m_CBCDecryptionPimpl->Decrypt(in, out);
 }
 
-}  //  namespace crypto
+}  //  namespace core
 }  //  namespace kovri

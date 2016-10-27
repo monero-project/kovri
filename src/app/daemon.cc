@@ -46,14 +46,16 @@
 #include "client/context.h"
 #include "client/destination.h"
 
-#include "core/garlic.h"
-#include "core/net_db.h"
-#include "core/router_context.h"
-#include "core/router_info.h"
-#include "core/transport/ntcp_session.h"
-#include "core/transport/transports.h"
-#include "core/tunnel/tunnel.h"
+#include "core/router/context.h"
+#include "core/router/garlic.h"
+#include "core/router/info.h"
+#include "core/router/net_db/net_db.h"
+#include "core/router/transports/ntcp/session.h"
+#include "core/router/transports/transports.h"
+#include "core/router/tunnel/tunnel.h"
+
 #include "core/util/log.h"
+
 #include "core/version.h"
 
 namespace kovri {
@@ -110,11 +112,11 @@ bool Daemon_Singleton::Start() {
       kovri::app::var_map["port"].as<int>());
   try {
     LogPrint(eLogInfo, "Daemon_Singleton: starting NetDb");
-    if (!kovri::data::netdb.Start()) {
+    if (!kovri::core::netdb.Start()) {
       LogPrint(eLogError, "Daemon_Singleton: NetDb failed to start");
       return false;
     }
-    if (kovri::data::netdb.GetNumRouters() < kovri::data::netdb.MIN_REQUIRED_ROUTERS) {
+    if (kovri::core::netdb.GetNumRouters() < kovri::core::netdb.MIN_REQUIRED_ROUTERS) {
       LogPrint(eLogInfo, "Daemon_Singleton: reseeding NetDb");
       kovri::client::Reseed reseed;
       if (!reseed.Start()) {
@@ -123,9 +125,9 @@ bool Daemon_Singleton::Start() {
       }
     }
     LogPrint(eLogInfo, "Daemon_Singleton: starting transports");
-    kovri::transport::transports.Start();
+    kovri::core::transports.Start();
     LogPrint(eLogInfo, "Daemon_Singleton: starting tunnels");
-    kovri::tunnel::tunnels.Start();
+    kovri::core::tunnels.Start();
     LogPrint(eLogInfo, "Daemon_Singleton: starting client");
     kovri::client::context.Start();
   } catch (std::runtime_error& e) {
@@ -140,11 +142,11 @@ bool Daemon_Singleton::Stop() {
     LogPrint(eLogInfo, "Daemon_Singleton: stopping client");
     kovri::client::context.Stop();
     LogPrint(eLogInfo, "Daemon_Singleton: stopping tunnels");
-    kovri::tunnel::tunnels.Stop();
+    kovri::core::tunnels.Stop();
     LogPrint(eLogInfo, "Daemon_Singleton: stopping transports");
-    kovri::transport::transports.Stop();
+    kovri::core::transports.Stop();
     LogPrint(eLogInfo, "Daemon_Singleton: stopping NetDb");
-    kovri::data::netdb.Stop();
+    kovri::core::netdb.Stop();
     LogPrint(eLogInfo, "Goodbye!");
   } catch (std::runtime_error& e) {
     LogPrint(eLogError, "Daemon_Singleton: runtime stop exception: ", e.what());

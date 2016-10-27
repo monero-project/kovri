@@ -1,3 +1,5 @@
+include_directories("../")
+
 set(CLIENT_SRC
   "address_book/address_book.cc"
   "address_book/storage.cc"
@@ -14,11 +16,6 @@ set(CLIENT_SRC
   "tunnel.cc"
   "util/http.cc"
   "util/zip.cc")
-
-include_directories(
-  "."
-  "../"
-  "../core/")
 
 if(WITH_LIBRARY)
   add_library(${CLIENT_NAME} ${CLIENT_SRC})

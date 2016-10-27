@@ -1,6 +1,4 @@
-include_directories(
-  "."
-  "../")
+include_directories("../")
 
 set(CORE_SRC
   "router/context.cc"

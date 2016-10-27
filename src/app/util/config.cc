@@ -33,8 +33,9 @@
 #include <string>
 #include <vector>
 
+#include "core/crypto/rand.h"
+
 #include "core/util/log.h"
-#include "crypto/rand.h"
 
 namespace kovri {
 namespace app {

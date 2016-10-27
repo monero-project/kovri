@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CORE_CRYPTO_SIGNATUREBASE_H_
-#define SRC_CORE_CRYPTO_SIGNATUREBASE_H_
+#ifndef SRC_CORE_CRYPTO_SIGNATURE_BASE_H_
+#define SRC_CORE_CRYPTO_SIGNATURE_BASE_H_
 
 #include <cstdint>
 
@@ -77,4 +77,4 @@ class RawVerifier {
 }  // namespace core
 }  // namespace kovri
 
-#endif  // SRC_CORE_CRYPTO_SIGNATUREBASE_H_
+#endif  // SRC_CORE_CRYPTO_SIGNATURE_BASE_H_

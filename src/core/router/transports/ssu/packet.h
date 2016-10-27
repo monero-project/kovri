@@ -28,8 +28,8 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SRC_CORE_TRANSPORT_SSUPACKET_H_
-#define SRC_CORE_TRANSPORT_SSUPACKET_H_
+#ifndef SRC_CORE_ROUTER_TRANSPORTS_SSU_PACKET_H_
+#define SRC_CORE_ROUTER_TRANSPORTS_SSU_PACKET_H_
 
 #include <cinttypes>
 #include <memory>
@@ -857,4 +857,4 @@ class SSUPacketBuilder : private kovri::core::OutputByteStream {
 }  // namespace core
 }  // namespace kovri
 
-#endif  // SRC_CORE_TRANSPORT_SSUPACKET_H_
+#endif  // SRC_CORE_ROUTER_TRANSPORTS_SSU_PACKET_H_

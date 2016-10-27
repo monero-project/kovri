@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CORE_PROFILING_H_
-#define SRC_CORE_PROFILING_H_
+#ifndef SRC_CORE_ROUTER_PROFILING_H_
+#define SRC_CORE_ROUTER_PROFILING_H_
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 

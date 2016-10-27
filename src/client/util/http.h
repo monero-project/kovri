@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CORE_UTIL_HTTP_H_
-#define SRC_CORE_UTIL_HTTP_H_
+#ifndef SRC_CLIENT_UTIL_HTTP_H_
+#define SRC_CLIENT_UTIL_HTTP_H_
 
 // cpp-netlib
 #define BOOST_NETWORK_ENABLE_HTTPS

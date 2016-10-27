@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CORE_CRYPTO_PIMPL_CRYPTOPP_CRYPTOCONST_H_
-#define SRC_CORE_CRYPTO_PIMPL_CRYPTOPP_CRYPTOCONST_H_
+#ifndef SRC_CORE_CRYPTO_IMPL_CRYPTOPP_CRYPTOCONST_H_
+#define SRC_CORE_CRYPTO_IMPL_CRYPTOPP_CRYPTOCONST_H_
 
 #include <cryptopp/integer.h>
 
@@ -66,4 +66,4 @@ const int rsae = 65537;
 }  // namespace core
 }  // namespace kovri
 
-#endif  // SRC_CORE_CRYPTO_PIMPL_CRYPTOPP_CRYPTOCONST_H_
+#endif  // SRC_CORE_CRYPTO_IMPL_CRYPTOPP_CRYPTOCONST_H_

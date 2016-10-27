@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CLIENT_ADDRESS_BOOK_H_
-#define SRC_CLIENT_ADDRESS_BOOK_H_
+#ifndef SRC_CLIENT_ADDRESS_BOOK_ADDRESS_BOOK_H_
+#define SRC_CLIENT_ADDRESS_BOOK_ADDRESS_BOOK_H_
 
 #include <boost/asio/deadline_timer.hpp>
 

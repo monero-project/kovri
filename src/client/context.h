@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CLIENT_CLIENT_CONTEXT_H_
-#define SRC_CLIENT_CLIENT_CONTEXT_H_
+#ifndef SRC_CLIENT_CONTEXT_H_
+#define SRC_CLIENT_CONTEXT_H_
 
 #include <map>
 #include <memory>

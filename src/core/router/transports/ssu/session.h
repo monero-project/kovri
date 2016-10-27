@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CORE_TRANSPORT_SSU_SESSION_H_
-#define SRC_CORE_TRANSPORT_SSU_SESSION_H_
+#ifndef SRC_CORE_ROUTER_TRANSPORTS_SSU_SESSION_H_
+#define SRC_CORE_ROUTER_TRANSPORTS_SSU_SESSION_H_
 
 #include <cstdint>
 #include <memory>
@@ -387,4 +387,4 @@ class SSUSession
 }  // namespace core
 }  // namespace kovri
 
-#endif  // SRC_CORE_TRANSPORT_SSU_SESSION_H_
+#endif  // SRC_CORE_ROUTER_TRANSPORTS_SSU_SESSION_H_

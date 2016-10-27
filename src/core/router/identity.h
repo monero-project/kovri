@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CORE_IDENTITY_H_
-#define SRC_CORE_IDENTITY_H_
+#ifndef SRC_CORE_ROUTER_IDENTITY_H_
+#define SRC_CORE_ROUTER_IDENTITY_H_
 
 #include <inttypes.h>
 #include <string.h>

@@ -30,14 +30,14 @@ set(CORE_SRC
   "util/byte_stream.cc"
   "util/filesystem.cc"
   "util/mtu.cc"
-  "util/pimpl/log.cc")
+  "util/impl/log.cc")
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
   list(APPEND CORE_SRC "util/i2p_endian.cc")
 endif()
 
 if(WITH_CRYPTOPP)
-  set(CRYPTOPP_DIR "crypto/pimpl/cryptopp")
+  set(CRYPTOPP_DIR "crypto/impl/cryptopp")
 endif()
 
 set(CRYPTO_SRC
@@ -54,8 +54,8 @@ set(CRYPTO_SRC
   "${CRYPTOPP_DIR}/util/x509.cc")
 
 if(WITH_SUPERCOP)
-  set(EDDSA_DIR "crypto/pimpl/supercop")
-  add_subdirectory("crypto/pimpl/supercop/ed25519")
+  set(EDDSA_DIR "crypto/impl/supercop")
+  add_subdirectory("crypto/impl/supercop/ed25519")
 endif()
 
 set(EDDSA_SRC

@@ -33,8 +33,8 @@
 #include <chrono>
 #include <iostream>
 
-#include "crypto/rand.h"
-#include "crypto/signature.h"
+#include "core/crypto/rand.h"
+#include "core/crypto/signature.h"
 
 typedef void (*KeyGenerator)(uint8_t*,uint8_t*) ;
 
@@ -57,7 +57,7 @@ void benchmark(
   std::chrono::nanoseconds verify_duration(0);
   for (std::size_t i = 0; i < count; ++i) {
     try {
-      kovri::crypto::RandBytes(message, 512);
+      kovri::core::RandBytes(message, 512);
       TimePoint begin1 = std::chrono::high_resolution_clock::now();
       signer.Sign(message, 512, output);
       TimePoint end1 = std::chrono::high_resolution_clock::now();
@@ -85,38 +85,38 @@ void benchmark(
 int main() {
   const size_t benchmark_count = 1000;
   std::cout << "--------DSA---------" << std::endl;
-  benchmark<kovri::crypto::DSAVerifier, kovri::crypto::DSASigner>(
+  benchmark<kovri::core::DSAVerifier, kovri::core::DSASigner>(
     benchmark_count,
-    kovri::crypto::DSA_PUBLIC_KEY_LENGTH,
-    kovri::crypto::DSA_PRIVATE_KEY_LENGTH,
-    kovri::crypto::DSA_SIGNATURE_LENGTH,
-    kovri::crypto::CreateDSARandomKeys);
+    kovri::core::DSA_PUBLIC_KEY_LENGTH,
+    kovri::core::DSA_PRIVATE_KEY_LENGTH,
+    kovri::core::DSA_SIGNATURE_LENGTH,
+    kovri::core::CreateDSARandomKeys);
   std::cout << "-----ECDSAP256------" << std::endl;
-  benchmark<kovri::crypto::ECDSAP256Verifier, kovri::crypto::ECDSAP256Signer>(
+  benchmark<kovri::core::ECDSAP256Verifier, kovri::core::ECDSAP256Signer>(
     benchmark_count,
-    kovri::crypto::ECDSAP256_KEY_LENGTH,
-    kovri::crypto::ECDSAP256_KEY_LENGTH / 2,
-    kovri::crypto::ECDSAP256_KEY_LENGTH,
-    kovri::crypto::CreateECDSAP256RandomKeys);
+    kovri::core::ECDSAP256_KEY_LENGTH,
+    kovri::core::ECDSAP256_KEY_LENGTH / 2,
+    kovri::core::ECDSAP256_KEY_LENGTH,
+    kovri::core::CreateECDSAP256RandomKeys);
   std::cout << "-----ECDSAP384------" << std::endl;
-  benchmark<kovri::crypto::ECDSAP384Verifier, kovri::crypto::ECDSAP384Signer>(
+  benchmark<kovri::core::ECDSAP384Verifier, kovri::core::ECDSAP384Signer>(
     benchmark_count,
-    kovri::crypto::ECDSAP384_KEY_LENGTH,
-    kovri::crypto::ECDSAP384_KEY_LENGTH / 2,
-    kovri::crypto::ECDSAP384_KEY_LENGTH,
-    kovri::crypto::CreateECDSAP384RandomKeys);
+    kovri::core::ECDSAP384_KEY_LENGTH,
+    kovri::core::ECDSAP384_KEY_LENGTH / 2,
+    kovri::core::ECDSAP384_KEY_LENGTH,
+    kovri::core::CreateECDSAP384RandomKeys);
   std::cout << "-----ECDSAP521------" << std::endl;
-  benchmark<kovri::crypto::ECDSAP521Verifier, kovri::crypto::ECDSAP521Signer>(
+  benchmark<kovri::core::ECDSAP521Verifier, kovri::core::ECDSAP521Signer>(
     benchmark_count,
-    kovri::crypto::ECDSAP521_KEY_LENGTH,
-    kovri::crypto::ECDSAP521_KEY_LENGTH / 2,
-    kovri::crypto::ECDSAP521_KEY_LENGTH,
-    kovri::crypto::CreateECDSAP521RandomKeys);
+    kovri::core::ECDSAP521_KEY_LENGTH,
+    kovri::core::ECDSAP521_KEY_LENGTH / 2,
+    kovri::core::ECDSAP521_KEY_LENGTH,
+    kovri::core::CreateECDSAP521RandomKeys);
   std::cout << "-----EDDSA25519-----" << std::endl;
-  benchmark<kovri::crypto::EDDSA25519Verifier, kovri::crypto::EDDSA25519Signer>(
+  benchmark<kovri::core::EDDSA25519Verifier, kovri::core::EDDSA25519Signer>(
     benchmark_count,
-    kovri::crypto::EDDSA25519_PUBLIC_KEY_LENGTH,
-    kovri::crypto::EDDSA25519_PRIVATE_KEY_LENGTH,
-    kovri::crypto::EDDSA25519_SIGNATURE_LENGTH,
-    kovri::crypto::CreateEDDSARandomKeys);
+    kovri::core::EDDSA25519_PUBLIC_KEY_LENGTH,
+    kovri::core::EDDSA25519_PRIVATE_KEY_LENGTH,
+    kovri::core::EDDSA25519_SIGNATURE_LENGTH,
+    kovri::core::CreateEDDSARandomKeys);
 }

@@ -34,39 +34,39 @@
 
 #include <memory>
 
-#include "crypto/rand.h"
-#include "crypto/signature.h"
+#include "core/crypto/rand.h"
+#include "core/crypto/signature.h"
 
 BOOST_AUTO_TEST_SUITE(DSASHA1ests)
 
 struct DSAFixture {
   DSAFixture() {
     // TODO(unassigned): generate static test keys
-    kovri::crypto::CreateDSARandomKeys(private_key, public_key);
-    verifier = std::make_unique<kovri::crypto::DSAVerifier>(public_key);
-    signer = std::make_unique<kovri::crypto::DSASigner>(private_key);
+    kovri::core::CreateDSARandomKeys(private_key, public_key);
+    verifier = std::make_unique<kovri::core::DSAVerifier>(public_key);
+    signer = std::make_unique<kovri::core::DSASigner>(private_key);
   }
   uint8_t private_key[20], public_key[128];
-  std::unique_ptr<kovri::crypto::DSAVerifier> verifier;
-  std::unique_ptr<kovri::crypto::DSASigner> signer;
+  std::unique_ptr<kovri::core::DSAVerifier> verifier;
+  std::unique_ptr<kovri::core::DSASigner> signer;
   static constexpr size_t key_message_len = 1024;
 };
 
 BOOST_FIXTURE_TEST_CASE(DSASHA1KeyLength, DSAFixture) {
   BOOST_CHECK_EQUAL(
       verifier->GetPublicKeyLen(),
-      kovri::crypto::DSA_PUBLIC_KEY_LENGTH);
+      kovri::core::DSA_PUBLIC_KEY_LENGTH);
 }
 
 BOOST_FIXTURE_TEST_CASE(DSASHA1SignatureLength, DSAFixture) {
   BOOST_CHECK_EQUAL(
       verifier->GetSignatureLen(),
-      kovri::crypto::DSA_SIGNATURE_LENGTH);
+      kovri::core::DSA_SIGNATURE_LENGTH);
 }
 
 BOOST_FIXTURE_TEST_CASE(DSASHA1SignVerifyValid, DSAFixture) {
   uint8_t signature[40], message[key_message_len];
-  kovri::crypto::RandBytes(message, key_message_len);
+  kovri::core::RandBytes(message, key_message_len);
   signer->Sign(message, key_message_len, signature);
   // check that the signature is valid
   BOOST_CHECK_EQUAL(verifier->Verify(message, key_message_len, signature), true);
@@ -74,31 +74,31 @@ BOOST_FIXTURE_TEST_CASE(DSASHA1SignVerifyValid, DSAFixture) {
 
 BOOST_FIXTURE_TEST_CASE(DSASHA1SignVerifyBadSignature, DSAFixture) {
   uint8_t signature[40], message[key_message_len];
-  kovri::crypto::RandBytes(message, key_message_len);
+  kovri::core::RandBytes(message, key_message_len);
   signer->Sign(message, key_message_len, signature);
   // introduce an error in the signature
-  signature[5] ^= kovri::crypto::RandInRange<uint8_t>(1, 128);
+  signature[5] ^= kovri::core::RandInRange<uint8_t>(1, 128);
   // it should fail verification
   BOOST_CHECK_EQUAL(verifier->Verify(message, key_message_len, signature), false);
 }
 
 BOOST_FIXTURE_TEST_CASE(DSASHA1SignVerifyBadMessage, DSAFixture) {
   uint8_t signature[40], message[key_message_len];
-  kovri::crypto::RandBytes(message, key_message_len);
+  kovri::core::RandBytes(message, key_message_len);
   signer->Sign(message, key_message_len, signature);
   // introduce an error in the message
-  message[5] ^= kovri::crypto::RandInRange<uint8_t>(1, 128);
+  message[5] ^= kovri::core::RandInRange<uint8_t>(1, 128);
   // this should also fail verification
   BOOST_CHECK_EQUAL(verifier->Verify(message, key_message_len, signature), false);
 }
 
 BOOST_FIXTURE_TEST_CASE(DSASHA1SignVerifyBadSignatureAndMessage, DSAFixture) {
   uint8_t signature[40], message[key_message_len];
-  kovri::crypto::RandBytes(message, key_message_len);
+  kovri::core::RandBytes(message, key_message_len);
   signer->Sign(message, key_message_len, signature);
   // introduce errors in both the message and signature
-  message[6] ^= kovri::crypto::RandInRange<uint8_t>(1, 128);
-  signature[2] ^= kovri::crypto::RandInRange<uint8_t>(1, 128);
+  message[6] ^= kovri::core::RandInRange<uint8_t>(1, 128);
+  signature[2] ^= kovri::core::RandInRange<uint8_t>(1, 128);
   // this should fail verification as well
   BOOST_CHECK_EQUAL(verifier->Verify(message, key_message_len, signature), false);
 }

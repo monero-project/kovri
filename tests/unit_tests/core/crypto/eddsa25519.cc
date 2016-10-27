@@ -34,7 +34,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "crypto/signature.h"
+#include "core/crypto/signature.h"
 
 BOOST_AUTO_TEST_SUITE(EdDSA25519Tests)
 
@@ -57,20 +57,20 @@ struct EDDSAFixture {
     0xed, 0x62
   };
 
-  kovri::crypto::EDDSA25519Verifier verifier;
-  kovri::crypto::EDDSA25519Signer signer;
+  kovri::core::EDDSA25519Verifier verifier;
+  kovri::core::EDDSA25519Signer signer;
 };
 
 BOOST_FIXTURE_TEST_CASE(EdDSA25519KeyLength, EDDSAFixture) {
   BOOST_CHECK_EQUAL(
       verifier.GetPublicKeyLen(),
-      kovri::crypto::EDDSA25519_PUBLIC_KEY_LENGTH);
+      kovri::core::EDDSA25519_PUBLIC_KEY_LENGTH);
 }
 
 BOOST_FIXTURE_TEST_CASE(EdDSA25519SignatureLength, EDDSAFixture) {
   BOOST_CHECK_EQUAL(
       verifier.GetSignatureLen(),
-      kovri::crypto::EDDSA25519_SIGNATURE_LENGTH);
+      kovri::core::EDDSA25519_SIGNATURE_LENGTH);
 }
 
 BOOST_FIXTURE_TEST_CASE(EdDSA25519Sign, EDDSAFixture) {

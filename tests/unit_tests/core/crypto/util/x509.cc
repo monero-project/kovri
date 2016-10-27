@@ -36,7 +36,7 @@
 #include <sstream>
 #include <string>
 
-#include "crypto/util/x509.h"
+#include "core/crypto/util/x509.h"
 
 struct X509Fixture {
   const std::string cert =
@@ -83,7 +83,7 @@ class X509FixtureImpl : X509Fixture {
       : ss(cert) {}
 
   bool GetSigningKey() {
-    kovri::crypto::util::X509 x509;
+    kovri::core::X509 x509;
     auto key = x509.GetSigningKey(ss);
     return key.empty();
   }

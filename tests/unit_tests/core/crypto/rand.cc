@@ -34,9 +34,9 @@
 
 #include <limits>
 
-#include "crypto/rand.h"
+#include "core/crypto/rand.h"
 
-/// TODO(unassigned): unit-tests for all crypto::Rand* functions
+/// TODO(unassigned): unit-tests for all Rand* functions
 
 BOOST_AUTO_TEST_SUITE(RandInRange)
 
@@ -58,7 +58,7 @@ template <class T>
 T Range<T>::Test() {
   do {
     repeated = result;
-    result = kovri::crypto::RandInRange<T>(min, max);
+    result = kovri::core::RandInRange<T>(min, max);
     count++;
   } while ((count != 100));  // Arbitrary number
   return ((result >= min) &&

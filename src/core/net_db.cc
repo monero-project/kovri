@@ -162,35 +162,25 @@ void NetDb::Run() {
       // to be used for tunnel building
       if (ts - last_exploratory >=
           static_cast<uint16_t>(NetDbDuration::ExploreTunnelsInterval)) {
-        auto num_routers = m_RouterInfos.size();
+        auto known_routers = m_RouterInfos.size();
+        uint16_t num_routers = 0;
         // evaluates if a router has a sufficient number of known routers
         // to use for building tunnels, if less than 800 routers
         // are known, then more exploratory tunnels will be created
         // to find more routers for tunnel building
         // TODO(anonimal): research these numbers
-        if (num_routers <
-            static_cast<uint16_t>(NetDbRouterPrefs::RouterNumUpperBoundThreshold)   // 2500
-            || ts - last_exploratory >=
-               static_cast<uint16_t>(NetDbDuration::ExploreTunnelsInterval)) {
-          if (num_routers > 0) {
+        if (known_routers > 0 && known_routers <
+            static_cast<uint16_t>(NetDbRouterPrefs::RouterNumLowerBoundThreshold)) {    // 800
+          num_routers =
+            static_cast<uint16_t>(NetDbRouterPrefs::ExploreNumRouterLowerBound);    // 9
+        } else {
             num_routers =
-              static_cast<uint16_t>(NetDbRouterPrefs::RouterNumLowerBoundThreshold)   // 800
-              / num_routers;
-          }
-          if (num_routers <
-              static_cast<uint16_t>(NetDbRouterPrefs::ExploreNumRouterUpperBound)) {    // 1
-            num_routers =
-              static_cast<uint16_t>(NetDbRouterPrefs::ExploreNumRouterUpperBound);
-          }
-          if (num_routers >
-              static_cast<uint16_t>(NetDbRouterPrefs::ExploreNumRouterLowerBound))    // 9
-            num_routers =
-              static_cast<uint16_t>(NetDbRouterPrefs::ExploreNumRouterLowerBound);
+              static_cast<uint16_t>(NetDbRouterPrefs::ExploreNumRouterUpperBound);    // 1
+        }
           m_Requests.ManageRequests();
           Explore(num_routers);
           last_exploratory = ts;
         }
-      }
     } catch(std::exception& ex) {
       LogPrint(eLogError, "NetDb::Run(): ", ex.what());
     }

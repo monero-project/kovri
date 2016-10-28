@@ -71,7 +71,7 @@ enum struct NetDbInterval : const std::uint16_t {
   /// @var PublishRouterInfo
   /// @brief in seconds
   PublishRouterInfo = 2400,
-  /// @var Explore
+  /// @var Exploratory
   /// @brief in seconds
   Exploratory = 30,
   /// @var DelayedExploratory

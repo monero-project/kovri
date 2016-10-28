@@ -160,7 +160,7 @@ void NetDb::Run() {
       }
       // builds exploratory tunnels at Nth interval to find more peers
       if (ts - last_exploratory >= static_cast<std::uint16_t>(NetDbInterval::Exploratory)) {
-        auto known_routers = m_RouterInfos.size();
+        auto known_routers = GetNumRouters();
         std::uint16_t num_routers = 0;
         // evaluates if a router has a sufficient number of known routers
         // to use for building tunnels, if less than Nth routers are known,
@@ -359,7 +359,7 @@ void NetDb::SaveUpdated() {
       i2p::context.GetDataPath() / m_NetDbPath);
   int count = 0,
       deleted_count = 0;
-  auto total = m_RouterInfos.size();
+  auto total = GetNumRouters();
   uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
   for (auto it : m_RouterInfos) {
     if (it.second->IsUpdated()) {
@@ -866,7 +866,7 @@ std::shared_ptr<const RouterInfo> NetDb::GetHighBandwidthRandomRouter(
 template<typename Filter>
 std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter(
     Filter filter) const {
-  uint32_t ind = i2p::crypto::RandInRange<uint32_t>(0, m_RouterInfos.size() - 1);
+  uint32_t ind = i2p::crypto::RandInRange<uint32_t>(0, GetNumRouters() - 1);
   for (int j = 0; j < 2; j++) {
     uint32_t i = 0;
     std::unique_lock<std::mutex> l(m_RouterInfosMutex);

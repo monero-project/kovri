@@ -169,9 +169,9 @@ void NetDb::Run() {
         if (known_routers > 0
             && known_routers < static_cast<std::uint16_t>(NetDbSize::MinKnownRouters)) {
           num_routers = static_cast<std::uint16_t>(NetDbSize::MaxExploratoryTunnels);
-        } else if (
-            (known_routers > static_cast<std::uint16_t>(NetDbSize::MinKnownRouters)
-             && known_routers < static_cast<std::uint16_t>(NetDbSize::FavouredKnownRouters))
+        } else if (!known_routers
+            || (known_routers > static_cast<std::uint16_t>(NetDbSize::MinKnownRouters)
+                && known_routers < static_cast<std::uint16_t>(NetDbSize::FavouredKnownRouters))
             || ts - last_exploratory >= static_cast<std::uint16_t>(NetDbInterval::DelayedExploratory)) {
           num_routers = static_cast<std::uint16_t>(NetDbSize::MinExploratoryTunnels);
         }

@@ -94,11 +94,12 @@ enum struct NetDbSize : const std::uint16_t {
   FavouredKnownRouters = 2500,
   /// @var MaxExploratoryTunnels
   /// @brief number of exploratory tunnels
-  ///   to be built for < 800 known router
+  ///   to be built for < min known routers
   MaxExploratoryTunnels = 9,
   /// @var MinExploratoryTunnels
-  /// @brief number of exploratory tunnels
-  ///   to be built for 800 < known routers < 2500
+  /// @brief minimum number of exploratory tunnels
+  /// @details minimum number of exploratory tunnels
+  ///   to be built for min < known routers < favoured
   MinExploratoryTunnels = 1,
   /// @var MaxMessagesRead
   /// @brief max number of NetDb messages

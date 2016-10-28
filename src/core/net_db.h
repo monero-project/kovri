@@ -58,7 +58,7 @@ namespace data {
 /// @enum NetDbDuration
 /// @brief Constants defining different refresh intervals
 ///   for various NetDb operations
-enum struct NetDbDuration : const uint16_t {
+enum struct NetDbDuration : const std::uint16_t {
   WaitForMessageTimeout = 15000,  // 15 seconds
   ManageRequestsInterval = 15,  // seconds
   SaveInterval = 60,  // seconds
@@ -66,27 +66,27 @@ enum struct NetDbDuration : const uint16_t {
   ExploreTunnelsInterval = 30,  // seconds
 };
 
-/// @enum NetDbRouterPrefs
+/// @enum NetDbPrefs
 /// @brief Constants defining NetDb preferences
 ///   for how many known routers are wanted for
 ///   a large variety of peers to build tunnels
-enum struct NetDbRouterPrefs : const uint16_t {
-  /// @var RouterNumLowerBoundThreshold
+enum struct NetDbPrefs : const std::uint16_t {
+  /// @var MinimumKnownRouters
   /// @brief minimum number of known routers
   ///   desired for building tunnels
-  RouterNumLowerBoundThreshold = 800,
-  /// @var RouterNumUpperBoundThreshold
+  MinimumKnownRouters = 800,
+  /// @var FavouredNumKnownRouters
   /// @brief desired number of known routers
-  ///    for building tunnels
-  RouterNumUpperBoundThreshold = 2500,
-  /// @var ExploreNumRouterLowerBound
+  ///   for building tunnels
+  FavouredNumKnownRouters = 2500,
+  /// @var MaxExploratoryTunnels
   /// @brief number of exploratory tunnels
   ///   to be built for < 800 known router
-  ExploreNumRouterLowerBound = 9,
-  /// @var ExploreNumRouterUpperBound
+  MaxExploratoryTunnels = 9,
+  /// @var MinimumExploratoryTunnels
   /// @brief number of exploratory tunnels
   ///   to be built for 800 < known routers < 2500
-  ExploreNumRouterUpperBound = 1,
+  MinimumExploratoryTunnels = 1,
 };
 
 class NetDb {

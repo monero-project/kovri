@@ -174,7 +174,7 @@ void NetDb::Run() {
             static_cast<std::uint16_t>(NetDbPrefs::MaxExploratoryTunnels);
         } else {
             num_routers =
-              static_cast<std::uint16_t>(NetDbPrefs::MinimumExploratoryTunnels);
+              static_cast<std::uint16_t>(NetDbPrefs::MinExploratoryTunnels);
         }
           m_Requests.ManageRequests();
           Explore(num_routers);

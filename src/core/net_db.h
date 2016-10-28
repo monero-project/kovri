@@ -83,10 +83,10 @@ enum struct NetDbPrefs : const std::uint16_t {
   /// @brief number of exploratory tunnels
   ///   to be built for < 800 known router
   MaxExploratoryTunnels = 9,
-  /// @var MinimumExploratoryTunnels
+  /// @var MinExploratoryTunnels
   /// @brief number of exploratory tunnels
   ///   to be built for 800 < known routers < 2500
-  MinimumExploratoryTunnels = 1,
+  MinExploratoryTunnels = 1,
 };
 
 class NetDb {

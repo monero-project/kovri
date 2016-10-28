@@ -152,20 +152,21 @@ void NetDb::Run() {
         }
         last_save = ts;
       }
-      // publishes router info to a floodfill
+      // publishes router info to a floodfill at Nth interval
       if (ts - last_publish >=
 	  static_cast<std::uint16_t>(NetDbDuration::PublishRouterInfoInterval)) {
         Publish();
         last_publish = ts;
       }
-      // builds exploratory tunnels to find more peers
-      // to be used for tunnel building
+      // builds exploratory tunnels at Nth interval to find more peers
       if (ts - last_exploratory >=
           static_cast<std::uint16_t>(NetDbDuration::ExploreInterval)) {
         auto known_routers = m_RouterInfos.size();
         std::uint16_t num_routers = 0;
         // evaluates if a router has a sufficient number of known routers
-        // to use for building tunnels
+        // to use for building tunnels, if less than Nth routers are known,
+        // then more exploratory tunnels will be created to find more routers
+        // for tunnel building
         if (known_routers > 0 && known_routers <
             static_cast<std::uint16_t>(NetDbPrefs::MinimumKnownRouters)) {
           num_routers =

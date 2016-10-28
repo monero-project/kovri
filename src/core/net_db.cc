@@ -108,7 +108,7 @@ void NetDb::Run() {
         m_Queue.GetNextWithTimeout(
             static_cast<uint16_t>(NetDbDuration::WaitForMessageTimeout));
       if (msg) {
-        int num_msgs = 0;
+        uint8_t num_msgs = 0;
         while (msg) {
           switch (msg->GetTypeID()) {
             case e_I2NPDatabaseStore:

@@ -102,9 +102,11 @@ void NetDb::Run() {
            last_manage_request = 0;
   while (m_IsRunning) {
     try {
+      // if there are no messages a 15 sec timeout is used to wait
+      // for messages to be received
       auto msg =
-	m_Queue.GetNextWithTimeout(
-            static_cast<std::size_t>(NetDbDuration::WaitForMessageTimeout));  // 15 sec
+        m_Queue.GetNextWithTimeout(
+            static_cast<std::size_t>(NetDbDuration::WaitForMessageTimeout));
       if (msg) {
         int num_msgs = 0;
         while (msg) {
@@ -136,8 +138,9 @@ void NetDb::Run() {
       if (!m_IsRunning)
         break;
       uint64_t ts = i2p::util::GetSecondsSinceEpoch();
+      // builds tunnels for requested destinations every 15 seconds
       if (ts - last_manage_request >=
-          static_cast<std::size_t>(NetDbDuration::ManageRequestsInterval)) {  // manage requests every 15 seconds
+          static_cast<std::size_t>(NetDbDuration::ManageRequestsInterval)) {
         m_Requests.ManageRequests();
         last_manage_request = ts;
       }
@@ -149,13 +152,16 @@ void NetDb::Run() {
         }
         last_save = ts;
       }
+      // publishes router info to a floodfill every 40 minutes
       if (ts - last_publish >=
-	  static_cast<std::size_t>(NetDbDuration::PublishRouterInfoInterval)) {  // publish every 40 minutes
+	  static_cast<std::size_t>(NetDbDuration::PublishRouterInfoInterval)) {
         Publish();
         last_publish = ts;
       }
+      // builds exploratory tunnels every 30 seconds to find more peers
+      // to be used for tunnel building
       if (ts - last_exploratory >=
-          static_cast<std::size_t>(NetDbDuration::ExploreTunnelsInterval)) {  // exploratory every 30 seconds
+          static_cast<std::size_t>(NetDbDuration::ExploreTunnelsInterval)) {
         auto num_routers = m_RouterInfos.size();
         // TODO(anonimal): research these numbers
         if (num_routers < 2500 ||

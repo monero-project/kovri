@@ -102,7 +102,7 @@ void NetDb::Run() {
            last_manage_request = 0;
   while (m_IsRunning) {
     try {
-      // if there are no messages a 15 sec timeout is used to wait
+      // if there are no messages a timeout is executed to wait
       // for messages to be received
       auto msg =
         m_Queue.GetNextWithTimeout(
@@ -129,7 +129,7 @@ void NetDb::Run() {
                   "NetDb: unexpected message type ", msg->GetTypeID());
               // i2p::HandleI2NPMessage(msg);
           }
-          if (num_msgs > 100)
+          if (num_msgs > static_cast<std::uint16_t>(NetDbDuration::MaxMessagesRead))
             break;
           msg = m_Queue.Get();
           num_msgs++;
@@ -138,13 +138,13 @@ void NetDb::Run() {
       if (!m_IsRunning)
         break;
       std::uint64_t ts = i2p::util::GetSecondsSinceEpoch();
-      // builds tunnels for requested destinations every 15 seconds
+      // builds tunnels for requested destinations
       if (ts - last_manage_request >=
           static_cast<std::uint16_t>(NetDbDuration::ManageRequestsInterval)) {
         m_Requests.ManageRequests();
         last_manage_request = ts;
       }
-      // save routers, manage leasesets and validate subscriptions every minute
+      // save routers, manage leasesets and validate subscriptions
       if (ts - last_save >= static_cast<std::uint16_t>(NetDbDuration::SaveInterval)) {
         if (last_save) {
           SaveUpdated();
@@ -152,22 +152,20 @@ void NetDb::Run() {
         }
         last_save = ts;
       }
-      // publishes router info to a floodfill every 40 minutes
+      // publishes router info to a floodfill
       if (ts - last_publish >=
 	  static_cast<std::uint16_t>(NetDbDuration::PublishRouterInfoInterval)) {
         Publish();
         last_publish = ts;
       }
-      // builds exploratory tunnels every 30 seconds to find more peers
+      // builds exploratory tunnels to find more peers
       // to be used for tunnel building
       if (ts - last_exploratory >=
-          static_cast<std::uint16_t>(NetDbDuration::ExploreTunnelsInterval)) {
+          static_cast<std::uint16_t>(NetDbDuration::ExploreInterval)) {
         auto known_routers = m_RouterInfos.size();
         std::uint16_t num_routers = 0;
         // evaluates if a router has a sufficient number of known routers
-        // to use for building tunnels, if less than 800 routers
-        // are known, then more exploratory tunnels will be created
-        // to find more routers for tunnel building
+        // to use for building tunnels
         if (known_routers > 0 && known_routers <
             static_cast<std::uint16_t>(NetDbPrefs::MinimumKnownRouters)) {
           num_routers =

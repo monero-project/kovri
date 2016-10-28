@@ -63,7 +63,8 @@ enum struct NetDbDuration : const std::uint16_t {
   ManageRequestsInterval = 15,  // seconds
   SaveInterval = 60,  // seconds
   PublishRouterInfoInterval = 2400,  // 40 minutes
-  ExploreTunnelsInterval = 30,  // seconds
+  ExploreInterval = 30,  // seconds
+  MaxMessagesRead = 100,
 };
 
 /// @enum NetDbPrefs

@@ -106,7 +106,7 @@ void NetDb::Run() {
       // for messages to be received
       auto msg =
         m_Queue.GetNextWithTimeout(
-            static_cast<std::size_t>(NetDbDuration::WaitForMessageTimeout));
+            static_cast<uint16_t>(NetDbDuration::WaitForMessageTimeout));
       if (msg) {
         int num_msgs = 0;
         while (msg) {
@@ -140,12 +140,12 @@ void NetDb::Run() {
       uint64_t ts = i2p::util::GetSecondsSinceEpoch();
       // builds tunnels for requested destinations every 15 seconds
       if (ts - last_manage_request >=
-          static_cast<std::size_t>(NetDbDuration::ManageRequestsInterval)) {
+          static_cast<uint16_t>(NetDbDuration::ManageRequestsInterval)) {
         m_Requests.ManageRequests();
         last_manage_request = ts;
       }
       // save routers, manage leasesets and validate subscriptions every minute
-      if (ts - last_save >= static_cast<std::size_t>(NetDbDuration::SaveInterval)) {
+      if (ts - last_save >= static_cast<uint16_t>(NetDbDuration::SaveInterval)) {
         if (last_save) {
           SaveUpdated();
           ManageLeaseSets();
@@ -154,19 +154,19 @@ void NetDb::Run() {
       }
       // publishes router info to a floodfill every 40 minutes
       if (ts - last_publish >=
-	  static_cast<std::size_t>(NetDbDuration::PublishRouterInfoInterval)) {
+	  static_cast<uint16_t>(NetDbDuration::PublishRouterInfoInterval)) {
         Publish();
         last_publish = ts;
       }
       // builds exploratory tunnels every 30 seconds to find more peers
       // to be used for tunnel building
       if (ts - last_exploratory >=
-          static_cast<std::size_t>(NetDbDuration::ExploreTunnelsInterval)) {
+          static_cast<uint16_t>(NetDbDuration::ExploreTunnelsInterval)) {
         auto num_routers = m_RouterInfos.size();
         // TODO(anonimal): research these numbers
         if (num_routers < 2500 ||
             ts - last_exploratory >=
-            static_cast<std::size_t>(NetDbDuration::ExploreTunnelsInterval)) {
+            static_cast<uint16_t>(NetDbDuration::ExploreTunnelsInterval)) {
           if (num_routers > 0) {
             num_routers = 800 / num_routers;
           }

@@ -58,7 +58,7 @@ namespace data {
 /// @enum NetDbDuration
 /// @brief Constants defining different refresh intervals
 ///   for various NetDb operations
-enum struct NetDbDuration : const std::size_t {
+enum struct NetDbDuration : const uint16_t {
   WaitForMessageTimeout = 15000,  // 15 seconds
   ManageRequestsInterval = 15,  // seconds
   SaveInterval = 60,  // seconds

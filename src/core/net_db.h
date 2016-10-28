@@ -64,6 +64,7 @@ enum struct NetDbDuration : const std::uint16_t {
   SaveInterval = 60,  // seconds
   PublishRouterInfoInterval = 2400,  // 40 minutes
   ExploreInterval = 30,  // seconds
+  DelayedExploreInterval = 90,
   MaxMessagesRead = 100,
 };
 

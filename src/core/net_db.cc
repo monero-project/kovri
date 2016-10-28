@@ -171,14 +171,18 @@ void NetDb::Run() {
             static_cast<std::uint16_t>(NetDbPrefs::MinimumKnownRouters)) {
           num_routers =
             static_cast<std::uint16_t>(NetDbPrefs::MaxExploratoryTunnels);
-        } else {
-            num_routers =
-              static_cast<std::uint16_t>(NetDbPrefs::MinExploratoryTunnels);
+        } else if ((known_routers >
+            static_cast<std::uint16_t>(NetDbPrefs::MinimumKnownRouters) &&
+            known_routers <
+            static_cast<std::uint16_t>(NetDbPrefs::FavouredNumKnownRouters)) ||
+            ts - last_exploratory >=
+            static_cast<std::uint16_t>(NetDbDuration::DelayedExploreInterval)) {
+          num_routers = static_cast<std::uint16_t>(NetDbPrefs::MinExploratoryTunnels);
         }
           m_Requests.ManageRequests();
           Explore(num_routers);
           last_exploratory = ts;
-        }
+      }
     } catch(std::exception& ex) {
       LogPrint(eLogError, "NetDb::Run(): ", ex.what());
     }

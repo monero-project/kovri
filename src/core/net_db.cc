@@ -163,17 +163,29 @@ void NetDb::Run() {
       if (ts - last_exploratory >=
           static_cast<uint16_t>(NetDbDuration::ExploreTunnelsInterval)) {
         auto num_routers = m_RouterInfos.size();
+        // evaluates if a router has a sufficient number of known routers
+        // to use for building tunnels, if less than 800 routers
+        // are known, then more exploratory tunnels will be created
+        // to find more routers for tunnel building
         // TODO(anonimal): research these numbers
-        if (num_routers < 2500 ||
-            ts - last_exploratory >=
-            static_cast<uint16_t>(NetDbDuration::ExploreTunnelsInterval)) {
+        if (num_routers <
+            static_cast<uint16_t>(NetDbRouterPrefs::RouterNumUpperBoundThreshold)   // 2500
+            || ts - last_exploratory >=
+               static_cast<uint16_t>(NetDbDuration::ExploreTunnelsInterval)) {
           if (num_routers > 0) {
-            num_routers = 800 / num_routers;
+            num_routers =
+              static_cast<uint16_t>(NetDbRouterPrefs::RouterNumLowerBoundThreshold)   // 800
+              / num_routers;
           }
-          if (num_routers < 1)
-            num_routers = 1;
-          if (num_routers > 9)
-            num_routers = 9;
+          if (num_routers <
+              static_cast<uint16_t>(NetDbRouterPrefs::ExploreNumRouterUpperBound)) {    // 1
+            num_routers =
+              static_cast<uint16_t>(NetDbRouterPrefs::ExploreNumRouterUpperBound);
+          }
+          if (num_routers >
+              static_cast<uint16_t>(NetDbRouterPrefs::ExploreNumRouterLowerBound))    // 9
+            num_routers =
+              static_cast<uint16_t>(NetDbRouterPrefs::ExploreNumRouterLowerBound);
           m_Requests.ManageRequests();
           Explore(num_routers);
           last_exploratory = ts;

@@ -66,6 +66,17 @@ enum struct NetDbDuration : const uint16_t {
   ExploreTunnelsInterval = 30,  // seconds
 };
 
+/// @enum NetDbRouterPrefs
+/// @brief Constants defining NetDb preferences
+/// for how many known routers are wanted for
+/// a large variety of peers to build tunnels
+enum struct NetDbRouterPrefs : const uint16_t {
+  RouterNumLowerBoundThreshold = 800,   // minimum preferred number of known routers
+  RouterNumUpperBoundThreshold = 2500,  // desirable number of known routers, but not limited to
+  ExploreNumRouterLowerBound = 9,   // number of exploratory tunnels being built to find more routers
+  ExploreNumRouterUpperBound = 1,
+};
+
 class NetDb {
  public:
   NetDb();

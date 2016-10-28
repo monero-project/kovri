@@ -168,7 +168,6 @@ void NetDb::Run() {
         // to use for building tunnels, if less than 800 routers
         // are known, then more exploratory tunnels will be created
         // to find more routers for tunnel building
-        // TODO(anonimal): research these numbers
         if (known_routers > 0 && known_routers <
             static_cast<uint16_t>(NetDbRouterPrefs::RouterNumLowerBoundThreshold)) {    // 800
           num_routers =

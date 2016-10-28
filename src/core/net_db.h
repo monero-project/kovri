@@ -70,10 +70,20 @@ enum struct NetDbDuration : const uint16_t {
 /// @brief Constants defining NetDb preferences
 /// for how many known routers are wanted for
 /// a large variety of peers to build tunnels
+/// @brief RouterNumLowerBoundThreshold is the
+/// minimum preferred number of known routers
+/// @brief RouterNumUpperBoundThreshold is the
+/// desirable number of known routers, but not
+/// limited to
+/// @brief ExploreNumRouterLowerBound and
+/// ExploreNumRouterUpperBound are the number
+/// of exploratory tunnels being built to
+/// find more routers, based on current amount
+/// of known routers
 enum struct NetDbRouterPrefs : const uint16_t {
-  RouterNumLowerBoundThreshold = 800,   // minimum preferred number of known routers
-  RouterNumUpperBoundThreshold = 2500,  // desirable number of known routers, but not limited to
-  ExploreNumRouterLowerBound = 9,   // number of exploratory tunnels being built to find more routers
+  RouterNumLowerBoundThreshold = 800,
+  RouterNumUpperBoundThreshold = 2500,
+  ExploreNumRouterLowerBound = 9,
   ExploreNumRouterUpperBound = 1,
 };
 

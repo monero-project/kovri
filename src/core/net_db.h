@@ -59,12 +59,27 @@ namespace data {
 /// @brief Constants defining different refresh intervals
 ///   for various NetDb operations
 enum struct NetDbDuration : const std::uint16_t {
-  WaitForMessageTimeout = 15000,  // 15 seconds
-  ManageRequestsInterval = 15,  // seconds
-  SaveInterval = 60,  // seconds
-  PublishRouterInfoInterval = 2400,  // 40 minutes
-  ExploreInterval = 30,  // seconds
+  /// @var WaitForMessageTimeout
+  /// @brief 15 seconds
+  WaitForMessageTimeout = 15000,
+  /// @var ManageRequestsInterval
+  /// @brief in seconds
+  ManageRequestsInterval = 15,
+  /// @var SaveInterval
+  /// @brief in seconds
+  SaveInterval = 60,
+  /// @var PublishRouterInfoInterval
+  /// @brief in seconds
+  PublishRouterInfoInterval = 2400,
+  /// @var ExploreInterval
+  /// @brief in seconds
+  ExploreInterval = 30,
+  /// @var DelayedExploreInterval
+  /// @brief in seconds
   DelayedExploreInterval = 90,
+  /// @var MaxMessagesRead
+  /// @brief max number of NetDb messages
+  ///   that can be processed in succession
   MaxMessagesRead = 100,
 };
 

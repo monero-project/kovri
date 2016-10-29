@@ -73,7 +73,7 @@ RouterInfo::RouterInfo(
 }
 
 RouterInfo::RouterInfo(
-    const uint8_t* buf,
+    const std::uint8_t* buf,
     int len)
     : m_IsUpdated(true),
       m_IsUnreachable(false),
@@ -88,7 +88,7 @@ RouterInfo::RouterInfo(
 RouterInfo::~RouterInfo() {}
 
 void RouterInfo::Update(
-    const uint8_t* buf,
+    const std::uint8_t* buf,
     int len) {
   if (!m_Buffer)
     m_Buffer = std::make_unique<std::uint8_t[]>(MAX_RI_BUFFER_SIZE);
@@ -137,7 +137,7 @@ void RouterInfo::ReadFromFile() {
 
 void RouterInfo::ReadFromBuffer(
     bool verify_signature) {
-  size_t identity_len = m_RouterIdentity.FromBuffer(m_Buffer.get(), m_BufferLen);
+  std::size_t identity_len = m_RouterIdentity.FromBuffer(m_Buffer.get(), m_BufferLen);
   std::stringstream str(
       std::string(
         reinterpret_cast<char *>(m_Buffer.get()) + identity_len,
@@ -147,9 +147,9 @@ void RouterInfo::ReadFromBuffer(
     // verify signature
     int len = m_BufferLen - m_RouterIdentity.GetSignatureLen();
     if (!m_RouterIdentity.Verify(
-          reinterpret_cast<uint8_t *>(m_Buffer.get()),
+          reinterpret_cast<std::uint8_t *>(m_Buffer.get()),
           len,
-          reinterpret_cast<uint8_t *>(m_Buffer.get() + len))) {
+          reinterpret_cast<std::uint8_t *>(m_Buffer.get() + len))) {
       LogPrint(eLogError, "RouterInfo: signature verification failed");
       m_IsUnreachable = true;
     }
@@ -162,7 +162,7 @@ void RouterInfo::ReadFromStream(
   s.read(reinterpret_cast<char *>(&m_Timestamp), sizeof(m_Timestamp));
   m_Timestamp = be64toh(m_Timestamp);
   // read addresses
-  uint8_t num_addresses;
+  std::uint8_t num_addresses;
   s.read(reinterpret_cast<char *>(&num_addresses), sizeof(num_addresses));
   bool introducers = false;
   for (int i = 0; i < num_addresses; i++) {
@@ -180,7 +180,7 @@ void RouterInfo::ReadFromStream(
       address.transport_style = eTransportUnknown;
     address.port = 0;
     address.mtu = 0;
-    uint16_t size, r = 0;
+    std::uint16_t size, r = 0;
     s.read(reinterpret_cast<char *>(&size), sizeof(size));
     size = be16toh(size);
     while (r < size) {
@@ -223,7 +223,7 @@ void RouterInfo::ReadFromStream(
       } else if (key[0] == 'i') {
         // introducers
         introducers = true;
-        size_t len = strlen(key);
+        std::size_t len = strlen(key);
         unsigned char index = key[len - 1] - '0';  // TODO(unassigned): ???
         key[len - 1] = 0;
         if (index >= address.introducers.size())
@@ -236,7 +236,7 @@ void RouterInfo::ReadFromStream(
         } else if (!strcmp(key, "iport")) {
           introducer.port = boost::lexical_cast<int>(value);
         } else if (!strcmp(key, "itag")) {
-          introducer.tag = boost::lexical_cast<uint32_t>(value);
+          introducer.tag = boost::lexical_cast<std::uint32_t>(value);
         } else if (!strcmp(key, "ikey")) {
           kovri::core::Base64ToByteStream(
               value,
@@ -250,11 +250,11 @@ void RouterInfo::ReadFromStream(
       m_Addresses.push_back(address);
   }
   // read peers
-  uint8_t num_peers;
+  std::uint8_t num_peers;
   s.read(reinterpret_cast<char *>(&num_peers), sizeof(num_peers));
   s.seekg(num_peers*32, std::ios_base::cur);  // TODO(unassigned): read peers
   // read properties
-  uint16_t size, r = 0;
+  std::uint16_t size, r = 0;
   s.read(reinterpret_cast<char *>(&size), sizeof(size));
   size = be16toh(size);
   while (r < size) {
@@ -336,10 +336,10 @@ void RouterInfo::UpdateCapsProperty() {
 
 void RouterInfo::WriteToStream(
     std::ostream& s) {
-  uint64_t ts = htobe64(m_Timestamp);
+  std::uint64_t ts = htobe64(m_Timestamp);
   s.write(reinterpret_cast<char *>(&ts), sizeof(ts));
   // addresses
-  uint8_t num_addresses = m_Addresses.size();
+  std::uint8_t num_addresses = m_Addresses.size();
   s.write(reinterpret_cast<char *>(&num_addresses), sizeof(num_addresses));
   for (auto& address : m_Addresses) {
     s.write(reinterpret_cast<char *>(&address.cost), sizeof(address.cost));
@@ -386,7 +386,7 @@ void RouterInfo::WriteToStream(
           WriteString("ikey" + boost::lexical_cast<std::string>(i), properties);
           properties << '=';
           char value[64];
-          size_t len =
+          std::size_t len =
             kovri::core::ByteStreamToBase64(introducer.key, 32, value, 64);
           value[len] = 0;
           WriteString(value, properties);
@@ -422,7 +422,7 @@ void RouterInfo::WriteToStream(
       WriteString("key", properties);
       properties << '=';
       char value[64];
-      size_t len = kovri::core::ByteStreamToBase64(address.key, 32, value, 64);
+      std::size_t len = kovri::core::ByteStreamToBase64(address.key, 32, value, 64);
       value[len] = 0;
       WriteString(value, properties);
       properties << ';';
@@ -438,12 +438,12 @@ void RouterInfo::WriteToStream(
     properties << '=';
     WriteString(boost::lexical_cast<std::string>(address.port), properties);
     properties << ';';
-    uint16_t size = htobe16(properties.str().size());
+    std::uint16_t size = htobe16(properties.str().size());
     s.write(reinterpret_cast<char *>(&size), sizeof(size));
     s.write(properties.str().c_str(), properties.str().size());
   }
   // peers
-  uint8_t num_peers = 0;
+  std::uint8_t num_peers = 0;
   s.write(reinterpret_cast<char *>(&num_peers), sizeof(num_peers));
   // properties
   std::stringstream properties;
@@ -453,12 +453,12 @@ void RouterInfo::WriteToStream(
     WriteString(p.second, properties);
     properties << ';';
   }
-  uint16_t size = htobe16(properties.str().size());
+  std::uint16_t size = htobe16(properties.str().size());
   s.write(reinterpret_cast<char *>(&size), sizeof(size));
   s.write(properties.str().c_str(), properties.str().size());
 }
 
-const uint8_t* RouterInfo::LoadBuffer() {
+const std::uint8_t* RouterInfo::LoadBuffer() {
   if (!m_Buffer) {
     if (LoadFile())
       LogPrint(eLogInfo,
@@ -471,7 +471,7 @@ const uint8_t* RouterInfo::LoadBuffer() {
 void RouterInfo::CreateBuffer(const PrivateKeys& privateKeys) {
   m_Timestamp = kovri::core::GetMillisecondsSinceEpoch();  // refresh timestamp
   std::stringstream s;
-  uint8_t ident[1024];
+  std::uint8_t ident[1024];
   auto ident_len = privateKeys.GetPublic().ToBuffer(ident, 1024);
   s.write(reinterpret_cast<char *>(ident), ident_len);
   WriteToStream(s);
@@ -481,9 +481,9 @@ void RouterInfo::CreateBuffer(const PrivateKeys& privateKeys) {
   memcpy(m_Buffer.get(), s.str().c_str(), m_BufferLen);
   // signature
   privateKeys.Sign(
-    reinterpret_cast<uint8_t *>(m_Buffer.get()),
+    reinterpret_cast<std::uint8_t *>(m_Buffer.get()),
     m_BufferLen,
-    reinterpret_cast<uint8_t *>(m_Buffer.get()) + m_BufferLen);
+    reinterpret_cast<std::uint8_t *>(m_Buffer.get()) + m_BufferLen);
   m_BufferLen += privateKeys.GetPublic().GetSignatureLen();
 }
 
@@ -501,10 +501,10 @@ void RouterInfo::SaveToFile(
   }
 }
 
-size_t RouterInfo::ReadString(
+std::size_t RouterInfo::ReadString(
     char* str,
     std::istream& s) {
-  uint8_t len;
+  std::uint8_t len;
   s.read(reinterpret_cast<char *>(&len), 1);
   s.read(str, len);
   str[len] = 0;
@@ -514,7 +514,7 @@ size_t RouterInfo::ReadString(
 void RouterInfo::WriteString(
     const std::string& str,
     std::ostream& s) {
-  uint8_t len = str.size();
+  std::uint8_t len = str.size();
   s.write(reinterpret_cast<char *>(&len), 1);
   s.write(str.c_str(), len);
 }
@@ -536,7 +536,7 @@ void RouterInfo::AddNTCPAddress(
 void RouterInfo::AddSSUAddress(
     const std::string& host,
     int port,
-    const uint8_t* key,
+    const std::uint8_t* key,
     int mtu) {
   Address addr;
   addr.host = boost::asio::ip::address::from_string(host);
@@ -554,7 +554,7 @@ void RouterInfo::AddSSUAddress(
 
 bool RouterInfo::AddIntroducer(
     const Address* address,
-    uint32_t tag) {
+    std::uint32_t tag) {
   for (auto& addr : m_Addresses) {
     if (addr.transport_style == eTransportSSU && addr.host.is_v4()) {
       for (auto intro : addr.introducers)
@@ -591,7 +591,7 @@ bool RouterInfo::RemoveIntroducer(
 }
 
 void RouterInfo::SetCaps(
-    uint8_t caps) {
+    std::uint8_t caps) {
   m_Caps = caps;
   UpdateCapsProperty();
 }
@@ -647,7 +647,7 @@ void RouterInfo::DisableV6() {
   if (IsV6()) {
     // NTCP
     m_SupportedTransports &= ~eNTCPV6;
-    for (size_t i = 0; i < m_Addresses.size(); i++) {
+    for (std::size_t i = 0; i < m_Addresses.size(); i++) {
       if (m_Addresses[i].transport_style ==
           kovri::core::RouterInfo::eTransportNTCP &&
           m_Addresses[i].host.is_v6()) {
@@ -657,7 +657,7 @@ void RouterInfo::DisableV6() {
     }
     // SSU
     m_SupportedTransports &= ~eSSUV6;
-    for (size_t i = 0; i < m_Addresses.size(); i++) {
+    for (std::size_t i = 0; i < m_Addresses.size(); i++) {
       if (m_Addresses[i].transport_style ==
           kovri::core::RouterInfo::eTransportSSU &&
           m_Addresses[i].host.is_v6()) {

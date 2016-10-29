@@ -162,33 +162,27 @@ void NetDb::Run() {
       }
       // builds exploratory tunnels at Nth interval to find more peers
       if (ts - last_exploratory >= static_cast<std::uint16_t>(NetDbInterval::Exploratory)) {
-        auto num_routers = GetNumRouters();
-        // evaluates if a router has a sufficient number of known routers
-        // to use for building tunnels, if less than Nth routers are known,
-        // then more exploratory tunnels will be created to find more routers
-        // for tunnel building
-        if (num_routers <
+        // Set default exploratory count
+        std::uint16_t exploratory_count =
+          static_cast<std::uint16_t>(NetDbSize::MinExploratoryTunnels);
+        // Get number of current available routers
+        auto known_routers = GetNumRouters();
+        // Evaluates if a router has a sufficient number of known routers
+        // to use for building tunnels and sets exploratory count as needed
+        if (known_routers <
             static_cast<std::uint16_t>(NetDbSize::FavouredKnownRouters)
             || ts - last_exploratory >=
             static_cast<std::uint16_t>(NetDbInterval::DelayedExploratory)) {
-          if (num_routers > 0) {
-            num_routers =
-              static_cast<std::uint16_t>(NetDbSize::MinKnownRouters)
-              / num_routers;
-          }
-          if (num_routers <
-              static_cast<std::uint16_t>(NetDbSize::MinExploratoryTunnels)) {
-            num_routers =
-              static_cast<std::uint16_t>(NetDbSize::MinExploratoryTunnels);
-          }
-          if (num_routers >
-              static_cast<std::uint16_t>(NetDbSize::MaxExploratoryTunnels)) {
-            num_routers =
+          // Test if we're below the desired threshold
+          if (known_routers <
+              static_cast<std::uint16_t>(NetDbSize::MinKnownRouters)) {
+            // Set the max exploratory count
+            exploratory_count =
               static_cast<std::uint16_t>(NetDbSize::MaxExploratoryTunnels);
           }
         }
         m_Requests.ManageRequests();
-        Explore(num_routers);
+        Explore(exploratory_count);
         last_exploratory = ts;
       }
     } catch(std::exception& ex) {

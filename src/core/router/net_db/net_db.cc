@@ -163,12 +163,8 @@ void NetDb::Run() {
       // builds exploratory tunnels at Nth interval to find more peers
       if (ts - last_exploratory >= static_cast<std::uint16_t>(NetDbInterval::Exploratory)) {
         auto known_routers = GetNumRouters();
-        // TODO(olarks): If I'm not mistaken, this should be initialized with
-        // static_cast<std::uint16_t>(NetDbSize::MinExploratoryTunnels) and then
-        // we can lose the else if block entirely (assuming we truly don't care
-        // about delayed exploratory time (see comment below)). I don't think we
-        // ever should have this as 0 - or else we won't explore.
-        std::uint16_t num_routers = 0;
+        std::uint16_t num_routers =
+          static_cast<std::uint16_t>(NetDbSize::MinExploratoryTunnels);
         // evaluates if a router has a sufficient number of known routers
         // to use for building tunnels, if less than Nth routers are known,
         // then more exploratory tunnels will be created to find more routers

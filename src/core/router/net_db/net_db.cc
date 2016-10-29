@@ -162,21 +162,30 @@ void NetDb::Run() {
       }
       // builds exploratory tunnels at Nth interval to find more peers
       if (ts - last_exploratory >= static_cast<std::uint16_t>(NetDbInterval::Exploratory)) {
-        auto known_routers = GetNumRouters();
-        std::uint16_t num_routers =
-          static_cast<std::uint16_t>(NetDbSize::MinExploratoryTunnels);
+        auto num_routers = GetNumRouters();
         // evaluates if a router has a sufficient number of known routers
         // to use for building tunnels, if less than Nth routers are known,
         // then more exploratory tunnels will be created to find more routers
         // for tunnel building
-        if (known_routers > 0
-            && known_routers < static_cast<std::uint16_t>(NetDbSize::MinKnownRouters)) {
-          num_routers = static_cast<std::uint16_t>(NetDbSize::MaxExploratoryTunnels);
-        } else if (
-            (known_routers > static_cast<std::uint16_t>(NetDbSize::MinKnownRouters)
-             && known_routers < static_cast<std::uint16_t>(NetDbSize::FavouredKnownRouters))
-            || ts - last_exploratory >= static_cast<std::uint16_t>(NetDbInterval::DelayedExploratory)) {
-          num_routers = static_cast<std::uint16_t>(NetDbSize::MinExploratoryTunnels);
+        if (num_routers <
+            static_cast<std::uint16_t>(NetDbSize::FavouredKnownRouters)
+            || ts - last_exploratory >=
+            static_cast<std::uint16_t>(NetDbInterval::DelayedExploratory)) {
+          if (num_routers > 0) {
+            num_routers =
+              static_cast<std::uint16_t>(NetDbSize::MinKnownRouters)
+              / num_routers;
+          }
+          if (num_routers <
+              static_cast<std::uint16_t>(NetDbSize::MinExploratoryTunnels)) {
+            num_routers =
+              static_cast<std::uint16_t>(NetDbSize::MinExploratoryTunnels);
+          }
+          if (num_routers >
+              static_cast<std::uint16_t>(NetDbSize::MaxExploratoryTunnels)) {
+            num_routers =
+              static_cast<std::uint16_t>(NetDbSize::MaxExploratoryTunnels);
+          }
         }
         m_Requests.ManageRequests();
         Explore(num_routers);

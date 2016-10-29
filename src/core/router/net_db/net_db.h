@@ -56,6 +56,57 @@
 namespace kovri {
 namespace core {
 
+/// @enum NetDbInterval
+/// @brief Constants defining different refresh intervals
+///   for various NetDb operations
+enum struct NetDbInterval : const std::uint16_t {
+  /// @var WaitForMessageTimeout
+  /// @brief 15 seconds
+  WaitForMessageTimeout = 15000,
+  /// @var ManageRequests
+  /// @brief in seconds
+  ManageRequests = 15,
+  /// @var Save
+  /// @brief in seconds
+  Save = 60,
+  /// @var PublishRouterInfo
+  /// @brief in seconds
+  PublishRouterInfo = 2400,
+  /// @var Exploratory
+  /// @brief in seconds
+  Exploratory = 30,
+  /// @var DelayedExploratory
+  /// @brief in seconds
+  DelayedExploratory = 90,
+};
+
+/// @enum NetDbSize
+/// @brief Constants defining NetDb sizes
+///   for how many known routers are wanted for
+///   a large variety of peers to build tunnels
+enum struct NetDbSize : const std::uint16_t {
+  /// @var MinKnownRouters
+  /// @brief minimum number of known routers
+  ///   desired for building tunnels
+  MinKnownRouters = 800,
+  /// @var FavouredKnownRouters
+  /// @brief desired number of known routers
+  ///   for building tunnels
+  FavouredKnownRouters = 2500,
+  /// @var MaxExploratoryTunnels
+  /// @brief number of exploratory tunnels
+  ///   to be built for < 800 known router
+  MaxExploratoryTunnels = 9,
+  /// @var MinExploratoryTunnels
+  /// @brief number of exploratory tunnels
+  ///   to be built for 800 < known routers < 2500
+  MinExploratoryTunnels = 1,
+  /// @var MaxMessagesRead
+  /// @brief max number of NetDb messages
+  ///   that can be processed in succession
+  MaxMessagesRead = 100,
+};
+
 class NetDb {
  public:
   NetDb();

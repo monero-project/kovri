@@ -104,9 +104,13 @@ void NetDb::Run() {
            last_manage_request = 0;
   while (m_IsRunning) {
     try {
-      auto msg = m_Queue.GetNextWithTimeout(15000);  // 15 sec
+      // if there are no messages a timeout is executed to wait
+      // for messages to be received
+      auto msg =
+        m_Queue.GetNextWithTimeout(
+            static_cast<std::uint16_t>(NetDbInterval::WaitForMessageTimeout));
       if (msg) {
-        int num_msgs = 0;
+        std::uint8_t num_msgs = 0;
         while (msg) {
           switch (msg->GetTypeID()) {
             case e_I2NPDatabaseStore:
@@ -127,7 +131,7 @@ void NetDb::Run() {
                   "NetDb: unexpected message type ", msg->GetTypeID());
               // kovri::HandleI2NPMessage(msg);
           }
-          if (num_msgs > 100)
+          if (num_msgs > static_cast<std::uint16_t>(NetDbSize::MaxMessagesRead))
             break;
           msg = m_Queue.Get();
           num_msgs++;
@@ -135,38 +139,57 @@ void NetDb::Run() {
       }
       if (!m_IsRunning)
         break;
-      uint64_t ts = kovri::core::GetSecondsSinceEpoch();
-      if (ts - last_manage_request >= 15) {  // manage requests every 15 seconds
+      std::uint64_t ts = kovri::core::GetSecondsSinceEpoch();
+      // builds tunnels for requested destinations
+      if (ts - last_manage_request >=
+          static_cast<std::uint16_t>(NetDbInterval::ManageRequests)) {
         m_Requests.ManageRequests();
         last_manage_request = ts;
       }
-      // save routers, manage leasesets and validate subscriptions every minute
-      if (ts - last_save >= 60) {
+      // save routers, manage leasesets and validate subscriptions
+      if (ts - last_save >= static_cast<std::uint16_t>(NetDbInterval::Save)) {
         if (last_save) {
           SaveUpdated();
           ManageLeaseSets();
         }
         last_save = ts;
       }
-      if (ts - last_publish >= 2400) {  // publish every 40 minutes
+      // publishes router info to a floodfill at Nth interval
+      if (ts - last_publish >=
+	  static_cast<std::uint16_t>(NetDbInterval::PublishRouterInfo)) {
         Publish();
         last_publish = ts;
       }
-      if (ts - last_exploratory >= 30) {  // exploratory every 30 seconds
-        auto num_routers = m_RouterInfos.size();
-        // TODO(anonimal): research these numbers
-        if (num_routers < 2500 || ts - last_exploratory >= 90) {
+      // builds exploratory tunnels at Nth interval to find more peers
+      if (ts - last_exploratory >= static_cast<std::uint16_t>(NetDbInterval::Exploratory)) {
+        auto num_routers = GetNumRouters();
+        // evaluates if a router has a sufficient number of known routers
+        // to use for building tunnels, if less than Nth routers are known,
+        // then more exploratory tunnels will be created to find more routers
+        // for tunnel building
+        if (num_routers <
+            static_cast<std::uint16_t>(NetDbSize::FavouredKnownRouters)
+            || ts - last_exploratory >=
+            static_cast<std::uint16_t>(NetDbInterval::DelayedExploratory)) {
           if (num_routers > 0) {
-            num_routers = 800 / num_routers;
+            num_routers =
+              static_cast<std::uint16_t>(NetDbSize::MinKnownRouters)
+              / num_routers;
           }
-          if (num_routers < 1)
-            num_routers = 1;
-          if (num_routers > 9)
-            num_routers = 9;
-          m_Requests.ManageRequests();
-          Explore(num_routers);
-          last_exploratory = ts;
+          if (num_routers <
+              static_cast<std::uint16_t>(NetDbSize::MinExploratoryTunnels)) {
+            num_routers =
+              static_cast<std::uint16_t>(NetDbSize::MinExploratoryTunnels);
+          }
+          if (num_routers >
+              static_cast<std::uint16_t>(NetDbSize::MaxExploratoryTunnels)) {
+            num_routers =
+              static_cast<std::uint16_t>(NetDbSize::MaxExploratoryTunnels);
+          }
         }
+        m_Requests.ManageRequests();
+        Explore(num_routers);
+        last_exploratory = ts;
       }
     } catch(std::exception& ex) {
       LogPrint(eLogError, "NetDb::Run(): ", ex.what());
@@ -311,11 +334,11 @@ bool NetDb::Load() {
           it1 != end;
           ++it1) {
 #if BOOST_VERSION > 10500
-        const std::string& fullPath = it1->path().string();
+        const std::string& full_path = it1->path().string();
 #else
-        const std::string& fullPath = it1->path();
+        const std::string& full_path = it1->path();
 #endif
-        auto r = std::make_shared<RouterInfo>(fullPath);
+        auto r = std::make_shared<RouterInfo>(full_path);
         if (!r->IsUnreachable() &&
             (!r->UsesIntroducer() ||
              ts < r->GetTimestamp() + 3600 * 1000LL)) {  // 1 hour
@@ -326,8 +349,8 @@ bool NetDb::Load() {
             m_Floodfills.push_back(r);
           num_routers++;
         } else {
-          if (boost::filesystem::exists(fullPath))
-            boost::filesystem::remove(fullPath);
+          if (boost::filesystem::exists(full_path))
+            boost::filesystem::remove(full_path);
         }
       }
     }
@@ -348,8 +371,8 @@ void NetDb::SaveUpdated() {
       kovri::context.GetDataPath() / m_NetDbPath);
   int count = 0,
       deleted_count = 0;
-  auto total = m_RouterInfos.size();
-  uint64_t ts = kovri::core::GetMillisecondsSinceEpoch();
+  auto total = GetNumRouters();
+  std::uint64_t ts = kovri::core::GetMillisecondsSinceEpoch();
   for (auto it : m_RouterInfos) {
     if (it.second->IsUpdated()) {
       std::string f = GetFilePath(full_directory, it.second.get()).string();
@@ -743,7 +766,7 @@ void NetDb::Explore(
   std::vector<kovri::core::TunnelMessageBlock> msgs;
   std::set<const RouterInfo *> floodfills;
   // TODO(unassigned): docs
-  LogPrint(eLogInfo, "NetDb: exploring new ", num_destinations, " routers");
+  LogPrint(eLogInfo, "NetDb: exploring ", num_destinations, " new routers");
   for (int i = 0; i < num_destinations; i++) {
     kovri::core::RandBytes(random_hash, 32);
     auto dest = m_Requests.CreateRequest(random_hash, true);  // exploratory
@@ -855,7 +878,7 @@ std::shared_ptr<const RouterInfo> NetDb::GetHighBandwidthRandomRouter(
 template<typename Filter>
 std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter(
     Filter filter) const {
-  uint32_t ind = kovri::core::RandInRange<uint32_t>(0, m_RouterInfos.size() - 1);
+  std::uint32_t ind = kovri::core::RandInRange<std::uint32_t>(0, GetNumRouters() - 1);
   for (int j = 0; j < 2; j++) {
     uint32_t i = 0;
     std::unique_lock<std::mutex> l(m_RouterInfosMutex);

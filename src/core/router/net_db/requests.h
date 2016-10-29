@@ -51,9 +51,9 @@ class RequestedDestination {
 
   RequestedDestination(
       const IdentHash& destination,
-      bool isExploratory = false)
+      bool is_exploratory = false)
       : m_Destination(destination),
-        m_IsExploratory(isExploratory),
+        m_IsExploratory(is_exploratory),
         m_CreationTime(0) {}
   ~RequestedDestination() {
     if (m_RequestComplete)

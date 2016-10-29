@@ -31,12 +31,7 @@
  */
 
 #include <string>
-
-#include "destination.h"
-#include "identity.h"
-#include "client_context.h"
 #include "i2p_service.h"
-
 namespace i2p {
 namespace client {
 

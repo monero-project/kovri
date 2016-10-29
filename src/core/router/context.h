@@ -87,15 +87,15 @@ class RouterContext : public kovri::core::GarlicDestination {
   }
 
   // @return How long this RouterContext has been online in seconds since epoch
-  uint32_t GetUptime() const;
+  std::uint32_t GetUptime() const;
 
   // @return Time that this RouterContext started in seconds since epoch
-  uint32_t GetStartupTime() const {
+  std::uint32_t GetStartupTime() const {
     return m_StartupTime;
   }
 
   // @return Time this RouterContext last updated its RouterInfo
-  uint64_t GetLastUpdateTime() const {
+  std::uint64_t GetLastUpdateTime() const {
     return m_LastUpdateTime;
   }
 
@@ -133,7 +133,7 @@ class RouterContext : public kovri::core::GarlicDestination {
   // @param tag
   bool AddIntroducer(
       const kovri::core::RouterInfo& routerInfo,
-      uint32_t tag);
+      std::uint32_t tag);
 
   // Remove and SSU introducer given its endpoint.
   // Rebuilds RouterInfo.
@@ -227,11 +227,11 @@ class RouterContext : public kovri::core::GarlicDestination {
     return m_Keys;
   }
 
-  const uint8_t* GetEncryptionPrivateKey() const {
+  const std::uint8_t* GetEncryptionPrivateKey() const {
     return m_Keys.GetPrivateKey();
   }
 
-  const uint8_t* GetEncryptionPublicKey() const {
+  const std::uint8_t* GetEncryptionPublicKey() const {
     return GetIdentity().GetStandardIdentity().public_key;
   }
 
@@ -245,8 +245,8 @@ class RouterContext : public kovri::core::GarlicDestination {
   std::shared_ptr<kovri::core::TunnelPool> GetTunnelPool() const;
 
   void HandleI2NPMessage(
-      const uint8_t* buf,
-      size_t len,
+      const std::uint8_t* buf,
+      std::size_t len,
       std::shared_ptr<kovri::core::InboundTunnel> from);
 
   // override GarlicDestination
@@ -306,9 +306,9 @@ class RouterContext : public kovri::core::GarlicDestination {
  private:
   kovri::core::RouterInfo m_RouterInfo;
   kovri::core::PrivateKeys m_Keys;
-  uint64_t m_LastUpdateTime;
+  std::uint64_t m_LastUpdateTime;
   bool m_AcceptsTunnels, m_IsFloodfill;
-  uint64_t m_StartupTime;  // in seconds since epoch
+  std::uint64_t m_StartupTime;  // in seconds since epoch
   RouterStatus m_Status;
   std::mutex m_GarlicMutex;
   std::string m_Host;

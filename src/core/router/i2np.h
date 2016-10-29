@@ -52,7 +52,7 @@ namespace kovri {
 // TODO(anonimal): I2NP belongs in core namespace
 
              // I2NP header
-const size_t I2NP_HEADER_TYPEID_OFFSET = 0,
+const std::size_t I2NP_HEADER_TYPEID_OFFSET = 0,
              I2NP_HEADER_MSGID_OFFSET = I2NP_HEADER_TYPEID_OFFSET + 1,
              I2NP_HEADER_EXPIRATION_OFFSET = I2NP_HEADER_MSGID_OFFSET + 4,
              I2NP_HEADER_SIZE_OFFSET = I2NP_HEADER_EXPIRATION_OFFSET + 8,
@@ -115,7 +115,7 @@ const size_t I2NP_HEADER_TYPEID_OFFSET = 0,
                BUILD_RESPONSE_RECORD_RANDPAD_SIZE;
 
               // DatabaseLookup flags
-const uint8_t DATABASE_LOOKUP_DELIVERY_FLAG = 0x01,
+const std::uint8_t DATABASE_LOOKUP_DELIVERY_FLAG = 0x01,
               DATABASE_LOOKUP_ENCYPTION_FLAG = 0x02,
               DATABASE_LOOKUP_TYPE_FLAGS_MASK = 0x0C,
               DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP = 0,
@@ -147,8 +147,8 @@ class TunnelPool;
 }
 
 struct I2NPMessage {
-  uint8_t* buf;
-  size_t len, offset, max_len;
+  std::uint8_t* buf;
+  std::size_t len, offset, max_len;
   std::shared_ptr<kovri::core::InboundTunnel> from;
 
   I2NPMessage()
@@ -159,42 +159,42 @@ struct I2NPMessage {
         from(nullptr) {}  // reserve 2 bytes for NTCP header
 
   // header accessors
-  uint8_t* GetHeader() {
+  std::uint8_t* GetHeader() {
     return GetBuffer();
   }
-  const uint8_t* GetHeader() const {
+  const std::uint8_t* GetHeader() const {
     return GetBuffer();
   }
 
-  void SetTypeID(uint8_t type_ID) {
+  void SetTypeID(std::uint8_t type_ID) {
     GetHeader()[I2NP_HEADER_TYPEID_OFFSET] = type_ID;
   }
 
-  uint8_t GetTypeID() const {
+  std::uint8_t GetTypeID() const {
     return GetHeader()[I2NP_HEADER_TYPEID_OFFSET];
   }
 
-  void SetMsgID(uint32_t msg_ID) {
+  void SetMsgID(std::uint32_t msg_ID) {
     htobe32buf(GetHeader() + I2NP_HEADER_MSGID_OFFSET, msg_ID);
   }
 
-  uint32_t GetMsgID() const {
+  std::uint32_t GetMsgID() const {
     return bufbe32toh(GetHeader() + I2NP_HEADER_MSGID_OFFSET);
   }
 
-  void SetExpiration(uint64_t expiration) {
+  void SetExpiration(std::uint64_t expiration) {
     htobe64buf(GetHeader() + I2NP_HEADER_EXPIRATION_OFFSET, expiration);
   }
 
-  uint64_t GetExpiration() const {
+  std::uint64_t GetExpiration() const {
     return bufbe64toh(GetHeader() + I2NP_HEADER_EXPIRATION_OFFSET);
   }
 
-  void SetSize(uint16_t size) {
+  void SetSize(std::uint16_t size) {
     htobe16buf(GetHeader() + I2NP_HEADER_SIZE_OFFSET, size);
   }
 
-  uint16_t GetSize() const {
+  std::uint16_t GetSize() const {
     return bufbe16toh(GetHeader () + I2NP_HEADER_SIZE_OFFSET);
   }
 
@@ -202,42 +202,42 @@ struct I2NPMessage {
     SetSize(GetPayloadLength());
   }
 
-  void SetChks(uint8_t chks) {
+  void SetChks(std::uint8_t chks) {
     GetHeader()[I2NP_HEADER_CHKS_OFFSET] = chks;
   }
 
   void UpdateChks() {
-    uint8_t hash[32];
+    std::uint8_t hash[32];
     kovri::core::SHA256().CalculateDigest(hash, GetPayload(), GetPayloadLength());
     GetHeader()[I2NP_HEADER_CHKS_OFFSET] = hash[0];
   }
 
   // payload
-  uint8_t* GetPayload() {
+  std::uint8_t* GetPayload() {
     return GetBuffer() + I2NP_HEADER_SIZE;
   }
-  const uint8_t* GetPayload() const {
+  const std::uint8_t* GetPayload() const {
     return GetBuffer() + I2NP_HEADER_SIZE;
   }
 
-  uint8_t* GetBuffer() {
+  std::uint8_t* GetBuffer() {
     return buf + offset;
   }
-  const uint8_t* GetBuffer() const {
+  const std::uint8_t* GetBuffer() const {
     return buf + offset;
   }
 
-  size_t GetLength() const {
+  std::size_t GetLength() const {
     return len - offset;
   }
 
-  size_t GetPayloadLength() const {
+  std::size_t GetPayloadLength() const {
     return GetLength () - I2NP_HEADER_SIZE;
   }
 
-  void Align(size_t alignment) {
+  void Align(std::size_t alignment) {
     if (len + alignment > max_len) return;
-    size_t rem = ((size_t)GetBuffer()) % alignment;
+    std::size_t rem = ((std::size_t)GetBuffer()) % alignment;
     if (rem) {
       offset += (alignment - rem);
       len += (alignment - rem);
@@ -253,13 +253,13 @@ struct I2NPMessage {
   }
 
   // for SSU only
-  uint8_t* GetSSUHeader() {
+  std::uint8_t* GetSSUHeader() {
     return buf + offset + I2NP_HEADER_SIZE - I2NP_SHORT_HEADER_SIZE;
   }
 
   // we have received SSU message and convert it to regular
-  void FromSSU(uint32_t msg_ID) {
-    const uint8_t* ssu = GetSSUHeader();
+  void FromSSU(std::uint32_t msg_ID) {
+    const std::uint8_t* ssu = GetSSUHeader();
     GetHeader()[I2NP_HEADER_TYPEID_OFFSET] =
       ssu[I2NP_SHORT_HEADER_TYPEID_OFFSET];  // typeid
     SetMsgID(msg_ID);
@@ -271,10 +271,10 @@ struct I2NPMessage {
   }
 
   // return msg_ID
-  uint32_t ToSSU() {
-    uint8_t header[I2NP_HEADER_SIZE];
+  std::uint32_t ToSSU() {
+    std::uint8_t header[I2NP_HEADER_SIZE];
     memcpy(header, GetHeader(), I2NP_HEADER_SIZE);
-    uint8_t * ssu = GetSSUHeader();
+    std::uint8_t * ssu = GetSSUHeader();
     ssu[I2NP_SHORT_HEADER_TYPEID_OFFSET] =
       header[I2NP_HEADER_TYPEID_OFFSET];  // typeid
     htobe32buf(
@@ -288,7 +288,7 @@ struct I2NPMessage {
 
   void FillI2NPMessageHeader(
       I2NPMessageType msg_type,
-      uint32_t reply_msg_ID = 0);
+      std::uint32_t reply_msg_ID = 0);
 
   void RenewI2NPMessageHeader();
 };
@@ -299,7 +299,7 @@ struct I2NPMessageBuffer : public I2NPMessage {
     buf = m_Buffer;
     max_len = SZ;
   }
-  uint8_t m_Buffer[SZ + 16] = {};
+  std::uint8_t m_Buffer[SZ + 16] = {};
 };
 
 // TODO(rakhimov): Consider shared_ptr instead of unique_ptr
@@ -307,7 +307,7 @@ struct I2NPMessageBuffer : public I2NPMessage {
 //                 ``ToSharedI2NPMessage`` is already providing a shared_ptr.
 std::unique_ptr<I2NPMessage> NewI2NPMessage();
 std::unique_ptr<I2NPMessage> NewI2NPMessage(
-    size_t len);
+    std::size_t len);
 
 std::unique_ptr<I2NPMessage> NewI2NPShortMessage();
 
@@ -316,21 +316,21 @@ std::shared_ptr<I2NPMessage> ToSharedI2NPMessage(
 
 std::unique_ptr<I2NPMessage> CreateI2NPMessage(
     I2NPMessageType msg_type,
-    const uint8_t* buf,
+    const std::uint8_t* buf,
     int len,
-    uint32_t reply_msg_ID = 0);
+    std::uint32_t reply_msg_ID = 0);
 
 std::shared_ptr<I2NPMessage> CreateI2NPMessage(
-    const uint8_t* buf,
+    const std::uint8_t* buf,
     int len,
     std::shared_ptr<kovri::core::InboundTunnel> from = nullptr);
 
-std::shared_ptr<I2NPMessage> CreateDeliveryStatusMsg(uint32_t msg_ID);
+std::shared_ptr<I2NPMessage> CreateDeliveryStatusMsg(std::uint32_t msg_ID);
 
 std::shared_ptr<I2NPMessage> CreateRouterInfoDatabaseLookupMsg(
-    const uint8_t* key,
-    const uint8_t * from,
-    uint32_t reply_tunnel_ID,
+    const std::uint8_t* key,
+    const std::uint8_t * from,
+    std::uint32_t reply_tunnel_ID,
     bool exploratory = false,
     std::set<kovri::core::IdentHash>* excluded_peers = nullptr);
 
@@ -338,8 +338,8 @@ std::shared_ptr<I2NPMessage> CreateLeaseSetDatabaseLookupMsg(
     const kovri::core::IdentHash& dest,
     const std::set<kovri::core::IdentHash>& excluded_floodfills,
     const kovri::core::InboundTunnel* reply_tunnel,
-    const uint8_t* reply_key,
-    const uint8_t* reply_tag);
+    const std::uint8_t* reply_key,
+    const std::uint8_t* reply_tag);
 
 std::shared_ptr<I2NPMessage> CreateDatabaseSearchReply(
     const kovri::core::IdentHash& ident,
@@ -347,61 +347,61 @@ std::shared_ptr<I2NPMessage> CreateDatabaseSearchReply(
 
 std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg(
     std::shared_ptr<const kovri::core::RouterInfo> router = nullptr,
-    uint32_t reply_token = 0);
+    std::uint32_t reply_token = 0);
 std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg(
     std::shared_ptr<const kovri::core::LeaseSet> lease_set,
-    uint32_t reply_token = 0);
+    std::uint32_t reply_token = 0);
 
 bool HandleBuildRequestRecords(
     int num,
-    uint8_t* records,
-    uint8_t* clear_text);
+    std::uint8_t* records,
+    std::uint8_t* clear_text);
 
 void HandleVariableTunnelBuildMsg(
-    uint32_t reply_msg_ID,
-    uint8_t* buf,
-    size_t len);
+    std::uint32_t reply_msg_ID,
+    std::uint8_t* buf,
+    std::size_t len);
 
 void HandleVariableTunnelBuildReplyMsg(
-    uint32_t reply_msg_ID,
-    uint8_t* buf,
-    size_t len);
+    std::uint32_t reply_msg_ID,
+    std::uint8_t* buf,
+    std::size_t len);
 
 void HandleTunnelBuildMsg(
-    uint8_t* buf,
-    size_t len);
+    std::uint8_t* buf,
+    std::size_t len);
 
 std::unique_ptr<I2NPMessage> CreateTunnelDataMsg(
-    const uint8_t * buf);
+    const std::uint8_t * buf);
 
 std::unique_ptr<I2NPMessage> CreateTunnelDataMsg(
-    uint32_t tunnel_ID,
-    const uint8_t* payload);
+    std::uint32_t tunnel_ID,
+    const std::uint8_t* payload);
 
 std::shared_ptr<I2NPMessage> CreateEmptyTunnelDataMsg();
 
 std::unique_ptr<I2NPMessage> CreateTunnelGatewayMsg(
-    uint32_t tunnel_ID,
-    const uint8_t* buf,
-    size_t len);
+    std::uint32_t tunnel_ID,
+    const std::uint8_t* buf,
+    std::size_t len);
 
 std::unique_ptr<I2NPMessage> CreateTunnelGatewayMsg(
-    uint32_t tunnel_ID,
+    std::uint32_t tunnel_ID,
     I2NPMessageType msg_type,
-    const uint8_t* buf,
-    size_t len,
-    uint32_t reply_msg_ID = 0);
+    const std::uint8_t* buf,
+    std::size_t len,
+    std::uint32_t reply_msg_ID = 0);
 
 std::shared_ptr<I2NPMessage> CreateTunnelGatewayMsg(
-    uint32_t tunnel_ID,
+    std::uint32_t tunnel_ID,
     std::shared_ptr<I2NPMessage> msg);
 
-size_t GetI2NPMessageLength(
-    const uint8_t* msg);
+std::size_t GetI2NPMessageLength(
+    const std::uint8_t* msg);
 
 void HandleI2NPMessage(
-    uint8_t* msg,
-    size_t len);
+    std::uint8_t* msg,
+    std::size_t len);
 
 void HandleI2NPMessage(
     std::shared_ptr<I2NPMessage> msg);

@@ -30,12 +30,14 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "byte_stream.h"
-#include "i2p_endian.h"
+#include "core/util/byte_stream.h"
+
 #include <stdexcept>
 
-namespace i2p {
-namespace util {
+#include "core/util/i2p_endian.h"
+
+namespace kovri {
+namespace core {
 
 InputByteStream::InputByteStream(
     std::uint8_t* data,
@@ -108,5 +110,5 @@ uint8_t* OutputByteStream::GetPosition() const {
   return m_Data;
 }
 
-} // namespace util
-} // namespace i2p
+} // namespace core
+} // namespace kovri

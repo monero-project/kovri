@@ -36,10 +36,10 @@
 #include <cstdint>
 #include <memory>
 
-#include "signature_base.h"
+#include "core/crypto/signature_base.h"
 
-namespace i2p {
-namespace crypto {
+namespace kovri {
+namespace core {
 
 /**
  *
@@ -536,7 +536,7 @@ void CreateEDDSARandomKeys(
     std::uint8_t* public_key);
 
 
-}  // namespace crypto
-}  // namespace i2p
+}  // namespace core
+}  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_SIGNATURE_H_

@@ -28,14 +28,14 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#ifndef SRC_CORE_CRYPTO_DIFFIEHELLMAN_H_
-#define SRC_CORE_CRYPTO_DIFFIEHELLMAN_H_
+#ifndef SRC_CORE_CRYPTO_DIFFIE_HELLMAN_H_
+#define SRC_CORE_CRYPTO_DIFFIE_HELLMAN_H_
 
 #include <memory>
 #include <cstdint>
 
-namespace i2p {
-namespace crypto {
+namespace kovri {
+namespace core {
 
 /// @class DiffieHellman
 /// @brief Diffie-Hellman
@@ -66,7 +66,7 @@ class DiffieHellman {
   std::unique_ptr<DiffieHellmanImpl> m_DiffieHellmanPimpl;
 };
 
-}  // namespace crypto
-}  // namespace i2p
+}  // namespace core
+}  // namespace kovri
 
-#endif  // SRC_CORE_CRYPTO_DIFFIEHELLMAN_H_
+#endif  // SRC_CORE_CRYPTO_DIFFIE_HELLMAN_H_

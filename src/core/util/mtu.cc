@@ -84,9 +84,8 @@ int inet_pton(
 }
 #endif
 
-namespace i2p {
-namespace util {
-namespace mtu {
+namespace kovri {
+namespace core {
 
 #if defined(__linux__) || \
     defined(__FreeBSD_kernel__) || \
@@ -319,6 +318,5 @@ std::uint16_t GetMTU(
   return mtu;
 }
 
-}  // namespace mtu
-}  // namespace util
-}  // namespace i2p
+}  // namespace core
+}  // namespace kovri

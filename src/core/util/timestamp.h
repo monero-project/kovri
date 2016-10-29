@@ -37,8 +37,8 @@
 
 #include <chrono>
 
-namespace i2p {
-namespace util {
+namespace kovri {
+namespace core {
 
 inline uint64_t GetMillisecondsSinceEpoch() {
   return std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -55,7 +55,7 @@ inline uint64_t GetSecondsSinceEpoch() {
       std::chrono::system_clock::now().time_since_epoch()).count();
 }
 
-}  // namespace util
-}  // namespace i2p
+}  // namespace core
+}  // namespace kovri
 
 #endif  // SRC_CORE_UTIL_TIMESTAMP_H_

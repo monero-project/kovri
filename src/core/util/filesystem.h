@@ -39,9 +39,8 @@
 #include <sstream>
 #include <string>
 
-namespace i2p {
-namespace util {
-namespace filesystem {
+namespace kovri {
+namespace core {
 
 /// @class StringStream
 /// @details A wrapper for casting and strongly-typed classes
@@ -94,8 +93,7 @@ boost::filesystem::path GetSSLCertsPath();
 /// @return the path to log storage
 const boost::filesystem::path GetLogsPath();
 
-}  // namespace filesystem
-}  // namespace util
-}  // namespace i2p
+}  // namespace core
+}  // namespace kovri
 
 #endif  // SRC_CORE_UTIL_FILESYSTEM_H_

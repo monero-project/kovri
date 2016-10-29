@@ -40,8 +40,8 @@
 #include <thread>
 #include <vector>
 
-namespace i2p {
-namespace util {
+namespace kovri {
+namespace core {
 
 template<typename Element>
 class Queue {
@@ -188,7 +188,7 @@ class MsgQueue : public Queue<Msg *> {
   std::thread m_Thread;
 };
 
-}  // namespace util
-}  // namespace i2p
+}  // namespace core
+}  // namespace kovri
 
 #endif  // SRC_CORE_UTIL_QUEUE_H_

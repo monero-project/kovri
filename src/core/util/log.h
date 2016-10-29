@@ -39,9 +39,8 @@
 #include <unordered_map>
 #include <vector>
 
-namespace i2p {
-namespace util {
-namespace log {
+namespace kovri {
+namespace core {
 
 /**
  *
@@ -69,10 +68,10 @@ enum LogLevel {
   eLogLevelError
 };
 
-#define eLogDebug i2p::util::log::eLogLevelDebug
-#define eLogInfo i2p::util::log::eLogLevelInfo
-#define eLogWarn i2p::util::log::eLogLevelWarn
-#define eLogError i2p::util::log::eLogLevelError
+#define eLogDebug kovri::core::eLogLevelDebug
+#define eLogInfo kovri::core::eLogLevelInfo
+#define eLogWarn kovri::core::eLogLevelWarn
+#define eLogError kovri::core::eLogLevelError
 
 /// @typedef LogLevelsMap
 /// @brief Map of log levels
@@ -169,9 +168,8 @@ class Log {
   std::shared_ptr<Logger> m_DefaultLogger;
 };
 
-}  // namespace log
-}  // namespace util
-}  // namespace i2p
+}  // namespace core
+}  // namespace kovri
 
 /**
  *
@@ -198,9 +196,9 @@ void DeprecatedLog(
 // TODO(unassigned): more efficient way to execute this function.
 template<typename... Args>
 void DeprecatedLogPrint(
-    i2p::util::log::LogLevel level,
+    kovri::core::LogLevel level,
     Args... args) {
-  auto logger = i2p::util::log::Log::GetGlobalLogEngine();
+  auto logger = kovri::core::Log::GetGlobalLogEngine();
   if (!logger) {
     // fallback logging to std::clog
     DeprecatedLog(std::clog, args...);
@@ -214,7 +212,7 @@ void DeprecatedLogPrint(
     return;
   }
   // Get global log levels
-  auto global_levels = i2p::util::log::GetGlobalLogLevels();
+  auto global_levels = kovri::core::GetGlobalLogLevels();
   // Print log after testing arg level against global levels
   if (level == eLogDebug) {
     for (auto& current_level : global_levels) {

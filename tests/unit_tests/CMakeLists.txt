@@ -10,7 +10,7 @@ set(TESTS_CORE
   "core/crypto/elgamal.cc"
   "core/crypto/rand.cc"
   "core/crypto/util/x509.cc"
-  "core/transport/ssu_packet.cc"
+  "core/router/transports/ssu/packet.cc"
   "core/util/base64.cc")
 
 set(TESTS_MAIN
@@ -18,11 +18,7 @@ set(TESTS_MAIN
   ${TESTS_CORE}
   "main.cc")
 
-include_directories(
-  "../../src/"
-  "../../src/app/"
-  "../../src/core/"
-  "../../src/client/")
+include_directories("../../src/")
 
 if(WITH_TESTS)
   find_package(

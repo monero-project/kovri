@@ -38,10 +38,10 @@
 #include <cstdint>
 #include <memory>
 
-#include "identity.h"
+#include "core/router/identity.h"
 
-namespace i2p {
-namespace crypto {
+namespace kovri {
+namespace core {
 
 struct CipherBlock {
   uint8_t buf[16];
@@ -63,7 +63,7 @@ struct CipherBlock {
   }
 };
 
-typedef i2p::data::Tag<32> AESKey;
+typedef kovri::core::Tag<32> AESKey;
 
 template<std::size_t Size>
 class AESAlignedBuffer {  // 16 bytes alignment
@@ -226,7 +226,7 @@ class CBCDecryption {
   std::unique_ptr<CBCDecryptionImpl> m_CBCDecryptionPimpl;
 };
 
-}  // namespace crypto
-}  // namespace i2p
+}  // namespace core
+}  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_AES_H_

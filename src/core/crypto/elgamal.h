@@ -36,8 +36,8 @@
 #include <cstdint>
 #include <memory>
 
-namespace i2p {
-namespace crypto {
+namespace kovri {
+namespace core {
 
 /// @class ElGamalEncryption
 class ElGamalEncryption {
@@ -67,7 +67,7 @@ void GenerateElGamalKeyPair(
     std::uint8_t* priv,
     std::uint8_t* pub);
 
-}  // namespace crypto
-}  // namespace i2p
+}  // namespace core
+}  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_ELGAMAL_H_

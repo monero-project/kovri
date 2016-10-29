@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "http.h"
+#include "client/util/http.h"
 
 #include <boost/network/message/directives/header.hpp>
 #include <boost/network/message/wrappers/body.hpp>
@@ -41,15 +41,16 @@
 #include <string>
 #include <vector>
 
-#include "address_book.h"
-#include "client_context.h"
-#include "core/router_context.h"
+#include "client/address_book/address_book.h"
+#include "client/context.h"
+
+#include "core/router/context.h"
+
 #include "core/util/filesystem.h"
 #include "core/util/log.h"
 
-namespace i2p {
-namespace util {
-namespace http {  // TODO(anonimal): consider removing this namespace (its not needed)
+namespace kovri {
+namespace client {
 
 // TODO(unassigned): currently unused but will be useful
 // without needing to create a new object for each given URI
@@ -102,9 +103,9 @@ bool HTTP::DownloadViaClearnet() {
   Options options;
   options.timeout(static_cast<std::uint8_t>(Timeout::Request));
   // Ensure that we only download from certified reseed servers
-  if (!i2p::context.GetOptionReseedSkipSSLCheck()) {
+  if (!kovri::context.GetOptionReseedSkipSSLCheck()) {
     const std::string cert = uri.host() + ".crt";
-    const boost::filesystem::path cert_path = i2p::util::filesystem::GetSSLCertsPath() / cert;
+    const boost::filesystem::path cert_path = kovri::core::GetSSLCertsPath() / cert;
     if (!boost::filesystem::exists(cert_path)) {
       LogPrint(eLogError, "HTTP: certificate unavailable: ", cert_path);
       return false;
@@ -182,9 +183,9 @@ bool HTTP::DownloadViaI2P() {
   // Get URI
   auto uri = GetURI();
   // Reference the only instantiated address book instance in the singleton client context
-  auto& address_book = i2p::client::context.GetAddressBook();
+  auto& address_book = kovri::client::context.GetAddressBook();
   // For identity hash of URI host
-  i2p::data::IdentHash ident;
+  kovri::core::IdentHash ident;
   // Get URI host's ident hash then find its lease-set
   if (address_book.CheckAddressIdentHashFound(uri.host(), ident)
       && address_book.GetSharedLocalDestination()) {
@@ -197,7 +198,7 @@ bool HTTP::DownloadViaI2P() {
       address_book.GetSharedLocalDestination()->RequestDestination(
           ident,
           [&new_data_received, &lease_set](
-              std::shared_ptr<i2p::data::LeaseSet> ls) {
+              std::shared_ptr<kovri::core::LeaseSet> ls) {
             lease_set = ls;
             new_data_received.notify_all();
           });
@@ -219,7 +220,7 @@ bool HTTP::DownloadViaI2P() {
       PrepareI2PRequest();  // TODO(anonimal): remove after refactor
       // Send request
       auto stream =
-        i2p::client::context.GetAddressBook().GetSharedLocalDestination()->CreateStream(
+        kovri::client::context.GetAddressBook().GetSharedLocalDestination()->CreateStream(
             lease_set,
             std::stoi(uri.port()));
       stream->Send(
@@ -387,6 +388,5 @@ std::string HTTP::HTTPProxyDecode(
   return res;
 }
 
-}  // namespace http
-}  // namespace util
-}  // namespace i2p
+}  // namespace client
+}  // namespace kovri

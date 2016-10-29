@@ -34,9 +34,8 @@
 #include <memory>
 #include <cstdint>
 
-namespace i2p {
-namespace crypto {
-namespace util {
+namespace kovri {
+namespace core {
 
 /// @class DeflateDecompressor
 /// @brief RFC 1951 DEFLATE Decompressor
@@ -166,8 +165,7 @@ class Gunzip {
   std::unique_ptr<GunzipImpl> m_GunzipPimpl;
 };
 
-}  // namespace util
-}  // namespace crypto
-}  // namespace i2p
+}  // namespace core
+}  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_UTIL_COMPRESSION_H_

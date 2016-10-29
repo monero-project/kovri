@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CORE_UTIL_ZIP_H_
-#define SRC_CORE_UTIL_ZIP_H_
+#ifndef SRC_CLIENT_UTIL_ZIP_H_
+#define SRC_CLIENT_UTIL_ZIP_H_
 
 #include <array>
 #include <cstdint>
@@ -42,8 +42,8 @@
 
 #include "core/util/filesystem.h"
 
-namespace i2p {
-namespace util {
+namespace kovri {
+namespace client {
 
 /**
  * We currently implement a very minimal adherence to the ZIP specification:
@@ -149,13 +149,13 @@ class ZIP {
   };
 
   // ZIP stream
-  i2p::util::filesystem::StringStream m_Stream;
+  kovri::core::StringStream m_Stream;
 
   // ZIP spec-defined data
   std::unique_ptr<Data> m_Data;
 };
 
-}  // namespace util
-}  // namespace i2p
+}  // namespace client
+}  // namespace kovri
 
-#endif  // SRC_CORE_UTIL_ZIP_H_
+#endif  // SRC_CLIENT_UTIL_ZIP_H_

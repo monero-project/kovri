@@ -43,15 +43,16 @@
 #include <string>
 #include <thread>
 
-#include "garlic.h"
-#include "identity.h"
-#include "lease_set.h"
-#include "net_db.h"
-#include "datagram.h"
-#include "streaming.h"
-#include "tunnel/tunnel_pool.h"
+#include "client/api/datagram.h"
+#include "client/api/streaming.h"
 
-namespace i2p {
+#include "core/router/garlic.h"
+#include "core/router/identity.h"
+#include "core/router/lease_set.h"
+#include "core/router/net_db/net_db.h"
+#include "core/router/tunnel/pool.h"
+
+namespace kovri {
 namespace client {
 
 const uint8_t PROTOCOL_TYPE_STREAMING = 6;
@@ -75,17 +76,17 @@ const int DEFAULT_OUTBOUND_TUNNELS_QUANTITY = 5;
 const char I2CP_PARAM_EXPLICIT_PEERS[] = "explicitPeers";
 const int STREAM_REQUEST_TIMEOUT = 60;  // in seconds
 
-typedef std::function<void (std::shared_ptr<i2p::stream::Stream> stream)> StreamRequestComplete;
+typedef std::function<void (std::shared_ptr<kovri::client::Stream> stream)> StreamRequestComplete;
 
-class ClientDestination : public i2p::garlic::GarlicDestination {
-  typedef std::function<void (std::shared_ptr<i2p::data::LeaseSet> leaseSet)> RequestComplete;
+class ClientDestination : public kovri::core::GarlicDestination {
+  typedef std::function<void (std::shared_ptr<kovri::core::LeaseSet> leaseSet)> RequestComplete;
   // leaseSet = nullptr means not found
   struct LeaseSetRequest {
     LeaseSetRequest(
         boost::asio::io_service& service)
         : request_time(0),
           request_timeout_timer(service) {}
-    std::set<i2p::data::IdentHash> excluded;
+    std::set<kovri::core::IdentHash> excluded;
     uint64_t request_time;
     boost::asio::deadline_timer request_timeout_timer;
     RequestComplete request_complete;
@@ -93,7 +94,7 @@ class ClientDestination : public i2p::garlic::GarlicDestination {
 
  public:
   ClientDestination(
-      const i2p::data::PrivateKeys& keys,
+      const kovri::core::PrivateKeys& keys,
       bool is_public,
       const std::map<std::string, std::string>* params = nullptr);
 
@@ -111,7 +112,7 @@ class ClientDestination : public i2p::garlic::GarlicDestination {
     return m_Service;
   }
 
-  std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool() {
+  std::shared_ptr<kovri::core::TunnelPool> GetTunnelPool() {
     return m_Pool;
   }
 
@@ -121,46 +122,46 @@ class ClientDestination : public i2p::garlic::GarlicDestination {
            m_Pool->GetOutboundTunnels().size() > 0;
   }
 
-  std::shared_ptr<const i2p::data::LeaseSet> FindLeaseSet(
-      const i2p::data::IdentHash& ident);
+  std::shared_ptr<const kovri::core::LeaseSet> FindLeaseSet(
+      const kovri::core::IdentHash& ident);
 
   bool RequestDestination(
-      const i2p::data::IdentHash& dest,
+      const kovri::core::IdentHash& dest,
       RequestComplete request_complete = nullptr);
 
   // streaming
-  std::shared_ptr<i2p::stream::StreamingDestination> CreateStreamingDestination(
+  std::shared_ptr<kovri::client::StreamingDestination> CreateStreamingDestination(
       int port);  // additional
 
-  std::shared_ptr<i2p::stream::StreamingDestination> GetStreamingDestination(
+  std::shared_ptr<kovri::client::StreamingDestination> GetStreamingDestination(
       int port = 0) const;
 
   // following methods operate with default streaming destination
   void CreateStream(
       StreamRequestComplete stream_request_complete,
-      const i2p::data::IdentHash& dest,
+      const kovri::core::IdentHash& dest,
       int port = 0);
 
-  std::shared_ptr<i2p::stream::Stream> CreateStream(
-      std::shared_ptr<const i2p::data::LeaseSet> remote,
+  std::shared_ptr<kovri::client::Stream> CreateStream(
+      std::shared_ptr<const kovri::core::LeaseSet> remote,
       int port = 0);
 
   void AcceptStreams(
-      const i2p::stream::StreamingDestination::Acceptor& acceptor);
+      const kovri::client::StreamingDestination::Acceptor& acceptor);
 
   void StopAcceptingStreams();
 
   bool IsAcceptingStreams() const;
 
   // datagram
-  i2p::datagram::DatagramDestination* GetDatagramDestination() const {
+  DatagramDestination* GetDatagramDestination() const {
     return m_DatagramDestination;
   }
 
-  i2p::datagram::DatagramDestination* CreateDatagramDestination();
+  DatagramDestination* CreateDatagramDestination();
 
   // implements LocalDestination
-  const i2p::data::PrivateKeys& GetPrivateKeys() const {
+  const kovri::core::PrivateKeys& GetPrivateKeys() const {
     return m_Keys;
   }
 
@@ -173,16 +174,16 @@ class ClientDestination : public i2p::garlic::GarlicDestination {
   }
 
   // implements GarlicDestination
-  std::shared_ptr<const i2p::data::LeaseSet> GetLeaseSet();
+  std::shared_ptr<const kovri::core::LeaseSet> GetLeaseSet();
 
-  std::shared_ptr<i2p::tunnel::TunnelPool> GetTunnelPool() const {
+  std::shared_ptr<kovri::core::TunnelPool> GetTunnelPool() const {
     return m_Pool;
   }
 
   void HandleI2NPMessage(
       const uint8_t* buf,
       size_t len,
-      std::shared_ptr<i2p::tunnel::InboundTunnel> from);
+      std::shared_ptr<kovri::core::InboundTunnel> from);
 
   // override GarlicDestination
   bool SubmitSessionKey(
@@ -224,17 +225,17 @@ class ClientDestination : public i2p::garlic::GarlicDestination {
       std::shared_ptr<I2NPMessage> msg);
 
   void RequestLeaseSet(
-      const i2p::data::IdentHash& dest,
+      const kovri::core::IdentHash& dest,
       RequestComplete request_complete);
 
   bool SendLeaseSetRequest(
-      const i2p::data::IdentHash& dest,
-      std::shared_ptr<const i2p::data::RouterInfo> next_floodfill,
+      const kovri::core::IdentHash& dest,
+      std::shared_ptr<const kovri::core::RouterInfo> next_floodfill,
       LeaseSetRequest* request);
 
   void HandleRequestTimoutTimer(
       const boost::system::error_code& ecode,
-      const i2p::data::IdentHash& dest);
+      const kovri::core::IdentHash& dest);
 
   void HandleCleanupTimer(
       const boost::system::error_code& ecode);
@@ -247,34 +248,34 @@ class ClientDestination : public i2p::garlic::GarlicDestination {
   boost::asio::io_service m_Service;
   boost::asio::io_service::work m_Work;
 
-  i2p::data::PrivateKeys m_Keys;
+  kovri::core::PrivateKeys m_Keys;
   uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
 
-  std::map<i2p::data::IdentHash,
-           std::shared_ptr<i2p::data::LeaseSet>> m_RemoteLeaseSets;
+  std::map<kovri::core::IdentHash,
+           std::shared_ptr<kovri::core::LeaseSet>> m_RemoteLeaseSets;
 
-  std::map<i2p::data::IdentHash,
+  std::map<kovri::core::IdentHash,
            LeaseSetRequest *> m_LeaseSetRequests;
 
-  std::shared_ptr<i2p::tunnel::TunnelPool> m_Pool;
-  std::shared_ptr<i2p::data::LeaseSet> m_LeaseSet;
+  std::shared_ptr<kovri::core::TunnelPool> m_Pool;
+  std::shared_ptr<kovri::core::LeaseSet> m_LeaseSet;
 
   bool m_IsPublic;
 
   uint32_t m_PublishReplyToken;
-  std::set<i2p::data::IdentHash> m_ExcludedFloodfills;  // for publishing
+  std::set<kovri::core::IdentHash> m_ExcludedFloodfills;  // for publishing
 
-  std::shared_ptr<i2p::stream::StreamingDestination> m_StreamingDestination;  // default
+  std::shared_ptr<kovri::client::StreamingDestination> m_StreamingDestination;  // default
 
   std::map<uint16_t,
-           std::shared_ptr<i2p::stream::StreamingDestination>> m_StreamingDestinationsByPorts;
+           std::shared_ptr<kovri::client::StreamingDestination>> m_StreamingDestinationsByPorts;
 
-  i2p::datagram::DatagramDestination* m_DatagramDestination;
+  DatagramDestination* m_DatagramDestination;
 
   boost::asio::deadline_timer m_PublishConfirmationTimer, m_CleanupTimer;
 };
 
 }  // namespace client
-}  // namespace i2p
+}  // namespace kovri
 
 #endif  // SRC_CLIENT_DESTINATION_H_

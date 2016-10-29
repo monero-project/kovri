@@ -37,13 +37,12 @@
 
 #include <cstdint>
 
-#include "log.h"
+#include "core/util/log.h"
 
-namespace i2p {
-namespace util {
-namespace mtu {
+namespace kovri {
+namespace core {
 
-// TODO(unassigned): enum class refactor once we remove namespace mtu
+// TODO(unassigned): enum class refactor
 const std::uint16_t MTU_MAX = 1472;
 const std::uint16_t MTU_FALLBACK = 576;
 
@@ -51,8 +50,7 @@ const std::uint16_t MTU_FALLBACK = 576;
 std::uint16_t GetMTU(
     const boost::asio::ip::address& local_address);
 
-}  // namespace mtu
-}  // namespace util
-}  // namespace i2p
+}  // namespace core
+}  // namespace kovri
 
 #endif // SRC_CORE_UTIL_MTU_H_

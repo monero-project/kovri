@@ -34,42 +34,42 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "crypto/aes.h"
+#include "core/crypto/aes.h"
 
 BOOST_AUTO_TEST_SUITE(AESTests)
 
 BOOST_AUTO_TEST_CASE(XorZeroCipherBlocks) {
-  i2p::crypto::CipherBlock block = {0};
+  kovri::core::CipherBlock block = {0};
   block ^= block;
-  const i2p::crypto::CipherBlock result = {0};
+  const kovri::core::CipherBlock result = {0};
   BOOST_CHECK_EQUAL_COLLECTIONS(
       result.buf, result.buf + 16,
       block.buf, block.buf + 16);
 }
 
 BOOST_AUTO_TEST_CASE(XorSelfCipherBlocks) {
-  i2p::crypto::CipherBlock block = {
+  kovri::core::CipherBlock block = {
     0xc9, 0x4c, 0xaf, 0x5, 0x9c, 0x1c, 0x10, 0x1e, 0x20, 0xb3, 0x7e,
     0xcf, 0xf5, 0xbf, 0xf0, 0xd6
   };
   block ^= block;
-  const i2p::crypto::CipherBlock result = {0};
+  const kovri::core::CipherBlock result = {0};
   BOOST_CHECK_EQUAL_COLLECTIONS(
       result.buf, result.buf + 16,
       block.buf, block.buf + 16);
 }
 
 BOOST_AUTO_TEST_CASE(XorCipherBlocks) {
-  const i2p::crypto::CipherBlock block1 = {
+  const kovri::core::CipherBlock block1 = {
     0xc9, 0x4c, 0xaf, 0x5, 0x9c, 0x1c, 0x10, 0x1e, 0x20, 0xb3, 0x7e,
     0xcf, 0xf5, 0xbf, 0xf0, 0xd6
   };
-  i2p::crypto::CipherBlock block2 = {
+  kovri::core::CipherBlock block2 = {
     0x2e, 0xfb, 0x26, 0xa9, 0x90, 0x3b, 0xf7, 0xc8, 0x5c, 0xfe, 0x20,
     0x23, 0x1d, 0xaf, 0x67, 0xac
   };
   block2 ^= block1;
-  const i2p::crypto::CipherBlock result = {
+  const kovri::core::CipherBlock result = {
     0xe7, 0xb7, 0x89, 0xac, 0xc, 0x27, 0xe7, 0xd6, 0x7c, 0x4d, 0x5e,
     0xec, 0xe8, 0x10, 0x97, 0x7a
   };
@@ -83,10 +83,10 @@ BOOST_AUTO_TEST_CASE(XorCipherBlocks) {
 struct AesCbcFixture {
   AesCbcFixture()
     : cbc_encrypt(
-          i2p::crypto::AESKey(key),
+          kovri::core::AESKey(key),
           iv),
       cbc_decrypt(
-          i2p::crypto::AESKey(key),
+          kovri::core::AESKey(key),
           iv) {}
   uint8_t key[32] = {
     0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe, 0x2b, 0x73,
@@ -98,8 +98,8 @@ struct AesCbcFixture {
     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
     0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
   };
-  i2p::crypto::CBCEncryption cbc_encrypt;
-  i2p::crypto::CBCDecryption cbc_decrypt;
+  kovri::core::CBCEncryption cbc_encrypt;
+  kovri::core::CBCDecryption cbc_decrypt;
 };
 
 BOOST_FIXTURE_TEST_CASE(AesCbcSingleBlockEncrypt, AesCbcFixture) {
@@ -131,8 +131,8 @@ BOOST_FIXTURE_TEST_CASE(AesCbcSingleBlockDecrypt, AesCbcFixture) {
 }
 
 BOOST_FIXTURE_TEST_CASE(AesCbcEncrypt, AesCbcFixture) {
-  i2p::crypto::CipherBlock output[4] = {};
-  i2p::crypto::CipherBlock input[4] = {};
+  kovri::core::CipherBlock output[4] = {};
+  kovri::core::CipherBlock input[4] = {};
   input[0] = {
     0x6b, 0xc1, 0xbe, 0xe2, 0x2e, 0x40, 0x9f, 0x96, 0xe9, 0x3d,
     0x7e, 0x11, 0x73, 0x93, 0x17, 0x2a
@@ -149,7 +149,7 @@ BOOST_FIXTURE_TEST_CASE(AesCbcEncrypt, AesCbcFixture) {
     0xf6, 0x9f, 0x24, 0x45, 0xdf, 0x4f, 0x9b, 0x17, 0xad, 0x2b,
     0x41, 0x7b, 0xe6, 0x6c, 0x37, 0x10
   };
-  i2p::crypto::CipherBlock result[4] = {};
+  kovri::core::CipherBlock result[4] = {};
   result[0] = {
     0xf5, 0x8c, 0x4c, 0x04, 0xd6, 0xe5, 0xf1, 0xba, 0x77, 0x9e,
     0xab, 0xfb, 0x5f, 0x7b, 0xfb, 0xd6
@@ -175,8 +175,8 @@ BOOST_FIXTURE_TEST_CASE(AesCbcEncrypt, AesCbcFixture) {
 }
 
 BOOST_FIXTURE_TEST_CASE(AesCbcDecrypt, AesCbcFixture) {
-  i2p::crypto::CipherBlock output[4] = {};
-  i2p::crypto::CipherBlock input[4] = {};
+  kovri::core::CipherBlock output[4] = {};
+  kovri::core::CipherBlock input[4] = {};
   input[0] = {
     0xf5, 0x8c, 0x4c, 0x04, 0xd6, 0xe5, 0xf1, 0xba, 0x77, 0x9e,
     0xab, 0xfb, 0x5f, 0x7b, 0xfb, 0xd6
@@ -193,7 +193,7 @@ BOOST_FIXTURE_TEST_CASE(AesCbcDecrypt, AesCbcFixture) {
     0xb2, 0xeb, 0x05, 0xe2, 0xc3, 0x9b, 0xe9, 0xfc, 0xda, 0x6c,
     0x19, 0x07, 0x8c, 0x6a, 0x9d, 0x1b
   };
-  i2p::crypto::CipherBlock result[4] = {};
+  kovri::core::CipherBlock result[4] = {};
   result[0] = {
     0x6b, 0xc1, 0xbe, 0xe2, 0x2e, 0x40, 0x9f, 0x96, 0xe9, 0x3d,
     0x7e, 0x11, 0x73, 0x93, 0x17, 0x2a

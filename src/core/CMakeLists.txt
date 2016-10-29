@@ -1,43 +1,41 @@
-include_directories(
-  "."
-  "../")
+include_directories("../")
 
 set(CORE_SRC
-  "garlic.cc"
-  "i2np_protocol.cc"
-  "identity.cc"
-  "lease_set.cc"
-  "net_db.cc"
-  "net_db_requests.cc"
-  "profiling.cc"
-  "router_context.cc"
-  "router_info.cc"
-  "transport/ntcp.cc"
-  "transport/ntcp_session.cc"
-  "transport/ssu.cc"
-  "transport/ssu_packet.cc"
-  "transport/ssu_data.cc"
-  "transport/ssu_session.cc"
-  "transport/transports.cc"
-  "transport/upnp.cc"
-  "tunnel/transit_tunnel.cc"
-  "tunnel/tunnel.cc"
-  "tunnel/tunnel_config.cc"
-  "tunnel/tunnel_endpoint.cc"
-  "tunnel/tunnel_gateway.cc"
-  "tunnel/tunnel_pool.cc"
+  "router/context.cc"
+  "router/garlic.cc"
+  "router/i2np.cc"
+  "router/identity.cc"
+  "router/lease_set.cc"
+  "router/net_db/net_db.cc"
+  "router/net_db/requests.cc"
+  "router/profiling.cc"
+  "router/info.cc"
+  "router/transports/ntcp/ntcp.cc"
+  "router/transports/ntcp/session.cc"
+  "router/transports/ssu/data.cc"
+  "router/transports/ssu/packet.cc"
+  "router/transports/ssu/session.cc"
+  "router/transports/ssu/ssu.cc"
+  "router/transports/transports.cc"
+  "router/transports/upnp.cc"
+  "router/tunnel/config.cc"
+  "router/tunnel/endpoint.cc"
+  "router/tunnel/gateway.cc"
+  "router/tunnel/pool.cc"
+  "router/tunnel/transit.cc"
+  "router/tunnel/tunnel.cc"
   "util/base64.cc"
   "util/byte_stream.cc"
   "util/filesystem.cc"
   "util/mtu.cc"
-  "util/pimpl/log.cc")
+  "util/impl/log.cc")
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
   list(APPEND CORE_SRC "util/i2p_endian.cc")
 endif()
 
 if(WITH_CRYPTOPP)
-  set(CRYPTOPP_DIR "crypto/pimpl/cryptopp")
+  set(CRYPTOPP_DIR "crypto/impl/cryptopp")
 endif()
 
 set(CRYPTO_SRC
@@ -54,8 +52,8 @@ set(CRYPTO_SRC
   "${CRYPTOPP_DIR}/util/x509.cc")
 
 if(WITH_SUPERCOP)
-  set(EDDSA_DIR "crypto/pimpl/supercop")
-  add_subdirectory("crypto/pimpl/supercop/ed25519")
+  set(EDDSA_DIR "crypto/impl/supercop")
+  add_subdirectory("crypto/impl/supercop/ed25519")
 endif()
 
 set(EDDSA_SRC

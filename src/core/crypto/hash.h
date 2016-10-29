@@ -36,8 +36,8 @@
 
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1  // For MD5
 
-namespace i2p {
-namespace crypto {
+namespace kovri {
+namespace core {
 
 /// @class MD5
 class MD5 {
@@ -135,7 +135,7 @@ class SHA512 {
   std::unique_ptr<SHA512Impl> m_SHA512Pimpl;
 };
 
-}  // namespace crypto
-}  // namespace i2p
+}  // namespace core
+}  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_HASH_H_

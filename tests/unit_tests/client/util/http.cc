@@ -32,11 +32,11 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "util/http.h"
+#include "client/util/http.h"
 
 BOOST_AUTO_TEST_SUITE(HTTPUtilityTests)
 
-i2p::util::http::HTTP http;
+kovri::client::HTTP http;
 
 BOOST_AUTO_TEST_CASE(UriParse) {
   // Note: cpp-netlib has better tests.

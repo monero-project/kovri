@@ -34,8 +34,8 @@
 
 #include <stdlib.h>
 
-namespace i2p {
-namespace util {
+namespace kovri {
+namespace core {
 
 static void iT64Build(void);
 
@@ -249,5 +249,5 @@ size_t ByteStreamToBase32(
   return ret;
 }
 
-}  // namespace util
-}  // namespace i2p
+}  // namespace core
+}  // namespace kovri

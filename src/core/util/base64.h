@@ -36,8 +36,8 @@
 #include <inttypes.h>
 #include <string.h>
 
-namespace i2p {
-namespace util {
+namespace kovri {
+namespace core {
 
   /*
    * Base64 encodes an array of bytes.
@@ -99,7 +99,7 @@ namespace util {
       char* out_buf,
       size_t out_len);
 
-}  // namespace util
-}  // namespace i2p
+}  // namespace core
+}  // namespace kovri
 
 #endif  // SRC_CORE_UTIL_BASE64_H_

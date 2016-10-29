@@ -34,9 +34,8 @@
 #include <cstdint>
 #include <memory>
 
-namespace i2p {
-namespace crypto {
-namespace util {
+namespace kovri {
+namespace core {
 
 /// @class Adler32
 /// @brief Adler-32
@@ -75,8 +74,7 @@ class Adler32 {
   std::unique_ptr<Adler32Impl> m_Adler32Pimpl;
 };
 
-}  // namespace util
-}  // namespace crypto
-}  // namespace i2p
+}  // namespace core
+}  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_UTIL_CHECKSUM_H_

@@ -1,3 +1,5 @@
+include_directories("../")
+
 set(APP_SRC
   "main.cc"
   "daemon.cc"
@@ -16,12 +18,6 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
   list(APPEND APP_SRC "daemon_win32.cc")
   list(APPEND APP_SRC "win32_service.cc")
 endif()
-
-include_directories(
-  "."
-  "../"
-  "../core/"
-  "../client/")
 
 if(WITH_BINARY)
   add_executable(${APP_NAME} ${APP_SRC})

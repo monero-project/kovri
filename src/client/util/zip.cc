@@ -30,18 +30,19 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "zip.h"
+#include "client/util/zip.h"
 
 #include <istream>
 #include <string>
 #include <vector>
 
 #include "core/crypto/util/compression.h"
+
 #include "core/util/i2p_endian.h"
 #include "core/util/log.h"
 
-namespace i2p {
-namespace util {
+namespace kovri {
+namespace client {
 
 /**
  * ZIP implementation
@@ -197,7 +198,7 @@ bool ZIP::DecompressLocalFile() {
       case static_cast<std::size_t>(Method::deflate): {
         LogPrint(eLogDebug, "ZIP: file uses compression method 'deflate'");
         // Instantiate decompressor
-        i2p::crypto::util::DeflateDecompressor decompressor;
+        kovri::core::DeflateDecompressor decompressor;
         // Put in data to decompress
         decompressor.Put(
             m_Data->compressed.data(),
@@ -250,5 +251,5 @@ bool ZIP::DecompressLocalFile() {
   return true;
 }
 
-}  // namespace util
-}  // namespace i2p
+}  // namespace client
+}  // namespace kovri

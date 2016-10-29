@@ -1,7 +1,7 @@
 set(BENCHMARKS_SRC
   "signature.cc")
 
-include_directories("../../src/core/")
+include_directories("../../src/")
 
 if(WITH_BENCHMARKS)
   add_executable(${BENCHMARKS_NAME} ${BENCHMARKS_SRC})

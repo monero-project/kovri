@@ -35,8 +35,8 @@
 #include <cstdint>
 #include <cstddef>
 
-namespace i2p {
-namespace util {
+namespace kovri {
+namespace core {
 
 /// @class InputByteStream
 /// @brief Wraps an array of bytes to provide stream-like functionality.
@@ -133,7 +133,7 @@ class OutputByteStream {
   std::size_t m_Length; ///< Remaining length of the stream
 };
 
-} // namespace util
-} // namespace i2p
+} // namespace core
+} // namespace kovri
 
 #endif  // SRC_CORE_UTIL_BYTESTREAM_H_

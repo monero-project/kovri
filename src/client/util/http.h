@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CORE_UTIL_HTTP_H_
-#define SRC_CORE_UTIL_HTTP_H_
+#ifndef SRC_CLIENT_UTIL_HTTP_H_
+#define SRC_CLIENT_UTIL_HTTP_H_
 
 // cpp-netlib
 #define BOOST_NETWORK_ENABLE_HTTPS
@@ -46,11 +46,10 @@
 #include <sstream>
 #include <string>
 
-#include "reseed.h"
+#include "client/reseed.h"
 
-namespace i2p {
-namespace util {
-namespace http {  // TODO(anonimal): consider removing this namespace (its not needed)
+namespace kovri {
+namespace client {
 
 /// @enum Timeout
 /// @brief Constants used for HTTP timeout lengths when downloading
@@ -256,8 +255,7 @@ class HTTP : public HTTPStorage {
   std::stringstream m_Request, m_Response;
 };
 
-}  // namespace http
-}  // namespace util
-}  // namespace i2p
+}  // namespace client
+}  // namespace kovri
 
-#endif  // SRC_CORE_UTIL_HTTP_H_
+#endif  // SRC_CLIENT_UTIL_HTTP_H_

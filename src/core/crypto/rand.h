@@ -36,8 +36,8 @@
 #include <cstdlib>
 #include <stdexcept>
 
-namespace i2p {
-namespace crypto {
+namespace kovri {
+namespace core {
 
   /// @brief Generates CSPRNG bytes
   /// @param data Buffer to store result
@@ -82,7 +82,7 @@ namespace crypto {
     return ret;
   }
 
-}  // namespace crypto
-}  // namespace i2p
+}  // namespace core
+}  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_RAND_H_

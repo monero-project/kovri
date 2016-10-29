@@ -41,9 +41,8 @@
 
 #include "config.h"
 
-namespace i2p {
-namespace util {
-namespace filesystem {
+namespace kovri {
+namespace app {
 
 std::string app_name("kovri");
 
@@ -58,15 +57,15 @@ std::string GetAppName() {
 
 boost::filesystem::path GetConfigFile() {
   boost::filesystem::path kovri_conf(
-      i2p::util::config::var_map["kovriconf"].as<std::string>());
+      kovri::app::var_map["kovriconf"].as<std::string>());
   if (!kovri_conf.is_complete())
-        kovri_conf = GetDataPath() / kovri_conf;
+    kovri_conf = GetDataPath() / kovri_conf;
   return kovri_conf;
 }
 
 boost::filesystem::path GetTunnelsConfigFile() {
   boost::filesystem::path tunnels_conf(
-      i2p::util::config::var_map["tunnelsconf"].as<std::string>());
+      kovri::app::var_map["tunnelsconf"].as<std::string>());
   if (!tunnels_conf.is_complete())
     tunnels_conf = GetDataPath() / tunnels_conf;
   return tunnels_conf;
@@ -146,6 +145,5 @@ boost::filesystem::path GetDefaultDataPath() {
 #endif
 }
 
-}  // namespace filesystem
-}  // namespace util
-}  // namespace i2p
+}  // namespace app
+}  // namespace kovri

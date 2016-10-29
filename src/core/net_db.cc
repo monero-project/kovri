@@ -106,7 +106,7 @@ void NetDb::Run() {
       // for messages to be received
       auto msg =
         m_Queue.GetNextWithTimeout(
-            static_cast<std::uint16_t>(NetDbDuration::WaitForMessageTimeout));
+            static_cast<std::uint16_t>(NetDbInterval::WaitForMessageTimeout));
       if (msg) {
         std::uint8_t num_msgs = 0;
         while (msg) {
@@ -129,7 +129,7 @@ void NetDb::Run() {
                   "NetDb: unexpected message type ", msg->GetTypeID());
               // i2p::HandleI2NPMessage(msg);
           }
-          if (num_msgs > static_cast<std::uint16_t>(NetDbDuration::MaxMessagesRead))
+          if (num_msgs > static_cast<std::uint16_t>(NetDbSize::MaxMessagesRead))
             break;
           msg = m_Queue.Get();
           num_msgs++;
@@ -140,12 +140,12 @@ void NetDb::Run() {
       std::uint64_t ts = i2p::util::GetSecondsSinceEpoch();
       // builds tunnels for requested destinations
       if (ts - last_manage_request >=
-          static_cast<std::uint16_t>(NetDbDuration::ManageRequestsInterval)) {
+          static_cast<std::uint16_t>(NetDbInterval::ManageRequests)) {
         m_Requests.ManageRequests();
         last_manage_request = ts;
       }
       // save routers, manage leasesets and validate subscriptions
-      if (ts - last_save >= static_cast<std::uint16_t>(NetDbDuration::SaveInterval)) {
+      if (ts - last_save >= static_cast<std::uint16_t>(NetDbInterval::Save)) {
         if (last_save) {
           SaveUpdated();
           ManageLeaseSets();
@@ -154,34 +154,35 @@ void NetDb::Run() {
       }
       // publishes router info to a floodfill at Nth interval
       if (ts - last_publish >=
-	  static_cast<std::uint16_t>(NetDbDuration::PublishRouterInfoInterval)) {
+	  static_cast<std::uint16_t>(NetDbInterval::PublishRouterInfo)) {
         Publish();
         last_publish = ts;
       }
       // builds exploratory tunnels at Nth interval to find more peers
-      if (ts - last_exploratory >=
-          static_cast<std::uint16_t>(NetDbDuration::ExploreInterval)) {
-        auto known_routers = m_RouterInfos.size();
+      if (ts - last_exploratory >= static_cast<std::uint16_t>(NetDbInterval::Exploratory)) {
+        auto known_routers = GetNumRouters();
+        // TODO(olarks): If I'm not mistaken, this should be initialized with
+        // static_cast<std::uint16_t>(NetDbSize::MinExploratoryTunnels) and then
+        // we can lose the else if block entirely (assuming we truly don't care
+        // about delayed exploratory time (see comment below)). I don't think we
+        // ever should have this as 0 - or else we won't explore.
         std::uint16_t num_routers = 0;
         // evaluates if a router has a sufficient number of known routers
         // to use for building tunnels, if less than Nth routers are known,
         // then more exploratory tunnels will be created to find more routers
         // for tunnel building
-        if (known_routers > 0 && known_routers <
-            static_cast<std::uint16_t>(NetDbPrefs::MinimumKnownRouters)) {
-          num_routers =
-            static_cast<std::uint16_t>(NetDbPrefs::MaxExploratoryTunnels);
-        } else if ((known_routers >
-            static_cast<std::uint16_t>(NetDbPrefs::MinimumKnownRouters) &&
-            known_routers <
-            static_cast<std::uint16_t>(NetDbPrefs::FavouredNumKnownRouters)) ||
-            ts - last_exploratory >=
-            static_cast<std::uint16_t>(NetDbDuration::DelayedExploreInterval)) {
-          num_routers = static_cast<std::uint16_t>(NetDbPrefs::MinExploratoryTunnels);
+        if (known_routers > 0
+            && known_routers < static_cast<std::uint16_t>(NetDbSize::MinKnownRouters)) {
+          num_routers = static_cast<std::uint16_t>(NetDbSize::MaxExploratoryTunnels);
+        } else if (
+            (known_routers > static_cast<std::uint16_t>(NetDbSize::MinKnownRouters)
+             && known_routers < static_cast<std::uint16_t>(NetDbSize::FavouredKnownRouters))
+            || ts - last_exploratory >= static_cast<std::uint16_t>(NetDbInterval::DelayedExploratory)) {
+          num_routers = static_cast<std::uint16_t>(NetDbSize::MinExploratoryTunnels);
         }
-          m_Requests.ManageRequests();
-          Explore(num_routers);
-          last_exploratory = ts;
+        m_Requests.ManageRequests();
+        Explore(num_routers);
+        last_exploratory = ts;
       }
     } catch(std::exception& ex) {
       LogPrint(eLogError, "NetDb::Run(): ", ex.what());
@@ -363,7 +364,7 @@ void NetDb::SaveUpdated() {
       i2p::context.GetDataPath() / m_NetDbPath);
   int count = 0,
       deleted_count = 0;
-  auto total = m_RouterInfos.size();
+  auto total = GetNumRouters();
   uint64_t ts = i2p::util::GetMillisecondsSinceEpoch();
   for (auto it : m_RouterInfos) {
     if (it.second->IsUpdated()) {
@@ -870,7 +871,7 @@ std::shared_ptr<const RouterInfo> NetDb::GetHighBandwidthRandomRouter(
 template<typename Filter>
 std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter(
     Filter filter) const {
-  uint32_t ind = i2p::crypto::RandInRange<uint32_t>(0, m_RouterInfos.size() - 1);
+  uint32_t ind = i2p::crypto::RandInRange<uint32_t>(0, GetNumRouters() - 1);
   for (int j = 0; j < 2; j++) {
     uint32_t i = 0;
     std::unique_lock<std::mutex> l(m_RouterInfosMutex);

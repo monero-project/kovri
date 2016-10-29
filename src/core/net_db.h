@@ -55,47 +55,43 @@
 namespace i2p {
 namespace data {
 
-/// @enum NetDbDuration
+/// @enum NetDbInterval
 /// @brief Constants defining different refresh intervals
 ///   for various NetDb operations
-enum struct NetDbDuration : const std::uint16_t {
+enum struct NetDbInterval : const std::uint16_t {
   /// @var WaitForMessageTimeout
   /// @brief 15 seconds
   WaitForMessageTimeout = 15000,
-  /// @var ManageRequestsInterval
+  /// @var ManageRequests
   /// @brief in seconds
-  ManageRequestsInterval = 15,
-  /// @var SaveInterval
+  ManageRequests = 15,
+  /// @var Save
   /// @brief in seconds
-  SaveInterval = 60,
-  /// @var PublishRouterInfoInterval
+  Save = 60,
+  /// @var PublishRouterInfo
   /// @brief in seconds
-  PublishRouterInfoInterval = 2400,
-  /// @var ExploreInterval
+  PublishRouterInfo = 2400,
+  /// @var Exploratory
   /// @brief in seconds
-  ExploreInterval = 30,
-  /// @var DelayedExploreInterval
+  Exploratory = 30,
+  /// @var DelayedExploratory
   /// @brief in seconds
-  DelayedExploreInterval = 90,
-  /// @var MaxMessagesRead
-  /// @brief max number of NetDb messages
-  ///   that can be processed in succession
-  MaxMessagesRead = 100,
+  DelayedExploratory = 90,
 };
 
-/// @enum NetDbPrefs
-/// @brief Constants defining NetDb preferences
+/// @enum NetDbSize
+/// @brief Constants defining NetDb sizes
 ///   for how many known routers are wanted for
 ///   a large variety of peers to build tunnels
-enum struct NetDbPrefs : const std::uint16_t {
-  /// @var MinimumKnownRouters
+enum struct NetDbSize : const std::uint16_t {
+  /// @var MinKnownRouters
   /// @brief minimum number of known routers
   ///   desired for building tunnels
-  MinimumKnownRouters = 800,
-  /// @var FavouredNumKnownRouters
+  MinKnownRouters = 800,
+  /// @var FavouredKnownRouters
   /// @brief desired number of known routers
   ///   for building tunnels
-  FavouredNumKnownRouters = 2500,
+  FavouredKnownRouters = 2500,
   /// @var MaxExploratoryTunnels
   /// @brief number of exploratory tunnels
   ///   to be built for < 800 known router
@@ -104,6 +100,10 @@ enum struct NetDbPrefs : const std::uint16_t {
   /// @brief number of exploratory tunnels
   ///   to be built for 800 < known routers < 2500
   MinExploratoryTunnels = 1,
+  /// @var MaxMessagesRead
+  /// @brief max number of NetDb messages
+  ///   that can be processed in succession
+  MaxMessagesRead = 100,
 };
 
 class NetDb {

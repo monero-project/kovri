@@ -44,16 +44,7 @@
 namespace kovri {
 namespace app {
 
-std::string app_name("kovri");
-
-void SetAppName(
-    const std::string& name) {
-  app_name = name;
-}
-
-std::string GetAppName() {
-  return app_name;
-}
+std::string g_AppName("kovri");
 
 boost::filesystem::path GetConfigFile() {
   boost::filesystem::path kovri_conf(
@@ -124,7 +115,7 @@ boost::filesystem::path GetDefaultDataPath() {
   // Windows
   char local_app_data[MAX_PATH];
   SHGetFolderPath(NULL, CSIDL_APPDATA, 0, NULL, local_app_data);
-  return boost::filesystem::path(std::string(local_app_data) + "\\" + app_name);
+  return boost::filesystem::path(std::string(local_app_data) + "\\" + g_AppName);
 #else
   boost::filesystem::path path_ret;
   char* home = getenv("HOME");
@@ -136,10 +127,10 @@ boost::filesystem::path GetDefaultDataPath() {
   // Mac
   path_ret /= "Library/Application Support";
   create_directory(path_ret);
-  return path_ret / app_name;
+  return path_ret / g_AppName;
 #else
   // Unix
-  return path_ret / (std::string(".") + app_name);
+  return path_ret / (std::string(".") + g_AppName);
 #endif
 #endif
 #endif

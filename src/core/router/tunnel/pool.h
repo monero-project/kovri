@@ -169,7 +169,7 @@ class TunnelPool
 
   mutable std::mutex m_OutboundTunnelsMutex;
   std::set<std::shared_ptr<OutboundTunnel>, TunnelCreationTimeCmp> m_OutboundTunnels;
-  std::map<uint32_t, std::pair<std::shared_ptr<OutboundTunnel>, std::shared_ptr<InboundTunnel> > > m_Tests;
+  std::map<std::uint32_t, std::pair<std::shared_ptr<OutboundTunnel>, std::shared_ptr<InboundTunnel> > > m_Tests;
   bool m_IsActive;
 
  public:

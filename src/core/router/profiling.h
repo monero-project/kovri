@@ -67,7 +67,7 @@ class RouterProfile {
 
   bool IsBad();
 
-  void TunnelBuildResponse(uint8_t ret);
+  void TunnelBuildResponse(std::uint8_t ret);
   void TunnelNonReplied();
 
  private:
@@ -85,12 +85,12 @@ class RouterProfile {
   IdentHash m_IdentHash;
   boost::posix_time::ptime m_LastUpdateTime;
   // participation
-  uint32_t m_NumTunnelsAgreed;
-  uint32_t m_NumTunnelsDeclined;
-  uint32_t m_NumTunnelsNonReplied;
+  std::uint32_t m_NumTunnelsAgreed;
+  std::uint32_t m_NumTunnelsDeclined;
+  std::uint32_t m_NumTunnelsNonReplied;
   // usage
-  uint32_t m_NumTimesTaken;
-  uint32_t m_NumTimesRejected;
+  std::uint32_t m_NumTimesTaken;
+  std::uint32_t m_NumTimesRejected;
 };
 
 std::shared_ptr<RouterProfile> GetRouterProfile(

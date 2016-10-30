@@ -134,7 +134,7 @@ std::shared_ptr<RequestedDestination> NetDbRequests::FindRequest(
 }
 
 void NetDbRequests::ManageRequests() {
-  uint64_t ts = kovri::core::GetSecondsSinceEpoch();
+  std::uint64_t ts = kovri::core::GetSecondsSinceEpoch();
   std::unique_lock<std::mutex> l(m_RequestedDestinationsMutex);
   for (auto it = m_RequestedDestinations.begin();
       it != m_RequestedDestinations.end();) {

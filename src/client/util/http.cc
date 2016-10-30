@@ -379,7 +379,7 @@ void HTTP::MergeI2PChunkedResponse(
 std::string HTTP::HTTPProxyDecode(
     const std::string& data) {
   std::string res(data);
-  for (size_t pos = res.find('%');
+  for (std::size_t pos = res.find('%');
       pos != std::string::npos;
       pos = res.find('%', pos + 1)) {
     const char c = strtol(res.substr(pos + 1, 2).c_str(), NULL, 16);

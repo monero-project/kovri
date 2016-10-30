@@ -136,7 +136,7 @@ void RouterContext::UpdateAddress(
 
 bool RouterContext::AddIntroducer(
     const kovri::core::RouterInfo& routerInfo,
-    uint32_t tag) {
+    std::uint32_t tag) {
   bool ret = false;
   auto address = routerInfo.GetSSUAddress();
   if (address) {
@@ -204,7 +204,7 @@ void RouterContext::SetUnreachable() {
 
 void RouterContext::SetReachable() {
   // update caps
-  uint8_t caps = m_RouterInfo.GetCaps();
+  std::uint8_t caps = m_RouterInfo.GetCaps();
   caps &= ~kovri::core::RouterInfo::eUnreachable;
   caps |= kovri::core::RouterInfo::eReachable;
   caps |= kovri::core::RouterInfo::eSSUIntroducer;
@@ -214,7 +214,7 @@ void RouterContext::SetReachable() {
 
   // insert NTCP back
   auto& addresses = m_RouterInfo.GetAddresses();
-  for (size_t i = 0; i < addresses.size(); i++) {
+  for (std::size_t i = 0; i < addresses.size(); i++) {
     if (addresses[i].transport_style == kovri::core::RouterInfo::eTransportSSU) {
       // insert NTCP address with host/port form SSU
       m_RouterInfo.AddNTCPAddress(
@@ -317,9 +317,9 @@ bool RouterContext::Load() {
     return false;
   
   fk.seekg(0, std::ios::end);
-  const size_t len = fk.tellg();
+  const std::size_t len = fk.tellg();
   fk.seekg(0, std::ios::beg);
-  std::unique_ptr<uint8_t[]> buf(std::make_unique<uint8_t[]>(len));
+  std::unique_ptr<std::uint8_t[]> buf(std::make_unique<std::uint8_t[]>(len));
   fk.read(reinterpret_cast<char*>(buf.get()), len);
   m_Keys.FromBuffer(buf.get(), len);
 
@@ -340,8 +340,8 @@ void RouterContext::SaveKeys() {
   std::ofstream fk(
       kovri::core::GetFullPath(ROUTER_KEYS).c_str(),
       std::ofstream::binary | std::ofstream::out);
-  const size_t len = m_Keys.GetFullLen();
-  std::unique_ptr<uint8_t[]> buf(std::make_unique<uint8_t[]>(len));
+  const std::size_t len = m_Keys.GetFullLen();
+  std::unique_ptr<std::uint8_t[]> buf(std::make_unique<std::uint8_t[]>(len));
   m_Keys.ToBuffer(buf.get(), len);
   fk.write(reinterpret_cast<char*>(buf.get()), len);
 }
@@ -349,7 +349,7 @@ void RouterContext::SaveKeys() {
 void RouterContext::RemoveTransport(
     kovri::core::RouterInfo::TransportStyle transport) {
   auto& addresses = m_RouterInfo.GetAddresses();
-  for (size_t i = 0; i < addresses.size(); i++) {
+  for (std::size_t i = 0; i < addresses.size(); i++) {
     if (addresses[i].transport_style == transport) {
       addresses.erase(addresses.begin() + i);
       break;
@@ -362,8 +362,8 @@ std::shared_ptr<kovri::core::TunnelPool> RouterContext::GetTunnelPool() const {
 }
 
 void RouterContext::HandleI2NPMessage(
-    const uint8_t* buf,
-    size_t,
+    const std::uint8_t* buf,
+    std::size_t,
     std::shared_ptr<kovri::core::InboundTunnel> from) {
   kovri::HandleI2NPMessage(
       CreateI2NPMessage(
@@ -384,7 +384,7 @@ void RouterContext::ProcessDeliveryStatusMessage(
   kovri::core::GarlicDestination::ProcessDeliveryStatusMessage(msg);
 }
 
-uint32_t RouterContext::GetUptime() const {
+std::uint32_t RouterContext::GetUptime() const {
   return kovri::core::GetSecondsSinceEpoch () - m_StartupTime;
 }
 

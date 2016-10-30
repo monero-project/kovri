@@ -179,7 +179,7 @@ void RouterProfile::Load() {
 }
 
 void RouterProfile::TunnelBuildResponse(
-    uint8_t ret) {
+    std::uint8_t ret) {
   UpdateTime();
   if (ret > 0)
     m_NumTunnelsDeclined++;

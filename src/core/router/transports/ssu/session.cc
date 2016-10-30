@@ -108,8 +108,8 @@ void SSUSession::CreateAESandMACKey(
         "SSUSession:", GetFormattedSessionInfo(), "couldn't create shared key");
     return;
   }
-  uint8_t* session_key = m_SessionKey();
-  uint8_t* mac_key = m_MACKey();
+  std::uint8_t* session_key = m_SessionKey();
+  std::uint8_t* mac_key = m_MACKey();
   if (shared_key.at(0) & 0x80) {
     session_key[0] = 0;
     memcpy(session_key + 1, shared_key.data(), 31);

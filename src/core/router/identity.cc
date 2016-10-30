@@ -90,19 +90,19 @@ IdentityEx::IdentityEx()
       m_ExtendedBuffer(nullptr) {}
 
 IdentityEx::IdentityEx(
-    const uint8_t* public_key,
-    const uint8_t* signing_key,
+    const std::uint8_t* public_key,
+    const std::uint8_t* signing_key,
     SigningKeyType type) {
   memcpy(
       m_StandardIdentity.public_key,
       public_key,
       sizeof(m_StandardIdentity.public_key));
   if (type != SIGNING_KEY_TYPE_DSA_SHA1) {
-    size_t excess_len = 0;
+    std::size_t excess_len = 0;
     std::unique_ptr<std::uint8_t[]> excess_buf;
     switch (type) {
       case SIGNING_KEY_TYPE_ECDSA_SHA256_P256: {
-        size_t padding =
+        std::size_t padding =
           128 - kovri::core::ECDSAP256_KEY_LENGTH;  // 64 = 128 - 64
         kovri::core::RandBytes(
             m_StandardIdentity.signing_key,
@@ -114,7 +114,7 @@ IdentityEx::IdentityEx(
         break;
       }
       case SIGNING_KEY_TYPE_ECDSA_SHA384_P384: {
-        size_t padding =
+        std::size_t padding =
           128 - kovri::core::ECDSAP384_KEY_LENGTH;  // 32 = 128 - 96
         kovri::core::RandBytes(
             m_StandardIdentity.signing_key,
@@ -154,7 +154,7 @@ IdentityEx::IdentityEx(
         break;
       }
       case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519: {
-        size_t padding =
+        std::size_t padding =
           128 - kovri::core::EDDSA25519_PUBLIC_KEY_LENGTH;  // 96 = 128 - 32
         kovri::core::RandBytes(
             m_StandardIdentity.signing_key,
@@ -202,8 +202,8 @@ IdentityEx::IdentityEx(
 }
 
 IdentityEx::IdentityEx(
-    const uint8_t* buf,
-    size_t len)
+    const std::uint8_t* buf,
+    std::size_t len)
     : m_Verifier(nullptr),
       m_ExtendedLen(0),
       m_ExtendedBuffer(nullptr) {
@@ -244,9 +244,9 @@ IdentityEx& IdentityEx::operator=(const Identity& standard) {
   return *this;
 }
 
-size_t IdentityEx::FromBuffer(
-    const uint8_t* buf,
-    size_t len) {
+std::size_t IdentityEx::FromBuffer(
+    const std::uint8_t* buf,
+    std::size_t len) {
   if (len < DEFAULT_IDENTITY_SIZE) {
     LogPrint(eLogError, "IdentityEx: identity buffer length ", len, " is too small");
     return 0;
@@ -272,32 +272,32 @@ size_t IdentityEx::FromBuffer(
   return GetFullLen();
 }
 
-size_t IdentityEx::ToBuffer(
-    uint8_t* buf,
-    size_t) const {
+std::size_t IdentityEx::ToBuffer(
+    std::uint8_t* buf,
+    std::size_t) const {
   memcpy(buf, &m_StandardIdentity, DEFAULT_IDENTITY_SIZE);
   if (m_ExtendedLen > 0 && m_ExtendedBuffer)
     memcpy(buf + DEFAULT_IDENTITY_SIZE, m_ExtendedBuffer.get(), m_ExtendedLen);
   return GetFullLen();
 }
 
-size_t IdentityEx::FromBase64(
+std::size_t IdentityEx::FromBase64(
     const std::string& s) {
-  uint8_t buf[1024];
+  std::uint8_t buf[1024];
   auto len = kovri::core::Base64ToByteStream(s.c_str(), s.length(), buf, 1024);
   return FromBuffer(buf, len);
 }
 
 std::string IdentityEx::ToBase64() const {
-  uint8_t buf[1024];
+  std::uint8_t buf[1024];
   char str[1536];
-  size_t l = ToBuffer(buf, 1024);
-  size_t l1 = kovri::core::ByteStreamToBase64(buf, l, str, 1536);
+  std::size_t l = ToBuffer(buf, 1024);
+  std::size_t l1 = kovri::core::ByteStreamToBase64(buf, l, str, 1536);
   str[l1] = 0;
   return std::string(str);
 }
 
-size_t IdentityEx::GetSigningPublicKeyLen() const {
+std::size_t IdentityEx::GetSigningPublicKeyLen() const {
   if (!m_Verifier)
     CreateVerifier();
   if (m_Verifier)
@@ -305,7 +305,7 @@ size_t IdentityEx::GetSigningPublicKeyLen() const {
   return 128;
 }
 
-size_t IdentityEx::GetSigningPrivateKeyLen() const {
+std::size_t IdentityEx::GetSigningPrivateKeyLen() const {
   if (!m_Verifier)
     CreateVerifier();
   if (m_Verifier)
@@ -313,7 +313,7 @@ size_t IdentityEx::GetSigningPrivateKeyLen() const {
   return GetSignatureLen() / 2;
 }
 
-size_t IdentityEx::GetSignatureLen() const {
+std::size_t IdentityEx::GetSignatureLen() const {
   if (!m_Verifier)
     CreateVerifier();
   if (m_Verifier)
@@ -321,9 +321,9 @@ size_t IdentityEx::GetSignatureLen() const {
   return kovri::core::DSA_SIGNATURE_LENGTH;
 }
 bool IdentityEx::Verify(
-    const uint8_t* buf,
-    size_t len,
-    const uint8_t* signature) const {
+    const std::uint8_t* buf,
+    std::size_t len,
+    const std::uint8_t* signature) const {
   if (!m_Verifier)
     CreateVerifier();
   if (m_Verifier)
@@ -352,53 +352,53 @@ void IdentityEx::CreateVerifier() const  {
       m_Verifier = std::make_unique<kovri::core::DSAVerifier>(m_StandardIdentity.signing_key);
     break;
     case SIGNING_KEY_TYPE_ECDSA_SHA256_P256: {
-      size_t padding = 128 - kovri::core::ECDSAP256_KEY_LENGTH;  // 64 = 128 - 64
+      std::size_t padding = 128 - kovri::core::ECDSAP256_KEY_LENGTH;  // 64 = 128 - 64
       m_Verifier =
         std::make_unique<kovri::core::ECDSAP256Verifier>(
             m_StandardIdentity.signing_key + padding);
       break;
     }
     case SIGNING_KEY_TYPE_ECDSA_SHA384_P384: {
-      size_t padding = 128 - kovri::core::ECDSAP384_KEY_LENGTH;  // 32 = 128 - 96
+      std::size_t padding = 128 - kovri::core::ECDSAP384_KEY_LENGTH;  // 32 = 128 - 96
       m_Verifier =
         std::make_unique<kovri::core::ECDSAP384Verifier>(
             m_StandardIdentity.signing_key + padding);
       break;
     }
     case SIGNING_KEY_TYPE_ECDSA_SHA512_P521: {
-      uint8_t signing_key[kovri::core::ECDSAP521_KEY_LENGTH];
+      std::uint8_t signing_key[kovri::core::ECDSAP521_KEY_LENGTH];
       memcpy(signing_key, m_StandardIdentity.signing_key, 128);
-      size_t excess_len = kovri::core::ECDSAP521_KEY_LENGTH - 128;  // 4 = 132- 128
+      std::size_t excess_len = kovri::core::ECDSAP521_KEY_LENGTH - 128;  // 4 = 132- 128
       memcpy(signing_key + 128, m_ExtendedBuffer.get() + 4, excess_len);  // right after signing and crypto key types
       m_Verifier = std::make_unique<kovri::core::ECDSAP521Verifier>(signing_key);
       break;
     }
     case SIGNING_KEY_TYPE_RSA_SHA256_2048: {
-      uint8_t signing_key[kovri::core::RSASHA2562048_KEY_LENGTH];
+      std::uint8_t signing_key[kovri::core::RSASHA2562048_KEY_LENGTH];
       memcpy(signing_key, m_StandardIdentity.signing_key, 128);
-      size_t excess_len = kovri::core::RSASHA2562048_KEY_LENGTH - 128;  // 128 = 256- 128
+      std::size_t excess_len = kovri::core::RSASHA2562048_KEY_LENGTH - 128;  // 128 = 256- 128
       memcpy(signing_key + 128, m_ExtendedBuffer.get() + 4, excess_len);
       m_Verifier = std::make_unique<kovri::core::RSASHA2562048Verifier>(signing_key);
       break;
     }
     case SIGNING_KEY_TYPE_RSA_SHA384_3072: {
-      uint8_t signing_key[kovri::core::RSASHA3843072_KEY_LENGTH];
+      std::uint8_t signing_key[kovri::core::RSASHA3843072_KEY_LENGTH];
       memcpy(signing_key, m_StandardIdentity.signing_key, 128);
-      size_t excess_len = kovri::core::RSASHA3843072_KEY_LENGTH - 128;  // 256 = 384- 128
+      std::size_t excess_len = kovri::core::RSASHA3843072_KEY_LENGTH - 128;  // 256 = 384- 128
       memcpy(signing_key + 128, m_ExtendedBuffer.get() + 4, excess_len);
       m_Verifier = std::make_unique<kovri::core::RSASHA3843072Verifier>(signing_key);
       break;
     }
     case SIGNING_KEY_TYPE_RSA_SHA512_4096: {
-      uint8_t signing_key[kovri::core::RSASHA5124096_KEY_LENGTH];
+      std::uint8_t signing_key[kovri::core::RSASHA5124096_KEY_LENGTH];
       memcpy(signing_key, m_StandardIdentity.signing_key, 128);
-      size_t excess_len = kovri::core::RSASHA5124096_KEY_LENGTH - 128;  // 384 = 512- 128
+      std::size_t excess_len = kovri::core::RSASHA5124096_KEY_LENGTH - 128;  // 384 = 512- 128
       memcpy(signing_key + 128, m_ExtendedBuffer.get() + 4, excess_len);
       m_Verifier = std::make_unique<kovri::core::RSASHA5124096Verifier>(signing_key);
       break;
     }
     case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519: {
-      size_t padding = 128 - kovri::core::EDDSA25519_PUBLIC_KEY_LENGTH;  // 96 = 128 - 32
+      std::size_t padding = 128 - kovri::core::EDDSA25519_PUBLIC_KEY_LENGTH;  // 96 = 128 - 32
       m_Verifier =
         std::make_unique<kovri::core::EDDSA25519Verifier>(
             m_StandardIdentity.signing_key + padding);
@@ -448,13 +448,13 @@ PrivateKeys& PrivateKeys::operator=(const PrivateKeys& other) {
   return *this;
 }
 
-size_t PrivateKeys::FromBuffer(
-    const uint8_t* buf,
-    size_t len) {
-  size_t ret = m_Public.FromBuffer(buf, len);
+std::size_t PrivateKeys::FromBuffer(
+    const std::uint8_t* buf,
+    std::size_t len) {
+  std::size_t ret = m_Public.FromBuffer(buf, len);
   memcpy(m_PrivateKey, buf + ret, 256);  // private key always 256
   ret += 256;
-  size_t signing_private_key_size = m_Public.GetSigningPrivateKeyLen();
+  std::size_t signing_private_key_size = m_Public.GetSigningPrivateKeyLen();
   memcpy(m_SigningPrivateKey, buf + ret, signing_private_key_size);
   ret += signing_private_key_size;
   m_Signer.reset(nullptr);
@@ -462,44 +462,44 @@ size_t PrivateKeys::FromBuffer(
   return ret;
 }
 
-size_t PrivateKeys::ToBuffer(
-    uint8_t* buf,
-    size_t len) const {
-  size_t ret = m_Public.ToBuffer(buf, len);
+std::size_t PrivateKeys::ToBuffer(
+    std::uint8_t* buf,
+    std::size_t len) const {
+  std::size_t ret = m_Public.ToBuffer(buf, len);
   memcpy(buf + ret, m_PrivateKey, 256);  // private key always 256
   ret += 256;
-  size_t signing_private_key_size = m_Public.GetSigningPrivateKeyLen();
+  std::size_t signing_private_key_size = m_Public.GetSigningPrivateKeyLen();
   memcpy(buf + ret, m_SigningPrivateKey, signing_private_key_size);
   ret += signing_private_key_size;
   return ret;
 }
 
-size_t PrivateKeys::FromBase64(
+std::size_t PrivateKeys::FromBase64(
     const std::string& s) {
   auto buf = std::make_unique<std::uint8_t[]>(s.length());
-  size_t l = kovri::core::Base64ToByteStream(
+  std::size_t l = kovri::core::Base64ToByteStream(
       s.c_str(),
       s.length(),
       buf.get(),
       s.length());
-  size_t ret = FromBuffer(buf.get(), l);
+  std::size_t ret = FromBuffer(buf.get(), l);
   return ret;
 }
 
 std::string PrivateKeys::ToBase64() const {
   auto buf = std::make_unique<std::uint8_t[]>(GetFullLen());
   auto str = std::make_unique<char[]>(GetFullLen() * 2);
-  size_t l = ToBuffer(buf.get(), GetFullLen());
-  size_t l1 = kovri::core::ByteStreamToBase64(buf.get(), l, str.get(), GetFullLen() * 2);
+  std::size_t l = ToBuffer(buf.get(), GetFullLen());
+  std::size_t l1 = kovri::core::ByteStreamToBase64(buf.get(), l, str.get(), GetFullLen() * 2);
   str[l1] = 0;
   std::string ret(str.get());
   return ret;
 }
 
 void PrivateKeys::Sign(
-    const uint8_t* buf,
+    const std::uint8_t* buf,
     int len,
-    uint8_t* signature) const {
+    std::uint8_t* signature) const {
   if (m_Signer)
     m_Signer->Sign(buf, len, signature);
 }
@@ -540,7 +540,7 @@ void PrivateKeys::CreateSigner() {
 PrivateKeys PrivateKeys::CreateRandomKeys(SigningKeyType type) {
   PrivateKeys keys;
   // signature
-  uint8_t signing_public_key[512];  // signing public key is 512 bytes max
+  std::uint8_t signing_public_key[512];  // signing public key is 512 bytes max
   switch (type) {
     case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
       kovri::core::CreateECDSAP256RandomKeys(
@@ -588,7 +588,7 @@ PrivateKeys PrivateKeys::CreateRandomKeys(SigningKeyType type) {
       return PrivateKeys(kovri::core::CreateRandomKeys());  // DSA-SHA1
   }
   // encryption
-  uint8_t public_key[256];
+  std::uint8_t public_key[256];
   kovri::core::GenerateElGamalKeyPair(keys.m_PrivateKey, public_key);
   // identity
   keys.m_Public = IdentityEx(public_key, signing_public_key, type);
@@ -611,8 +611,8 @@ Keys CreateRandomKeys() {
 
 IdentHash CreateRoutingKey(
     const IdentHash& ident) {
-  uint8_t buf[41];  // ident + yyyymmdd
-  memcpy(buf, (const uint8_t *)ident, 32);
+  std::uint8_t buf[41];  // ident + yyyymmdd
+  memcpy(buf, (const std::uint8_t *)ident, 32);
   time_t t = time(nullptr);
   struct tm tm;
   // TODO(unassigned): never use sprintf, use snprintf instead.
@@ -635,7 +635,7 @@ IdentHash CreateRoutingKey(
       tm.tm_mday);
 #endif
   IdentHash key;
-  kovri::core::SHA256().CalculateDigest((uint8_t *)key, buf, 40);
+  kovri::core::SHA256().CalculateDigest((std::uint8_t *)key, buf, 40);
   return key;
 }
 
@@ -643,7 +643,7 @@ XORMetric operator^(
     const IdentHash& key1,
     const IdentHash& key2) {
   XORMetric m;
-  const uint64_t* hash1 = key1.GetLL(), * hash2 = key2.GetLL();
+  const std::uint64_t* hash1 = key1.GetLL(), * hash2 = key2.GetLL();
   m.metric_ll[0] = hash1[0] ^ hash2[0];
   m.metric_ll[1] = hash1[1] ^ hash2[1];
   m.metric_ll[2] = hash1[2] ^ hash2[2];

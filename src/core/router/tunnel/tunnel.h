@@ -81,7 +81,7 @@ class Tunnel : public TunnelBase {
   ~Tunnel();
 
   void Build(
-      uint32_t reply_msg_ID,
+      std::uint32_t reply_msg_ID,
       std::shared_ptr<OutboundTunnel> outbound_tunnel = nullptr);
 
   std::shared_ptr<const TunnelConfig> GetTunnelConfig() const {
@@ -123,8 +123,8 @@ class Tunnel : public TunnelBase {
   }
 
   bool HandleTunnelBuildResponse(
-      uint8_t* msg,
-      size_t len);
+      std::uint8_t* msg,
+      std::size_t len);
 
   // implements TunnelBase
   void SendTunnelDataMsg(
@@ -134,7 +134,7 @@ class Tunnel : public TunnelBase {
       std::shared_ptr<const I2NPMessage> in,
       std::shared_ptr<I2NPMessage> out);
 
-  uint32_t GetNextTunnelID() const {
+  std::uint32_t GetNextTunnelID() const {
     return m_Config->GetFirstHop()->tunnel_ID;
   }
 
@@ -158,8 +158,8 @@ class OutboundTunnel
         m_Gateway(this) {}
 
   void SendTunnelDataMsg(
-      const uint8_t* gw_hash,
-      uint32_t gw_tunnel,
+      const std::uint8_t* gw_hash,
+      std::uint32_t gw_tunnel,
       std::shared_ptr<kovri::I2NPMessage> msg);
 
   // multiple messages
@@ -170,7 +170,7 @@ class OutboundTunnel
     return GetTunnelConfig()->GetLastHop()->router;
   }
 
-  size_t GetNumSentBytes() const {
+  std::size_t GetNumSentBytes() const {
     return m_Gateway.GetNumSentBytes();
   }
 
@@ -178,7 +178,7 @@ class OutboundTunnel
   void HandleTunnelDataMsg(
       std::shared_ptr<const kovri::I2NPMessage> tunnel_msg);
 
-  uint32_t GetTunnelID() const {
+  std::uint32_t GetTunnelID() const {
     return GetNextTunnelID();
   }
 
@@ -199,12 +199,12 @@ class InboundTunnel
   void HandleTunnelDataMsg(
       std::shared_ptr<const I2NPMessage> msg);
 
-  size_t GetNumReceivedBytes() const {
+  std::size_t GetNumReceivedBytes() const {
     return m_Endpoint.GetNumReceivedBytes();
   }
 
   // implements TunnelBase
-  uint32_t GetTunnelID() const {
+  std::uint32_t GetTunnelID() const {
     return GetTunnelConfig()->GetLastHop()->next_tunnel_ID;
   }
 
@@ -221,13 +221,13 @@ class Tunnels {
   void Stop();
 
   std::shared_ptr<InboundTunnel> GetInboundTunnel(
-      uint32_t tunnel_ID);
+      std::uint32_t tunnel_ID);
 
   std::shared_ptr<InboundTunnel> GetPendingInboundTunnel(
-      uint32_t reply_msg_ID);
+      std::uint32_t reply_msg_ID);
 
   std::shared_ptr<OutboundTunnel> GetPendingOutboundTunnel(
-      uint32_t reply_msg_ID);
+      std::uint32_t reply_msg_ID);
 
   std::shared_ptr<InboundTunnel> GetNextInboundTunnel();
 
@@ -238,7 +238,7 @@ class Tunnels {
   }
 
   TransitTunnel* GetTransitTunnel(
-      uint32_t tunnel_ID);
+      std::uint32_t tunnel_ID);
 
   int GetTransitTunnelsExpirationTimeout();
 
@@ -263,10 +263,10 @@ class Tunnels {
       std::shared_ptr<OutboundTunnel> outbound_tunnel = nullptr);
 
   void AddPendingTunnel(
-      uint32_t reply_msg_ID,
+      std::uint32_t reply_msg_ID,
       std::shared_ptr<InboundTunnel> tunnel);  // inbound
   void AddPendingTunnel(
-      uint32_t reply_msg_ID,
+      std::uint32_t reply_msg_ID,
       std::shared_ptr<OutboundTunnel> tunnel);  // outbound
 
   std::shared_ptr<TunnelPool> CreateTunnelPool(
@@ -285,8 +285,8 @@ class Tunnels {
  private:
   template<class TTunnel>
   std::shared_ptr<TTunnel> GetPendingTunnel(
-      uint32_t reply_msg_ID,
-      const std::map<uint32_t,
+      std::uint32_t reply_msg_ID,
+      const std::map<std::uint32_t,
       std::shared_ptr<TTunnel> >& pending_tunnels);
 
   void HandleTunnelGatewayMsg(
@@ -318,14 +318,14 @@ class Tunnels {
   std::unique_ptr<std::thread> m_Thread;
 
   // by reply_msg_ID
-  std::map<uint32_t, std::shared_ptr<InboundTunnel> > m_PendingInboundTunnels;
+  std::map<std::uint32_t, std::shared_ptr<InboundTunnel> > m_PendingInboundTunnels;
   // by reply_msg_ID
-  std::map<uint32_t, std::shared_ptr<OutboundTunnel> > m_PendingOutboundTunnels;
+  std::map<std::uint32_t, std::shared_ptr<OutboundTunnel> > m_PendingOutboundTunnels;
 
-  std::map<uint32_t, std::shared_ptr<InboundTunnel> > m_InboundTunnels;
+  std::map<std::uint32_t, std::shared_ptr<InboundTunnel> > m_InboundTunnels;
   std::list<std::shared_ptr<OutboundTunnel> > m_OutboundTunnels;
   std::mutex m_TransitTunnelsMutex;
-  std::map<uint32_t, TransitTunnel *> m_TransitTunnels;
+  std::map<std::uint32_t, TransitTunnel *> m_TransitTunnels;
   std::mutex m_PoolsMutex;
   std::list<std::shared_ptr<TunnelPool>> m_Pools;
   std::shared_ptr<TunnelPool> m_ExploratoryPool;

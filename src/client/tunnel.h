@@ -50,7 +50,7 @@
 namespace kovri {
 namespace client {
 
-const size_t I2P_TUNNEL_CONNECTION_BUFFER_SIZE = 8192;
+const std::size_t I2P_TUNNEL_CONNECTION_BUFFER_SIZE = 8192;
 const int I2P_TUNNEL_CONNECTION_MAX_IDLE = 3600;  // in seconds
 const int I2P_TUNNEL_DESTINATION_REQUEST_TIMEOUT = 10;  // in seconds
 
@@ -83,8 +83,8 @@ class I2PTunnelConnection
   ~I2PTunnelConnection();
 
   void I2PConnect(
-      const uint8_t* msg = nullptr,
-      size_t len = 0);
+      const std::uint8_t* msg = nullptr,
+      std::size_t len = 0);
 
   void Connect();
 
@@ -99,8 +99,8 @@ class I2PTunnelConnection
 
   // can be overloaded
   virtual void Write(
-      const uint8_t* buf,
-      size_t len);
+      const std::uint8_t* buf,
+      std::size_t len);
 
   void HandleWrite(
       const boost::system::error_code& ecode);
@@ -115,7 +115,7 @@ class I2PTunnelConnection
       const boost::system::error_code& ecode);
 
  private:
-  uint8_t m_Buffer[I2P_TUNNEL_CONNECTION_BUFFER_SIZE],
+  std::uint8_t m_Buffer[I2P_TUNNEL_CONNECTION_BUFFER_SIZE],
   m_StreamBuffer[I2P_TUNNEL_CONNECTION_BUFFER_SIZE];
 
   std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
@@ -135,8 +135,8 @@ class I2PTunnelConnectionHTTP: public I2PTunnelConnection {
 
  protected:
   void Write(
-      const uint8_t* buf,
-      size_t len);
+      const std::uint8_t* buf,
+      std::size_t len);
 
  private:
   std::string m_Host;

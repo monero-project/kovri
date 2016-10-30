@@ -62,16 +62,16 @@ struct TunnelHopConfig {
       TunnelHopConfig* p);
 
   void CreateBuildRequestRecord(
-      uint8_t* record,
-      uint32_t reply_msg_ID) const;
+      std::uint8_t* record,
+      std::uint32_t reply_msg_ID) const;
 
   std::shared_ptr<const kovri::core::RouterInfo> router,
                                                next_router;
 
-  uint32_t tunnel_ID,
+  std::uint32_t tunnel_ID,
            next_tunnel_ID;
 
-  uint8_t layer_key[32],
+  std::uint8_t layer_key[32],
           iv_key[32],
           reply_key[32],
           reply_IV[16],

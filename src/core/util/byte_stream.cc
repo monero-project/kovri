@@ -106,7 +106,7 @@ void OutputByteStream::WriteUInt32(std::uint32_t data) {
   WriteData(buf, sizeof(buf));
 }
 
-uint8_t* OutputByteStream::GetPosition() const {
+std::uint8_t* OutputByteStream::GetPosition() const {
   return m_Data;
 }
 

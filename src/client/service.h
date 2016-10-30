@@ -56,7 +56,7 @@ class I2PService {
   /// @brief  constructor takes ClientDestination, defaults to null ptr
   /// @param localDestination pointer to local destination
   explicit I2PService(
-      std::shared_ptr<ClientDestination> local_destination = nullptr);
+     std::shared_ptr<ClientDestination> local_destination = nullptr);
   explicit I2PService(
       kovri::core::SigningKeyType kt);
   virtual ~I2PService() { ClearHandlers(); }
@@ -79,23 +79,24 @@ class I2PService {
     std::unique_lock<std::mutex> l(m_HandlersMutex);
     m_Handlers.clear();
   }
-  /// @brief returns pointer to member destination
+  /// @brief returns pointer to member local  destination
   inline std::shared_ptr<ClientDestination> GetLocalDestination() {
     return m_LocalDestination;
   }
-  /// @brief Set new member destination
+  /// @brief Set new member local destination
   /// @param dest pointer of type ClientDestination
   inline void SetLocalDestination(
       std::shared_ptr<ClientDestination> dest) {
     m_LocalDestination = dest;
   }
-  /// @brief Create a Stream to a destination
-  /// @param streamRequestComplete
+  /// @brief create a stream to a destination
+  /// @param stream_request_complete
+  /// @param port send port
   void CreateStream(
       StreamRequestComplete stream_request_complete,
       const std::string& dest,
       int port = 0);
-  /// @brief return io_service reference of member destination
+  /// @brief return io_service reference of member local destination
   inline boost::asio::io_service& GetService() {
     return m_LocalDestination->GetService();
   }
@@ -112,12 +113,12 @@ class I2PService {
   std::mutex m_HandlersMutex;
 };
 
-  /// @class I2PServiceHandler
-  /// @brief Simple interface for I2PHandlers. abstract class for handler
-  /// Simple interface for I2PHandlers. abstract class for handler
-  /// Handler will take listener away from server and process messaging;
-  /// thus allowing server to continue listening.
-  /// Allows detection of finalization amongst other things.
+/// @class I2PServiceHandler
+/// @brief Simple interface for I2PHandlers. abstract class for handler
+/// Simple interface for I2PHandlers. abstract class for handler
+/// Handler will take listener away from server and process messaging;
+/// thus allowing server to continue listening.
+/// Allows detection of finalization amongst other things.
 class I2PServiceHandler {
  public:
   explicit I2PServiceHandler(
@@ -220,10 +221,10 @@ class TCPIPAcceptor : public I2PService {
   std::string m_Address;
 
  private:
-  /// @brief accept connection ; create socket for  handler to listen on
+  /// @brief accept connection ; create socket for handler to listen on
   /// pass handler function; this is what starts the communication
   void Accept();
-  /// @brief  callback function to handle data transfers ;
+  /// @brief callback function to handle data transfers ;
   /// @param ecode
   /// @param socket socket created by accept
   void HandleAccept(
@@ -234,7 +235,7 @@ class TCPIPAcceptor : public I2PService {
   boost::asio::deadline_timer m_Timer;
 
  public:
-  /// @brief get our current address
+  /// @brief get current address
   std::string GetAddress() const {
     return m_Address;
   }

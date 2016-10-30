@@ -33,7 +33,6 @@
 #ifndef SRC_CLIENT_I2P_SERVICE_H_
 #define SRC_CLIENT_I2P_SERVICE_H_
 
-#include <boost/asio.hpp>
 
 #include <atomic>
 #include <memory>
@@ -41,60 +40,73 @@
 #include <string>
 #include <unordered_set>
 
-#include "destination.h"
-#include "identity.h"
+#include <boost/asio.hpp>
+
+#include "client/destination.h"
+#include "core/identity.h"
 
 namespace i2p {
 namespace client {
 
 class I2PServiceHandler;
+/// @class I2PService abstract class for service
+///// @brief base class for i2p service
 class I2PService {
  public:
+  /// @brief  constructor takes ClientDestination, defaults to null ptr
+  /// @param localDestination pointer to local destination
   explicit I2PService(
       std::shared_ptr<ClientDestination> localDestination = nullptr);
+  /// @brief  constructor takes a type of signing key
+  /// @param kt key type
   explicit I2PService(
       i2p::data::SigningKeyType kt);
+  /// @brief Destructor to clean up Handlers virtual
   virtual ~I2PService() { ClearHandlers(); }
-
+  /// @brief add a hander to set
+  /// @param conn I2pService pointer handler to add
   inline void AddHandler(
       std::shared_ptr<I2PServiceHandler> conn) {
     std::unique_lock<std::mutex> l(m_HandlersMutex);
     m_Handlers.insert(conn);
   }
-
+  /// @brief remove handler from set
+  /// @param conn I2PServiceHandler pointer to remove
   inline void RemoveHandler(
       std::shared_ptr<I2PServiceHandler> conn) {
     std::unique_lock<std::mutex> l(m_HandlersMutex);
     m_Handlers.erase(conn);
   }
-
+  /// @brief  clear out handlers from set
   inline void ClearHandlers() {
     std::unique_lock<std::mutex> l(m_HandlersMutex);
     m_Handlers.clear();
   }
-
+  /// @brief returns pointer to member m_LocalDestination
   inline std::shared_ptr<ClientDestination> GetLocalDestination() {
     return m_LocalDestination;
   }
-
+  /// @brief Set new member m_LocationDestination
+  /// @param dest pointer of type ClientDestination
   inline void SetLocalDestination(
       std::shared_ptr<ClientDestination> dest) {
     m_LocalDestination = dest;
   }
-
+  /// @brief Create a Stream to a destination
+  /// @param streamRequestComplete
   void CreateStream(
       StreamRequestComplete streamRequestComplete,
       const std::string& dest,
       int port = 0);
-
+  /// @brief return io_service refernce of member m_LocalDestination
   inline boost::asio::io_service& GetService() {
     return m_LocalDestination->GetService();
   }
-
+  /// @brief virtual start service
   virtual void Start() = 0;
+  /// @brief virtual stop service
   virtual void Stop() = 0;
-
-  // everyone must override this
+  /// @brief return name of service. must override
   virtual std::string GetName() const = 0;
 
  private:
@@ -104,9 +116,13 @@ class I2PService {
 };
 
 /**
- * Simple interface for I2PHandlers.
- * Allows detection of finalization amongst other things.
- */
+  * @class I2PServiceHandler
+  * @brief Simple interface for I2PHandlers. abstract class for handler
+  * Simple interface for I2PHandlers. abstract class for handler
+  * Handler will take listener away from server and process messaging;
+  * thus allowing server to continue listening.
+  * Allows detection of finalization amongst other things.
+  */
 class I2PServiceHandler {
  public:
   explicit I2PServiceHandler(
@@ -115,27 +131,27 @@ class I2PServiceHandler {
         m_Dead(false) {}
   virtual ~I2PServiceHandler() {}
 
-  // If you override this make sure you call it from the children
+  /// @brief If you override this make sure you call it from the children
   virtual void Handle() {}  // Start handling the socket
 
  protected:
-  // Call when terminating or handing over to avoid race conditions
+  /// @brief Call when terminating or handing over to avoid race conditions
   inline bool Kill() { return m_Dead.exchange(true); }
 
-  // Call to know if the handler is dead
+  /// @brief Call to know if the handler is dead
   inline bool Dead() { return m_Dead; }
 
-  // Call when done to clean up (make sure Kill is called first)
+  /// @brief Call when done to clean up (make sure Kill is called first)
   inline void Done(std::shared_ptr<I2PServiceHandler> me) {
     if (m_Service)
       m_Service->RemoveHandler(me);
   }
-  //  Call to talk with the owner
+  /// @brief Call to talk with the owner
   inline I2PService* GetOwner() { return m_Service; }
 
  private:
-  I2PService* m_Service;
-  std::atomic<bool> m_Dead;  // To avoid cleaning up multiple times
+  I2PService* m_Service;  //< pointer to parent service
+  std::atomic<bool> m_Dead;  //< To avoid cleaning up multiple times
 };
 
 /**
@@ -177,35 +193,44 @@ class TCPIPAcceptor : public I2PService {
   virtual ~TCPIPAcceptor() {
     TCPIPAcceptor::Stop();
   }
-
-  // If you override this make sure you call it from the children
+  /// @brief Start the handler; If you override this make sure you call it from
+  /// the children
   void Start();
-
-  // If you override this make sure you call it from the children
+  /// @brief stop the handler;  If you override this make sure you call it from
+  /// the children
   void Stop();
-
-  // stop tunnel, change address, start tunnel
-  // will throw exception if the address is already in use
+  /// @brief stop tunnel, change address, start tunnel
+  /// will throw exception if the address is already in use
   void Rebind(
       const std::string& addr,
       uint16_t port);
 
-  // @return the endpoint this TCPIPAcceptor is bound on
+  /// @brief get the endpoint
+  /// @return the endpoint this TCPIPAcceptor is bound on
   boost::asio::ip::tcp::endpoint GetEndpoint() const {
     return m_Acceptor.local_endpoint();
   }
 
  protected:
+  /// @brief  create handler object
+  /// @param  socket pointer to transfer
+  /// @return return a shared pointer to the base class of this handler;
   virtual std::shared_ptr<I2PServiceHandler> CreateHandler(
       std::shared_ptr<boost::asio::ip::tcp::socket> socket) = 0;
-
+  /// @brief get name of service
+  /// @return std::string name of service
   std::string GetName() const { return "generic TCP/IP accepting daemon"; }
 
  protected:
   std::string m_Address;
 
  private:
+  /// @brief accept connection ; create socket for  handler to listen on
+  /// pass handler function; this is what starts the communication
   void Accept();
+  /// @brief  callback function to handle data transfers ;
+  /// @param ecode
+  /// @param socket socket created by accept
   void HandleAccept(
       const boost::system::error_code& ecode,
       std::shared_ptr<boost::asio::ip::tcp::socket> socket);
@@ -214,7 +239,7 @@ class TCPIPAcceptor : public I2PService {
   boost::asio::deadline_timer m_Timer;
 
  public:
-  // get our current address
+  /// @brief get our current address
   std::string GetAddress() const {
     return m_Address;
   }

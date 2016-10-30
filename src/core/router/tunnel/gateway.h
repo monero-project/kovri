@@ -33,8 +33,8 @@
 #ifndef SRC_CORE_ROUTER_TUNNEL_GATEWAY_H_
 #define SRC_CORE_ROUTER_TUNNEL_GATEWAY_H_
 
-#include <inttypes.h>
-
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -47,7 +47,7 @@ namespace core {
 class TunnelGatewayBuffer {
  public:
   TunnelGatewayBuffer(
-      uint32_t tunnel_ID);
+      std::uint32_t tunnel_ID);
   ~TunnelGatewayBuffer();
 
   void PutI2NPMsg(
@@ -65,11 +65,11 @@ class TunnelGatewayBuffer {
   void CreateCurrentTunnelDataMessage();
 
  private:
-  uint32_t m_TunnelID;
+  std::uint32_t m_TunnelID;
   std::vector<std::shared_ptr<I2NPMessage> > m_TunnelDataMsgs;
   std::shared_ptr<I2NPMessage> m_CurrentTunnelDataMsg;
-  size_t m_RemainingSize;
-  uint8_t m_NonZeroRandomBuffer[TUNNEL_DATA_MAX_PAYLOAD_SIZE];
+  std::size_t m_RemainingSize;
+  std::uint8_t m_NonZeroRandomBuffer[TUNNEL_DATA_MAX_PAYLOAD_SIZE];
 };
 
 class TunnelGateway {
@@ -88,14 +88,14 @@ class TunnelGateway {
 
   void SendBuffer();
 
-  size_t GetNumSentBytes() const {
+  std::size_t GetNumSentBytes() const {
     return m_NumSentBytes;
   }
 
  private:
   TunnelBase* m_Tunnel;
   TunnelGatewayBuffer m_Buffer;
-  size_t m_NumSentBytes;
+  std::size_t m_NumSentBytes;
 };
 
 }  // namespace core

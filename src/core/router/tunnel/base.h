@@ -33,8 +33,8 @@
 #ifndef SRC_CORE_ROUTER_TUNNEL_BASE_H_
 #define SRC_CORE_ROUTER_TUNNEL_BASE_H_
 
-#include <inttypes.h>
-
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 
 #include "core/router/i2np.h"
@@ -45,9 +45,9 @@
 namespace kovri {
 namespace core {
 
-const size_t TUNNEL_DATA_MSG_SIZE = 1028;
-const size_t TUNNEL_DATA_ENCRYPTED_SIZE = 1008;
-const size_t TUNNEL_DATA_MAX_PAYLOAD_SIZE = 1003;
+const std::size_t TUNNEL_DATA_MSG_SIZE = 1028;
+const std::size_t TUNNEL_DATA_ENCRYPTED_SIZE = 1008;
+const std::size_t TUNNEL_DATA_MAX_PAYLOAD_SIZE = 1003;
 
 enum TunnelDeliveryType {
   e_DeliveryTypeLocal = 0,
@@ -58,7 +58,7 @@ enum TunnelDeliveryType {
 struct TunnelMessageBlock {
   TunnelDeliveryType delivery_type;
   kovri::core::IdentHash hash;
-  uint32_t tunnel_ID;
+  std::uint32_t tunnel_ID;
   std::shared_ptr<I2NPMessage> data;
 };
 
@@ -82,23 +82,23 @@ class TunnelBase {
       std::shared_ptr<const I2NPMessage> in,
       std::shared_ptr<I2NPMessage> out) = 0;
 
-  virtual uint32_t GetNextTunnelID() const = 0;
+  virtual std::uint32_t GetNextTunnelID() const = 0;
 
   virtual const kovri::core::IdentHash& GetNextIdentHash() const = 0;
 
-  virtual uint32_t GetTunnelID() const = 0;  // as known at our side
+  virtual std::uint32_t GetTunnelID() const = 0;  // as known at our side
 
-  uint32_t GetCreationTime() const {
+  std::uint32_t GetCreationTime() const {
     return m_CreationTime;
   }
 
   void SetCreationTime(
-      uint32_t t) {
+      std::uint32_t t) {
     m_CreationTime = t;
   }
 
  private:
-  uint32_t m_CreationTime;  // seconds since epoch
+  std::uint32_t m_CreationTime;  // seconds since epoch
 };
 
 struct TunnelCreationTimeCmp {

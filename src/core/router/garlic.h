@@ -265,7 +265,7 @@ class GarlicDestination
            std::shared_ptr<kovri::core::CBCDecryption>> m_Tags;
   std::uint32_t m_LastTagsCleanupTime;
   // DeliveryStatus  (msg_ID -> session)
-  std::map<uint32_t,
+  std::map<std::uint32_t,
            std::shared_ptr<GarlicRoutingSession>> m_CreatedSessions;
 };
 

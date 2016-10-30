@@ -67,11 +67,11 @@ static int is_first_time = 1;
 static char P64 = '=';
 
 
-size_t ByteStreamToBase64(
-    const uint8_t* in_buffer,
-    size_t in_count,
+std::size_t ByteStreamToBase64(
+    const std::uint8_t* in_buffer,
+    std::size_t in_count,
     char* out_buffer,
-    size_t len) {
+    std::size_t len) {
   unsigned char* ps;
   unsigned char* pd;
   unsigned char   acc_1;
@@ -79,7 +79,7 @@ size_t ByteStreamToBase64(
   int       i;
   int       n;
   int       m;
-  size_t out_count;
+  std::size_t out_count;
   ps = (unsigned char *)in_buffer;
   n = in_count / 3;
   m = in_count % 3;
@@ -130,15 +130,15 @@ size_t ByteStreamToBase64(
 }
 
 
-size_t Base64ToByteStream(
+std::size_t Base64ToByteStream(
     const char* in_buffer,
-    size_t in_count,
-    uint8_t* out_buffer,
-    size_t len) {
+    std::size_t in_count,
+    std::uint8_t* out_buffer,
+    std::size_t len) {
   unsigned char *ps, *pd,
                 acc_1, acc_2;
   int       i, n, m;
-  size_t out_count;
+  std::size_t out_count;
   if (is_first_time)
     iT64Build();
   n = in_count / 4;
@@ -191,14 +191,14 @@ static void iT64Build() {
   iT64[static_cast<int>(P64)] = 0;
 }
 
-size_t Base32ToByteStream(
+std::size_t Base32ToByteStream(
     const char* in_buf,
-    size_t len,
-    uint8_t* out_buf,
-    size_t out_len) {
+    std::size_t len,
+    std::uint8_t* out_buf,
+    std::size_t out_len) {
   int tmp = 0, bits = 0;
-  size_t ret = 0;
-  for (size_t i = 0; i < len; i++) {
+  std::size_t ret = 0;
+  for (std::size_t i = 0; i < len; i++) {
     char ch = in_buf[i];
     if (ch >= '2' && ch <= '7')  // digit
       ch = (ch - '2') + 26;  // 26 means a-z
@@ -220,14 +220,14 @@ size_t Base32ToByteStream(
   return ret;
 }
 
-size_t ByteStreamToBase32(
-    const uint8_t* in_buf,
-    size_t len,
+std::size_t ByteStreamToBase32(
+    const std::uint8_t* in_buf,
+    std::size_t len,
     char* out_buf,
-    size_t out_len) {
+    std::size_t out_len) {
   if (!len)
     return 0;  // No data given
-  size_t ret = 0, pos = 1;
+  std::size_t ret = 0, pos = 1;
   int bits = 8, tmp = in_buf[0];
   while (ret < out_len && (bits > 0 || pos < len)) {
     if (bits < 5) {

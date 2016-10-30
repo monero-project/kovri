@@ -55,21 +55,21 @@ void TunnelEndpoint::HandleDecryptedTunnelDataMsg(
     std::shared_ptr<I2NPMessage> msg) {
   m_NumReceivedBytes += TUNNEL_DATA_MSG_SIZE;
   // 4 + 16
-  uint8_t* decrypted = msg->GetPayload() + 20;
+  std::uint8_t* decrypted = msg->GetPayload() + 20;
   // without 4-byte checksum
-  uint8_t* zero =
-    (uint8_t *)memchr(
+  std::uint8_t* zero =
+    (std::uint8_t *)memchr(
         decrypted + 4,
         0,
         TUNNEL_DATA_ENCRYPTED_SIZE - 4);
   if (zero) {
-    uint8_t* fragment = zero + 1;
+    std::uint8_t* fragment = zero + 1;
     // verify checksum
     memcpy(  // copy iv to the end
         msg->GetPayload() + TUNNEL_DATA_MSG_SIZE,
         msg->GetPayload() + 4,
         16);
-    uint8_t hash[32];
+    std::uint8_t hash[32];
     kovri::core::SHA256().CalculateDigest(
         hash,
         fragment,
@@ -83,11 +83,11 @@ void TunnelEndpoint::HandleDecryptedTunnelDataMsg(
     }
     // process fragments
     while (fragment < decrypted + TUNNEL_DATA_ENCRYPTED_SIZE) {
-      uint8_t flag = fragment[0];
+      std::uint8_t flag = fragment[0];
       fragment++;
       bool is_follow_on_fragment = flag & 0x80,
                is_last_fragment = true;
-      uint32_t msg_ID = 0;
+      std::uint32_t msg_ID = 0;
       int fragment_num = 0;
       TunnelMessageBlockEx m;
       if (!is_follow_on_fragment) {
@@ -122,7 +122,7 @@ void TunnelEndpoint::HandleDecryptedTunnelDataMsg(
         fragment_num = (flag >> 1) & 0x3F;  // 6 bits
         is_last_fragment = flag & 0x01;
       }
-      uint16_t size = bufbe16toh(fragment);
+      std::uint16_t size = bufbe16toh(fragment);
       fragment += 2;
       msg->offset = fragment - msg->buf;
       msg->len = msg->offset + size;
@@ -143,7 +143,7 @@ void TunnelEndpoint::HandleDecryptedTunnelDataMsg(
           if (!is_follow_on_fragment) {  // create new incomplete message
             m.next_fragment_num = 1;
             auto ret = m_IncompleteMessages.insert(
-                std::pair<uint32_t, TunnelMessageBlockEx>(msg_ID, m));
+                std::pair<std::uint32_t, TunnelMessageBlockEx>(msg_ID, m));
             if (ret.second)
               HandleOutOfSequenceFragment(msg_ID, ret.first->second);
             else
@@ -169,7 +169,7 @@ void TunnelEndpoint::HandleDecryptedTunnelDataMsg(
 }
 
 void TunnelEndpoint::HandleFollowOnFragment(
-    uint32_t msg_ID,
+    std::uint32_t msg_ID,
     bool is_last_fragment,
     const TunnelMessageBlockEx& m) {
   auto fragment = m.data->GetBuffer();
@@ -232,20 +232,20 @@ void TunnelEndpoint::HandleFollowOnFragment(
 }
 
 void TunnelEndpoint::AddOutOfSequenceFragment(
-    uint32_t msg_ID,
-    uint8_t fragment_num,
+    std::uint32_t msg_ID,
+    std::uint8_t fragment_num,
     bool is_last_fragment,
     std::shared_ptr<I2NPMessage> data) {
   auto it = m_OutOfSequenceFragments.find(msg_ID);
   if (it == m_OutOfSequenceFragments.end())
     m_OutOfSequenceFragments.insert(
-        std::pair<uint32_t, Fragment> (
+        std::pair<std::uint32_t, Fragment> (
           msg_ID,
           {fragment_num, is_last_fragment, data}));
 }
 
 void TunnelEndpoint::HandleOutOfSequenceFragment(
-    uint32_t msg_ID, TunnelMessageBlockEx& msg) {
+    std::uint32_t msg_ID, TunnelMessageBlockEx& msg) {
   auto it = m_OutOfSequenceFragments.find(msg_ID);
   if (it != m_OutOfSequenceFragments.end()) {
     if (it->second.fragment_num == msg.next_fragment_num) {

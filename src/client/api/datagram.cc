@@ -99,21 +99,21 @@ T* release(const ReleasableSharedPtr<T>& smart_ptr) {
 }  // namespace
 
 void DatagramDestination::SendDatagramTo(
-    const uint8_t* payload,
-    size_t len,
+    const std::uint8_t* payload,
+    std::size_t len,
     const kovri::core::IdentHash& ident,
-    uint16_t from_port,
-    uint16_t to_port) {
-  uint8_t buf[MAX_DATAGRAM_SIZE];
+    std::uint16_t from_port,
+    std::uint16_t to_port) {
+  std::uint8_t buf[MAX_DATAGRAM_SIZE];
   auto identity_len = m_Owner.GetIdentity().ToBuffer(buf, MAX_DATAGRAM_SIZE);
-  uint8_t* signature = buf + identity_len;
+  std::uint8_t* signature = buf + identity_len;
   auto signature_len = m_Owner.GetIdentity().GetSignatureLen();
-  uint8_t* buf1 = signature + signature_len;
-  size_t header_len = identity_len + signature_len;
+  std::uint8_t* buf1 = signature + signature_len;
+  std::size_t header_len = identity_len + signature_len;
   memcpy(buf1, payload, len);
   if (m_Owner.GetIdentity().GetSigningKeyType()
       == kovri::core::SIGNING_KEY_TYPE_DSA_SHA1) {
-    uint8_t hash[32];
+    std::uint8_t hash[32];
     kovri::core::SHA256().CalculateDigest(hash, buf1, len);
     m_Owner.Sign(hash, 32, signature);
   } else {
@@ -154,7 +154,7 @@ void DatagramDestination::SendMsg(
   auto leases = remote->GetNonExpiredLeases();
   if (!leases.empty() && outbound_tunnel) {
     std::vector<kovri::core::TunnelMessageBlock> msgs;
-    uint32_t i = kovri::core::RandInRange<uint32_t>(0, leases.size() - 1);
+    std::uint32_t i = kovri::core::RandInRange<std::uint32_t>(0, leases.size() - 1);
     auto garlic = m_Owner.WrapMessage(
         remote,
         ToSharedI2NPMessage(std::move(msg)),
@@ -176,17 +176,17 @@ void DatagramDestination::SendMsg(
 }
 
 void DatagramDestination::HandleDatagram(
-    uint16_t from_port,
-    uint16_t to_port,
-    const uint8_t* buf,
-    size_t len) {
+    std::uint16_t from_port,
+    std::uint16_t to_port,
+    const std::uint8_t* buf,
+    std::size_t len) {
   kovri::core::IdentityEx identity;
-  size_t identity_len = identity.FromBuffer(buf, len);
-  const uint8_t* signature = buf + identity_len;
-  size_t header_len = identity_len + identity.GetSignatureLen();
+  std::size_t identity_len = identity.FromBuffer(buf, len);
+  const std::uint8_t* signature = buf + identity_len;
+  std::size_t header_len = identity_len + identity.GetSignatureLen();
   bool verified = false;
   if (identity.GetSigningKeyType() == kovri::core::SIGNING_KEY_TYPE_DSA_SHA1) {
-    uint8_t hash[32];
+    std::uint8_t hash[32];
     kovri::core::SHA256().CalculateDigest(hash, buf + header_len, len - header_len);
     verified = identity.Verify(hash, 32, signature);
   } else {
@@ -211,14 +211,14 @@ void DatagramDestination::HandleDatagram(
 }
 
 void DatagramDestination::HandleDataMessagePayload(
-    uint16_t from_port,
-    uint16_t to_port,
-    const uint8_t* buf,
-    size_t len) {
+    std::uint16_t from_port,
+    std::uint16_t to_port,
+    const std::uint8_t* buf,
+    std::size_t len) {
   // Gunzip it
   kovri::core::Gunzip decompressor;
   decompressor.Put(buf, len);
-  uint8_t uncompressed[MAX_DATAGRAM_SIZE];
+  std::uint8_t uncompressed[MAX_DATAGRAM_SIZE];
   auto uncompressed_len = decompressor.MaxRetrievable();
   if (uncompressed_len <= MAX_DATAGRAM_SIZE) {
     decompressor.Get(uncompressed, uncompressed_len);
@@ -231,15 +231,15 @@ void DatagramDestination::HandleDataMessagePayload(
 }
 
 std::unique_ptr<I2NPMessage> DatagramDestination::CreateDataMessage(
-    const uint8_t* payload,
-    size_t len,
-    uint16_t from_port,
-    uint16_t to_port) {
+    const std::uint8_t* payload,
+    std::size_t len,
+    std::uint16_t from_port,
+    std::uint16_t to_port) {
   std::unique_ptr<I2NPMessage> msg = NewI2NPMessage();
   kovri::core::Gzip compressor;  // default level
   compressor.Put(payload, len);
   std::size_t size = compressor.MaxRetrievable();
-  uint8_t* buf = msg->GetPayload();
+  std::uint8_t* buf = msg->GetPayload();
   htobe32buf(buf, size);  // length
   buf += 4;
   compressor.Get(buf, size);

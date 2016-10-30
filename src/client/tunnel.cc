@@ -84,8 +84,8 @@ I2PTunnelConnection::I2PTunnelConnection(
 I2PTunnelConnection::~I2PTunnelConnection() {}
 
 void I2PTunnelConnection::I2PConnect(
-    const uint8_t* msg,
-    size_t len) {
+    const std::uint8_t* msg,
+    std::size_t len) {
   if (m_Stream) {
     if (msg)
       m_Stream->Send(msg, len);  // connect and send
@@ -193,8 +193,8 @@ void I2PTunnelConnection::HandleStreamReceive(
 }
 
 void I2PTunnelConnection::Write(
-    const uint8_t* buf,
-    size_t len) {
+    const std::uint8_t* buf,
+    std::size_t len) {
   m_Socket->async_send(
       boost::asio::buffer(
           buf,
@@ -246,8 +246,8 @@ I2PTunnelConnectionHTTP::I2PTunnelConnectionHTTP(
       m_HeaderSent(false) {}
 
 void I2PTunnelConnectionHTTP::Write(
-    const uint8_t* buf,
-    size_t len) {
+    const std::uint8_t* buf,
+    std::size_t len) {
   if (m_HeaderSent) {
     I2PTunnelConnection::Write(buf, len);
   } else {
@@ -272,7 +272,7 @@ void I2PTunnelConnectionHTTP::Write(
       m_OutHeader << m_InHeader.str();  // data right after header
       m_HeaderSent = true;
       I2PTunnelConnection::Write(
-          (uint8_t *)m_OutHeader.str().c_str(),
+          (std::uint8_t *)m_OutHeader.str().c_str(),
           m_OutHeader.str().length());
     }
   }
@@ -518,7 +518,7 @@ void I2PServerTunnel::UpdatePort(
 void I2PServerTunnel::UpdateStreamingPort(
     int port) const {
   if (port > 0) {
-    uint16_t local_port = port;
+    std::uint16_t local_port = port;
     m_PortDestination->UpdateLocalPort(local_port);
   } else {
     throw std::logic_error("Streaming port cannot be negative");
@@ -612,7 +612,7 @@ void I2PServerTunnel::SetAccessListString(
     const std::string& idents_str) {
   std::set<kovri::core::IdentHash> idents;
   if (idents_str.length() > 0) {
-    size_t pos = 0, comma;
+    std::size_t pos = 0, comma;
     do {
       comma = idents_str.find(',', pos);
       kovri::core::IdentHash ident;

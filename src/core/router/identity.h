@@ -33,9 +33,10 @@
 #ifndef SRC_CORE_ROUTER_IDENTITY_H_
 #define SRC_CORE_ROUTER_IDENTITY_H_
 
-#include <inttypes.h>
 #include <string.h>
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -51,7 +52,7 @@ namespace core {
 template<int Size>
 class Tag {
  public:
-  Tag(const uint8_t* buf) {
+  Tag(const std::uint8_t* buf) {
     memcpy(m_Buf, buf, Size);
   }
   Tag(const Tag<Size>&) = default;
@@ -68,23 +69,23 @@ class Tag {
   Tag<Size>& operator= (Tag<Size>&&) = default;
 #endif
 
-  uint8_t* operator()() {
+  std::uint8_t* operator()() {
     return m_Buf;
   }
 
-  const uint8_t* operator()() const {
+  const std::uint8_t* operator()() const {
     return m_Buf;
   }
 
-  operator uint8_t* () {
+  operator std::uint8_t* () {
     return m_Buf;
   }
 
-  operator const uint8_t* () const {
+  operator const std::uint8_t* () const {
     return m_Buf;
   }
 
-  const uint64_t* GetLL() const {
+  const std::uint64_t* GetLL() const {
     return ll;
   }
 
@@ -129,8 +130,8 @@ class Tag {
 
  private:
   union {  // 8 bytes alignment
-    uint8_t m_Buf[Size];
-    uint64_t ll[Size / 8];
+    std::uint8_t m_Buf[Size];
+    std::uint64_t ll[Size / 8];
   };
 };
 typedef Tag<32> IdentHash;
@@ -142,26 +143,26 @@ inline std::string GetB32Address(
 
 #pragma pack(1)
 struct Keys {
-  uint8_t private_key[256];
-  uint8_t signing_private_key[20];
-  uint8_t public_key[256];
-  uint8_t signing_key[128];
+  std::uint8_t private_key[256];
+  std::uint8_t signing_private_key[20];
+  std::uint8_t public_key[256];
+  std::uint8_t signing_key[128];
 };
 
-const uint8_t CERTIFICATE_TYPE_NULL = 0;
-const uint8_t CERTIFICATE_TYPE_HASHCASH = 1;
-const uint8_t CERTIFICATE_TYPE_HIDDEN = 2;
-const uint8_t CERTIFICATE_TYPE_SIGNED = 3;
-const uint8_t CERTIFICATE_TYPE_MULTIPLE = 4;
-const uint8_t CERTIFICATE_TYPE_KEY = 5;
+const std::uint8_t CERTIFICATE_TYPE_NULL = 0;
+const std::uint8_t CERTIFICATE_TYPE_HASHCASH = 1;
+const std::uint8_t CERTIFICATE_TYPE_HIDDEN = 2;
+const std::uint8_t CERTIFICATE_TYPE_SIGNED = 3;
+const std::uint8_t CERTIFICATE_TYPE_MULTIPLE = 4;
+const std::uint8_t CERTIFICATE_TYPE_KEY = 5;
 
 struct Identity {
-  uint8_t public_key[256];
-  uint8_t signing_key[128];
+  std::uint8_t public_key[256];
+  std::uint8_t signing_key[128];
 
   struct {
-    uint8_t type;
-    uint16_t length;
+    std::uint8_t type;
+    std::uint16_t length;
   } certificate;
 
   Identity() = default;
@@ -173,33 +174,33 @@ struct Identity {
 
   Identity& operator=(const Keys& keys);
 
-  size_t FromBuffer(
-      const uint8_t* buf,
-      size_t len);
+  std::size_t FromBuffer(
+      const std::uint8_t* buf,
+      std::size_t len);
 
   IdentHash Hash() const;
 };
 #pragma pack()
 Keys CreateRandomKeys();
 
-const size_t DEFAULT_IDENTITY_SIZE = sizeof(Identity);  // 387 bytes
+const std::size_t DEFAULT_IDENTITY_SIZE = sizeof(Identity);  // 387 bytes
 
-const uint16_t CRYPTO_KEY_TYPE_ELGAMAL = 0;
-const uint16_t SIGNING_KEY_TYPE_DSA_SHA1 = 0;
-const uint16_t SIGNING_KEY_TYPE_ECDSA_SHA256_P256 = 1;
-const uint16_t SIGNING_KEY_TYPE_ECDSA_SHA384_P384 = 2;
-const uint16_t SIGNING_KEY_TYPE_ECDSA_SHA512_P521 = 3;
-const uint16_t SIGNING_KEY_TYPE_RSA_SHA256_2048 = 4;
-const uint16_t SIGNING_KEY_TYPE_RSA_SHA384_3072 = 5;
-const uint16_t SIGNING_KEY_TYPE_RSA_SHA512_4096 = 6;
-const uint16_t SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519 = 7;
+const std::uint16_t CRYPTO_KEY_TYPE_ELGAMAL = 0;
+const std::uint16_t SIGNING_KEY_TYPE_DSA_SHA1 = 0;
+const std::uint16_t SIGNING_KEY_TYPE_ECDSA_SHA256_P256 = 1;
+const std::uint16_t SIGNING_KEY_TYPE_ECDSA_SHA384_P384 = 2;
+const std::uint16_t SIGNING_KEY_TYPE_ECDSA_SHA512_P521 = 3;
+const std::uint16_t SIGNING_KEY_TYPE_RSA_SHA256_2048 = 4;
+const std::uint16_t SIGNING_KEY_TYPE_RSA_SHA384_3072 = 5;
+const std::uint16_t SIGNING_KEY_TYPE_RSA_SHA512_4096 = 6;
+const std::uint16_t SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519 = 7;
 
 // TODO(anonimal): review/implement to bump client type to EdDSA-SHA512-Ed25519
-const uint16_t DEFAULT_CLIENT_SIGNING_KEY_TYPE = SIGNING_KEY_TYPE_ECDSA_SHA256_P256;
-const uint16_t DEFAULT_ROUTER_SIGNING_KEY_TYPE = SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519;
+const std::uint16_t DEFAULT_CLIENT_SIGNING_KEY_TYPE = SIGNING_KEY_TYPE_ECDSA_SHA256_P256;
+const std::uint16_t DEFAULT_ROUTER_SIGNING_KEY_TYPE = SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519;
 
-typedef uint16_t SigningKeyType;
-typedef uint16_t CryptoKeyType;
+typedef std::uint16_t SigningKeyType;
+typedef std::uint16_t CryptoKeyType;
 
 
 class IdentityEx {
@@ -208,13 +209,13 @@ class IdentityEx {
   ~IdentityEx();
 
   IdentityEx(
-      const uint8_t* public_key,
-      const uint8_t* signing_key,
+      const std::uint8_t* public_key,
+      const std::uint8_t* signing_key,
       SigningKeyType type = SIGNING_KEY_TYPE_DSA_SHA1);
 
   IdentityEx(
-      const uint8_t* buf,
-      size_t len);
+      const std::uint8_t* buf,
+      std::size_t len);
 
   IdentityEx(
       const IdentityEx& other);
@@ -223,15 +224,15 @@ class IdentityEx {
 
   IdentityEx& operator=(const Identity& standard);
 
-  size_t FromBuffer(
-      const uint8_t* buf,
-      size_t len);
+  std::size_t FromBuffer(
+      const std::uint8_t* buf,
+      std::size_t len);
 
-  size_t ToBuffer(
-      uint8_t* buf,
-      size_t len) const;
+  std::size_t ToBuffer(
+      std::uint8_t* buf,
+      std::size_t len) const;
 
-  size_t FromBase64(
+  std::size_t FromBase64(
       const std::string& s);
 
   std::string ToBase64() const;
@@ -244,20 +245,20 @@ class IdentityEx {
     return m_IdentHash;
   }
 
-  size_t GetFullLen() const {
+  std::size_t GetFullLen() const {
     return m_ExtendedLen + DEFAULT_IDENTITY_SIZE;
   }
 
-  size_t GetSigningPublicKeyLen() const;
+  std::size_t GetSigningPublicKeyLen() const;
 
-  size_t GetSigningPrivateKeyLen() const;
+  std::size_t GetSigningPrivateKeyLen() const;
 
-  size_t GetSignatureLen() const;
+  std::size_t GetSignatureLen() const;
 
   bool Verify(
-      const uint8_t* buf,
-      size_t len,
-      const uint8_t* signature) const;
+      const std::uint8_t* buf,
+      std::size_t len,
+      const std::uint8_t* signature) const;
 
   SigningKeyType GetSigningKeyType() const;
 
@@ -272,7 +273,7 @@ class IdentityEx {
   Identity m_StandardIdentity;
   IdentHash m_IdentHash;
   mutable std::unique_ptr<kovri::core::Verifier> m_Verifier;
-  size_t m_ExtendedLen;
+  std::size_t m_ExtendedLen;
   std::unique_ptr<std::uint8_t[]> m_ExtendedBuffer;
 };
 
@@ -301,32 +302,32 @@ class PrivateKeys {  // for eepsites
     return m_Public;
   }
 
-  const uint8_t* GetPrivateKey() const {
+  const std::uint8_t* GetPrivateKey() const {
     return m_PrivateKey;
   }
 
-  const uint8_t* GetSigningPrivateKey() const {
+  const std::uint8_t* GetSigningPrivateKey() const {
     return m_SigningPrivateKey;
   }
 
   void Sign(
-      const uint8_t* buf,
+      const std::uint8_t* buf,
       int len,
-      uint8_t* signature) const;
+      std::uint8_t* signature) const;
 
-  size_t GetFullLen() const {
+  std::size_t GetFullLen() const {
     return m_Public.GetFullLen() + 256 + m_Public.GetSigningPrivateKeyLen();
   }
 
-  size_t FromBuffer(
-      const uint8_t* buf,
-      size_t len);
+  std::size_t FromBuffer(
+      const std::uint8_t* buf,
+      std::size_t len);
 
-  size_t ToBuffer(
-      uint8_t* buf,
-      size_t len) const;
+  std::size_t ToBuffer(
+      std::uint8_t* buf,
+      std::size_t len) const;
 
-  size_t FromBase64(
+  std::size_t FromBase64(
       const std::string& s);
 
   std::string ToBase64() const;
@@ -339,17 +340,17 @@ class PrivateKeys {  // for eepsites
 
  private:
   IdentityEx m_Public;
-  uint8_t m_PrivateKey[256];
+  std::uint8_t m_PrivateKey[256];
   // assume private key doesn't exceed 1024 bytes
-  uint8_t m_SigningPrivateKey[1024];
+  std::uint8_t m_SigningPrivateKey[1024];
   std::unique_ptr<kovri::core::Signer> m_Signer;
 };
 
 // kademlia
 struct XORMetric {
   union {
-    uint8_t metric[32];
-    uint64_t metric_ll[4];
+    std::uint8_t metric[32];
+    std::uint64_t metric_ll[4];
   };
 
   void SetMin() {
@@ -380,7 +381,7 @@ class RoutingDestination {
 
   virtual const IdentHash& GetIdentHash() const = 0;
 
-  virtual const uint8_t* GetEncryptionPublicKey() const = 0;
+  virtual const std::uint8_t* GetEncryptionPublicKey() const = 0;
 
   virtual bool IsDestination() const = 0;  // for garlic
 
@@ -402,9 +403,9 @@ class LocalDestination {
 
   virtual const PrivateKeys& GetPrivateKeys() const = 0;
 
-  virtual const uint8_t* GetEncryptionPrivateKey() const = 0;
+  virtual const std::uint8_t* GetEncryptionPrivateKey() const = 0;
 
-  virtual const uint8_t* GetEncryptionPublicKey() const = 0;
+  virtual const std::uint8_t* GetEncryptionPublicKey() const = 0;
 
   const IdentityEx& GetIdentity() const {
     return GetPrivateKeys().GetPublic();
@@ -415,9 +416,9 @@ class LocalDestination {
   }
 
   void Sign(
-      const uint8_t* buf,
+      const std::uint8_t* buf,
       int len,
-      uint8_t* signature) const {
+      std::uint8_t* signature) const {
     GetPrivateKeys().Sign(
         buf,
         len,

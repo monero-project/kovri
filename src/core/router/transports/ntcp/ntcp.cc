@@ -107,7 +107,7 @@ void NTCPServer::HandleAccept(
       LogPrint(eLogInfo, "NTCPServer: connected from ", ep);
       auto it = m_BanList.find(ep.address());
       if (it != m_BanList.end()) {
-        uint32_t ts = kovri::core::GetSecondsSinceEpoch();
+        std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
         if (ts < it->second) {
           LogPrint(eLogInfo,
               "NTCPServer: ", ep.address(), " is banned for ",
@@ -151,7 +151,7 @@ void NTCPServer::HandleAcceptV6(
           "NTCPServer: V6 connected from ", ep);
       auto it = m_BanList.find(ep.address());
       if (it != m_BanList.end()) {
-        uint32_t ts = kovri::core::GetSecondsSinceEpoch();
+        std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
         if (ts < it->second) {
           LogPrint(eLogInfo,
               "NTCPServer: ", ep.address(), " is banned for ",
@@ -264,7 +264,7 @@ std::shared_ptr<NTCPSession> NTCPServer::FindNTCPSession(
 
 void NTCPServer::Ban(
     const std::shared_ptr<NTCPSession>& session) {
-  uint32_t ts = kovri::core::GetSecondsSinceEpoch();
+  std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
   m_BanList[session->GetRemoteEndpoint().address()] =
     ts + static_cast<std::size_t>(NTCPTimeoutLength::ban_expiration);
   LogPrint(eLogInfo,

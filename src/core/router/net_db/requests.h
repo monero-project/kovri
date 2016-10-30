@@ -83,7 +83,7 @@ class RequestedDestination {
     return m_ExcludedPeers.count (ident);
   }
 
-  uint64_t GetCreationTime() const {
+  std::uint64_t GetCreationTime() const {
     return m_CreationTime;
   }
 
@@ -109,7 +109,7 @@ class RequestedDestination {
   IdentHash m_Destination;
   bool m_IsExploratory;
   std::set<IdentHash> m_ExcludedPeers;
-  uint64_t m_CreationTime;
+  std::uint64_t m_CreationTime;
   RequestComplete m_RequestComplete;
 };
 

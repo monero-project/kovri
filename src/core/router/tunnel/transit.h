@@ -33,8 +33,8 @@
 #ifndef SRC_CORE_ROUTER_TRANSIT_TUNNEL_H_
 #define SRC_CORE_ROUTER_TRANSIT_TUNNEL_H_
 
-#include <inttypes.h>
-
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <vector>
@@ -52,17 +52,17 @@ namespace core {
 class TransitTunnel : public TunnelBase {
  public:
   TransitTunnel(
-      uint32_t receive_tunnel_ID,
-      const uint8_t* next_ident,
-      uint32_t next_tunnel_ID,
-      const uint8_t* layer_key,
-      const uint8_t* iv_key);
+      std::uint32_t receive_tunnel_ID,
+      const std::uint8_t* next_ident,
+      std::uint32_t next_tunnel_ID,
+      const std::uint8_t* layer_key,
+      const std::uint8_t* iv_key);
 
-  virtual size_t GetNumTransmittedBytes() const {
+  virtual std::size_t GetNumTransmittedBytes() const {
     return 0;
   }
 
-  uint32_t GetTunnelID() const {
+  std::uint32_t GetTunnelID() const {
     return m_TunnelID;
   }
 
@@ -77,7 +77,7 @@ class TransitTunnel : public TunnelBase {
       std::shared_ptr<const I2NPMessage> in,
       std::shared_ptr<I2NPMessage> out);
 
-  uint32_t GetNextTunnelID() const {
+  std::uint32_t GetNextTunnelID() const {
     return m_NextTunnelID;
   }
 
@@ -86,7 +86,7 @@ class TransitTunnel : public TunnelBase {
   }
 
  private:
-  uint32_t m_TunnelID,
+  std::uint32_t m_TunnelID,
            m_NextTunnelID;
   kovri::core::IdentHash m_NextIdent;
   kovri::core::TunnelEncryption m_Encryption;
@@ -95,11 +95,11 @@ class TransitTunnel : public TunnelBase {
 class TransitTunnelParticipant : public TransitTunnel {
  public:
   TransitTunnelParticipant(
-      uint32_t receive_tunnel_ID,
-      const uint8_t* next_ident,
-      uint32_t next_tunnel_ID,
-      const uint8_t* layer_key,
-      const uint8_t* iv_key)
+      std::uint32_t receive_tunnel_ID,
+      const std::uint8_t* next_ident,
+      std::uint32_t next_tunnel_ID,
+      const std::uint8_t* layer_key,
+      const std::uint8_t* iv_key)
       : TransitTunnel(
           receive_tunnel_ID,
           next_ident,
@@ -109,7 +109,7 @@ class TransitTunnelParticipant : public TransitTunnel {
       m_NumTransmittedBytes(0) {}
   ~TransitTunnelParticipant();
 
-  size_t GetNumTransmittedBytes() const {
+  std::size_t GetNumTransmittedBytes() const {
     return m_NumTransmittedBytes;
   }
 
@@ -119,18 +119,18 @@ class TransitTunnelParticipant : public TransitTunnel {
   void FlushTunnelDataMsgs();
 
  private:
-  size_t m_NumTransmittedBytes;
+  std::size_t m_NumTransmittedBytes;
   std::vector<std::shared_ptr<kovri::I2NPMessage> > m_TunnelDataMsgs;
 };
 
 class TransitTunnelGateway : public TransitTunnel {
  public:
   TransitTunnelGateway(
-      uint32_t receive_tunnel_ID,
-      const uint8_t* next_ident,
-      uint32_t next_tunnel_ID,
-      const uint8_t* layer_key,
-      const uint8_t* iv_key)
+      std::uint32_t receive_tunnel_ID,
+      const std::uint8_t* next_ident,
+      std::uint32_t next_tunnel_ID,
+      const std::uint8_t* layer_key,
+      const std::uint8_t* iv_key)
       : TransitTunnel(
           receive_tunnel_ID,
           next_ident,
@@ -144,7 +144,7 @@ class TransitTunnelGateway : public TransitTunnel {
 
   void FlushTunnelDataMsgs();
 
-  size_t GetNumTransmittedBytes() const {
+  std::size_t GetNumTransmittedBytes() const {
     return m_Gateway.GetNumSentBytes();
   }
 
@@ -156,11 +156,11 @@ class TransitTunnelGateway : public TransitTunnel {
 class TransitTunnelEndpoint : public TransitTunnel {
  public:
   TransitTunnelEndpoint(
-      uint32_t receive_tunnel_ID,
-      const uint8_t* next_ident,
-      uint32_t next_tunnel_ID,
-      const uint8_t* layer_key,
-      const uint8_t* iv_key)
+      std::uint32_t receive_tunnel_ID,
+      const std::uint8_t* next_ident,
+      std::uint32_t next_tunnel_ID,
+      const std::uint8_t* layer_key,
+      const std::uint8_t* iv_key)
       : TransitTunnel(
           receive_tunnel_ID,
           next_ident,
@@ -172,7 +172,7 @@ class TransitTunnelEndpoint : public TransitTunnel {
   void HandleTunnelDataMsg(
       std::shared_ptr<const kovri::I2NPMessage> tunnel_msg);
 
-  size_t GetNumTransmittedBytes() const {
+  std::size_t GetNumTransmittedBytes() const {
     return m_Endpoint.GetNumReceivedBytes();
   }
 
@@ -181,11 +181,11 @@ class TransitTunnelEndpoint : public TransitTunnel {
 };
 
 TransitTunnel* CreateTransitTunnel(
-    uint32_t receive_tunnel_ID,
-    const uint8_t* next_ident,
-    uint32_t next_tunnel_ID,
-    const uint8_t* layer_key,
-    const uint8_t* iv_key,
+    std::uint32_t receive_tunnel_ID,
+    const std::uint8_t* next_ident,
+    std::uint32_t next_tunnel_ID,
+    const std::uint8_t* layer_key,
+    const std::uint8_t* iv_key,
     bool is_gateway,
     bool is_endpoint);
 

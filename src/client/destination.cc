@@ -247,10 +247,10 @@ void ClientDestination::UpdateLeaseSet() {
 }
 
 bool ClientDestination::SubmitSessionKey(
-    const uint8_t* key,
-    const uint8_t* tag) {
+    const std::uint8_t* key,
+    const std::uint8_t* tag) {
   struct {
-    uint8_t k[32], t[32];
+    std::uint8_t k[32], t[32];
   } data;
   memcpy(data.k, key, 32);
   memcpy(data.t, tag, 32);
@@ -279,10 +279,10 @@ void ClientDestination::ProcessDeliveryStatusMessage(
 }
 
 void ClientDestination::HandleI2NPMessage(
-    const uint8_t* buf,
-    size_t,
+    const std::uint8_t* buf,
+    std::size_t,
     std::shared_ptr<kovri::core::InboundTunnel> from) {
-  uint8_t type_ID = buf[I2NP_HEADER_TYPEID_OFFSET];
+  std::uint8_t type_ID = buf[I2NP_HEADER_TYPEID_OFFSET];
   switch (type_ID) {
     case e_I2NPData:
       HandleDataMessage(
@@ -320,10 +320,10 @@ void ClientDestination::HandleI2NPMessage(
 }
 
 void ClientDestination::HandleDatabaseStoreMessage(
-    const uint8_t* buf,
-    size_t len) {
-  uint32_t reply_token = bufbe32toh(buf + DATABASE_STORE_REPLY_TOKEN_OFFSET);
-  size_t offset = DATABASE_STORE_HEADER_SIZE;
+    const std::uint8_t* buf,
+    std::size_t len) {
+  std::uint32_t reply_token = bufbe32toh(buf + DATABASE_STORE_REPLY_TOKEN_OFFSET);
+  std::size_t offset = DATABASE_STORE_HEADER_SIZE;
   if (reply_token) {
     LogPrint(eLogInfo,
         "ClientDestination: reply token is ignored for DatabaseStore");
@@ -372,8 +372,8 @@ void ClientDestination::HandleDatabaseStoreMessage(
 }
 
 void ClientDestination::HandleDatabaseSearchReplyMessage(
-    const uint8_t* buf,
-    size_t) {
+    const std::uint8_t* buf,
+    std::size_t) {
   kovri::core::IdentHash key(buf);
   int num = buf[32];  // num
   LogPrint(eLogInfo,
@@ -421,7 +421,7 @@ void ClientDestination::HandleDatabaseSearchReplyMessage(
 
 void ClientDestination::HandleDeliveryStatusMessage(
     std::shared_ptr<I2NPMessage> msg) {
-  uint32_t msg_ID =
+  std::uint32_t msg_ID =
     bufbe32toh(msg->GetPayload() + DELIVERY_STATUS_MSGID_OFFSET);
   if (msg_ID == m_PublishReplyToken) {
     LogPrint(eLogDebug, "ClientDestination: publishing confirmed");
@@ -469,7 +469,7 @@ void ClientDestination::Publish() {
   m_ExcludedFloodfills.insert(floodfill->GetIdentHash());
   LogPrint(eLogDebug,
       "ClientDestination: publish LeaseSet of ", GetIdentHash().ToBase32());
-  m_PublishReplyToken = kovri::core::Rand<uint32_t>();
+  m_PublishReplyToken = kovri::core::Rand<std::uint32_t>();
   auto msg =
     WrapMessage(
         floodfill,
@@ -501,12 +501,12 @@ void ClientDestination::HandlePublishConfirmationTimer(
 }
 
 void ClientDestination::HandleDataMessage(
-    const uint8_t* buf,
-    size_t) {
-  uint32_t length = bufbe32toh(buf);
+    const std::uint8_t* buf,
+    std::size_t) {
+  std::uint32_t length = bufbe32toh(buf);
   buf += 4;
   // we assume I2CP payload
-  uint16_t from_port = bufbe16toh(buf + 4),  // source
+  std::uint16_t from_port = bufbe16toh(buf + 4),  // source
     to_port = bufbe16toh(buf + 6);  // destination
   switch (buf[9]) {
     case PROTOCOL_TYPE_STREAMING: {
@@ -688,7 +688,7 @@ bool ClientDestination::SendLeaseSetRequest(
     request->excluded.insert(next_floodfill->GetIdentHash());
     request->request_time = kovri::core::GetSecondsSinceEpoch();
     request->request_timeout_timer.cancel();
-    uint8_t reply_key[32], reply_tag[32];
+    std::uint8_t reply_key[32], reply_tag[32];
     kovri::core::RandBytes(reply_key, 32);  // random session key
     kovri::core::RandBytes(reply_tag, 32);  // random session tag
     AddSessionKey(reply_key, reply_tag);
@@ -731,7 +731,7 @@ void ClientDestination::HandleRequestTimoutTimer(
     auto it = m_LeaseSetRequests.find(dest);
     if (it != m_LeaseSetRequests.end()) {
       bool done = false;
-      uint64_t ts = kovri::core::GetSecondsSinceEpoch();
+      std::uint64_t ts = kovri::core::GetSecondsSinceEpoch();
       if (ts < it->second->request_time + MAX_LEASESET_REQUEST_TIMEOUT) {
         auto floodfill =
           kovri::core::netdb.GetClosestFloodfill(

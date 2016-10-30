@@ -237,7 +237,7 @@ void Transports::Run() {
 
 void Transports::UpdateBandwidth() {
   LogPrint(eLogDebug, "Transports: updating bandwidth");
-  const uint64_t ts = kovri::core::GetMillisecondsSinceEpoch();
+  const std::uint64_t ts = kovri::core::GetMillisecondsSinceEpoch();
   if (m_LastBandwidthUpdateTime > 0) {
     auto delta = ts - m_LastBandwidthUpdateTime;
     if (delta > 0) {
@@ -645,11 +645,11 @@ std::shared_ptr<const kovri::core::RouterInfo> Transports::GetRandomPeer() const
   LogPrint(eLogDebug, "Transports: getting random peer");
   if (m_Peers.empty())  // ensure m.Peers.size() >= 1
     return nullptr;
-  size_t s = m_Peers.size();
+  std::size_t s = m_Peers.size();
   auto it = m_Peers.begin();
   std::advance(
       it,
-      kovri::core::RandInRange<size_t>(0, s - 1));
+      kovri::core::RandInRange<std::size_t>(0, s - 1));
   return it->second.router;
 }
 

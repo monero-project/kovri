@@ -85,7 +85,7 @@ void TCPIPAcceptor::Stop() {
 
 void TCPIPAcceptor::Rebind(
     const std::string& addr,
-    uint16_t port) {
+    std::uint16_t port) {
   LogPrint(eLogInfo,
       "I2PService: re-bind ", GetName(), " to ", addr, ":", port);
   // stop everything with us

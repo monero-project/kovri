@@ -219,7 +219,7 @@ void HTTPProxyHandler::HandleStreamRequestComplete(
           stream);
     GetOwner()->AddHandler(connection);
     connection->I2PConnect(
-        reinterpret_cast<const uint8_t*>(m_Request.data()),
+        reinterpret_cast<const std::uint8_t*>(m_Request.data()),
         m_Request.size());
     Done(shared_from_this());
   } else {

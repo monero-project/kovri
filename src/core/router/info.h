@@ -35,8 +35,8 @@
 
 #include <boost/asio.hpp>
 
-#include <inttypes.h>
-
+#include <cstddef>
+#include <cstdint>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -96,7 +96,7 @@ class RouterInfo : public RoutingDestination {
     boost::asio::ip::address host;
     int port;
     Tag<32> key;
-    uint32_t tag;
+    std::uint32_t tag;
   };
 
   struct Address {
@@ -104,8 +104,8 @@ class RouterInfo : public RoutingDestination {
     boost::asio::ip::address host;
     std::string address_string;
     int port, mtu;
-    uint64_t date;
-    uint8_t cost;
+    std::uint64_t date;
+    std::uint8_t cost;
     // SSU only
     Tag<32> key;  // intro key for SSU
     std::vector<Introducer> introducers;
@@ -127,7 +127,7 @@ class RouterInfo : public RoutingDestination {
       const RouterInfo&) = default;
 
   RouterInfo(
-      const uint8_t* buf,
+      const std::uint8_t* buf,
       int len);
 
   RouterInfo& operator=(const RouterInfo&) = default;
@@ -147,7 +147,7 @@ class RouterInfo : public RoutingDestination {
     return GetIdentHash().ToBase64().substr(0, 4);
   }
 
-  uint64_t GetTimestamp() const {
+  std::uint64_t GetTimestamp() const {
     return m_Timestamp;
   }
 
@@ -170,12 +170,12 @@ class RouterInfo : public RoutingDestination {
   void AddSSUAddress(
       const std::string& host,
       int port,
-      const uint8_t* key,
+      const std::uint8_t* key,
       int mtu = 0);
 
   bool AddIntroducer(
       const Address* address,
-      uint32_t tag);
+      std::uint32_t tag);
 
   bool RemoveIntroducer(
       const boost::asio::ip::udp::endpoint& e);
@@ -228,12 +228,12 @@ class RouterInfo : public RoutingDestination {
     return m_Caps & RouterInfo::eHighBandwidth;
   }
 
-  uint8_t GetCaps() const {
+  std::uint8_t GetCaps() const {
     return m_Caps;
   }
 
   void SetCaps(
-      uint8_t caps);
+      std::uint8_t caps);
 
   void SetCaps(
       const char* caps);
@@ -246,12 +246,12 @@ class RouterInfo : public RoutingDestination {
     return m_IsUnreachable;
   }
 
-  const uint8_t* GetBuffer() const {
+  const std::uint8_t* GetBuffer() const {
     auto buf = m_Buffer.get();
     return buf;
   }
 
-  const uint8_t* LoadBuffer();  // load if necessary
+  const std::uint8_t* LoadBuffer();  // load if necessary
 
   int GetBufferLen() const {
     return m_BufferLen;
@@ -280,7 +280,7 @@ class RouterInfo : public RoutingDestination {
   }
 
   void Update(
-      const uint8_t* buf,
+      const std::uint8_t* buf,
       int len);
 
   void DeleteBuffer() {
@@ -292,7 +292,7 @@ class RouterInfo : public RoutingDestination {
     return m_RouterIdentity.GetIdentHash();
   }
 
-  const uint8_t* GetEncryptionPublicKey() const {
+  const std::uint8_t* GetEncryptionPublicKey() const {
     return m_RouterIdentity.GetStandardIdentity().public_key;
   }
 
@@ -314,7 +314,7 @@ class RouterInfo : public RoutingDestination {
   void WriteToStream(
       std::ostream& s);
 
-  size_t ReadString(
+  std::size_t ReadString(
       char* str,
       std::istream& s);
 
@@ -337,11 +337,11 @@ class RouterInfo : public RoutingDestination {
   IdentityEx m_RouterIdentity;
   std::unique_ptr<std::uint8_t[]> m_Buffer;
   int m_BufferLen;
-  uint64_t m_Timestamp;
+  std::uint64_t m_Timestamp;
   std::vector<Address> m_Addresses;
   std::map<std::string, std::string> m_Properties;
   bool m_IsUpdated, m_IsUnreachable;
-  uint8_t m_SupportedTransports, m_Caps;
+  std::uint8_t m_SupportedTransports, m_Caps;
   mutable std::shared_ptr<RouterProfile> m_Profile;
 };
 

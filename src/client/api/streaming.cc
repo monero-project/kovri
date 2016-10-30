@@ -73,7 +73,7 @@ Stream::Stream(
       m_RTO(INITIAL_RTO),
       m_LastWindowSizeIncreaseTime(0),
       m_NumResendAttempts(0) {
-        m_RecvStreamID = kovri::core::Rand<uint32_t>();
+        m_RecvStreamID = kovri::core::Rand<std::uint32_t>();
         m_RemoteIdentity = remote->GetIdentity();
         // TODO(unassigned):
         // This type of initialization is a friendly reminder of overall poor design.
@@ -117,7 +117,7 @@ Stream::Stream(
       m_RTO(INITIAL_RTO),
       m_LastWindowSizeIncreaseTime(0),
       m_NumResendAttempts(0) {
-        m_RecvStreamID = kovri::core::Rand<uint32_t>();
+        m_RecvStreamID = kovri::core::Rand<std::uint32_t>();
       }
 
 Stream::~Stream() {
@@ -170,7 +170,7 @@ void Stream::HandleNextPacket(
     ProcessPacket(packet);
     // we should also try stored messages if any
     for (auto it = m_SavedPackets.begin(); it != m_SavedPackets.end();) {
-      if ((*it)->GetSeqn() == (uint32_t)(m_LastReceivedSequenceNumber + 1)) {
+      if ((*it)->GetSeqn() == (std::uint32_t)(m_LastReceivedSequenceNumber + 1)) {
         Packet* savedPacket = *it;
         m_SavedPackets.erase(it++);
         ProcessPacket(savedPacket);
@@ -237,11 +237,11 @@ void Stream::SavePacket(
 void Stream::ProcessPacket(
     Packet* packet) {
   // process flags
-  uint32_t received_seqn = packet->GetSeqn();
-  uint16_t flags = packet->GetFlags();
+  std::uint32_t received_seqn = packet->GetSeqn();
+  std::uint16_t flags = packet->GetFlags();
   LogPrint(eLogDebug,
       "Stream: process seqn=", received_seqn, ", flags=", flags);
-  const uint8_t* option_data = packet->GetOptionData();
+  const std::uint8_t* option_data = packet->GetOptionData();
   if (flags & PACKET_FLAG_SYNCHRONIZE)
     LogPrint(eLogDebug, "Stream: synchronize");
   if (flags & PACKET_FLAG_DELAY_REQUESTED) {
@@ -259,16 +259,16 @@ void Stream::ProcessPacket(
           m_RemoteIdentity.GetIdentHash().ToBase64());
   }
   if (flags & PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED) {
-    uint16_t max_packet_size = bufbe16toh(option_data);
+    std::uint16_t max_packet_size = bufbe16toh(option_data);
     LogPrint(eLogDebug, "Stream: max packet size ", max_packet_size);
     option_data += 2;
   }
   if (flags & PACKET_FLAG_SIGNATURE_INCLUDED) {
     LogPrint(eLogDebug, "Stream: signature");
-    uint8_t signature[256];
+    std::uint8_t signature[256];
     auto signature_len = m_RemoteIdentity.GetSignatureLen();
     memcpy(signature, option_data, signature_len);
-    memset(const_cast<uint8_t *>(option_data), 0, signature_len);
+    memset(const_cast<std::uint8_t *>(option_data), 0, signature_len);
     if (!m_RemoteIdentity.Verify(
           packet->GetBuffer(),
           packet->GetLength(),
@@ -277,7 +277,7 @@ void Stream::ProcessPacket(
       Close();
       flags |= PACKET_FLAG_CLOSE;
     }
-    memcpy(const_cast<uint8_t *>(option_data), signature, signature_len);
+    memcpy(const_cast<std::uint8_t *>(option_data), signature, signature_len);
     option_data += signature_len;
   }
   packet->offset = packet->GetPayload() - packet->buf;
@@ -300,7 +300,7 @@ void Stream::ProcessAck(
     Packet * packet) {
   bool acknowledged = false;
   auto ts = kovri::core::GetMillisecondsSinceEpoch();
-  uint32_t ack_through = packet->GetAckThrough();
+  std::uint32_t ack_through = packet->GetAckThrough();
   int nack_count = packet->GetNACKCount();
   for (auto it = m_SentPackets.begin(); it != m_SentPackets.end();) {
     auto seqn = (*it)->GetSeqn();
@@ -319,7 +319,7 @@ void Stream::ProcessAck(
         }
       }
       auto sent_packet = *it;
-      uint64_t rtt = ts - sent_packet->send_time;
+      std::uint64_t rtt = ts - sent_packet->send_time;
       m_RTT = (m_RTT * seqn + rtt) / (seqn + 1);
       m_RTO = m_RTT * 1.5;  // TODO(unassigned): implement this better
       LogPrint(eLogDebug, "Stream: packet ", seqn, " acknowledged rtt=", rtt);
@@ -351,9 +351,9 @@ void Stream::ProcessAck(
     Close();  // all outgoing messages have been sent
 }
 
-size_t Stream::Send(
-    const uint8_t* buf,
-    size_t len) {
+std::size_t Stream::Send(
+    const std::uint8_t* buf,
+    std::size_t len) {
   if (len > 0 && buf) {
     std::unique_lock<std::mutex> l(m_SendBufferMutex);
     m_SendBuffer.clear();
@@ -367,8 +367,8 @@ size_t Stream::Send(
 }
 
 void Stream::AsyncSend(
-    const uint8_t* buf,
-    size_t len,
+    const std::uint8_t* buf,
+    std::size_t len,
     SendHandler handler) {
   if (m_SendHandler)
     handler(
@@ -389,9 +389,9 @@ void Stream::SendBuffer() {
     while ((m_Status == eStreamStatusNew) || (IsEstablished() &&
           !m_SendBuffer.eof() && num_msgs > 0)) {
       Packet* p = new Packet();
-      uint8_t* packet = p->GetBuffer();
+      std::uint8_t* packet = p->GetBuffer();
       // TODO(unassigned): implement setters
-      size_t size = 0;
+      std::size_t size = 0;
       htobe32buf(packet + size, m_SendStreamID);
       size += 4;  // sendStreamID
       htobe32buf(packet + size, m_RecvStreamID);
@@ -410,16 +410,16 @@ void Stream::SendBuffer() {
       if (m_Status == eStreamStatusNew) {
         // initial packet
         m_Status = eStreamStatusOpen;
-        uint16_t flags =
+        std::uint16_t flags =
           PACKET_FLAG_SYNCHRONIZE        | PACKET_FLAG_FROM_INCLUDED |
           PACKET_FLAG_SIGNATURE_INCLUDED | PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED;
         if (is_no_ack)
           flags |= PACKET_FLAG_NO_ACK;
         htobe16buf(packet + size, flags);
         size += 2;  // flags
-        size_t identity_len =
+        std::size_t identity_len =
           m_LocalDestination.GetOwner().GetIdentity().GetFullLen();
-        size_t signature_len =
+        std::size_t signature_len =
           m_LocalDestination.GetOwner().GetIdentity().GetSignatureLen();
         // identity + signature + packet size
         htobe16buf(packet + size, identity_len + signature_len + 2);
@@ -429,7 +429,7 @@ void Stream::SendBuffer() {
         size += identity_len;  // from
         htobe16buf(packet + size, STREAMING_MTU);
         size += 2;  // max packet size
-        uint8_t* signature = packet + size;  // set it later
+        std::uint8_t* signature = packet + size;  // set it later
         // zeroes for now
         memset(signature, 0, signature_len);
         size += signature_len;  // signature
@@ -491,8 +491,8 @@ void Stream::SendQuickAck() {
     return;
   }
   Packet p;
-  uint8_t* packet = p.GetBuffer();
-  size_t size = 0;
+  std::uint8_t* packet = p.GetBuffer();
+  std::size_t size = 0;
   htobe32buf(packet + size, m_SendStreamID);
   size += 4;  // sendStreamID
   htobe32buf(packet + size, m_RecvStreamID);
@@ -502,10 +502,10 @@ void Stream::SendQuickAck() {
   size += 4;  // sequenceNum
   htobe32buf(packet + size, last_received_seqn);
   size += 4;  // ack Through
-  uint8_t num_nacks = 0;
+  std::uint8_t num_nacks = 0;
   if (last_received_seqn > m_LastReceivedSequenceNumber) {
     // fill NACKs
-    uint8_t* nacks = packet + size + 1;
+    std::uint8_t* nacks = packet + size + 1;
     auto next_seqn = m_LastReceivedSequenceNumber + 1;
     for (auto it : m_SavedPackets) {
       auto seqn = it->GetSeqn();
@@ -516,7 +516,7 @@ void Stream::SendQuickAck() {
         htobe32buf(packet + 12, next_seqn);  // change ack Through
         break;
       }
-      for (uint32_t i = next_seqn; i < seqn; i++) {
+      for (std::uint32_t i = next_seqn; i < seqn; i++) {
         htobe32buf(nacks, i);
         nacks += 4;
         num_nacks++;
@@ -578,8 +578,8 @@ void Stream::Close() {
 
 void Stream::SendClose() {
   Packet* p = new Packet();
-  uint8_t* packet = p->GetBuffer();
-  size_t size = 0;
+  std::uint8_t* packet = p->GetBuffer();
+  std::size_t size = 0;
   htobe32buf(
       packet + size,
       m_SendStreamID);
@@ -603,12 +603,12 @@ void Stream::SendClose() {
       packet + size,
       PACKET_FLAG_CLOSE | PACKET_FLAG_SIGNATURE_INCLUDED);
   size += 2;  // flags
-  size_t signature_len =
+  std::size_t signature_len =
     m_LocalDestination.GetOwner().GetIdentity().GetSignatureLen();
   // signature only
   htobe16buf(packet + size, signature_len);
   size += 2;  // options size
-  uint8_t* signature = packet + size;
+  std::uint8_t* signature = packet + size;
   memset(packet + size, 0, signature_len);
   size += signature_len;  // signature
   m_LocalDestination.GetOwner().Sign(packet, size, signature);
@@ -617,13 +617,13 @@ void Stream::SendClose() {
   LogPrint(eLogInfo, "Stream: FIN sent");
 }
 
-size_t Stream::ConcatenatePackets(
-    uint8_t* buf,
-    size_t len) {
-  size_t pos = 0;
+std::size_t Stream::ConcatenatePackets(
+    std::uint8_t* buf,
+    std::size_t len) {
+  std::size_t pos = 0;
   while (pos < len && !m_ReceiveQueue.empty()) {
     Packet* packet = m_ReceiveQueue.front();
-    size_t l = std::min(packet->GetLength(), len - pos);
+    std::size_t l = std::min(packet->GetLength(), len - pos);
     memcpy(buf + pos, packet->GetBuffer(), l);
     pos += l;
     packet->offset += l;
@@ -824,8 +824,8 @@ void Stream::UpdateCurrentRemoteLease(
           }
       }
       if (!updated) {
-        uint32_t i =
-          kovri::core::RandInRange<uint32_t>(
+        std::uint32_t i =
+          kovri::core::RandInRange<std::uint32_t>(
               0, leases.size() - 1);
         if (m_CurrentRemoteLease.end_date &&
             leases[i].tunnel_ID == m_CurrentRemoteLease.tunnel_ID)
@@ -844,8 +844,8 @@ void Stream::UpdateCurrentRemoteLease(
 }
 
 std::shared_ptr<I2NPMessage> Stream::CreateDataMessage(
-    const uint8_t* payload,
-    size_t len) {
+    const std::uint8_t* payload,
+    std::size_t len) {
   auto msg = ToSharedI2NPMessage(NewI2NPShortMessage());
   kovri::core::Gzip compressor;
   if (len <= kovri::client::COMPRESSION_THRESHOLD_SIZE)
@@ -858,7 +858,7 @@ std::shared_ptr<I2NPMessage> Stream::CreateDataMessage(
       payload,
       len);
   int size = compressor.MaxRetrievable();
-  uint8_t* buf = msg->GetPayload();
+  std::uint8_t* buf = msg->GetPayload();
   // length
   htobe32buf(buf, size);
   buf += 4;
@@ -885,7 +885,7 @@ void StreamingDestination::Stop() {
 
 void StreamingDestination::HandleNextPacket(
     Packet* packet) {
-  uint32_t send_stream_ID = packet->GetSendStreamID();
+  std::uint32_t send_stream_ID = packet->GetSendStreamID();
   if (send_stream_ID) {
     auto it = m_Streams.find(
         send_stream_ID);
@@ -909,7 +909,7 @@ void StreamingDestination::HandleNextPacket(
         DeleteStream(incoming_stream);
       }
     } else {  // follow on packet without SYN
-      uint32_t receive_stream_ID = packet->GetReceiveStreamID();
+      std::uint32_t receive_stream_ID = packet->GetReceiveStreamID();
       for (auto it : m_Streams)
         if (it.second->GetSendStreamID() == receive_stream_ID) {
           // found
@@ -951,8 +951,8 @@ void StreamingDestination::DeleteStream(
 }
 
 void StreamingDestination::HandleDataMessagePayload(
-    const uint8_t* buf,
-    size_t len) {
+    const std::uint8_t* buf,
+    std::size_t len) {
   // Gunzip it
   kovri::core::Gunzip decompressor;
   decompressor.Put(buf, len);

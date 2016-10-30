@@ -33,11 +33,11 @@
 #ifndef SRC_CLIENT_API_I2P_CONTROL_SERVER_H_
 #define SRC_CLIENT_API_I2P_CONTROL_SERVER_H_
 
-#include <inttypes.h>
-
 #include <boost/asio.hpp>
 
 #include <array>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -48,7 +48,7 @@
 namespace kovri {
 namespace client {
 
-const size_t I2P_CONTROL_MAX_REQUEST_SIZE = 1024;
+const std::size_t I2P_CONTROL_MAX_REQUEST_SIZE = 1024;
 typedef std::array<char, I2P_CONTROL_MAX_REQUEST_SIZE> I2PControlBuffer;
 
 class I2PControlService {
@@ -77,7 +77,7 @@ class I2PControlService {
 
   void HandleRequestReceived(
       const boost::system::error_code& ecode,
-      size_t bytes_transferred,
+      std::size_t bytes_transferred,
       std::shared_ptr<boost::asio::ip::tcp::socket> socket,
       std::shared_ptr<I2PControlBuffer> buf);
 
@@ -85,7 +85,7 @@ class I2PControlService {
       std::shared_ptr<boost::asio::ip::tcp::socket> socket,
       std::shared_ptr<I2PControlBuffer> buf,
       const std::string& response,
-      bool isHtml);
+      bool is_html);
 
   void HandleResponseSent(
       const boost::system::error_code& ecode,

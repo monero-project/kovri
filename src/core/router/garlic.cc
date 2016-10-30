@@ -116,7 +116,7 @@ void GarlicRoutingSession::MessageConfirmed(
   }
 }
 
-void GarlicRoutingSession::TagsConfirmed(uint32_t msg_ID) {
+void GarlicRoutingSession::TagsConfirmed(std::uint32_t msg_ID) {
   auto it = m_UnconfirmedTagsMsgs.find(msg_ID);
   if (it != m_UnconfirmedTagsMsgs.end()) {
     std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
@@ -196,7 +196,7 @@ std::shared_ptr<I2NPMessage> GarlicRoutingSession::WrapSingleMessage(
         eg_block.pre_IV.data(),
         iv.size());
     m_Destination->GetElGamalEncryption()->Encrypt(
-        reinterpret_cast<uint8_t *>(&eg_block),
+        reinterpret_cast<std::uint8_t *>(&eg_block),
         sizeof(eg_block),
         buf,
         true);
@@ -237,7 +237,7 @@ std::size_t GarlicRoutingSession::CreateAESBlock(
       block_size += 32;
     }
   }
-  std::uint32_t* payload_size = reinterpret_cast<uint32_t *>((buf + block_size));
+  std::uint32_t* payload_size = reinterpret_cast<std::uint32_t *>((buf + block_size));
   block_size += 4;
   std::uint8_t* payload_hash = buf + block_size;
   block_size += 32;

@@ -73,7 +73,7 @@ class ClientContext {
   // Non-public
   std::shared_ptr<ClientDestination> CreateNewLocalDestination(
       bool is_public = false,
-      kovri::core::SigningKeyType sigType = kovri::core::DEFAULT_CLIENT_SIGNING_KEY_TYPE,
+      kovri::core::SigningKeyType sig_type = kovri::core::DEFAULT_CLIENT_SIGNING_KEY_TYPE,
       const std::map<std::string, std::string>* params = nullptr);  // transient
 
   // Public
@@ -122,24 +122,24 @@ class ClientContext {
   /// @param keyfile the relative filename of the key file
   /// @param http true if server tunnel is an HTTP tunnel
   void UpdateServerTunnel(
-    const std::string& tunnelName,
+    const std::string& tunnel_name,
     const std::string& keyfile,
-    const std::string& hostStr,
-    const std::string& accessList,
+    const std::string& host_str,
+    const std::string& access_list,
     int port,
-    int inPort,
+    int in_port,
     bool http);
 
   /// @brief Updates or creates the specified client tunnel
   /// @param tunnelName the name of the client tunnel
   /// @param keyfile the relative filename of the key file
   void UpdateClientTunnel(
-    const std::string& tunnelName,
+    const std::string& tunnel_name,
     const std::string& keyfile,
     const std::string& destination,
-    const std::string& hostStr,
+    const std::string& host_str,
     int port,
-    int destPort);
+    int dest_port);
 
   /// @brief Registers a shutdown handler, called by ClientContext::RequestShutdown.
   /// @param handler The handler to be called on shutdown

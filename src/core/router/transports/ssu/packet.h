@@ -31,7 +31,8 @@
 #ifndef SRC_CORE_ROUTER_TRANSPORTS_SSU_PACKET_H_
 #define SRC_CORE_ROUTER_TRANSPORTS_SSU_PACKET_H_
 
-#include <cinttypes>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <vector>
 

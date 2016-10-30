@@ -53,7 +53,7 @@ TunnelHopConfig::TunnelHopConfig(
   kovri::core::RandBytes(reply_key, 32);
   kovri::core::RandBytes(reply_IV, 16);
   kovri::core::RandBytes(rand_pad, 29);
-  tunnel_ID = kovri::core::Rand<uint32_t>();
+  tunnel_ID = kovri::core::Rand<std::uint32_t>();
   is_gateway = true;
   is_endpoint = true;
   router = r;
@@ -67,7 +67,7 @@ void TunnelHopConfig::SetNextRouter(
     std::shared_ptr<const kovri::core::RouterInfo> r) {
   next_router = r;
   is_endpoint = false;
-  next_tunnel_ID = kovri::core::Rand<uint32_t>();
+  next_tunnel_ID = kovri::core::Rand<std::uint32_t>();
 }
 
 void TunnelHopConfig::SetReplyHop(
@@ -100,9 +100,9 @@ void TunnelHopConfig::SetPrev(
 }
 
 void TunnelHopConfig::CreateBuildRequestRecord(
-    uint8_t* record,
-    uint32_t reply_msg_ID) const {
-  uint8_t clear_text[BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE] = {};
+    std::uint8_t* record,
+    std::uint32_t reply_msg_ID) const {
+  std::uint8_t clear_text[BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE] = {};
   htobe32buf(
       clear_text + BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET,
       tunnel_ID);
@@ -133,7 +133,7 @@ void TunnelHopConfig::CreateBuildRequestRecord(
       clear_text + BUILD_REQUEST_RECORD_REPLY_IV_OFFSET,
       reply_IV,
       16);
-  uint8_t flag = 0;
+  std::uint8_t flag = 0;
   if (is_gateway)
     flag |= 0x80;
   if (is_endpoint)
@@ -155,7 +155,7 @@ void TunnelHopConfig::CreateBuildRequestRecord(
       record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET);
   memcpy(
       record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET,
-      (const uint8_t *)router->GetIdentHash(),
+      (const std::uint8_t *)router->GetIdentHash(),
       16);
 }
 

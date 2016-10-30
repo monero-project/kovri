@@ -35,6 +35,7 @@
 
 #include <boost/asio.hpp>
 
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
@@ -55,9 +56,9 @@
 namespace kovri {
 namespace client {
 
-const uint8_t PROTOCOL_TYPE_STREAMING = 6;
-const uint8_t PROTOCOL_TYPE_DATAGRAM = 17;
-const uint8_t PROTOCOL_TYPE_RAW = 18;
+const std::uint8_t PROTOCOL_TYPE_STREAMING = 6;
+const std::uint8_t PROTOCOL_TYPE_DATAGRAM = 17;
+const std::uint8_t PROTOCOL_TYPE_RAW = 18;
 const int PUBLISH_CONFIRMATION_TIMEOUT = 5;  // in seconds
 const int LEASESET_REQUEST_TIMEOUT = 5;  // in seconds
 const int MAX_LEASESET_REQUEST_TIMEOUT = 40;  // in seconds
@@ -87,7 +88,7 @@ class ClientDestination : public kovri::core::GarlicDestination {
         : request_time(0),
           request_timeout_timer(service) {}
     std::set<kovri::core::IdentHash> excluded;
-    uint64_t request_time;
+    std::uint64_t request_time;
     boost::asio::deadline_timer request_timeout_timer;
     RequestComplete request_complete;
   };
@@ -165,11 +166,11 @@ class ClientDestination : public kovri::core::GarlicDestination {
     return m_Keys;
   }
 
-  const uint8_t* GetEncryptionPrivateKey() const {
+  const std::uint8_t* GetEncryptionPrivateKey() const {
     return m_EncryptionPrivateKey;
   }
 
-  const uint8_t* GetEncryptionPublicKey() const {
+  const std::uint8_t* GetEncryptionPublicKey() const {
     return m_EncryptionPublicKey;
   }
 
@@ -181,14 +182,14 @@ class ClientDestination : public kovri::core::GarlicDestination {
   }
 
   void HandleI2NPMessage(
-      const uint8_t* buf,
-      size_t len,
+      const std::uint8_t* buf,
+      std::size_t len,
       std::shared_ptr<kovri::core::InboundTunnel> from);
 
   // override GarlicDestination
   bool SubmitSessionKey(
-      const uint8_t* key,
-      const uint8_t* tag);
+      const std::uint8_t* key,
+      const std::uint8_t* tag);
 
   void ProcessGarlicMessage(
       std::shared_ptr<I2NPMessage> msg);
@@ -200,8 +201,8 @@ class ClientDestination : public kovri::core::GarlicDestination {
 
   // I2CP
   void HandleDataMessage(
-      const uint8_t* buf,
-      size_t len);
+      const std::uint8_t* buf,
+      std::size_t len);
 
  private:
   void Run();
@@ -214,12 +215,12 @@ class ClientDestination : public kovri::core::GarlicDestination {
       const boost::system::error_code& ecode);
 
   void HandleDatabaseStoreMessage(
-      const uint8_t* buf,
-      size_t len);
+      const std::uint8_t* buf,
+      std::size_t len);
 
   void HandleDatabaseSearchReplyMessage(
-      const uint8_t* buf,
-      size_t len);
+      const std::uint8_t* buf,
+      std::size_t len);
 
   void HandleDeliveryStatusMessage(
       std::shared_ptr<I2NPMessage> msg);
@@ -249,7 +250,7 @@ class ClientDestination : public kovri::core::GarlicDestination {
   boost::asio::io_service::work m_Work;
 
   kovri::core::PrivateKeys m_Keys;
-  uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
+  std::uint8_t m_EncryptionPublicKey[256], m_EncryptionPrivateKey[256];
 
   std::map<kovri::core::IdentHash,
            std::shared_ptr<kovri::core::LeaseSet>> m_RemoteLeaseSets;
@@ -262,12 +263,12 @@ class ClientDestination : public kovri::core::GarlicDestination {
 
   bool m_IsPublic;
 
-  uint32_t m_PublishReplyToken;
+  std::uint32_t m_PublishReplyToken;
   std::set<kovri::core::IdentHash> m_ExcludedFloodfills;  // for publishing
 
   std::shared_ptr<kovri::client::StreamingDestination> m_StreamingDestination;  // default
 
-  std::map<uint16_t,
+  std::map<std::uint16_t,
            std::shared_ptr<kovri::client::StreamingDestination>> m_StreamingDestinationsByPorts;
 
   DatagramDestination* m_DatagramDestination;

@@ -109,7 +109,7 @@ class NTCPServer {
   std::map<kovri::core::IdentHash, std::shared_ptr<NTCPSession>> m_NTCPSessions;
 
   // IP -> ban expiration time in seconds
-  std::map<boost::asio::ip::address, uint32_t> m_BanList;
+  std::map<boost::asio::ip::address, std::uint32_t> m_BanList;
 
  public:
   // for I2PControl

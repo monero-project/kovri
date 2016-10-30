@@ -50,7 +50,7 @@ class ElGamalEncryption {
       const std::uint8_t* data,
       std::size_t len,
       std::uint8_t* encrypted,
-      bool zeroPadding = false) const;
+      bool zero_padding = false) const;
 
  private:
   class ElGamalEncryptionImpl;
@@ -61,7 +61,7 @@ bool ElGamalDecrypt(
     const std::uint8_t* key,
     const std::uint8_t* encrypted,
     std::uint8_t* data,
-    bool zeroPadding = false);
+    bool zero_padding = false);
 
 void GenerateElGamalKeyPair(
     std::uint8_t* priv,

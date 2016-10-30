@@ -138,7 +138,7 @@ class AddressBookStorage : public AddressBookDefaults {
   /// @brief Gets data path and appends address book's path
   /// @return Boost.Filesystem path of address book path
   boost::filesystem::path GetAddressBookPath() const {
-    return kovri::context.GetDataPath() / GetDefaultPathname();
+    return kovri::core::GetDataPath() / GetDefaultPathname();
   }
 };
 

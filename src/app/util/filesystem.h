@@ -47,21 +47,11 @@
 namespace kovri {
 namespace app {
 
-/// @return the full path of a file within the kovri directory
-std::string GetFullPath(
-    const std::string& filename);
-
 /// @return the path of the configuration file
 boost::filesystem::path GetConfigFile();
 
 /// @return the path of the tunnels configuration file
 boost::filesystem::path GetTunnelsConfigFile();
-
-/// @return the path of the kovri directory
-const boost::filesystem::path& GetDataPath();
-
-/// @return the default directory for app data
-boost::filesystem::path GetDefaultDataPath();
 
 }  // namespace app
 }  // namespace kovri

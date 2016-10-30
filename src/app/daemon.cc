@@ -72,8 +72,7 @@ bool Daemon_Singleton::Init() {
   LogPrint(eLogInfo, "Daemon_Singleton: initializing");
   kovri::context.Init(
       kovri::app::var_map["host"].as<std::string>(),
-      kovri::app::var_map["port"].as<int>(),
-      kovri::app::GetDataPath());
+      kovri::app::var_map["port"].as<int>());
   m_IsDaemon = kovri::app::var_map["daemon"].as<bool>();
   auto port = kovri::app::var_map["port"].as<int>();
   kovri::context.UpdatePort(port);

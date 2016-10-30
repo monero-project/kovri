@@ -68,11 +68,10 @@ class RouterContext : public kovri::core::GarlicDestination {
 
   /// Initializes the router context, must be called before use
   /// @param host The external address of this router
-  /// @param dataPath port the port to be used (for both SSU and NTCP)
+  /// @param port The external port of this router
   void Init(
       const std::string& host,
-      int port,
-      const boost::filesystem::path& dataPath);
+      int port);
 
   // @return This RouterContext's RouterInfo
   kovri::core::RouterInfo& GetRouterInfo() {
@@ -256,15 +255,6 @@ class RouterContext : public kovri::core::GarlicDestination {
   void ProcessDeliveryStatusMessage(
       std::shared_ptr<I2NPMessage> msg);
 
-  boost::filesystem::path GetDataPath() const {
-    return m_DataPath;
-  }
-
-  /// @return the full path of a file within m_DataPath
-  // TODO(EinMByte): Eventually use this everywhere instead of kovri::core
-  std::string GetFullPath(
-      const std::string& file);
-
   /**
    * Note: these reseed functions are not ideal but
    * they fit into our current design. We need to initialize
@@ -313,7 +303,6 @@ class RouterContext : public kovri::core::GarlicDestination {
   std::mutex m_GarlicMutex;
   std::string m_Host;
   int m_Port;
-  boost::filesystem::path m_DataPath;
   std::string m_ReseedFrom;
   bool m_ReseedSkipSSLCheck;
   bool m_SupportsNTCP, m_SupportsSSU;

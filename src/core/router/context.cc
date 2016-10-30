@@ -58,18 +58,15 @@ RouterContext::RouterContext()
       m_StartupTime(0),
       m_Status(eRouterStatusOK),
       m_Port(0),
-      m_DataPath(),
       m_ReseedSkipSSLCheck(false),
       m_SupportsNTCP(true),
       m_SupportsSSU(true) {}
 
 void RouterContext::Init(
     const std::string& host,
-    int port,
-    const boost::filesystem::path& dataPath) {
+    int port) {
   m_Host = host;
   m_Port = port;
-  m_DataPath = dataPath;
   m_StartupTime = kovri::core::GetSecondsSinceEpoch();
   if (!Load())
     CreateNewRouter();

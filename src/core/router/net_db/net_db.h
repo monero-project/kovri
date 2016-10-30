@@ -33,8 +33,8 @@
 #ifndef SRC_CORE_ROUTER_NET_DB_NET_DB_H_
 #define SRC_CORE_ROUTER_NET_DB_NET_DB_H_
 
-#include <inttypes.h>
-
+#include <cstddef>
+#include <cstdint>
 #include <list>
 #include <map>
 #include <memory>
@@ -117,17 +117,17 @@ class NetDb {
 
   /// @return False on failure
   bool AddRouterInfo(
-      const uint8_t* buf,
+      const std::uint8_t* buf,
       int len);
 
   void AddRouterInfo(
       const IdentHash& ident,
-      const uint8_t* buf,
+      const std::uint8_t* buf,
       int len);
 
   void AddLeaseSet(
       const IdentHash& ident,
-      const uint8_t* buf,
+      const std::uint8_t* buf,
       int len,
       std::shared_ptr<kovri::core::InboundTunnel> from);
 
@@ -168,7 +168,7 @@ class NetDb {
 
   std::vector<IdentHash> GetClosestFloodfills(
       const IdentHash& destination,
-      size_t num,
+      std::size_t num,
       std::set<IdentHash>& excluded) const;
 
   std::shared_ptr<const RouterInfo> GetClosestNonFloodfill(

@@ -33,10 +33,10 @@
 #ifndef SRC_CLIENT_API_STREAMING_H_
 #define SRC_CLIENT_API_STREAMING_H_
 
-#include <inttypes.h>
-
 #include <boost/asio.hpp>
 
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
@@ -60,21 +60,21 @@ namespace client {
 
 class ClientDestination;  // TODO(unassigned): remove forward declaration
 
-const uint16_t PACKET_FLAG_SYNCHRONIZE = 0x0001;
-const uint16_t PACKET_FLAG_CLOSE = 0x0002;
-const uint16_t PACKET_FLAG_RESET = 0x0004;
-const uint16_t PACKET_FLAG_SIGNATURE_INCLUDED = 0x0008;
-const uint16_t PACKET_FLAG_SIGNATURE_REQUESTED = 0x0010;
-const uint16_t PACKET_FLAG_FROM_INCLUDED = 0x0020;
-const uint16_t PACKET_FLAG_DELAY_REQUESTED = 0x0040;
-const uint16_t PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED = 0x0080;
-const uint16_t PACKET_FLAG_PROFILE_INTERACTIVE = 0x0100;
-const uint16_t PACKET_FLAG_ECHO = 0x0200;
-const uint16_t PACKET_FLAG_NO_ACK = 0x0400;
+const std::uint16_t PACKET_FLAG_SYNCHRONIZE = 0x0001;
+const std::uint16_t PACKET_FLAG_CLOSE = 0x0002;
+const std::uint16_t PACKET_FLAG_RESET = 0x0004;
+const std::uint16_t PACKET_FLAG_SIGNATURE_INCLUDED = 0x0008;
+const std::uint16_t PACKET_FLAG_SIGNATURE_REQUESTED = 0x0010;
+const std::uint16_t PACKET_FLAG_FROM_INCLUDED = 0x0020;
+const std::uint16_t PACKET_FLAG_DELAY_REQUESTED = 0x0040;
+const std::uint16_t PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED = 0x0080;
+const std::uint16_t PACKET_FLAG_PROFILE_INTERACTIVE = 0x0100;
+const std::uint16_t PACKET_FLAG_ECHO = 0x0200;
+const std::uint16_t PACKET_FLAG_NO_ACK = 0x0400;
 
-const size_t STREAMING_MTU = 1730;
-const size_t MAX_PACKET_SIZE = 4096;
-const size_t COMPRESSION_THRESHOLD_SIZE = 66;
+const std::size_t STREAMING_MTU = 1730;
+const std::size_t MAX_PACKET_SIZE = 4096;
+const std::size_t COMPRESSION_THRESHOLD_SIZE = 66;
 const int ACK_SEND_TIMEOUT = 200;  // in milliseconds
 const int MAX_NUM_RESEND_ATTEMPTS = 6;
 const int WINDOW_SIZE = 6;  // in messages
@@ -84,61 +84,61 @@ const int INITIAL_RTT = 8000;  // in milliseconds
 const int INITIAL_RTO = 9000;  // in milliseconds
 
 struct Packet {
-  size_t len, offset;
-  uint8_t buf[MAX_PACKET_SIZE];
-  uint64_t send_time;
+  std::size_t len, offset;
+  std::uint8_t buf[MAX_PACKET_SIZE];
+  std::uint64_t send_time;
 
   Packet()
       : len(0),
         offset(0),
         send_time(0) {}
 
-  uint8_t* GetBuffer() {
+  std::uint8_t* GetBuffer() {
     return buf + offset;
   }
 
-  size_t GetLength() const {
+  std::size_t GetLength() const {
     return len - offset;
   }
 
-  uint32_t GetSendStreamID() const {
+  std::uint32_t GetSendStreamID() const {
     return bufbe32toh(buf);
   }
 
-  uint32_t GetReceiveStreamID() const {
+  std::uint32_t GetReceiveStreamID() const {
     return bufbe32toh(buf + 4);
   }
 
-  uint32_t GetSeqn() const {
+  std::uint32_t GetSeqn() const {
     return bufbe32toh(buf + 8);
   }
 
-  uint32_t GetAckThrough() const {
+  std::uint32_t GetAckThrough() const {
     return bufbe32toh(buf + 12);
   }
 
-  uint8_t GetNACKCount() const {
+  std::uint8_t GetNACKCount() const {
     return buf[16];
   }
 
-  uint32_t GetNACK(int i) const {
+  std::uint32_t GetNACK(int i) const {
     return bufbe32toh(buf + 17 + 4 * i);
   }
 
-  const uint8_t* GetOption() const {
+  const std::uint8_t* GetOption() const {
     return buf + 17 + GetNACKCount() * 4 + 3;
   }  // 3 = resendDelay + flags
 
-  uint16_t GetFlags() const {
+  std::uint16_t GetFlags() const {
     return bufbe16toh(GetOption() - 2);
   }
-  uint16_t GetOptionSize() const {
+  std::uint16_t GetOptionSize() const {
     return bufbe16toh(GetOption ());
   }
-  const uint8_t* GetOptionData() const {
+  const std::uint8_t* GetOptionData() const {
     return GetOption() + 2;
   }
-  const uint8_t* GetPayload() const {
+  const std::uint8_t* GetPayload() const {
     return GetOptionData() + GetOptionSize();
   }
   bool IsSYN() const {
@@ -180,11 +180,11 @@ class Stream : public std::enable_shared_from_this<Stream> {
       StreamingDestination& local);
   ~Stream();
 
-  uint32_t GetSendStreamID() const {
+  std::uint32_t GetSendStreamID() const {
     return m_SendStreamID;
   }
 
-  uint32_t GetRecvStreamID() const {
+  std::uint32_t GetRecvStreamID() const {
     return m_RecvStreamID;
   }
 
@@ -215,13 +215,13 @@ class Stream : public std::enable_shared_from_this<Stream> {
   void HandleNextPacket(
       Packet* packet);
 
-  size_t Send(
-      const uint8_t* buf,
-      size_t len);
+  std::size_t Send(
+      const std::uint8_t* buf,
+      std::size_t len);
 
   void AsyncSend(
-      const uint8_t* buf,
-      size_t len,
+      const std::uint8_t* buf,
+      std::size_t len,
       SendHandler handler);
 
   template<typename Buffer, typename ReceiveHandler>
@@ -230,9 +230,9 @@ class Stream : public std::enable_shared_from_this<Stream> {
       ReceiveHandler handler,
       int timeout = 0);
 
-  size_t ReadSome(
-      uint8_t* buf,
-      size_t len) {
+  std::size_t ReadSome(
+      std::uint8_t* buf,
+      std::size_t len) {
     return ConcatenatePackets(buf, len);
   }
   void Close();
@@ -241,23 +241,23 @@ class Stream : public std::enable_shared_from_this<Stream> {
     m_ReceiveTimer.cancel();
   }
 
-  size_t GetNumSentBytes() const {
+  std::size_t GetNumSentBytes() const {
     return m_NumSentBytes;
   }
 
-  size_t GetNumReceivedBytes() const {
+  std::size_t GetNumReceivedBytes() const {
     return m_NumReceivedBytes;
   }
 
-  size_t GetSendQueueSize() const {
+  std::size_t GetSendQueueSize() const {
     return m_SentPackets.size();
   }
 
-  size_t GetReceiveQueueSize() const {
+  std::size_t GetReceiveQueueSize() const {
     return m_ReceiveQueue.size();
   }
 
-  size_t GetSendBufferSize() const {
+  std::size_t GetSendBufferSize() const {
     return m_SendBuffer.rdbuf()->in_avail();
   }
 
@@ -293,9 +293,9 @@ class Stream : public std::enable_shared_from_this<Stream> {
   void ProcessAck(
       Packet* packet);
 
-  size_t ConcatenatePackets(
-      uint8_t* buf,
-      size_t len);
+  std::size_t ConcatenatePackets(
+      std::uint8_t* buf,
+      std::size_t len);
 
   void UpdateCurrentRemoteLease(bool expired = false);
 
@@ -314,12 +314,12 @@ class Stream : public std::enable_shared_from_this<Stream> {
       const boost::system::error_code& ecode);
 
   std::shared_ptr<I2NPMessage> CreateDataMessage(
-      const uint8_t * payload, size_t len);
+      const std::uint8_t * payload, std::size_t len);
 
  private:
   boost::asio::io_service& m_Service;
-  uint32_t m_SendStreamID, m_RecvStreamID, m_SequenceNumber;
-  int32_t m_LastReceivedSequenceNumber;
+  std::uint32_t m_SendStreamID, m_RecvStreamID, m_SequenceNumber;
+  std::int32_t m_LastReceivedSequenceNumber;
   StreamStatus m_Status;
   bool m_IsAckSendScheduled;
   StreamingDestination& m_LocalDestination;
@@ -332,13 +332,13 @@ class Stream : public std::enable_shared_from_this<Stream> {
   std::set<Packet*, PacketCmp> m_SavedPackets;
   std::set<Packet*, PacketCmp> m_SentPackets;
   boost::asio::deadline_timer m_ReceiveTimer, m_ResendTimer, m_AckSendTimer;
-  size_t m_NumSentBytes, m_NumReceivedBytes;
-  uint16_t m_Port;
+  std::size_t m_NumSentBytes, m_NumReceivedBytes;
+  std::uint16_t m_Port;
 
   std::mutex m_SendBufferMutex;
   std::stringstream m_SendBuffer;
   int m_WindowSize, m_RTT, m_RTO;
-  uint64_t m_LastWindowSizeIncreaseTime;
+  std::uint64_t m_LastWindowSizeIncreaseTime;
   int m_NumResendAttempts;
   SendHandler m_SendHandler;
 };
@@ -349,7 +349,7 @@ class StreamingDestination {
 
   StreamingDestination(
       kovri::client::ClientDestination& owner,
-      uint16_t local_port = 0)
+      std::uint16_t local_port = 0)
       : m_Owner(owner),
         m_LocalPort(local_port) {}
   ~StreamingDestination() {}
@@ -384,18 +384,18 @@ class StreamingDestination {
     return m_Owner;
   }
 
-  uint16_t GetLocalPort() const {
+  std::uint16_t GetLocalPort() const {
     return m_LocalPort;
   }
 
   void UpdateLocalPort(
-      uint16_t port) {
+      std::uint16_t port) {
     m_LocalPort = port;
   }
 
   void HandleDataMessagePayload(
-      const uint8_t* buf,
-      size_t len);
+      const std::uint8_t* buf,
+      std::size_t len);
 
  private:
   void HandleNextPacket(
@@ -404,9 +404,9 @@ class StreamingDestination {
 
  private:
   kovri::client::ClientDestination& m_Owner;
-  uint16_t m_LocalPort;
+  std::uint16_t m_LocalPort;
   std::mutex m_StreamsMutex;
-  std::map<uint32_t, std::shared_ptr<Stream> > m_Streams;
+  std::map<std::uint32_t, std::shared_ptr<Stream> > m_Streams;
   Acceptor m_Acceptor;
 };
 
@@ -441,8 +441,8 @@ template<typename Buffer, typename ReceiveHandler>
 void Stream::HandleReceiveTimer(
     const boost::system::error_code& ecode,
     const Buffer& buffer, ReceiveHandler handler) {
-  size_t received = ConcatenatePackets(
-      boost::asio::buffer_cast<uint8_t *>(buffer),
+  std::size_t received = ConcatenatePackets(
+      boost::asio::buffer_cast<std::uint8_t *>(buffer),
       boost::asio::buffer_size(buffer));
   if (received > 0) {
     handler(boost::system::error_code(), received);

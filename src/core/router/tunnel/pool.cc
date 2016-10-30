@@ -185,8 +185,8 @@ typename TTunnels::value_type TunnelPool::GetNextTunnel(
     typename TTunnels::value_type excluded) const {
   if (tunnels.empty ())
     return nullptr;
-  uint32_t ind = kovri::core::RandInRange<uint32_t>(0, tunnels.size() / 2);
-  uint32_t i = 0;
+  std::uint32_t ind = kovri::core::RandInRange<std::uint32_t>(0, tunnels.size() / 2);
+  std::uint32_t i = 0;
   typename TTunnels::value_type tunnel = nullptr;
   for (auto it : tunnels) {
     if (it->IsEstablished() && it != excluded) {
@@ -285,7 +285,7 @@ void TunnelPool::TestTunnels() {
       it2++;
     }
     if (!failed) {
-      uint32_t msg_ID = kovri::core::Rand<uint32_t>();
+      std::uint32_t msg_ID = kovri::core::Rand<std::uint32_t>();
       m_Tests[msg_ID] = std::make_pair(*it1, *it2);
       (*it1)->SendTunnelDataMsg(
           (*it2)->GetNextIdentHash(),
@@ -308,10 +308,10 @@ void TunnelPool::ProcessGarlicMessage(
 
 void TunnelPool::ProcessDeliveryStatus(
     std::shared_ptr<I2NPMessage> msg) {
-  const uint8_t* buf = msg->GetPayload();
-  uint32_t msg_ID = bufbe32toh(buf);
+  const std::uint8_t* buf = msg->GetPayload();
+  std::uint32_t msg_ID = bufbe32toh(buf);
   buf += 4;
-  uint64_t timestamp = bufbe64toh(buf);
+  std::uint64_t timestamp = bufbe64toh(buf);
   auto it = m_Tests.find(msg_ID);
   if (it != m_Tests.end()) {
     // restore from test failed state if any

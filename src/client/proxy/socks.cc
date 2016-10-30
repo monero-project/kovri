@@ -49,12 +49,12 @@
 namespace kovri {
 namespace client {
 
-static const size_t SOCKS_BUFFER_SIZE = 8192;
+static const std::size_t SOCKS_BUFFER_SIZE = 8192;
 // Limit for socks5 and bad idea to traverse
-static const size_t MAX_SOCKS_HOSTNAME_SIZE = 255;
+static const std::size_t MAX_SOCKS_HOSTNAME_SIZE = 255;
 
 struct SOCKSDnsAddress {
-  uint8_t size;
+  std::uint8_t size;
   char value[MAX_SOCKS_HOSTNAME_SIZE];
   void FromString(std::string str) {
     size = str.length();
@@ -124,17 +124,17 @@ class SOCKSHandler
     SOCKS5 = 5                   // SOCKS5
   };
   union address {
-    uint32_t ip;
+    std::uint32_t ip;
     SOCKSDnsAddress dns;
-    uint8_t ipv6[16];
+    std::uint8_t ipv6[16];
   };
 
   void EnterState(
       state nstate,
-      uint8_t parseleft = 1);
+      std::uint8_t parseleft = 1);
 
   bool HandleData(
-      uint8_t* sock_buff,
+      std::uint8_t* sock_buff,
       std::size_t len);
 
   bool ValidateSOCKSRequest();
@@ -152,14 +152,14 @@ class SOCKSHandler
 
   boost::asio::const_buffers_1 GenerateSOCKS4Response(
       errTypes error,
-      uint32_t ip,
-      uint16_t port);
+      std::uint32_t ip,
+      std::uint16_t port);
 
   boost::asio::const_buffers_1 GenerateSOCKS5Response(
       errTypes error,
       addrTypes type,
       const address &addr,
-      uint16_t port);
+      std::uint16_t port);
 
   bool Socks5ChooseAuth();
 
@@ -180,17 +180,17 @@ class SOCKSHandler
   void HandleStreamRequestComplete(
       std::shared_ptr<kovri::client::Stream> stream);
 
-  uint8_t m_sock_buff[SOCKS_BUFFER_SIZE];
+  std::uint8_t m_sock_buff[SOCKS_BUFFER_SIZE];
   std::shared_ptr<boost::asio::ip::tcp::socket> m_sock;
   std::shared_ptr<kovri::client::Stream> m_stream;
-  uint8_t *m_remaining_data;  // Data left to be sent
-  uint8_t m_response[7+MAX_SOCKS_HOSTNAME_SIZE];
+  std::uint8_t *m_remaining_data;  // Data left to be sent
+  std::uint8_t m_response[7+MAX_SOCKS_HOSTNAME_SIZE];
   address m_address;  // Address
   std::size_t m_remaining_data_len;  // Size of the data left to be sent
-  uint32_t m_4aip;  // Used in 4a requests
-  uint16_t m_port;
-  uint8_t m_command;
-  uint8_t m_parseleft;  // Octets left to parse
+  std::uint32_t m_4aip;  // Used in 4a requests
+  std::uint16_t m_port;
+  std::uint8_t m_command;
+  std::uint8_t m_parseleft;  // Octets left to parse
   authMethods m_authchosen;  // Authentication chosen
   addrTypes m_addrtype;  // Address type chosen
   socksVersions m_socksv;  // Socks version
@@ -251,8 +251,8 @@ void SOCKSHandler::Terminate() {
 
 boost::asio::const_buffers_1 SOCKSHandler::GenerateSOCKS4Response(
     SOCKSHandler::errTypes error,
-    uint32_t ip,
-    uint16_t port) {
+    std::uint32_t ip,
+    std::uint16_t port) {
   assert(error >= SOCKS4_OK);
   m_response[0] = '\x00';         // Version
   m_response[1] = error;          // Response code
@@ -265,8 +265,8 @@ boost::asio::const_buffers_1 SOCKSHandler::GenerateSOCKS5Response(
     SOCKSHandler::errTypes error,
     SOCKSHandler::addrTypes type,
     const SOCKSHandler::address &addr,
-    uint16_t port) {
-  size_t size = 6;
+    std::uint16_t port) {
+  std::size_t size = 6;
   assert(error <= SOCKS5_ADDR_UNSUP);
   m_response[0] = '\x05';   // Version
   m_response[1] = error;    // Response code
@@ -384,7 +384,7 @@ void SOCKSHandler::SocksRequestSuccess() {
 
 void SOCKSHandler::EnterState(
     SOCKSHandler::state nstate,
-    uint8_t parseleft) {
+    std::uint8_t parseleft) {
   switch (nstate) {
     case GET_PORT:
       parseleft = 2;
@@ -445,7 +445,7 @@ bool SOCKSHandler::ValidateSOCKSRequest() {
 }
 
 bool SOCKSHandler::HandleData(
-    uint8_t *sock_buff,
+    std::uint8_t *sock_buff,
     std::size_t len) {
   // This should always be called with a least a byte left to parse
   assert(len);
@@ -506,7 +506,7 @@ bool SOCKSHandler::HandleData(
         }
       break;
       case GET_PORT:
-        m_port = (m_port << 8)|((uint16_t)*sock_buff);
+        m_port = (m_port << 8)|((std::uint16_t)*sock_buff);
         m_parseleft--;
         if (m_parseleft == 0) {
           switch (m_socksv) {
@@ -520,7 +520,7 @@ bool SOCKSHandler::HandleData(
         }
       break;
       case GET_IPV4:
-        m_address.ip = (m_address.ip << 8)|((uint32_t)*sock_buff);
+        m_address.ip = (m_address.ip << 8)|((std::uint32_t)*sock_buff);
         m_parseleft--;
         if (m_parseleft == 0) {
           switch (m_socksv) {

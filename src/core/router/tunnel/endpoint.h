@@ -33,8 +33,8 @@
 #ifndef SRC_CORE_ROUTER_TUNNEL_ENDPOINT_H_
 #define SRC_CORE_ROUTER_TUNNEL_ENDPOINT_H_
 
-#include <inttypes.h>
-
+#include <cstddef>
+#include <cstdint>
 #include <map>
 #include <string>
 
@@ -46,11 +46,11 @@ namespace core {
 
 class TunnelEndpoint {
   struct TunnelMessageBlockEx : public TunnelMessageBlock {
-    uint8_t next_fragment_num;
+    std::uint8_t next_fragment_num;
   };
 
   struct Fragment {
-    uint8_t fragment_num;
+    std::uint8_t fragment_num;
     bool is_last_fragment;
     std::shared_ptr<I2NPMessage> data;
   };
@@ -62,7 +62,7 @@ class TunnelEndpoint {
           m_NumReceivedBytes(0) {}
     ~TunnelEndpoint();
 
-    size_t GetNumReceivedBytes() const {
+    std::size_t GetNumReceivedBytes() const {
       return m_NumReceivedBytes;
     }
 
@@ -71,7 +71,7 @@ class TunnelEndpoint {
 
  private:
     void HandleFollowOnFragment(
-        uint32_t msg_ID,
+        std::uint32_t msg_ID,
         bool is_last_fragment,
         const TunnelMessageBlockEx& m);
 
@@ -79,20 +79,20 @@ class TunnelEndpoint {
         const TunnelMessageBlock& msg);
 
     void AddOutOfSequenceFragment(
-        uint32_t msg_ID,
-        uint8_t fragment_num,
+        std::uint32_t msg_ID,
+        std::uint8_t fragment_num,
         bool is_last_fragment,
         std::shared_ptr<I2NPMessage> data);
 
     void HandleOutOfSequenceFragment(
-        uint32_t msg_ID,
+        std::uint32_t msg_ID,
         TunnelMessageBlockEx& msg);
 
  private:
-    std::map<uint32_t, TunnelMessageBlockEx> m_IncompleteMessages;
-    std::map<uint32_t, Fragment> m_OutOfSequenceFragments;
+    std::map<std::uint32_t, TunnelMessageBlockEx> m_IncompleteMessages;
+    std::map<std::uint32_t, Fragment> m_OutOfSequenceFragments;
     bool m_IsInbound;
-    size_t m_NumReceivedBytes;
+    std::size_t m_NumReceivedBytes;
 };
 
 }  // namespace core

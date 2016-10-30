@@ -49,7 +49,7 @@ bool ParseArgs(
   // Random generated port if none is supplied via CLI or config
   // See: i2p.i2p/router/java/src/net/i2p/router/transport/udp/UDPEndpoint.java
   // TODO(unassigned): move this elsewhere (outside of ParseArgs()) when possible
-  size_t port = kovri::core::RandInRange<size_t>(9111, 30777);
+  std::size_t port = kovri::core::RandInRange<std::size_t>(9111, 30777);
   // Configuration files
   std::string kovri_config, tunnels_config;
   // Default visible option

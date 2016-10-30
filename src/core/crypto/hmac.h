@@ -33,8 +33,10 @@
 #ifndef SRC_CORE_CRYPTO_HMAC_H_
 #define SRC_CORE_CRYPTO_HMAC_H_
 
-#include <inttypes.h>
 #include <string.h>
+
+#include <cstddef>
+#include <cstdint>
 
 #include "core/crypto/hash.h"
 
@@ -43,20 +45,20 @@
 namespace kovri {
 namespace core {
 
-const uint64_t IPAD = 0x3636363636363636;
-const uint64_t OPAD = 0x5C5C5C5C5C5C5C5C;
+const std::uint64_t IPAD = 0x3636363636363636;
+const std::uint64_t OPAD = 0x5C5C5C5C5C5C5C5C;
 
 typedef kovri::core::Tag<32> MACKey;
 
 inline void HMACMD5Digest(
-    uint8_t* msg,
-    size_t len,
+    std::uint8_t* msg,
+    std::size_t len,
     const MACKey& key,
-    uint8_t* digest) {
+    std::uint8_t* digest) {
   // key is 32 bytes
   // digest is 16 bytes
   // block size is 64 bytes
-  uint64_t buf[256];
+  std::uint64_t buf[256];
   // ikeypad
   buf[0] = key.GetLL()[0] ^ IPAD;
   buf[1] = key.GetLL()[1] ^ IPAD;
@@ -69,10 +71,10 @@ inline void HMACMD5Digest(
   // concatenate with msg
   memcpy(buf + 8, msg, len);
   // calculate first hash
-  uint8_t hash[16];  // MD5
+  std::uint8_t hash[16];  // MD5
   kovri::core::MD5().CalculateDigest(
       hash,
-      reinterpret_cast<uint8_t *>(buf),
+      reinterpret_cast<std::uint8_t *>(buf),
       len + 64);
   // okeypad
   buf[0] = key.GetLL()[0] ^ OPAD;
@@ -90,7 +92,7 @@ inline void HMACMD5Digest(
   // calculate digest
   kovri::core::MD5().CalculateDigest(
       digest,
-      reinterpret_cast<uint8_t *>(buf),
+      reinterpret_cast<std::uint8_t *>(buf),
       96);
 }
 

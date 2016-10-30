@@ -151,7 +151,7 @@ void I2PControlService::ReadRequest(
 
 void I2PControlService::HandleRequestReceived(
     const boost::system::error_code& ecode,
-    size_t bytes_transferred,
+    std::size_t bytes_transferred,
     std::shared_ptr<boost::asio::ip::tcp::socket> socket,
     std::shared_ptr<I2PControlBuffer> buf) {
   if (ecode) {
@@ -190,7 +190,7 @@ void I2PControlService::SendResponse(
     std::shared_ptr<I2PControlBuffer> buf,
     const std::string& response,
     bool is_html) {
-  size_t len = response.length(), offset = 0;
+  std::size_t len = response.length(), offset = 0;
   if (is_html) {
     std::ostringstream header;
     header << "HTTP/1.1 200 OK\r\n";

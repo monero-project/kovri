@@ -33,8 +33,10 @@
 #ifndef SRC_CORE_UTIL_BASE64_H_
 #define SRC_CORE_UTIL_BASE64_H_
 
-#include <inttypes.h>
 #include <string.h>
+
+#include <cstddef>
+#include <cstdint>
 
 namespace kovri {
 namespace core {
@@ -48,11 +50,11 @@ namespace core {
    * @param len length of the output buffer
    * @note zero is returned when the output buffer is too small
    */
-  size_t ByteStreamToBase64(
-      const uint8_t* in_buffer,
-      size_t in_count,
+  std::size_t ByteStreamToBase64(
+      const std::uint8_t* in_buffer,
+      std::size_t in_count,
       char* out_buffer,
-      size_t len);
+      std::size_t len);
   /**
    * Decodes base 64 encoded data to an array of bytes.
    * @return the number of bytes written to the output buffer
@@ -63,11 +65,11 @@ namespace core {
    * @todo Do not return a negative value on failure, size_t could be unsigned.
    * @note zero is returned when the output buffer is too small
    */
-  size_t Base64ToByteStream(
+  std::size_t Base64ToByteStream(
       const char* in_buffer,
-      size_t in_count,
-      uint8_t* out_buffer,
-      size_t len);
+      std::size_t in_count,
+      std::uint8_t* out_buffer,
+      std::size_t len);
 
   const char* GetBase64SubstitutionTable();
   /**
@@ -79,11 +81,11 @@ namespace core {
    * @param out_len length of the output array
    * @note zero is returned when the output buffer is too small
    */
-  size_t Base32ToByteStream(
+  std::size_t Base32ToByteStream(
       const char* in_buf,
-      size_t len,
-      uint8_t* out_buf,
-      size_t out_len);
+      std::size_t len,
+      std::uint8_t* out_buf,
+      std::size_t out_len);
   /**
    * Base 32 encodes an array of bytes.
    * @return the number of bytes written to the output buffer
@@ -93,11 +95,11 @@ namespace core {
    * @param out_len length of the output array
    * @note zero is returned when the output buffer is too small
    */
-  size_t ByteStreamToBase32(
-      const uint8_t* in_buf,
-      size_t len,
+  std::size_t ByteStreamToBase32(
+      const std::uint8_t* in_buf,
+      std::size_t len,
       char* out_buf,
-      size_t out_len);
+      std::size_t out_len);
 
 }  // namespace core
 }  // namespace kovri

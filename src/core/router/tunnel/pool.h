@@ -33,8 +33,8 @@
 #ifndef SRC_CORE_ROUTER_TUNNEL_POOL_H_
 #define SRC_CORE_ROUTER_TUNNEL_POOL_H_
 
-#include <inttypes.h>
-
+#include <cstddef>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -169,7 +169,7 @@ class TunnelPool
 
   mutable std::mutex m_OutboundTunnelsMutex;
   std::set<std::shared_ptr<OutboundTunnel>, TunnelCreationTimeCmp> m_OutboundTunnels;
-  std::map<uint32_t, std::pair<std::shared_ptr<OutboundTunnel>, std::shared_ptr<InboundTunnel> > > m_Tests;
+  std::map<std::uint32_t, std::pair<std::shared_ptr<OutboundTunnel>, std::shared_ptr<InboundTunnel> > > m_Tests;
   bool m_IsActive;
 
  public:

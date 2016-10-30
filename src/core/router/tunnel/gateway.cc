@@ -46,14 +46,14 @@ namespace kovri {
 namespace core {
 
 TunnelGatewayBuffer::TunnelGatewayBuffer(
-    uint32_t tunnel_ID)
+    std::uint32_t tunnel_ID)
     : m_TunnelID(tunnel_ID),
       m_CurrentTunnelDataMsg(nullptr),
       m_RemainingSize(0) {
   kovri::core::RandBytes(
       m_NonZeroRandomBuffer,
       TUNNEL_DATA_MAX_PAYLOAD_SIZE);
-  for (size_t i = 0; i < TUNNEL_DATA_MAX_PAYLOAD_SIZE; i++)
+  for (std::size_t i = 0; i < TUNNEL_DATA_MAX_PAYLOAD_SIZE; i++)
     if (!m_NonZeroRandomBuffer[i])
       m_NonZeroRandomBuffer[i] = 1;
 }
@@ -68,8 +68,8 @@ void TunnelGatewayBuffer::PutI2NPMsg(
     message_created = true;
   }
   // create delivery instructions
-  uint8_t di[43];  // max delivery instruction length is 43 for tunnel
-  size_t di_len = 1;  // flag
+  std::uint8_t di[43];  // max delivery instruction length is 43 for tunnel
+  std::size_t di_len = 1;  // flag
   if (block.delivery_type != e_DeliveryTypeLocal) {  // tunnel or router
     if (block.delivery_type == e_DeliveryTypeTunnel) {
       htobe32buf(di + di_len, block.tunnel_ID);
@@ -114,14 +114,14 @@ void TunnelGatewayBuffer::PutI2NPMsg(
     }
     if (di_len + 6 <= m_RemainingSize) {
       // delivery instructions fit
-      uint32_t msg_ID;
+      std::uint32_t msg_ID;
       // in network bytes order
       memcpy(
           &msg_ID,
           msg->GetHeader() + I2NP_HEADER_MSGID_OFFSET,
           4);
       // 6 = 4 (msg_ID) + 2 (size)
-      size_t size = m_RemainingSize - di_len - 6;
+      std::size_t size = m_RemainingSize - di_len - 6;
       // first fragment
       di[0] |= 0x08;  // fragmented
       htobuf32(di + di_len, msg_ID);
@@ -142,10 +142,10 @@ void TunnelGatewayBuffer::PutI2NPMsg(
       int fragment_number = 1;
       while (size < msg->GetLength()) {
         CreateCurrentTunnelDataMessage();
-        uint8_t* buf = m_CurrentTunnelDataMsg->GetBuffer();
+        std::uint8_t* buf = m_CurrentTunnelDataMsg->GetBuffer();
         buf[0] = 0x80 | (fragment_number << 1);  // frag
         bool is_last_fragment = false;
-        size_t s = msg->GetLength() - size;
+        std::size_t s = msg->GetLength() - size;
         if (s > TUNNEL_DATA_MAX_PAYLOAD_SIZE - 7) {  // 7 follow on instructions
           s = TUNNEL_DATA_MAX_PAYLOAD_SIZE - 7;
         } else {  // last fragment
@@ -191,15 +191,15 @@ void TunnelGatewayBuffer::CreateCurrentTunnelDataMessage() {
 void TunnelGatewayBuffer::CompleteCurrentTunnelDataMessage() {
   if (!m_CurrentTunnelDataMsg)
     return;
-  uint8_t* payload = m_CurrentTunnelDataMsg->GetBuffer();
-  size_t size = m_CurrentTunnelDataMsg->len - m_CurrentTunnelDataMsg->offset;
+  std::uint8_t* payload = m_CurrentTunnelDataMsg->GetBuffer();
+  std::size_t size = m_CurrentTunnelDataMsg->len - m_CurrentTunnelDataMsg->offset;
   m_CurrentTunnelDataMsg->offset =
     m_CurrentTunnelDataMsg->len - TUNNEL_DATA_MSG_SIZE - I2NP_HEADER_SIZE;
-  uint8_t* buf = m_CurrentTunnelDataMsg->GetPayload();
+  std::uint8_t* buf = m_CurrentTunnelDataMsg->GetPayload();
   htobe32buf(buf, m_TunnelID);
   kovri::core::RandBytes(buf + 4, 16);  // original IV
   memcpy(payload + size, buf + 4, 16);  // copy IV for checksum
-  uint8_t hash[32];
+  std::uint8_t hash[32];
   kovri::core::SHA256().CalculateDigest(hash, payload, size + 16);
   memcpy(buf + 20, hash, 4);  // checksum
   // XXX: WTF?!
@@ -207,8 +207,8 @@ void TunnelGatewayBuffer::CompleteCurrentTunnelDataMessage() {
   ptrdiff_t padding_size = payload - buf - 25;  // 25  = 24 + 1
   if (padding_size > 0) {
     // non-zero padding
-    uint32_t random_offset =
-      kovri::core::RandInRange<uint32_t>(
+    std::uint32_t random_offset =
+      kovri::core::RandInRange<std::uint32_t>(
         0,
         TUNNEL_DATA_MAX_PAYLOAD_SIZE - padding_size);
     memcpy(

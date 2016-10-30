@@ -33,8 +33,8 @@
 #ifndef SRC_CLIENT_API_DATAGRAM_H_
 #define SRC_CLIENT_API_DATAGRAM_H_
 
-#include <inttypes.h>
-
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
@@ -48,15 +48,15 @@ namespace client {
 
 class ClientDestination;  // TODO(unassigned): remove forward declaration
 
-const size_t MAX_DATAGRAM_SIZE = 32768;
+const std::size_t MAX_DATAGRAM_SIZE = 32768;
 
 class DatagramDestination {
   typedef std::function<void (
       const kovri::core::IdentityEx& from,
-      uint16_t from_port,
-      uint16_t to_port,
-      const uint8_t* buf,
-      size_t len)>
+      std::uint16_t from_port,
+      std::uint16_t to_port,
+      const std::uint8_t* buf,
+      std::size_t len)>
     Receiver;
 
  public:
@@ -65,17 +65,17 @@ class DatagramDestination {
   ~DatagramDestination() {}
 
   void SendDatagramTo(
-      const uint8_t* payload,
-      size_t len,
+      const std::uint8_t* payload,
+      std::size_t len,
       const kovri::core::IdentHash& ident,
-      uint16_t from_port = 0,
-      uint16_t to_port = 0);
+      std::uint16_t from_port = 0,
+      std::uint16_t to_port = 0);
 
   void HandleDataMessagePayload(
-      uint16_t from_port,
-      uint16_t to_port,
-      const uint8_t* buf,
-      size_t len);
+      std::uint16_t from_port,
+      std::uint16_t to_port,
+      const std::uint8_t* buf,
+      std::size_t len);
 
   void SetReceiver(
       const Receiver& receiver) {
@@ -88,12 +88,12 @@ class DatagramDestination {
 
   void SetReceiver(
       const Receiver& receiver,
-      uint16_t port) {
+      std::uint16_t port) {
     m_ReceiversByPorts[port] = receiver;
   }
 
   void ResetReceiver(
-      uint16_t port) {
+      std::uint16_t port) {
     m_ReceiversByPorts.erase(port);
   }
 
@@ -103,25 +103,25 @@ class DatagramDestination {
       std::unique_ptr<I2NPMessage> msg);
 
   std::unique_ptr<I2NPMessage> CreateDataMessage(
-      const uint8_t* payload,
-      size_t len,
-      uint16_t from_port,
-      uint16_t to_port);
+      const std::uint8_t* payload,
+      std::size_t len,
+      std::uint16_t from_port,
+      std::uint16_t to_port);
 
   void SendMsg(
       std::unique_ptr<I2NPMessage> msg,
       std::shared_ptr<const kovri::core::LeaseSet> remote);
 
   void HandleDatagram(
-      uint16_t from_port,
-      uint16_t to_port,
-      const uint8_t* buf,
-      size_t len);
+      std::uint16_t from_port,
+      std::uint16_t to_port,
+      const std::uint8_t* buf,
+      std::size_t len);
 
  private:
   kovri::client::ClientDestination& m_Owner;
   Receiver m_Receiver;  // default
-  std::map<uint16_t, Receiver> m_ReceiversByPorts;
+  std::map<std::uint16_t, Receiver> m_ReceiversByPorts;
 };
 
 }  // namespace client

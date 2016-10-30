@@ -46,11 +46,11 @@ namespace kovri {
 namespace core {
 
 TransitTunnel::TransitTunnel(
-    uint32_t receive_tunnel_ID,
-    const uint8_t* next_ident,
-    uint32_t next_tunnel_ID,
-    const uint8_t* layer_key,
-    const uint8_t* iv_key)
+    std::uint32_t receive_tunnel_ID,
+    const std::uint8_t* next_ident,
+    std::uint32_t next_tunnel_ID,
+    const std::uint8_t* layer_key,
+    const std::uint8_t* iv_key)
     : m_TunnelID(receive_tunnel_ID),
       m_NextTunnelID(next_tunnel_ID),
       m_NextIdent(next_ident) {
@@ -130,11 +130,11 @@ void TransitTunnelEndpoint::HandleTunnelDataMsg(
 }
 
 TransitTunnel* CreateTransitTunnel(
-    uint32_t receive_tunnel_ID,
-    const uint8_t* next_ident,
-    uint32_t next_tunnel_ID,
-    const uint8_t* layer_key,
-    const uint8_t* iv_key,
+    std::uint32_t receive_tunnel_ID,
+    const std::uint8_t* next_ident,
+    std::uint32_t next_tunnel_ID,
+    const std::uint8_t* layer_key,
+    const std::uint8_t* iv_key,
     bool is_gateway,
     bool is_endpoint) {
   if (is_endpoint) {

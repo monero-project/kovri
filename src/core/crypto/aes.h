@@ -33,8 +33,7 @@
 #ifndef SRC_CORE_CRYPTO_AES_H_
 #define SRC_CORE_CRYPTO_AES_H_
 
-#include <inttypes.h>
-
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 
@@ -44,7 +43,7 @@ namespace kovri {
 namespace core {
 
 struct CipherBlock {
-  uint8_t buf[16];
+  std::uint8_t buf[16];
   void operator^=(const CipherBlock& other) {  // XOR
 #if defined(__x86_64__)  // for Intel x64
     __asm__(
@@ -169,7 +168,7 @@ class CBCEncryption {
       const std::uint8_t* iv);
 
   void Encrypt(
-      int numBlocks,
+      int num_blocks,
       const CipherBlock* in,
       CipherBlock* out);
 
@@ -207,7 +206,7 @@ class CBCDecryption {
       const std::uint8_t* iv);
 
   void Decrypt(
-      int numBlocks,
+      int num_blocks,
       const CipherBlock* in,
       CipherBlock* out);
 

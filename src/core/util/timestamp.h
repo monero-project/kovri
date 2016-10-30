@@ -33,24 +33,24 @@
 #ifndef SRC_CORE_UTIL_TIMESTAMP_H_
 #define SRC_CORE_UTIL_TIMESTAMP_H_
 
-#include <inttypes.h>
-
 #include <chrono>
+#include <cstddef>
+#include <cstdint>
 
 namespace kovri {
 namespace core {
 
-inline uint64_t GetMillisecondsSinceEpoch() {
+inline std::uint64_t GetMillisecondsSinceEpoch() {
   return std::chrono::duration_cast<std::chrono::milliseconds>(
       std::chrono::system_clock::now().time_since_epoch()).count();
 }
 
-inline uint32_t GetHoursSinceEpoch() {
+inline std::uint32_t GetHoursSinceEpoch() {
   return std::chrono::duration_cast<std::chrono::hours>(
       std::chrono::system_clock::now().time_since_epoch()).count();
 }
 
-inline uint64_t GetSecondsSinceEpoch() {
+inline std::uint64_t GetSecondsSinceEpoch() {
   return std::chrono::duration_cast<std::chrono::seconds>(
       std::chrono::system_clock::now().time_since_epoch()).count();
 }

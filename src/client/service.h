@@ -189,7 +189,7 @@ class TCPIPAcceptor : public I2PService {
   // will throw exception if the address is already in use
   void Rebind(
       const std::string& addr,
-      uint16_t port);
+      std::uint16_t port);
 
   // @return the endpoint this TCPIPAcceptor is bound on
   boost::asio::ip::tcp::endpoint GetEndpoint() const {

@@ -63,7 +63,7 @@ Tunnel::Tunnel(
 Tunnel::~Tunnel() {}
 
 void Tunnel::Build(
-    uint32_t reply_msg_ID,
+    std::uint32_t reply_msg_ID,
     std::shared_ptr<OutboundTunnel> outbound_tunnel) {
   auto num_hops = m_Config->GetNumHops();
   int num_records = num_hops <= STANDARD_NUM_RECORDS ?
@@ -78,7 +78,7 @@ void Tunnel::Build(
     record_indicies.push_back(i);
   std::random_shuffle(record_indicies.begin(), record_indicies.end());
   // create real records
-  uint8_t* records = msg->GetPayload() + 1;
+  std::uint8_t* records = msg->GetPayload() + 1;
   TunnelHopConfig* hop = m_Config->GetFirstHop();
   int i = 0;
   while (hop) {
@@ -86,7 +86,7 @@ void Tunnel::Build(
     hop->CreateBuildRequestRecord(
         records + idx * TUNNEL_BUILD_RECORD_SIZE,
         // we set reply_msg_ID for last hop only
-        hop->next ? kovri::core::Rand<uint32_t>() : reply_msg_ID);
+        hop->next ? kovri::core::Rand<std::uint32_t>() : reply_msg_ID);
     hop->record_index = idx;
     i++;
     hop = hop->next;
@@ -107,7 +107,7 @@ void Tunnel::Build(
     TunnelHopConfig* hop1 = hop->next;
     while (hop1) {
       decryption.SetIV(hop->reply_IV);
-      uint8_t* record =
+      std::uint8_t* record =
         records + hop1->record_index*TUNNEL_BUILD_RECORD_SIZE;
       decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, record);
       hop1 = hop1->next;
@@ -128,8 +128,8 @@ void Tunnel::Build(
 }
 
 bool Tunnel::HandleTunnelBuildResponse(
-    uint8_t* msg,
-    size_t) {
+    std::uint8_t* msg,
+    std::size_t) {
   LogPrint(eLogDebug,
       "Tunnel: TunnelBuildResponse ",
       static_cast<int>(msg[0]), " records.");
@@ -142,7 +142,7 @@ bool Tunnel::HandleTunnelBuildResponse(
     while (hop1) {
       auto idx = hop1->record_index;
       if (idx >= 0 && idx < msg[0]) {
-        uint8_t* record = msg + 1 + idx * TUNNEL_BUILD_RECORD_SIZE;
+        std::uint8_t* record = msg + 1 + idx * TUNNEL_BUILD_RECORD_SIZE;
         decryption.SetIV(hop->reply_IV);
         decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, record);
       } else {
@@ -156,9 +156,9 @@ bool Tunnel::HandleTunnelBuildResponse(
   bool established = true;
   hop = m_Config->GetFirstHop();
   while (hop) {
-    const uint8_t* record =
+    const std::uint8_t* record =
       msg + 1 + hop->record_index * TUNNEL_BUILD_RECORD_SIZE;
-    uint8_t ret = record[BUILD_RESPONSE_RECORD_RET_OFFSET];
+    std::uint8_t ret = record[BUILD_RESPONSE_RECORD_RET_OFFSET];
     LogPrint("Tunnel: ret code=", static_cast<int>(ret));
     hop->router->GetProfile()->TunnelBuildResponse(ret);
     if (ret)
@@ -182,8 +182,8 @@ bool Tunnel::HandleTunnelBuildResponse(
 void Tunnel::EncryptTunnelMsg(
     std::shared_ptr<const I2NPMessage> in,
     std::shared_ptr<I2NPMessage> out) {
-  const uint8_t* in_payload = in->GetPayload() + 4;
-  uint8_t* out_payload = out->GetPayload() + 4;
+  const std::uint8_t* in_payload = in->GetPayload() + 4;
+  std::uint8_t* out_payload = out->GetPayload() + 4;
   TunnelHopConfig* hop = m_Config->GetLastHop();
   while (hop) {
     hop->decryption.Decrypt(in_payload, out_payload);
@@ -211,8 +211,8 @@ void InboundTunnel::HandleTunnelDataMsg(
 }
 
 void OutboundTunnel::SendTunnelDataMsg(
-    const uint8_t* gw_hash,
-    uint32_t gw_tunnel,
+    const std::uint8_t* gw_hash,
+    std::uint32_t gw_tunnel,
     std::shared_ptr<kovri::I2NPMessage> msg) {
   TunnelMessageBlock block;
   if (gw_hash) {
@@ -261,7 +261,7 @@ Tunnels::~Tunnels() {
 }
 
 std::shared_ptr<InboundTunnel> Tunnels::GetInboundTunnel(
-    uint32_t tunnel_ID) {
+    std::uint32_t tunnel_ID) {
   auto it = m_InboundTunnels.find(tunnel_ID);
   if (it != m_InboundTunnels.end())
     return it->second;
@@ -269,7 +269,7 @@ std::shared_ptr<InboundTunnel> Tunnels::GetInboundTunnel(
 }
 
 TransitTunnel* Tunnels::GetTransitTunnel(
-    uint32_t tunnel_ID) {
+    std::uint32_t tunnel_ID) {
   auto it = m_TransitTunnels.find(tunnel_ID);
   if (it != m_TransitTunnels.end())
     return it->second;
@@ -277,14 +277,14 @@ TransitTunnel* Tunnels::GetTransitTunnel(
 }
 
 std::shared_ptr<InboundTunnel> Tunnels::GetPendingInboundTunnel(
-    uint32_t reply_msg_ID) {
+    std::uint32_t reply_msg_ID) {
   return GetPendingTunnel(
       reply_msg_ID,
       m_PendingInboundTunnels);
 }
 
 std::shared_ptr<OutboundTunnel> Tunnels::GetPendingOutboundTunnel(
-    uint32_t reply_msg_ID) {
+    std::uint32_t reply_msg_ID) {
   return GetPendingTunnel(
       reply_msg_ID,
       m_PendingOutboundTunnels);
@@ -292,8 +292,8 @@ std::shared_ptr<OutboundTunnel> Tunnels::GetPendingOutboundTunnel(
 
 template<class TTunnel>
 std::shared_ptr<TTunnel> Tunnels::GetPendingTunnel(
-    uint32_t reply_msg_ID,
-    const std::map<uint32_t,
+    std::uint32_t reply_msg_ID,
+    const std::map<std::uint32_t,
     std::shared_ptr<TTunnel> >& pending_tunnels) {
   auto it = pending_tunnels.find(reply_msg_ID);
   if (it != pending_tunnels.end() &&
@@ -306,7 +306,7 @@ std::shared_ptr<TTunnel> Tunnels::GetPendingTunnel(
 
 std::shared_ptr<InboundTunnel> Tunnels::GetNextInboundTunnel() {
   std::shared_ptr<InboundTunnel> tunnel;
-  size_t min_received = 0;
+  std::size_t min_received = 0;
   for (auto it : m_InboundTunnels) {
     if (!it.second->IsEstablished ())
       continue;
@@ -320,9 +320,9 @@ std::shared_ptr<InboundTunnel> Tunnels::GetNextInboundTunnel() {
 
 std::shared_ptr<OutboundTunnel> Tunnels::GetNextOutboundTunnel() {
   // TODO(unassigned): integer size
-  uint32_t s = m_OutboundTunnels.size();
-  uint32_t ind = kovri::core::RandInRange<uint32_t>(uint32_t{0}, s - 1);
-  uint32_t i = 0;
+  std::uint32_t s = m_OutboundTunnels.size();
+  std::uint32_t ind = kovri::core::RandInRange<std::uint32_t>(std::uint32_t{0}, s - 1);
+  std::uint32_t i = 0;
   std::shared_ptr<OutboundTunnel> tunnel;
   for (auto it : m_OutboundTunnels) {
     if (it->IsEstablished()) {
@@ -405,17 +405,17 @@ void Tunnels::Stop() {
 void Tunnels::Run() {
   // wait for other parts are ready
   std::this_thread::sleep_for(std::chrono::seconds(1));
-  uint64_t last_ts = 0;
+  std::uint64_t last_ts = 0;
   while (m_IsRunning) {
     try {
       auto msg = m_Queue.GetNextWithTimeout(1000);  // 1 sec
       if (msg) {
-        uint32_t prev_tunnel_ID = 0,
+        std::uint32_t prev_tunnel_ID = 0,
                  tunnel_ID = 0;
         TunnelBase* prev_tunnel = nullptr;
         do {
           TunnelBase* tunnel = nullptr;
-          uint8_t type_ID = msg->GetTypeID();
+          std::uint8_t type_ID = msg->GetTypeID();
           switch (type_ID) {
             case e_I2NPTunnelData:
             case e_I2NPTunnelGateway: {
@@ -460,7 +460,7 @@ void Tunnels::Run() {
         }
         while (msg);
       }
-      uint64_t ts = kovri::core::GetSecondsSinceEpoch();
+      std::uint64_t ts = kovri::core::GetSecondsSinceEpoch();
       if (ts - last_ts >= 15) {  // manage tunnels every 15 seconds
         ManageTunnels();
         last_ts = ts;
@@ -478,8 +478,8 @@ void Tunnels::HandleTunnelGatewayMsg(
     LogPrint(eLogError, "Tunnels: missing tunnel for TunnelGateway");
     return;
   }
-  const uint8_t* payload = msg->GetPayload();
-  uint16_t len = bufbe16toh(payload + TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET);
+  const std::uint8_t* payload = msg->GetPayload();
+  std::uint16_t len = bufbe16toh(payload + TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET);
   // we make payload as new I2NP message to send
   msg->offset += I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE;
   msg->len = msg->offset + len;
@@ -512,7 +512,7 @@ template<class PendingTunnels>
 void Tunnels::ManagePendingTunnels(
     PendingTunnels& pending_tunnels) {
   // check pending tunnel. delete failed or timeout
-  uint64_t ts = kovri::core::GetSecondsSinceEpoch();
+  std::uint64_t ts = kovri::core::GetSecondsSinceEpoch();
   for (auto it = pending_tunnels.begin(); it != pending_tunnels.end();) {
     auto tunnel = it->second;
     switch (tunnel->GetState()) {
@@ -558,7 +558,7 @@ void Tunnels::ManagePendingTunnels(
 }
 
 void Tunnels::ManageOutboundTunnels() {
-  uint64_t ts = kovri::core::GetSecondsSinceEpoch(); {
+  std::uint64_t ts = kovri::core::GetSecondsSinceEpoch(); {
     for (auto it = m_OutboundTunnels.begin(); it != m_OutboundTunnels.end();) {
       auto tunnel = *it;
       if (ts > tunnel->GetCreationTime() + TUNNEL_EXPIRATION_TIMEOUT) {
@@ -601,7 +601,7 @@ void Tunnels::ManageOutboundTunnels() {
 }
 
 void Tunnels::ManageInboundTunnels() {
-  uint64_t ts = kovri::core::GetSecondsSinceEpoch(); {
+  std::uint64_t ts = kovri::core::GetSecondsSinceEpoch(); {
     for (auto it = m_InboundTunnels.begin(); it != m_InboundTunnels.end();) {
       auto tunnel = it->second;
       if (ts > tunnel->GetCreationTime() + TUNNEL_EXPIRATION_TIMEOUT) {
@@ -650,7 +650,7 @@ void Tunnels::ManageInboundTunnels() {
 }
 
 void Tunnels::ManageTransitTunnels() {
-  uint32_t ts = kovri::core::GetSecondsSinceEpoch();
+  std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
   for (auto it = m_TransitTunnels.begin(); it != m_TransitTunnels.end();) {
     if (ts > it->second->GetCreationTime() + TUNNEL_EXPIRATION_TIMEOUT) {
       auto tmp = it->second;
@@ -693,20 +693,20 @@ std::shared_ptr<TTunnel> Tunnels::CreateTunnel(
     std::shared_ptr<TunnelConfig> config,
     std::shared_ptr<OutboundTunnel> outbound_tunnel) {
   auto new_tunnel = std::make_shared<TTunnel> (config);
-  uint32_t reply_msg_ID = kovri::core::Rand<uint32_t>();
+  std::uint32_t reply_msg_ID = kovri::core::Rand<std::uint32_t>();
   AddPendingTunnel(reply_msg_ID, new_tunnel);
   new_tunnel->Build(reply_msg_ID, outbound_tunnel);
   return new_tunnel;
 }
 
 void Tunnels::AddPendingTunnel(
-    uint32_t reply_msg_ID,
+    std::uint32_t reply_msg_ID,
     std::shared_ptr<InboundTunnel> tunnel) {
   m_PendingInboundTunnels[reply_msg_ID] = tunnel;
 }
 
 void Tunnels::AddPendingTunnel(
-    uint32_t reply_msg_ID,
+    std::uint32_t reply_msg_ID,
     std::shared_ptr<OutboundTunnel> tunnel) {
   m_PendingOutboundTunnels[reply_msg_ID] = tunnel;
 }
@@ -748,7 +748,7 @@ void Tunnels::CreateZeroHopsInboundTunnel() {
 
 int Tunnels::GetTransitTunnelsExpirationTimeout() {
   int timeout = 0;
-  uint32_t ts = kovri::core::GetSecondsSinceEpoch();
+  std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
   std::unique_lock<std::mutex> l(m_TransitTunnelsMutex);
   for (auto it : m_TransitTunnels) {
     int t = it.second->GetCreationTime() + TUNNEL_EXPIRATION_TIMEOUT - ts;

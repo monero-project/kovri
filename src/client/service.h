@@ -79,11 +79,11 @@ class I2PService {
     std::unique_lock<std::mutex> l(m_HandlersMutex);
     m_Handlers.clear();
   }
-  /// @brief returns pointer to member m_LocalDestination
+  /// @brief returns pointer to member destination
   inline std::shared_ptr<ClientDestination> GetLocalDestination() {
     return m_LocalDestination;
   }
-  /// @brief Set new member m_LocationDestination
+  /// @brief Set new member destination
   /// @param dest pointer of type ClientDestination
   inline void SetLocalDestination(
       std::shared_ptr<ClientDestination> dest) {
@@ -95,7 +95,7 @@ class I2PService {
       StreamRequestComplete stream_request_complete,
       const std::string& dest,
       int port = 0);
-  /// @brief return io_service refernce of member m_LocalDestination
+  /// @brief return io_service reference of member destination
   inline boost::asio::io_service& GetService() {
     return m_LocalDestination->GetService();
   }
@@ -112,14 +112,12 @@ class I2PService {
   std::mutex m_HandlersMutex;
 };
 
-/**
-  * @class I2PServiceHandler
-  * @brief Simple interface for I2PHandlers. abstract class for handler
-  * Simple interface for I2PHandlers. abstract class for handler
-  * Handler will take listener away from server and process messaging;
-  * thus allowing server to continue listening.
-  * Allows detection of finalization amongst other things.
-  */
+  /// @class I2PServiceHandler
+  /// @brief Simple interface for I2PHandlers. abstract class for handler
+  /// Simple interface for I2PHandlers. abstract class for handler
+  /// Handler will take listener away from server and process messaging;
+  /// thus allowing server to continue listening.
+  /// Allows detection of finalization amongst other things.
 class I2PServiceHandler {
  public:
   explicit I2PServiceHandler(
@@ -147,8 +145,8 @@ class I2PServiceHandler {
   inline I2PService* GetOwner() { return m_Service; }
 
  private:
-  I2PService* m_Service;  //< pointer to parent service
-  std::atomic<bool> m_Dead;  //< To avoid cleaning up multiple times
+  I2PService* m_Service;  /// pointer to parent service
+  std::atomic<bool> m_Dead;  /// To avoid cleaning up multiple times
 };
 
 /**

@@ -47,7 +47,7 @@ namespace kovri {
 namespace client {
 
 const char DEFAULT_PASSWORD[] = "itoopie";
-const uint64_t TOKEN_LIFETIME = 600;  // Token lifetime in seconds
+const std::uint64_t TOKEN_LIFETIME = 600;  // Token lifetime in seconds
 const std::size_t TOKEN_SIZE = 8;  // Token size in bytes
 
 const char PROPERTY_ID[] = "id";
@@ -307,7 +307,7 @@ class I2PControlSession
   void HandleReseed(Response& response);
 
   std::string m_Password;
-  std::map<std::string, uint64_t> m_Tokens;
+  std::map<std::string, std::uint64_t> m_Tokens;
   std::mutex m_TokensMutex,
              m_ShutdownMutex;
 

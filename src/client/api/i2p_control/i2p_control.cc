@@ -623,7 +623,7 @@ void I2PControlSession::ExpireTokens(
     return;  // Do not restart timer, shutting down
   StartExpireTokensJob();
   LogPrint(eLogDebug, "I2PControlSession: expiring tokens");
-  const uint64_t now = kovri::core::GetSecondsSinceEpoch();
+  const std::uint64_t now = kovri::core::GetSecondsSinceEpoch();
   std::lock_guard<std::mutex> lock(m_TokensMutex);
   for (auto it = m_Tokens.begin(); it != m_Tokens.end(); ) {
     if (now - it->second > TOKEN_LIFETIME)

@@ -1,21 +1,21 @@
-set(CLIENT_SRC
-  "datagram.cc"
-  "i2p_control/i2p_control.cc"
-  "i2p_control/i2p_control_server.cc"
-  "i2p_tunnel/http_proxy.cc"
-  "i2p_tunnel/i2p_tunnel.cc"
-  "i2p_tunnel/socks.cc"
-  "streaming.cc"
-  "address_book.cc"
-  "address_book_storage.cc"
-  "destination.cc"
-  "client_context.cc"
-  "i2p_service.cc")
+include_directories("../")
 
-include_directories(
-  "."
-  "../"
-  "../core/")
+set(CLIENT_SRC
+  "address_book/address_book.cc"
+  "address_book/storage.cc"
+  "api/datagram.cc"
+  "api/i2p_control/i2p_control.cc"
+  "api/i2p_control/server.cc"
+  "api/streaming.cc"
+  "context.cc"
+  "destination.cc"
+  "proxy/http.cc"
+  "proxy/socks.cc"
+  "reseed.cc"
+  "service.cc"
+  "tunnel.cc"
+  "util/http.cc"
+  "util/zip.cc")
 
 if(WITH_LIBRARY)
   add_library(${CLIENT_NAME} ${CLIENT_SRC})

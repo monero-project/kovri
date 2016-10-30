@@ -36,10 +36,10 @@
 #include <cstdint>
 #include <memory>
 
-#include "aes.h"
+#include "core/crypto/aes.h"
 
-namespace i2p {
-namespace crypto {
+namespace kovri {
+namespace core {
 
 /// @class TunnelEncryption
 class TunnelEncryption {  // with double IV encryption
@@ -48,7 +48,7 @@ class TunnelEncryption {  // with double IV encryption
   ~TunnelEncryption();
 
   void SetKeys(
-      const AESKey& layerKey,
+      const AESKey& layer_key,
       const AESKey& iv_key);
 
   void Encrypt(
@@ -67,7 +67,7 @@ class TunnelDecryption {  // with double IV encryption
   ~TunnelDecryption();
 
   void SetKeys(
-      const AESKey& layerKey,
+      const AESKey& layer_key,
       const AESKey& iv_key);
 
   void Decrypt(
@@ -79,7 +79,7 @@ class TunnelDecryption {  // with double IV encryption
   std::unique_ptr<TunnelDecryptionImpl> m_TunnelDecryptionPimpl;
 };
 
-}  // namespace crypto
-}  // namespace i2p
+}  // namespace core
+}  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_TUNNEL_H_

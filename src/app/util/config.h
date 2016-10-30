@@ -42,25 +42,25 @@
 #include "core/version.h"
 #include "filesystem.h"
 
-namespace i2p {
-namespace util {
+namespace kovri {
+namespace app {
 
 const char I2P_TUNNELS_SECTION_TYPE[] = "type";
 const char I2P_TUNNELS_SECTION_TYPE_CLIENT[] = "client";
 const char I2P_TUNNELS_SECTION_TYPE_SERVER[] = "server";
 const char I2P_TUNNELS_SECTION_TYPE_HTTP[] = "http";
+
 const char I2P_CLIENT_TUNNEL_PORT[] = "port";
 const char I2P_CLIENT_TUNNEL_ADDRESS[] = "address";
 const char I2P_CLIENT_TUNNEL_DESTINATION[] = "destination";
 const char I2P_CLIENT_TUNNEL_KEYS[] = "keys";
 const char I2P_CLIENT_TUNNEL_DESTINATION_PORT[] = "destinationport";
+
 const char I2P_SERVER_TUNNEL_HOST[] = "host";
 const char I2P_SERVER_TUNNEL_PORT[] = "port";
 const char I2P_SERVER_TUNNEL_KEYS[] = "keys";
 const char I2P_SERVER_TUNNEL_INPORT[] = "inport";
 const char I2P_SERVER_TUNNEL_ACCESS_LIST[] = "accesslist";
-
-namespace config {
 
 /// @var var_map
 /// @brief Variable map for command-line and config file args
@@ -88,8 +88,7 @@ void ParseConfigFile(
 ///   before router context and client context are initialized
 bool SetLoggingOptions();
 
-}  // namespace config
-}  // namespace util
-}  // namespace i2p
+}  // namespace app
+}  // namespace kovri
 
 #endif  // SRC_APP_UTIL_CONFIG_H_

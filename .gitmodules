@@ -5,4 +5,4 @@
 [submodule "deps/cryptopp"]
 	path = deps/cryptopp
 	url = https://github.com/weidai11/cryptopp.git
-	branch = master
+	branch = CRYPTOPP_5_6_5

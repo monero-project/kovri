@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "daemon.h"
+#include "app/daemon.h"
 
 #ifndef _WIN32
 
@@ -42,9 +42,11 @@
 
 #include <string>
 
+#include "app/util/config.h"
+#include "app/util/filesystem.h"
+
 #include "core/util/log.h"
-#include "util/config.h"
-#include "util/filesystem.h"
+#include "core/util/filesystem.h"
 
 void handle_signal(int sig) {
   switch (sig) {
@@ -68,8 +70,8 @@ void handle_signal(int sig) {
   }
 }
 
-namespace i2p {
-namespace util {
+namespace kovri {
+namespace app {
 
 bool DaemonLinux::Start() {
   if (m_IsDaemon == 1) {
@@ -86,18 +88,21 @@ bool DaemonLinux::Start() {
       LogPrint("Error, could not create process group.");
       return false;
     }
-    std::string d(i2p::util::filesystem::GetDataPath().string());  // makes copy
+    std::string d(kovri::core::GetDataPath().string());  // makes copy
     chdir(d.c_str());
     // close stdin/stdout/stderr descriptors
     ::close(0);
-    ::open("/dev/null", O_RDWR);
+    if (::open("/dev/null", O_RDWR) < 0 )
+      return false;
     ::close(1);
-    ::open("/dev/null", O_RDWR);
+    if (::open("/dev/null", O_RDWR) < 0 )
+      return false;
     ::close(2);
-    ::open("/dev/null", O_RDWR);
+    if (::open("/dev/null", O_RDWR) < 0 )
+      return false;
   }
   // Pidfile
-  m_pidFile = (i2p::util::filesystem::GetDataPath() / "kovri.pid").string();
+  m_pidFile = (kovri::core::GetDataPath() / "kovri.pid").string();
   m_pidFilehandle = open(
       m_pidFile.c_str(),
       O_RDWR | O_CREAT,
@@ -138,7 +143,7 @@ void DaemonLinux::Reload() {
   Daemon_Singleton::Reload();
 }
 
-}  // namespace util
-}  // namespace i2p
+}  // namespace app
+}  // namespace kovri
 
 #endif

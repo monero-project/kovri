@@ -30,31 +30,34 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "filesystem.h"
+#include "core/util/filesystem.h"
 
 #include <string>
 
-#include "router_context.h"
+#include "core/router/context.h"
 
-namespace i2p {
-namespace util {
-namespace filesystem {
+#include "core/util/log.h"
+
+namespace kovri {
+namespace core {
+
+std::string g_AppName("kovri");
 
 boost::filesystem::path GetSU3CertsPath() {
-  return i2p::context.GetDataPath() / "certificates" / "su3";
+  return GetDataPath() / "certificates" / "su3";
 }
 
 boost::filesystem::path GetSSLCertsPath() {
-  return i2p::context.GetDataPath() / "certificates" / "ssl";
+  return GetDataPath() / "certificates" / "ssl";
 }
 
 const boost::filesystem::path GetLogsPath() {
-  return i2p::context.GetDataPath() / "logs";
+  return GetDataPath() / "logs";
 }
 
 std::string GetFullPath(
     const std::string& filename) {
-  std::string full_path = i2p::context.GetDataPath().string();
+  std::string full_path = GetDataPath().string();
 #ifdef _WIN32
   full_path.append("\\");
 #else
@@ -64,6 +67,55 @@ std::string GetFullPath(
   return full_path;
 }
 
-}  // namespace filesystem
-}  // namespace util
-}  // namespace i2p
+const boost::filesystem::path& GetDataPath() {
+  static boost::filesystem::path path;
+  path = GetDefaultDataPath();
+  if (!boost::filesystem::exists(path)) {
+    // Create data directory
+    if (!boost::filesystem::create_directory(path)) {
+      LogPrint(eLogError, "Filesystem: failed to create data directory!");
+      path = "";
+      return path;
+    }
+  }
+  if (!boost::filesystem::is_directory(path))
+    path = GetDefaultDataPath();
+  return path;
+}
+
+boost::filesystem::path GetDefaultDataPath() {
+  // Custom path, or default path:
+  // Windows < Vista: C:\Documents and Settings\Username\Application Data\kovri
+  // Windows >= Vista: C:\Users\Username\AppData\Roaming\kovri
+  // Mac: ~/Library/Application Support/kovri
+  // Unix: ~/.kovri
+#ifdef KOVRI_CUSTOM_DATA_PATH
+  return boost::filesystem::path(std::string(KOVRI_CUSTOM_DATA_PATH));
+#else
+#ifdef _WIN32
+  // Windows
+  char local_app_data[MAX_PATH];
+  SHGetFolderPath(NULL, CSIDL_APPDATA, 0, NULL, local_app_data);
+  return boost::filesystem::path(std::string(local_app_data) + "\\" + g_AppName);
+#else
+  boost::filesystem::path path_ret;
+  char* home = getenv("HOME");
+  if (home == NULL || strlen(home) == 0)
+      path_ret = boost::filesystem::path("/");
+  else
+      path_ret = boost::filesystem::path(home);
+#ifdef __APPLE__
+  // Mac
+  path_ret /= "Library/Application Support";
+  create_directory(path_ret);
+  return path_ret / g_AppName;
+#else
+  // Unix
+  return path_ret / (std::string(".") + g_AppName);
+#endif
+#endif
+#endif
+}
+
+}  // namespace core
+}  // namespace kovri

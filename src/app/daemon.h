@@ -36,15 +36,15 @@
 #include <string>
 
 #ifdef _WIN32
-#define Daemon i2p::util::DaemonWin32::Instance()
+#define Daemon kovri::app::DaemonWin32::Instance()
 #else
-#define Daemon i2p::util::DaemonLinux::Instance()
+#define Daemon kovri::app::DaemonLinux::Instance()
 #endif
 
 #include "core/util/log.h"
 
-namespace i2p {
-namespace util {
+namespace kovri {
+namespace app {
 
 class Daemon_Singleton {
  public:
@@ -64,7 +64,7 @@ class Daemon_Singleton {
  protected:
   Daemon_Singleton();
   virtual ~Daemon_Singleton();
-  std::shared_ptr<i2p::util::log::Log> m_Log;
+  std::shared_ptr<kovri::core::Log> m_Log;
 };
 
 #ifdef _WIN32
@@ -96,7 +96,7 @@ class DaemonLinux : public Daemon_Singleton {
 };
 #endif
 
-}  // namespace util
-}  // namespace i2p
+}  // namespace app
+}  // namespace kovri
 
 #endif  // SRC_APP_DAEMON_H_

@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_APP_UTIL_FILE_SYSTEM_H_
-#define SRC_APP_UTIL_FILE_SYSTEM_H_
+#ifndef SRC_APP_UTIL_FILESYSTEM_H_
+#define SRC_APP_UTIL_FILESYSTEM_H_
 
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
@@ -44,22 +44,8 @@
 #include "core/util/log.h"
 #include "core/util/filesystem.h"
 
-namespace i2p {
-namespace util {
-namespace filesystem {
-
-/**
- * Change the application name.
- */
-void SetAppName(
-    const std::string& name);
-
-/// @return the application name.
-std::string GetAppName();
-
-/// @return the full path of a file within the kovri directory
-std::string GetFullPath(
-    const std::string& filename);
+namespace kovri {
+namespace app {
 
 /// @return the path of the configuration file
 boost::filesystem::path GetConfigFile();
@@ -67,14 +53,7 @@ boost::filesystem::path GetConfigFile();
 /// @return the path of the tunnels configuration file
 boost::filesystem::path GetTunnelsConfigFile();
 
-/// @return the path of the kovri directory
-const boost::filesystem::path& GetDataPath();
-
-/// @return the default directory for app data
-boost::filesystem::path GetDefaultDataPath();
-
-}  // namespace filesystem
-}  // namespace util
-}  // namespace i2p
+}  // namespace app
+}  // namespace kovri
 
 #endif  // SRC_APP_UTIL_FILE_SYSTEM_H_

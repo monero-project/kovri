@@ -32,27 +32,32 @@
 
 #include <thread>
 
-#include "daemon.h"
-#include "util/config.h"
-#include "util/log.h"
+#include "app/daemon.h"
+#include "app/util/config.h"
+
+#include "core/util/log.h"
 
 int main(int argc, char* argv[]) {
   LogPrint("The Kovri I2P Router Project");
   LogPrint("Version ", KOVRI_VERSION);
+  // Prepare configuration settings
   try {
-    if (!i2p::util::config::ParseArgs(argc, argv))
+    if (!kovri::app::ParseArgs(argc, argv))
       return EXIT_FAILURE;
   } catch(const std::exception& ex) {
-      LogPrint(eLogError,
-          "Main: ", ex.what(), "\nTry using --help instead");
-      return EXIT_FAILURE;
+    LogPrint(eLogError, "Main: ", ex.what(), "\nTry using --help instead");
+    return EXIT_FAILURE;
   }
+  // Initialize settings for client/core
   if (!Daemon.Init())
     return EXIT_FAILURE;
+  // Start core/client
   if (Daemon.Start()) {
     while (Daemon.m_IsRunning)
       std::this_thread::sleep_for(std::chrono::seconds(1));
   }
-  Daemon.Stop();
+  // Stop client/core
+  if (!Daemon.Stop())
+    return EXIT_FAILURE;
   return EXIT_SUCCESS;
 }

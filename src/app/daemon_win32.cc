@@ -34,15 +34,16 @@
 
 #include "daemon.h"
 
-#include "util/config.h"
-#include "util/log.h"
+#include "app/util/config.h"
+
+#include "core/util/log.h"
 
 #ifdef _WIN32
 
-#include "win32_service.h"
+#include "app/win32_service.h"
 
-namespace i2p {
-namespace util {
+namespace kovri {
+namespace app {
 
 bool DaemonWin32::Init() {
   // TODO(unassigned): use Boost.Locale
@@ -56,9 +57,9 @@ bool DaemonWin32::Init() {
     m_IsDaemon = 1;
   else
     m_IsDaemon = 0;
-  std::string serviceControl =
-    i2p::util::config::var_map["service"].as<std::string>();
-  if (serviceControl == "install") {
+  std::string service_control =
+    kovri::app::var_map["service"].as<std::string>();
+  if (service_control == "install") {
     InstallService(
         SERVICE_NAME,               // Name of service
         SERVICE_DISPLAY_NAME,       // Name to display
@@ -67,7 +68,7 @@ bool DaemonWin32::Init() {
         SERVICE_ACCOUNT,            // Service running account
         SERVICE_PASSWORD);          // Password of the account
     exit(0);
-  } else if (serviceControl == "remove") {
+  } else if (service_control == "remove") {
     UninstallService(SERVICE_NAME);
     exit(0);
   }
@@ -98,7 +99,7 @@ bool DaemonWin32::Stop() {
   return Daemon_Singleton::Stop();
 }
 
-}  // namespace util
-}  // namespace i2p
+}  // namespace app
+}  // namespace kovri
 
 #endif

@@ -62,40 +62,40 @@
 class I2PService {
  public:
   I2PService(
-      PSTR pszServiceName,
-      BOOL fCanStop = TRUE,
-      BOOL fCanShutdown = TRUE,
-      BOOL fCanPauseContinue = FALSE);
+      PSTR service_name,
+      BOOL can_stop = TRUE,
+      BOOL can_shutdown = TRUE,
+      BOOL can_pause_continue = FALSE);
 
   virtual ~I2PService(void);
 
-  static BOOL isService();
+  static BOOL IsService();
   static BOOL Run(I2PService& service);
   void Stop();
 
  protected:
   virtual void OnStart(
-      DWORD dwArgc,
-      PSTR *pszArgv);
+      DWORD argc,
+      PSTR *argv);
   virtual void OnStop();
   virtual void OnPause();
   virtual void OnContinue();
   virtual void OnShutdown();
   void SetServiceStatus(
-      DWORD dwCurrentState,
-      DWORD dwWin32ExitCode = NO_ERROR,
-      DWORD dwWaitHint = 0);
+      DWORD current_state,
+      DWORD win32_exit_code = NO_ERROR,
+      DWORD wait_hint = 0);
 
  private:
   static void WINAPI ServiceMain(
-      DWORD dwArgc,
-      LPSTR *lpszArgv);
+      DWORD argc,
+      LPSTR *argv);
   static void WINAPI ServiceCtrlHandler(
-      DWORD dwCtrl);
+      DWORD ctrl);
   void WorkerThread();
   void Start(
-      DWORD dwArgc,
-      PSTR *pszArgv);
+      DWORD argc,
+      PSTR *argv);
   void Pause();
   void Continue();
   void Shutdown();
@@ -111,13 +111,13 @@ class I2PService {
 };
 
 void InstallService(
-    PSTR pszServiceName,
-    PSTR pszDisplayName,
-    DWORD dwStartType,
-    PSTR pszDependencies,
-    PSTR pszAccount,
-    PSTR pszPassword);
+    PSTR service_name,
+    PSTR display_name,
+    DWORD start_type,
+    PSTR dependencies,
+    PSTR account,
+    PSTR password);
 
-void UninstallService(PSTR pszServiceName);
+void UninstallService(PSTR service_name);
 
 #endif  // SRC_APP_WIN32_SERVICE_H_

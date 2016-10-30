@@ -33,18 +33,17 @@
 #ifndef SRC_CORE_CRYPTO_AES_H_
 #define SRC_CORE_CRYPTO_AES_H_
 
-#include <inttypes.h>
-
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 
-#include "identity.h"
+#include "core/router/identity.h"
 
-namespace i2p {
-namespace crypto {
+namespace kovri {
+namespace core {
 
 struct CipherBlock {
-  uint8_t buf[16];
+  std::uint8_t buf[16];
   void operator^=(const CipherBlock& other) {  // XOR
 #if defined(__x86_64__)  // for Intel x64
     __asm__(
@@ -63,7 +62,7 @@ struct CipherBlock {
   }
 };
 
-typedef i2p::data::Tag<32> AESKey;
+typedef kovri::core::Tag<32> AESKey;
 
 template<std::size_t Size>
 class AESAlignedBuffer {  // 16 bytes alignment
@@ -84,14 +83,14 @@ class AESAlignedBuffer {  // 16 bytes alignment
   }
 
  private:
-  std::uint8_t m_UnalignedBuffer[Size + 15];  // up to 15 bytes alignment
+  std::uint8_t m_UnalignedBuffer[Size + 15] = {};  // up to 15 bytes alignment
   std::uint8_t* m_Buf;
 };
 
 /// @brief Checks for AES-NI support in Intel/AMD processors
 /// @note https://en.wikipedia.org/wiki/CPUID
 /// @return True if supported, false if not
-bool AESNIExists();
+bool HasAESNI();
 
 /// @brief Returns result of AESNIExists()
 /// @note Used for runtime AES-NI implementation
@@ -169,7 +168,7 @@ class CBCEncryption {
       const std::uint8_t* iv);
 
   void Encrypt(
-      int numBlocks,
+      int num_blocks,
       const CipherBlock* in,
       CipherBlock* out);
 
@@ -207,7 +206,7 @@ class CBCDecryption {
       const std::uint8_t* iv);
 
   void Decrypt(
-      int numBlocks,
+      int num_blocks,
       const CipherBlock* in,
       CipherBlock* out);
 
@@ -226,7 +225,7 @@ class CBCDecryption {
   std::unique_ptr<CBCDecryptionImpl> m_CBCDecryptionPimpl;
 };
 
-}  // namespace crypto
-}  // namespace i2p
+}  // namespace core
+}  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_AES_H_

@@ -36,10 +36,10 @@
 #include <cstdint>
 #include <memory>
 
-#include "signature_base.h"
+#include "core/crypto/signature_base.h"
 
-namespace i2p {
-namespace crypto {
+namespace kovri {
+namespace core {
 
 /**
  *
@@ -481,7 +481,7 @@ const std::size_t EDDSA25519_PRIVATE_KEY_LENGTH = 32;
 class EDDSA25519Verifier : public Verifier {
  public:
   EDDSA25519Verifier(
-      const std::uint8_t* signingKey);
+      const std::uint8_t* signing_key);
   ~EDDSA25519Verifier();
 
   bool Verify(
@@ -511,13 +511,13 @@ class EDDSA25519Signer : public Signer {
  public:
   /// @brief Construct from a key pair.
   EDDSA25519Signer(
-      const std::uint8_t* signingPrivateKey,
-      const std::uint8_t* signingPublicKey);
+      const std::uint8_t* signing_private_key,
+      const std::uint8_t* signing_public_key);
 
   // @brief Construct from a private key.
   // @details The corresponding public key will be computed from it.
   EDDSA25519Signer(
-      const std::uint8_t* signingPrivateKey);
+      const std::uint8_t* signing_private_key);
   ~EDDSA25519Signer();
 
   void Sign(
@@ -532,11 +532,11 @@ class EDDSA25519Signer : public Signer {
 
 // Create keys
 void CreateEDDSARandomKeys(
-    std::uint8_t* privateKey,
-    std::uint8_t* publicKey);
+    std::uint8_t* private_key,
+    std::uint8_t* public_key);
 
 
-}  // namespace crypto
-}  // namespace i2p
+}  // namespace core
+}  // namespace kovri
 
 #endif  // SRC_CORE_CRYPTO_SIGNATURE_H_

@@ -1,6 +1,8 @@
 ## Step 1. Minimum requirements
 
-### Linux / MacOSX (10.9.5) / FreeBSD 10
+####Note: Due to [#403](https://github.com/monero-project/kovri/issues/403), a minimum of 1 GiB of RAM is suggested for build environments.    
+
+### Linux / MacOSX / FreeBSD 10
 - [Git](https://git-scm.com/download) 1.9.1
 - [GCC](https://gcc.gnu.org/) 4.9.3
 - [CMake](https://cmake.org/) 2.8.12
@@ -14,7 +16,7 @@
 Optional:
 
 - [Clang](http://clang.llvm.org/) 3.5 ([3.6 on FreeBSD](https://llvm.org/bugs/show_bug.cgi?id=28887))
-- [MiniUPnP](http://miniupnp.free.fr/files/) 1.6
+- [MiniUPnP](https://github.com/miniupnp/miniupnp/releases) 1.6 (Recommeded if you are behind a NAT without access to it)
 - [Doxygen](http://www.doxygen.org/) 1.8.6
 - [Graphviz](http://graphviz.org/) 2.36
 
@@ -32,7 +34,7 @@ Optional dependencies:
 ```bash
 $ sudo apt-get install clang
 $ sudo apt-get install doxygen graphviz
-$ sudo apt-get install libminiupnpc-dev
+$ sudo apt-get install libminiupnpc-dev #For users behind a restrictive NAT
 ```
 
 ### Ubuntu Trusty (14.04)
@@ -51,7 +53,7 @@ Optional dependencies:
 ```bash
 $ sudo apt-get install clang-3.5
 $ sudo apt-get install doxygen graphviz
-$ sudo apt-get install libminiupnpc-dev
+$ sudo apt-get install libminiupnpc-dev #For users behind a restrictive NAT 
 ```
 
 ### Debian (stable)
@@ -88,7 +90,7 @@ Optional dependencies:
 ```bash
 $ sudo apt-get -t testing install clang
 $ sudo apt-get -t testing install doxygen graphviz
-$ sudo apt-get -t testing install libminiupnpc-dev
+$ sudo apt-get -t testing install libminiupnpc-dev #For users behind a restrictive NAT 
 ```
 
 ### Arch Linux
@@ -100,7 +102,7 @@ Optional dependencies:
 ```bash
 $ sudo pacman -S clang
 $ sudo pacman -S doxygen graphviz
-$ sudo pacman -S miniupnpc
+$ sudo pacman -S miniupnpc #For users behind a restrictive NAT 
 ```
 
 ### Mac OSX
@@ -111,7 +113,7 @@ $ brew install cmake boost openssl # clang installed by default
 Optional dependencies:
 ```bash
 $ brew install doxygen graphviz
-$ brew install miniupnpc
+$ brew install miniupnpc #For users behind a restrictive NAT 
 ```
 
 ### FreeBSD 10
@@ -127,7 +129,7 @@ $ sudo ./b2 --toolset=clang install
 Optional dependencies:
 ```bash
 $ sudo pkg install doxygen graphviz
-$ sudo pkg install miniupnpc
+$ sudo pkg install miniupnpc #For users behind a restrictive NAT 
 ```
 **Note: see FreeBSD build instructions below**
 
@@ -142,10 +144,10 @@ pacman -Su
 ```
 * For those of you already familiar with pacman, you can run the normal ```pacman -Syu``` to update, but you may get errors and need to restart MSYS2 if pacman's dependencies are updated.
 * Install dependencies: ```pacman -S make mingw-w64-x86_64-cmake mingw-w64-x86_64-gcc mingw-w64-x86_64-boost mingw-w64-x86_64-openssl```
-* Optional: ```mingw-w64-x86_64-doxygen mingw-w64-x86_64-miniupnpc```
-* Note: if using doxygen, you'll need [Graphviz](http://graphviz.org/doc/winbuild.html)
+* Optional: ```mingw-w64-x86_64-doxygen```  (you'll need [Graphviz](http://graphviz.org/doc/winbuild.html) for doxygen)
+* Note: You'll need  ``` mingw-w64-x86_64-miniupnpc``` if you are behind a restrictive NAT firewall.
 
-## Step 3. Build
+## Step 3. Build   
 
 ### 1. Clone the repository
 ```bash
@@ -165,7 +167,7 @@ $ make install-resources
 
 ### Other options you can use in place of step 2:
 
-- ```make upnp``` produces vanilla binary with UPnP support (requires [MiniUPnP](http://miniupnp.free.fr/files/))
+- ```make upnp``` produces vanilla binary with UPnP support (requires [MiniUPnP](https://github.com/miniupnp/miniupnp/releases))
 - ```make optimized-hardening``` produces optimized, hardened binary
 - ```make all-options``` produces optimized, hardened, UPnP enabled binary
 - ```make tests``` produces all unit-tests and benchmarks
@@ -202,26 +204,5 @@ You can customize Kovri's data path to your liking. Simply export ```KOVRI_DATA_
 $ export KOVRI_DATA_PATH=$HOME/.another-kovri-data-path && make && make install-resources
 ```
 
-## Step 4. Open your NAT/Firewall
-1. Choose a port between ```9111``` and ```30777```
-2. Poke a hole in your NAT/Firewall to allow incoming TCP/UDP connections to that port
-3. Don't share this number with anyone as it will effect your anonymity!
-
-If you do not choose a port via cli or ```kovri.conf```, Kovri will randomly generate a new one on each startup. If you do not have access to your NAT, you can instead install and build with [MiniUPnP](http://miniupnp.free.fr/files/) support
-
-## Step 5. Configure Kovri
-Read the configuration files for available options
-
-## Step 6. Run Kovri
-For a full list of options:
-
-```bash
-$ ./kovri --help
-```
-
-Basic command:
-```bash
-$ ./kovri -p [your chosen port]  # or set your port in kovri.conf
-```
-
-Wait 10-15 minutes or so to get bootstrapped into the network and then point your IRC client to port 6669 and join ```#kovri``` and ```#kovri-dev```
+## Step 4. Proceed to the user guide
+Read the [user guide](https://github.com/monero-project/kovri/blob/master/doc/USER_GUIDE.md) to get started

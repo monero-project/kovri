@@ -34,8 +34,8 @@
 
 #include <stdlib.h>
 
-namespace i2p {
-namespace util {
+namespace kovri {
+namespace core {
 
 static void iT64Build(void);
 
@@ -60,18 +60,18 @@ const char* GetBase64SubstitutionTable() {
 
 // Reverse Substitution Table (built in run time)
 static char iT64[256];
-static int isFirstTime = 1;
+static int is_first_time = 1;
 
 
 // Padding
 static char P64 = '=';
 
 
-size_t ByteStreamToBase64(
-    const uint8_t* InBuffer,
-    size_t InCount,
-    char* OutBuffer,
-    size_t len) {
+std::size_t ByteStreamToBase64(
+    const std::uint8_t* in_buffer,
+    std::size_t in_count,
+    char* out_buffer,
+    std::size_t len) {
   unsigned char* ps;
   unsigned char* pd;
   unsigned char   acc_1;
@@ -79,16 +79,16 @@ size_t ByteStreamToBase64(
   int       i;
   int       n;
   int       m;
-  size_t outCount;
-  ps = (unsigned char *)InBuffer;
-  n = InCount / 3;
-  m = InCount % 3;
+  std::size_t out_count;
+  ps = (unsigned char *)in_buffer;
+  n = in_count / 3;
+  m = in_count % 3;
   if (!m)
-     outCount = 4 * n;
+     out_count = 4 * n;
   else
-     outCount = 4 * (n + 1);
-  if (outCount > len) return 0;
-  pd = (unsigned char *)OutBuffer;
+     out_count = 4 * (n + 1);
+  if (out_count > len) return 0;
+  pd = (unsigned char *)out_buffer;
   for (i = 0; i < n; i++) {
      acc_1 = *ps++;
      acc_2 = (acc_1<<4)&0x30;
@@ -126,56 +126,56 @@ size_t ByteStreamToBase64(
      *pd++ = T64[acc_1];
      *pd++ = P64;
   }
-  return outCount;
+  return out_count;
 }
 
 
-size_t Base64ToByteStream(
-    const char* InBuffer,
-    size_t InCount,
-    uint8_t* OutBuffer,
-    size_t len) {
+std::size_t Base64ToByteStream(
+    const char* in_buffer,
+    std::size_t in_count,
+    std::uint8_t* out_buffer,
+    std::size_t len) {
   unsigned char *ps, *pd,
                 acc_1, acc_2;
   int       i, n, m;
-  size_t outCount;
-  if (isFirstTime)
+  std::size_t out_count;
+  if (is_first_time)
     iT64Build();
-  n = InCount / 4;
-  m = InCount % 4;
-  if (InCount && !m) {
-     outCount = 3 * n;
+  n = in_count / 4;
+  m = in_count % 4;
+  if (in_count && !m) {
+     out_count = 3 * n;
   } else {
-     outCount = 0;
+     out_count = 0;
      return 0;
   }
-  ps = (unsigned char *)(InBuffer + InCount - 1);
+  ps = (unsigned char *)(in_buffer + in_count - 1);
   while (*ps-- == P64)
-    outCount--;
-  ps = (unsigned char *)InBuffer;
-  if (outCount > len)
+    out_count--;
+  ps = (unsigned char *)in_buffer;
+  if (out_count > len)
     return 0;
-  pd = OutBuffer;
-  auto endOfOutBuffer = OutBuffer + outCount;
+  pd = out_buffer;
+  auto end_of_out_buffer = out_buffer + out_count;
   for (i = 0; i < n; i++) {
      acc_1 = iT64[*ps++];
      acc_2 = iT64[*ps++];
      acc_1 <<= 2;
      acc_1 |= acc_2>>4;
      *pd++  = acc_1;
-     if (pd >= endOfOutBuffer)
+     if (pd >= end_of_out_buffer)
        break;
      acc_2 <<= 4;
      acc_1 = iT64[*ps++];
      acc_2 |= acc_1 >> 2;
      *pd++ = acc_2;
-     if (pd >= endOfOutBuffer)
+     if (pd >= end_of_out_buffer)
        break;
      acc_2 = iT64[*ps++];
      acc_2 |= acc_1 << 6;
      *pd++ = acc_2;
   }
-  return outCount;
+  return out_count;
 }
 
 // iT64
@@ -183,7 +183,7 @@ size_t Base64ToByteStream(
 // Reverse table builder. P64 character is replaced with 0
 static void iT64Build() {
   int  i;
-  isFirstTime = 0;
+  is_first_time = 0;
   for (i = 0; i < 256; i++)
     iT64[i] = -1;
   for (i = 0; i < 64; i++)
@@ -191,15 +191,15 @@ static void iT64Build() {
   iT64[static_cast<int>(P64)] = 0;
 }
 
-size_t Base32ToByteStream(
-    const char* inBuf,
-    size_t len,
-    uint8_t* outBuf,
-    size_t outLen) {
+std::size_t Base32ToByteStream(
+    const char* in_buf,
+    std::size_t len,
+    std::uint8_t* out_buf,
+    std::size_t out_len) {
   int tmp = 0, bits = 0;
-  size_t ret = 0;
-  for (size_t i = 0; i < len; i++) {
-    char ch = inBuf[i];
+  std::size_t ret = 0;
+  for (std::size_t i = 0; i < len; i++) {
+    char ch = in_buf[i];
     if (ch >= '2' && ch <= '7')  // digit
       ch = (ch - '2') + 26;  // 26 means a-z
     else if (ch >= 'a' && ch <= 'z')
@@ -209,9 +209,9 @@ size_t Base32ToByteStream(
     tmp |= ch;
     bits += 5;
     if (bits >= 8) {
-      if (ret >= outLen)
+      if (ret >= out_len)
         return ret;
-      outBuf[ret] = tmp >> (bits - 8);
+      out_buf[ret] = tmp >> (bits - 8);
       bits -= 8;
       ret++;
     }
@@ -220,20 +220,20 @@ size_t Base32ToByteStream(
   return ret;
 }
 
-size_t ByteStreamToBase32(
-    const uint8_t* inBuf,
-    size_t len,
-    char* outBuf,
-    size_t outLen) {
+std::size_t ByteStreamToBase32(
+    const std::uint8_t* in_buf,
+    std::size_t len,
+    char* out_buf,
+    std::size_t out_len) {
   if (!len)
     return 0;  // No data given
-  size_t ret = 0, pos = 1;
-  int bits = 8, tmp = inBuf[0];
-  while (ret < outLen && (bits > 0 || pos < len)) {
+  std::size_t ret = 0, pos = 1;
+  int bits = 8, tmp = in_buf[0];
+  while (ret < out_len && (bits > 0 || pos < len)) {
     if (bits < 5) {
       if (pos < len) {
         tmp <<= 8;
-        tmp |= inBuf[pos] & 0xFF;
+        tmp |= in_buf[pos] & 0xFF;
         pos++;
         bits += 8;
       } else {  // last byte
@@ -243,11 +243,11 @@ size_t ByteStreamToBase32(
     }
     bits -= 5;
     int ind = (tmp >> bits) & 0x1F;
-    outBuf[ret] = (ind < 26) ? (ind + 'a') : ((ind - 26) + '2');
+    out_buf[ret] = (ind < 26) ? (ind + 'a') : ((ind - 26) + '2');
     ret++;
   }
   return ret;
 }
 
-}  // namespace util
-}  // namespace i2p
+}  // namespace core
+}  // namespace kovri

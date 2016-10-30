@@ -39,9 +39,8 @@
 #include <sstream>
 #include <string>
 
-namespace i2p {
-namespace util {
-namespace filesystem {
+namespace kovri {
+namespace core {
 
 /// @class StringStream
 /// @details A wrapper for casting and strongly-typed classes
@@ -85,6 +84,12 @@ class StringStream {
 /// @return the full path of a file within the kovri directory
 std::string GetFullPath(const std::string& filename);
 
+/// @return the path of the kovri directory
+const boost::filesystem::path& GetDataPath();
+
+/// @return the default directory for app data
+boost::filesystem::path GetDefaultDataPath();
+
 /// @return the path to certificates for SU3 verification
 boost::filesystem::path GetSU3CertsPath();
 
@@ -94,8 +99,7 @@ boost::filesystem::path GetSSLCertsPath();
 /// @return the path to log storage
 const boost::filesystem::path GetLogsPath();
 
-}  // namespace filesystem
-}  // namespace util
-}  // namespace i2p
+}  // namespace core
+}  // namespace kovri
 
 #endif  // SRC_CORE_UTIL_FILESYSTEM_H_

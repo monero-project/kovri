@@ -50,8 +50,10 @@
 #include "core/router/transports/transports.h"
 #include "core/router/tunnel/tunnel.h"
 
+#include "core/util/filesystem.h"
 #include "core/util/log.h"
 #include "core/util/timestamp.h"
+
 #include "core/version.h"
 
 namespace kovri {
@@ -474,7 +476,7 @@ void I2PControlSession::HandleDatapath(
     Response& response) {
   response.SetParam(
       ROUTER_INFO_DATAPATH,
-      kovri::context.GetDataPath().string());
+      kovri::core::GetDataPath().string());
 }
 
 void I2PControlSession::HandleNetDbKnownPeers(

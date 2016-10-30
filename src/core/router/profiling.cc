@@ -38,9 +38,8 @@
 
 #include <string>
 
-#include "core/router/context.h"
-
 #include "core/util/base64.h"
+#include "core/util/filesystem.h"
 #include "core/util/log.h"
 
 namespace kovri {
@@ -96,7 +95,7 @@ void RouterProfile::Save() {
       PEER_PROFILE_SECTION_USAGE,
       usage);
   // save to file
-  auto path = kovri::context.GetDataPath() / PEER_PROFILES_DIRECTORY;
+  auto path = kovri::core::GetDataPath() / PEER_PROFILES_DIRECTORY;
   if (!boost::filesystem::exists(path)) {
     // Create directory is necessary
     if (!boost::filesystem::create_directory(path)) {
@@ -124,7 +123,7 @@ void RouterProfile::Save() {
 
 void RouterProfile::Load() {
   std::string base64 = m_IdentHash.ToBase64();
-  auto path = kovri::context.GetDataPath() / PEER_PROFILES_DIRECTORY;
+  auto path = kovri::core::GetDataPath() / PEER_PROFILES_DIRECTORY;
   path /= std::string("p") + base64[0];
   auto filename = path / (std::string(PEER_PROFILE_PREFIX) + base64 + ".txt");
   if (boost::filesystem::exists(filename)) {
@@ -229,7 +228,7 @@ void DeleteObsoleteProfiles() {
   int num = 0;
   auto ts = boost::posix_time::second_clock::local_time();
   boost::filesystem::path p(
-      kovri::context.GetDataPath() / PEER_PROFILES_DIRECTORY);
+      kovri::core::GetDataPath() / PEER_PROFILES_DIRECTORY);
   if (boost::filesystem::exists(p)) {
     boost::filesystem::directory_iterator end;
     for (boost::filesystem::directory_iterator it(p); it != end; ++it) {

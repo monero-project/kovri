@@ -44,22 +44,11 @@
 namespace kovri {
 namespace app {
 
-std::string app_name("kovri");
-
-void SetAppName(
-    const std::string& name) {
-  app_name = name;
-}
-
-std::string GetAppName() {
-  return app_name;
-}
-
 boost::filesystem::path GetConfigFile() {
   boost::filesystem::path kovri_conf(
       kovri::app::var_map["kovriconf"].as<std::string>());
   if (!kovri_conf.is_complete())
-    kovri_conf = GetDataPath() / kovri_conf;
+    kovri_conf = kovri::core::GetDataPath() / kovri_conf;
   return kovri_conf;
 }
 
@@ -67,82 +56,8 @@ boost::filesystem::path GetTunnelsConfigFile() {
   boost::filesystem::path tunnels_conf(
       kovri::app::var_map["tunnelsconf"].as<std::string>());
   if (!tunnels_conf.is_complete())
-    tunnels_conf = GetDataPath() / tunnels_conf;
+    tunnels_conf = kovri::core::GetDataPath() / tunnels_conf;
   return tunnels_conf;
-}
-
-boost::filesystem::path GetSU3CertsPath() {
-  return GetDataPath() / "certificates" / "su3";
-}
-
-boost::filesystem::path GetSSLCertsPath() {
-  return GetDataPath() / "certificates" / "ssl";
-}
-
-const boost::filesystem::path GetLogsPath() {
-  return GetDataPath() / "logs";
-}
-
-std::string GetFullPath(
-    const std::string& filename) {
-  std::string full_path = GetDataPath().string();
-#ifdef _WIN32
-  full_path.append("\\");
-#else
-  full_path.append("/");
-#endif
-  full_path.append(filename);
-  return full_path;
-}
-
-const boost::filesystem::path& GetDataPath() {
-  static boost::filesystem::path path;
-  path = GetDefaultDataPath();
-  if (!boost::filesystem::exists(path)) {
-    // Create data directory
-    if (!boost::filesystem::create_directory(path)) {
-      LogPrint(eLogError, "Filesystem: failed to create data directory!");
-      path = "";
-      return path;
-    }
-  }
-  if (!boost::filesystem::is_directory(path))
-    path = GetDefaultDataPath();
-  return path;
-}
-
-boost::filesystem::path GetDefaultDataPath() {
-  // Custom path, or default path:
-  // Windows < Vista: C:\Documents and Settings\Username\Application Data\kovri
-  // Windows >= Vista: C:\Users\Username\AppData\Roaming\kovri
-  // Mac: ~/Library/Application Support/kovri
-  // Unix: ~/.kovri
-#ifdef KOVRI_CUSTOM_DATA_PATH
-  return boost::filesystem::path(std::string(KOVRI_CUSTOM_DATA_PATH));
-#else
-#ifdef _WIN32
-  // Windows
-  char local_app_data[MAX_PATH];
-  SHGetFolderPath(NULL, CSIDL_APPDATA, 0, NULL, local_app_data);
-  return boost::filesystem::path(std::string(local_app_data) + "\\" + app_name);
-#else
-  boost::filesystem::path path_ret;
-  char* home = getenv("HOME");
-  if (home == NULL || strlen(home) == 0)
-      path_ret = boost::filesystem::path("/");
-  else
-      path_ret = boost::filesystem::path(home);
-#ifdef __APPLE__
-  // Mac
-  path_ret /= "Library/Application Support";
-  create_directory(path_ret);
-  return path_ret / app_name;
-#else
-  // Unix
-  return path_ret / (std::string(".") + app_name);
-#endif
-#endif
-#endif
 }
 
 }  // namespace app

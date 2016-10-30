@@ -84,6 +84,12 @@ class StringStream {
 /// @return the full path of a file within the kovri directory
 std::string GetFullPath(const std::string& filename);
 
+/// @return the path of the kovri directory
+const boost::filesystem::path& GetDataPath();
+
+/// @return the default directory for app data
+boost::filesystem::path GetDefaultDataPath();
+
 /// @return the path to certificates for SU3 verification
 boost::filesystem::path GetSU3CertsPath();
 

@@ -52,6 +52,7 @@
 #include "core/router/tunnel/tunnel.h"
 
 #include "core/util/base64.h"
+#include "core/util/filesystem.h"
 #include "core/util/i2p_endian.h"
 #include "core/util/log.h"
 #include "core/util/timestamp.h"
@@ -309,7 +310,7 @@ bool NetDb::CreateNetDb(
 }
 
 bool NetDb::Load() {
-  boost::filesystem::path p(kovri::context.GetDataPath() / m_NetDbPath);
+  boost::filesystem::path p(kovri::core::GetDataPath() / m_NetDbPath);
   if (!boost::filesystem::exists(p)) {
     // seems netDb doesn't exist yet
     if (!CreateNetDb(p))
@@ -362,7 +363,7 @@ void NetDb::SaveUpdated() {
     return directory / (std::string("r") + s[0]) / ("router_info_" + s + ".dat");
   };
   boost::filesystem::path full_directory(
-      kovri::context.GetDataPath() / m_NetDbPath);
+      kovri::core::GetDataPath() / m_NetDbPath);
   int count = 0,
       deleted_count = 0;
   auto total = GetNumRouters();

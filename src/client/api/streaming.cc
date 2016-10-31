@@ -929,14 +929,14 @@ std::shared_ptr<Stream> StreamingDestination::CreateNewOutgoingStream(
     int port) {
   auto s = std::make_shared<Stream>(m_Owner.GetService(), *this, remote, port);
   std::unique_lock<std::mutex> l(m_StreamsMutex);
-  m_Streams[s->GetRecvStreamID()] = s;
+  m_Streams[s->GetReceiveStreamID()] = s;
   return s;
 }
 
 std::shared_ptr<Stream> StreamingDestination::CreateNewIncomingStream() {
   auto s = std::make_shared<Stream>(m_Owner.GetService(), *this);
   std::unique_lock<std::mutex> l(m_StreamsMutex);
-  m_Streams[s->GetRecvStreamID()] = s;
+  m_Streams[s->GetReceiveStreamID()] = s;
   return s;
 }
 
@@ -944,7 +944,7 @@ void StreamingDestination::DeleteStream(
     std::shared_ptr<Stream> stream) {
   if (stream) {
     std::unique_lock<std::mutex> l(m_StreamsMutex);
-    auto it = m_Streams.find(stream->GetRecvStreamID());
+    auto it = m_Streams.find(stream->GetReceiveStreamID());
     if (it != m_Streams.end())
       m_Streams.erase(it);
   }

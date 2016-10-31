@@ -3,10 +3,12 @@
 1. To cover, veil, wrap *[(Esperanto)](https://en.wikipedia.org/wiki/Esperanto)*
 2. A secure, private, untraceable C++ implementation of the [I2P](https://geti2p.net) anonymous network
 
-[![Coverity Status](https://scan.coverity.com/projects/7621/badge.svg)](https://scan.coverity.com/projects/7621/)
-[![License](https://img.shields.io/badge/license-BSD3-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+## Disclaimer
+- Currently **pre-alpha** software; under heavy development
 
-| Operating System      | Processor | Build Status |
+## Build / Coverage
+
+| Operating System      | Processor | Status |
 | --------------------- | -------- |--------|
 | Ubuntu 16.04          |  amd64   | [![Ubuntu 16.04 amd64](https://build.getmonero.org/png?builder=kovri-all-ubuntu-amd64)](https://build.getmonero.org/builders/kovri-all-ubuntu-amd64)
 | Ubuntu 16.04          |  i686    | [![Ubuntu 16.04 i686](https://build.getmonero.org/png?builder=kovri-all-ubuntu-i686)](https://build.getmonero.org/builders/kovri-all-ubuntu-i686)
@@ -15,12 +17,13 @@
 | OSX 10.10             |  amd64   | [![OSX 10.10 amd64](https://build.getmonero.org/png?builder=kovri-all-osx-10.10)](https://build.getmonero.org/builders/kovri-all-osx-10.10)
 | OSX 10.11             |  amd64   | [![OSX 10.11 amd64](https://build.getmonero.org/png?builder=kovri-all-osx-10.11)](https://build.getmonero.org/builders/kovri-all-osx-10.11)
 | OSX 10.12             |  amd64   | [![OSX 10.12 amd64](https://build.getmonero.org/png?builder=kovri-all-osx-10.12)](https://build.getmonero.org/builders/kovri-all-osx-10.12)
-| FreeBSD 10.3          |  amd64   | [![FreeBSD 10.3 amd64](https://build.getmonero.org/png?builder=kovri-all-ubuntu-amd64)](https://build.getmonero.org/builders/kovri-all-ubuntu-amd64)
+| FreeBSD 10.3          |  amd64   | [![FreeBSD 10.3 amd64](https://build.getmonero.org/png?builder=kovri-all-freebsd64)](https://build.getmonero.org/builders/kovri-all-freebsd64)
 | Windows (MSYS2/MinGW) |  amd64   | [![Windows (MSYS2/MinGW) amd64](https://build.getmonero.org/png?builder=kovri-all-win64)](https://build.getmonero.org/builders/kovri-all-win64)
 | Windows (MSYS2/MinGW) |  i686    | [![Windows (MSYS2/MinGW) i686](https://build.getmonero.org/png?builder=kovri-all-win32)](https://build.getmonero.org/builders/kovri-all-win32)
 
-## Disclaimer
-- Currently **pre-alpha** software; under heavy development
+[![Coverity Status](https://scan.coverity.com/projects/7621/badge.svg)](https://scan.coverity.com/projects/7621/)
+[![Coveralls Status](https://coveralls.io/repos/github/monero-project/kovri/badge.svg?branch=master)](https://coveralls.io/github/monero-project/kovri?branch=master)
+[![License](https://img.shields.io/badge/license-BSD3-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 ## Documentation
 - [Build Instructions](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md) to install dependencies and build kovri

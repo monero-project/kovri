@@ -49,22 +49,23 @@
 namespace kovri {
 namespace client {
 
-static const std::size_t SOCKSBufferSize = 8192;
+static const std::size_t MAX_SOCKS_BUFFER_SIZE = 8192;
 // Limit for socks5 and bad idea to traverse
-static const std::size_t MaxSOCKSHostSize = 255;
+static const std::size_t MAX_SOCKS_HOSTNAME_SIZE = 255;
 
 struct SOCKSDNSAddress {
   std::uint8_t size;
-  char value[MaxSOCKSHostSize];
+  char value[MAX_SOCKS_HOSTNAME_SIZE];
   void FromString(std::string str) {
     size = str.length();
-    if (str.length() > MaxSOCKSHostSize)
-      size = MaxSOCKSHostSize;
+    if (str.length() > MAX_SOCKS_HOSTNAME_SIZE)
+      size = MAX_SOCKS_HOSTNAME_SIZE;
     memcpy(value, str.c_str(), size);
   }
   std::string ToString() {
     return std::string(value, size);
   }
+
   void PushBack(char c) {
     value[size++] = c;
   }
@@ -252,7 +253,7 @@ class SOCKSHandler
       std::uint8_t parse_left = 1);
 
   bool HandleData(
-      std::uint8_t* socket_buff,
+      std::uint8_t* socket_buffer,
       std::size_t len);
 
   bool ValidateSOCKSRequest();
@@ -298,21 +299,28 @@ class SOCKSHandler
   void HandleStreamRequestComplete(
       std::shared_ptr<kovri::client::Stream> stream);
 
-  std::uint8_t m_SocketBuffer[SOCKSBufferSize];
+  std::uint8_t m_SocketBuffer[MAX_SOCKS_BUFFER_SIZE];
   std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
   std::shared_ptr<kovri::client::Stream> m_Stream;
-  std::uint8_t *m_RemainingData;  // Data left to be sent
-  std::uint8_t m_Response[7+MaxSOCKSHostSize];
-  Address m_Address;  // Address
-  std::size_t m_RemainingDataLen;  // Size of the data left to be sent
-  std::uint32_t m_SOCKS4aIP;  // Used in 4a requests
+  /// @brief Data left to be sent
+  std::uint8_t *m_RemainingData;
+  std::uint8_t m_Response[7 + MAX_SOCKS_HOSTNAME_SIZE];
+  Address m_Address;
+  /// @brief Size of the data left to be sent
+  std::size_t m_RemainingDataLen;
+  /// @brief Used in SOCKS4a requests
+  std::uint32_t m_SOCKS4aIP;
   std::uint16_t m_Port;
   std::uint8_t m_CommandNum;
-  std::uint8_t m_ParseLeft;  // Octets left to parse
-  AuthMethods m_AuthChosen;  // Authentication chosen
-  AddressTypes m_AddressType;  // Address type chosen
-  SOCKSVersions m_SOCKSVersion;  // Socks version
-  CommandTypes m_Command;  // Command requested
+  /// @brief Octets left to parse
+  std::uint8_t m_ParseLeft;
+  /// @brief Authentication chosen
+  AuthMethods m_AuthChosen;
+  /// @brief Address type chosen
+  AddressTypes m_AddressType;
+  SOCKSVersions m_SOCKSVersion;
+  /// @brief Command requested
+  CommandTypes m_Command;
   State m_State;
 
  public:
@@ -333,8 +341,14 @@ class SOCKSHandler
           m_Address.ip = 0;
           EnterState(GetSOCKSVersion);
         }
-  ~SOCKSHandler() { Terminate(); }
-  void Handle() { AsyncSocketRead(); }
+
+  ~SOCKSHandler() {
+    Terminate();
+  }
+
+  void Handle() {
+    AsyncSocketRead();
+  }
 };
 
 void SOCKSHandler::AsyncSocketRead() {
@@ -343,7 +357,7 @@ void SOCKSHandler::AsyncSocketRead() {
     m_Socket->async_receive(
         boost::asio::buffer(
           m_SocketBuffer,
-          SOCKSBufferSize),
+          MAX_SOCKS_BUFFER_SIZE),
         std::bind(
           &SOCKSHandler::HandleSocketReceive,
           shared_from_this(),
@@ -400,7 +414,7 @@ boost::asio::const_buffers_1 SOCKSHandler::GenerateSOCKS5Response(
       memcpy(m_Response + 4, address.ipv6, 16);
       break;
     case DNS:
-      size = 7+address.dns.size;
+      size = 7 + address.dns.size;
       m_Response[4] = address.dns.size;
       memcpy(m_Response + 5, address.dns.value, address.dns.size);
       break;
@@ -564,15 +578,15 @@ bool SOCKSHandler::ValidateSOCKSRequest() {
 }
 
 bool SOCKSHandler::HandleData(
-    std::uint8_t *socket_buff,
+    std::uint8_t *socket_buffer,
     std::size_t len) {
   // This should always be called with a least a byte left to parse
   assert(len);
   while (len > 0) {
     switch (m_State) {
       case GetSOCKSVersion:
-        m_SOCKSVersion = (SOCKSHandler::SOCKSVersions) *socket_buff;
-        switch (*socket_buff) {
+        m_SOCKSVersion = (SOCKSHandler::SOCKSVersions) *socket_buffer;
+        switch (*socket_buffer) {
           case SOCKS4:
             // Initialize the parser at the right position
             EnterState(GetCommand);
@@ -583,17 +597,17 @@ bool SOCKSHandler::HandleData(
           break;
           default:
             LogPrint(eLogError, "SOCKSHandler: rejected invalid version: ",
-                (static_cast<int>(*socket_buff)));
+                (static_cast<int>(*socket_buffer)));
             Terminate();
             return false;
         }
       break;
       case GetSOCKS5AuthNum:
-        EnterState(GetSOCKS5Auth, *socket_buff);
+        EnterState(GetSOCKS5Auth, *socket_buffer);
       break;
       case GetSOCKS5Auth:
         m_ParseLeft--;
-        if (*socket_buff == None)
+        if (*socket_buffer == None)
           m_AuthChosen = None;
         if ( m_ParseLeft == 0 ) {
           if (!SOCKS5ChooseAuth()) return false;
@@ -601,7 +615,7 @@ bool SOCKSHandler::HandleData(
         }
       break;
       case GetCommand:
-        switch (*socket_buff) {
+        switch (*socket_buffer) {
           case Connect:
           case Bind:
           break;
@@ -610,11 +624,11 @@ bool SOCKSHandler::HandleData(
               break;
           default:
             LogPrint(eLogError, "SOCKSHandler: invalid command: ",
-                (static_cast<int>(*socket_buff)));
+                (static_cast<int>(*socket_buffer)));
             SOCKSRequestFailed(SOCKS5Fail);
             return false;
         }
-        m_Command = (SOCKSHandler::CommandTypes)*socket_buff;
+        m_Command = (SOCKSHandler::CommandTypes)*socket_buffer;
         switch (m_SOCKSVersion) {
           case SOCKS5:
             EnterState(GetSOCKS5ReservedField);
@@ -625,7 +639,7 @@ bool SOCKSHandler::HandleData(
         }
       break;
       case GetPort:
-        m_Port = (m_Port << 8)|((std::uint16_t)*socket_buff);
+        m_Port = (m_Port << 8)|((std::uint16_t)*socket_buffer);
         m_ParseLeft--;
         if (m_ParseLeft == 0) {
           switch (m_SOCKSVersion) {
@@ -639,7 +653,7 @@ bool SOCKSHandler::HandleData(
         }
       break;
       case GetIPv4:
-        m_Address.ip = (m_Address.ip << 8)|((std::uint32_t)*socket_buff);
+        m_Address.ip = (m_Address.ip << 8)|((std::uint32_t)*socket_buffer);
         m_ParseLeft--;
         if (m_ParseLeft == 0) {
           switch (m_SOCKSVersion) {
@@ -654,7 +668,8 @@ bool SOCKSHandler::HandleData(
         }
       break;
       case GetSOCKS4Ident:
-        if (!*socket_buff) {
+        if (!*socket_buffer) {
+          /// @brief Checks if SOCKS4aIP has already been parsed
           if (m_SOCKS4aIP == 0 || m_SOCKS4aIP > 255)
             EnterState(Complete);
           else
@@ -662,39 +677,39 @@ bool SOCKSHandler::HandleData(
         }
       break;
       case GetSOCKS4aHost:
-        if (!*socket_buff) {
+        if (!*socket_buffer) {
           EnterState(Complete);
           break;
         }
-        if (m_Address.dns.size >= MaxSOCKSHostSize) {
+        if (m_Address.dns.size >= MAX_SOCKS_HOSTNAME_SIZE) {
           LogPrint(eLogError, "SOCKSHandler: SOCKS4a destination is too large");
           SOCKSRequestFailed(SOCKS4Fail);
           return false;
         }
-        m_Address.dns.PushBack(*socket_buff);
+        m_Address.dns.PushBack(*socket_buffer);
       break;
       case GetSOCKS5RequestVersion:
-        if (*socket_buff != SOCKS5) {
+        if (*socket_buffer != SOCKS5) {
           LogPrint(eLogError,
               "SOCKSHandler: SOCKS5 rejected unknown request version: ",
-              (static_cast<int>(*socket_buff)));
+              (static_cast<int>(*socket_buffer)));
           SOCKSRequestFailed(SOCKS5Fail);
           return false;
         }
         EnterState(GetCommand);
       break;
       case GetSOCKS5ReservedField:
-        if (*socket_buff != 0) {
+        if (*socket_buffer != 0) {
           LogPrint(eLogError,
               "SOCKSHandler: SOCKS5 unknown reserved field: ",
-              (static_cast<int>(*socket_buff)));
+              (static_cast<int>(*socket_buffer)));
           SOCKSRequestFailed(SOCKS5Fail);
           return false;
         }
         EnterState(GetSOCKS5AddressType);
       break;
       case GetSOCKS5AddressType:
-        switch (*socket_buff) {
+        switch (*socket_buffer) {
           case IPv4:
             EnterState(GetIPv4);
             break;
@@ -707,21 +722,21 @@ bool SOCKSHandler::HandleData(
           default:
             LogPrint(eLogError,
                 "SOCKSHandler: SOCKS5 unknown address type: ",
-                (static_cast<int>(*socket_buff)));
+                (static_cast<int>(*socket_buffer)));
             SOCKSRequestFailed(SOCKS5Fail);
             return false;
         }
       break;
       case GetSOCKS5IPv6:
-        m_Address.ipv6[16-m_ParseLeft] = *socket_buff;
+        m_Address.ipv6[16-m_ParseLeft] = *socket_buffer;
         m_ParseLeft--;
         if (m_ParseLeft == 0) EnterState(GetPort);
       break;
       case GetSOCKS5HostSize:
-        EnterState(GetSOCKS5Host, *socket_buff);
+        EnterState(GetSOCKS5Host, *socket_buffer);
       break;
       case GetSOCKS5Host:
-        m_Address.dns.PushBack(*socket_buff);
+        m_Address.dns.PushBack(*socket_buffer);
         m_ParseLeft--;
         if (m_ParseLeft == 0) EnterState(GetPort);
       break;
@@ -730,11 +745,11 @@ bool SOCKSHandler::HandleData(
         Terminate();
         return false;
     }
-    socket_buff++;
+    socket_buffer++;
     len--;
     if (m_State == Complete) {
       m_RemainingDataLen = len;
-      m_RemainingData = socket_buff;
+      m_RemainingData = socket_buffer;
       return ValidateSOCKSRequest();
     }
   }

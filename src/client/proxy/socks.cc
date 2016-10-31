@@ -356,13 +356,13 @@ void SOCKSHandler::AsyncSocketRead() {
   if (m_Socket)
     m_Socket->async_receive(
         boost::asio::buffer(
-          m_SocketBuffer,
-          MAX_SOCKS_BUFFER_SIZE),
+            m_SocketBuffer,
+            MAX_SOCKS_BUFFER_SIZE),
         std::bind(
-          &SOCKSHandler::HandleSocketReceive,
-          shared_from_this(),
-          std::placeholders::_1,
-          std::placeholders::_2));
+            &SOCKSHandler::HandleSocketReceive,
+            shared_from_this(),
+            std::placeholders::_1,
+            std::placeholders::_2));
   else
     LogPrint(eLogError, "SOCKSHandler: no socket read");
 }
@@ -434,9 +434,9 @@ bool SOCKSHandler::SOCKS5ChooseAuth() {
         *m_Socket,
         response,
         std::bind(
-          &SOCKSHandler::SentSOCKSFailed,
-          shared_from_this(),
-          std::placeholders::_1));
+            &SOCKSHandler::SentSOCKSFailed,
+            shared_from_this(),
+            std::placeholders::_1));
     return false;
   } else {
     LogPrint(eLogDebug,
@@ -445,9 +445,9 @@ bool SOCKSHandler::SOCKS5ChooseAuth() {
         *m_Socket,
         response,
         std::bind(
-          &SOCKSHandler::SentSOCKSResponse,
-          shared_from_this(),
-          std::placeholders::_1));
+            &SOCKSHandler::SentSOCKSResponse,
+            shared_from_this(),
+            std::placeholders::_1));
     return true;
   }
 }
@@ -481,9 +481,9 @@ void SOCKSHandler::SOCKSRequestFailed(
       *m_Socket,
       response,
       std::bind(
-        &SOCKSHandler::SentSOCKSFailed,
-        shared_from_this(),
-        std::placeholders::_1));
+          &SOCKSHandler::SentSOCKSFailed,
+          shared_from_this(),
+          std::placeholders::_1));
 }
 
 void SOCKSHandler::SOCKSRequestSuccess() {
@@ -510,9 +510,9 @@ void SOCKSHandler::SOCKSRequestSuccess() {
       *m_Socket,
       response,
       std::bind(
-        &SOCKSHandler::SentSOCKSDone,
-        shared_from_this(),
-        std::placeholders::_1));
+          &SOCKSHandler::SentSOCKSDone,
+          shared_from_this(),
+          std::placeholders::_1));
 }
 
 void SOCKSHandler::EnterState(
@@ -553,7 +553,7 @@ bool SOCKSHandler::ValidateSOCKSRequest() {
     return false;
   }
   // TODO(unassigned): we may want to support other address types!
-  if ( m_AddressType != DNS ) {
+  if (m_AddressType != DNS) {
     switch (m_SOCKSVersion) {
       case SOCKS5:
         LogPrint(eLogError, "SOCKSHandler: SOCKS5 unsupported address type: ",
@@ -771,9 +771,9 @@ void SOCKSHandler::HandleSocketReceive(
           m_Address.dns.ToString(), ":" , m_Port);
       GetOwner()->CreateStream(
           std::bind(
-            &SOCKSHandler::HandleStreamRequestComplete,
-            shared_from_this(),
-            std::placeholders::_1),
+              &SOCKSHandler::HandleStreamRequestComplete,
+              shared_from_this(),
+              std::placeholders::_1),
           m_Address.dns.ToString(),
           m_Port);
     } else {

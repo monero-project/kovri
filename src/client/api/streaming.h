@@ -184,7 +184,7 @@ class Stream : public std::enable_shared_from_this<Stream> {
     return m_SendStreamID;
   }
 
-  std::uint32_t GetRecvStreamID() const {
+  std::uint32_t GetReceiveStreamID() const {
     return m_RecvStreamID;
   }
 

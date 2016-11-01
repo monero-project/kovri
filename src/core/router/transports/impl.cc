@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "core/router/transports/transports.h"
+#include "core/router/transports/impl.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -44,7 +44,7 @@
 
 #include "core/router/context.h"
 #include "core/router/i2np.h"
-#include "core/router/net_db/net_db.h"
+#include "core/router/net_db/impl.h"
 
 #include "core/util/log.h"
 

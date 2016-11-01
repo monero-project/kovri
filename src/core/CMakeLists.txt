@@ -5,18 +5,18 @@ set(CORE_SRC
   "router/garlic.cc"
   "router/i2np.cc"
   "router/identity.cc"
+  "router/info.cc"
   "router/lease_set.cc"
-  "router/net_db/net_db.cc"
+  "router/net_db/impl.cc"
   "router/net_db/requests.cc"
   "router/profiling.cc"
-  "router/info.cc"
-  "router/transports/ntcp/ntcp.cc"
+  "router/transports/impl.cc"
+  "router/transports/ntcp/server.cc"
   "router/transports/ntcp/session.cc"
   "router/transports/ssu/data.cc"
   "router/transports/ssu/packet.cc"
+  "router/transports/ssu/server.cc"
   "router/transports/ssu/session.cc"
-  "router/transports/ssu/ssu.cc"
-  "router/transports/transports.cc"
   "router/transports/upnp.cc"
   "router/tunnel/config.cc"
   "router/tunnel/endpoint.cc"
@@ -27,8 +27,8 @@ set(CORE_SRC
   "util/base64.cc"
   "util/byte_stream.cc"
   "util/filesystem.cc"
-  "util/mtu.cc"
-  "util/impl/log.cc")
+  "util/impl/log.cc"
+  "util/mtu.cc")
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
   list(APPEND CORE_SRC "util/i2p_endian.cc")

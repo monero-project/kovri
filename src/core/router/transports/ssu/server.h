@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CORE_ROUTER_TRANSPORTS_SSU_H_
-#define SRC_CORE_ROUTER_TRANSPORTS_SSU_H_
+#ifndef SRC_CORE_ROUTER_TRANSPORTS_SSU_SERVER_H_
+#define SRC_CORE_ROUTER_TRANSPORTS_SSU_SERVER_H_
 
 #include <boost/asio.hpp>
 
@@ -198,4 +198,4 @@ class SSUServer {
 }  // namespace core
 }  // namespace kovri
 
-#endif  // SRC_CORE_ROUTER_TRANSPORTS_SSU_H_
+#endif  // SRC_CORE_ROUTER_TRANSPORTS_SSU_SERVER_H_

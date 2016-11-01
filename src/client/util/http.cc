@@ -41,7 +41,7 @@
 #include <string>
 #include <vector>
 
-#include "client/address_book/address_book.h"
+#include "client/address_book/impl.h"
 #include "client/context.h"
 
 #include "core/router/context.h"

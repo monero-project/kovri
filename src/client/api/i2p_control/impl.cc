@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "client/api/i2p_control/i2p_control.h"
+#include "client/api/i2p_control/impl.h"
 
 #include <boost/property_tree/json_parser.hpp>
 
@@ -46,8 +46,8 @@
 #include "core/crypto/rand.h"
 
 #include "core/router/context.h"
-#include "core/router/net_db/net_db.h"
-#include "core/router/transports/transports.h"
+#include "core/router/net_db/impl.h"
+#include "core/router/transports/impl.h"
 #include "core/router/tunnel/tunnel.h"
 
 #include "core/util/filesystem.h"

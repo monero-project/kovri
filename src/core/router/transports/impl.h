@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CORE_ROUTER_TRANSPORTS_TRANSPORTS_H_
-#define SRC_CORE_ROUTER_TRANSPORTS_TRANSPORTS_H_
+#ifndef SRC_CORE_ROUTER_TRANSPORTS_IMPL_H_
+#define SRC_CORE_ROUTER_TRANSPORTS_IMPL_H_
 
 #include <boost/asio.hpp>
 
@@ -51,10 +51,10 @@
 #include "core/router/i2np.h"
 #include "core/router/identity.h"
 #include "core/router/info.h"
-#include "core/router/transports/ntcp/ntcp.h"
+#include "core/router/transports/ntcp/server.h"
 #include "core/router/transports/ntcp/session.h"
 #include "core/router/transports/session.h"
-#include "core/router/transports/ssu/ssu.h"
+#include "core/router/transports/ssu/server.h"
 
 #ifdef USE_UPNP
 #include "core/router/transports/upnp.h"
@@ -297,4 +297,4 @@ extern Transports transports;
 }  // namespace core
 }  // namespace kovri
 
-#endif  // SRC_CORE_ROUTER_TRANSPORTS_TRANSPORTS_H_
+#endif  // SRC_CORE_ROUTER_TRANSPORTS_IMPL_H_

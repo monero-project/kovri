@@ -44,8 +44,8 @@
 
 #include "core/router/context.h"
 #include "core/router/transports/ssu/packet.h"
-#include "core/router/transports/ssu/ssu.h"
-#include "core/router/transports/transports.h"
+#include "core/router/transports/ssu/server.h"
+#include "core/router/transports/impl.h"
 
 #include "core/util/log.h"
 #include "core/util/timestamp.h"

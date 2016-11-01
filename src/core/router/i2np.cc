@@ -45,8 +45,8 @@
 
 #include "core/router/context.h"
 #include "core/router/garlic.h"
-#include "core/router/net_db/net_db.h"
-#include "core/router/transports/transports.h"
+#include "core/router/net_db/impl.h"
+#include "core/router/transports/impl.h"
 #include "core/router/tunnel/tunnel.h"
 
 #include "core/util/i2p_endian.h"

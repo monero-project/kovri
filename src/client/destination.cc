@@ -43,13 +43,13 @@
 #include <utility>
 #include <vector>
 
-#include "client/address_book/address_book.h"
+#include "client/address_book/impl.h"
 
 #include "core/crypto/elgamal.h"
 #include "core/crypto/rand.h"
 
 #include "core/router/identity.h"
-#include "core/router/net_db/net_db.h"
+#include "core/router/net_db/impl.h"
 
 #include "core/util/log.h"
 #include "core/util/timestamp.h"

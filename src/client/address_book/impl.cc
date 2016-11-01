@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "client/address_book/address_book.h"
+#include "client/address_book/impl.h"
 
 #include <boost/asio.hpp>
 
@@ -50,7 +50,7 @@
 #include "core/crypto/rand.h"
 
 #include "core/router/identity.h"
-#include "core/router/net_db/net_db.h"
+#include "core/router/net_db/impl.h"
 
 #include "core/util/log.h"
 

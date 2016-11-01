@@ -63,7 +63,7 @@ cmake = cmake $(cmake-gen) $(cmake-debug)
 
 # Dependencies options
 cmake-cpp-netlib = -D CPP-NETLIB_BUILD_TESTS=OFF -D CPP-NETLIB_BUILD_EXAMPLES=OFF
-cmake-cryptopp = -D BUILD_TESTING=OFF
+cmake-cryptopp = -D BUILD_TESTING=OFF -D BUILD_SHARED=OFF
 
 # Current off-by-default Kovri build options
 cmake-upnp       = -D WITH_UPNP=ON

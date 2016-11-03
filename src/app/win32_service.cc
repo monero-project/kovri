@@ -52,7 +52,7 @@ BOOL I2PService::IsService() {
   if (win_station != NULL) {
     USEROBJECTFLAGS uof = { 0 };
     if (GetUserObjectInformation(win_station, UOI_FLAGS, &uof,
-      sizeof(USEROBJECTFLAGS), NULL) && ((uof.flags & WSF_VISIBLE) == 0)) {
+      sizeof(USEROBJECTFLAGS), NULL) && ((uof.dwFlags & WSF_VISIBLE) == 0)) {
         is_service = TRUE;
     }
   }
@@ -104,8 +104,8 @@ I2PService::I2PService(
     m_Name = service_name;
   }
   m_StatusHandle = NULL;
-  m_Status.service_type = SERVICE_WIN32_OWN_PROCESS;
-  m_Status.current_state = SERVICE_START_PENDING;
+  m_Status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
+  m_Status.dwCurrentState = SERVICE_START_PENDING;
   DWORD controls_accepted = 0;
   if (can_stop)
     controls_accepted |= SERVICE_ACCEPT_STOP;
@@ -113,11 +113,11 @@ I2PService::I2PService(
     controls_accepted |= SERVICE_ACCEPT_SHUTDOWN;
   if (can_pause_continue)
     controls_accepted |= SERVICE_ACCEPT_PAUSE_CONTINUE;
-  m_Status.controls_accepted = controls_accepted;
-  m_Status.win32_exit_code = NO_ERROR;
-  m_Status.service_specific_exit_code = 0;
-  m_Status.check_point = 0;
-  m_Status.wait_hint = 0;
+  m_Status.dwControlsAccepted = controls_accepted;
+  m_Status.dwWin32ExitCode = NO_ERROR;
+  m_Status.dwServiceSpecificExitCode = 0;
+  m_Status.dwCheckPoint = 0;
+  m_Status.dwWaitHint = 0;
   m_Stopping = FALSE;
   // Create a manual-reset event that is not signaled at first to indicate
   // the stopped signal of the service.
@@ -173,7 +173,7 @@ void I2PService::WorkerThread() {
 }
 
 void I2PService::Stop() {
-  DWORD original_state = m_Status.current_state;
+  DWORD original_state = m_Status.dwCurrentState;
   try {
     SetServiceStatus(SERVICE_STOP_PENDING);
     OnStop();
@@ -255,10 +255,10 @@ void I2PService::SetServiceStatus(
     DWORD win32_exit_code,
     DWORD wait_hint) {
   static DWORD check_point = 1;
-  m_Status.current_state = current_state;
-  m_Status.win32_exit_code = win32_exit_code;
-  m_Status.wait_hint = wait_hint;
-  m_Status.check_point =
+  m_Status.dwCurrentState = current_state;
+  m_Status.dwWin32ExitCode = win32_exit_code;
+  m_Status.dwWaitHint = wait_hint;
+  m_Status.dwCheckPoint =
     ((current_state == SERVICE_RUNNING) ||
     (current_state == SERVICE_STOPPED)) ? 0 : check_point++;
   ::SetServiceStatus(m_StatusHandle, &m_Status);
@@ -272,7 +272,7 @@ void FreeHandles(SC_HANDLE manager, SC_HANDLE service) {
     manager = NULL;
   }
   if (service) {
-    CloseServiceHandle(sch_service);
+    CloseServiceHandle(service);
     service = NULL;
   }
 }
@@ -352,14 +352,14 @@ void UninstallService(PSTR service_name) {
     printf("Stopping %s.\n", service_name);
     Sleep(1000);
     while (QueryServiceStatus(service, &status)) {
-      if (status.current_state == SERVICE_STOP_PENDING) {
+      if (status.dwCurrentState == SERVICE_STOP_PENDING) {
         printf(".");
         Sleep(1000);
       } else {
         break;
       }
     }
-    if (status.current_state == SERVICE_STOPPED) {
+    if (status.dwCurrentState == SERVICE_STOPPED) {
       printf("\n%s is stopped.\n", service_name);
     } else {
       printf("\n%s failed to stop.\n", service_name);

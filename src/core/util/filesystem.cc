@@ -32,6 +32,12 @@
 
 #include "core/util/filesystem.h"
 
+#ifdef __MINGW32__
+#define WIN32_LEAN_AND_MEAN
+#include <minwindef.h>
+#include <shlobj.h>
+#endif
+
 #include <string>
 
 #include "core/router/context.h"

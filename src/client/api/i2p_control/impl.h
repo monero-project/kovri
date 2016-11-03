@@ -41,7 +41,7 @@
 #include <mutex>
 #include <string>
 
-#include "core/router/tunnel/tunnel.h"
+#include "core/router/tunnel/impl.h"
 
 namespace kovri {
 namespace client {

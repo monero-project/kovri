@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CORE_ROUTER_TUNNEL_TUNNEL_H_
-#define SRC_CORE_ROUTER_TUNNEL_TUNNEL_H_
+#ifndef SRC_CORE_ROUTER_TUNNEL_IMPL_H_
+#define SRC_CORE_ROUTER_TUNNEL_IMPL_H_
 
 #include <cstddef>
 #include <cstdint>
@@ -367,4 +367,4 @@ extern Tunnels tunnels;
 }  // namespace core
 }  // namespace kovri
 
-#endif  // SRC_CORE_ROUTER_TUNNEL_TUNNEL_H_
+#endif  // SRC_CORE_ROUTER_TUNNEL_IMPL_H_

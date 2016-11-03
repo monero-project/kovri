@@ -41,7 +41,7 @@
 
 #include "core/router/context.h"
 #include "core/router/info.h"
-#include "core/router/tunnel/tunnel.h"
+#include "core/router/tunnel/impl.h"
 
 #include "core/util/log.h"
 #include "core/util/timestamp.h"

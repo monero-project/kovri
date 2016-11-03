@@ -48,7 +48,7 @@
 #include "core/router/context.h"
 #include "core/router/net_db/impl.h"
 #include "core/router/transports/impl.h"
-#include "core/router/tunnel/tunnel.h"
+#include "core/router/tunnel/impl.h"
 
 #include "core/util/filesystem.h"
 #include "core/util/log.h"

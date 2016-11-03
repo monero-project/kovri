@@ -225,7 +225,7 @@ class TCPIPAcceptor : public I2PService {
   /// pass handler function; this is what starts the communication
   void Accept();
   /// @brief callback function to handle data transfers ;
-  /// @param ecode
+  /// @param ecode boost error code; reference variable to hold error code when app
   /// @param socket socket created by accept
   void HandleAccept(
       const boost::system::error_code& ecode,

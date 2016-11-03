@@ -193,7 +193,7 @@ $ export CC=clang CXX=clang++  # replace ```clang``` with a clang version/path o
 ### FreeBSD
 ```bash
 $ export CC=clang36 CXX=clang++36
-$ gmake dependencies && gmake && gmake install-resources
+$ gmake && gmake install-resources
 ```
 - Replace ```make``` with ```gmake``` for all other build options
 

@@ -100,12 +100,15 @@ class I2PService {
   inline boost::asio::io_service& GetService() {
     return m_LocalDestination->GetService();
   }
-  /// @brief virtual start service
+  /// @brief virtual start service; begin listening; each service must
+  /// listen for connections
   virtual void Start() = 0;
-  /// @brief virtual stop service
+  /// @brief virtual stop service; stop listening; each service must
+  /// be able to stop listening for connections
   virtual void Stop() = 0;
 
-  /// @brief return name of service. must override
+  /// @brief return name of service. must override;
+  /// different services return strings to name them;
   virtual std::string GetName() const = 0;
 
  private:
@@ -116,7 +119,6 @@ class I2PService {
 
 /// @class I2PServiceHandler
 /// @brief Simple interface for I2PHandlers. abstract class for handler
-/// Simple interface for I2PHandlers. abstract class for handler
 /// Handler will take listener away from server and process messaging;
 /// thus allowing server to continue listening.
 /// Allows detection of finalization amongst other things.

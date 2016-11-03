@@ -49,7 +49,7 @@
 #include "core/router/lease_set.h"
 #include "core/router/net_db/requests.h"
 #include "core/router/tunnel/pool.h"
-#include "core/router/tunnel/tunnel.h"
+#include "core/router/tunnel/impl.h"
 
 #include "core/util/queue.h"
 

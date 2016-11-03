@@ -52,7 +52,7 @@
 #include "core/router/net_db/impl.h"
 #include "core/router/transports/ntcp/session.h"
 #include "core/router/transports/impl.h"
-#include "core/router/tunnel/tunnel.h"
+#include "core/router/tunnel/impl.h"
 
 #include "core/util/log.h"
 

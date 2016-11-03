@@ -51,7 +51,7 @@
 #include "core/router/i2np.h"
 #include "core/router/identity.h"
 #include "core/router/lease_set.h"
-#include "core/router/tunnel/tunnel.h"
+#include "core/router/tunnel/impl.h"
 
 #include "core/util/i2p_endian.h"
 

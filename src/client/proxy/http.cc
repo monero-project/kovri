@@ -34,16 +34,20 @@
 
 #include <boost/lexical_cast.hpp>
 #include <boost/regex.hpp>
-
+#include <boost/tokenizer.hpp>
+#include <boost/algorithm/string/regex.hpp>
 #include <atomic>
 #include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <memory>
 #include <string>
+#include <map>
 
 #include "client/api/streaming.h"
 #include "client/context.h"
+#include <boost/foreach.hpp>
+#include "core/router/identity.h"
 #include "client/destination.h"
 #include "client/tunnel.h"
 #include "client/util/http.h"
@@ -54,9 +58,42 @@
 
 namespace kovri {
 namespace client {
+HTTPProxyMessage::HTTPProxyMessage(int response_code,const std::string & response_string,const std::string & body, unsigned int body_length){
+  m_Headers.m_Total=NUMBER_OF_HEADERS;
+  SetResponse(response_code,response_string);
+}
+bool HTTPProxyMessage::IsValid(HTTPProxyMessage & msg){
+        if (msg.m_Headers.m_Strings.size() == 0)
+                return false;
+        if (msg.m_Response.m_String == "")
+                return false;
+        if (msg.m_Response.m_Code < 1 || msg.m_Response.m_Code > 999)
+                return false;
 
+        return true;
+
+}
+bool HTTPProxyMessage::SetBody(const std::string & body, size_t len)
+{
+        /* Check for valid arguments */
+        if (body.length() == 0)
+                return false;
+        if (len == 0)
+                return false;
+
+        m_Body.m_Text = body;
+        m_Body.m_Length = len;
+
+        return true;
+}
+
+
+void HTTPProxyMessage::SetResponse(int response_code, const std::string &response_string){
+  m_Response.m_Code=response_code;  
+  m_Response.m_String=response_string;
+}
 //
-// Server
+// @brief Server
 //
 
 HTTPProxyServer::HTTPProxyServer(
@@ -108,7 +145,6 @@ void HTTPProxyHandler::HandleSockRecv(
     return;
   }
   if (HandleData(m_Buffer.data(), len)) {
-    if (m_State == static_cast<std::size_t>(State::done)) {
       LogPrint(eLogInfo, "HTTPProxyHandler: proxy requested: ", m_URL);
       GetOwner()->CreateStream(
           std::bind(
@@ -117,93 +153,33 @@ void HTTPProxyHandler::HandleSockRecv(
               std::placeholders::_1),
           m_Address,
           m_Port);
-    } else {
-      AsyncSockRead();
-    }
   }
 }
 
 bool HTTPProxyHandler::HandleData(
     std::uint8_t* buf,
     std::size_t len) {
-  // This should always be called with at least a byte left to parse
   assert(len);
-  while (len > 0) {
-    switch (m_State) {
-      case static_cast<std::size_t>(State::get_method):
-        switch (*buf) {
-          case ' ':
-            SetState(State::get_url);
-            break;
-          default:
-            m_Method.push_back(*buf);
-            break;
-        }
-      break;
-      case static_cast<std::size_t>(State::get_url):
-        switch (*buf) {
-          case ' ':
-            SetState(State::get_http_version);
-            break;
-          default:
-            m_URL.push_back(*buf);
-            break;
-        }
-      break;
-      case static_cast<std::size_t>(State::get_http_version):
-        switch (*buf) {
-          case '\r':
-            SetState(State::host);
-            break;
-          default:
-            m_Version.push_back(*buf);
-            break;
-        }
-      break;
-      case static_cast<std::size_t>(State::host):
-        switch (*buf) {
-          case '\r':
-            SetState(State::useragent);
-            break;
-          default:
-            m_Host.push_back(*buf);
-            break;
-        }
-      break;
-      case static_cast<std::size_t>(State::useragent):
-        switch (*buf) {
-          case '\r':
-            SetState(State::newline);
-            break;
-          default:
-            m_UserAgent.push_back(*buf);
-            break;
-        }
-      break;
-      case static_cast<std::size_t>(State::newline):
-        switch (*buf) {
-          case '\n':
-            SetState(State::done);
-            break;
-          default:
-            LogPrint(eLogError,
-                "HTTPProxyHandler: rejected invalid request ending with: ",
-                static_cast<std::size_t>(*buf));
-            HTTPRequestFailed();  // TODO(unassigned): add correct code
-            return false;
-        }
-      break;
-      default:
-        LogPrint(eLogError, "HTTPProxyHandler: invalid state: ", m_State);
-        HTTPRequestFailed();  // TODO(unassigned): add correct code 500
-        return false;
-    }
-    buf++;
-    len--;
-    if (m_State == static_cast<std::size_t>(State::done))
-      return CreateHTTPRequest(buf, len);
-  }
-  return true;
+  std::string bufString(buf,buf+len);
+  std::vector<std::string> HeaderBody;
+  std::vector<std::string> tokens;
+  //get header info
+  boost::algorithm::split_regex(HeaderBody,bufString,boost::regex("\r\n\r\n"));
+  boost::algorithm::split_regex(tokens,HeaderBody[0],boost::regex("\r\n"));
+  m_RequestLine=tokens[0];
+  //requestline
+  std::vector<std::string> tokensRequest;
+  boost::split(tokensRequest,m_RequestLine,boost::is_any_of(" \t"));
+  m_Method=tokensRequest[0];
+  m_URL=tokensRequest[1];
+  m_Version=tokensRequest[2];
+  //headersline
+  m_Headers=tokens;
+  m_Headers.erase(m_Headers.begin()); //remove start line
+  //send the headers into the map.
+  //body line
+  m_Body=HeaderBody[1];
+  return CreateHTTPRequest(len);
 }
 
 void HTTPProxyHandler::HandleStreamRequestComplete(
@@ -230,14 +206,7 @@ void HTTPProxyHandler::HandleStreamRequestComplete(
     HTTPRequestFailed();
   }
 }
-
-void HTTPProxyHandler::SetState(
-    const HTTPProxyHandler::State& state) {
-  m_State = state;
-}
-
 bool HTTPProxyHandler::CreateHTTPRequest(
-    std::uint8_t* buf,
     std::size_t len) {
   if (!ExtractIncomingRequest())
     return false;
@@ -245,16 +214,30 @@ bool HTTPProxyHandler::CreateHTTPRequest(
   // Set method, path, and version
   m_Request = m_Method;
   m_Request.push_back(' ');
-  m_Request += m_Path;
+  m_Request += m_URL;
   m_Request.push_back(' ');
   m_Request += m_Version + "\r\n";
-  // Set Host:
-  m_Request += m_Host + "\r\n";
-  // Reset/scrub User-Agent:
-  m_UserAgent = "MYOB/6.66 (AN/ON)";
-  m_Request += "User-Agent: " + m_UserAgent + "\r\n";
-  // Append remaining original request
-  m_Request.append(reinterpret_cast<const char *>(buf), len);
+  // Reset/scrub User-Agent: ; 1. create map from list of headerssplit on :;2.  replace useragent
+  std::multimap<std::string,std::string> headerMap;
+  for(auto it = m_Headers.begin();it!=m_Headers.end();it++)
+  {
+    std::vector<std::string> keyElement;
+     
+    boost::split(keyElement,*it,boost::is_any_of(":"));
+    headerMap.insert(std::pair<std::string,std::string>(keyElement[0],keyElement[1]));
+  }
+  //multimaps cannot directly access the key
+  //
+  std::pair <std::multimap<std::string,std::string>::iterator, std::multimap<std::string,std::string>::iterator> ret;
+  ret = headerMap.equal_range("User-Agent");
+  for( std::multimap<std::string,std::string>::iterator it = ret.first;it!=ret.second;it++){
+    it->second= "MYOB/6.66 (AN/ON)";
+  }
+
+  for( std::map<std::string, std::string>::iterator ii=headerMap.begin(); ii!=headerMap.end(); ++ii){
+    m_Request = m_Request + ii->first + ":" + ii->second+ "\r\n";
+  }
+  m_Request=m_Request + "\r\n";
   return true;
 }
 

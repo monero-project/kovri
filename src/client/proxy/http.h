@@ -40,6 +40,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "client/destination.h"
 #include "client/service.h"
@@ -47,6 +48,34 @@
 namespace kovri {
 namespace client {
 
+#define NUMBER_OF_HEADERS 128
+class HTTPProxyMessage{
+  public:
+    HTTPProxyMessage(int response_code,const std::string & response_string,const std::string & body, unsigned int body_length);
+    static bool IsValid(HTTPProxyMessage & msg);
+    void SetResponse(int response_code, const std::string &response_string);
+    bool SetBody(const std::string &body, size_t len);
+    void AddHeaders(const std::vector<std::string> &headers, unsigned int num_headers);
+  private:
+
+  struct {
+    std::string m_String;
+    int m_Code;
+  } m_Response;
+
+  struct {
+    std::vector<std::string> m_Strings;
+    unsigned int m_Total;
+    unsigned int m_Used;
+  } m_Headers;
+
+        /* Body of the message (most likely an HTML message) */
+  struct {
+    std::string m_Text;
+    size_t m_Length;
+  } m_Body;
+
+};
 /// @class HTTPProxyServer
 class HTTPProxyServer
     : public kovri::client::TCPIPAcceptor {
@@ -93,7 +122,7 @@ class HTTPProxyHandler
       : I2PServiceHandler(parent),
         m_Socket(socket),
         m_Port(0) {
-          SetState(State::get_method);
+
         }
 
   ~HTTPProxyHandler() {
@@ -122,42 +151,10 @@ class HTTPProxyHandler
   void HandleStreamRequestComplete(
       std::shared_ptr<kovri::client::Stream> stream);
 
-  /// @enum State
-  /// @brief Parsing state
-  /// @note Only GET method currently supported
-  enum State : const std::uint8_t {
-    /// @var get_method
-    /// @brief Method sent in request
-    get_method,
-    /// @var get_url
-    /// @brief URL sent in request
-    get_url,
-    /// @var get_http_version
-    /// @brief HTTP version
-    get_http_version,
-    /// @var host
-    /// @brief Host: sent in request
-    host,
-    /// @var useragent
-    /// @brief User-Agent: sent in request
-    useragent,
-    /// @var newline
-    /// @brief Newline in request
-    newline,
-    /// @var done
-    /// @brief Done with request
-    done,
-  } m_State;
-
-  /// @brief Sets state set by handled data
-  void SetState(
-      const State& state);
-
   /// @brief Processes original request: extracts, validates,
   ///   calls jump service, appends original request
   /// @return true on success
   bool CreateHTTPRequest(
-      uint8_t *buf,
       std::size_t len);
 
   /// @brief Performs regex, sets address/port/path, validates version
@@ -195,7 +192,8 @@ class HTTPProxyHandler
   std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
 
   /// @brief Data for incoming request
-  std::string m_Request, m_URL, m_Method, m_Version, m_Address, m_Path;
+  std::string m_RequestLine, m_HeaderLine,m_Request, m_Body,m_URL, m_Method, m_Version, m_Address, m_Path;
+  std::vector<std::string> m_Headers;
   std::string m_Host, m_UserAgent;
   std::uint16_t m_Port;
 

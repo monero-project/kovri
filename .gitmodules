@@ -1,8 +1,8 @@
 [submodule "deps/cpp-netlib"]
 	path = deps/cpp-netlib
-	url = https://github.com/cpp-netlib/cpp-netlib.git
+	url = https://github.com/anonimal/cpp-netlib.git
 	branch = 0.13-release
 [submodule "deps/cryptopp"]
 	path = deps/cryptopp
-	url = https://github.com/weidai11/cryptopp.git
+	url = https://github.com/anonimal/cryptopp.git
 	branch = CRYPTOPP_5_6_5

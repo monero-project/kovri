@@ -64,6 +64,7 @@ class TunnelEncryption::TunnelEncryptionImpl {
       const std::uint8_t* in,
       std::uint8_t* out) {
     if (UsingAESNI()) {
+#if defined(__x86_64__) || defined(_M_X64)  // TODO(unassigned): hack until we implement ARM AES-NI
       __asm__(
           // encrypt IV
           "movups (%[in]), %%xmm0 \n"
@@ -88,6 +89,7 @@ class TunnelEncryption::TunnelEncryptionImpl {
             [sched_l]"r"(m_ECBLayerEncryption.GetKeySchedule()),
             [in]"r"(in), [out]"r"(out), [num]"r"(63)  // 63 blocks = 1008 bytes
           : "%xmm0", "%xmm1", "cc", "memory");
+#endif
     } else {
       m_IVEncryption.Encrypt(  // iv
           (const CipherBlock *)in,
@@ -148,6 +150,7 @@ class TunnelDecryption::TunnelDecryptionImpl {
       const std::uint8_t* in,
       std::uint8_t* out) {
     if (UsingAESNI()) {
+#if defined(__x86_64__) || defined(_M_X64)  // TODO(unassigned): hack until we implement ARM AES-NI
       __asm__(
           // decrypt IV
           "movups (%[in]), %%xmm0 \n"
@@ -173,6 +176,7 @@ class TunnelDecryption::TunnelDecryptionImpl {
             [sched_l]"r"(m_ECBLayerDecryption.GetKeySchedule()),
             [in]"r"(in), [out]"r"(out), [num]"r"(63)  // 63 blocks = 1008 bytes
           : "%xmm0", "%xmm1", "%xmm2", "cc", "memory");
+#endif
     } else {
       m_IVDecryption.Decrypt(
           (const CipherBlock *)in,

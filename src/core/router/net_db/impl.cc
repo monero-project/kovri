@@ -335,8 +335,8 @@ bool NetDb::Load() {
 #endif
         auto r = std::make_shared<RouterInfo>(full_path);
         if (!r->IsUnreachable() &&
-            (!r->UsesIntroducer() ||
-             ts < r->GetTimestamp() + 3600 * 1000LL)) {  // 1 hour
+            (!r->UsesIntroducer() || ts < r->GetTimestamp() +
+             static_cast<std::uint64_t>(NetDbTime::RouterExpiration))) {  // 1 hour
           r->DeleteBuffer();
           r->ClearProperties();  // properties are not used for regular routers
           m_RouterInfos[r->GetIdentHash()] = r;
@@ -377,27 +377,30 @@ void NetDb::SaveUpdated() {
       count++;
     } else {
       // RouterInfo expires after 1 hour if it uses an introducer
-      if (it.second->UsesIntroducer() &&
-          ts > it.second->GetTimestamp() + 3600 * 1000LL) {  // 1 hour
+      if (it.second->UsesIntroducer() && ts > it.second->GetTimestamp() +
+          static_cast<std::uint64_t>(NetDbTime::RouterExpiration)) {  // 1 hour
         it.second->SetUnreachable(true);
-      } else if (total > 75 && ts >
-          (kovri::context.GetStartupTime() + 600) * 1000LL) {
+      } else if (total > 75 && ts > kovri::context.GetStartupTime() +
+          static_cast<std::uint64_t>(NetDbTime::RouterExpiration) / 6) {
         // ^ routers don't expire if less than 25
         // or uptime is less than 10 minutes
         if (kovri::context.IsFloodfill()) {
-          if (ts > it.second->GetTimestamp() + 3600 * 1000LL) {
+          if (ts > it.second->GetTimestamp() +
+              static_cast<std::uint64_t>(NetDbTime::RouterExpiration)) {
             it.second->SetUnreachable(true);
             total--;
           }
         } else if (total > 300) {
           // 30 hours
-          if (ts > it.second->GetTimestamp() + 30 * 3600 * 1000LL) {
+          if (ts > it.second->GetTimestamp() +
+              30 * static_cast<std::uint64_t>(NetDbTime::RouterExpiration)) {
             it.second->SetUnreachable(true);
             total--;
           }
         } else if (total > 120) {
           // 72 hours
-          if (ts > it.second->GetTimestamp() + 72 * 3600 * 1000LL) {
+          if (ts > it.second->GetTimestamp() +
+              72 * static_cast<std::uint64_t>(NetDbTime::RouterExpiration)) {
             it.second->SetUnreachable(true);
             total--;
           }
@@ -621,8 +624,8 @@ void NetDb::HandleDatabaseSearchReplyMsg(
     LogPrint(eLogInfo, "NetDb: ", i, ": ", peer_hash);
     auto r = FindRouter(router);
     if (!r ||
-        kovri::core::GetMillisecondsSinceEpoch() >
-        r->GetTimestamp() + 3600 * 1000LL)  {
+        kovri::core::GetMillisecondsSinceEpoch() > r->GetTimestamp() +
+        static_cast<std::uint64_t>(NetDbTime::RouterExpiration))  {
       // router with ident not found or too old (1 hour)
       LogPrint(eLogInfo,
           "NetDb: found new/outdated router, requesting RouterInfo");

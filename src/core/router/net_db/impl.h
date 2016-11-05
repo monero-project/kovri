@@ -80,10 +80,37 @@ enum struct NetDbInterval : const std::uint16_t {
   DelayedExploratory = 90,
 };
 
+/// @enum NetDbTime
+/// @brief Constants defining timestamp
+///  variables for various NetDb operations
+enum struct NetDbTime : const std::uint32_t {
+  /// @var RouterExpiration
+  /// @brief in milliseconds
+  RouterExpiration = 3600 * 1000,
+  /// @var RouterStartupPeriod
+  /// @brief in seconds, defines
+  ///  a grace period when a router
+  ///  has just started to not set
+  ///  expired routers as unreachable,
+  ///  so tunnels will be built quickly
+  RouterStartupPeriod = 600,
+  /// @var RouterMinGracePeriod
+  /// @brief in hours, defines a grace
+  ///  period for expiring routers when
+  ///  router count exceeds MaxRouterCheckUnreachable
+  RouterMinGracePeriod = 30,
+  /// @var RouterMaxGracePeriod
+  /// @brief in hours, defines a grace
+  ///  period for expiring routers when
+  ///  router count exceeds MinRouterCheckUnreachable
+  RouterMaxGracePeriod = 72,
+};
+
 /// @enum NetDbSize
 /// @brief Constants defining NetDb sizes
 ///   for how many known routers are wanted for
 ///   a large variety of peers to build tunnels
+///   and other uses
 enum struct NetDbSize : const std::uint16_t {
   /// @var MinKnownRouters
   /// @brief minimum number of known routers
@@ -105,6 +132,26 @@ enum struct NetDbSize : const std::uint16_t {
   /// @brief max number of NetDb messages
   ///   that can be processed in succession
   MaxMessagesRead = 100,
+  /// @var MaxExcludedPeers
+  /// @brief max number of excluded peers
+  ///  for handling database lookup messages,
+  ///  currently only used for printing error logs
+  MaxExcludedPeers = 512,
+  /// @var RouterCheckUnreachableThreshold
+  /// @brief defines the threshold where
+  ///  routers get checked if they have
+  ///  expired ie unreachable
+  RouterCheckUnreachableThreshold = 75,
+  /// @var MinRouterCheckUnreachable
+  /// @brief the minimum limit for
+  ///  number of routers to be checked and
+  ///  set unreachable by expiration date
+  MinRouterCheckUnreachable = 120,
+  /// @var MaxRouterCheckUnreachable
+  /// @brief the maximum limit for number of
+  ///  routers to be checked and set unreachable
+  ///  by expiration date
+  MaxRouterCheckUnreachable = 300,
 };
 
 class NetDb {

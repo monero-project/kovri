@@ -266,7 +266,6 @@ bool Transports::IsBandwidthExceeded() const {
 void Transports::SendMessage(
     const kovri::core::IdentHash& ident,
     std::shared_ptr<kovri::I2NPMessage> msg) {
-  LogPrint(eLogDebug, "Transports: sending messages");
   SendMessages(
       ident,
       std::vector<std::shared_ptr<kovri::I2NPMessage>> {msg});
@@ -275,6 +274,7 @@ void Transports::SendMessage(
 void Transports::SendMessages(
     const kovri::core::IdentHash& ident,
     const std::vector<std::shared_ptr<kovri::I2NPMessage>>& msgs) {
+  LogPrint(eLogDebug, "Transports: sending messages");
   m_Service.post(
       std::bind(
           &Transports::PostMessages,

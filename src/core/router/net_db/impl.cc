@@ -344,8 +344,7 @@ bool NetDb::Load() {
             m_Floodfills.push_back(r);
           num_routers++;
         } else {
-          if (boost::filesystem::exists(full_path))
-            boost::filesystem::remove(full_path);
+          boost::filesystem::remove(full_path);
         }
       }
     }

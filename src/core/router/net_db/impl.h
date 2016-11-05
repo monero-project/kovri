@@ -80,6 +80,15 @@ enum struct NetDbInterval : const std::uint16_t {
   DelayedExploratory = 90,
 };
 
+/// @enum NetDbTime
+/// @brief Constants defining timestamp
+///  variables for various NetDb operations
+enum struct NetDbTime : const std::uint64_t {
+  /// @var RouterExpiration
+  /// @brief in milliseconds
+  RouterExpiration = 3600 * 1000LL,
+};
+
 /// @enum NetDbSize
 /// @brief Constants defining NetDb sizes
 ///   for how many known routers are wanted for

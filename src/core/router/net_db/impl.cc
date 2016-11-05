@@ -277,10 +277,10 @@ std::shared_ptr<LeaseSet> NetDb::FindLeaseSet(
 
 void NetDb::SetUnreachable(
     const IdentHash& ident,
-    bool unreachable) {
+    bool is_unreachable) {
   auto it = m_RouterInfos.find(ident);
   if (it != m_RouterInfos.end())
-    return it->second->SetUnreachable(unreachable);
+    return it->second->SetUnreachable(is_unreachable);
 }
 
 // TODO(unassigned): Move to reseed and/or scheduled tasks.

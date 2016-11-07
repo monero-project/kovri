@@ -26,42 +26,57 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug)
 endif()
 
-# Compiler flags customization (by vendor)
-if(NOT MSVC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Winvalid-pch -maes")
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -pedantic")
-  # TODO: The following is incompatible with static build and enabled hardening
-  #  for OpenWRT.
-  # Multiple definitions of __stack_chk_fail (libssp & libc)
-  set(CMAKE_CXX_FLAGS_MINSIZEREL
-    "${CMAKE_CXX_FLAGS_MINSIZEREL} -flto -s -ffunction-sections -fdata-sections")
-  # -flto is added from above
-  set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "-Wl,--gc-sections")
+### TODO(unassigned): improve detection and use-case
+# Minimal processor detection (needed for ARM build)
+set(CPU "${CMAKE_SYSTEM_PROCESSOR}")
+string(SUBSTRING "${CPU}" 0 3 PARSE_ARM)
+if (CPU STREQUAL "aarch64" OR PARSE_ARM STREQUAL "arm")
+  set(ARM TRUE)
 endif()
 
-# Check for c++14 support
-include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++1y" CXX14_SUPPORTED)
-if(CXX14_SUPPORTED)
-  add_definitions("-std=c++1y")
-elseif(NOT MSVC)
-  message(FATAL_ERROR "C++14 standard not supported by compiler. See building instructions.")
-endif()
-
+# Detect minimum compiler version
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9.3)
     message(FATAL_ERROR "GCC 4.9.3 or higher is required")
   endif()
-  if(WITH_HARDENING)
-    add_definitions("-D_FORTIFY_SOURCE=2")
-    set(CMAKE_CXX_FLAGS
-      "${CMAKE_CXX_FLAGS} -Wformat -Wformat-security -Werror=format-security")
-    set(CMAKE_CXX_FLAGS
-      "${CMAKE_CXX_FLAGS} -fstack-protector-strong -fPIE --param ssp-buffer-size=4 -z relro -z now")
-  endif()
+  set(GNU TRUE)
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 3.5)
     message(FATAL_ERROR "Clang 3.5 or higher is required")
+  endif()
+  set(Clang TRUE)  # TODO(unassigned): make use of this
+endif()
+
+# Check for C++14 support (minimum version compilers guarantee this)
+include(CheckCXXCompilerFlag)
+CHECK_CXX_COMPILER_FLAG("-std=c++1y" CXX14_SUPPORTED)
+if(CXX14_SUPPORTED)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y")
+elseif(NOT MSVC)
+  message(FATAL_ERROR "C++14 standard not supported by compiler. See building instructions.")
+endif()
+
+### TODO(unassigned): review, cleanup, improve
+# Compiler flags (by vendor)
+if(NOT MSVC)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Winvalid-pch")
+  if(NOT ARM)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -maes")
+  endif()
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -pedantic")
+  # TODO: The following is incompatible with static build and enabled hardening
+  #  for OpenWRT.
+  # Multiple definitions of __stack_chk_fail (libssp & libc)
+  set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} -flto -s -ffunction-sections -fdata-sections")
+  # -flto is added from above
+  set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "-Wl,--gc-sections")
+  if(WITH_HARDENING)
+    add_definitions("-D_FORTIFY_SOURCE=2")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wformat -Wformat-security -Werror=format-security")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector-strong -fPIE --param ssp-buffer-size=4")
+    if(GNU)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -z relro -z now")
+    endif()
   endif()
 endif()
 

@@ -32,6 +32,9 @@ if(WITH_TESTS)
   target_link_libraries(
     ${TESTS_NAME} ${CORE_NAME} ${CLIENT_NAME}
     ${Boost_LIBRARIES} ${CryptoPP_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+  if(MINGW)
+    target_link_libraries(${TESTS_NAME} ${CORE_NAME} ws2_32 wsock32 iphlpapi)
+  endif()
   enable_testing()
   add_test(KovriTest ${TESTS_NAME})
   install(TARGETS

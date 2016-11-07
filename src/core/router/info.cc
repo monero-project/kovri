@@ -291,6 +291,7 @@ void RouterInfo::ExtractCaps(
       break;
       case CAPS_FLAG_UNLIMITED_BANDWIDTH:
         m_Caps |= Caps::eUnlimitedBandwidth;
+        break;
       case CAPS_FLAG_HIGH_BANDWIDTH1:
       case CAPS_FLAG_HIGH_BANDWIDTH2:
       case CAPS_FLAG_HIGH_BANDWIDTH3:

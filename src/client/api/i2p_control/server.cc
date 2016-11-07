@@ -135,11 +135,7 @@ void I2PControlService::ReadRequest(
     std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
   auto request = std::make_shared<I2PControlBuffer>();
   socket->async_read_some(
-#if BOOST_VERSION >= 104900
   boost::asio::buffer(*request),
-#else
-  boost::asio::buffer(request->data(), request->size()),
-#endif
   std::bind(
       &I2PControlService::HandleRequestReceived,
       this,
@@ -173,8 +169,9 @@ void I2PControlService::HandleRequestReceived(
         return;  // TODO(unassigned): implement
       }
     }
-    I2PControlSession::Response response =
-      m_Session->HandleRequest(ss);
+    LogPrint(eLogDebug, "I2PControlService: creating response");
+    I2PControlSession::Response response = m_Session->HandleRequest(ss);
+    LogPrint(eLogDebug, "I2PControlService: sending response");
     SendResponse(socket, buf, response.ToJsonString(), is_html);
   } catch (const std::exception& ex) {
     LogPrint(eLogError,

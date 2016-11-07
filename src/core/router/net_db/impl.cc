@@ -380,24 +380,32 @@ void NetDb::SaveUpdated() {
       if (it.second->UsesIntroducer() && ts > it.second->GetTimestamp() +
           static_cast<std::uint64_t>(NetDbTime::RouterExpiration)) {  // 1 hour
         it.second->SetUnreachable(true);
-      } else if (total > 75 && ts > kovri::context.GetStartupTime() +
-          static_cast<std::uint64_t>(NetDbTime::RouterExpiration) / 6) {
-        // ^ routers don't expire if less than 25
-        // or uptime is less than 10 minutes
+        /// @brief if router count is greater than the threshold check and the router
+        ///  is no longer starting up then continue to check for unreachable routers
+      } else if (total >
+          static_cast<std::uint16_t>(NetDbSize::RouterCheckUnreachableThreshold)
+          && ts > kovri::context.GetStartupTime() +
+          static_cast<std::uint64_t>(NetDbTime::RouterStartupPeriod)) {
         if (kovri::context.IsFloodfill()) {
           if (ts > it.second->GetTimestamp() +
               static_cast<std::uint64_t>(NetDbTime::RouterExpiration)) {
             it.second->SetUnreachable(true);
             total--;
           }
-        } else if (total > 300) {
+          /// @brief if router count is higher, expiration date for unreachable
+          ///  peers is shorter
+        } else if (total >
+            static_cast<std::uint16_t>(NetDbSize::MaxRouterCheckUnreachable)) {
           // 30 hours
           if (ts > it.second->GetTimestamp() +
               30 * static_cast<std::uint64_t>(NetDbTime::RouterExpiration)) {
             it.second->SetUnreachable(true);
             total--;
           }
-        } else if (total > 120) {
+          /// @brief if router count is low, expiration date for unreachable
+          ///  peers is longer
+        } else if (total >
+            static_cast<std::uint16_t>(NetDbSize::MinRouterCheckUnreachable)) {
           // 72 hours
           if (ts > it.second->GetTimestamp() +
               72 * static_cast<std::uint64_t>(NetDbTime::RouterExpiration)) {
@@ -521,7 +529,7 @@ void NetDb::HandleDatabaseStoreMsg(
     LogPrint(eLogDebug, "NetDb: RouterInfo");
     std::size_t size = bufbe16toh(buf + offset);
     offset += 2;
-    if (size > 2048 || size > len - offset) {
+    if (size > MAX_RI_BUFFER_SIZE || size > len - offset) {
       LogPrint(eLogError,
           "NetDb: invalid RouterInfo length ", static_cast<int>(size));
       return;
@@ -529,9 +537,9 @@ void NetDb::HandleDatabaseStoreMsg(
     try {
       kovri::core::Gunzip decompressor;
       decompressor.Put(buf + offset, size);
-      std::uint8_t uncompressed[2048];
+      std::uint8_t uncompressed[MAX_RI_BUFFER_SIZE];
       std::size_t uncompressed_size = decompressor.MaxRetrievable();
-      if (uncompressed_size <= 2048) {
+      if (uncompressed_size <= MAX_RI_BUFFER_SIZE) {
         decompressor.Get(uncompressed, uncompressed_size);
         AddRouterInfo(ident, uncompressed, uncompressed_size);
       } else {
@@ -660,7 +668,7 @@ void NetDb::HandleDatabaseLookupMsg(
   }
   std::uint16_t num_excluded = bufbe16toh(excluded);
   excluded += 2;
-  if (num_excluded > 512) {
+  if (num_excluded > static_cast<std::uint16_t>(NetDbSize::MaxExcludedPeers)) {
     LogPrint(eLogWarn,
         "NetDb: number of excluded peers", num_excluded, " exceeds 512");
     num_excluded = 0;  // TODO(unassigned): ???

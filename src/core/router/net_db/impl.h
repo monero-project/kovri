@@ -87,12 +87,20 @@ enum struct NetDbTime : const std::uint64_t {
   /// @var RouterExpiration
   /// @brief in milliseconds
   RouterExpiration = 3600 * 1000LL,
+  /// @var RouterStartupLimit
+  /// @brief in milliseconds, defines
+  ///  a grace period when a router
+  ///  has just started to not set
+  ///  expired routers as unreachable,
+  ///  so tunnels will be built quickly
+  RouterStartupPeriod = 600 * 1000LL,
 };
 
 /// @enum NetDbSize
 /// @brief Constants defining NetDb sizes
 ///   for how many known routers are wanted for
 ///   a large variety of peers to build tunnels
+///   and other uses
 enum struct NetDbSize : const std::uint16_t {
   /// @var MinKnownRouters
   /// @brief minimum number of known routers
@@ -114,6 +122,26 @@ enum struct NetDbSize : const std::uint16_t {
   /// @brief max number of NetDb messages
   ///   that can be processed in succession
   MaxMessagesRead = 100,
+  /// @var MaxExcludedPeers
+  /// @brief max number of excluded peers
+  ///  for handling database lookup messages,
+  ///  currently only used for printing error logs
+  MaxExcludedPeers = 512,
+  /// @var RouterCheckUnreachableThreshold
+  /// @brief defines the threshold where
+  ///  routers get checked if they have
+  ///  expired ie unreachable
+  RouterCheckUnreachableThreshold = 75,
+  /// @var MinRouterCheckUnreachable
+  /// @brief the minimum limit for
+  ///  number of routers to be checked and
+  ///  set unreachable by expiration date
+  MinRouterCheckUnreachable = 120,
+  /// @var MaxRouterCheckUnreachable
+  /// @brief the maximum limit for number of
+  ///  routers to be checked and set unreachable
+  ///  by expiration date
+  MaxRouterCheckUnreachable = 300,
 };
 
 class NetDb {

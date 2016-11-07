@@ -39,11 +39,12 @@
 - Visit our [Forum Funding System](https://forum.getmonero.org/8/funding-required) to get funded for your work
 
 ## Contact
-- Visit us on [Slack](https://monero.slack.com)
 - IRC: [Freenode](https://webchat.freenode.net/) | [OFTC](https://webchat.oftc.net/) | Irc2P
   - ```#kovri``` | Community & Support Channel
   - ```#kovri-dev``` | Development Channel
-- https://forum.getmonero.org/
+- [monero.slack.com](https://monero.slack.com/)
+- [forum.getmonero.org](https://forum.getmonero.org/)
+- [Meta repo for non-code issues](https://github.com/monero-project/meta)
 
 ## Vulnerability Response
 - Submit a report via [HackerOne](https://hackerone.com/kovri)

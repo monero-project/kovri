@@ -61,6 +61,7 @@ TunnelHopConfig::TunnelHopConfig(
   next_tunnel_ID = 0;
   next = nullptr;
   prev = nullptr;
+  record_index = 0;
 }
 
 void TunnelHopConfig::SetNextRouter(

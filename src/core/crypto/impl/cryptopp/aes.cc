@@ -47,6 +47,7 @@ namespace core {
 /// TODO(unassigned): if we switch libraries, we should move AES-NI elsewhere.
 /// TODO(unassigned): ARM support? MSVC x86-64 support?
 bool HasAESNI() {
+#if defined(__x86_64__) || defined(_M_X64)  // TODO(unassigned): hack until we implement ARM AES-NI
   unsigned int eax, ecx;  // We only need ECX
   const unsigned int flag = (1 << 25);  // ECX bit 25 for AES-NI
   LogPrint(eLogDebug, "Crypto: checking for AES-NI...");
@@ -59,6 +60,7 @@ bool HasAESNI() {
     LogPrint(eLogDebug, "Crypto: AES-NI is available!");
     return true;
   }
+#endif
   LogPrint(eLogDebug, "Crypto: AES-NI is not available. Using library.");
   return false;
 }
@@ -81,6 +83,7 @@ class ECBCryptoAESNI {
   }
 
  protected:
+#if defined(__x86_64__) || defined(_M_X64)  // TODO(unassigned): hack until we implement ARM AES-NI
   void ExpandKey(
       const AESKey& key) {
     __asm__(
@@ -116,6 +119,7 @@ class ECBCryptoAESNI {
         : [key]"r"((const std::uint8_t *)key), [sched]"r"(GetKeySchedule()) // Input
         : "%xmm1", "%xmm2", "%xmm3", "%xmm4", "memory"); // Clobbered
   }
+#endif
 
  private:
   AESAlignedBuffer<240> m_KeySchedule;  // 14 rounds for AES-256, 240 bytes
@@ -141,7 +145,9 @@ class ECBEncryption::ECBEncryptionImpl : public ECBCryptoAESNI {
   void SetKey(
       const AESKey& key) {
     if (UsingAESNI()) {
+#if defined(__x86_64__) || defined(_M_X64)  // TODO(unassigned): hack until we implement ARM AES-NI
       ExpandKey(key);
+#endif
     } else {
       try {
         m_Encryption.SetKey(key, 32);
@@ -156,6 +162,7 @@ class ECBEncryption::ECBEncryptionImpl : public ECBCryptoAESNI {
       const CipherBlock* in,
       CipherBlock* out) {
     if (UsingAESNI()) {
+#if defined(__x86_64__) || defined(_M_X64)  // TODO(unassigned): hack until we implement ARM AES-NI
       __asm__(
           "movups (%[in]), %%xmm0 \n"
           EncryptAES256(sched)
@@ -163,6 +170,7 @@ class ECBEncryption::ECBEncryptionImpl : public ECBCryptoAESNI {
           :
           : [sched]"r"(GetKeySchedule()), [in]"r"(in), [out]"r"(out)
           : "%xmm0", "memory");
+#endif
     } else {
       try {
         m_Encryption.ProcessData(out->buf, in->buf, 16);
@@ -218,6 +226,7 @@ class ECBDecryption::ECBDecryptionImpl : public ECBCryptoAESNI {
   void SetKey(
       const AESKey& key) {
     if (UsingAESNI()) {
+#if defined(__x86_64__) || defined(_M_X64)  // TODO(unassigned): hack until we implement ARM AES-NI
       ExpandKey(key);  // expand encryption key first
       // then invert it using aesimc
       __asm__(
@@ -237,6 +246,7 @@ class ECBDecryption::ECBDecryptionImpl : public ECBCryptoAESNI {
           :
           : [shed]"r"(GetKeySchedule())
           : "%xmm0", "memory");
+#endif
     } else {
       try {
         m_Decryption.SetKey(key, 32);
@@ -251,6 +261,7 @@ class ECBDecryption::ECBDecryptionImpl : public ECBCryptoAESNI {
       const CipherBlock* in,
       CipherBlock* out) {
     if (UsingAESNI()) {
+#if defined(__x86_64__) || defined(_M_X64)  // TODO(unassigned): hack until we implement ARM AES-NI
       __asm__(
           "movups (%[in]), %%xmm0 \n"
           DecryptAES256(sched)
@@ -258,6 +269,7 @@ class ECBDecryption::ECBDecryptionImpl : public ECBCryptoAESNI {
           :
           : [sched]"r"(GetKeySchedule()), [in]"r"(in), [out]"r"(out)
           : "%xmm0", "memory");
+#endif
     } else {
       try {
         m_Decryption.ProcessData(out->buf, in->buf, 16);
@@ -330,6 +342,7 @@ class CBCEncryption::CBCEncryptionImpl {
       const CipherBlock* in,
       CipherBlock* out) {
     if (UsingAESNI()) {
+#if defined(__x86_64__) || defined(_M_X64)  // TODO(unassigned): hack until we implement ARM AES-NI
       __asm__(
           "movups (%[iv]), %%xmm1 \n"
           "1: \n"
@@ -348,6 +361,7 @@ class CBCEncryption::CBCEncryptionImpl {
             [sched]"r"(m_ECBEncryption.GetKeySchedule()),
             [in]"r"(in), [out]"r"(out), [num]"r"(num_blocks)
           : "%xmm0", "%xmm1", "cc", "memory");
+#endif
     } else {
       for (int i = 0; i < num_blocks; i++) {
         m_LastBlock ^= in[i];
@@ -374,6 +388,7 @@ class CBCEncryption::CBCEncryptionImpl {
       const std::uint8_t* in,
       std::uint8_t* out) {
     if (UsingAESNI()) {
+#if defined(__x86_64__) || defined(_M_X64)  // TODO(unassigned): hack until we implement ARM AES-NI
       __asm__(
           "movups (%[iv]), %%xmm1 \n"
           "movups (%[in]), %%xmm0 \n"
@@ -386,6 +401,7 @@ class CBCEncryption::CBCEncryptionImpl {
             [sched]"r"(m_ECBEncryption.GetKeySchedule()),
             [in]"r"(in), [out]"r"(out)
           : "%xmm0", "%xmm1", "memory");
+#endif
     } else {
       Encrypt(
           1,
@@ -478,6 +494,7 @@ class CBCDecryption::CBCDecryptionImpl {
       const CipherBlock* in,
       CipherBlock* out) {
     if (UsingAESNI()) {
+#if defined(__x86_64__) || defined(_M_X64)  // TODO(unassigned): hack until we implement ARM AES-NI
       __asm__(
         "movups (%[iv]), %%xmm1 \n"
         "1: \n"
@@ -496,6 +513,7 @@ class CBCDecryption::CBCDecryptionImpl {
         : [iv]"r"(&m_IV), [sched]"r"(m_ECBDecryption.GetKeySchedule ()),
           [in]"r"(in), [out]"r"(out), [num]"r"(num_blocks)
         : "%xmm0", "%xmm1", "%xmm2", "cc", "memory");
+#endif
     } else {
       for (int i = 0; i < num_blocks; i++) {
         CipherBlock tmp = in[i];
@@ -523,6 +541,7 @@ class CBCDecryption::CBCDecryptionImpl {
       const std::uint8_t* in,
       std::uint8_t* out) {
     if (UsingAESNI()) {
+#if defined(__x86_64__) || defined(_M_X64)  // TODO(unassigned): hack until we implement ARM AES-NI
       __asm__(
         "movups (%[iv]), %%xmm1 \n"
         "movups (%[in]), %%xmm0 \n"
@@ -534,6 +553,7 @@ class CBCDecryption::CBCDecryptionImpl {
         : [iv]"r"(&m_IV), [sched]"r"(m_ECBDecryption.GetKeySchedule()),
           [in]"r"(in), [out]"r"(out)
         : "%xmm0", "%xmm1", "memory");
+#endif
     } else {
       Decrypt(
           1,

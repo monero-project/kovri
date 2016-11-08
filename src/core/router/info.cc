@@ -288,30 +288,31 @@ void RouterInfo::ExtractCaps(
     switch (*cap) {
       case CAPS_FLAG_FLOODFILL:
         m_Caps |= Caps::eFloodfill;
-      break;
+        break;
       case CAPS_FLAG_UNLIMITED_BANDWIDTH:
         m_Caps |= Caps::eUnlimitedBandwidth;
+        break;
       case CAPS_FLAG_HIGH_BANDWIDTH1:
       case CAPS_FLAG_HIGH_BANDWIDTH2:
       case CAPS_FLAG_HIGH_BANDWIDTH3:
       case CAPS_FLAG_HIGH_BANDWIDTH4:
         m_Caps |= Caps::eHighBandwidth;
-      break;
+        break;
       case CAPS_FLAG_HIDDEN:
         m_Caps |= Caps::eHidden;
-      break;
+        break;
       case CAPS_FLAG_REACHABLE:
         m_Caps |= Caps::eReachable;
-      break;
+        break;
       case CAPS_FLAG_UNREACHABLE:
         m_Caps |= Caps::eUnreachable;
-      break;
+        break;
       case CAPS_FLAG_SSU_TESTING:
         m_Caps |= Caps::eSSUTesting;
-      break;
+        break;
       case CAPS_FLAG_SSU_INTRODUCER:
         m_Caps |= Caps::eSSUIntroducer;
-      break;
+        break;
       default: {}
     }
     cap++;

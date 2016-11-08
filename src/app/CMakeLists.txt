@@ -25,11 +25,17 @@ if(WITH_BINARY)
     ${APP_NAME}
     ${CLIENT_NAME} ${CORE_NAME}
     ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+  if(MINGW)
+    target_link_libraries(${APP_NAME} ws2_32 wsock32 iphlpapi)
+  endif()
   if(NOT MSVC) # FIXME: incremental linker file name (.ilk) collision for dll & exe
     set_target_properties(
       ${APP_NAME} PROPERTIES OUTPUT_NAME "${PROJECT_NAME}")
     if(WITH_STATIC)
-      set_target_properties(${APP_NAME} PROPERTIES LINK_FLAGS "-static" )
+      set_target_properties(${APP_NAME} PROPERTIES LINK_FLAGS "-static-libgcc -static-libstdc++")
+      if(APPLE)
+        set_target_properties(${APP_NAME} PROPERTIES LINK_FLAGS "-lstdc++" )
+      endif()
     endif()
   endif()
   if(WITH_HARDENING AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")

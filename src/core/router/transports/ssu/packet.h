@@ -348,6 +348,10 @@ class SSUSessionCreatedPacket : public SSUPacket {
 /// @note 1 byte identity fragment info is currently skipped
 class SSUSessionConfirmedPacket : public SSUPacket {
  public:
+  SSUSessionConfirmedPacket()
+      : m_Signature(nullptr),
+        m_SignedOnTime(0) {}
+
   /// @brief Sets Alice's remote router identity fragment
   /// @note Assumes content is valid (based on position)
   void SetRemoteRouterIdentity(

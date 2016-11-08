@@ -655,7 +655,6 @@ class SSUDataPacket : public SSUPacket {
   std::size_t GetSize() const;
 
  private:
-  std::uint8_t m_Flag;
   std::vector<std::uint32_t> m_ExplicitACKs;
   std::vector<std::uint32_t> m_ACKs;
   std::vector<std::uint8_t> m_ACKBitfields;

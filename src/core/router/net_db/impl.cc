@@ -388,7 +388,7 @@ void NetDb::SaveUpdated() {
       } else if (total >
           static_cast<std::uint16_t>(NetDbSize::RouterCheckUnreachableThreshold)
           && ts > (kovri::context.GetStartupTime()
-            + static_cast<std::uint32_t>(NetDbTime::RouterStartupPeriod)) * 1000) {
+            + static_cast<std::uint32_t>(NetDbTime::RouterStartupPeriod)) * 1000LL) {
         if (kovri::context.IsFloodfill()) {
           if (ts > it.second->GetTimestamp()
               + static_cast<std::uint32_t>(NetDbTime::RouterExpiration)) {

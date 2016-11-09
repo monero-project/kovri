@@ -380,18 +380,18 @@ void NetDb::SaveUpdated() {
       count++;
     } else {
       // RouterInfo expires after N minutes if it uses an introducer
-      if (it.second->UsesIntroducer() && ts > it.second->GetTimestamp() +
-          static_cast<std::uint32_t>(NetDbTime::RouterExpiration)) {
+      if (it.second->UsesIntroducer() && ts > it.second->GetTimestamp()
+          + static_cast<std::uint32_t>(NetDbTime::RouterExpiration)) {
         it.second->SetUnreachable(true);
         // if the router count is greater than the threshold check, and the router
         // is no longer starting up, then continue to check for unreachable routers
       } else if (total >
           static_cast<std::uint16_t>(NetDbSize::RouterCheckUnreachableThreshold)
-          && ts > (kovri::context.GetStartupTime() +
-          static_cast<std::uint32_t>(NetDbTime::RouterStartupPeriod)) * 1000) {
+          && ts > (kovri::context.GetStartupTime()
+            + static_cast<std::uint32_t>(NetDbTime::RouterStartupPeriod)) * 1000) {
         if (kovri::context.IsFloodfill()) {
-          if (ts > it.second->GetTimestamp() +
-              static_cast<std::uint32_t>(NetDbTime::RouterExpiration)) {
+          if (ts > it.second->GetTimestamp()
+              + static_cast<std::uint32_t>(NetDbTime::RouterExpiration)) {
             it.second->SetUnreachable(true);
             total--;
           }
@@ -409,9 +409,9 @@ void NetDb::SaveUpdated() {
           //  peers is longer
         } else if (total >
             static_cast<std::uint16_t>(NetDbSize::MinRouterCheckUnreachable)) {
-           if (ts > it.second->GetTimestamp() +
-              (static_cast<std::uint32_t>(NetDbTime::RouterMaxGracePeriod) *
-              static_cast<std::uint32_t>(NetDbTime::RouterExpiration))) {
+           if (ts > it.second->GetTimestamp()
+               + static_cast<std::uint32_t>(NetDbTime::RouterMaxGracePeriod)
+               * static_cast<std::uint32_t>(NetDbTime::RouterExpiration)) {
             it.second->SetUnreachable(true);
             total--;
           }

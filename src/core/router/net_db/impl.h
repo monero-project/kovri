@@ -83,17 +83,27 @@ enum struct NetDbInterval : const std::uint16_t {
 /// @enum NetDbTime
 /// @brief Constants defining timestamp
 ///  variables for various NetDb operations
-enum struct NetDbTime : const std::uint64_t {
+enum struct NetDbTime : const std::uint32_t {
   /// @var RouterExpiration
   /// @brief in milliseconds
-  RouterExpiration = 3600 * 1000LL,
-  /// @var RouterStartupLimit
-  /// @brief in milliseconds, defines
+  RouterExpiration = 3600 * 1000,
+  /// @var RouterStartupPeriod
+  /// @brief in seconds, defines
   ///  a grace period when a router
   ///  has just started to not set
   ///  expired routers as unreachable,
   ///  so tunnels will be built quickly
-  RouterStartupPeriod = 600 * 1000LL,
+  RouterStartupPeriod = 600,
+  /// @var RouterMinGracePeriod
+  /// @brief in hours, defines a grace
+  ///  period for expiring routers when
+  ///  router count exceeds MaxRouterCheckUnreachable
+  RouterMinGracePeriod = 30,
+  /// @var RouterMaxGracePeriod
+  /// @brief in hours, defines a grace
+  ///  period for expiring routers when
+  ///  router count exceeds MinRouterCheckUnreachable
+  RouterMaxGracePeriod = 72,
 };
 
 /// @enum NetDbSize

@@ -162,14 +162,19 @@ void AddressBook::SubscriberUpdateTimer(
         "AddressBook: SubscriberUpdateTimer() exception: ", ecode.message());
     return;
   }
+  // Load publishers (see below about multiple publishers)
+  LoadPublishers();
+  // If ready, download new subscription (see #337 for multiple subscriptions)
   if (m_SubscriptionIsLoaded
       && !m_SubscriberIsDownloading
       && m_SharedLocalDestination->IsReady()) {
-    // Pick a random subscription if subscriptions count is > 0
-    // At first this may look questionable but, by this point,
-    // we're guaranteed to have at least one subscriber
-    auto publisher =
-      kovri::core::RandInRange<std::size_t>(0, m_Subscribers.size() - 1);
+    // Number of publishers is guaranteed > 0 because of update timer
+    auto publisher_count = m_Subscribers.size();
+    LogPrint(eLogDebug,
+        "AddressBook: picking random subscription from total publisher count: ",
+        publisher_count);
+    // Pick a random publisher from subscriber
+    auto publisher = kovri::core::RandInRange<std::size_t>(0, publisher_count - 1);
     m_SubscriberIsDownloading = true;
     m_Subscribers.at(publisher)->DownloadSubscription();
   } else {
@@ -213,7 +218,6 @@ void AddressBook::LoadSubscriptionFromPublisher() {
   } else {  // Use default publisher and download
     LogPrint(eLogWarn, "AddressBook: ", filename, " not found");
     if (!m_SubscriberIsDownloading) {
-      LoadPublishers();
       m_SubscriberIsDownloading = true;
       m_Subscribers.front()->DownloadSubscription();
     } else {

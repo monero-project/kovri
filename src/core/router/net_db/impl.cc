@@ -277,10 +277,10 @@ std::shared_ptr<LeaseSet> NetDb::FindLeaseSet(
 
 void NetDb::SetUnreachable(
     const IdentHash& ident,
-    bool unreachable) {
+    bool is_unreachable) {
   auto it = m_RouterInfos.find(ident);
   if (it != m_RouterInfos.end())
-    return it->second->SetUnreachable(unreachable);
+    return it->second->SetUnreachable(is_unreachable);
 }
 
 // TODO(unassigned): Move to reseed and/or scheduled tasks.
@@ -335,8 +335,8 @@ bool NetDb::Load() {
 #endif
         auto r = std::make_shared<RouterInfo>(full_path);
         if (!r->IsUnreachable() &&
-            (!r->UsesIntroducer() ||
-             ts < r->GetTimestamp() + 3600 * 1000LL)) {  // 1 hour
+            (!r->UsesIntroducer() || ts < r->GetTimestamp() +
+             static_cast<std::uint32_t>(NetDbTime::RouterExpiration))) {
           r->DeleteBuffer();
           r->ClearProperties();  // properties are not used for regular routers
           m_RouterInfos[r->GetIdentHash()] = r;
@@ -344,8 +344,10 @@ bool NetDb::Load() {
             m_Floodfills.push_back(r);
           num_routers++;
         } else {
-          if (boost::filesystem::exists(full_path))
-            boost::filesystem::remove(full_path);
+          bool is_removed = boost::filesystem::remove(full_path);
+          if (is_removed)
+            LogPrint(eLogInfo,
+                "NetDb: ", full_path, " unreachable router removed");
         }
       }
     }
@@ -377,28 +379,39 @@ void NetDb::SaveUpdated() {
       it.second->DeleteBuffer();
       count++;
     } else {
-      // RouterInfo expires after 1 hour if it uses an introducer
-      if (it.second->UsesIntroducer() &&
-          ts > it.second->GetTimestamp() + 3600 * 1000LL) {  // 1 hour
+      // RouterInfo expires after N minutes if it uses an introducer
+      if (it.second->UsesIntroducer() && ts > it.second->GetTimestamp()
+          + static_cast<std::uint32_t>(NetDbTime::RouterExpiration)) {
         it.second->SetUnreachable(true);
-      } else if (total > 75 && ts >
-          (kovri::context.GetStartupTime() + 600) * 1000LL) {
-        // ^ routers don't expire if less than 25
-        // or uptime is less than 10 minutes
+        // if the router count is greater than the threshold check, and the router
+        // is no longer starting up, then continue to check for unreachable routers
+      } else if (total >
+          static_cast<std::uint16_t>(NetDbSize::RouterCheckUnreachableThreshold)
+          && ts > (kovri::context.GetStartupTime()
+            + static_cast<std::uint32_t>(NetDbTime::RouterStartupPeriod)) * 1000LL) {
         if (kovri::context.IsFloodfill()) {
-          if (ts > it.second->GetTimestamp() + 3600 * 1000LL) {
+          if (ts > it.second->GetTimestamp()
+              + static_cast<std::uint32_t>(NetDbTime::RouterExpiration)) {
             it.second->SetUnreachable(true);
             total--;
           }
-        } else if (total > 300) {
-          // 30 hours
-          if (ts > it.second->GetTimestamp() + 30 * 3600 * 1000LL) {
+          //  if router count is higher, expiration date for unreachable
+          //  peers is shorter
+        } else if (total >
+            static_cast<std::uint16_t>(NetDbSize::MaxRouterCheckUnreachable)) {
+          if (ts > it.second->GetTimestamp()
+              + static_cast<std::uint32_t>(NetDbTime::RouterMinGracePeriod)
+              * static_cast<std::uint32_t>(NetDbTime::RouterExpiration)) {
             it.second->SetUnreachable(true);
             total--;
           }
-        } else if (total > 120) {
-          // 72 hours
-          if (ts > it.second->GetTimestamp() + 72 * 3600 * 1000LL) {
+          //  if router count is low, expiration date for unreachable
+          //  peers is longer
+        } else if (total >
+            static_cast<std::uint16_t>(NetDbSize::MinRouterCheckUnreachable)) {
+           if (ts > it.second->GetTimestamp()
+               + static_cast<std::uint32_t>(NetDbTime::RouterMaxGracePeriod)
+               * static_cast<std::uint32_t>(NetDbTime::RouterExpiration)) {
             it.second->SetUnreachable(true);
             total--;
           }
@@ -519,7 +532,7 @@ void NetDb::HandleDatabaseStoreMsg(
     LogPrint(eLogDebug, "NetDb: RouterInfo");
     std::size_t size = bufbe16toh(buf + offset);
     offset += 2;
-    if (size > 2048 || size > len - offset) {
+    if (size > MAX_RI_BUFFER_SIZE || size > len - offset) {
       LogPrint(eLogError,
           "NetDb: invalid RouterInfo length ", static_cast<int>(size));
       return;
@@ -527,9 +540,9 @@ void NetDb::HandleDatabaseStoreMsg(
     try {
       kovri::core::Gunzip decompressor;
       decompressor.Put(buf + offset, size);
-      std::uint8_t uncompressed[2048];
+      std::uint8_t uncompressed[MAX_RI_BUFFER_SIZE];
       std::size_t uncompressed_size = decompressor.MaxRetrievable();
-      if (uncompressed_size <= 2048) {
+      if (uncompressed_size <= MAX_RI_BUFFER_SIZE) {
         decompressor.Get(uncompressed, uncompressed_size);
         AddRouterInfo(ident, uncompressed, uncompressed_size);
       } else {
@@ -621,10 +634,10 @@ void NetDb::HandleDatabaseSearchReplyMsg(
     peer_hash[l1] = 0;
     LogPrint(eLogInfo, "NetDb: ", i, ": ", peer_hash);
     auto r = FindRouter(router);
-    if (!r ||
-        kovri::core::GetMillisecondsSinceEpoch() >
-        r->GetTimestamp() + 3600 * 1000LL)  {
-      // router with ident not found or too old (1 hour)
+    if (!r || kovri::core::GetMillisecondsSinceEpoch() >
+        r->GetTimestamp() +
+        static_cast<std::uint32_t>(NetDbTime::RouterExpiration))  {
+      // router with ident not found or too old
       LogPrint(eLogInfo,
           "NetDb: found new/outdated router, requesting RouterInfo");
       RequestDestination(router);
@@ -658,9 +671,10 @@ void NetDb::HandleDatabaseLookupMsg(
   }
   std::uint16_t num_excluded = bufbe16toh(excluded);
   excluded += 2;
-  if (num_excluded > 512) {
+  if (num_excluded >
+      static_cast<std::uint16_t>(NetDbSize::MaxExcludedPeers)) {
     LogPrint(eLogWarn,
-        "NetDb: number of excluded peers", num_excluded, " exceeds 512");
+        "NetDb: number of excluded peers", num_excluded, " exceeds the maximum");
     num_excluded = 0;  // TODO(unassigned): ???
   }
   std::shared_ptr<I2NPMessage> reply_msg;

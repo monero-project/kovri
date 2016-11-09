@@ -91,6 +91,7 @@ void AddressBook::Start(
       "AddressBook: won't start: we need a client destination");
     return;
   }
+  LogPrint(eLogInfo, "AddressBook: starting implementation");
   m_SharedLocalDestination = local_destination;
   m_SubscriberUpdateTimer =
     std::make_unique<boost::asio::deadline_timer>(
@@ -105,9 +106,49 @@ void AddressBook::Start(
           std::placeholders::_1));
 }
 
+void AddressBook::SubscriberUpdateTimer(
+    const boost::system::error_code& ecode) {
+  if (ecode) {
+    LogPrint(eLogError,
+        "AddressBook: SubscriberUpdateTimer() exception: ", ecode.message());
+    return;
+  }
+  // Load publishers (see below about multiple publishers)
+  LoadPublishers();
+  // If ready, download new subscription (see #337 for multiple subscriptions)
+  if (m_SubscriptionIsLoaded
+      && !m_SubscriberIsDownloading
+      && m_SharedLocalDestination->IsReady()) {
+    // Number of publishers is guaranteed > 0 because of update timer
+    auto publisher_count = m_Subscribers.size();
+    LogPrint(eLogDebug,
+        "AddressBook: picking random subscription from total publisher count: ",
+        publisher_count);
+    // Pick a random publisher from subscriber
+    auto publisher = kovri::core::RandInRange<std::size_t>(0, publisher_count - 1);
+    m_SubscriberIsDownloading = true;
+    m_Subscribers.at(publisher)->DownloadSubscription();
+  } else {
+    if (!m_SubscriptionIsLoaded) {
+      // If subscription not available, will attempt download with subscriber
+      LoadSubscriptionFromPublisher();
+    }
+    // Try again after timeout
+    m_SubscriberUpdateTimer->expires_from_now(
+        boost::posix_time::minutes(
+            static_cast<std::uint16_t>(SubscriberTimeout::InitialRetry)));
+    m_SubscriberUpdateTimer->async_wait(
+        std::bind(
+            &AddressBook::SubscriberUpdateTimer,
+            this,
+            std::placeholders::_1));
+  }
+}
+
 void AddressBook::LoadPublishers() {
   // TODO(unassigned): this is a one-shot: we won't be able to
   // edit publisher's file manually with any effect after router start
+  // References #337
   if (!m_Subscribers.empty()) {
     LogPrint(eLogError, "AddressBook: publisher(s) already loaded");
     return;
@@ -155,54 +196,18 @@ void AddressBook::LoadPublishers() {
   }
 }
 
-void AddressBook::SubscriberUpdateTimer(
-    const boost::system::error_code& ecode) {
-  if (ecode) {
-    LogPrint(eLogError,
-        "AddressBook: SubscriberUpdateTimer() exception: ", ecode.message());
-    return;
-  }
-  // Load publishers (see below about multiple publishers)
-  LoadPublishers();
-  // If ready, download new subscription (see #337 for multiple subscriptions)
-  if (m_SubscriptionIsLoaded
-      && !m_SubscriberIsDownloading
-      && m_SharedLocalDestination->IsReady()) {
-    // Number of publishers is guaranteed > 0 because of update timer
-    auto publisher_count = m_Subscribers.size();
-    LogPrint(eLogDebug,
-        "AddressBook: picking random subscription from total publisher count: ",
-        publisher_count);
-    // Pick a random publisher from subscriber
-    auto publisher = kovri::core::RandInRange<std::size_t>(0, publisher_count - 1);
-    m_SubscriberIsDownloading = true;
-    m_Subscribers.at(publisher)->DownloadSubscription();
-  } else {
-    if (!m_SubscriptionIsLoaded) {
-      // If subscription not available, will attempt download with subscriber
-      LoadSubscriptionFromPublisher();
-    }
-    // Try again after timeout
-    m_SubscriberUpdateTimer->expires_from_now(
-        boost::posix_time::minutes(
-            static_cast<std::uint16_t>(SubscriberTimeout::InitialRetry)));
-    m_SubscriberUpdateTimer->async_wait(
-        std::bind(
-            &AddressBook::SubscriberUpdateTimer,
-            this,
-            std::placeholders::_1));
-  }
-}
-
 void AddressBook::LoadSubscriptionFromPublisher() {
   // First, ensure we have a storage instance ready
-  if (!m_Storage)
+  if (!m_Storage) {
+    LogPrint(eLogDebug, "AddressBook: creating new storage instance");
     m_Storage = GetNewStorageInstance();
+  }
   // If so, see if we have addresses from subscription already saved
   // TODO(anonimal): in order to load new fresh subscriptions,
   // we need to remove and/or work around this block and m_SubscriptionIsLoaded
   if (m_Storage->Load(m_Addresses)) {
     // If so, we don't need to download from a publisher
+    LogPrint(eLogDebug, "AddressBook: subscription is already loaded");
     m_SubscriptionIsLoaded = true;
     return;
   }
@@ -218,6 +223,7 @@ void AddressBook::LoadSubscriptionFromPublisher() {
   } else {  // Use default publisher and download
     LogPrint(eLogWarn, "AddressBook: ", filename, " not found");
     if (!m_SubscriberIsDownloading) {
+      LogPrint(eLogDebug, "AddressBook: subscriber not downloading, downloading");
       m_SubscriberIsDownloading = true;
       m_Subscribers.front()->DownloadSubscription();
     } else {
@@ -228,6 +234,7 @@ void AddressBook::LoadSubscriptionFromPublisher() {
 
 void AddressBookSubscriber::DownloadSubscription() {
   // TODO(unassigned): exception handling
+  LogPrint(eLogDebug, "AddressBookSubscriber: creating thread for download");
   std::thread download(&AddressBookSubscriber::DownloadSubscriptionImpl, this);
   download.join();
 }
@@ -251,6 +258,7 @@ void AddressBookSubscriber::DownloadSubscriptionImpl() {
 
 void AddressBook::HostsDownloadComplete(
     bool success) {
+  LogPrint(eLogDebug, "AddressBook: subscription download complete");
   m_SubscriberIsDownloading = false;
   if (m_SubscriberUpdateTimer) {
     m_SubscriberUpdateTimer->expires_from_now(
@@ -273,10 +281,12 @@ bool AddressBook::ValidateSubscriptionThenSaveToStorage(
   std::unique_lock<std::mutex> lock(m_AddressBookMutex);
   std::ofstream file;
   if (!m_SubscriptionFileIsReady) {
+    LogPrint(eLogDebug, "AddressBook: preparing subscription file");
     file.open(kovri::core::GetFullPath(GetDefaultSubscriptionFilename()));
     if (file)
       m_SubscriptionFileIsReady = true;
   }
+  LogPrint(eLogDebug, "AddressBook: validating subscription");
   // Host per line and total number of host addresses
   std::string host;
   std::size_t num_addresses = 0;
@@ -316,6 +326,7 @@ bool AddressBook::ValidateSubscriptionThenSaveToStorage(
   if (m_SubscriptionFileIsReady)
     file << std::flush;
   if (num_addresses) {
+    LogPrint(eLogDebug, "AddressBook: saving addresses");
     // Save list of hosts within subscription to a catalog file
     m_Storage->Save(m_Addresses);
     m_SubscriptionIsLoaded = true;

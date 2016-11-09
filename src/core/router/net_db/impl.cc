@@ -399,9 +399,9 @@ void NetDb::SaveUpdated() {
           //  peers is shorter
         } else if (total >
             static_cast<std::uint16_t>(NetDbSize::MaxRouterCheckUnreachable)) {
-          if (ts > it.second->GetTimestamp() +
-              (static_cast<std::uint32_t>(NetDbTime::RouterMinGracePeriod) *
-              static_cast<std::uint32_t>(NetDbTime::RouterExpiration))) {
+          if (ts > it.second->GetTimestamp()
+              + static_cast<std::uint32_t>(NetDbTime::RouterMinGracePeriod)
+              * static_cast<std::uint32_t>(NetDbTime::RouterExpiration)) {
             it.second->SetUnreachable(true);
             total--;
           }
@@ -674,7 +674,7 @@ void NetDb::HandleDatabaseLookupMsg(
   if (num_excluded >
       static_cast<std::uint16_t>(NetDbSize::MaxExcludedPeers)) {
     LogPrint(eLogWarn,
-        "NetDb: number of excluded peers", num_excluded, " exceeds 512");
+        "NetDb: number of excluded peers", num_excluded, " exceeds the maximum");
     num_excluded = 0;  // TODO(unassigned): ???
   }
   std::shared_ptr<I2NPMessage> reply_msg;

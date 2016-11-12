@@ -141,7 +141,7 @@ void SSUServer::Send(
 
 void SSUServer::Receive() {
   LogPrint(eLogDebug, "SSUServer: receiving data");
-  RawSSUPacket* packet = new RawSSUPacket();
+  RawSSUPacket* packet = new RawSSUPacket();  // always freed in ensuing handlers
   m_Socket.async_receive_from(
       boost::asio::buffer(
           packet->buf,
@@ -157,7 +157,7 @@ void SSUServer::Receive() {
 
 void SSUServer::ReceiveV6() {
   LogPrint(eLogDebug, "SSUServer: V6: receiving data");
-  RawSSUPacket* packet = new RawSSUPacket();
+  RawSSUPacket* packet = new RawSSUPacket();  // always freed in ensuing handlers
   m_SocketV6.async_receive_from(
       boost::asio::buffer(
           packet->buf,
@@ -171,6 +171,7 @@ void SSUServer::ReceiveV6() {
           packet));
 }
 
+// coverity[+free : arg-2]
 void SSUServer::HandleReceivedFrom(
     const boost::system::error_code& ecode,
     std::size_t bytes_transferred,
@@ -192,6 +193,7 @@ void SSUServer::HandleReceivedFrom(
       packets.push_back(packet);
       more_bytes = m_Socket.available();
     }
+    // packet is freed in ensuing handler
     m_Service.post(
         std::bind(
             &SSUServer::HandleReceivedPackets,
@@ -200,10 +202,11 @@ void SSUServer::HandleReceivedFrom(
     Receive();
   } else {
     LogPrint("SSUServer: receive error: ", ecode.message());
-    delete packet;
+    delete packet;  // free packet, now
   }
 }
 
+// coverity[+free : arg-2]
 void SSUServer::HandleReceivedFromV6(
     const boost::system::error_code& ecode,
     std::size_t bytes_transferred,
@@ -224,6 +227,7 @@ void SSUServer::HandleReceivedFromV6(
       packets.push_back(packet);
       more_bytes = m_SocketV6.available();
     }
+    // packet is freed in ensuing handler
     m_Service.post(
         std::bind(
             &SSUServer::HandleReceivedPackets,
@@ -232,7 +236,7 @@ void SSUServer::HandleReceivedFromV6(
     ReceiveV6();
   } else {
     LogPrint("SSUServer: V6 receive error: ", ecode.message());
-    delete packet;
+    delete packet;  // free packet, now
   }
 }
 
@@ -269,7 +273,7 @@ void SSUServer::HandleReceivedPackets(
         session->FlushData();
       session = nullptr;
     }
-    delete pkt;
+    delete pkt;  // free received packet
   }
   if (session)
     session->FlushData();

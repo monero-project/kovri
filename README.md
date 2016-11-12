@@ -37,6 +37,7 @@
 ## Developers
 - Read our [Contributing Guide](https://github.com/monero-project/kovri/blob/master/doc/CONTRIBUTING.md) before sending a pull-request
 - Visit our [Forum Funding System](https://forum.getmonero.org/8/funding-required) to get funded for your work
+- A [GitLab mirror](https://repo.getmonero.org/monero-project/kovri) is available for non-push repository access ([Kovri/I2P/Tor access is WIP](https://github.com/monero-project/meta/issues/9))
 
 ## Contact
 - IRC: [Freenode](https://webchat.freenode.net/) | [OFTC](https://webchat.oftc.net/) | Irc2P

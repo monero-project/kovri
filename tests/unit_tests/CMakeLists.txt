@@ -1,4 +1,5 @@
 set(TESTS_CLIENT
+  "client/proxy/http.cc"
   "client/reseed.cc"
   "client/util/http.cc"
   "client/util/zip.cc")

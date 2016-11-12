@@ -34,7 +34,7 @@
 #define SRC_CLIENT_PROXY_HTTP_H_
 
 #include <boost/asio.hpp>
-
+#include <boost/network/protocol/http/server.hpp>
 #include <array>
 #include <cstdint>
 #include <memory>
@@ -48,34 +48,6 @@
 namespace kovri {
 namespace client {
 
-#define NUMBER_OF_HEADERS 128
-class HTTPProxyMessage{
-  public:
-    HTTPProxyMessage(int response_code,const std::string & response_string,const std::string & body, unsigned int body_length);
-    static bool IsValid(HTTPProxyMessage & msg);
-    void SetResponse(int response_code, const std::string &response_string);
-    bool SetBody(const std::string &body, size_t len);
-    void AddHeaders(const std::vector<std::string> &headers, unsigned int num_headers);
-  private:
-
-  struct {
-    std::string m_String;
-    int m_Code;
-  } m_Response;
-
-  struct {
-    std::vector<std::string> m_Strings;
-    unsigned int m_Total;
-    unsigned int m_Used;
-  } m_Headers;
-
-        /* Body of the message (most likely an HTML message) */
-  struct {
-    std::string m_Text;
-    size_t m_Length;
-  } m_Body;
-
-};
 /// @class HTTPProxyServer
 class HTTPProxyServer
     : public kovri::client::TCPIPAcceptor {
@@ -84,6 +56,7 @@ class HTTPProxyServer
   /// @param address Proxy binding address
   /// @param port Proxy binding port
   /// @param local_destination Client destination
+  //
   HTTPProxyServer(
       const std::string& name,
       const std::string& address,
@@ -92,7 +65,6 @@ class HTTPProxyServer
 
   ~HTTPProxyServer() {}
 
- protected:
   /// @brief Implements TCPIPAcceptor
   std::shared_ptr<kovri::client::I2PServiceHandler> CreateHandler(
       std::shared_ptr<boost::asio::ip::tcp::socket> socket);
@@ -114,6 +86,109 @@ class HTTPProxyHandler
     : public kovri::client::I2PServiceHandler,
       public std::enable_shared_from_this<HTTPProxyHandler> {
  public:
+ enum status_t {
+    ok = 200,
+    created = 201,
+    accepted = 202,
+    no_content = 204,
+    partial_content = 206,
+    multiple_choices = 300,
+    moved_permanently = 301,
+    moved_temporarily = 302,
+    not_modified = 304,
+    bad_request = 400,
+    unauthorized = 401,
+    forbidden = 403,
+    not_found = 404,
+    not_supported = 405,
+    not_acceptable = 406,
+    request_timeout = 408,
+    precondition_failed = 412,
+    unsatisfiable_range = 416,
+    internal_server_error = 500,
+    not_implemented = 501,
+    bad_gateway = 502,
+    service_unavailable = 503,
+    space_unavailable = 507
+  };
+
+  static char const* status_message(status_t status) {
+    static char const ok_[] = "OK", created_[] = "Created",
+                      accepted_[] = "Accepted", no_content_[] = "No Content",
+                      multiple_choices_[] = "Multiple Choices",
+                      moved_permanently_[] = "Moved Permanently",
+                      moved_temporarily_[] = "Moved Temporarily",
+                      not_modified_[] = "Not Modified",
+                      bad_request_[] = "Bad Request",
+                      unauthorized_[] = "Unauthorized",
+                      forbidden_[] = "Fobidden", not_found_[] = "Not Found",
+                      not_supported_[] = "Not Supported",
+                      not_acceptable_[] = "Not Acceptable",
+                      internal_server_error_[] = "Internal Server Error",
+                      not_implemented_[] = "Not Implemented",
+                      bad_gateway_[] = "Bad Gateway",
+                      service_unavailable_[] = "Service Unavailable",
+                      unknown_[] = "Unknown",
+                      partial_content_[] = "Partial Content",
+                      request_timeout_[] = "Request Timeout",
+                      precondition_failed_[] = "Precondition Failed",
+                      unsatisfiable_range_[] =
+                          "Requested Range Not Satisfiable",
+                      space_unavailable_[] =
+                          "Insufficient Space to Store Resource";
+    switch (status) {
+      case ok:
+        return ok_;
+      case created:
+        return created_;
+      case accepted:
+        return accepted_;
+      case no_content:
+        return no_content_;
+      case multiple_choices:
+        return multiple_choices_;
+      case moved_permanently:
+        return moved_permanently_;
+      case moved_temporarily:
+        return moved_temporarily_;
+      case not_modified:
+        return not_modified_;
+      case bad_request:
+        return bad_request_;
+      case unauthorized:
+        return unauthorized_;
+      case forbidden:
+        return forbidden_;
+      case not_found:
+        return not_found_;
+      case not_supported:
+        return not_supported_;
+      case not_acceptable:
+        return not_acceptable_;
+      case internal_server_error:
+        return internal_server_error_;
+      case not_implemented:
+        return not_implemented_;
+      case bad_gateway:
+        return bad_gateway_;
+      case service_unavailable:
+        return service_unavailable_;
+      case partial_content:
+        return partial_content_;
+      case request_timeout:
+        return request_timeout_;
+      case precondition_failed:
+        return precondition_failed_;
+      case unsatisfiable_range:
+        return unsatisfiable_range_;
+      case space_unavailable:
+        return space_unavailable_;
+      default:
+        return unknown_;
+    }
+  }
+
+
   /// @param parent Pointer to parent server
   /// @param socket Shared pointer to bound socket
   HTTPProxyHandler(
@@ -167,7 +242,7 @@ class HTTPProxyHandler
 
   /// @brief Generic request failure handler
   /// @param error User-defined enumerated error code
-  void HTTPRequestFailed(/*Error error*/);
+  void HTTPRequestFailed(HTTPProxyHandler::status_t);
 
   /// @brief Tests if our sent response to browser has failed
   /// @param ecode Boost error code

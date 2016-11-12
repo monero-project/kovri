@@ -55,46 +55,9 @@
 #include "core/router/identity.h"
 
 #include "core/util/i2p_endian.h"
-
+using namespace boost::network;
 namespace kovri {
 namespace client {
-HTTPProxyMessage::HTTPProxyMessage(int response_code,const std::string & response_string,const std::string & body, unsigned int body_length){
-  m_Headers.m_Total=NUMBER_OF_HEADERS;
-  SetResponse(response_code,response_string);
-}
-bool HTTPProxyMessage::IsValid(HTTPProxyMessage & msg){
-        if (msg.m_Headers.m_Strings.size() == 0)
-                return false;
-        if (msg.m_Response.m_String == "")
-                return false;
-        if (msg.m_Response.m_Code < 1 || msg.m_Response.m_Code > 999)
-                return false;
-
-        return true;
-
-}
-bool HTTPProxyMessage::SetBody(const std::string & body, size_t len)
-{
-        /* Check for valid arguments */
-        if (body.length() == 0)
-                return false;
-        if (len == 0)
-                return false;
-
-        m_Body.m_Text = body;
-        m_Body.m_Length = len;
-
-        return true;
-}
-
-
-void HTTPProxyMessage::SetResponse(int response_code, const std::string &response_string){
-  m_Response.m_Code=response_code;  
-  m_Response.m_String=response_string;
-}
-//
-// @brief Server
-//
 
 HTTPProxyServer::HTTPProxyServer(
     const std::string& name,
@@ -113,10 +76,6 @@ std::shared_ptr<kovri::client::I2PServiceHandler> HTTPProxyServer::CreateHandler
     std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
   return std::make_shared<HTTPProxyHandler>(this, socket);
 }
-
-//
-// Handler
-//
 
 void HTTPProxyHandler::AsyncSockRead() {
   LogPrint(eLogDebug, "HTTPProxyHandler: async sock read");
@@ -159,7 +118,13 @@ void HTTPProxyHandler::HandleSockRecv(
 bool HTTPProxyHandler::HandleData(
     std::uint8_t* buf,
     std::size_t len) {
-  assert(len);
+  if((unsigned)len==0){
+    boost::network::http::basic_response<
+      boost::network::http::tags::http_server> response;
+    //use cpp-netlib enum here to send response code to failed function
+    // enum status_t http://cpp-netlib.org/0.12.0/reference/http_server.html
+    HTTPRequestFailed(HTTPProxyHandler::status_t::bad_request);
+  }
   std::string bufString(buf,buf+len);
   std::vector<std::string> HeaderBody;
   std::vector<std::string> tokens;
@@ -173,10 +138,14 @@ bool HTTPProxyHandler::HandleData(
   m_Method=tokensRequest[0];
   m_URL=tokensRequest[1];
   m_Version=tokensRequest[2];
+  if(m_Method.empty() || m_URL.empty() || m_Version.empty())
+    HTTPRequestFailed(HTTPProxyHandler::status_t::bad_request);
   //headersline
   m_Headers=tokens;
   m_Headers.erase(m_Headers.begin()); //remove start line
-  //send the headers into the map.
+  //check for body 
+  if(HeaderBody.size()<2)
+    HTTPRequestFailed(HTTPProxyHandler::status_t::bad_request);
   //body line
   m_Body=HeaderBody[1];
   return CreateHTTPRequest(len);
@@ -202,8 +171,7 @@ void HTTPProxyHandler::HandleStreamRequestComplete(
     LogPrint(eLogError,
         "HTTPProxyHandler: issue when creating the stream,"
         "check the previous warnings for details");
-    // TODO(unassigned): Send correct error message host unreachable
-    HTTPRequestFailed();
+    HTTPRequestFailed(HTTPProxyHandler::status_t::not_found);
   }
 }
 bool HTTPProxyHandler::CreateHTTPRequest(
@@ -217,7 +185,7 @@ bool HTTPProxyHandler::CreateHTTPRequest(
   m_Request += m_URL;
   m_Request.push_back(' ');
   m_Request += m_Version + "\r\n";
-  // Reset/scrub User-Agent: ; 1. create map from list of headerssplit on :;2.  replace useragent
+  // Reset/scrub User-Agent 
   std::multimap<std::string,std::string> headerMap;
   for(auto it = m_Headers.begin();it!=m_Headers.end();it++)
   {
@@ -268,7 +236,7 @@ bool HTTPProxyHandler::ExtractIncomingRequest() {
   // Check for HTTP version
   if (m_Version != "HTTP/1.0" && m_Version != "HTTP/1.1") {
     LogPrint(eLogError, "HTTPProxyHandler: unsupported version: ", m_Version);
-    HTTPRequestFailed();  // TODO(unassigned): send correct responses
+    HTTPRequestFailed(HTTPProxyHandler::status_t::not_implemented);  // TODO(unassigned): send correct responses
     return false;
   }
   return true;
@@ -311,10 +279,11 @@ void HTTPProxyHandler::HandleJumpService() {
 /* All hope is lost beyond this point */
 // TODO(unassigned): handle this appropriately
 void HTTPProxyHandler::HTTPRequestFailed(
-    /*Error error*/) {
-  static std::string response =
-    "HTTP/1.0 500 Internal Server Error\r\n"
-    "Content-type: text/html\r\n"
+    HTTPProxyHandler::status_t status){
+  
+  std::string response =
+    "HTTP/1.0 " + std::to_string(status)+ " "+ HTTPProxyHandler::status_message(status)+"\r\n" +
+    "Content-type: text/html\r\n" +
     "Content-length: 0\r\n";
   boost::asio::async_write(
       *m_Socket,

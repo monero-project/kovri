@@ -135,10 +135,12 @@ bool HTTPProxyHandler::HandleData(
   //requestline
   std::vector<std::string> tokensRequest;
   boost::split(tokensRequest,m_RequestLine,boost::is_any_of(" \t"));
-  m_Method=tokensRequest[0];
-  m_URL=tokensRequest[1];
-  m_Version=tokensRequest[2];
-  if(m_Method.empty() || m_URL.empty() || m_Version.empty())
+  if(tokensRequest.size()==3) {
+    m_Method=tokensRequest[0];
+    m_URL=tokensRequest[1];
+    m_Version=tokensRequest[2];
+  }
+  else
     HTTPRequestFailed(HTTPProxyHandler::status_t::bad_request);
   //headersline
   m_Headers=tokens;

@@ -208,7 +208,6 @@ class HTTPProxyHandler
     AsyncSockRead();
   }
 
- private:
   /// @brief Asynchronously reads data sent to proxy server
   void AsyncSockRead();
 
@@ -222,6 +221,7 @@ class HTTPProxyHandler
       uint8_t* buf,
       std::size_t len);
 
+ private:
   /// @brief Handles stream created by service through proxy handler
   void HandleStreamRequestComplete(
       std::shared_ptr<kovri::client::Stream> stream);

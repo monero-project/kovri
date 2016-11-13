@@ -123,55 +123,68 @@ bool HTTP::DownloadViaClearnet() {
   }
   // Create client with options
   Client client(options);
+#if defined(WIN32)  // cpp-netlib/cpp-netlib#696
   try {
-    // Create request
-    Request request(uri.string());  // A fully-qualified, completed URI
-    // Add required Java I2P defined user-agent
-    request << boost::network::header("User-Agent", "Wget/1.11.4");
-    // Are we requesting the same file?
-    if (uri.path() == GetPreviousPath()) {
-      // Add ETag and Last-Modified headers if previously set
-      if (!GetPreviousETag().empty())
-        request << boost::network::header("If-None-Match", GetPreviousETag());
-      if (!GetPreviousLastModified().empty())
-        request << boost::network::header("If-Modified-Since", GetPreviousLastModified());
-    } else {
-      // Set path to test against for future download (if this is a single instance)
-      SetPath(uri.path());
-    }
-    // Create response object, send request and receive response
-    Response response = client.get(request);
-    // Test HTTP response status code
-    switch (response.status()) {
-      // New download or cached version does not match, so re-download
-      case static_cast<std::uint16_t>(ResponseCode::HTTP_OK):
-        // Parse response headers for ETag and Last-Modified
-        for (auto const& header : response.headers()) {
-          if (header.first == "ETag") {
-            if (header.second != GetPreviousETag())
-              SetETag(header.second);  // Set new ETag
+#endif
+    try {
+      // Create request
+      Request request(uri.string());  // A fully-qualified, completed URI
+      // Add required Java I2P defined user-agent
+      request << boost::network::header("User-Agent", "Wget/1.11.4");
+      // Are we requesting the same file?
+      if (uri.path() == GetPreviousPath()) {
+        // Add ETag and Last-Modified headers if previously set
+        if (!GetPreviousETag().empty())
+          request << boost::network::header("If-None-Match", GetPreviousETag());
+        if (!GetPreviousLastModified().empty())
+          request << boost::network::header("If-Modified-Since", GetPreviousLastModified());
+      } else {
+        // Set path to test against for future download (if this is a single instance)
+        SetPath(uri.path());
+      }
+      // Create response object, send request and receive response
+      Response response = client.get(request);
+      // Test HTTP response status code
+      switch (response.status()) {
+        // New download or cached version does not match, so re-download
+        case static_cast<std::uint16_t>(ResponseCode::HTTP_OK):
+          // Parse response headers for ETag and Last-Modified
+          for (auto const& header : response.headers()) {
+            if (header.first == "ETag") {
+              if (header.second != GetPreviousETag())
+                SetETag(header.second);  // Set new ETag
+            }
+            if (header.first == "Last-Modified") {
+              if (header.second != GetPreviousLastModified())
+                SetLastModified(header.second);  // Set new Last-Modified
+            }
           }
-          if (header.first == "Last-Modified") {
-            if (header.second != GetPreviousLastModified())
-              SetLastModified(header.second);  // Set new Last-Modified
-          }
-        }
-        // Save downloaded content
-        SetDownloadedContents(boost::network::http::body(response));
-        break;
-      // File requested is unchanged since previous download
-      case static_cast<std::uint16_t>(ResponseCode::HTTP_NOT_MODIFIED):
-        LogPrint(eLogInfo, "HTTP: no new updates available from ", uri.host());
-        break;
-      // Useless response code
-      default:
-        LogPrint(eLogWarn, "HTTP: response code: ", response.status());
-        return false;
+          // Save downloaded content
+          SetDownloadedContents(boost::network::http::body(response));
+          break;
+        // File requested is unchanged since previous download
+        case static_cast<std::uint16_t>(ResponseCode::HTTP_NOT_MODIFIED):
+          LogPrint(eLogInfo, "HTTP: no new updates available from ", uri.host());
+          break;
+        // Useless response code
+        default:
+          LogPrint(eLogWarn, "HTTP: response code: ", response.status());
+          return false;
+      }
+    } catch (const std::exception& ex) {
+      LogPrint(eLogError, "HTTP: unable to complete download: ", ex.what());
+      return false;
     }
-  } catch (const std::exception& ex) {
-    LogPrint(eLogError, "HTTP: unable to complete download: ", ex.what());
+#if defined(WIN32)  // cpp-netlib/cpp-netlib#696
+      catch (const std::exception_ptr& ex) {
+      LogPrint(eLogError, "HTTP: caught exception_ptr, rethrowing exception");
+      std::rethrow_exception(ex);
+    }
+  } catch (const boost::system::system_error& ex) {
+    LogPrint(eLogError, "HTTP: ", boost::diagnostic_information(ex));
     return false;
   }
+#endif
   return true;
 }
 

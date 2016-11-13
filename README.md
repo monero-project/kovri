@@ -30,13 +30,14 @@
 | License   | [![License](https://img.shields.io/badge/license-BSD3-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 ## Documentation
-- [Build Instructions](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md) to install dependencies and build kovri
-- [User Guide](https://github.com/monero-project/kovri/blob/master/doc/USER_GUIDE.md) to get up and running with kovri
-- [FAQ](https://github.com/monero-project/kovri/blob/master/doc/FAQ.md) and other documentation [here](https://github.com/monero-project/kovri/tree/master/doc)
+- End-users and developers: read more about Kovri in the [Moneropedia](https://getmonero.org/knowledge-base/moneropedia/kovri)
+- To install dependencies and build Kovri, follow the [build instructions](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md)
+- Once built, to get up and running with Kovri, see the [user guide](https://github.com/monero-project/kovri/blob/master/doc/USER_GUIDE.md)
+- Many [FAQ's](https://github.com/monero-project/kovri/blob/master/doc/FAQ.md) and other documentation are also available in the [doc directory](https://github.com/monero-project/kovri/tree/master/doc)
 
 ## Developers
-- Read our [Contributing Guide](https://github.com/monero-project/kovri/blob/master/doc/CONTRIBUTING.md) before sending a pull-request
-- Visit our [Forum Funding System](https://forum.getmonero.org/8/funding-required) to get funded for your work after you [submit a proposal](https://forum.getmonero.org/7/open-tasks/2379/forum-funding-system-ffs-sticky)
+- Before sending a pull-request, read through our [contributing guide](https://github.com/monero-project/kovri/blob/master/doc/CONTRIBUTING.md)
+- To get funded for your work, [submit a proposal](https://forum.getmonero.org/7/open-tasks/2379/forum-funding-system-ffs-sticky) to Monero's [Forum Funding System](https://forum.getmonero.org/8/funding-required)
 - A [GitLab mirror](https://repo.getmonero.org/monero-project/kovri) is available for non-push repository access ([Kovri/I2P/Tor access is WIP](https://github.com/monero-project/meta/issues/9))
 - Build details are available on [build.getmonero.org](https://build.getmonero.org/) or with Kovri/I2P at [monero-build.i2p](http://monero-build.i2p/)
 

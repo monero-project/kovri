@@ -51,7 +51,7 @@
 #include "core/router/i2np.h"
 #include "core/router/identity.h"
 #include "core/router/lease_set.h"
-#include "core/router/tunnel/tunnel.h"
+#include "core/router/tunnel/impl.h"
 
 #include "core/util/i2p_endian.h"
 
@@ -184,7 +184,7 @@ class Stream : public std::enable_shared_from_this<Stream> {
     return m_SendStreamID;
   }
 
-  std::uint32_t GetRecvStreamID() const {
+  std::uint32_t GetReceiveStreamID() const {
     return m_RecvStreamID;
   }
 

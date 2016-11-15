@@ -145,7 +145,7 @@ std::uint16_t GetMTUWindowsIpv4(
     sockaddr_in input_address) {
   ULONG out_buf_len = 0;
   PIP_ADAPTER_ADDRESSES addresses = nullptr;
-  PIP_ADAPTER_ADDRESSES current_ddresses = nullptr;
+  PIP_ADAPTER_ADDRESSES current_addresses = nullptr;
   PIP_ADAPTER_UNICAST_ADDRESS unicast = nullptr;
   if (GetAdaptersAddresses(
         AF_INET,
@@ -172,15 +172,15 @@ std::uint16_t GetMTUWindowsIpv4(
   current_addresses = addresses;
   while (current_addresses) {
     PIP_ADAPTER_UNICAST_ADDRESS first_unicast_address =
-      current_addresses->first_unicast_address;
-    unicast = current_addresses->first_unicast_address;
+      current_addresses->FirstUnicastAddress;
+    unicast = current_addresses->FirstUnicastAddress;
     if (unicast == nullptr) {
       LogPrint(eLogError,
           "MTU: GetMTUWindowsIpv4() has failed:",
           "not a unicast ipv4 address; this is not supported");
     }
     for (int i = 0; unicast != nullptr; ++i) {
-      LPSOCKADDR addr = unicast->Address.sock_addr;
+      LPSOCKADDR addr = unicast->Address.lpSockaddr;
       sockaddr_in* local_interface_address =
         reinterpret_cast<sockaddr_in *>(addr);
       if (local_interface_address->sin_addr.S_un.S_addr ==
@@ -191,7 +191,7 @@ std::uint16_t GetMTUWindowsIpv4(
       }
       unicast = unicast->Next;
     }
-    current_addresses = current_ddresses->Next;
+    current_addresses = current_addresses->Next;
   }
   LogPrint(eLogError,
       "MTU: GetMTUWindowsIpv4() error:",
@@ -232,15 +232,15 @@ std::uint16_t GetMTUWindowsIpv6(
   current_addresses = addresses;
   while (current_addresses) {
     PIP_ADAPTER_UNICAST_ADDRESS first_unicast_address =
-      current_addresses->first_unicast_address;
-    unicast = current_addresses->first_unicast_address;
+      current_addresses->FirstUnicastAddress;
+    unicast = current_addresses->FirstUnicastAddress;
     if (unicast == nullptr) {
       LogPrint(eLogError,
           "MTU: GetMTUWindowsIpv6() has failed:",
           "not a unicast ipv6 address; this is not supported");
     }
     for (int i = 0; unicast != nullptr; ++i) {
-      LPSOCKADDR addr = unicast->Address.sock_addr;
+      LPSOCKADDR addr = unicast->Address.lpSockaddr;
       sockaddr_in6 *local_interface_address =
         reinterpret_cast<sockaddr_in6 *>(addr);
       for (int j = 0; j != 8; ++j) {

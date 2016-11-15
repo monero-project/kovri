@@ -30,12 +30,9 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "client/api/i2p_control/i2p_control.h"
+#include "client/api/i2p_control/session.h"
 
 #include <boost/property_tree/json_parser.hpp>
-
-#include <cryptopp/filters.h>
-#include <cryptopp/hex.h>
 
 #include <iomanip>
 #include <sstream>
@@ -46,9 +43,9 @@
 #include "core/crypto/rand.h"
 
 #include "core/router/context.h"
-#include "core/router/net_db/net_db.h"
-#include "core/router/transports/transports.h"
-#include "core/router/tunnel/tunnel.h"
+#include "core/router/net_db/impl.h"
+#include "core/router/transports/impl.h"
+#include "core/router/tunnel/impl.h"
 
 #include "core/util/filesystem.h"
 #include "core/util/log.h"
@@ -298,6 +295,7 @@ void I2PControlSession::Stop() {
 I2PControlSession::Response I2PControlSession::HandleRequest(
     std::stringstream& request) {
   boost::property_tree::ptree pt;
+  LogPrint(eLogDebug, "I2PControlSession: reading json request");
   boost::property_tree::read_json(request, pt);
   Response response;
   try {
@@ -317,7 +315,7 @@ I2PControlSession::Response I2PControlSession::HandleRequest(
           "I2PControlSession: invalid token presented");
       return response;
     }
-    // Call the appropriate handler
+    LogPrint(eLogDebug, "I2PControlSession: calling handler");
     (this->*(it->second))(params, response);
   } catch (const boost::property_tree::ptree_error&) {
     response.SetError(ErrorCode::e_ParseError);

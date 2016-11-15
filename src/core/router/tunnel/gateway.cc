@@ -36,7 +36,7 @@
 #include "core/crypto/rand.h"
 
 #include "core/router/context.h"
-#include "core/router/transports/transports.h"
+#include "core/router/transports/impl.h"
 #include "core/router/tunnel/gateway.h"
 
 #include "core/util/i2p_endian.h"

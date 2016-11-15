@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CORE_ROUTER_TRANSPORTS_NTCP_NTCP_H_
-#define SRC_CORE_ROUTER_TRANSPORTS_NTCP_NTCP_H_
+#ifndef SRC_CORE_ROUTER_TRANSPORTS_NTCP_SERVER_H_
+#define SRC_CORE_ROUTER_TRANSPORTS_NTCP_SERVER_H_
 
 #include <boost/asio.hpp>
 
@@ -121,4 +121,4 @@ class NTCPServer {
 }  // namespace core
 }  // namespace kovri
 
-#endif  // SRC_CORE_ROUTER_TRANSPORTS_NTCP_NTCP_H_
+#endif  // SRC_CORE_ROUTER_TRANSPORTS_NTCP_SERVER_H_

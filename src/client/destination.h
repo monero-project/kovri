@@ -50,7 +50,7 @@
 #include "core/router/garlic.h"
 #include "core/router/identity.h"
 #include "core/router/lease_set.h"
-#include "core/router/net_db/net_db.h"
+#include "core/router/net_db/impl.h"
 #include "core/router/tunnel/pool.h"
 
 namespace kovri {

@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "core/router/transports/transports.h"
+#include "core/router/transports/impl.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -44,7 +44,7 @@
 
 #include "core/router/context.h"
 #include "core/router/i2np.h"
-#include "core/router/net_db/net_db.h"
+#include "core/router/net_db/impl.h"
 
 #include "core/util/log.h"
 
@@ -266,7 +266,6 @@ bool Transports::IsBandwidthExceeded() const {
 void Transports::SendMessage(
     const kovri::core::IdentHash& ident,
     std::shared_ptr<kovri::I2NPMessage> msg) {
-  LogPrint(eLogDebug, "Transports: sending messages");
   SendMessages(
       ident,
       std::vector<std::shared_ptr<kovri::I2NPMessage>> {msg});
@@ -275,6 +274,7 @@ void Transports::SendMessage(
 void Transports::SendMessages(
     const kovri::core::IdentHash& ident,
     const std::vector<std::shared_ptr<kovri::I2NPMessage>>& msgs) {
+  LogPrint(eLogDebug, "Transports: sending messages");
   m_Service.post(
       std::bind(
           &Transports::PostMessages,

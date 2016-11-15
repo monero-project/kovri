@@ -51,7 +51,7 @@
 #include <thread>
 
 #include "core/router/context.h"
-#include "core/router/net_db/net_db.h"
+#include "core/router/net_db/impl.h"
 
 #include "core/util/log.h"
 

@@ -53,7 +53,7 @@ bool DaemonWin32::Init() {
   setlocale(LC_ALL, "");
   if (!Daemon_Singleton::Init())
     return false;
-  if (I2PService::isService())
+  if (I2PService::IsService())
     m_IsDaemon = 1;
   else
     m_IsDaemon = 0;

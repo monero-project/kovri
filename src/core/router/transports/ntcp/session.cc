@@ -46,9 +46,9 @@
 
 #include "core/router/context.h"
 #include "core/router/i2np.h"
-#include "core/router/net_db/net_db.h"
-#include "core/router/transports/ntcp/ntcp.h"
-#include "core/router/transports/transports.h"
+#include "core/router/net_db/impl.h"
+#include "core/router/transports/ntcp/server.h"
+#include "core/router/transports/impl.h"
 
 #include "core/util/base64.h"
 #include "core/util/i2p_endian.h"

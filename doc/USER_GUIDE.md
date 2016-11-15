@@ -52,7 +52,7 @@ Notes:
 ## Step 6. Host your own garlic-service (garlic-site/eepsite)
 - Read `tunnels.conf` to learn how to set a server tunnel to point to the service you are hosting
 
-## Step 7.
+## Step 7. Enjoy!
+- Read more about Kovri in the [Moneropedia](https://getmonero.org/knowledge-base/moneropedia/kovri).
 - Open your feature requests or report bugs on our [issues tracker](https://github.com/monero-project/kovri/issues)
 - Learn more about the I2P network on the [java I2P website](https://geti2p.net/en/docs)
-- Enjoy!

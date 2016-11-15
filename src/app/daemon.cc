@@ -49,10 +49,10 @@
 #include "core/router/context.h"
 #include "core/router/garlic.h"
 #include "core/router/info.h"
-#include "core/router/net_db/net_db.h"
+#include "core/router/net_db/impl.h"
 #include "core/router/transports/ntcp/session.h"
-#include "core/router/transports/transports.h"
-#include "core/router/tunnel/tunnel.h"
+#include "core/router/transports/impl.h"
+#include "core/router/tunnel/impl.h"
 
 #include "core/util/log.h"
 

@@ -30,8 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CLIENT_API_I2P_CONTROL_I2P_CONTROL_H_
-#define SRC_CLIENT_API_I2P_CONTROL_I2P_CONTROL_H_
+#ifndef SRC_CLIENT_API_I2P_CONTROL_SESSION_H_
+#define SRC_CLIENT_API_I2P_CONTROL_SESSION_H_
 
 #include <boost/asio.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -41,7 +41,7 @@
 #include <mutex>
 #include <string>
 
-#include "core/router/tunnel/tunnel.h"
+#include "core/router/tunnel/impl.h"
 
 namespace kovri {
 namespace client {
@@ -325,4 +325,4 @@ class I2PControlSession
 }  // namespace client
 }  // namespace kovri
 
-#endif  // SRC_CLIENT_API_I2P_CONTROL_I2P_CONTROL_H_
+#endif  // SRC_CLIENT_API_I2P_CONTROL_SESSION_H_

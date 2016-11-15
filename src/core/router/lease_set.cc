@@ -39,7 +39,7 @@
 
 #include "core/crypto/rand.h"
 
-#include "core/router/net_db/net_db.h"
+#include "core/router/net_db/impl.h"
 #include "core/router/tunnel/pool.h"
 
 #include "core/util/i2p_endian.h"

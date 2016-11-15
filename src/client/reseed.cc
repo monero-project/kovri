@@ -49,7 +49,7 @@
 #include "core/crypto/signature.h"
 
 #include "core/router/identity.h"
-#include "core/router/net_db/net_db.h"
+#include "core/router/net_db/impl.h"
 
 #include "core/util/filesystem.h"
 #include "core/util/i2p_endian.h"

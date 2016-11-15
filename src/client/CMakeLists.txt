@@ -1,11 +1,11 @@
 include_directories("../")
 
 set(CLIENT_SRC
-  "address_book/address_book.cc"
+  "address_book/impl.cc"
   "address_book/storage.cc"
   "api/datagram.cc"
-  "api/i2p_control/i2p_control.cc"
   "api/i2p_control/server.cc"
+  "api/i2p_control/session.cc"
   "api/streaming.cc"
   "context.cc"
   "destination.cc"

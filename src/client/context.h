@@ -39,7 +39,7 @@
 #include <string>
 #include <utility>
 
-#include "client/address_book/address_book.h"
+#include "client/address_book/impl.h"
 #include "client/api/i2p_control/server.h"
 #include "client/destination.h"
 #include "client/proxy/http.h"

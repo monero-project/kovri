@@ -747,17 +747,17 @@ void NetDb::HandleDatabaseLookupMsg(
         exploratory_pool ? exploratory_pool->GetNextOutboundTunnel() : nullptr;
       if (outbound)
         outbound->SendTunnelDataMsg(
-            buf+32,
+            buf + 32,
             reply_tunnel_ID,
             reply_msg);
       else
         kovri::core::transports.SendMessage(
-            buf+32,
+            buf + 32,
             kovri::CreateTunnelGatewayMsg(
                 reply_tunnel_ID,
                 reply_msg));
     } else {
-      kovri::core::transports.SendMessage(buf+32, reply_msg);
+      kovri::core::transports.SendMessage(buf + 32, reply_msg);
     }
   }
 }
@@ -867,15 +867,15 @@ std::shared_ptr<const RouterInfo> NetDb::GetRandomPeerTestRouter() const {
 }
 
 std::shared_ptr<const RouterInfo> NetDb::GetRandomIntroducer() const {
-  return GetRandomRouter (
-    [](std::shared_ptr<const RouterInfo> router)->bool {
+  return GetRandomRouter(
+      [](std::shared_ptr<const RouterInfo> router)->bool {
       return !router->IsHidden() && router->IsIntroducer();
     });
 }
 
 std::shared_ptr<const RouterInfo> NetDb::GetHighBandwidthRandomRouter(
     std::shared_ptr<const RouterInfo> compatible_with) const {
-  return GetRandomRouter (
+  return GetRandomRouter(
     [compatible_with](std::shared_ptr<const RouterInfo> router)->bool {
       return !router->IsHidden() &&
       router != compatible_with &&

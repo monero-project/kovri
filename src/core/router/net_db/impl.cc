@@ -883,24 +883,32 @@ std::shared_ptr<const RouterInfo> NetDb::GetHighBandwidthRandomRouter(
       (router->GetCaps() & RouterInfo::eHighBandwidth);
     });
 }
-
+// Randomly selects a router indice for iterating through m_RouterInfos
+// to find a router that matches the specified filter
 template<typename Filter>
 std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter(
     Filter filter) const {
   std::uint32_t ind = kovri::core::RandInRange<std::uint32_t>(0, GetNumRouters() - 1);
   for (int j = 0; j < 2; j++) {
-    std::uint32_t i = 0;
-    std::unique_lock<std::mutex> l(m_RouterInfosMutex);
-    for (auto it : m_RouterInfos) {
-      if (i >= ind) {
-        if (!it.second->IsUnreachable() && filter(it.second))
-          return it.second;
-      } else {
-        i++;
+    // First pass
+    if (j == 0) {
+      std::unique_lock<std::mutex> l(m_RouterInfosMutex);
+      auto it = m_RouterInfos.begin();
+      for (std::advance(it, ind); it != m_RouterInfos.end(); it++) {
+        if (!it->second->IsUnreachable() && filter(it->second))
+          return it->second;
       }
     }
-    // we couldn't find anything, try second pass
-    ind = 0;
+    // Second pass, decrementing the iterator to the beginning, in case a router
+    // was not found in the first pass
+    if (j == 1) {
+      std::unique_lock<std::mutex> l(m_RouterInfosMutex);
+      auto it = m_RouterInfos.begin();
+      for (std::advance(it, ind); it != m_RouterInfos.begin(); it--) {
+        if (!it->second->IsUnreachable() && filter(it->second))
+          return it->second;
+      }
+    }
   }
   return nullptr;  // seems we have too few routers
 }

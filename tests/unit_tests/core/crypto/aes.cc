@@ -36,6 +36,7 @@
 
 #include "core/crypto/aes.h"
 #include "core/util/impl/log.cc"
+extern std::string kovri::core::g_LogFileName;
 
 BOOST_AUTO_TEST_SUITE(AESTests)
 

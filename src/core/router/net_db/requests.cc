@@ -139,7 +139,7 @@ void NetDbRequests::ManageRequests() {
   for (auto it = m_RequestedDestinations.begin();
       it != m_RequestedDestinations.end();) {
     auto& dest = it->second;
-    bool done = false;
+    bool is_complete = false;
     // request is worthless after 1 minute
     if (ts < dest->GetCreationTime() + 60) {
       // no response for 5 seconds
@@ -161,7 +161,7 @@ void NetDbRequests::ManageRequests() {
                   next_floodfill,
                   inbound));
           } else {
-            done = true;
+            is_complete = true;
             if (!inbound)
               LogPrint(eLogWarn, "NetDbRequests: no inbound tunnels");
             if (!outbound)
@@ -174,13 +174,13 @@ void NetDbRequests::ManageRequests() {
             LogPrint(eLogWarn,
                 "NetDbRequests: ", dest->GetDestination().ToBase64(),
                 " not found after ", attempts, " attempts");
-          done = true;
+          is_complete = true;
         }
       }
     } else {  // delete obsolete request
-      done = true;
+      is_complete = true;
     }
-    if (done)
+    if (is_complete)
       it = m_RequestedDestinations.erase(it);
     else
       it++;

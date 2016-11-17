@@ -192,10 +192,10 @@ class ClientDestination : public kovri::core::GarlicDestination {
       const std::uint8_t* tag);
 
   void ProcessGarlicMessage(
-      std::shared_ptr<I2NPMessage> msg);
+      std::shared_ptr<kovri::core::I2NPMessage> msg);
 
   void ProcessDeliveryStatusMessage(
-      std::shared_ptr<I2NPMessage> msg);
+      std::shared_ptr<kovri::core::I2NPMessage> msg);
 
   void SetLeaseSetUpdated();
 
@@ -223,7 +223,7 @@ class ClientDestination : public kovri::core::GarlicDestination {
       std::size_t len);
 
   void HandleDeliveryStatusMessage(
-      std::shared_ptr<I2NPMessage> msg);
+      std::shared_ptr<kovri::core::I2NPMessage> msg);
 
   void RequestLeaseSet(
       const kovri::core::IdentHash& dest,

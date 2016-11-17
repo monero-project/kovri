@@ -264,7 +264,7 @@ class NTCPSession
   /// @brief Send payload (I2NP message)
   /// @param msg shared pointer to payload (I2NPMessage)
   void SendPayload(
-      std::shared_ptr<kovri::I2NPMessage> msg);
+      std::shared_ptr<kovri::core::I2NPMessage> msg);
 
   /// @brief Send payload (I2NP messages)
   /// @param msg shared pointer to payload (I2NPMessages)
@@ -315,7 +315,7 @@ class NTCPSession
 
   std::shared_ptr<I2NPMessage> m_NextMessage;
   std::size_t m_NextMessageOffset;
-  kovri::I2NPMessagesHandler m_Handler;
+  kovri::core::I2NPMessagesHandler m_Handler;
 
   bool m_IsSending;
   std::vector<std::shared_ptr<I2NPMessage>> m_SendQueue;

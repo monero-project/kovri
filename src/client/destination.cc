@@ -261,7 +261,7 @@ bool ClientDestination::SubmitSessionKey(
 }
 
 void ClientDestination::ProcessGarlicMessage(
-    std::shared_ptr<I2NPMessage> msg) {
+    std::shared_ptr<kovri::core::I2NPMessage> msg) {
   m_Service.post(
       std::bind(
           &ClientDestination::HandleGarlicMessage,
@@ -270,7 +270,7 @@ void ClientDestination::ProcessGarlicMessage(
 }
 
 void ClientDestination::ProcessDeliveryStatusMessage(
-    std::shared_ptr<I2NPMessage> msg) {
+    std::shared_ptr<kovri::core::I2NPMessage> msg) {
   m_Service.post(
       std::bind(
           &ClientDestination::HandleDeliveryStatusMessage,
@@ -282,39 +282,39 @@ void ClientDestination::HandleI2NPMessage(
     const std::uint8_t* buf,
     std::size_t,
     std::shared_ptr<kovri::core::InboundTunnel> from) {
-  std::uint8_t type_ID = buf[I2NP_HEADER_TYPEID_OFFSET];
+  std::uint8_t type_ID = buf[kovri::core::I2NP_HEADER_TYPEID_OFFSET];
   switch (type_ID) {
-    case e_I2NPData:
+    case kovri::core::I2NPData:
       HandleDataMessage(
-          buf + I2NP_HEADER_SIZE,
+          buf + kovri::core::I2NP_HEADER_SIZE,
           bufbe16toh(
-              buf + I2NP_HEADER_SIZE_OFFSET));
+              buf + kovri::core::I2NP_HEADER_SIZE_OFFSET));
     break;
-    case e_I2NPDeliveryStatus:
+    case kovri::core::I2NPDeliveryStatus:
       // we assume tunnel tests non-encrypted
       HandleDeliveryStatusMessage(
           CreateI2NPMessage(
               buf,
-              GetI2NPMessageLength(buf),
+              kovri::core::GetI2NPMessageLength(buf),
               from));
     break;
-    case e_I2NPDatabaseStore:
+    case kovri::core::I2NPDatabaseStore:
       HandleDatabaseStoreMessage(
-          buf + I2NP_HEADER_SIZE,
+          buf + kovri::core::I2NP_HEADER_SIZE,
           bufbe16toh(
-              buf + I2NP_HEADER_SIZE_OFFSET));
+              buf + kovri::core::I2NP_HEADER_SIZE_OFFSET));
     break;
-    case e_I2NPDatabaseSearchReply:
+    case kovri::core::I2NPDatabaseSearchReply:
       HandleDatabaseSearchReplyMessage(
-          buf + I2NP_HEADER_SIZE,
+          buf + kovri::core::I2NP_HEADER_SIZE,
           bufbe16toh(
-              buf + I2NP_HEADER_SIZE_OFFSET));
+              buf + kovri::core::I2NP_HEADER_SIZE_OFFSET));
     break;
     default:
-      kovri::HandleI2NPMessage(
+      kovri::core::HandleI2NPMessage(
           CreateI2NPMessage(
               buf,
-              GetI2NPMessageLength(buf),
+              kovri::core::GetI2NPMessageLength(buf),
               from));
   }
 }
@@ -322,8 +322,8 @@ void ClientDestination::HandleI2NPMessage(
 void ClientDestination::HandleDatabaseStoreMessage(
     const std::uint8_t* buf,
     std::size_t len) {
-  std::uint32_t reply_token = bufbe32toh(buf + DATABASE_STORE_REPLY_TOKEN_OFFSET);
-  std::size_t offset = DATABASE_STORE_HEADER_SIZE;
+  std::uint32_t reply_token = bufbe32toh(buf + kovri::core::DATABASE_STORE_REPLY_TOKEN_OFFSET);
+  std::size_t offset = kovri::core::DATABASE_STORE_HEADER_SIZE;
   if (reply_token) {
     LogPrint(eLogInfo,
         "ClientDestination: reply token is ignored for DatabaseStore");
@@ -331,9 +331,9 @@ void ClientDestination::HandleDatabaseStoreMessage(
   }
   // LeaseSet
   std::shared_ptr<kovri::core::LeaseSet> lease_set;
-  if (buf[DATABASE_STORE_TYPE_OFFSET] == 1) {
+  if (buf[kovri::core::DATABASE_STORE_TYPE_OFFSET] == 1) {
     LogPrint(eLogDebug, "ClientDestination: remote LeaseSet");
-    auto it = m_RemoteLeaseSets.find(buf + DATABASE_STORE_KEY_OFFSET);
+    auto it = m_RemoteLeaseSets.find(buf + kovri::core::DATABASE_STORE_KEY_OFFSET);
     if (it != m_RemoteLeaseSets.end()) {
       lease_set = it->second;
       lease_set->Update(buf + offset, len - offset);
@@ -349,7 +349,7 @@ void ClientDestination::HandleDatabaseStoreMessage(
         std::make_shared<kovri::core::LeaseSet> (buf + offset, len - offset);
       if (lease_set->IsValid()) {
         LogPrint(eLogDebug, "ClientDestination: new remote LeaseSet added");
-        m_RemoteLeaseSets[buf + DATABASE_STORE_KEY_OFFSET] = lease_set;
+        m_RemoteLeaseSets[buf + kovri::core::DATABASE_STORE_KEY_OFFSET] = lease_set;
       } else {
         LogPrint(eLogError,
             "ClientDestination: new remote LeaseSet verification failed");
@@ -359,9 +359,9 @@ void ClientDestination::HandleDatabaseStoreMessage(
   } else {
     LogPrint(eLogError,
         "ClientDestination: unexpected client's DatabaseStore type ",
-        buf[DATABASE_STORE_TYPE_OFFSET], ". Dropped");
+        buf[kovri::core::DATABASE_STORE_TYPE_OFFSET], ". Dropped");
   }
-  auto it1 = m_LeaseSetRequests.find(buf + DATABASE_STORE_KEY_OFFSET);
+  auto it1 = m_LeaseSetRequests.find(buf + kovri::core::DATABASE_STORE_KEY_OFFSET);
   if (it1 != m_LeaseSetRequests.end()) {
     it1->second->request_timeout_timer.cancel();
     if (it1->second->request_complete)
@@ -420,9 +420,9 @@ void ClientDestination::HandleDatabaseSearchReplyMessage(
 }
 
 void ClientDestination::HandleDeliveryStatusMessage(
-    std::shared_ptr<I2NPMessage> msg) {
+    std::shared_ptr<kovri::core::I2NPMessage> msg) {
   std::uint32_t msg_ID =
-    bufbe32toh(msg->GetPayload() + DELIVERY_STATUS_MSGID_OFFSET);
+    bufbe32toh(msg->GetPayload() + kovri::core::DELIVERY_STATUS_MSGID_OFFSET);
   if (msg_ID == m_PublishReplyToken) {
     LogPrint(eLogDebug, "ClientDestination: publishing confirmed");
     m_ExcludedFloodfills.clear();
@@ -473,7 +473,7 @@ void ClientDestination::Publish() {
   auto msg =
     WrapMessage(
         floodfill,
-        kovri::CreateDatabaseStoreMsg(
+        kovri::core::CreateDatabaseStoreMsg(
             m_LeaseSet,
             m_PublishReplyToken));
   m_PublishConfirmationTimer.expires_from_now(

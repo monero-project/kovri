@@ -114,15 +114,15 @@ void NetDb::Run() {
         std::uint8_t num_msgs = 0;
         while (msg) {
           switch (msg->GetTypeID()) {
-            case e_I2NPDatabaseStore:
+            case I2NPDatabaseStore:
               LogPrint(eLogDebug, "NetDb: DatabaseStore");
               HandleDatabaseStoreMsg(msg);
             break;
-            case e_I2NPDatabaseSearchReply:
+            case I2NPDatabaseSearchReply:
               LogPrint(eLogDebug, "NetDb: DatabaseSearchReply");
               HandleDatabaseSearchReplyMsg(msg);
             break;
-            case e_I2NPDatabaseLookup:
+            case I2NPDatabaseLookup:
               LogPrint(eLogDebug, "NetDb: DatabaseLookup");
               HandleDatabaseLookupMsg(msg);
             break;
@@ -514,7 +514,7 @@ void NetDb::HandleDatabaseStoreMsg(
       htobe32buf(payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0);
       memcpy(payload + DATABASE_STORE_HEADER_SIZE, buf + offset, len - offset);
       flood_msg->len += DATABASE_STORE_HEADER_SIZE + len -offset;
-      flood_msg->FillI2NPMessageHeader(e_I2NPDatabaseStore);
+      flood_msg->FillI2NPMessageHeader(I2NPDatabaseStore);
       std::set<IdentHash> excluded;
       for (int i = 0; i < 3; i++) {
         auto floodfill = GetClosestFloodfill(ident, excluded);
@@ -753,7 +753,7 @@ void NetDb::HandleDatabaseLookupMsg(
       else
         kovri::core::transports.SendMessage(
             buf+32,
-            kovri::CreateTunnelGatewayMsg(
+            kovri::core::CreateTunnelGatewayMsg(
                 reply_tunnel_ID,
                 reply_msg));
     } else {

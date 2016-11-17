@@ -208,7 +208,7 @@ class SSUSession
  private:
   boost::asio::io_service& GetService();
 
-  void CreateAESandMACKey(
+  bool CreateAESandMACKey(
       const std::uint8_t* pub_key);
 
   void PostI2NPMessages(

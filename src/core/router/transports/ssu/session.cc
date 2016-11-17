@@ -358,8 +358,12 @@ void SSUSession::ProcessSessionCreated(
   auto packet = static_cast<SSUSessionCreatedPacket*>(pkt);
   // x, y, our IP, our port, remote IP, remote port, relay tag, signed on time
   SignedData s;
-  // TODO(unassigned): if we cannot create shared key, we should not continue
-  CreateAESandMACKey(packet->GetDhY());
+  if (!CreateAESandMACKey(packet->GetDhY())) {
+    LogPrint(eLogError,
+        "SSUSession:", GetFormattedSessionInfo(),
+        "invalid DH-Y, not sending SessionConfirmed");
+    return;
+  }
   s.Insert(m_DHKeysPair->public_key.data(), 256);  // x
   s.Insert(packet->GetDhY(), 256);  // y
   boost::asio::ip::address our_IP;

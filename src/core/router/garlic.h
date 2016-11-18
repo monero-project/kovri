@@ -178,7 +178,7 @@ class GarlicRoutingSession
   UnconfirmedTags* GenerateSessionTags();
 
  private:
-  std::unique_ptr<GarlicDestination> m_Owner;
+  GarlicDestination* m_Owner;
   std::shared_ptr<const kovri::core::RoutingDestination> m_Destination;
   kovri::core::AESKey m_SessionKey;
   std::list<SessionTag> m_SessionTags;

@@ -91,6 +91,7 @@ GarlicRoutingSession::~GarlicRoutingSession() {
   for (auto it : m_UnconfirmedTagsMsgs)
     delete it.second;
   m_UnconfirmedTagsMsgs.clear();
+  m_Owner = nullptr;
 }
 
 GarlicRoutingSession::UnconfirmedTags*

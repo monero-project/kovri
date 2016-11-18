@@ -99,14 +99,14 @@ boost::asio::io_service& SSUSession::GetService() {
   return m_Server.GetService();
 }
 
-void SSUSession::CreateAESandMACKey(
+bool SSUSession::CreateAESandMACKey(
     const std::uint8_t* pub_key) {
   kovri::core::DiffieHellman dh;
   std::array<std::uint8_t, 256> shared_key;
   if (!dh.Agree(shared_key.data(), m_DHKeysPair->private_key.data(), pub_key)) {
     LogPrint(eLogError,
         "SSUSession:", GetFormattedSessionInfo(), "couldn't create shared key");
-    return;
+    return false;
   }
   std::uint8_t* session_key = m_SessionKey();
   std::uint8_t* mac_key = m_MACKey();
@@ -126,7 +126,7 @@ void SSUSession::CreateAESandMACKey(
         LogPrint(eLogWarn,
             "SSUSession:", GetFormattedSessionInfo(),
             "first 32 bytes of shared key is all zeros. Ignored");
-        return;
+        return false;
       }
     }
     memcpy(session_key, non_zero, 32);
@@ -135,9 +135,9 @@ void SSUSession::CreateAESandMACKey(
         non_zero,
         64 - (non_zero - shared_key.data()));
   }
-  m_IsSessionKey = true;
   m_SessionKeyEncryption.SetKey(m_SessionKey);
   m_SessionKeyDecryption.SetKey(m_SessionKey);
+  return m_IsSessionKey = true;
 }
 
 /**
@@ -292,7 +292,12 @@ void SSUSession::ProcessSessionRequest(
   SetRemoteEndpoint(sender_endpoint);
   if (!m_DHKeysPair)
     m_DHKeysPair = transports.GetNextDHKeysPair();
-  CreateAESandMACKey(packet->GetDhX());
+  if (!CreateAESandMACKey(packet->GetDhX())) {
+    LogPrint(eLogError,
+        "SSUSession:", GetFormattedSessionInfo(),
+        "invalid DH-X, not sending SessionCreated");
+    return;
+  }
   SendSessionCreated(packet->GetDhX());
 }
 
@@ -353,8 +358,12 @@ void SSUSession::ProcessSessionCreated(
   auto packet = static_cast<SSUSessionCreatedPacket*>(pkt);
   // x, y, our IP, our port, remote IP, remote port, relay tag, signed on time
   SignedData s;
-  // TODO(unassigned): if we cannot create shared key, we should not continue
-  CreateAESandMACKey(packet->GetDhY());
+  if (!CreateAESandMACKey(packet->GetDhY())) {
+    LogPrint(eLogError,
+        "SSUSession:", GetFormattedSessionInfo(),
+        "invalid DH-Y, not sending SessionConfirmed");
+    return;
+  }
   s.Insert(m_DHKeysPair->public_key.data(), 256);  // x
   s.Insert(packet->GetDhY(), 256);  // y
   boost::asio::ip::address our_IP;

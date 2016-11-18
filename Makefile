@@ -73,6 +73,7 @@ cmake-tests      = -D WITH_TESTS=ON
 cmake-benchmarks = -D WITH_BENCHMARKS=ON
 cmake-static     = -D WITH_STATIC=ON
 cmake-doxygen    = -D WITH_DOXYGEN=ON
+cmake-coverage   = -D WITH_COVERAGE=ON
 
 # Disable build options that will fail CMake if not built
 # (used for help and doxygen build options)
@@ -124,6 +125,15 @@ tests: dependencies
 tests-optimized-hardening: dependencies
 	mkdir -p $(build)
 	cd $(build) && $(cmake) $(cmake-optimize) $(cmake-hardening) $(cmake-tests) $(cmake-benchmarks) ../ && $(MAKE) #&& $(run-tests)  # Reinstate once #317 is resolved
+
+# Note: leaving out hardening because of need for optimizations
+coverage: dependencies
+	mkdir -p $(build)
+	cd $(build) && $(cmake) $(cmake-coverage) $(cmake-upnp) ../ && $(MAKE)
+
+coverage-tests: dependencies
+	mkdir -p $(build)
+	cd $(build) && $(cmake) $(cmake-coverage) $(cmake-tests) $(cmake-benchmarks) ../ && $(MAKE) #&& $(run-tests)  # Reinstate once #317 is resolved
 
 doxygen:
 	mkdir -p $(build)

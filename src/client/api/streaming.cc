@@ -843,10 +843,10 @@ void Stream::UpdateCurrentRemoteLease(
   }
 }
 
-std::shared_ptr<I2NPMessage> Stream::CreateDataMessage(
+std::shared_ptr<kovri::core::I2NPMessage> Stream::CreateDataMessage(
     const std::uint8_t* payload,
     std::size_t len) {
-  auto msg = ToSharedI2NPMessage(NewI2NPShortMessage());
+  auto msg = kovri::core::ToSharedI2NPMessage(kovri::core::NewI2NPShortMessage());
   kovri::core::Gzip compressor;
   if (len <= kovri::client::COMPRESSION_THRESHOLD_SIZE)
     compressor.SetDeflateLevel(
@@ -870,7 +870,7 @@ std::shared_ptr<I2NPMessage> Stream::CreateDataMessage(
   // streaming protocol
   buf[9] = kovri::client::PROTOCOL_TYPE_STREAMING;
   msg->len += size + 4;
-  msg->FillI2NPMessageHeader(e_I2NPData);
+  msg->FillI2NPMessageHeader(kovri::core::I2NPData);
   return msg;
 }
 

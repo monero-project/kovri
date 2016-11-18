@@ -58,7 +58,7 @@
 #endif
 
 namespace kovri {
-// TODO(anonimal): I2NP belongs in core namespace
+namespace core {
 
 std::unique_ptr<I2NPMessage> NewI2NPMessage() {
   return std::make_unique<I2NPMessageBuffer<I2NP_MAX_MESSAGE_SIZE>>();
@@ -152,7 +152,7 @@ std::shared_ptr<I2NPMessage> CreateDeliveryStatusMsg(
         NETWORK_ID);
   }
   m->len += DELIVERY_STATUS_SIZE;
-  m->FillI2NPMessageHeader(e_I2NPDeliveryStatus);
+  m->FillI2NPMessageHeader(I2NPDeliveryStatus);
   return ToSharedI2NPMessage(std::move(m));
 }
 
@@ -193,7 +193,7 @@ std::shared_ptr<I2NPMessage> CreateRouterInfoDatabaseLookupMsg(
     buf += 2;
   }
   m->len += (buf - m->GetPayload());
-  m->FillI2NPMessageHeader(e_I2NPDatabaseLookup);
+  m->FillI2NPMessageHeader(I2NPDatabaseLookup);
   return m;
 }
 
@@ -231,7 +231,7 @@ std::shared_ptr<I2NPMessage> CreateLeaseSetDatabaseLookupMsg(
   memcpy(buf + 33, reply_tag, 32);
   buf += 65;
   m->len += (buf - m->GetPayload());
-  m->FillI2NPMessageHeader(e_I2NPDatabaseLookup);
+  m->FillI2NPMessageHeader(I2NPDatabaseLookup);
   return m;
 }
 
@@ -252,7 +252,7 @@ std::shared_ptr<I2NPMessage> CreateDatabaseSearchReply(
   memcpy(buf + len, kovri::context.GetRouterInfo().GetIdentHash(), 32);
   len += 32;
   m->len += len;
-  m->FillI2NPMessageHeader(e_I2NPDatabaseSearchReply);
+  m->FillI2NPMessageHeader(I2NPDatabaseSearchReply);
   return m;
 }
 
@@ -290,7 +290,7 @@ std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg(
   }
   compressor.Get(buf, size);
   m->len += size;
-  m->FillI2NPMessageHeader(e_I2NPDatabaseStore);
+  m->FillI2NPMessageHeader(I2NPDatabaseStore);
   return m;
 }
 
@@ -319,7 +319,7 @@ std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg(
   memcpy(payload + size, lease_set->GetBuffer(), lease_set->GetBufferLen());
   size += lease_set->GetBufferLen();
   m->len += size;
-  m->FillI2NPMessageHeader(e_I2NPDatabaseStore);
+  m->FillI2NPMessageHeader(I2NPDatabaseStore);
   return m;
 }
 
@@ -471,7 +471,7 @@ void HandleVariableTunnelBuildMsg(
                 CreateTunnelGatewayMsg(
                     bufbe32toh(
                         clear_text + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
-                    e_I2NPVariableTunnelBuildReply,
+                    I2NPVariableTunnelBuildReply,
                     buf,
                     len,
                     bufbe32toh(
@@ -481,7 +481,7 @@ void HandleVariableTunnelBuildMsg(
             clear_text + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
             ToSharedI2NPMessage(
                 CreateI2NPMessage(
-                    e_I2NPVariableTunnelBuild,
+                    I2NPVariableTunnelBuild,
                     buf,
                     len,
                     bufbe32toh(
@@ -505,7 +505,7 @@ void HandleTunnelBuildMsg(
               CreateTunnelGatewayMsg(
                   bufbe32toh(
                       clear_text + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
-                  e_I2NPTunnelBuildReply,
+                  I2NPTunnelBuildReply,
                   buf,
                   len,
                   bufbe32toh(
@@ -515,7 +515,7 @@ void HandleTunnelBuildMsg(
           clear_text + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
           ToSharedI2NPMessage(
               CreateI2NPMessage(
-                  e_I2NPTunnelBuild,
+                  I2NPTunnelBuild,
                   buf,
                   len,
                   bufbe32toh(
@@ -555,7 +555,7 @@ std::unique_ptr<I2NPMessage> CreateTunnelDataMsg(
   std::unique_ptr<I2NPMessage> msg = NewI2NPShortMessage();
   memcpy(msg->GetPayload(), buf, kovri::core::TUNNEL_DATA_MSG_SIZE);
   msg->len += kovri::core::TUNNEL_DATA_MSG_SIZE;
-  msg->FillI2NPMessageHeader(e_I2NPTunnelData);
+  msg->FillI2NPMessageHeader(I2NPTunnelData);
   return msg;
 }
 
@@ -566,7 +566,7 @@ std::unique_ptr<I2NPMessage> CreateTunnelDataMsg(
   memcpy(msg->GetPayload() + 4, payload, kovri::core::TUNNEL_DATA_MSG_SIZE - 4);
   htobe32buf(msg->GetPayload(), tunnel_ID);
   msg->len += kovri::core::TUNNEL_DATA_MSG_SIZE;
-  msg->FillI2NPMessageHeader(e_I2NPTunnelData);
+  msg->FillI2NPMessageHeader(I2NPTunnelData);
   return msg;
 }
 
@@ -586,7 +586,7 @@ std::unique_ptr<I2NPMessage> CreateTunnelGatewayMsg(
   htobe16buf(payload + TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET, len);
   memcpy(payload + TUNNEL_GATEWAY_HEADER_SIZE, buf, len);
   msg->len += TUNNEL_GATEWAY_HEADER_SIZE + len;
-  msg->FillI2NPMessageHeader(e_I2NPTunnelGateway);
+  msg->FillI2NPMessageHeader(I2NPTunnelGateway);
   return msg;
 }
 
@@ -601,7 +601,7 @@ std::shared_ptr<I2NPMessage> CreateTunnelGatewayMsg(
     htobe16buf(payload + TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET, len);
     msg->offset -= (I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE);
     msg->len = msg->offset + I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE +len;
-    msg->FillI2NPMessageHeader(e_I2NPTunnelGateway);
+    msg->FillI2NPMessageHeader(I2NPTunnelGateway);
     return msg;
   } else {
     std::unique_ptr<I2NPMessage> msg1 = CreateTunnelGatewayMsg(
@@ -630,7 +630,7 @@ std::unique_ptr<I2NPMessage> CreateTunnelGatewayMsg(
   std::uint8_t* payload = msg->GetPayload();
   htobe32buf(payload + TUNNEL_GATEWAY_HEADER_TUNNELID_OFFSET, tunnel_ID);
   htobe16buf(payload + TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET, len);
-  msg->FillI2NPMessageHeader(e_I2NPTunnelGateway);  // gateway message
+  msg->FillI2NPMessageHeader(I2NPTunnelGateway);  // gateway message
   return msg;
 }
 
@@ -651,19 +651,19 @@ void HandleI2NPMessage(
   std::uint8_t* buf = msg + I2NP_HEADER_SIZE;
   int size = bufbe16toh(msg + I2NP_HEADER_SIZE_OFFSET);
   switch (type_ID) {
-    case e_I2NPVariableTunnelBuild:
+    case I2NPVariableTunnelBuild:
       LogPrint(eLogDebug, "I2NPMessage: VariableTunnelBuild");
       HandleVariableTunnelBuildMsg(msg_ID, buf, size);
     break;
-    case e_I2NPVariableTunnelBuildReply:
+    case I2NPVariableTunnelBuildReply:
       LogPrint(eLogDebug, "I2NPMessage: VariableTunnelBuildReply");
       HandleVariableTunnelBuildReplyMsg(msg_ID, buf, size);
     break;
-    case e_I2NPTunnelBuild:
+    case I2NPTunnelBuild:
       LogPrint(eLogDebug, "I2NPMessage: TunnelBuild");
       HandleTunnelBuildMsg(buf, size);
     break;
-    case e_I2NPTunnelBuildReply:
+    case I2NPTunnelBuildReply:
       LogPrint(eLogDebug, "I2NPMessage: TunnelBuildReply");
       // TODO(unassigned): ???
     break;
@@ -677,15 +677,15 @@ void HandleI2NPMessage(
     std::shared_ptr<I2NPMessage> msg) {
   if (msg) {
     switch (msg->GetTypeID()) {
-      case e_I2NPTunnelData:
+      case I2NPTunnelData:
         LogPrint(eLogDebug, "I2NPMessage: TunnelData");
         kovri::core::tunnels.PostTunnelData(msg);
       break;
-      case e_I2NPTunnelGateway:
+      case I2NPTunnelGateway:
         LogPrint(eLogDebug, "I2NPMessage: TunnelGateway");
         kovri::core::tunnels.PostTunnelData(msg);
       break;
-      case e_I2NPGarlic: {
+      case I2NPGarlic: {
         LogPrint(eLogDebug, "I2NPMessage: Garlic");
         if (msg->from) {
           if (msg->from->GetTunnelPool())
@@ -698,13 +698,13 @@ void HandleI2NPMessage(
         }
         break;
       }
-      case e_I2NPDatabaseStore:
-      case e_I2NPDatabaseSearchReply:
-      case e_I2NPDatabaseLookup:
+      case I2NPDatabaseStore:
+      case I2NPDatabaseSearchReply:
+      case I2NPDatabaseLookup:
         // forward to netDb
         kovri::core::netdb.PostI2NPMsg(msg);
       break;
-      case e_I2NPDeliveryStatus: {
+      case I2NPDeliveryStatus: {
         LogPrint(eLogDebug, "I2NPMessage: DeliveryStatus");
         if (msg->from && msg->from->GetTunnelPool())
           msg->from->GetTunnelPool()->ProcessDeliveryStatus(msg);
@@ -712,10 +712,10 @@ void HandleI2NPMessage(
           kovri::context.ProcessDeliveryStatusMessage(msg);
         break;
       }
-      case e_I2NPVariableTunnelBuild:
-      case e_I2NPVariableTunnelBuildReply:
-      case e_I2NPTunnelBuild:
-      case e_I2NPTunnelBuildReply:
+      case I2NPVariableTunnelBuild:
+      case I2NPVariableTunnelBuildReply:
+      case I2NPTunnelBuild:
+      case I2NPTunnelBuildReply:
         // forward to tunnel thread
         kovri::core::tunnels.PostTunnelData(msg);
       break;
@@ -733,10 +733,10 @@ void I2NPMessagesHandler::PutNextMessage(
     std::shared_ptr<I2NPMessage> msg) {
   if (msg) {
     switch (msg->GetTypeID()) {
-      case e_I2NPTunnelData:
+      case I2NPTunnelData:
         m_TunnelMsgs.push_back(msg);
       break;
-      case e_I2NPTunnelGateway:
+      case I2NPTunnelGateway:
         m_TunnelGatewayMsgs.push_back(msg);
       break;
       default:
@@ -755,5 +755,5 @@ void I2NPMessagesHandler::Flush() {
     m_TunnelGatewayMsgs.clear();
   }
 }
-
+}  // namespace core
 }  // namespace kovri

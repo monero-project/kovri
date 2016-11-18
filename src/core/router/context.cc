@@ -362,21 +362,21 @@ void RouterContext::HandleI2NPMessage(
     const std::uint8_t* buf,
     std::size_t,
     std::shared_ptr<kovri::core::InboundTunnel> from) {
-  kovri::HandleI2NPMessage(
+  kovri::core::HandleI2NPMessage(
       CreateI2NPMessage(
         buf,
-        GetI2NPMessageLength(buf),
+        kovri::core::GetI2NPMessageLength(buf),
         from));
 }
 
 void RouterContext::ProcessGarlicMessage(
-    std::shared_ptr<I2NPMessage> msg) {
+    std::shared_ptr<kovri::core::I2NPMessage> msg) {
   std::unique_lock<std::mutex> l(m_GarlicMutex);
   kovri::core::GarlicDestination::ProcessGarlicMessage(msg);
 }
 
 void RouterContext::ProcessDeliveryStatusMessage(
-    std::shared_ptr<I2NPMessage> msg) {
+    std::shared_ptr<kovri::core::I2NPMessage> msg) {
   std::unique_lock<std::mutex> l(m_GarlicMutex);
   kovri::core::GarlicDestination::ProcessDeliveryStatusMessage(msg);
 }

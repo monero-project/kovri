@@ -311,12 +311,12 @@ void SSUData::ProcessFragments(
       } else {
         auto I2NP_type = msg->GetTypeID();
         // we expect DeliveryStatus
-        if (I2NP_type == e_I2NPDeliveryStatus) {
+        if (I2NP_type == I2NPDeliveryStatus) {
           LogPrint(eLogInfo,
               "SSUData:", m_Session.GetFormattedSessionInfo(),
               "SSU session established");
           m_Session.Established();
-        } else if (I2NP_type == e_I2NPDatabaseStore) {
+        } else if (I2NP_type == I2NPDatabaseStore) {
           // we got a database store message
           LogPrint(eLogInfo,
               "SSUData:", m_Session.GetFormattedSessionInfo(),
@@ -374,7 +374,7 @@ void SSUData::ProcessMessage(
 }
 
 void SSUData::Send(
-    std::shared_ptr<kovri::I2NPMessage> msg) {
+    std::shared_ptr<kovri::core::I2NPMessage> msg) {
   LogPrint(eLogDebug,
       "SSUData:", m_Session.GetFormattedSessionInfo(),
       "sending message");

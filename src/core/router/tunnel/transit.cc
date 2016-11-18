@@ -68,12 +68,12 @@ void TransitTunnel::EncryptTunnelMsg(
 TransitTunnelParticipant::~TransitTunnelParticipant() {}
 
 void TransitTunnelParticipant::HandleTunnelDataMsg(
-    std::shared_ptr<const kovri::I2NPMessage> tunnel_msg) {
+    std::shared_ptr<const kovri::core::I2NPMessage> tunnel_msg) {
   auto new_msg = CreateEmptyTunnelDataMsg();
   EncryptTunnelMsg(tunnel_msg, new_msg);
   m_NumTransmittedBytes += tunnel_msg->GetLength();
   htobe32buf(new_msg->GetPayload(), GetNextTunnelID());
-  new_msg->FillI2NPMessageHeader(e_I2NPTunnelData);
+  new_msg->FillI2NPMessageHeader(I2NPTunnelData);
   m_TunnelDataMsgs.push_back(new_msg);
 }
 
@@ -93,21 +93,21 @@ void TransitTunnelParticipant::FlushTunnelDataMsgs() {
 }
 
 void TransitTunnel::SendTunnelDataMsg(
-    std::shared_ptr<kovri::I2NPMessage>) {
+    std::shared_ptr<kovri::core::I2NPMessage>) {
   LogPrint(eLogError,
       "TransitTunnel: we are not a gateway for transit tunnel: ",
       m_TunnelID);
 }
 
 void TransitTunnel::HandleTunnelDataMsg(
-    std::shared_ptr<const kovri::I2NPMessage>) {
+    std::shared_ptr<const kovri::core::I2NPMessage>) {
   LogPrint(eLogError,
       "TransitTunnel: incoming tunnel message is not supported: ",
       m_TunnelID);
 }
 
 void TransitTunnelGateway::SendTunnelDataMsg(
-    std::shared_ptr<kovri::I2NPMessage> msg) {
+    std::shared_ptr<kovri::core::I2NPMessage> msg) {
   TunnelMessageBlock block;
   block.delivery_type = e_DeliveryTypeLocal;
   block.data = msg;
@@ -121,7 +121,7 @@ void TransitTunnelGateway::FlushTunnelDataMsgs() {
 }
 
 void TransitTunnelEndpoint::HandleTunnelDataMsg(
-    std::shared_ptr<const kovri::I2NPMessage> tunnel_msg) {
+    std::shared_ptr<const kovri::core::I2NPMessage> tunnel_msg) {
   auto new_msg = CreateEmptyTunnelDataMsg();
   EncryptTunnelMsg(tunnel_msg, new_msg);
   LogPrint(eLogDebug,

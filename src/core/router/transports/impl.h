@@ -104,7 +104,7 @@ struct Peer {
   std::shared_ptr<const kovri::core::RouterInfo> router;
   std::list<std::shared_ptr<TransportSession>> sessions;
   std::uint64_t creation_time;
-  std::vector<std::shared_ptr<kovri::I2NPMessage>> delayed_messages;
+  std::vector<std::shared_ptr<kovri::core::I2NPMessage>> delayed_messages;
 
   void Done();
 };
@@ -148,14 +148,14 @@ class Transports {
   /// @param msg the I2NP message to deliver
   void SendMessage(
       const kovri::core::IdentHash& ident,
-      std::shared_ptr<kovri::I2NPMessage> msg);
+      std::shared_ptr<kovri::core::I2NPMessage> msg);
 
   /// @brief Asynchronously sends one or more messages to a peer.
   /// @param ident the router hash of the remote peer
   /// @param msgs the I2NP messages to deliver
   void SendMessages(
       const kovri::core::IdentHash& ident,
-      const std::vector<std::shared_ptr<kovri::I2NPMessage>>& msgs);
+      const std::vector<std::shared_ptr<kovri::core::I2NPMessage>>& msgs);
 
   /// @brief Asynchronously close all transport sessions to the given router.
   /// @param router the kovri::core::RouterInfo of the router to disconnect from
@@ -231,7 +231,7 @@ class Transports {
 
   void PostMessages(
       kovri::core::IdentHash ident,
-      std::vector<std::shared_ptr<kovri::I2NPMessage>> msgs);
+      std::vector<std::shared_ptr<kovri::core::I2NPMessage>> msgs);
 
   void PostCloseSession(
       std::shared_ptr<const kovri::core::RouterInfo> router);

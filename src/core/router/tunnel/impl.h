@@ -128,7 +128,7 @@ class Tunnel : public TunnelBase {
 
   // implements TunnelBase
   void SendTunnelDataMsg(
-      std::shared_ptr<kovri::I2NPMessage> msg);
+      std::shared_ptr<kovri::core::I2NPMessage> msg);
 
   void EncryptTunnelMsg(
       std::shared_ptr<const I2NPMessage> in,
@@ -160,7 +160,7 @@ class OutboundTunnel
   void SendTunnelDataMsg(
       const std::uint8_t* gw_hash,
       std::uint32_t gw_tunnel,
-      std::shared_ptr<kovri::I2NPMessage> msg);
+      std::shared_ptr<kovri::core::I2NPMessage> msg);
 
   // multiple messages
   void SendTunnelDataMsg(
@@ -176,7 +176,7 @@ class OutboundTunnel
 
   // implements TunnelBase
   void HandleTunnelDataMsg(
-      std::shared_ptr<const kovri::I2NPMessage> tunnel_msg);
+      std::shared_ptr<const kovri::core::I2NPMessage> tunnel_msg);
 
   std::uint32_t GetTunnelID() const {
     return GetNextTunnelID();

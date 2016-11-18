@@ -924,7 +924,7 @@ bool NTCPSession::DecryptNextBlock(
 }
 
 void NTCPSession::SendPayload(
-    std::shared_ptr<kovri::I2NPMessage> msg) {
+    std::shared_ptr<kovri::core::I2NPMessage> msg) {
   LogPrint(eLogDebug,
       "NTCPSession:", GetFormattedSessionInfo(), "<-- sending I2NP message");
   m_IsSending = true;

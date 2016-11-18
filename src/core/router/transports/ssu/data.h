@@ -135,7 +135,7 @@ class SSUData {
   void FlushReceivedMessage();
 
   void Send(
-      std::shared_ptr<kovri::I2NPMessage> msg);
+      std::shared_ptr<kovri::core::I2NPMessage> msg);
 
   void UpdatePacketSize(
       const kovri::core::IdentHash& remote_ident);
@@ -184,7 +184,7 @@ class SSUData {
   boost::asio::deadline_timer m_ResendTimer, m_DecayTimer,
                               m_IncompleteMessagesCleanupTimer;
   std::size_t m_MaxPacketSize, m_PacketSize;
-  kovri::I2NPMessagesHandler m_Handler;
+  kovri::core::I2NPMessagesHandler m_Handler;
 };
 
 }  // namespace core

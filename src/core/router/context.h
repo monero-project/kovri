@@ -250,10 +250,10 @@ class RouterContext : public kovri::core::GarlicDestination {
 
   // override GarlicDestination
   void ProcessGarlicMessage(
-      std::shared_ptr<I2NPMessage> msg);
+      std::shared_ptr<kovri::core::I2NPMessage> msg);
 
   void ProcessDeliveryStatusMessage(
-      std::shared_ptr<I2NPMessage> msg);
+      std::shared_ptr<kovri::core::I2NPMessage> msg);
 
   /**
    * Note: these reseed functions are not ideal but

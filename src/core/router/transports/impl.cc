@@ -265,15 +265,15 @@ bool Transports::IsBandwidthExceeded() const {
 
 void Transports::SendMessage(
     const kovri::core::IdentHash& ident,
-    std::shared_ptr<kovri::I2NPMessage> msg) {
+    std::shared_ptr<kovri::core::I2NPMessage> msg) {
   SendMessages(
       ident,
-      std::vector<std::shared_ptr<kovri::I2NPMessage>> {msg});
+      std::vector<std::shared_ptr<kovri::core::I2NPMessage>> {msg});
 }
 
 void Transports::SendMessages(
     const kovri::core::IdentHash& ident,
-    const std::vector<std::shared_ptr<kovri::I2NPMessage>>& msgs) {
+    const std::vector<std::shared_ptr<kovri::core::I2NPMessage>>& msgs) {
   LogPrint(eLogDebug, "Transports: sending messages");
   m_Service.post(
       std::bind(
@@ -285,12 +285,12 @@ void Transports::SendMessages(
 
 void Transports::PostMessages(
     kovri::core::IdentHash ident,
-    std::vector<std::shared_ptr<kovri::I2NPMessage>> msgs) {
+    std::vector<std::shared_ptr<kovri::core::I2NPMessage>> msgs) {
   LogPrint(eLogDebug, "Transports: posting messages");
   if (ident == kovri::context.GetRouterInfo().GetIdentHash()) {
     // we send it to ourself
     for (auto msg : msgs)
-      kovri::HandleI2NPMessage(msg);
+      kovri::core::HandleI2NPMessage(msg);
     return;
   }
   auto it = m_Peers.find(ident);

@@ -119,36 +119,36 @@ void DatagramDestination::SendDatagramTo(
   } else {
     m_Owner.Sign(buf1, len, signature);
   }
-  std::unique_ptr<I2NPMessage> msg
+  std::unique_ptr<kovri::core::I2NPMessage> msg
       = CreateDataMessage(buf, len + header_len, from_port, to_port);
   std::shared_ptr<const kovri::core::LeaseSet> remote
       = m_Owner.FindLeaseSet(ident);
 
-  ReleasableSharedPtr<I2NPMessage> temp_msg
+  ReleasableSharedPtr<kovri::core::I2NPMessage> temp_msg
       = make_releasable_shared_ptr(msg.release());
   if (remote) {
     m_Owner.GetService().post([this, temp_msg, remote] {
-      SendMsg(std::unique_ptr<I2NPMessage>(release(temp_msg)), remote);
+      SendMsg(std::unique_ptr<kovri::core::I2NPMessage>(release(temp_msg)), remote);
     });
   } else {
     m_Owner.RequestDestination(
         ident,
         [this, temp_msg](const std::shared_ptr<kovri::core::LeaseSet>& remote) {
           HandleLeaseSetRequestComplete(
-              remote, std::unique_ptr<I2NPMessage>(release(temp_msg)));
+              remote, std::unique_ptr<kovri::core::I2NPMessage>(release(temp_msg)));
         });
   }
 }
 
 void DatagramDestination::HandleLeaseSetRequestComplete(
     std::shared_ptr<kovri::core::LeaseSet> remote,
-    std::unique_ptr<I2NPMessage> msg) {
+    std::unique_ptr<kovri::core::I2NPMessage> msg) {
   if (remote)
     SendMsg(std::move(msg), remote);
 }
 
 void DatagramDestination::SendMsg(
-    std::unique_ptr<I2NPMessage> msg,
+    std::unique_ptr<kovri::core::I2NPMessage> msg,
     std::shared_ptr<const kovri::core::LeaseSet> remote) {
   auto outbound_tunnel = m_Owner.GetTunnelPool()->GetNextOutboundTunnel();
   auto leases = remote->GetNonExpiredLeases();
@@ -230,12 +230,12 @@ void DatagramDestination::HandleDataMessagePayload(
   }
 }
 
-std::unique_ptr<I2NPMessage> DatagramDestination::CreateDataMessage(
+std::unique_ptr<kovri::core::I2NPMessage> DatagramDestination::CreateDataMessage(
     const std::uint8_t* payload,
     std::size_t len,
     std::uint16_t from_port,
     std::uint16_t to_port) {
-  std::unique_ptr<I2NPMessage> msg = NewI2NPMessage();
+  std::unique_ptr<kovri::core::I2NPMessage> msg = kovri::core::NewI2NPMessage();
   kovri::core::Gzip compressor;  // default level
   compressor.Put(payload, len);
   std::size_t size = compressor.MaxRetrievable();
@@ -247,7 +247,7 @@ std::unique_ptr<I2NPMessage> DatagramDestination::CreateDataMessage(
   htobe16buf(buf + 6, to_port);  // destination port
   buf[9] = kovri::client::PROTOCOL_TYPE_DATAGRAM;  // datagram protocol
   msg->len += size + 4;
-  msg->FillI2NPMessageHeader(e_I2NPData);
+  msg->FillI2NPMessageHeader(kovri::core::I2NPData);
   return msg;
 }
 

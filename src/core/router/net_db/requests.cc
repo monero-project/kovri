@@ -44,7 +44,7 @@ namespace core {
 std::shared_ptr<I2NPMessage> RequestedDestination::CreateRequestMessage(
     std::shared_ptr<const RouterInfo> router,
     std::shared_ptr<const kovri::core::InboundTunnel> reply_tunnel) {
-  auto msg = kovri::CreateRouterInfoDatabaseLookupMsg(
+  auto msg = kovri::core::CreateRouterInfoDatabaseLookupMsg(
       m_Destination,
       reply_tunnel->GetNextIdentHash(),
       reply_tunnel->GetNextTunnelID(),
@@ -57,7 +57,7 @@ std::shared_ptr<I2NPMessage> RequestedDestination::CreateRequestMessage(
 
 std::shared_ptr<I2NPMessage> RequestedDestination::CreateRequestMessage(
     const IdentHash& floodfill) {
-  auto msg = kovri::CreateRouterInfoDatabaseLookupMsg(
+  auto msg = kovri::core::CreateRouterInfoDatabaseLookupMsg(
       m_Destination,
       kovri::context.GetRouterInfo().GetIdentHash(),
       0,

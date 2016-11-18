@@ -313,7 +313,7 @@ class Stream : public std::enable_shared_from_this<Stream> {
   void HandleAckSendTimer(
       const boost::system::error_code& ecode);
 
-  std::shared_ptr<I2NPMessage> CreateDataMessage(
+  std::shared_ptr<kovri::core::I2NPMessage> CreateDataMessage(
       const std::uint8_t * payload, std::size_t len);
 
  private:

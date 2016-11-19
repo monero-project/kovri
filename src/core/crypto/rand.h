@@ -82,6 +82,19 @@ namespace core {
     return ret;
   }
 
+  /// @brief CSPRNG shuffle of a sequence container
+  /// @param begin iterator to the first element in container
+  /// @param end iterator beyond the last element in container
+  /// @note IT must meet the requirements of ForwardIterator.
+  ///   begin, end must meet the requirements of Swappable.
+  template <class IT>
+  void Shuffle(IT begin, IT end) {
+    for (; begin != end; ++begin)
+      std::iter_swap(
+          begin,
+          begin + kovri::core::RandInRange<std::size_t>(0, end - begin - 1));
+  }
+
 }  // namespace core
 }  // namespace kovri
 

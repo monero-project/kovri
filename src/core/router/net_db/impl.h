@@ -259,6 +259,9 @@ class NetDb {
   void ManageLeaseSets();
   void ManageRequests();
 
+  /// @brief Randomly selects a router from stored RI's according to filter
+  ///   (and other criteria determined internally)
+  /// @param filter Template type which serves as filter for criteria
   template<typename Filter>
   std::shared_ptr<const RouterInfo> GetRandomRouter(
       Filter filter) const;

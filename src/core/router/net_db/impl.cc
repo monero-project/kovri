@@ -883,34 +883,34 @@ std::shared_ptr<const RouterInfo> NetDb::GetHighBandwidthRandomRouter(
       (router->GetCaps() & RouterInfo::eHighBandwidth);
     });
 }
-// Randomly selects a router indice for iterating through m_RouterInfos
-// to find a router that matches the specified filter
+
 template<typename Filter>
 std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter(
     Filter filter) const {
-  std::uint32_t ind = kovri::core::RandInRange<std::uint32_t>(0, GetNumRouters() - 1);
-  for (int j = 0; j < 2; j++) {
-    // First pass
-    if (j == 0) {
-      std::unique_lock<std::mutex> l(m_RouterInfosMutex);
-      auto it = m_RouterInfos.begin();
-      for (std::advance(it, ind); it != m_RouterInfos.end(); it++) {
-        if (!it->second->IsUnreachable() && filter(it->second))
-          return it->second;
-      }
-    }
-    // Second pass, decrementing the iterator to the beginning, in case a router
-    // was not found in the first pass
-    if (j == 1) {
-      std::unique_lock<std::mutex> l(m_RouterInfosMutex);
-      auto it = m_RouterInfos.begin();
-      for (std::advance(it, ind); it != m_RouterInfos.begin(); it--) {
-        if (!it->second->IsUnreachable() && filter(it->second))
-          return it->second;
-      }
-    }
+
+  // Lock RI's
+  std::unique_lock<std::mutex> l(m_RouterInfosMutex);
+
+  // Instead of using expensive map copying (in an attempt to shuffle),
+  // we'll create a vector of pointers to map's key, randomize, then iterate
+  // to ensure that a random RI will be selected for test-case
+  std::vector<std::unique_ptr<IdentHash>> idents;
+
+  // Save pointers to keys
+  for (auto const& ri : m_RouterInfos)
+    idents.push_back(std::make_unique<IdentHash>(ri.first));
+
+  // Randomize they keys for selection
+  kovri::core::Shuffle(idents.begin(), idents.end());
+
+  // Use keys for test-case
+  for (auto const& i : idents) {
+    if (!m_RouterInfos.at(*i)->IsUnreachable() && filter(m_RouterInfos.at(*i)))
+      return m_RouterInfos.at(*i);
   }
-  return nullptr;  // seems we have too few routers
+
+  // We don't have enough routers which fit criteria
+  return nullptr;
 }
 
 void NetDb::PostI2NPMsg(

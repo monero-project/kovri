@@ -149,7 +149,7 @@ void AddressBook::LoadPublishers() {
   // TODO(unassigned): this is a one-shot: we won't be able to
   // edit publisher's file manually with any effect after router start
   // References #337
-  if (!m_Subscribers.empty()) {
+  if (m_PublishersLoaded) {
     LogPrint(eLogError, "AddressBook: publisher(s) already loaded");
     return;
   }
@@ -194,10 +194,15 @@ void AddressBook::LoadPublishers() {
         std::make_unique<AddressBookSubscriber>(*this, publisher));
     // TODO(anonimal): create default publisher file if file is missing
   }
+  m_PublishersLoaded = true;
 }
 
 void AddressBook::LoadSubscriptionFromPublisher() {
-  // First, ensure we have a storage instance ready
+  // Ensure subscriber is loaded with publisher(s) before implementation "starts"
+  // (Note: look at how client tunnels start)
+  if (!m_PublishersLoaded)
+    LoadPublishers();
+  // Ensure we have a storage instance ready
   if (!m_Storage) {
     LogPrint(eLogDebug, "AddressBook: creating new storage instance");
     m_Storage = GetNewStorageInstance();

@@ -81,6 +81,7 @@ class AddressBook : public AddressBookDefaults {
         m_SubscriberUpdateTimer(nullptr),
         m_SubscriptionFileIsReady(false),
         m_SubscriptionIsLoaded(false),
+        m_PublishersLoaded(false),
         m_SubscriberIsDownloading(false) {}
 
   /// @brief Stops address book implementation
@@ -237,6 +238,10 @@ class AddressBook : public AddressBookDefaults {
   /// @var m_SubscriptionIsLoaded
   /// @brief Are hosts loaded into memory?
   std::atomic<bool> m_SubscriptionIsLoaded;
+
+  /// @var m_PublishersLoaded
+  /// @brief Subscriber has publisher loaded, ready for subscription download
+  std::atomic<bool> m_PublishersLoaded;
 
   /// @var m_SubscriberIsDownloading
   /// @brief Are subscriptions in the process of being downloaded?

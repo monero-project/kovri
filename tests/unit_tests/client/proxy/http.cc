@@ -36,9 +36,9 @@
 #include "client/proxy/http.cc"
 
 BOOST_AUTO_TEST_SUITE(HTTPProxyTests)
-kovri::client::ClientContext myContext;
-std::shared_ptr<kovri::client::ClientDestination> aDestination = myContext.CreateNewLocalDestination();
-kovri::client::HTTPProxyServer httpProxy("test","213rfadsgfsadf",4445,aDestination);
+
+std::shared_ptr<kovri::client::ClientDestination> local_destination;
+kovri::client::HTTPProxyServer httpProxy("test","213rfadsgfsadf",4445,local_destination);
 std::shared_ptr<boost::asio::ip::tcp::socket> socket;
 //std::shared_ptr<kovri::client::I2PServiceHandler> handler = httpProxy.CreateHandler(socket);
 auto handler = std::make_shared<kovri::client::HTTPProxyHandler>(&httpProxy, socket);

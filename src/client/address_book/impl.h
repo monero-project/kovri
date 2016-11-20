@@ -137,6 +137,9 @@ class AddressBook : public AddressBookDefaults {
     return std::make_unique<AddressBookStorage>();
   }
 
+  /// @brief Wrapper function for subscriber download
+  void DownloadSubscription();
+
   /// @brief Validates and saves hosts (subscription) from stream into address book
   /// @param stream Reference to file stream of hosts (subscription)
   /// @return False if malformed host in subscription

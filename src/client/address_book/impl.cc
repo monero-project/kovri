@@ -91,7 +91,7 @@ void AddressBook::Start(
       "AddressBook: won't start: we need a client destination");
     return;
   }
-  LogPrint(eLogInfo, "AddressBook: starting implementation");
+  LogPrint(eLogInfo, "AddressBook: starting service");
   m_SharedLocalDestination = local_destination;
   m_SubscriberUpdateTimer =
     std::make_unique<boost::asio::deadline_timer>(
@@ -108,6 +108,7 @@ void AddressBook::Start(
 
 void AddressBook::SubscriberUpdateTimer(
     const boost::system::error_code& ecode) {
+  LogPrint(eLogDebug, "AddressBook: begin ", __func__);
   if (ecode) {
     LogPrint(eLogError,
         "AddressBook: SubscriberUpdateTimer() exception: ", ecode.message());
@@ -119,15 +120,7 @@ void AddressBook::SubscriberUpdateTimer(
   if (m_SubscriptionIsLoaded
       && !m_SubscriberIsDownloading
       && m_SharedLocalDestination->IsReady()) {
-    // Number of publishers is guaranteed > 0 because of update timer
-    auto publisher_count = m_Subscribers.size();
-    LogPrint(eLogDebug,
-        "AddressBook: picking random subscription from total publisher count: ",
-        publisher_count);
-    // Pick a random publisher from subscriber
-    auto publisher = kovri::core::RandInRange<std::size_t>(0, publisher_count - 1);
-    m_SubscriberIsDownloading = true;
-    m_Subscribers.at(publisher)->DownloadSubscription();
+    DownloadSubscription();
   } else {
     if (!m_SubscriptionIsLoaded) {
       // If subscription not available, will attempt download with subscriber
@@ -198,7 +191,7 @@ void AddressBook::LoadPublishers() {
 }
 
 void AddressBook::LoadSubscriptionFromPublisher() {
-  // Ensure subscriber is loaded with publisher(s) before implementation "starts"
+  // Ensure subscriber is loaded with publisher(s) before service "starts"
   // (Note: look at how client tunnels start)
   if (!m_PublishersLoaded)
     LoadPublishers();
@@ -229,12 +222,33 @@ void AddressBook::LoadSubscriptionFromPublisher() {
     LogPrint(eLogWarn, "AddressBook: ", filename, " not found");
     if (!m_SubscriberIsDownloading) {
       LogPrint(eLogDebug, "AddressBook: subscriber not downloading, downloading");
-      m_SubscriberIsDownloading = true;
-      m_Subscribers.front()->DownloadSubscription();
+      DownloadSubscription();
     } else {
       LogPrint(eLogWarn, "AddressBook: subscriber is downloading");
     }
   }
+}
+
+void AddressBook::DownloadSubscription() {
+  // Get number of available publishers (guaranteed > 0)
+  auto publisher_count = m_Subscribers.size();
+  LogPrint(eLogDebug,
+      "AddressBook: picking random subscription from total publisher count: ",
+      publisher_count);
+  // Pick a random publisher to subscribe from
+  auto publisher = kovri::core::RandInRange<std::size_t>(0, publisher_count - 1);
+  m_SubscriberIsDownloading = true;
+  try {
+    m_Subscribers.at(publisher)->DownloadSubscription();
+  } catch (const std::exception& ex) {
+    LogPrint(eLogError,
+        "AddressBook: download subscription exception: ", ex.what());
+  } catch (...) {
+    LogPrint(eLogError,
+        "AddressBook: download subscription unknown exception");
+  }
+  // Ensure false here if exception occured before subscriber completed download
+  m_SubscriberIsDownloading = false;
 }
 
 void AddressBookSubscriber::DownloadSubscription() {
@@ -264,7 +278,6 @@ void AddressBookSubscriber::DownloadSubscriptionImpl() {
 void AddressBook::HostsDownloadComplete(
     bool success) {
   LogPrint(eLogDebug, "AddressBook: subscription download complete");
-  m_SubscriberIsDownloading = false;
   if (m_SubscriberUpdateTimer) {
     m_SubscriberUpdateTimer->expires_from_now(
         boost::posix_time::minutes(

@@ -204,13 +204,12 @@ void ClientDestination::Stop() {
     }
     if (m_Pool) {
       m_Pool->SetLocalDestination(nullptr);
-      kovri::core::tunnels.StopTunnelPool(m_Pool);
       kovri::core::tunnels.DeleteTunnelPool(m_Pool);
     }
     m_Service.stop();
     if (m_Thread) {
       m_Thread->join();
-      m_Thread.reset(0);
+      m_Thread.reset(nullptr);
     }
   }
 }

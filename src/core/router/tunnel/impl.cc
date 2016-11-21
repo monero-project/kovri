@@ -355,6 +355,7 @@ std::shared_ptr<TunnelPool> Tunnels::CreateTunnelPool(
 
 void Tunnels::DeleteTunnelPool(
     std::shared_ptr<TunnelPool> pool) {
+  LogPrint(eLogDebug, "Tunnels: deleting tunnel pool");
   if (pool) {
     StopTunnelPool(pool); {
       std::unique_lock<std::mutex> l(m_PoolsMutex);

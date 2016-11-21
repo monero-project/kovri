@@ -732,6 +732,9 @@ std::unique_ptr<SSUPacket> SSUPacketParser::ParsePacket() {
     case SSUPayloadType::SessionDestroyed:
       packet = ParseSessionDestroyed();
       break;
+    case SSUPayloadType::Unknown:
+    default:
+      throw std::runtime_error("SSUPacketParser: unknown payload type");
   }
   // TODO(EinMByte): Get rid of this
   packet->m_RawDataLength = old_length;
@@ -935,27 +938,27 @@ void SSUPacketBuilder::WriteSessionConfirmed(
       packet->GetHeader()->GetSize() + m_Data - begin + signature_size);
   std::uint8_t* const padding = m_Data;
   ProduceData(padding_size);
-  kovri::core::RandBytes(m_Data, padding_size);
+  kovri::core::RandBytes(padding, padding_size);
   WriteData(packet->GetSignature(), signature_size);
 }
 
 void SSUPacketBuilder::WriteRelayRequest(
-    SSURelayRequestPacket* packet) {}
+    SSURelayRequestPacket* /*packet*/) {}
 
 void SSUPacketBuilder::WriteRelayResponse(
-    SSURelayResponsePacket* packet) {}
+    SSURelayResponsePacket* /*packet*/) {}
 
 void SSUPacketBuilder::WriteRelayIntro(
-    SSURelayIntroPacket* packet) {}
+    SSURelayIntroPacket* /*packet*/) {}
 
 void SSUPacketBuilder::WriteData(
-    SSUDataPacket* packet) {}
+    SSUDataPacket* /*packet*/) {}
 
 void SSUPacketBuilder::WritePeerTest(
-    SSUPeerTestPacket* packet) {}
+    SSUPeerTestPacket* /*packet*/) {}
 
 void SSUPacketBuilder::WriteSessionDestroyed(
-    SSUSessionDestroyedPacket* packet) {}
+    SSUSessionDestroyedPacket* /*packet*/) {}
 
 void SSUPacketBuilder::WritePacket(SSUPacket* packet) {
   switch (packet->GetHeader()->GetPayloadType()) {
@@ -986,6 +989,9 @@ void SSUPacketBuilder::WritePacket(SSUPacket* packet) {
     case SSUPayloadType::SessionDestroyed:
       WriteSessionDestroyed(static_cast<SSUSessionDestroyedPacket*>(packet));
       break;
+    case SSUPayloadType::Unknown:
+    default:
+      throw std::runtime_error("SSUPacketBuilder: unknown payload type");
   }
 }
 

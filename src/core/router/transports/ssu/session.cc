@@ -212,7 +212,13 @@ void SSUSession::ProcessDecryptedMessage(
     packet = parser.ParsePacket();
   } catch(const std::exception& e) {
     LogPrint(eLogError,
-        "SSUSession: invalid SSU session packet from ", sender_endpoint);
+        "SSUSession: invalid SSU session packet from ", sender_endpoint,
+        " --> ", e.what());
+    return;
+  } catch (...) {
+    LogPrint(eLogError,
+        "SSUSession: invalid SSU session packet from ", sender_endpoint,
+        " --> unknown exception");
     return;
   }
   switch (packet->GetHeader()->GetPayloadType()) {

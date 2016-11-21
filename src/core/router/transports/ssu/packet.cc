@@ -766,7 +766,8 @@ std::unique_ptr<SSUSessionConfirmedPacket> SSUPacketParser::ParseSessionConfirme
   ConsumeData(1);  // Skip info byte
   std::uint16_t identity_size = ReadUInt16();
   kovri::core::IdentityEx identity;
-  identity.FromBuffer(ReadBytes(identity_size), identity_size);
+  if (!identity.FromBuffer(ReadBytes(identity_size), identity_size))
+    throw std::length_error("SSUPacketParser: invalid length within identity");
   packet->SetRemoteRouterIdentity(identity);
   packet->SetSignedOnTime(ReadUInt32());
   const std::size_t padding_size = ((m_Length - init_length) + identity.GetSignatureLen()) % 16;

@@ -294,7 +294,7 @@ void SSUData::ProcessFragments(
       // process message
       SendMsgACK(msg_id);
       msg->FromSSU(msg_id);
-      if (m_Session.GetState() == SessionStateEstablished) {
+      if (m_Session.GetState() == SessionState::Established) {
         if (!m_ReceivedMessages.count(msg_id)) {
           if (m_ReceivedMessages.size() > GetType(SSUSize::MaxReceivedMessages))
             m_ReceivedMessages.clear();

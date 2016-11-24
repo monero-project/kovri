@@ -446,7 +446,7 @@ std::shared_ptr<SSUSession> SSUServer::GetRandomEstablishedSession(
   LogPrint(eLogDebug, "SSUServer: getting random established session");
   return GetRandomSession(
       [excluded](std::shared_ptr<SSUSession> session)->bool {
-      return session->GetState() == SessionStateEstablished &&
+      return session->GetState() == SessionState::Established &&
       !session->IsV6() &&
       session != excluded; });
 }
@@ -462,7 +462,7 @@ std::set<SSUSession *> SSUServer::FindIntroducers(
           [&ret, ts](std::shared_ptr<SSUSession> session)->bool {
           return session->GetRelayTag() &&
           !ret.count(session.get()) &&
-          session->GetState() == SessionStateEstablished &&
+          session->GetState() == SessionState::Established &&
           ts < session->GetCreationTime()
                + GetType(SSUDuration::ToIntroducerSessionDuration); });
     if (session) {
@@ -560,7 +560,7 @@ PeerTestParticipant SSUServer::GetPeerTestParticipant(
   if (it != m_PeerTests.end())
     return it->second.role;
   else
-    return PeerTestParticipantUnknown;
+    return PeerTestParticipant::Unknown;
 }
 
 std::shared_ptr<SSUSession> SSUServer::GetPeerTestSession(

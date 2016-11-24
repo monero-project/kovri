@@ -85,7 +85,7 @@ SSUSession::SSUSession(
       m_RemoteEndpoint(remote_endpoint),
       m_Timer(GetService()),
       m_PeerTest(peer_test),
-      m_State(SessionStateUnknown),
+      m_State(SessionState::Unknown),
       m_IsSessionKey(false),
       m_RelayTag(0),
       m_Data(*this),
@@ -156,15 +156,15 @@ void SSUSession::ProcessNextMessage(
       "--> ", len, " bytes transferred, ",
       GetNumReceivedBytes(), " total bytes received");
   kovri::core::transports.UpdateReceivedBytes(len);
-  if (m_State == SessionStateIntroduced) {
+  if (m_State == SessionState::Introduced) {
     // HolePunch received
     LogPrint("SSUSession: SSU HolePunch of ", len, " bytes received");
-    m_State = SessionStateUnknown;
+    m_State = SessionState::Unknown;
     Connect();
   } else {
     if (!len)
       return;  // ignore zero-length packets
-    if (m_State == SessionStateEstablished)
+    if (m_State == SessionState::Established)
       ScheduleTermination();
     if (m_IsSessionKey) {
       if (Validate(buf, len, m_MACKey)) {  // try session key first
@@ -244,7 +244,7 @@ void SSUSession::ProcessDecryptedMessage(
       break;
     case SSUPayloadType::RelayResponse:
       ProcessRelayResponse(packet.get());
-      if (m_State != SessionStateEstablished)
+      if (m_State != SessionState::Established)
         m_Server.DeleteSession(shared_from_this());
       break;
     case SSUPayloadType::RelayRequest:
@@ -625,7 +625,7 @@ void SSUSession::SendRelayRequest(
   std::array<std::uint8_t, 16> iv;
   kovri::core::RandBytes(iv.data(), iv.size());
   auto relay_request = GetType(SSUPayloadType::RelayRequest);
-  if (m_State == SessionStateEstablished) {
+  if (m_State == SessionState::Established) {
     FillHeaderAndEncrypt(
         relay_request,
         buf.data(),
@@ -715,7 +715,7 @@ void SSUSession::SendRelayResponse(
   payload += 2;  // port
   htobe32buf(payload, nonce);
   auto relay_response = GetType(SSUPayloadType::RelayResponse);
-  if (m_State == SessionStateEstablished) {
+  if (m_State == SessionState::Established) {
     // encrypt with session key
     FillHeaderAndEncrypt(
         relay_response,
@@ -846,8 +846,8 @@ void SSUSession::ProcessPeerTest(
   auto peer_test = GetType(SSUPayloadType::PeerTest);
   switch (m_Server.GetPeerTestParticipant(packet->GetNonce())) {
     // existing test
-    case PeerTestParticipantAlice1: {
-      if (m_State == SessionStateEstablished) {
+    case PeerTestParticipant::Alice1: {
+      if (m_State == SessionState::Established) {
         LogPrint(eLogDebug,
             "SSUSession:", GetFormattedSessionInfo(),
             "PeerTest from Bob. We are Alice");
@@ -860,7 +860,7 @@ void SSUSession::ProcessPeerTest(
         kovri::context.SetStatus(eRouterStatusOK);
         m_Server.UpdatePeerTest(
             packet->GetNonce(),
-            PeerTestParticipantAlice2);
+            PeerTestParticipant::Alice2);
         SendPeerTest(
             packet->GetNonce(),
             sender_endpoint.address().to_v4().to_ulong(),
@@ -871,8 +871,8 @@ void SSUSession::ProcessPeerTest(
       }
       break;
     }
-    case PeerTestParticipantAlice2: {
-      if (m_State == SessionStateEstablished) {
+    case PeerTestParticipant::Alice2: {
+      if (m_State == SessionState::Established) {
         LogPrint(eLogDebug,
             "SSUSession:", GetFormattedSessionInfo(),
             "PeerTest from Bob. We are Alice");
@@ -886,13 +886,13 @@ void SSUSession::ProcessPeerTest(
       }
       break;
     }
-    case PeerTestParticipantBob: {
+    case PeerTestParticipant::Bob: {
       LogPrint(eLogDebug,
           "SSUSession:", GetFormattedSessionInfo(),
           "PeerTest from Charlie. We are Bob");
       // session with Alice from PeerTest
       auto session = m_Server.GetPeerTestSession(packet->GetNonce());
-      if (session && session->m_State == SessionStateEstablished)
+      if (session && session->m_State == SessionState::Established)
         session->Send(  // back to Alice
             peer_test,
             packet->m_RawData,
@@ -900,7 +900,7 @@ void SSUSession::ProcessPeerTest(
       m_Server.RemovePeerTest(packet->GetNonce());  // nonce has been used
       break;
     }
-    case PeerTestParticipantCharlie: {
+    case PeerTestParticipant::Charlie: {
       LogPrint(eLogDebug,
           "SSUSession:", GetFormattedSessionInfo(),
           "PeerTest from Alice. We are Charlie");
@@ -913,14 +913,14 @@ void SSUSession::ProcessPeerTest(
       break;
     }
     // test not found
-    case PeerTestParticipantUnknown: {
-      if (m_State == SessionStateEstablished) {
+    case PeerTestParticipant::Unknown: {
+      if (m_State == SessionState::Established) {
         // new test
         if (packet->GetPort()) {
           LogPrint(eLogDebug,
               "SSUSession:", GetFormattedSessionInfo(),
               "PeerTest from Bob. We are Charlie");
-          m_Server.NewPeerTest(packet->GetNonce(), PeerTestParticipantCharlie);
+          m_Server.NewPeerTest(packet->GetNonce(), PeerTestParticipant::Charlie);
           Send(  // back to Bob
               peer_test,
               packet->m_RawData,
@@ -939,7 +939,7 @@ void SSUSession::ProcessPeerTest(
           if (session) {
             m_Server.NewPeerTest(
                 packet->GetNonce(),
-                PeerTestParticipantBob,
+                PeerTestParticipant::Bob,
                 shared_from_this());
             session->SendPeerTest(
                 packet->GetNonce(),
@@ -1035,7 +1035,7 @@ void SSUSession::SendPeerTest() {
   if (!nonce)
     nonce = 1;
   m_PeerTest = false;
-  m_Server.NewPeerTest(nonce, PeerTestParticipantAlice1);
+  m_Server.NewPeerTest(nonce, PeerTestParticipant::Alice1);
   SendPeerTest(
       nonce,
       0,  // address and port always zero for Alice
@@ -1072,7 +1072,7 @@ void SSUSession::SendSesionDestroyed() {
 }
 
 void SSUSession::SendKeepAlive() {
-  if (m_State == SessionStateEstablished) {
+  if (m_State == SessionState::Established) {
     std::array<std::uint8_t, 48 + 18> buf {};  // TODO(unassigned): document values
     auto payload = buf.data() + GetType(SSUSize::HeaderMin);
     *payload = 0;  // flags
@@ -1265,7 +1265,7 @@ bool SSUSession::Validate(
 }
 
 void SSUSession::Connect() {
-  if (m_State == SessionStateUnknown) {
+  if (m_State == SessionState::Unknown) {
     // set connect timer
     ScheduleConnectTimer();
     m_DHKeysPair = transports.GetNextDHKeysPair();
@@ -1309,7 +1309,7 @@ void SSUSession::HandleConnectTimer(
 void SSUSession::Introduce(
     std::uint32_t introducer_tag,
     const std::uint8_t* introducer_key) {
-  if (m_State == SessionStateUnknown) {
+  if (m_State == SessionState::Unknown) {
     // set connect timer
     m_Timer.expires_from_now(
         boost::posix_time::seconds(
@@ -1324,7 +1324,7 @@ void SSUSession::Introduce(
 }
 
 void SSUSession::WaitForIntroduction() {
-  m_State = SessionStateIntroduced;
+  m_State = SessionState::Introduced;
   // set connect timer
   m_Timer.expires_from_now(
       boost::posix_time::seconds(
@@ -1337,7 +1337,7 @@ void SSUSession::WaitForIntroduction() {
 }
 
 void SSUSession::Close() {
-  m_State = SessionStateClosed;
+  m_State = SessionState::Closed;
   SendSesionDestroyed();
   transports.PeerDisconnected(shared_from_this());
   m_Data.Stop();
@@ -1354,7 +1354,7 @@ void SSUSession::Done() {
 void SSUSession::Established() {
   // clear out session confirmation data
   m_SessionConfirmData.reset(nullptr);
-  m_State = SessionStateEstablished;
+  m_State = SessionState::Established;
   if (m_DHKeysPair) {
     m_DHKeysPair.reset(nullptr);
   }
@@ -1370,8 +1370,8 @@ void SSUSession::Established() {
 }
 
 void SSUSession::Failed() {
-  if (m_State != SessionStateFailed) {
-    m_State = SessionStateFailed;
+  if (m_State != SessionState::Failed) {
+    m_State = SessionState::Failed;
     m_Server.DeleteSession(shared_from_this());
   }
 }
@@ -1421,7 +1421,7 @@ void SSUSession::SendI2NPMessages(
 
 void SSUSession::PostI2NPMessages(
     std::vector<std::shared_ptr<I2NPMessage>> msgs) {
-  if (m_State == SessionStateEstablished) {
+  if (m_State == SessionState::Established) {
     for (auto it : msgs)
       if (it)
         m_Data.Send(it);

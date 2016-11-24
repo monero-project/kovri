@@ -42,6 +42,7 @@
 #endif
 
 #include "core/util/log.h"
+#include "core/util/filesystem.h"
 
 namespace kovri {
 namespace app {
@@ -82,7 +83,9 @@ class DaemonWin32 : public Daemon_Singleton {
 class DaemonLinux : public Daemon_Singleton {
  public:
   DaemonLinux()
-    : m_pidFilehandle() {};
+    : m_PIDPath(kovri::core::GetDataPath().string()),
+      m_PIDFile((kovri::core::GetDataPath() / "kovri.pid").string()),
+      m_PIDFileHandle() {}
   static DaemonLinux& Instance() {
     static DaemonLinux instance;
     return instance;
@@ -91,8 +94,8 @@ class DaemonLinux : public Daemon_Singleton {
   virtual bool Stop();
   void Reload();
  private:
-  std::string m_pidFile;
-  int m_pidFilehandle;
+  std::string m_PIDPath, m_PIDFile;
+  int m_PIDFileHandle;
 };
 #endif
 

@@ -74,54 +74,67 @@ namespace kovri {
 namespace app {
 
 bool DaemonLinux::Start() {
-  if (m_IsDaemon == 1) {
-    pid_t pid;
-    pid = fork();
-    if (pid > 0)  // parent
+  if (m_IsDaemon) {
+    // Parent
+    pid_t pid = fork();
+    if (pid > 0)  {
+      LogPrint(eLogDebug, "DaemonLinux: fork success");
       ::exit(EXIT_SUCCESS);
-    if (pid < 0)  // error
+    }
+    if (pid < 0) {
+      LogPrint(eLogError, "DaemonLinux: fork error");
       return false;
-    // child
+    }
+    // Child
+    LogPrint(eLogDebug, "DaemonLinux: creating process group");
     umask(0);
     int sid = setsid();
     if (sid < 0) {
-      LogPrint("Error, could not create process group.");
+      LogPrint(eLogDebug, "DaemonLinux: could not create process group");
       return false;
     }
-    std::string d(kovri::core::GetDataPath().string());  // makes copy
-    chdir(d.c_str());
-    // close stdin/stdout/stderr descriptors
+    LogPrint(eLogDebug, "DaemonLinux: changing directory to ", m_PIDPath);
+    if (chdir(m_PIDPath.c_str()) == -1) {
+      LogPrint(eLogError, "DaemonLinux: could not change directory: ", errno);
+      return false;
+    }
+    // Close stdin/stdout/stderr descriptors
+    LogPrint(eLogDebug, "DaemonLinux: closing descriptors");
     ::close(0);
-    if (::open("/dev/null", O_RDWR) < 0 )
+    if (::open("/dev/null", O_RDWR) < 0)
       return false;
     ::close(1);
-    if (::open("/dev/null", O_RDWR) < 0 )
+    if (::open("/dev/null", O_RDWR) < 0)
       return false;
     ::close(2);
-    if (::open("/dev/null", O_RDWR) < 0 )
+    if (::open("/dev/null", O_RDWR) < 0)
       return false;
   }
-  // Pidfile
-  m_pidFile = (kovri::core::GetDataPath() / "kovri.pid").string();
-  m_pidFilehandle = open(
-      m_pidFile.c_str(),
-      O_RDWR | O_CREAT,
-      0600);
-  if (m_pidFilehandle == -1) {
-    LogPrint("Error, could not create pid file (",
-        m_pidFile, ")\nIs an instance already running?");
+  // PID file
+  LogPrint(eLogDebug, "DaemonLinux: opening pid file ", m_PIDFile);
+  m_PIDFileHandle = open(m_PIDFile.c_str(), O_RDWR | O_CREAT, 0600);
+  if (m_PIDFileHandle < 0) {
+    LogPrint(eLogError,
+        "DaemonLinux: could not open pid file ", m_PIDFile, ". Is file in use?");
     return false;
   }
-  if (lockf(m_pidFilehandle, F_TLOCK, 0) == -1) {
-    LogPrint("Error, could not lock pid file (",
-        m_pidFile, ")\nIs an instance already running?");
+  LogPrint(eLogDebug, "DaemonLinux: locking pid file");
+  if (lockf(m_PIDFileHandle, F_TLOCK, 0) < 0) {
+    LogPrint(eLogError,
+        "DaemonLinux: could not lock pid file ", m_PIDFile, ": ", errno);
     return false;
   }
-  char pid[10];
-  snprintf(pid, sizeof(pid), "%d\n", getpid());
-  write(m_pidFilehandle, pid, strlen(pid));
+  LogPrint(eLogDebug, "DaemonLinux: writing pid file");
+  std::array<char, 10> pid{};
+  snprintf(pid.data(), pid.size(), "%d\n", getpid());
+  if (write(m_PIDFileHandle, pid.data(), strlen(pid.data())) < 0) {
+    LogPrint(eLogError,
+        "DaemonLinux: could not write pid file ", m_PIDFile, ": ", errno);
+    return false;
+  }
+  LogPrint(eLogDebug, "DaemonLinux: pid file ready");
   // Signal handler
-  struct sigaction sa;
+  struct sigaction sa{};
   sa.sa_handler = handle_signal;
   sigemptyset(&sa.sa_mask);
   sa.sa_flags = SA_RESTART;
@@ -133,8 +146,13 @@ bool DaemonLinux::Start() {
 }
 
 bool DaemonLinux::Stop() {
-  close(m_pidFilehandle);
-  unlink(m_pidFile.c_str());
+  LogPrint(eLogDebug, "DaemonLinux: closing pid file ", m_PIDFile);
+  if (close(m_PIDFileHandle) == 0) {
+    unlink(m_PIDFile.c_str());
+  } else {
+    LogPrint(eLogError,
+        "DaemonLinux: could not close pid file ", m_PIDFile, ": ", errno);
+  }
   return Daemon_Singleton::Stop();
 }
 

@@ -4,7 +4,7 @@
 2. A secure, private, untraceable C++ implementation of the [I2P](https://geti2p.net) anonymous network
 
 ## Disclaimer
-- Currently **pre-alpha** software; under heavy development
+- Currently **pre-alpha** software; under heavy development (and not yet integrated with monero)
 
 ## Build
 

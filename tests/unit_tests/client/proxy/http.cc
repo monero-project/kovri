@@ -31,28 +31,12 @@
  */
 
 #include <boost/test/unit_test.hpp>
-#include "client/context.h"
 #include "client/proxy/http.h"
-#include "client/proxy/http.cc"
 
 BOOST_AUTO_TEST_SUITE(HTTPProxyTests)
-
-std::shared_ptr<kovri::client::ClientDestination> local_destination;
-kovri::client::HTTPProxyServer httpProxy("test","213rfadsgfsadf",4445,local_destination);
-std::shared_ptr<boost::asio::ip::tcp::socket> socket;
-//std::shared_ptr<kovri::client::I2PServiceHandler> handler = httpProxy.CreateHandler(socket);
-auto handler = std::make_shared<kovri::client::HTTPProxyHandler>(&httpProxy, socket);
-
+ 
 BOOST_AUTO_TEST_CASE(HandleData) {
-  // Note: cpp-netlib has better tests.
-  // We simply test our implementation here.
-  //std::shared_ptr<boost::asio::ip::tcp::socket> socket;
-  std::string bufferOK = "GET /index.html HTTP/1.1\r\nHost: www.example.com\r\n\r\n";
-  BOOST_CHECK(handler->HandleData((std::uint8_t*) bufferOK.c_str(),(std::size_t) bufferOK.size()));
-  std::string bufferNoDoubleCR = "GET /index.html HTTP/1.1\r\nHost: www.example.com\r\n";
-  BOOST_CHECK(!handler->HandleData((std::uint8_t*)bufferNoDoubleCR.c_str(),(std::size_t)bufferNoDoubleCR.size()));
-  std::string bufferNoMethod= "/index.html HTTP/1.1\r\nHost: www.example.com\r\n\r\n";
-  BOOST_CHECK(!handler->HandleData((std::uint8_t*)bufferNoDoubleCR.c_str(),(std::size_t)bufferNoDoubleCR.size()));
+
 }
 
 BOOST_AUTO_TEST_SUITE_END()

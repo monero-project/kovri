@@ -37,6 +37,7 @@
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string/regex.hpp>
 #include <atomic>
+#include <utility>
 #include <cassert>
 #include <cstdint>
 #include <cstring>
@@ -52,14 +53,13 @@
 #include "client/tunnel.h"
 #include "client/util/http.h"
 
-#include "core/router/identity.h"
 
 #include "core/util/i2p_endian.h"
 using namespace boost::network;
 namespace kovri {
 namespace client {
 
-HTTPProxyServer::HTTPProxyServer(
+HTTPProxyServerService::HTTPProxyServerService(
     const std::string& name,
     const std::string& address,
     std::uint16_t port,
@@ -72,7 +72,8 @@ HTTPProxyServer::HTTPProxyServer(
             kovri::client::context.GetSharedLocalDestination()),
       m_Name(name) {}
 
-std::shared_ptr<kovri::client::I2PServiceHandler> HTTPProxyServer::CreateHandler(
+std::shared_ptr<kovri::client::I2PServiceHandler>
+  HTTPProxyServerService::CreateHandler(
     std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
   return std::make_shared<HTTPProxyHandler>(this, socket);
 }
@@ -103,54 +104,63 @@ void HTTPProxyHandler::HandleSockRecv(
           Terminate();
     return;
   }
-  if (HandleData(m_Buffer.data(), len)) {
-      LogPrint(eLogInfo, "HTTPProxyHandler: proxy requested: ", m_URL);
+  // here use the protocol class
+  if (m_Protocol.HandleData(m_Buffer.data(), len)) {
+      if (m_Protocol.CreateHTTPRequest(len)) {
+      LogPrint(eLogInfo, "HTTPProxyHandler: proxy requested: ", 
+          m_Protocol.m_URL);
       GetOwner()->CreateStream(
           std::bind(
               &HTTPProxyHandler::HandleStreamRequestComplete,
               shared_from_this(),
               std::placeholders::_1),
-          m_Address,
-          m_Port);
+          m_Protocol.m_Address,
+          m_Protocol.m_Port);
+      }
+  } else {
+    HTTPRequestFailed(HTTPResponse(HTTPProtocol::status_t::bad_request));
   }
 }
 
-bool HTTPProxyHandler::HandleData(
+bool HTTPProtocol::HandleData(
     std::uint8_t* buf,
     std::size_t len) {
-  if((unsigned)len==0){
-    boost::network::http::basic_response<
-      boost::network::http::tags::http_server> response;
-    //use cpp-netlib enum here to send response code to failed function
-    // enum status_t http://cpp-netlib.org/0.12.0/reference/http_server.html
-    HTTPRequestFailed(HTTPProxyHandler::status_t::bad_request);
+  const unsigned int HEADERBODY_LEN = 2;
+  const unsigned int REQUESTLINE_HEADERS_MIN = 1;
+  if ((unsigned)len == 0) {
+    return false;
   }
-  std::string bufString(buf,buf+len);
+  std::string bufString(buf, buf+len);
   std::vector<std::string> HeaderBody;
   std::vector<std::string> tokens;
-  //get header info
-  boost::algorithm::split_regex(HeaderBody,bufString,boost::regex("\r\n\r\n"));
-  boost::algorithm::split_regex(tokens,HeaderBody[0],boost::regex("\r\n"));
-  m_RequestLine=tokens[0];
-  //requestline
+  // get header info
+  if (boost::algorithm::split_regex(HeaderBody, bufString, boost::regex("\r\n\r\n")).size() > HEADERBODY_LEN)
+    return false;
+  if (boost::algorithm::split_regex(tokens, HeaderBody[0],
+        boost::regex("\r\n")).size() < REQUESTLINE_HEADERS_MIN)
+    return false;
+  m_RequestLine = tokens[0];
+  // requestline
   std::vector<std::string> tokensRequest;
-  boost::split(tokensRequest,m_RequestLine,boost::is_any_of(" \t"));
-  if(tokensRequest.size()==3) {
-    m_Method=tokensRequest[0];
-    m_URL=tokensRequest[1];
-    m_Version=tokensRequest[2];
+  boost::split(tokensRequest, m_RequestLine, boost::is_any_of(" \t"));
+  if (tokensRequest.size() == 3) {
+    m_Method = tokensRequest[0];
+    m_URL = tokensRequest[1];
+    m_Version = tokensRequest[2];
+  } else {
+    return false;
   }
-  else
-    HTTPRequestFailed(HTTPProxyHandler::status_t::bad_request);
-  //headersline
-  m_Headers=tokens;
-  m_Headers.erase(m_Headers.begin()); //remove start line
-  //check for body 
-  if(HeaderBody.size()<2)
-    HTTPRequestFailed(HTTPProxyHandler::status_t::bad_request);
-  //body line
-  m_Body=HeaderBody[1];
-  return CreateHTTPRequest(len);
+  // headersline
+  m_Headers = tokens;
+  // remove start line
+  m_Headers.erase(m_Headers.begin());
+  // check for body
+  if (HeaderBody.size() < 2) {
+    return false;
+  }
+  // body line
+  m_Body = HeaderBody[1];
+  return true;
 }
 
 void HTTPProxyHandler::HandleStreamRequestComplete(
@@ -166,17 +176,17 @@ void HTTPProxyHandler::HandleStreamRequestComplete(
           stream);
     GetOwner()->AddHandler(connection);
     connection->I2PConnect(
-        reinterpret_cast<const std::uint8_t*>(m_Request.data()),
-        m_Request.size());
+        reinterpret_cast<const std::uint8_t*>(m_Protocol.m_Request.data()),
+        m_Protocol.m_Request.size());
     Done(shared_from_this());
   } else {
     LogPrint(eLogError,
         "HTTPProxyHandler: issue when creating the stream,"
         "check the previous warnings for details");
-    HTTPRequestFailed(HTTPProxyHandler::status_t::not_found);
+    HTTPRequestFailed(HTTPResponse(HTTPProtocol::status_t::not_found));
   }
 }
-bool HTTPProxyHandler::CreateHTTPRequest(
+bool HTTPProtocol::CreateHTTPRequest(
     std::size_t len) {
   if (!ExtractIncomingRequest())
     return false;
@@ -187,31 +197,33 @@ bool HTTPProxyHandler::CreateHTTPRequest(
   m_Request += m_URL;
   m_Request.push_back(' ');
   m_Request += m_Version + "\r\n";
-  // Reset/scrub User-Agent 
-  std::multimap<std::string,std::string> headerMap;
-  for(auto it = m_Headers.begin();it!=m_Headers.end();it++)
-  {
+  // Reset/scrub User-Agent
+  std::multimap<std::string, std::string> headerMap;
+  for (auto it = m_Headers.begin(); it != m_Headers.end(); it++) {
     std::vector<std::string> keyElement;
-     
-    boost::split(keyElement,*it,boost::is_any_of(":"));
-    headerMap.insert(std::pair<std::string,std::string>(keyElement[0],keyElement[1]));
+    boost::split(keyElement, *it, boost::is_any_of(":"));
+    headerMap.insert(std::pair<std::string, std::string>(keyElement[0],
+          keyElement[1]));
   }
-  //multimaps cannot directly access the key
+  // multimaps cannot directly access the key
   //
-  std::pair <std::multimap<std::string,std::string>::iterator, std::multimap<std::string,std::string>::iterator> ret;
+  std::pair <std::multimap<std::string, std::string>::iterator,
+    std::multimap<std::string, std::string>::iterator> ret;
   ret = headerMap.equal_range("User-Agent");
-  for( std::multimap<std::string,std::string>::iterator it = ret.first;it!=ret.second;it++){
-    it->second= "MYOB/6.66 (AN/ON)";
+  for (std::multimap<std::string, std::string>::iterator it = ret.first;
+      it != ret.second; it++) {
+    it->second = "MYOB/6.66 (AN/ON)";
   }
 
-  for( std::map<std::string, std::string>::iterator ii=headerMap.begin(); ii!=headerMap.end(); ++ii){
+  for (std::map<std::string, std::string>::iterator ii = headerMap.begin();
+      ii != headerMap.end(); ++ii) {
     m_Request = m_Request + ii->first + ":" + ii->second+ "\r\n";
   }
-  m_Request=m_Request + "\r\n";
+  m_Request = m_Request + "\r\n";
   return true;
 }
 
-bool HTTPProxyHandler::ExtractIncomingRequest() {
+bool HTTPProtocol::ExtractIncomingRequest() {
   LogPrint(eLogDebug,
       "HTTPProxyHandler: method is: ", m_Method,
       ", request is: ", m_URL);
@@ -238,13 +250,12 @@ bool HTTPProxyHandler::ExtractIncomingRequest() {
   // Check for HTTP version
   if (m_Version != "HTTP/1.0" && m_Version != "HTTP/1.1") {
     LogPrint(eLogError, "HTTPProxyHandler: unsupported version: ", m_Version);
-    HTTPRequestFailed(HTTPProxyHandler::status_t::not_implemented);  // TODO(unassigned): send correct responses
     return false;
   }
   return true;
 }
 
-void HTTPProxyHandler::HandleJumpService() {
+void HTTPProtocol::HandleJumpService() {
   // TODO(anonimal): add support for remaining services / rewrite this function
   std::size_t pos1 = m_Path.rfind(m_JumpService.at(0));
   std::size_t pos2 = m_Path.rfind(m_JumpService.at(1));
@@ -274,24 +285,20 @@ void HTTPProxyHandler::HandleJumpService() {
   // We should ask the user for confirmation before proceeding.
   // Previous reference: http://pastethis.i2p/raw/pn5fL4YNJL7OSWj3Sc6N/
   // We *could* redirect the user again to avoid dirtiness in the browser
-  kovri::client::context.GetAddressBook().InsertAddressIntoStorage(m_Address, base64);
+  kovri::client::context.GetAddressBook().InsertAddressIntoStorage(m_Address,
+      base64);
   m_Path.erase(pos);
 }
 
 /* All hope is lost beyond this point */
 // TODO(unassigned): handle this appropriately
 void HTTPProxyHandler::HTTPRequestFailed(
-    HTTPProxyHandler::status_t status){
-  
-  std::string response =
-    "HTTP/1.0 " + std::to_string(status)+ " "+ HTTPProxyHandler::status_message(status)+"\r\n" +
-    "Content-type: text/html\r\n" +
-    "Content-length: 0\r\n";
+    HTTPResponse response) {
   boost::asio::async_write(
       *m_Socket,
       boost::asio::buffer(
-          response,
-          response.size()),
+          response.m_Response,
+          response.m_Response.size()),
       std::bind(
           &HTTPProxyHandler::SentHTTPFailed,
           shared_from_this(),

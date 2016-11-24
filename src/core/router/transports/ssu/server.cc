@@ -145,7 +145,7 @@ void SSUServer::Receive() {
   m_Socket.async_receive_from(
       boost::asio::buffer(
           packet->buf,
-          static_cast<std::size_t>(SSUSize::MTUv4)),
+          GetType(SSUSize::MTUv4)),
       packet->from,
       std::bind(
           &SSUServer::HandleReceivedFrom,
@@ -161,7 +161,7 @@ void SSUServer::ReceiveV6() {
   m_SocketV6.async_receive_from(
       boost::asio::buffer(
           packet->buf,
-          static_cast<std::size_t>(SSUSize::MTUv6)),
+          GetType(SSUSize::MTUv6)),
       packet->from,
       std::bind(
           &SSUServer::HandleReceivedFromV6,
@@ -188,7 +188,7 @@ void SSUServer::HandleReceivedFrom(
       packet->len = m_Socket.receive_from(
           boost::asio::buffer(
               packet->buf,
-              static_cast<std::size_t>(SSUSize::MTUv4)),
+              GetType(SSUSize::MTUv4)),
           packet->from);
       packets.push_back(packet);
       more_bytes = m_Socket.available();
@@ -222,7 +222,7 @@ void SSUServer::HandleReceivedFromV6(
       packet->len = m_SocketV6.receive_from(
           boost::asio::buffer(
               packet->buf,
-              static_cast<std::size_t>(SSUSize::MTUv6)),
+              GetType(SSUSize::MTUv6)),
           packet->from);
       packets.push_back(packet);
       more_bytes = m_SocketV6.available();
@@ -446,7 +446,7 @@ std::shared_ptr<SSUSession> SSUServer::GetRandomEstablishedSession(
   LogPrint(eLogDebug, "SSUServer: getting random established session");
   return GetRandomSession(
       [excluded](std::shared_ptr<SSUSession> session)->bool {
-      return session->GetState() == SessionStateEstablished &&
+      return session->GetState() == SessionState::Established &&
       !session->IsV6() &&
       session != excluded; });
 }
@@ -462,9 +462,9 @@ std::set<SSUSession *> SSUServer::FindIntroducers(
           [&ret, ts](std::shared_ptr<SSUSession> session)->bool {
           return session->GetRelayTag() &&
           !ret.count(session.get()) &&
-          session->GetState() == SessionStateEstablished &&
+          session->GetState() == SessionState::Established &&
           ts < session->GetCreationTime()
-               + static_cast<std::size_t>(SSUDuration::ToIntroducerSessionDuration); });
+               + GetType(SSUDuration::ToIntroducerSessionDuration); });
     if (session) {
       ret.insert(session.get());
       break;
@@ -477,7 +477,7 @@ void SSUServer::ScheduleIntroducersUpdateTimer() {
   LogPrint(eLogDebug, "SSUServer: scheduling introducers update timer");
   m_IntroducersUpdateTimer.expires_from_now(
       boost::posix_time::seconds(
-          static_cast<std::size_t>(SSUDuration::KeepAliveInterval)));
+          GetType(SSUDuration::KeepAliveInterval)));
   m_IntroducersUpdateTimer.async_wait(
       std::bind(
           &SSUServer::HandleIntroducersUpdateTimer,
@@ -507,7 +507,7 @@ void SSUServer::HandleIntroducersUpdateTimer(
       auto session = FindSession(introducer);
       if (session &&
           ts < session->GetCreationTime()
-               + static_cast<std::size_t>(SSUDuration::ToIntroducerSessionDuration)) {
+             + GetType(SSUDuration::ToIntroducerSessionDuration)) {
         session->SendKeepAlive();
         new_list.push_back(introducer);
         num_introducers++;
@@ -515,17 +515,17 @@ void SSUServer::HandleIntroducersUpdateTimer(
         kovri::context.RemoveIntroducer(introducer);
       }
     }
-    if (num_introducers < static_cast<std::size_t>(SSUSize::MaxIntroducers)) {
+    auto max_introducers = GetType(SSUSize::MaxIntroducers);
+    if (num_introducers < max_introducers) {
       // create new
-      auto introducers =
-        FindIntroducers(static_cast<std::size_t>(SSUSize::MaxIntroducers));
+      auto introducers = FindIntroducers(max_introducers);
       if (introducers.size() > 0) {
         for (auto it : introducers) {
           auto router = it->GetRemoteRouter();
           if (router &&
               kovri::context.AddIntroducer(*router, it->GetRelayTag())) {
             new_list.push_back(it->GetRemoteEndpoint());
-            if (new_list.size() >= static_cast<std::size_t>(SSUSize::MaxIntroducers))
+            if (new_list.size() >= max_introducers)
               break;
           }
         }
@@ -560,7 +560,7 @@ PeerTestParticipant SSUServer::GetPeerTestParticipant(
   if (it != m_PeerTests.end())
     return it->second.role;
   else
-    return PeerTestParticipantUnknown;
+    return PeerTestParticipant::Unknown;
 }
 
 std::shared_ptr<SSUSession> SSUServer::GetPeerTestSession(
@@ -592,7 +592,7 @@ void SSUServer::SchedulePeerTestsCleanupTimer() {
   LogPrint(eLogDebug, "SSUServer: scheduling PeerTests cleanup timer");
   m_PeerTestsCleanupTimer.expires_from_now(
       boost::posix_time::seconds(
-          static_cast<std::size_t>(SSUDuration::PeerTestTimeout)));
+          GetType(SSUDuration::PeerTestTimeout)));
   m_PeerTestsCleanupTimer.async_wait(
       std::bind(
           &SSUServer::HandlePeerTestsCleanupTimer,
@@ -608,7 +608,7 @@ void SSUServer::HandlePeerTestsCleanupTimer(
     std::uint64_t ts = kovri::core::GetMillisecondsSinceEpoch();
     for (auto it = m_PeerTests.begin(); it != m_PeerTests.end();) {
       if (ts > it->second.creationTime
-               + static_cast<std::size_t>(SSUDuration::PeerTestTimeout)
+               + GetType(SSUDuration::PeerTestTimeout)
                * 1000LL) {
         num_deleted++;
         it = m_PeerTests.erase(it);

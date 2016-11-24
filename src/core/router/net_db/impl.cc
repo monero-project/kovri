@@ -77,11 +77,13 @@ bool NetDb::Start() {
     return false;
   m_IsRunning = true;
   m_Thread = std::make_unique<std::thread>(std::bind(&NetDb::Run, this));
+  LogPrint(eLogInfo, "NetDB is starting up.");
   return m_IsRunning;
 }
 
 void NetDb::Stop() {
   if (m_IsRunning) {
+    LogPrint(eLogInfo, "NetDB is stopping.");
     for (auto it : m_RouterInfos)
       it.second->SaveProfile();
     DeleteObsoleteProfiles();
@@ -163,30 +165,14 @@ void NetDb::Run() {
       }
       // builds exploratory tunnels at Nth interval to find more peers
       if (ts - last_exploratory >= static_cast<std::uint16_t>(NetDbInterval::Exploratory)) {
-        // Set default exploratory count
-        std::uint16_t exploratory_count =
-          static_cast<std::uint16_t>(NetDbSize::MinExploratoryTunnels);
-        // Get number of current available routers
         auto known_routers = GetNumRouters();
-        // Evaluates if a router has a sufficient number of known routers
-        // to use for building tunnels and sets exploratory count as needed
-        if (known_routers <
-            static_cast<std::uint16_t>(NetDbSize::FavouredKnownRouters)
-            || ts - last_exploratory >=
-            static_cast<std::uint16_t>(NetDbInterval::DelayedExploratory)) {
-          // Test if we're below the desired threshold
-          if (known_routers <
-              static_cast<std::uint16_t>(NetDbSize::MinKnownRouters)) {
-            // Set the max exploratory count
-            exploratory_count =
-              static_cast<std::uint16_t>(NetDbSize::MaxExploratoryTunnels);
-          }
-        }
+        std::uint16_t exploratory_count = UpdateNumExploratoryTunnels(
+            known_routers, ts, last_exploratory);
         m_Requests.ManageRequests();
         Explore(exploratory_count);
         last_exploratory = ts;
       }
-    } catch(std::exception& ex) {
+    } catch (std::exception& ex) {
       LogPrint(eLogError, "NetDb::Run(): ", ex.what());
     }
   }
@@ -453,28 +439,33 @@ void NetDb::SaveUpdated() {
 void NetDb::RequestDestination(
     const IdentHash& destination,
     RequestedDestination::RequestComplete request_complete) {
-  auto dest =
-    m_Requests.CreateRequest(
-        destination,
-        false,
-        request_complete);  // non-exploratory
-  if (!dest) {
-    LogPrint(eLogWarn,
-        "NetDb: destination ", destination.ToBase64(), " was already requested");
-    return;
-  }
-  auto floodfill =
-    GetClosestFloodfill(
-        destination,
-        dest->GetExcludedPeers());
-  if (floodfill) {
-    kovri::core::transports.SendMessage(
-        floodfill->GetIdentHash(),
-        dest->CreateRequestMessage(
+  try {
+    auto dest =
+      m_Requests.CreateRequest(
+          destination,
+          false,
+          request_complete);  // non-exploratory
+    if (!dest) {
+      LogPrint(eLogWarn,
+          "NetDb: destination ", destination.ToBase64(), " was already requested");
+      return;
+    }
+    auto floodfill =
+      GetClosestFloodfill(
+          destination,
+          dest->GetExcludedPeers());
+    if (floodfill) {
+      kovri::core::transports.SendMessage(
+          floodfill->GetIdentHash(),
+          dest->CreateRequestMessage(
             floodfill->GetIdentHash()));
-  } else {
-    LogPrint(eLogError, "NetDb: no floodfills found");
-    m_Requests.RequestComplete(destination, nullptr);
+    } else {
+      LogPrint(eLogError, "NetDb: no floodfills found");
+      m_Requests.RequestComplete(destination, nullptr);
+    }
+  } catch (std::exception& ex) {
+    LogPrint(eLogError,
+        "NetDb::RequestDestination(): ", ex.what());
   }
 }
 
@@ -633,17 +624,22 @@ void NetDb::HandleDatabaseSearchReplyMsg(
     int l1 = kovri::core::ByteStreamToBase64(router, 32, peer_hash.data(), peer_hash.size());
     peer_hash.at(l1) = 0;
     LogPrint(eLogInfo, "NetDb: ", i, ": ", peer_hash.data());
-    auto r = FindRouter(router);
-    if (!r || kovri::core::GetMillisecondsSinceEpoch() >
-        r->GetTimestamp() +
-        static_cast<std::uint32_t>(NetDbTime::RouterExpiration))  {
-      // router with ident not found or too old
-      LogPrint(eLogInfo,
-          "NetDb: found new/outdated router, requesting RouterInfo");
-      RequestDestination(router);
-    } else {
-      LogPrint(eLogInfo,
-          "NetDb: router with ident found");
+    try {
+      auto r = FindRouter(router);
+      if (!r || kovri::core::GetMillisecondsSinceEpoch() >
+          r->GetTimestamp() +
+          static_cast<std::uint32_t>(NetDbTime::RouterExpiration))  {
+        // router with ident not found or too old
+        LogPrint(eLogInfo,
+            "NetDb: found new/outdated router, requesting RouterInfo");
+        RequestDestination(router);
+      } else {
+        LogPrint(eLogInfo,
+            "NetDb: router with ident found");
+      }
+    } catch (std::exception& ex) {
+      LogPrint(eLogError,
+          "NetDb::HandleDatabaseSearchReplyMsg(): ", ex.what());
     }
   }
 }
@@ -694,7 +690,13 @@ void NetDb::HandleDatabaseLookupMsg(
         excluded_routers.insert(r->GetIdentHash());
       }
     }
-    reply_msg = CreateDatabaseSearchReply(ident, routers);
+    try {
+      reply_msg = CreateDatabaseSearchReply(ident, routers);
+    } catch (std::exception& ex) {
+      LogPrint(eLogError,
+          "NetDb::HandleDatabaseLookupMsg(): ",
+          "failed creating a search database reply msg, ", ex.what());
+    }
   } else {
     if (lookup_type == DATABASE_LOOKUP_TYPE_ROUTERINFO_LOOKUP  ||
         lookup_type == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP) {
@@ -824,21 +826,26 @@ void NetDb::Explore(
 void NetDb::Publish() {
   std::set<IdentHash> excluded;  // TODO(unassigned): fill up later
   for (int i = 0; i < 2; i++) {
-    auto floodfill = GetClosestFloodfill(
-        kovri::context.GetRouterInfo().GetIdentHash(),
-        excluded);
-    if (floodfill) {
-      std::uint32_t reply_token = kovri::core::Rand<std::uint32_t>();
-      LogPrint(eLogInfo,
-          "NetDb: publishing our RouterInfo to ",
-          floodfill->GetIdentHashAbbreviation(),
-          ". reply token=", reply_token);
-      kovri::core::transports.SendMessage(
-          floodfill->GetIdentHash(),
-          CreateDatabaseStoreMsg(
-              kovri::context.GetSharedRouterInfo(),
-              reply_token));
-      excluded.insert(floodfill->GetIdentHash());
+    try {
+      auto floodfill = GetClosestFloodfill(
+          kovri::context.GetRouterInfo().GetIdentHash(),
+          excluded);
+      if (floodfill) {
+        std::uint32_t reply_token = kovri::core::Rand<std::uint32_t>();
+        LogPrint(eLogInfo,
+            "NetDb: publishing our RouterInfo to ",
+            floodfill->GetIdentHashAbbreviation(),
+            ". reply token=", reply_token);
+        kovri::core::transports.SendMessage(
+            floodfill->GetIdentHash(),
+            CreateDatabaseStoreMsg(
+                kovri::context.GetSharedRouterInfo(),
+                reply_token));
+        excluded.insert(floodfill->GetIdentHash());
+      }
+    } catch (std::exception& ex) {
+     LogPrint(eLogError,
+         "NetDb::Publish(): ", ex.what());
     }
   }
 }
@@ -915,8 +922,13 @@ std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter(
 
 void NetDb::PostI2NPMsg(
     std::shared_ptr<const I2NPMessage> msg) {
-  if (msg)
-    m_Queue.Put(msg);
+  try {
+    if (msg)
+      m_Queue.Put(msg);
+  } catch (std::exception& ex) {
+    LogPrint(eLogError,
+        "NetDb::PostI2NPMsg(): ", ex.what());
+  }
 }
 
 std::shared_ptr<const RouterInfo> NetDb::GetClosestFloodfill(
@@ -999,6 +1011,30 @@ std::shared_ptr<const RouterInfo> NetDb::GetClosestNonFloodfill(
     }
   }
   return r;
+}
+
+std::uint16_t NetDb::UpdateNumExploratoryTunnels(
+    std::uint16_t known_routers,
+    std::uint64_t ts,
+    std::uint32_t last_exploratory) {
+  // Set default exploratory count
+  std::uint16_t exploratory_count =
+    static_cast<std::uint16_t>(NetDbSize::MinExploratoryTunnels);
+  // Evaluates if a router has a sufficient number of known routers
+  // to use for building tunnels and sets exploratory count as needed
+  if (known_routers <
+      static_cast<std::uint16_t>(NetDbSize::FavouredKnownRouters)
+      || ts - last_exploratory >=
+      static_cast<std::uint16_t>(NetDbInterval::DelayedExploratory)) {
+    // Test if we're below the desired threshold
+    if (known_routers <
+        static_cast<std::uint16_t>(NetDbSize::MinKnownRouters)) {
+      // Set the max exploratory count
+      exploratory_count =
+        static_cast<std::uint16_t>(NetDbSize::MaxExploratoryTunnels);
+    }
+  }
+  return exploratory_count;
 }
 
 void NetDb::ManageLeaseSets() {

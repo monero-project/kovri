@@ -222,6 +222,12 @@ class NetDb {
       const IdentHash& destination,
       const std::set<IdentHash>& excluded) const;
 
+  bool IsRunning() const {
+    if (m_IsRunning && m_Thread)
+      return true;
+    return false;
+  }
+
   void SetUnreachable(
       const IdentHash& ident,
       bool unreachable);
@@ -243,6 +249,15 @@ class NetDb {
   int GetNumLeaseSets() const {
     return m_LeaseSets.size();
   }
+
+  int GetNumRequestedDestinations() const {
+    return m_Requests.GetNumRequestedDestinations();
+  }
+
+  std::uint16_t UpdateNumExploratoryTunnels(
+      std::uint16_t known_routers,
+      std::uint64_t ts,
+      std::uint32_t last_exploratory);
 
   // Java i2p defined
   const std::uint8_t MIN_REQUIRED_ROUTERS = 50;

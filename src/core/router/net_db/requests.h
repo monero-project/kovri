@@ -130,6 +130,10 @@ class NetDbRequests {
   std::shared_ptr<RequestedDestination> FindRequest(
       const IdentHash& ident) const;
 
+  int GetNumRequestedDestinations() const {
+    return m_RequestedDestinations.size();
+  }
+
   void ManageRequests();
 
  private:

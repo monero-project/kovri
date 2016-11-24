@@ -46,7 +46,7 @@ namespace core {
 /// @enum SSUSize
 /// @brief Constants used to represent sizes in SSU including
 ///   packet, crypto, and implementation
-enum struct SSUSize : std::size_t {
+enum struct SSUSize : std::uint16_t {
   MTUv4 = 1484,
   MTUv6 = 1472,
   HeaderIPv4 = 20,

@@ -62,53 +62,33 @@ namespace kovri {
 namespace app {
 
 Daemon_Singleton::Daemon_Singleton()
-    : m_IsDaemon(false),
+    : m_IsDaemon(kovri::app::var_map["daemon"].as<bool>()),
       m_IsRunning(true) {}
 
 Daemon_Singleton::~Daemon_Singleton() {}
 
-// TODO(anonimal): find a better way to initialize
 bool Daemon_Singleton::Init() {
-  LogPrint(eLogInfo, "Daemon_Singleton: initializing");
-  kovri::context.Init(
-      kovri::app::var_map["host"].as<std::string>(),
-      kovri::app::var_map["port"].as<int>());
-  m_IsDaemon = kovri::app::var_map["daemon"].as<bool>();
-  auto port = kovri::app::var_map["port"].as<int>();
-  kovri::context.UpdatePort(port);
-  kovri::context.UpdateAddress(
-      boost::asio::ip::address::from_string(
-          kovri::app::var_map["host"].as<std::string>()));
-  kovri::context.SetSupportsV6(
-      kovri::app::var_map["v6"].as<bool>());
-  kovri::context.SetFloodfill(
-      kovri::app::var_map["floodfill"].as<bool>());
-  auto bandwidth = kovri::app::var_map["bandwidth"].as<std::string>();
-  if (bandwidth.length() > 0) {
-    if (bandwidth[0] > 'L')
-      kovri::context.SetHighBandwidth();
-    else
-      kovri::context.SetLowBandwidth();
+  // We must initialize contexts here (in child process, if in daemon mode)
+  try {
+    LogPrint(eLogDebug, "Daemon_Singleton: initializing router context");
+    InitRouterContext();
+    LogPrint(eLogDebug, "Daemon_Singleton: initializing client context");
+    InitClientContext();
+  } catch (const std::exception& ex) {
+    LogPrint(eLogError,
+        "Daemon_Singleton: exception during initialization: ", ex.what());
+    return false;
+  } catch (...) {
+    LogPrint(eLogError,
+        "Daemon_Singleton: unknown exception during initialization");
+    return false;
   }
-  // Set reseed options
-  kovri::context.SetOptionReseedFrom(
-      kovri::app::var_map["reseed-from"].as<std::string>());
-  kovri::context.SetOptionReseedSkipSSLCheck(
-      kovri::app::var_map["reseed-skip-ssl-check"].as<bool>());
-  // Set transport options
-  kovri::context.SetSupportsNTCP(
-      kovri::app::var_map["enable-ntcp"].as<bool>());
-  kovri::context.SetSupportsSSU(
-      kovri::app::var_map["enable-ssu"].as<bool>());
-  // Initialize the ClientContext
-  InitClientContext();
   return true;
 }
 
+// TODO(anonimal): layout logic and style
+
 bool Daemon_Singleton::Start() {
-  LogPrint(eLogInfo,
-      "Daemon_Singleton: listening on port ",
-      kovri::app::var_map["port"].as<int>());
   try {
     LogPrint(eLogInfo, "Daemon_Singleton: starting NetDb");
     if (!kovri::core::netdb.Start()) {
@@ -132,7 +112,7 @@ bool Daemon_Singleton::Start() {
   } catch (std::runtime_error& e) {
     LogPrint(eLogError, "Daemon_Singleton: runtime start exception: ", e.what());
     return false;
-  }
+  }  // TODO(anonimal): catch all
   return true;
 }
 
@@ -161,7 +141,43 @@ void Daemon_Singleton::Reload() {
   ReloadTunnels();
   // TODO(unassigned): reload kovri.conf
 }
+// TODO(anonimal): cleanup initialization style
+void Daemon_Singleton::InitRouterContext() {
+  kovri::context.Init(
+      kovri::app::var_map["host"].as<std::string>(),
+      kovri::app::var_map["port"].as<int>());
+  auto port = kovri::app::var_map["port"].as<int>();
+  kovri::context.UpdatePort(port);
+  LogPrint(eLogInfo,
+      "Daemon_Singleton: listening on port ",
+      kovri::app::var_map["port"].as<int>());
+  kovri::context.UpdateAddress(
+      boost::asio::ip::address::from_string(
+          kovri::app::var_map["host"].as<std::string>()));
+  kovri::context.SetSupportsV6(
+      kovri::app::var_map["v6"].as<bool>());
+  kovri::context.SetFloodfill(
+      kovri::app::var_map["floodfill"].as<bool>());
+  auto bandwidth = kovri::app::var_map["bandwidth"].as<std::string>();
+  if (bandwidth.length() > 0) {
+    if (bandwidth[0] > 'L')
+      kovri::context.SetHighBandwidth();
+    else
+      kovri::context.SetLowBandwidth();
+  }
+  // Set reseed options
+  kovri::context.SetOptionReseedFrom(
+      kovri::app::var_map["reseed-from"].as<std::string>());
+  kovri::context.SetOptionReseedSkipSSLCheck(
+      kovri::app::var_map["reseed-skip-ssl-check"].as<bool>());
+  // Set transport options
+  kovri::context.SetSupportsNTCP(
+      kovri::app::var_map["enable-ntcp"].as<bool>());
+  kovri::context.SetSupportsSSU(
+      kovri::app::var_map["enable-ssu"].as<bool>());
+}
 
+// TODO(anonimal): cleanup initialization style
 void Daemon_Singleton::InitClientContext() {
   kovri::client::context.RegisterShutdownHandler(
       [this]() { m_IsRunning = false; });

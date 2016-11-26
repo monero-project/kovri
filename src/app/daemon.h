@@ -49,15 +49,27 @@ namespace app {
 
 class Daemon_Singleton {
  public:
+  /// @brief Forks process if daemon mode is set, initializes contexts
+  /// @warning Child *must* fork *before* contexts are initialized
   virtual bool Init();
+
+  /// @brief Start client/router
   virtual bool Start();
+
+  /// @brief Stop client/router
   virtual bool Stop();
+
+  /// @brief Reload tunnels
   virtual void Reload();
+
   bool m_IsDaemon, m_IsRunning;
 
  private:
-  /// Initializes the router's client context object
-  /// Creates tunnels, proxies and I2PControl service
+  /// @brief Initializes router context / core settings
+  void InitRouterContext();
+
+  /// @brief Initializes the router's client context object
+  /// @details Creates tunnels, proxies and I2PControl service
   void InitClientContext();
   void SetupTunnels();
   void ReloadTunnels();
@@ -90,6 +102,7 @@ class DaemonLinux : public Daemon_Singleton {
     static DaemonLinux instance;
     return instance;
   }
+  virtual bool Init();
   virtual bool Start();
   virtual bool Stop();
   void Reload();

@@ -176,6 +176,7 @@ bool SetLoggingOptions() {
   log::SetGlobalLogLevels(arg_levels);
   // Set other logging options
   log::SetOptionLogToConsole(var_map["log-to-console"].as<bool>());
+  // TODO(anonimal): hack to ensure log-to-console is enabled in daemon mode
   log::SetOptionLogToFile(var_map["log-to-file"].as<bool>());
   log::SetOptionLogFileName(var_map["log-file-name"].as<std::string>());
   return true;

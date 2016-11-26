@@ -51,12 +51,10 @@ bool DaemonWin32::Init() {
   SetConsoleCP(65001);  // UTF-8
   SetConsoleOutputCP(65001);
   setlocale(LC_ALL, "");
-  if (!Daemon_Singleton::Init())
-    return false;
   if (I2PService::IsService())
-    m_IsDaemon = 1;
+    m_IsDaemon = true;
   else
-    m_IsDaemon = 0;
+    m_IsDaemon = false;
   std::string service_control =
     kovri::app::var_map["service"].as<std::string>();
   if (service_control == "install") {
@@ -72,7 +70,7 @@ bool DaemonWin32::Init() {
     UninstallService(SERVICE_NAME);
     exit(0);
   }
-  if (m_IsDaemon == 1) {
+  if (m_IsDaemon) {
     LogPrint(eLogInfo, "DaemonWin32: service session");
     I2PService service(SERVICE_NAME);
     if (!I2PService::Run(service)) {
@@ -84,10 +82,11 @@ bool DaemonWin32::Init() {
   } else {
     LogPrint(eLogInfo, "DaemonWin32: user session");
   }
-  return true;
+  return Daemon_Singleton::Init();
 }
 
 bool DaemonWin32::Start() {
+  // TODO(anonimal): remove these redundancies
   setlocale(LC_CTYPE, "");
   SetConsoleCP(65001);
   SetConsoleOutputCP(65001);

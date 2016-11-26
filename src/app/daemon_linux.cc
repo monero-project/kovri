@@ -73,7 +73,7 @@ void handle_signal(int sig) {
 namespace kovri {
 namespace app {
 
-bool DaemonLinux::Start() {
+bool DaemonLinux::Init() {
   if (m_IsDaemon) {
     // Parent
     pid_t pid = fork();
@@ -142,6 +142,10 @@ bool DaemonLinux::Start() {
   sigaction(SIGABRT, &sa, 0);
   sigaction(SIGTERM, &sa, 0);
   sigaction(SIGINT, &sa, 0);
+  return Daemon_Singleton::Init();
+}
+
+bool DaemonLinux::Start() {
   return Daemon_Singleton::Start();
 }
 

@@ -47,7 +47,7 @@
 namespace kovri {
 namespace app {
 
-class Daemon_Singleton {
+class DaemonSingleton {
  public:
   /// @brief Forks process if daemon mode is set, initializes contexts
   /// @warning Child *must* fork *before* contexts are initialized
@@ -75,13 +75,13 @@ class Daemon_Singleton {
   void ReloadTunnels();
 
  protected:
-  Daemon_Singleton();
-  virtual ~Daemon_Singleton();
+  DaemonSingleton();
+  virtual ~DaemonSingleton();
   std::shared_ptr<kovri::core::Log> m_Log;
 };
 
 #ifdef _WIN32
-class DaemonWin32 : public Daemon_Singleton {
+class DaemonWin32 : public DaemonSingleton {
  public:
   static DaemonWin32& Instance() {
     static DaemonWin32 instance;
@@ -92,7 +92,7 @@ class DaemonWin32 : public Daemon_Singleton {
   virtual bool Stop();
 };
 #else
-class DaemonLinux : public Daemon_Singleton {
+class DaemonLinux : public DaemonSingleton {
  public:
   DaemonLinux()
     : m_PIDPath(kovri::core::GetDataPath().string()),

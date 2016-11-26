@@ -62,9 +62,10 @@ const char I2P_SERVER_TUNNEL_KEYS[] = "keys";
 const char I2P_SERVER_TUNNEL_INPORT[] = "inport";
 const char I2P_SERVER_TUNNEL_ACCESS_LIST[] = "accesslist";
 
-/// @var var_map
+// TODO(unassigned): not ideal, we can create a useful class
+/// @var VarMap
 /// @brief Variable map for command-line and config file args
-extern boost::program_options::variables_map var_map;
+extern boost::program_options::variables_map VarMap;
 
 /// @brief Parse command line arguments
 /// @return False on failure

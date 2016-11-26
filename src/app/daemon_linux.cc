@@ -142,11 +142,11 @@ bool DaemonLinux::Init() {
   sigaction(SIGABRT, &sa, 0);
   sigaction(SIGTERM, &sa, 0);
   sigaction(SIGINT, &sa, 0);
-  return Daemon_Singleton::Init();
+  return DaemonSingleton::Init();
 }
 
 bool DaemonLinux::Start() {
-  return Daemon_Singleton::Start();
+  return DaemonSingleton::Start();
 }
 
 bool DaemonLinux::Stop() {
@@ -157,12 +157,12 @@ bool DaemonLinux::Stop() {
     LogPrint(eLogError,
         "DaemonLinux: could not close pid file ", m_PIDFile, ": ", errno);
   }
-  return Daemon_Singleton::Stop();
+  return DaemonSingleton::Stop();
 }
 
 void DaemonLinux::Reload() {
   // no linux specific reload operations
-  Daemon_Singleton::Reload();
+  DaemonSingleton::Reload();
 }
 
 }  // namespace app

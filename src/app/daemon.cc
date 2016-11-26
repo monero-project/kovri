@@ -61,157 +61,90 @@
 namespace kovri {
 namespace app {
 
-Daemon_Singleton::Daemon_Singleton()
-    : m_IsDaemon(kovri::app::var_map["daemon"].as<bool>()),
+DaemonSingleton::DaemonSingleton()
+    : m_IsDaemon(VarMap["daemon"].as<bool>()),
       m_IsRunning(true) {}
 
-Daemon_Singleton::~Daemon_Singleton() {}
+DaemonSingleton::~DaemonSingleton() {}
 
-bool Daemon_Singleton::Init() {
+bool DaemonSingleton::Init() {
   // We must initialize contexts here (in child process, if in daemon mode)
   try {
-    LogPrint(eLogDebug, "Daemon_Singleton: initializing router context");
+    LogPrint(eLogDebug, "DaemonSingleton: initializing router context");
     InitRouterContext();
-    LogPrint(eLogDebug, "Daemon_Singleton: initializing client context");
+    LogPrint(eLogDebug, "DaemonSingleton: initializing client context");
     InitClientContext();
   } catch (const std::exception& ex) {
     LogPrint(eLogError,
-        "Daemon_Singleton: exception during initialization: ", ex.what());
+        "DaemonSingleton: exception during initialization: ", ex.what());
     return false;
   } catch (...) {
     LogPrint(eLogError,
-        "Daemon_Singleton: unknown exception during initialization");
+        "DaemonSingleton: unknown exception during initialization");
     return false;
   }
   return true;
 }
 
-// TODO(anonimal): layout logic and style
-
-bool Daemon_Singleton::Start() {
-  try {
-    LogPrint(eLogInfo, "Daemon_Singleton: starting NetDb");
-    if (!kovri::core::netdb.Start()) {
-      LogPrint(eLogError, "Daemon_Singleton: NetDb failed to start");
-      return false;
-    }
-    if (kovri::core::netdb.GetNumRouters() < kovri::core::netdb.MIN_REQUIRED_ROUTERS) {
-      LogPrint(eLogInfo, "Daemon_Singleton: reseeding NetDb");
-      kovri::client::Reseed reseed;
-      if (!reseed.Start()) {
-        LogPrint(eLogError, "Daemon_Singleton: reseed failed");
-        return false;
-      }
-    }
-    LogPrint(eLogInfo, "Daemon_Singleton: starting transports");
-    kovri::core::transports.Start();
-    LogPrint(eLogInfo, "Daemon_Singleton: starting tunnels");
-    kovri::core::tunnels.Start();
-    LogPrint(eLogInfo, "Daemon_Singleton: starting client");
-    kovri::client::context.Start();
-  } catch (std::runtime_error& e) {
-    LogPrint(eLogError, "Daemon_Singleton: runtime start exception: ", e.what());
-    return false;
-  }  // TODO(anonimal): catch all
-  return true;
-}
-
-bool Daemon_Singleton::Stop() {
-  try {
-    LogPrint(eLogInfo, "Daemon_Singleton: stopping client");
-    kovri::client::context.Stop();
-    LogPrint(eLogInfo, "Daemon_Singleton: stopping tunnels");
-    kovri::core::tunnels.Stop();
-    LogPrint(eLogInfo, "Daemon_Singleton: stopping transports");
-    kovri::core::transports.Stop();
-    LogPrint(eLogInfo, "Daemon_Singleton: stopping NetDb");
-    kovri::core::netdb.Stop();
-    LogPrint(eLogInfo, "Goodbye!");
-  } catch (std::runtime_error& e) {
-    LogPrint(eLogError, "Daemon_Singleton: runtime stop exception: ", e.what());
-    return false;
-  }
-  return true;
-}
-
-void Daemon_Singleton::Reload() {
-  // TODO(unassigned): do we want to add locking?
-  LogPrint(eLogInfo, "Daemon_Singleton: reloading configuration");
-  // reload tunnels.conf
-  ReloadTunnels();
-  // TODO(unassigned): reload kovri.conf
-}
-// TODO(anonimal): cleanup initialization style
-void Daemon_Singleton::InitRouterContext() {
-  kovri::context.Init(
-      kovri::app::var_map["host"].as<std::string>(),
-      kovri::app::var_map["port"].as<int>());
-  auto port = kovri::app::var_map["port"].as<int>();
-  kovri::context.UpdatePort(port);
+void DaemonSingleton::InitRouterContext() {
+  auto host = VarMap["host"].as<std::string>();
+  auto port = VarMap["port"].as<int>();
+  // TODO(unassigned): context should be in core namespace (see TODO in router context)
+  context.Init(host, port);
+  context.UpdatePort(port);
   LogPrint(eLogInfo,
-      "Daemon_Singleton: listening on port ",
-      kovri::app::var_map["port"].as<int>());
-  kovri::context.UpdateAddress(
-      boost::asio::ip::address::from_string(
-          kovri::app::var_map["host"].as<std::string>()));
-  kovri::context.SetSupportsV6(
-      kovri::app::var_map["v6"].as<bool>());
-  kovri::context.SetFloodfill(
-      kovri::app::var_map["floodfill"].as<bool>());
-  auto bandwidth = kovri::app::var_map["bandwidth"].as<std::string>();
+      "DaemonSingleton: listening on port ", VarMap["port"].as<int>());
+  context.UpdateAddress(boost::asio::ip::address::from_string(host));
+  context.SetSupportsV6(VarMap["v6"].as<bool>());
+  context.SetFloodfill(VarMap["floodfill"].as<bool>());
+  auto bandwidth = VarMap["bandwidth"].as<std::string>();
   if (bandwidth.length() > 0) {
     if (bandwidth[0] > 'L')
-      kovri::context.SetHighBandwidth();
+      context.SetHighBandwidth();
     else
-      kovri::context.SetLowBandwidth();
+      context.SetLowBandwidth();
   }
   // Set reseed options
-  kovri::context.SetOptionReseedFrom(
-      kovri::app::var_map["reseed-from"].as<std::string>());
-  kovri::context.SetOptionReseedSkipSSLCheck(
-      kovri::app::var_map["reseed-skip-ssl-check"].as<bool>());
+  context.SetOptionReseedFrom(VarMap["reseed-from"].as<std::string>());
+  context.SetOptionReseedSkipSSLCheck(VarMap["reseed-skip-ssl-check"].as<bool>());
   // Set transport options
-  kovri::context.SetSupportsNTCP(
-      kovri::app::var_map["enable-ntcp"].as<bool>());
-  kovri::context.SetSupportsSSU(
-      kovri::app::var_map["enable-ssu"].as<bool>());
+  context.SetSupportsNTCP(VarMap["enable-ntcp"].as<bool>());
+  context.SetSupportsSSU(VarMap["enable-ssu"].as<bool>());
 }
 
-// TODO(anonimal): cleanup initialization style
-void Daemon_Singleton::InitClientContext() {
+void DaemonSingleton::InitClientContext() {
   kovri::client::context.RegisterShutdownHandler(
       [this]() { m_IsRunning = false; });
   std::shared_ptr<kovri::client::ClientDestination> local_destination;
   // Setup proxies and services
-  auto proxy_keys =
-    kovri::app::var_map["proxykeys"].as<std::string>();
+  auto proxy_keys = VarMap["proxykeys"].as<std::string>();
   if (proxy_keys.length() > 0)
     local_destination = kovri::client::context.LoadLocalDestination(
         proxy_keys,
         false);
   kovri::client::context.SetHTTPProxy(std::make_unique<kovri::client::HTTPProxy>(
       "HTTP Proxy",  // TODO(unassigned): what if we want to change the name?
-      kovri::app::var_map["httpproxyaddress"].as<std::string>(),
-      kovri::app::var_map["httpproxyport"].as<int>(),
+      VarMap["httpproxyaddress"].as<std::string>(),
+      VarMap["httpproxyport"].as<int>(),
       local_destination));
   kovri::client::context.SetSOCKSProxy(std::make_unique<kovri::client::SOCKSProxy>(
-      kovri::app::var_map["socksproxyaddress"].as<std::string>(),
-      kovri::app::var_map["socksproxyport"].as<int>(),
+      VarMap["socksproxyaddress"].as<std::string>(),
+      VarMap["socksproxyport"].as<int>(),
       local_destination));
-  auto i2pcontrol_port = kovri::app::var_map["i2pcontrolport"].as<int>();
+  auto i2pcontrol_port = VarMap["i2pcontrolport"].as<int>();
   if (i2pcontrol_port) {
     kovri::client::context.SetI2PControlService(
         std::make_unique<kovri::client::I2PControlService>(
             kovri::client::context.GetIoService(),
-            kovri::app::var_map["i2pcontroladdress"].as<std::string>(),
+            VarMap["i2pcontroladdress"].as<std::string>(),
             i2pcontrol_port,
-            kovri::app::var_map["i2pcontrolpassword"].as<std::string>()));
+            VarMap["i2pcontrolpassword"].as<std::string>()));
   }
   // Setup client and server tunnels
   SetupTunnels();
 }
 
-void Daemon_Singleton::SetupTunnels() {
+void DaemonSingleton::SetupTunnels() {
   boost::property_tree::ptree pt;
   auto path_tunnels_config_file =
     kovri::app::GetTunnelsConfigFile().string();
@@ -219,7 +152,7 @@ void Daemon_Singleton::SetupTunnels() {
     boost::property_tree::read_ini(path_tunnels_config_file, pt);
   } catch(const std::exception& ex) {
     LogPrint(eLogWarn,
-        "Daemon_Singleton: can't read ",
+        "DaemonSingleton: can't read ",
         path_tunnels_config_file, ": ", ex.what());
     return;
   }
@@ -258,7 +191,7 @@ void Daemon_Singleton::SetupTunnels() {
           ++num_client_tunnels;
         else
           LogPrint(eLogError,
-              "Daemon_Singleton: I2P client tunnel with port ",
+              "DaemonSingleton: I2P client tunnel with port ",
               port, " already exists");
       } else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER ||
           type == I2P_TUNNELS_SECTION_TYPE_HTTP) {
@@ -294,27 +227,58 @@ void Daemon_Singleton::SetupTunnels() {
           ++num_server_tunnels;
         else
           LogPrint(eLogError,
-              "Daemon_Singleton: I2P server tunnel for destination ",
+              "DaemonSingleton: I2P server tunnel for destination ",
               kovri::client::context.GetAddressBook().GetB32AddressFromIdentHash(
                   local_destination->GetIdentHash()),
               " already exists");
       } else {
         LogPrint(eLogWarn,
-            "Daemon_Singleton: unknown section type=",
+            "DaemonSingleton: unknown section type=",
             type, " of ", name, " in ", path_tunnels_config_file);
       }
     } catch (const std::exception& ex) {
       LogPrint(eLogError,
-          "Daemon_Singleton: can't read tunnel ", name, " params: ", ex.what());
+          "DaemonSingleton: can't read tunnel ", name, " params: ", ex.what());
     }
   }
   LogPrint(eLogInfo,
-      "Daemon_Singleton: ", num_client_tunnels, " I2P client tunnels created");
+      "DaemonSingleton: ", num_client_tunnels, " I2P client tunnels created");
   LogPrint(eLogInfo,
-      "Daemon_Singleton: ", num_server_tunnels, " I2P server tunnels created");
+      "DaemonSingleton: ", num_server_tunnels, " I2P server tunnels created");
 }
 
-void Daemon_Singleton::ReloadTunnels() {
+bool DaemonSingleton::Start() {
+  try {
+    LogPrint(eLogInfo, "DaemonSingleton: starting NetDb");
+    if (!kovri::core::netdb.Start()) {
+      LogPrint(eLogError, "DaemonSingleton: NetDb failed to start");
+      return false;
+    }
+    if (kovri::core::netdb.GetNumRouters() < kovri::core::netdb.MIN_REQUIRED_ROUTERS) {
+      LogPrint(eLogInfo, "DaemonSingleton: reseeding NetDb");
+      kovri::client::Reseed reseed;
+      if (!reseed.Start()) {
+        LogPrint(eLogError, "DaemonSingleton: reseed failed");
+        return false;
+      }
+    }
+    LogPrint(eLogInfo, "DaemonSingleton: starting transports");
+    kovri::core::transports.Start();
+    LogPrint(eLogInfo, "DaemonSingleton: starting tunnels");
+    kovri::core::tunnels.Start();
+    LogPrint(eLogInfo, "DaemonSingleton: starting client");
+    kovri::client::context.Start();
+  } catch (std::runtime_error& e) {
+    LogPrint(eLogError, "DaemonSingleton: runtime start exception: ", e.what());
+    return false;
+  }  catch (...) {
+    LogPrint(eLogError, "DaemonSingleton: unknown exception when starting");
+    return false;
+  }
+  return true;
+}
+
+void DaemonSingleton::ReloadTunnels() {
   boost::property_tree::ptree pt;
   auto tunnels_config_file =
     kovri::app::GetTunnelsConfigFile().string();
@@ -322,7 +286,7 @@ void Daemon_Singleton::ReloadTunnels() {
     boost::property_tree::read_ini(tunnels_config_file, pt);
   } catch (const std::exception& ex) {
     LogPrint(eLogWarn,
-        "Daemon_Singleton: can't read ",
+        "DaemonSingleton: can't read ",
         tunnels_config_file, ": ", ex.what());
     return;
   }
@@ -365,7 +329,7 @@ void Daemon_Singleton::ReloadTunnels() {
         // TODO(unassigned): what if we interchange two client tunnels' ports?
         // TODO(EinMByte): the addresses could differ
         LogPrint(eLogError,
-            "Daemon_Singleton: ",
+            "DaemonSingleton: ",
             tunnel_name, " will not be updated, conflicting port");
         continue;
       }
@@ -392,6 +356,35 @@ void Daemon_Singleton::ReloadTunnels() {
             updated_tunnels.end(),
             tunnel->GetName()) == updated_tunnels.end();
       });
+}
+
+void DaemonSingleton::Reload() {
+  // TODO(unassigned): do we want to add locking?
+  LogPrint(eLogInfo, "DaemonSingleton: reloading configuration");
+  // reload tunnels.conf
+  ReloadTunnels();
+  // TODO(unassigned): reload kovri.conf
+}
+
+bool DaemonSingleton::Stop() {
+  try {
+    LogPrint(eLogInfo, "DaemonSingleton: stopping client");
+    kovri::client::context.Stop();
+    LogPrint(eLogInfo, "DaemonSingleton: stopping tunnels");
+    kovri::core::tunnels.Stop();
+    LogPrint(eLogInfo, "DaemonSingleton: stopping transports");
+    kovri::core::transports.Stop();
+    LogPrint(eLogInfo, "DaemonSingleton: stopping NetDb");
+    kovri::core::netdb.Stop();
+    LogPrint(eLogInfo, "Goodbye!");
+  } catch (std::runtime_error& e) {
+    LogPrint(eLogError, "DaemonSingleton: runtime stop exception: ", e.what());
+    return false;
+  }  catch (...) {
+    LogPrint(eLogError, "DaemonSingleton: unknown exception when stopping");
+    return false;
+  }
+  return true;
 }
 
 }  // namespace app

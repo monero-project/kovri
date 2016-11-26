@@ -41,7 +41,9 @@ namespace kovri {
 namespace app {
 
 namespace bpo = boost::program_options;
-bpo::variables_map var_map;
+
+// TODO(unassigned): not ideal, we can create a useful class
+bpo::variables_map VarMap;
 
 bool ParseArgs(
     int argc,
@@ -116,14 +118,14 @@ bool ParseArgs(
     .add(network)
     .add(client);
   // Map and store command-line options
-  bpo::store(bpo::parse_command_line(argc, argv, cli_options), var_map);
-  bpo::notify(var_map);
+  bpo::store(bpo::parse_command_line(argc, argv, cli_options), VarMap);
+  bpo::notify(VarMap);
   // Parse config file after mapping command-line
-  ParseConfigFile(kovri_config, config_options, var_map);
+  ParseConfigFile(kovri_config, config_options, VarMap);
   // Set logging options
   if (!SetLoggingOptions())
     return false;
-  if (var_map.count("help")) {
+  if (VarMap.count("help")) {
     std::cout << kovri_help << config_options; // we don't need to print .add(help)
     return false;
   }
@@ -151,8 +153,8 @@ bool SetLoggingOptions() {
    * so we can set values via config file.
    */
   // Test for valid log-levels input
-  auto arg_levels = var_map["log-levels"].as<std::vector<std::string>>();
-  auto global_levels = log::GetGlobalLogLevels();
+  auto arg_levels = VarMap["log-levels"].as<std::vector<std::string>>();
+  auto global_levels = core::GetGlobalLogLevels();
   if (arg_levels.size()) {
     if (arg_levels.size() > global_levels.size()) {
       std::cout << "Invalid number of log levels. Maximum allowed: "
@@ -173,12 +175,16 @@ bool SetLoggingOptions() {
       arg_levels.push_back(level.first);
   }
   // Set new global log-levels
-  log::SetGlobalLogLevels(arg_levels);
+  core::SetGlobalLogLevels(arg_levels);
   // Set other logging options
-  log::SetOptionLogToConsole(var_map["log-to-console"].as<bool>());
-  // TODO(anonimal): hack to ensure log-to-console is enabled in daemon mode
-  log::SetOptionLogToFile(var_map["log-to-file"].as<bool>());
-  log::SetOptionLogFileName(var_map["log-file-name"].as<std::string>());
+  core::SetOptionLogToConsole(VarMap["log-to-console"].as<bool>());
+  // TODO(unassigned): the following daemon test is a HACK to ensure that
+  // log-to-console is enabled in daemon mode (or else we'll boost.log segfault)
+  // See the issue tracker for soon-to-be-opened issue
+  if (VarMap["daemon"].as<bool>())
+    core::SetOptionLogToConsole(true);
+  core::SetOptionLogToFile(VarMap["log-to-file"].as<bool>());
+  core::SetOptionLogFileName(VarMap["log-file-name"].as<std::string>());
   return true;
 }
 

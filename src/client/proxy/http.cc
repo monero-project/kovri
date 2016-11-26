@@ -104,7 +104,6 @@ void HTTPProxyHandler::HandleSockRecv(
           Terminate();
     return;
   }
-  // here use the protocol class
   if (m_Protocol.HandleData(m_Buffer.data(), len)) {
       if (m_Protocol.CreateHTTPRequest(len)) {
       LogPrint(eLogInfo, "HTTPProxyHandler: proxy requested: ", 
@@ -125,16 +124,15 @@ void HTTPProxyHandler::HandleSockRecv(
 bool HTTPProtocol::HandleData(
     std::uint8_t* buf,
     std::size_t len) {
-  const unsigned int HEADERBODY_LEN = 2;
-  const unsigned int REQUESTLINE_HEADERS_MIN = 1;
-  if ((unsigned)len == 0) {
+ if ((unsigned)len == 0) {
     return false;
   }
   std::string bufString(buf, buf+len);
   std::vector<std::string> HeaderBody;
   std::vector<std::string> tokens;
   // get header info
-  if (boost::algorithm::split_regex(HeaderBody, bufString, boost::regex("\r\n\r\n")).size() > HEADERBODY_LEN)
+  if (boost::algorithm::split_regex(HeaderBody, bufString, 
+        boost::regex("\r\n\r\n")).size() != HEADERBODY_LEN)
     return false;
   if (boost::algorithm::split_regex(tokens, HeaderBody[0],
         boost::regex("\r\n")).size() < REQUESTLINE_HEADERS_MIN)
@@ -154,10 +152,6 @@ bool HTTPProtocol::HandleData(
   m_Headers = tokens;
   // remove start line
   m_Headers.erase(m_Headers.begin());
-  // check for body
-  if (HeaderBody.size() < 2) {
-    return false;
-  }
   // body line
   m_Body = HeaderBody[1];
   return true;
@@ -186,6 +180,7 @@ void HTTPProxyHandler::HandleStreamRequestComplete(
     HTTPRequestFailed(HTTPResponse(HTTPProtocol::status_t::not_found));
   }
 }
+/// @brief all this to change the useragent
 bool HTTPProtocol::CreateHTTPRequest(
     std::size_t len) {
   if (!ExtractIncomingRequest())
@@ -198,28 +193,33 @@ bool HTTPProtocol::CreateHTTPRequest(
   m_Request.push_back(' ');
   m_Request += m_Version + "\r\n";
   // Reset/scrub User-Agent
-  std::multimap<std::string, std::string> headerMap;
+  std::pair<std::string,std::string> indexValue;
+  std::vector<std::pair<std::string,std::string>> headerMap;
   for (auto it = m_Headers.begin(); it != m_Headers.end(); it++) {
     std::vector<std::string> keyElement;
+    // bug here need to only split first instance of : , due to "If-Modified-Since: Sun, 24 Jul 2016 14:26:15 GMT" as a header
     boost::split(keyElement, *it, boost::is_any_of(":"));
-    headerMap.insert(std::pair<std::string, std::string>(keyElement[0],
-          keyElement[1]));
+    std::string key = keyElement[0];
+    keyElement.erase(keyElement.begin());
+    std::string value=boost::algorithm::join(keyElement,":"); // concatenate remaining : values ie times 
+    headerMap.push_back(std::pair<std::string, std::string>(key,
+          value));
   }
-  // multimaps cannot directly access the key
-  //
-  std::pair <std::multimap<std::string, std::string>::iterator,
-    std::multimap<std::string, std::string>::iterator> ret;
-  ret = headerMap.equal_range("User-Agent");
-  for (std::multimap<std::string, std::string>::iterator it = ret.first;
-      it != ret.second; it++) {
-    it->second = "MYOB/6.66 (AN/ON)";
+  for (std::vector<std::pair<std::string, std::string>>::iterator it = headerMap.begin();
+      it != headerMap.end(); it++) {
+    boost::trim_right(it->first);
+    boost::trim_left(it->first);
+    if (it->first == "User-Agent") {
+      it->second = " MYOB/6.66 (AN/ON)";
+    }
   }
 
-  for (std::map<std::string, std::string>::iterator ii = headerMap.begin();
+  for (std::vector<std::pair<std::string, std::string>>::iterator ii = headerMap.begin();
       ii != headerMap.end(); ++ii) {
     m_Request = m_Request + ii->first + ":" + ii->second+ "\r\n";
   }
   m_Request = m_Request + "\r\n";
+  m_Request = m_Request + m_Body;
   return true;
 }
 
@@ -291,7 +291,6 @@ void HTTPProtocol::HandleJumpService() {
 }
 
 /* All hope is lost beyond this point */
-// TODO(unassigned): handle this appropriately
 void HTTPProxyHandler::HTTPRequestFailed(
     HTTPResponse response) {
   boost::asio::async_write(

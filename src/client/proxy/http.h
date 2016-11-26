@@ -94,6 +94,9 @@ class HTTPProtocol{
   bool CreateHTTPRequest(
       std::size_t len);
 
+  const unsigned int HEADERBODY_LEN = 2;
+  const unsigned int REQUESTLINE_HEADERS_MIN = 1;
+
   enum status_t {
     ok = 200,
     created = 201,

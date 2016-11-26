@@ -30,13 +30,16 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
+#define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 #include "client/proxy/http.h"
 
-BOOST_AUTO_TEST_SUITE(HTTPProxyTests)
+BOOST_AUTO_TEST_SUITE(HTTPPProtocolTests)
  
-BOOST_AUTO_TEST_CASE(HandleData) {
-
+BOOST_AUTO_TEST_CASE(Short) {
+  kovri::client::HTTPProtocol tmp; 
+  std::uint8_t tmpData[]="GET anonimal.i2p http 1.1" ;
+  BOOST_CHECK(!tmp.HandleData(tmpData,sizeof(tmpData)));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

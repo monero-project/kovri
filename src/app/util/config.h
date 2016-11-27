@@ -36,8 +36,9 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/program_options.hpp>
 
-#include <string>
 #include <iostream>
+#include <map>
+#include <string>
 
 #include "core/version.h"
 #include "filesystem.h"
@@ -45,22 +46,89 @@
 namespace kovri {
 namespace app {
 
-const char I2P_TUNNELS_SECTION_TYPE[] = "type";
-const char I2P_TUNNELS_SECTION_TYPE_CLIENT[] = "client";
-const char I2P_TUNNELS_SECTION_TYPE_SERVER[] = "server";
-const char I2P_TUNNELS_SECTION_TYPE_HTTP[] = "http";
+/// @class Configuration
+/// @brief Config file class for daemon
+struct Configuration {
+  /// @enum Key
+  /// @brief Configuration const keys for tunnel config map
+  enum struct Key : std::uint8_t {
+    /// @var Type
+    /// @brief Key for type of tunnel  (client/server/HTTP, etc.)
+    Type,
 
-const char I2P_CLIENT_TUNNEL_PORT[] = "port";
-const char I2P_CLIENT_TUNNEL_ADDRESS[] = "address";
-const char I2P_CLIENT_TUNNEL_DESTINATION[] = "destination";
-const char I2P_CLIENT_TUNNEL_KEYS[] = "keys";
-const char I2P_CLIENT_TUNNEL_DESTINATION_PORT[] = "destinationport";
+    /// @var Client
+    /// @brief Key for client tunnel
+    Client,
 
-const char I2P_SERVER_TUNNEL_HOST[] = "host";
-const char I2P_SERVER_TUNNEL_PORT[] = "port";
-const char I2P_SERVER_TUNNEL_KEYS[] = "keys";
-const char I2P_SERVER_TUNNEL_INPORT[] = "inport";
-const char I2P_SERVER_TUNNEL_ACCESS_LIST[] = "accesslist";
+    /// @var Server
+    /// @brief Key for server tunnel
+    Server,
+
+    /// @var HTTP
+    /// @brief Key for HTTP tunnel
+    HTTP,
+
+    /// @var Address
+    /// @brief Key for local client listening address that you'll connect to
+    /// @notes Should default to 127.0.0.1
+    Address,
+
+    /// @var Dest
+    /// @brief Key for I2P hostname or .b32 address
+    Dest,
+
+    /// @var DestPort
+    /// @brief Key for I2P destination port used in destination
+    DestPort,
+
+    /// @var Host
+    /// @brief Key for IP address of our local server (that we host)
+    /// @notes Should default to 127.0.0.1
+    Host,
+
+    /// @var InPort
+    /// @brief Key for I2P service port. If unset, should be the same as 'port'
+    InPort,
+
+    /// @var ACL
+    /// @brief Key for access control list of I2P addresses for server tunnel
+    ACL,
+
+    /// @var Port
+    /// @brief Key for port of our listening client or server tunnel
+    ///   (example: port 80 if you are hosting website)
+    Port,
+
+    /// @var Keys
+    /// @brief Key for client tunnel identity
+    ///   or file with LeaseSet of local service I2P address
+    Keys,
+  };
+
+  /// @var TunnelConfig
+  /// @brief Map of tunnel config keys to string const
+  const std::map<Key, std::string> TunnelConfig {
+    // Section types
+    { Key::Type, "type" },
+    { Key::Client, "client" },
+    { Key::Server, "server" },
+    { Key::HTTP, "http" },
+
+    // Client-tunnel specific
+    { Key::Address, "address" },
+    { Key::Dest, "destination" },
+    { Key::DestPort, "destinationport" },
+
+    // Server-tunnel specific
+    { Key::Host, "host" },
+    { Key::InPort, "inport" },
+    { Key::ACL, "accesslist" },
+
+    // Tunnel-agnostic
+    { Key::Port, "port" },
+    { Key::Keys, "keys" },
+  };
+};
 
 // TODO(unassigned): not ideal, we can create a useful class
 /// @var VarMap

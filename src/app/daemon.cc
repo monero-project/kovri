@@ -161,16 +161,16 @@ void DaemonSingleton::SetupTunnels() {
     const auto name = section.first;
     const auto& value = section.second;
     try {
-      auto type = value.get<std::string>(I2P_TUNNELS_SECTION_TYPE);
+      auto type = value.get<std::string>(TunnelConfig.at(Key::Type));
       // Test which type of tunnel (client or server)
-      if (type == I2P_TUNNELS_SECTION_TYPE_CLIENT) {
+      if (type == TunnelConfig.at(Key::Client)) {
         // Mandatory parameters
-        auto dest = value.get<std::string>(I2P_CLIENT_TUNNEL_DESTINATION);
-        auto port = value.get<int>(I2P_CLIENT_TUNNEL_PORT);
+        auto dest = value.get<std::string>(TunnelConfig.at(Key::Dest));
+        auto port = value.get<int>(TunnelConfig.at(Key::Port));
         // Optional parameters
-        auto address = value.get(I2P_CLIENT_TUNNEL_ADDRESS, "127.0.0.1");
-        auto keys = value.get(I2P_CLIENT_TUNNEL_KEYS, "");
-        auto destination_port = value.get(I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
+        auto address = value.get(TunnelConfig.at(Key::Address), "127.0.0.1");
+        auto keys = value.get(TunnelConfig.at(Key::Keys), "");
+        auto destination_port = value.get(TunnelConfig.at(Key::DestPort), 0);
         // Get local destination
         std::shared_ptr<kovri::client::ClientDestination> local_destination;
         if (keys.length() > 0)
@@ -193,19 +193,19 @@ void DaemonSingleton::SetupTunnels() {
           LogPrint(eLogError,
               "DaemonSingleton: I2P client tunnel with port ",
               port, " already exists");
-      } else if (type == I2P_TUNNELS_SECTION_TYPE_SERVER ||
-          type == I2P_TUNNELS_SECTION_TYPE_HTTP) {
+      } else if (type == TunnelConfig.at(Key::Server) ||
+          type == TunnelConfig.at(Key::HTTP)) {
         // Mandatory parameters
-        auto host = value.get<std::string>(I2P_SERVER_TUNNEL_HOST);
-        auto port = value.get<int>(I2P_SERVER_TUNNEL_PORT);
-        auto keys = value.get<std::string>(I2P_SERVER_TUNNEL_KEYS);
+        auto host = value.get<std::string>(TunnelConfig.at(Key::Host));
+        auto port = value.get<int>(TunnelConfig.at(Key::Port));
+        auto keys = value.get<std::string>(TunnelConfig.at(Key::Keys));
         // Optional parameters
-        auto in_port = value.get(I2P_SERVER_TUNNEL_INPORT, 0);
-        auto accessList = value.get(I2P_SERVER_TUNNEL_ACCESS_LIST, "");
+        auto in_port = value.get(TunnelConfig.at(Key::InPort), 0);
+        auto accessList = value.get(TunnelConfig.at(Key::ACL), "");
         auto local_destination =
           kovri::client::context.LoadLocalDestination(keys, true);
         auto server_tunnel =
-          (type == I2P_TUNNELS_SECTION_TYPE_HTTP) ?
+          (type == TunnelConfig.at(Key::HTTP)) ?
             std::make_unique<kovri::client::I2PServerTunnelHTTP>(
                 name,
                 host,
@@ -299,15 +299,15 @@ void DaemonSingleton::ReloadTunnels() {
     // or vice versa?
     const auto tunnel_name = section.first;
     const auto value = section.second;
-    const auto type = value.get<std::string>(I2P_TUNNELS_SECTION_TYPE, "");
-    if (type == I2P_TUNNELS_SECTION_TYPE_SERVER ||
-        type == I2P_TUNNELS_SECTION_TYPE_HTTP) {
+    const auto type = value.get<std::string>(TunnelConfig.at(Key::Type), "");
+    if (type == TunnelConfig.at(Key::Server) ||
+        type == TunnelConfig.at(Key::HTTP)) {
       // Obtain server options
-      auto key_file = value.get<std::string>(I2P_SERVER_TUNNEL_KEYS, "");
-      auto host_str = value.get<std::string>(I2P_SERVER_TUNNEL_HOST, "");
-      auto port = value.get<int>(I2P_SERVER_TUNNEL_PORT, 0);
-      auto in_port = value.get(I2P_SERVER_TUNNEL_INPORT, 0);
-      auto access_list = value.get(I2P_SERVER_TUNNEL_ACCESS_LIST, "");
+      auto key_file = value.get<std::string>(TunnelConfig.at(Key::Keys), "");
+      auto host_str = value.get<std::string>(TunnelConfig.at(Key::Host), "");
+      auto port = value.get<int>(TunnelConfig.at(Key::Port), 0);
+      auto in_port = value.get(TunnelConfig.at(Key::InPort), 0);
+      auto access_list = value.get(TunnelConfig.at(Key::ACL), "");
       kovri::client::context.UpdateServerTunnel(
           tunnel_name,
           key_file,
@@ -315,14 +315,14 @@ void DaemonSingleton::ReloadTunnels() {
           access_list,
           port,
           in_port,
-          (type == I2P_TUNNELS_SECTION_TYPE_HTTP));
-    } else if (type == I2P_TUNNELS_SECTION_TYPE_CLIENT) {
+          (type == TunnelConfig.at(Key::HTTP)));
+    } else if (type == TunnelConfig.at(Key::Client)) {
       // Get client tunnel parameters
-      auto key_file = value.get(I2P_CLIENT_TUNNEL_KEYS, "");
-      auto destination = value.get<std::string>(I2P_CLIENT_TUNNEL_DESTINATION, "");
-      auto host_str = value.get(I2P_CLIENT_TUNNEL_ADDRESS, "127.0.0.1");
-      auto port = value.get<int>(I2P_CLIENT_TUNNEL_PORT, 0);
-      auto dest_port = value.get(I2P_CLIENT_TUNNEL_DESTINATION_PORT, 0);
+      auto key_file = value.get(TunnelConfig.at(Key::Keys), "");
+      auto destination = value.get<std::string>(TunnelConfig.at(Key::Dest), "");
+      auto host_str = value.get(TunnelConfig.at(Key::Address), "127.0.0.1");
+      auto port = value.get<int>(TunnelConfig.at(Key::Port), 0);
+      auto dest_port = value.get(TunnelConfig.at(Key::DestPort), 0);
       auto tunnel = kovri::client::context.GetClientTunnel(port);
       if (tunnel && tunnel->GetName() != tunnel_name) {
         // Conflicting port

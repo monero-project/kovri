@@ -41,13 +41,15 @@
 #define Daemon kovri::app::DaemonLinux::Instance()
 #endif
 
+#include "app/util/config.h"
+
 #include "core/util/log.h"
 #include "core/util/filesystem.h"
 
 namespace kovri {
 namespace app {
 
-class DaemonSingleton {
+class DaemonSingleton : public Configuration {
  public:
   /// @brief Forks process if daemon mode is set, initializes contexts
   /// @warning Child *must* fork *before* contexts are initialized

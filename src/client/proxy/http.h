@@ -205,12 +205,22 @@ class HTTPResponse{
  public:
   std::string m_Response;
   explicit HTTPResponse(HTTPProtocol::status_t status){
+    std::string htmlbody = "<html>";
+    htmlbody+="<head>" ;
+    htmlbody+="<title>HTTP Status</title>" ;
+    htmlbody+="</head>" ;
+    htmlbody+="<body>" ;
+    htmlbody+="HTTP Status " + std::to_string(status);
+    htmlbody+= "</body>" ;
+    htmlbody+="</html>";
+
     m_Response =
     "HTTP/1.0 " + std::to_string(status) + " " +
     HTTPProtocol::status_message(status)+"\r\n" +
-    "Content-type: text/html\r\n" +
-    "Content-length: 0\r\n";
-  }
+    "Content-type: text/html;charset=UTF-8\r\n" +
+    "Content-Encoding: UTF-8\r\n" +
+    "Content-length:" + std::to_string(htmlbody.size()) + "\r\n\r\n" + htmlbody;
+ }
 };
 
 /// @class HTTPProxyServerService

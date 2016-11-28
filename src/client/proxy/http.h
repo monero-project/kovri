@@ -91,8 +91,7 @@ class HTTPProtocol{
   /// @brief Processes original request: extracts, validates,
   ///   calls jump service, appends original request
   /// @return true on success
-  bool CreateHTTPRequest(
-      std::size_t len);
+  bool CreateHTTPRequest();
 
   const unsigned int HEADERBODY_LEN = 2;
   const unsigned int REQUESTLINE_HEADERS_MIN = 1;
@@ -210,7 +209,7 @@ class HTTPResponse{
     htmlbody+="<title>HTTP Status</title>" ;
     htmlbody+="</head>" ;
     htmlbody+="<body>" ;
-    htmlbody+="HTTP Status " + std::to_string(status);
+    htmlbody+="HTTP Status " + std::to_string(status) + " " +HTTPProtocol::status_message(status);
     htmlbody+= "</body>" ;
     htmlbody+="</html>";
 

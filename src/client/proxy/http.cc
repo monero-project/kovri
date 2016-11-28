@@ -55,7 +55,6 @@
 
 
 #include "core/util/i2p_endian.h"
-using namespace boost::network;
 namespace kovri {
 namespace client {
 
@@ -105,7 +104,7 @@ void HTTPProxyHandler::HandleSockRecv(
     return;
   }
   if (m_Protocol.HandleData(m_Buffer.data(), len)) {
-      if (m_Protocol.CreateHTTPRequest(len)) {
+      if (m_Protocol.CreateHTTPRequest()) {
       LogPrint(eLogInfo, "HTTPProxyHandler: proxy requested: ",
           m_Protocol.m_URL);
       GetOwner()->CreateStream(
@@ -181,24 +180,22 @@ void HTTPProxyHandler::HandleStreamRequestComplete(
   }
 }
 /// @brief all this to change the useragent
-bool HTTPProtocol::CreateHTTPRequest(
-    std::size_t len) {
+/// Reset/scrub User-Agent
+/// @param len length of string
+bool HTTPProtocol::CreateHTTPRequest() {
   if (!ExtractIncomingRequest())
     return false;
   HandleJumpService();
   // Set method, path, and version
   m_Request = m_Method;
   m_Request.push_back(' ');
-  m_Request += m_URL;
+  m_Request += m_Path;
   m_Request.push_back(' ');
   m_Request += m_Version + "\r\n";
-  // Reset/scrub User-Agent
   std::pair<std::string, std::string> indexValue;
   std::vector<std::pair<std::string, std::string>> headerMap;
   for (auto it = m_Headers.begin(); it != m_Headers.end(); it++) {
     std::vector<std::string> keyElement;
-    // bug here need to only split first instance of : ,
-    // due to "If-Modified-Since: Sun, 24 Jul 2016 14:26:15 GMT" as a header
     boost::split(keyElement, *it, boost::is_any_of(":"));
     std::string key = keyElement[0];
     keyElement.erase(keyElement.begin());
@@ -207,16 +204,21 @@ bool HTTPProtocol::CreateHTTPRequest(
     headerMap.push_back(std::pair<std::string, std::string>(key,
           value));
   }
-  for (std::vector<std::pair<std::string, std::string>>::iterator
-      it = headerMap.begin();
-      it != headerMap.end(); it++) {
-    boost::trim_right(it->first);
-    boost::trim_left(it->first);
-    if (it->first == "User-Agent") {
-      it->second = " MYOB/6.66 (AN/ON)";
-    }
-  }
-
+  // find and remove/adjust headers
+  auto it = std::find_if(headerMap.begin(), headerMap.end(),
+      [] (std::pair<std::string, std::string> arg) {
+      boost::trim_left(arg.first);
+      boost::trim_right(arg.first);
+      return arg.first == "User-Agent"; });
+  if (it != headerMap.end()) // found
+    it->second = " MYOB/6.66 (AN/ON)";
+  auto itRefer = std::find_if(headerMap.begin(), headerMap.end(),
+      [] (std::pair<std::string, std::string> arg) {
+      boost::trim_left(arg.first);
+      boost::trim_right(arg.first);
+      return arg.first == "Referer"; });
+  if (itRefer != headerMap.end()) // found
+    headerMap.erase(itRefer);
   for (std::vector<std::pair<std::string, std::string>>::iterator
       ii = headerMap.begin();
       ii != headerMap.end(); ++ii) {

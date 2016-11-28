@@ -30,6 +30,7 @@
 
 #include "config.h"
 
+#include <exception>
 #include <string>
 #include <vector>
 
@@ -42,12 +43,7 @@ namespace app {
 
 namespace bpo = boost::program_options;
 
-// TODO(unassigned): not ideal, we can create a useful class
-bpo::variables_map VarMap;
-
-bool ParseArgs(
-    int argc,
-    char* argv[]) {
+bool Configuration::ParseKovriConfig(int argc, const char* argv[]) {
   // Random generated port if none is supplied via CLI or config
   // See: i2p.i2p/router/java/src/net/i2p/router/transport/udp/UDPEndpoint.java
   // TODO(unassigned): move this elsewhere (outside of ParseArgs()) when possible
@@ -118,22 +114,22 @@ bool ParseArgs(
     .add(network)
     .add(client);
   // Map and store command-line options
-  bpo::store(bpo::parse_command_line(argc, argv, cli_options), VarMap);
-  bpo::notify(VarMap);
+  bpo::store(bpo::parse_command_line(argc, argv, cli_options), m_KovriConfig);
+  bpo::notify(m_KovriConfig);
   // Parse config file after mapping command-line
-  ParseConfigFile(kovri_config, config_options, VarMap);
+  ParseKovriConfigFile(kovri_config, config_options, m_KovriConfig);
   // Set logging options
   if (!SetLoggingOptions())
     return false;
-  if (VarMap.count("help")) {
+  if (m_KovriConfig.count("help")) {
     std::cout << kovri_help << config_options; // we don't need to print .add(help)
     return false;
   }
   return true;
 }
 
-// TODO(unassigned): improve this function and use-case for it
-void ParseConfigFile(
+// TODO(unassigned): improve this function and use-case
+void Configuration::ParseKovriConfigFile(
     std::string& file,
     bpo::options_description& options,
     bpo::variables_map& var_map) {
@@ -146,14 +142,72 @@ void ParseConfigFile(
   }
 }
 
-bool SetLoggingOptions() {
-  namespace log = kovri::core;
+void Configuration::ParseTunnelsConfig() {
+  auto file = GetTunnelsConfigFile().string();
+  boost::property_tree::ptree pt;
+  // Read file
+  try {
+    boost::property_tree::read_ini(file, pt);
+  } catch (const std::exception& ex) {
+    throw std::runtime_error(
+        "Configuration: can't read " + file + ": " + ex.what());
+    return;
+  } catch (...) {
+    throw std::runtime_error(
+        "Configuration: can't read " + file + ": unknown exception");
+    return;
+  }
+  // Parse on a per-section basis, store in tunnels config vector
+  for (auto& section : pt) {
+    TunnelsConfigSection tunnel;
+    tunnel.name = section.first;
+    const auto& value = section.second;
+    try {
+      tunnel.type = value.get<std::string>(TunnelsMap.at(TunnelsKey::Type));
+      // Test which type of tunnel (client or server)
+      if (tunnel.type == TunnelsMap.at(TunnelsKey::Client)) {
+        tunnel.dest = value.get<std::string>(TunnelsMap.at(TunnelsKey::Dest));
+        tunnel.port = value.get<std::uint16_t>(TunnelsMap.at(TunnelsKey::Port));
+        // Sets default if missing in file
+        tunnel.address = value.get<std::string>(TunnelsMap.at(TunnelsKey::Address), "127.0.0.1");
+        tunnel.keys = value.get<std::string>(TunnelsMap.at(TunnelsKey::Keys), "");
+        tunnel.dest_port = value.get<std::uint16_t>(TunnelsMap.at(TunnelsKey::DestPort), 0);
+      } else if (tunnel.type == TunnelsMap.at(TunnelsKey::Server)
+                || tunnel.type == TunnelsMap.at(TunnelsKey::HTTP)) {
+        tunnel.host = value.get<std::string>(TunnelsMap.at(TunnelsKey::Host));
+        tunnel.port = value.get<std::uint16_t>(TunnelsMap.at(TunnelsKey::Port));
+        tunnel.keys = value.get<std::string>(TunnelsMap.at(TunnelsKey::Keys));
+        // Sets default if missing in file
+        tunnel.in_port = value.get<std::uint16_t>(TunnelsMap.at(TunnelsKey::InPort), 0);
+        tunnel.access_list = value.get<std::string>(TunnelsMap.at(TunnelsKey::ACL), "");
+      } else {
+        throw std::runtime_error(
+            "Configuration: unknown tunnel type="
+            + tunnel.type + " of " + tunnel.name + " in " + file);
+	return;
+      }
+    } catch (const std::exception& ex) {
+      throw std::runtime_error(
+          "Configuration: can't read tunnel "
+          + tunnel.name + " params: " + ex.what());
+    } catch (...) {
+      throw std::runtime_error(
+          "Configuration: can't read tunnel "
+          + tunnel.name + " unknown exception");
+    }
+    // Save section for later client insertion
+    m_TunnelsConfig.push_back(tunnel);
+  }
+}
+
+bool Configuration::SetLoggingOptions() {
+  namespace core = kovri::core;
   /**
    * TODO(unassigned): write custom validator for log-levels
    * so we can set values via config file.
    */
   // Test for valid log-levels input
-  auto arg_levels = VarMap["log-levels"].as<std::vector<std::string>>();
+  auto arg_levels = m_KovriConfig["log-levels"].as<std::vector<std::string>>();
   auto global_levels = core::GetGlobalLogLevels();
   if (arg_levels.size()) {
     if (arg_levels.size() > global_levels.size()) {
@@ -177,14 +231,14 @@ bool SetLoggingOptions() {
   // Set new global log-levels
   core::SetGlobalLogLevels(arg_levels);
   // Set other logging options
-  core::SetOptionLogToConsole(VarMap["log-to-console"].as<bool>());
+  core::SetOptionLogToConsole(m_KovriConfig["log-to-console"].as<bool>());
   // TODO(unassigned): the following daemon test is a HACK to ensure that
   // log-to-console is enabled in daemon mode (or else we'll boost.log segfault)
-  // See the issue tracker for soon-to-be-opened issue
-  if (VarMap["daemon"].as<bool>())
+  // See #469
+  if (m_KovriConfig["daemon"].as<bool>())
     core::SetOptionLogToConsole(true);
-  core::SetOptionLogToFile(VarMap["log-to-file"].as<bool>());
-  core::SetOptionLogFileName(VarMap["log-file-name"].as<std::string>());
+  core::SetOptionLogToFile(m_KovriConfig["log-to-file"].as<bool>());
+  core::SetOptionLogFileName(m_KovriConfig["log-file-name"].as<std::string>());
   return true;
 }
 

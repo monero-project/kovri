@@ -118,6 +118,7 @@ class ClientContext {
   void RemoveClientTunnels(
       std::function<bool(I2PClientTunnel*)> predicate);
 
+  // TODO(unassigned): this should be passing a structure
   /// @brief Updates or creates the specified server tunnel
   /// @param keyfile the relative filename of the key file
   /// @param http true if server tunnel is an HTTP tunnel
@@ -130,6 +131,8 @@ class ClientContext {
     int in_port,
     bool http);
 
+
+  // TODO(unassigned): this should be passing a structure
   /// @brief Updates or creates the specified client tunnel
   /// @param tunnelName the name of the client tunnel
   /// @param keyfile the relative filename of the key file

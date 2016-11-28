@@ -271,6 +271,7 @@ void ClientContext::RemoveClientTunnels(
   }
 }
 
+// TODO(unassigned): this should be passing a structure
 void ClientContext::UpdateServerTunnel(
     const std::string& tunnel_name,
     const std::string& key_file,
@@ -329,6 +330,7 @@ void ClientContext::UpdateServerTunnel(
   }
 }
 
+// TODO(unassigned): this should be passing a structure
 void ClientContext::UpdateClientTunnel(
     const std::string& tunnel_name,
     const std::string& key_file,

@@ -34,6 +34,7 @@
 #define SRC_APP_DAEMON_H_
 
 #include <string>
+#include <memory>
 
 #ifdef _WIN32
 #define Daemon kovri::app::DaemonWin32::Instance()
@@ -49,8 +50,13 @@
 namespace kovri {
 namespace app {
 
-class DaemonSingleton : public Configuration {
+class DaemonSingleton {
  public:
+  /// @brief Get/Set configuration options before initialization/forking
+  /// @param argc Classic arg count from command line
+  /// @param argv Classic arg vector from command line
+  virtual bool Config(int argc, const char* argv[]);
+
   /// @brief Forks process if daemon mode is set, initializes contexts
   /// @warning Child *must* fork *before* contexts are initialized
   virtual bool Init();
@@ -66,6 +72,15 @@ class DaemonSingleton : public Configuration {
 
   bool m_IsDaemon, m_IsRunning;
 
+  /// TODO(anonimal): consider unhooking from singleton
+  /// @var m_IsReloading
+  /// @brief Are tunnels configuration in the process of reloading?
+  bool m_IsReloading;
+
+  /// @var m_Config
+  /// @brief Pointer to configuration object for configuration implementation
+  std::unique_ptr<Configuration> m_Config;
+
  private:
   /// @brief Initializes router context / core settings
   void InitRouterContext();
@@ -73,8 +88,17 @@ class DaemonSingleton : public Configuration {
   /// @brief Initializes the router's client context object
   /// @details Creates tunnels, proxies and I2PControl service
   void InitClientContext();
+
+  /// TODO(anonimal): consider unhooking from singleton
+  /// @brief Sets up client/server tunnels
+  /// @warning Configuration files must be parsed prior to setup
   void SetupTunnels();
-  void ReloadTunnels();
+
+  /// TODO(anonimal): consider unhooking from singleton
+  /// @brief Should remove old tunnels after tunnels config is updated
+  /// TODO(unassigned): not fully implemented
+  void RemoveOldTunnels(
+      std::vector<std::string>& updated_tunnels);
 
  protected:
   DaemonSingleton();
@@ -89,6 +113,7 @@ class DaemonWin32 : public DaemonSingleton {
     static DaemonWin32 instance;
     return instance;
   }
+  virtual bool Config(int argc, const char* argv[]);
   virtual bool Init();
   virtual bool Start();
   virtual bool Stop();
@@ -104,6 +129,7 @@ class DaemonLinux : public DaemonSingleton {
     static DaemonLinux instance;
     return instance;
   }
+  virtual bool Config(int argc, const char* argv[]);
   virtual bool Init();
   virtual bool Start();
   virtual bool Stop();

@@ -33,129 +33,186 @@
 #ifndef SRC_APP_UTIL_CONFIG_H_
 #define SRC_APP_UTIL_CONFIG_H_
 
-#include <boost/filesystem/fstream.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include <boost/program_options.hpp>
+#include <boost/property_tree/ini_parser.hpp>
 
 #include <iostream>
 #include <map>
 #include <string>
 
 #include "core/version.h"
-#include "filesystem.h"
+#include "core/util/filesystem.h"
 
 namespace kovri {
 namespace app {
 
-/// @class Configuration
-/// @brief Config file class for daemon
-struct Configuration {
-  /// @enum Key
-  /// @brief Configuration const keys for tunnel config map
-  enum struct Key : std::uint8_t {
-    /// @var Type
-    /// @brief Key for type of tunnel  (client/server/HTTP, etc.)
-    Type,
+/// @enum TunnelsKey
+/// @brief Configuration const keys for tunnel config map
+enum struct TunnelsKey : std::uint8_t {
+  /// @var Type
+  /// @brief Key for type of tunnel  (client/server/HTTP, etc.)
+  Type,
 
-    /// @var Client
-    /// @brief Key for client tunnel
-    Client,
+  /// @var Client
+  /// @brief Key for client tunnel
+  Client,
 
-    /// @var Server
-    /// @brief Key for server tunnel
-    Server,
+  /// @var Server
+  /// @brief Key for server tunnel
+  Server,
 
-    /// @var HTTP
-    /// @brief Key for HTTP tunnel
-    HTTP,
+  /// @var HTTP
+  /// @brief Key for HTTP tunnel
+  HTTP,
 
-    /// @var Address
-    /// @brief Key for local client listening address that you'll connect to
-    /// @notes Should default to 127.0.0.1
-    Address,
+  /// @var Address
+  /// @brief Key for local client listening address that you'll connect to
+  /// @notes Should default to 127.0.0.1
+  Address,
 
-    /// @var Dest
-    /// @brief Key for I2P hostname or .b32 address
-    Dest,
+  /// @var Dest
+  /// @brief Key for I2P hostname or .b32 address
+  Dest,
 
-    /// @var DestPort
-    /// @brief Key for I2P destination port used in destination
-    DestPort,
+  /// @var DestPort
+  /// @brief Key for I2P destination port used in destination
+  DestPort,
 
-    /// @var Host
-    /// @brief Key for IP address of our local server (that we host)
-    /// @notes Should default to 127.0.0.1
-    Host,
+  /// @var Host
+  /// @brief Key for IP address of our local server (that we host)
+  /// @notes Should default to 127.0.0.1
+  Host,
 
-    /// @var InPort
-    /// @brief Key for I2P service port. If unset, should be the same as 'port'
-    InPort,
+  /// @var InPort
+  /// @brief Key for I2P service port. If unset, should be the same as 'port'
+  InPort,
 
-    /// @var ACL
-    /// @brief Key for access control list of I2P addresses for server tunnel
-    ACL,
+  /// @var ACL
+  /// @brief Key for access control list of I2P addresses for server tunnel
+  ACL,
 
-    /// @var Port
-    /// @brief Key for port of our listening client or server tunnel
-    ///   (example: port 80 if you are hosting website)
-    Port,
+  /// @var Port
+  /// @brief Key for port of our listening client or server tunnel
+  ///   (example: port 80 if you are hosting website)
+  Port,
 
-    /// @var Keys
-    /// @brief Key for client tunnel identity
-    ///   or file with LeaseSet of local service I2P address
-    Keys,
-  };
-
-  /// @var TunnelConfig
-  /// @brief Map of tunnel config keys to string const
-  const std::map<Key, std::string> TunnelConfig {
-    // Section types
-    { Key::Type, "type" },
-    { Key::Client, "client" },
-    { Key::Server, "server" },
-    { Key::HTTP, "http" },
-
-    // Client-tunnel specific
-    { Key::Address, "address" },
-    { Key::Dest, "destination" },
-    { Key::DestPort, "destinationport" },
-
-    // Server-tunnel specific
-    { Key::Host, "host" },
-    { Key::InPort, "inport" },
-    { Key::ACL, "accesslist" },
-
-    // Tunnel-agnostic
-    { Key::Port, "port" },
-    { Key::Keys, "keys" },
-  };
+  /// @var Keys
+  /// @brief Key for client tunnel identity
+  ///   or file with LeaseSet of local service I2P address
+  Keys,
 };
 
-// TODO(unassigned): not ideal, we can create a useful class
-/// @var VarMap
-/// @brief Variable map for command-line and config file args
-extern boost::program_options::variables_map VarMap;
+/// @var TunnelsConfig
+/// @brief Map of tunnel config keys to string const
+const std::map<TunnelsKey, std::string> TunnelsMap {
+  // Section types
+  { TunnelsKey::Type, "type" },
+  { TunnelsKey::Client, "client" },
+  { TunnelsKey::Server, "server" },
+  { TunnelsKey::HTTP, "http" },
 
-/// @brief Parse command line arguments
-/// @return False on failure
-bool ParseArgs(
-    int argc,
-    char* argv[]);
+  // Client-tunnel specific
+  { TunnelsKey::Address, "address" },
+  { TunnelsKey::Dest, "destination" },
+  { TunnelsKey::DestPort, "destinationport" },
 
-/// @brief Parses configuration file and maps options
-/// @param config File name
-/// @param config_options Reference to instantiated options_description
-/// @param var_map Reference to instantiated variables map
-/// @notes command-line opts take precedence over config file opts)
-void ParseConfigFile(
-    std::string& config,
-    boost::program_options::options_description& config_options,
-    boost::program_options::variables_map& var_map);
+  // Server-tunnel specific
+  { TunnelsKey::Host, "host" },
+  { TunnelsKey::InPort, "inport" },
+  { TunnelsKey::ACL, "accesslist" },
 
-/// @brief Sets logging options after validating user input
-/// @return False on failure
-/// @notes We set here instead of router context because we start logging
-///   before router context and client context are initialized
-bool SetLoggingOptions();
+  // Tunnel-agnostic
+  { TunnelsKey::Port, "port" },
+  { TunnelsKey::Keys, "keys" },
+};
+
+/// @class Configuration
+/// @brief Configuration processing and implementation 
+class Configuration {
+ public:
+  /// @brief Parse command line arguments
+  /// @param argc Argument count
+  /// @param argv Argument vector
+  /// @return False on failure
+  bool ParseKovriConfig(
+      int argc,
+      const char* argv[]);
+
+  /// @brief Parses tunnel configuration file
+  void ParseTunnelsConfig();
+
+ private:
+  /// @var m_KovriConfig
+  /// @brief Variable map for command-line and kovri config file data
+  boost::program_options::variables_map m_KovriConfig{};
+
+  /// @class TunnelsConfigSection
+  /// @brief Tunnels config file types per section
+  struct TunnelsConfigSection {
+    TunnelsConfigSection() {}
+    std::string name, type, dest, address, keys, host, access_list;
+    std::uint16_t port, dest_port, in_port;
+  };
+
+  /// @var m_TunnelsConfig
+  /// @brief Vector of all sections in a tunnel configuration
+  std::vector<TunnelsConfigSection> m_TunnelsConfig{};
+
+ public:
+  /// @brief Gets kovri config variable map
+  /// @return Reference to kovri config member variable map
+  boost::program_options::variables_map& GetParsedKovriConfig() noexcept {
+    return m_KovriConfig;
+  }
+
+  /// @brief Gets tunnels config member
+  /// @return Reference to tunnels config member vector
+  std::vector<TunnelsConfigSection>& GetParsedTunnelsConfig() noexcept {
+    return m_TunnelsConfig;
+  }
+
+  /// @brief Gets complete path + name of kovri config
+  /// @return Boost filesystem path of file
+  /// @warning Config file must first be parsed
+  boost::filesystem::path GetConfigFile() {
+    boost::filesystem::path file(
+        GetParsedKovriConfig().at("kovriconfig").as<std::string>());
+    if (!file.is_complete())
+      file = kovri::core::GetDataPath() / file;
+    return file;
+  }
+
+  /// @brief Gets complete path + name of tunnels config
+  /// @return Boost filesystem path of file
+  /// @warning Config file must first be parsed
+  boost::filesystem::path GetTunnelsConfigFile() {
+    boost::filesystem::path file(
+        GetParsedKovriConfig().at("tunnelsconf").as<std::string>());
+    if (!file.is_complete())
+      file = kovri::core::GetDataPath() / file;
+    return file;
+  }
+
+ private:
+  // TODO(unassigned): improve this function and use-case
+  /// @brief Parses configuration file and maps options
+  /// @param config File name
+  /// @param config_options Reference to instantiated options_description
+  /// @param var_map Reference to instantiated variables map
+  /// @notes command-line opts take precedence over config file opts
+  void ParseKovriConfigFile(
+      std::string& config,
+      boost::program_options::options_description& config_options,
+      boost::program_options::variables_map& var_map);
+
+  /// @brief Sets logging options after validating user input
+  /// @return False on failure
+  /// @notes We set here instead of router context because we start logging
+  ///   before router context and client context are initialized
+  /// @warning Kovri config must first be parsed
+  bool SetLoggingOptions();
+};
 
 }  // namespace app
 }  // namespace kovri

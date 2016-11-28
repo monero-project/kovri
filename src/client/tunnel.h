@@ -152,6 +152,7 @@ class I2PClientTunnel : public TCPIPAcceptor {
       std::shared_ptr<boost::asio::ip::tcp::socket> socket);
 
  public:
+  // TODO(unassigned): this should be passing a structure
   I2PClientTunnel(
       const std::string& name,
       const std::string& destination,
@@ -176,6 +177,7 @@ class I2PClientTunnel : public TCPIPAcceptor {
 
 class I2PServerTunnel : public I2PService {
  public:
+  // TODO(unassigned): this should be passing a structure
   I2PServerTunnel(
       const std::string& name,
       const std::string& address,

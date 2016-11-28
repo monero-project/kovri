@@ -43,7 +43,6 @@
 #include <string>
 
 #include "app/util/config.h"
-#include "app/util/filesystem.h"
 
 #include "core/util/log.h"
 #include "core/util/filesystem.h"
@@ -72,6 +71,10 @@ void handle_signal(int sig) {
 
 namespace kovri {
 namespace app {
+
+bool DaemonLinux::Config(int argc, const char* argv[]) {
+  return DaemonSingleton::Config(argc, argv);
+}
 
 bool DaemonLinux::Init() {
   if (m_IsDaemon) {

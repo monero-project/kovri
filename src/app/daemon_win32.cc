@@ -45,6 +45,10 @@
 namespace kovri {
 namespace app {
 
+bool DaemonWin32::Config(int argc, const char* argv[]) {
+  return DaemonSingleton::Config(argc, argv);
+}
+
 bool DaemonWin32::Init() {
   // TODO(unassigned): use Boost.Locale
   setlocale(LC_CTYPE, "");  // "" uses environment's default locale

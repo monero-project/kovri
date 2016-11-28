@@ -62,10 +62,33 @@ namespace kovri {
 namespace app {
 
 DaemonSingleton::DaemonSingleton()
-    : m_IsDaemon(VarMap["daemon"].as<bool>()),
-      m_IsRunning(true) {}
+    : m_IsDaemon(false),
+      m_IsRunning(true),
+      m_IsReloading(false),
+      m_Config(std::make_unique<Configuration>()) {}
 
 DaemonSingleton::~DaemonSingleton() {}
+
+bool DaemonSingleton::Config(int argc, const char* argv[]) {
+  try {
+    // Get all kovri configuration data, cli args first then config file second
+    if (!m_Config->ParseKovriConfig(argc, argv)) {
+      // User simply wanted help option
+      return false;
+    }
+    // Set daemon mode (if applicable)
+    m_IsDaemon = m_Config->GetParsedKovriConfig().at("daemon").as<bool>();
+    // Get all tunnels configuration data
+    m_Config->ParseTunnelsConfig();
+  } catch (const std::exception& ex) {
+    LogPrint(eLogError, "DaemonSingleton: ", ex.what(), "\nHave you tried --help?");
+    return false;
+  } catch (...) {
+    LogPrint(eLogError, "DaemonSingleton: unknown exception when parsing args");
+    return false;
+  }
+  return true;
+}
 
 bool DaemonSingleton::Init() {
   // We must initialize contexts here (in child process, if in daemon mode)
@@ -86,165 +109,212 @@ bool DaemonSingleton::Init() {
   return true;
 }
 
+// TODO(anonimal): consider unhooking from singleton
 void DaemonSingleton::InitRouterContext() {
-  auto host = VarMap["host"].as<std::string>();
-  auto port = VarMap["port"].as<int>();
+  auto map = m_Config->GetParsedKovriConfig();
+  auto host = map["host"].as<std::string>();
+  auto port = map["port"].as<int>();
   // TODO(unassigned): context should be in core namespace (see TODO in router context)
   context.Init(host, port);
   context.UpdatePort(port);
   LogPrint(eLogInfo,
-      "DaemonSingleton: listening on port ", VarMap["port"].as<int>());
+      "DaemonSingleton: listening on port ", map["port"].as<int>());
   context.UpdateAddress(boost::asio::ip::address::from_string(host));
-  context.SetSupportsV6(VarMap["v6"].as<bool>());
-  context.SetFloodfill(VarMap["floodfill"].as<bool>());
-  auto bandwidth = VarMap["bandwidth"].as<std::string>();
-  if (bandwidth.length() > 0) {
+  context.SetSupportsV6(map["v6"].as<bool>());
+  context.SetFloodfill(map["floodfill"].as<bool>());
+  auto bandwidth = map["bandwidth"].as<std::string>();
+  if (!bandwidth.empty()) {
     if (bandwidth[0] > 'L')
       context.SetHighBandwidth();
     else
       context.SetLowBandwidth();
   }
   // Set reseed options
-  context.SetOptionReseedFrom(VarMap["reseed-from"].as<std::string>());
-  context.SetOptionReseedSkipSSLCheck(VarMap["reseed-skip-ssl-check"].as<bool>());
+  context.SetOptionReseedFrom(map["reseed-from"].as<std::string>());
+  context.SetOptionReseedSkipSSLCheck(map["reseed-skip-ssl-check"].as<bool>());
   // Set transport options
-  context.SetSupportsNTCP(VarMap["enable-ntcp"].as<bool>());
-  context.SetSupportsSSU(VarMap["enable-ssu"].as<bool>());
+  context.SetSupportsNTCP(map["enable-ntcp"].as<bool>());
+  context.SetSupportsSSU(map["enable-ssu"].as<bool>());
 }
 
+// TODO(anonimal): consider unhooking from singleton
 void DaemonSingleton::InitClientContext() {
   kovri::client::context.RegisterShutdownHandler(
       [this]() { m_IsRunning = false; });
   std::shared_ptr<kovri::client::ClientDestination> local_destination;
   // Setup proxies and services
-  auto proxy_keys = VarMap["proxykeys"].as<std::string>();
-  if (proxy_keys.length() > 0)
+  auto map = m_Config->GetParsedKovriConfig();
+  auto proxy_keys = map["proxykeys"].as<std::string>();
+  if (!proxy_keys.empty())
     local_destination = kovri::client::context.LoadLocalDestination(
         proxy_keys,
         false);
   kovri::client::context.SetHTTPProxy(std::make_unique<kovri::client::HTTPProxy>(
       "HTTP Proxy",  // TODO(unassigned): what if we want to change the name?
-      VarMap["httpproxyaddress"].as<std::string>(),
-      VarMap["httpproxyport"].as<int>(),
+      map["httpproxyaddress"].as<std::string>(),
+      map["httpproxyport"].as<int>(),
       local_destination));
   kovri::client::context.SetSOCKSProxy(std::make_unique<kovri::client::SOCKSProxy>(
-      VarMap["socksproxyaddress"].as<std::string>(),
-      VarMap["socksproxyport"].as<int>(),
+      map["socksproxyaddress"].as<std::string>(),
+      map["socksproxyport"].as<int>(),
       local_destination));
-  auto i2pcontrol_port = VarMap["i2pcontrolport"].as<int>();
+  auto i2pcontrol_port = map["i2pcontrolport"].as<int>();
   if (i2pcontrol_port) {
     kovri::client::context.SetI2PControlService(
         std::make_unique<kovri::client::I2PControlService>(
             kovri::client::context.GetIoService(),
-            VarMap["i2pcontroladdress"].as<std::string>(),
+            map["i2pcontroladdress"].as<std::string>(),
             i2pcontrol_port,
-            VarMap["i2pcontrolpassword"].as<std::string>()));
+            map["i2pcontrolpassword"].as<std::string>()));
   }
   // Setup client and server tunnels
   SetupTunnels();
 }
 
+// TODO(anonimal): consider unhooking from singleton
 void DaemonSingleton::SetupTunnels() {
-  boost::property_tree::ptree pt;
-  auto path_tunnels_config_file =
-    kovri::app::GetTunnelsConfigFile().string();
-  try {
-    boost::property_tree::read_ini(path_tunnels_config_file, pt);
-  } catch(const std::exception& ex) {
-    LogPrint(eLogWarn,
-        "DaemonSingleton: can't read ",
-        path_tunnels_config_file, ": ", ex.what());
-    return;
-  }
-  int num_client_tunnels = 0, num_server_tunnels = 0;
-  for (auto& section : pt) {
-    const auto name = section.first;
-    const auto& value = section.second;
+  // List of tunnels that exist after update
+  // TODO(unassigned): ensure that default IRC and eepsite tunnels aren't removed?
+  std::vector<std::string> updated_tunnels;  // TODO(unassigned): this was never fully implemented
+  // Count number of tunnels
+  std::size_t client_count = 0, server_count = 0;
+  // Iterate through each section in tunnels config
+  for (auto const& tunnel : m_Config->GetParsedTunnelsConfig()) {
     try {
-      auto type = value.get<std::string>(TunnelConfig.at(Key::Type));
       // Test which type of tunnel (client or server)
-      if (type == TunnelConfig.at(Key::Client)) {
-        // Mandatory parameters
-        auto dest = value.get<std::string>(TunnelConfig.at(Key::Dest));
-        auto port = value.get<int>(TunnelConfig.at(Key::Port));
-        // Optional parameters
-        auto address = value.get(TunnelConfig.at(Key::Address), "127.0.0.1");
-        auto keys = value.get(TunnelConfig.at(Key::Keys), "");
-        auto destination_port = value.get(TunnelConfig.at(Key::DestPort), 0);
+      if (tunnel.type == TunnelsMap.at(TunnelsKey::Client)) {
+        if (m_IsReloading) {
+          auto client_tunnel = kovri::client::context.GetClientTunnel(tunnel.port);
+          if (client_tunnel && client_tunnel->GetName() != tunnel.name) {
+            // Conflicting port
+            // TODO(unassigned): what if we interchange two client tunnels' ports?
+            // TODO(unassigned): the addresses could differ
+            LogPrint(eLogError,
+                "DaemonSingleton: ",
+                tunnel.name, " will not be updated, conflicting port");
+            continue;
+          }
+          // TODO(unassigned): this should be passing a structure
+          kovri::client::context.UpdateClientTunnel(
+              tunnel.name,
+              tunnel.keys,
+              tunnel.dest,
+              tunnel.host,
+              tunnel.port,
+              tunnel.dest_port);
+	  ++client_count;
+	  continue;
+        }
         // Get local destination
         std::shared_ptr<kovri::client::ClientDestination> local_destination;
-        if (keys.length() > 0)
+        if (!tunnel.keys.empty())
           local_destination =
-            kovri::client::context.LoadLocalDestination(keys, false);
+            kovri::client::context.LoadLocalDestination(tunnel.keys, false);
         // Insert client tunnel
         bool result =
           kovri::client::context.InsertClientTunnel(
-              port,
+              tunnel.port,
+              // TODO(unassigned): this should be passing a structure
               std::make_unique<kovri::client::I2PClientTunnel>(
-                  name,
-                  dest,
-                  address,
-                  port,
+                  tunnel.name,
+                  tunnel.dest,
+                  tunnel.address,
+                  tunnel.port,
                   local_destination,
-                  destination_port));
+                  tunnel.dest_port));
         if (result)
-          ++num_client_tunnels;
+          ++client_count;
         else
           LogPrint(eLogError,
-              "DaemonSingleton: I2P client tunnel with port ",
-              port, " already exists");
-      } else if (type == TunnelConfig.at(Key::Server) ||
-          type == TunnelConfig.at(Key::HTTP)) {
-        // Mandatory parameters
-        auto host = value.get<std::string>(TunnelConfig.at(Key::Host));
-        auto port = value.get<int>(TunnelConfig.at(Key::Port));
-        auto keys = value.get<std::string>(TunnelConfig.at(Key::Keys));
-        // Optional parameters
-        auto in_port = value.get(TunnelConfig.at(Key::InPort), 0);
-        auto accessList = value.get(TunnelConfig.at(Key::ACL), "");
+              "DaemonSingleton: client tunnel with port ",
+              tunnel.port, " already exists");
+      } else {  // TODO(unassigned): currently anything that's not client is server
+	if (m_IsReloading) {
+          // TODO(unassigned): this should be passing a structure
+          kovri::client::context.UpdateServerTunnel(
+              tunnel.name,
+              tunnel.keys,
+              tunnel.host,
+              tunnel.access_list,
+              tunnel.port,
+              tunnel.in_port,
+              (tunnel.type == TunnelsMap.at(TunnelsKey::HTTP)));
+	  ++server_count;
+	  continue;
+        }
         auto local_destination =
-          kovri::client::context.LoadLocalDestination(keys, true);
-        auto server_tunnel =
-          (type == TunnelConfig.at(Key::HTTP)) ?
-            std::make_unique<kovri::client::I2PServerTunnelHTTP>(
-                name,
-                host,
-                port,
+          kovri::client::context.LoadLocalDestination(tunnel.keys, true);
+        auto server_tunnel = (tunnel.type == TunnelsMap.at(TunnelsKey::HTTP))
+            // TODO(unassigned): these should be passing a structure
+          ? std::make_unique<kovri::client::I2PServerTunnelHTTP>(
+                tunnel.name,
+                tunnel.host,
+                tunnel.port,
                 local_destination,
-                in_port) :
-            std::make_unique<kovri::client::I2PServerTunnel>(
-                name,
-                host,
-                port,
+                tunnel.in_port)
+          : std::make_unique<kovri::client::I2PServerTunnel>(
+                tunnel.name,
+                tunnel.host,
+                tunnel.port,
                 local_destination,
-                in_port);
-        server_tunnel->SetAccessListString(accessList);
+                tunnel.in_port);
+        server_tunnel->SetAccessListString(tunnel.access_list);
         // Insert server tunnel
         bool result = kovri::client::context.InsertServerTunnel(
             local_destination->GetIdentHash(),
             std::move(server_tunnel));
-        if (result)
-          ++num_server_tunnels;
-        else
+        if (result) {
+          ++server_count;
+        } else {
           LogPrint(eLogError,
-              "DaemonSingleton: I2P server tunnel for destination ",
+              "DaemonSingleton: server tunnel for destination ",
               kovri::client::context.GetAddressBook().GetB32AddressFromIdentHash(
                   local_destination->GetIdentHash()),
               " already exists");
-      } else {
-        LogPrint(eLogWarn,
-            "DaemonSingleton: unknown section type=",
-            type, " of ", name, " in ", path_tunnels_config_file);
+	}
       }
     } catch (const std::exception& ex) {
       LogPrint(eLogError,
-          "DaemonSingleton: can't read tunnel ", name, " params: ", ex.what());
+          "DaemonSingleton: exception during tunnel setup: ", ex.what());
+      return;
+    } catch (...) {
+      LogPrint(eLogError,
+          "DaemonSingleton: unknown exception during tunnel setup");
+      return;
     }
+  }  // end of iteration block
+  if (m_IsReloading) {
+    LogPrint(eLogInfo,
+        "DaemonSingleton: ", client_count, " client tunnels updated");
+    LogPrint(eLogInfo,
+        "DaemonSingleton: ", server_count, " server tunnels updated");
+    // TODO(unassigned): this was never fully implemented
+    RemoveOldTunnels(updated_tunnels);
+    return;
   }
   LogPrint(eLogInfo,
-      "DaemonSingleton: ", num_client_tunnels, " I2P client tunnels created");
+      "DaemonSingleton: ", client_count, " client tunnels created");
   LogPrint(eLogInfo,
-      "DaemonSingleton: ", num_server_tunnels, " I2P server tunnels created");
+      "DaemonSingleton: ", server_count, " server tunnels created");
+}
+
+// TODO(anonimal): consider unhooking from singleton
+void DaemonSingleton::RemoveOldTunnels(
+    std::vector<std::string>& updated_tunnels) {
+  kovri::client::context.RemoveServerTunnels(
+      [&updated_tunnels](kovri::client::I2PServerTunnel* tunnel) {
+        return std::find(
+            updated_tunnels.begin(),
+            updated_tunnels.end(),
+            tunnel->GetName()) == updated_tunnels.end();
+      });
+  kovri::client::context.RemoveClientTunnels(
+      [&updated_tunnels](kovri::client::I2PClientTunnel* tunnel) {
+        return std::find(
+            updated_tunnels.begin(),
+            updated_tunnels.end(),
+            tunnel->GetName()) == updated_tunnels.end();
+      });
 }
 
 bool DaemonSingleton::Start() {
@@ -278,91 +348,14 @@ bool DaemonSingleton::Start() {
   return true;
 }
 
-void DaemonSingleton::ReloadTunnels() {
-  boost::property_tree::ptree pt;
-  auto tunnels_config_file =
-    kovri::app::GetTunnelsConfigFile().string();
-  try {
-    boost::property_tree::read_ini(tunnels_config_file, pt);
-  } catch (const std::exception& ex) {
-    LogPrint(eLogWarn,
-        "DaemonSingleton: can't read ",
-        tunnels_config_file, ": ", ex.what());
-    return;
-  }
-  // List of tunnels that still exist after config update
-  // Make sure the default IRC and eepsite tunnels do not get removed
-  std::vector<std::string> updated_tunnels;
-  // Iterate over tunnels' ident hashes for what's in tunnels.conf now
-  for (auto& section : pt) {
-    // TODO(unassigned): what if we switch a server from client to tunnel
-    // or vice versa?
-    const auto tunnel_name = section.first;
-    const auto value = section.second;
-    const auto type = value.get<std::string>(TunnelConfig.at(Key::Type), "");
-    if (type == TunnelConfig.at(Key::Server) ||
-        type == TunnelConfig.at(Key::HTTP)) {
-      // Obtain server options
-      auto key_file = value.get<std::string>(TunnelConfig.at(Key::Keys), "");
-      auto host_str = value.get<std::string>(TunnelConfig.at(Key::Host), "");
-      auto port = value.get<int>(TunnelConfig.at(Key::Port), 0);
-      auto in_port = value.get(TunnelConfig.at(Key::InPort), 0);
-      auto access_list = value.get(TunnelConfig.at(Key::ACL), "");
-      kovri::client::context.UpdateServerTunnel(
-          tunnel_name,
-          key_file,
-          host_str,
-          access_list,
-          port,
-          in_port,
-          (type == TunnelConfig.at(Key::HTTP)));
-    } else if (type == TunnelConfig.at(Key::Client)) {
-      // Get client tunnel parameters
-      auto key_file = value.get(TunnelConfig.at(Key::Keys), "");
-      auto destination = value.get<std::string>(TunnelConfig.at(Key::Dest), "");
-      auto host_str = value.get(TunnelConfig.at(Key::Address), "127.0.0.1");
-      auto port = value.get<int>(TunnelConfig.at(Key::Port), 0);
-      auto dest_port = value.get(TunnelConfig.at(Key::DestPort), 0);
-      auto tunnel = kovri::client::context.GetClientTunnel(port);
-      if (tunnel && tunnel->GetName() != tunnel_name) {
-        // Conflicting port
-        // TODO(unassigned): what if we interchange two client tunnels' ports?
-        // TODO(EinMByte): the addresses could differ
-        LogPrint(eLogError,
-            "DaemonSingleton: ",
-            tunnel_name, " will not be updated, conflicting port");
-        continue;
-      }
-      kovri::client::context.UpdateClientTunnel(
-          tunnel_name,
-          key_file,
-          destination,
-          host_str,
-          port,
-          dest_port);
-    }
-  }
-  kovri::client::context.RemoveServerTunnels(
-      [&updated_tunnels](kovri::client::I2PServerTunnel* tunnel) {
-        return std::find(
-            updated_tunnels.begin(),
-            updated_tunnels.end(),
-            tunnel->GetName()) == updated_tunnels.end();
-      });
-  kovri::client::context.RemoveClientTunnels(
-      [&updated_tunnels](kovri::client::I2PClientTunnel* tunnel) {
-        return std::find(
-            updated_tunnels.begin(),
-            updated_tunnels.end(),
-            tunnel->GetName()) == updated_tunnels.end();
-      });
-}
-
 void DaemonSingleton::Reload() {
   // TODO(unassigned): do we want to add locking?
   LogPrint(eLogInfo, "DaemonSingleton: reloading configuration");
-  // reload tunnels.conf
-  ReloadTunnels();
+  // Reload tunnels configuration
+  m_IsReloading = true;
+  // TODO(anonimal): consider unhooking from singleton
+  SetupTunnels();
+  m_IsReloading = false;
   // TODO(unassigned): reload kovri.conf
 }
 

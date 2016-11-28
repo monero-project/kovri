@@ -37,17 +37,12 @@
 
 #include "core/util/log.h"
 
-int main(int argc, char* argv[]) {
+int main(int argc, const char* argv[]) {
   LogPrint("The Kovri I2P Router Project");
   LogPrint("Version ", KOVRI_VERSION);
-  // Prepare configuration settings
-  try {
-    if (!kovri::app::ParseArgs(argc, argv))
-      return EXIT_FAILURE;
-  } catch(const std::exception& ex) {
-    LogPrint(eLogError, "Main: ", ex.what(), "\nTry using --help instead");
+  // Configure daemon for initialization
+  if (!Daemon.Config(argc, argv))
     return EXIT_FAILURE;
-  }
   // Initialize daemon mode and contexts
   if (!Daemon.Init())
     return EXIT_FAILURE;

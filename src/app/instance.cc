@@ -152,7 +152,7 @@ void Instance::SetupTunnels() {
   for (auto const& tunnel : m_Config.GetParsedTunnelsConfig()) {
     try {
       // Test which type of tunnel (client or server)
-      if (tunnel.type == TunnelsMap.at(TunnelsKey::Client)) {
+      if (tunnel.type == GetConfig().GetTunnelParam(Key::Client)) {
         if (m_IsReloading) {
           auto client_tunnel = kovri::client::context.GetClientTunnel(tunnel.port);
           if (client_tunnel && client_tunnel->GetName() != tunnel.name) {
@@ -208,13 +208,14 @@ void Instance::SetupTunnels() {
               tunnel.access_list,
               tunnel.port,
               tunnel.in_port,
-              (tunnel.type == TunnelsMap.at(TunnelsKey::HTTP)));
+              (tunnel.type == GetConfig().GetTunnelParam(Key::HTTP)));
 	  ++server_count;
 	  continue;
         }
         auto local_destination =
           kovri::client::context.LoadLocalDestination(tunnel.keys, true);
-        auto server_tunnel = (tunnel.type == TunnelsMap.at(TunnelsKey::HTTP))
+        auto server_tunnel =
+          (tunnel.type == GetConfig().GetTunnelParam(Key::HTTP))
             // TODO(unassigned): these should be passing a structure
           ? std::make_unique<kovri::client::I2PServerTunnelHTTP>(
                 tunnel.name,

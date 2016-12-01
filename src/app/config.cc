@@ -168,23 +168,23 @@ void Configuration::ParseTunnelsConfig() {
     tunnel.name = section.first;
     const auto& value = section.second;
     try {
-      tunnel.type = value.get<std::string>(TunnelsMap.at(TunnelsKey::Type));
+      tunnel.type = value.get<std::string>(GetTunnelParam(Key::Type));
       // Test which type of tunnel (client or server)
-      if (tunnel.type == TunnelsMap.at(TunnelsKey::Client)) {
-        tunnel.dest = value.get<std::string>(TunnelsMap.at(TunnelsKey::Dest));
-        tunnel.port = value.get<std::uint16_t>(TunnelsMap.at(TunnelsKey::Port));
+      if (tunnel.type == GetTunnelParam(Key::Client)) {
+        tunnel.dest = value.get<std::string>(GetTunnelParam(Key::Dest));
+        tunnel.port = value.get<std::uint16_t>(GetTunnelParam(Key::Port));
         // Sets default if missing in file
-        tunnel.address = value.get<std::string>(TunnelsMap.at(TunnelsKey::Address), "127.0.0.1");
-        tunnel.keys = value.get<std::string>(TunnelsMap.at(TunnelsKey::Keys), "");
-        tunnel.dest_port = value.get<std::uint16_t>(TunnelsMap.at(TunnelsKey::DestPort), 0);
-      } else if (tunnel.type == TunnelsMap.at(TunnelsKey::Server)
-                || tunnel.type == TunnelsMap.at(TunnelsKey::HTTP)) {
-        tunnel.host = value.get<std::string>(TunnelsMap.at(TunnelsKey::Host));
-        tunnel.port = value.get<std::uint16_t>(TunnelsMap.at(TunnelsKey::Port));
-        tunnel.keys = value.get<std::string>(TunnelsMap.at(TunnelsKey::Keys));
+        tunnel.address = value.get<std::string>(GetTunnelParam(Key::Address), "127.0.0.1");
+        tunnel.keys = value.get<std::string>(GetTunnelParam(Key::Keys), "");
+        tunnel.dest_port = value.get<std::uint16_t>(GetTunnelParam(Key::DestPort), 0);
+      } else if (tunnel.type == GetTunnelParam(Key::Server)
+                || tunnel.type == GetTunnelParam(Key::HTTP)) {
+        tunnel.host = value.get<std::string>(GetTunnelParam(Key::Host));
+        tunnel.port = value.get<std::uint16_t>(GetTunnelParam(Key::Port));
+        tunnel.keys = value.get<std::string>(GetTunnelParam(Key::Keys));
         // Sets default if missing in file
-        tunnel.in_port = value.get<std::uint16_t>(TunnelsMap.at(TunnelsKey::InPort), 0);
-        tunnel.access_list = value.get<std::string>(TunnelsMap.at(TunnelsKey::ACL), "");
+        tunnel.in_port = value.get<std::uint16_t>(GetTunnelParam(Key::InPort), 0);
+        tunnel.access_list = value.get<std::string>(GetTunnelParam(Key::ACL), "");
       } else {
         throw std::runtime_error(
             "Configuration: unknown tunnel type="
@@ -245,6 +245,54 @@ bool Configuration::SetLoggingOptions() {
   core::SetOptionLogToFile(m_KovriConfig["log-to-file"].as<bool>());
   core::SetOptionLogFileName(m_KovriConfig["log-file-name"].as<std::string>());
   return true;
+}
+
+const std::string Configuration::GetTunnelParam(Key key) {
+  switch (key) {
+    // Section types
+    case Key::Type:
+      return "type";
+      break;
+    case Key::Client:
+      return "client";
+      break;
+    case Key::Server:
+      return "server";
+      break;
+    case Key::HTTP:
+      return "http";
+      break;
+    // Client-tunnel specific
+    case Key::Address:
+      return "address";
+      break;
+    case Key::Dest:
+      return "destination";
+      break;
+    case Key::DestPort:
+      return "destinationport";
+      break;
+    // Server-tunnel specific
+    case Key::Host:
+      return "host";
+      break;
+    case Key::InPort:
+      return "inport";
+      break;
+    case Key::ACL:
+      return "accesslist";
+      break;
+    // Tunnel-agnostic
+    case Key::Port:
+      return "port";
+      break;
+    case Key::Keys:
+      return "keys";
+      break;
+    default:
+      return "";  // not needed (avoids nagging -Wreturn-type)
+      break;
+  };
 }
 
 }  // namespace app

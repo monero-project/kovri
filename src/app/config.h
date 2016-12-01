@@ -45,9 +45,9 @@
 namespace kovri {
 namespace app {
 
-/// @enum TunnelsKey
-/// @brief Configuration const keys for tunnel config map
-enum struct TunnelsKey : std::uint8_t {
+/// @enum Key
+/// @brief Tunnels config key for const tunnel param string
+enum struct Key : std::uint8_t {
   /// @var Type
   /// @brief Key for type of tunnel  (client/server/HTTP, etc.)
   Type,
@@ -90,31 +90,6 @@ enum struct TunnelsKey : std::uint8_t {
   Keys,
 };
 
-// TODO(anonimal): remove, we never needed a map - but first needed to confirm that there wasn't another use-case before removing
-/// @var TunnelsConfig
-/// @brief Map of tunnel config keys to string const
-const std::map<TunnelsKey, std::string> TunnelsMap {
-  // Section types
-  { TunnelsKey::Type, "type" },
-  { TunnelsKey::Client, "client" },
-  { TunnelsKey::Server, "server" },
-  { TunnelsKey::HTTP, "http" },
-
-  // Client-tunnel specific
-  { TunnelsKey::Address, "address" },
-  { TunnelsKey::Dest, "destination" },
-  { TunnelsKey::DestPort, "destinationport" },
-
-  // Server-tunnel specific
-  { TunnelsKey::Host, "host" },
-  { TunnelsKey::InPort, "inport" },
-  { TunnelsKey::ACL, "accesslist" },
-
-  // Tunnel-agnostic
-  { TunnelsKey::Port, "port" },
-  { TunnelsKey::Keys, "keys" },
-};
-
 /// @class Configuration
 /// @brief Configuration processing and implementation 
 class Configuration {
@@ -128,6 +103,10 @@ class Configuration {
 
   /// @brief Parses tunnel configuration file
   void ParseTunnelsConfig();
+
+  /// @brief Gets pre-defined tunnel parameter from tunnel config
+  /// @param key Key for tunnels config parameter
+  const std::string GetTunnelParam(Key key);
 
  private:
   /// @var m_Args

@@ -62,6 +62,8 @@ namespace core {
 
 const char NetDb::m_NetDbPath[] = "netDb";
 
+// Simply instantiating in namespace scope ties into, and is limited by, the current singleton design
+// TODO(unassigned): refactoring this requires global work but will help to remove the singleton
 NetDb netdb;
 
 NetDb::NetDb()

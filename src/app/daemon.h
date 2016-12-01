@@ -42,7 +42,7 @@
 #define Daemon kovri::app::DaemonLinux::Instance()
 #endif
 
-#include "app/util/config.h"
+#include "app/instance.h"
 
 #include "core/util/log.h"
 #include "core/util/filesystem.h"
@@ -53,9 +53,9 @@ namespace app {
 class DaemonSingleton {
  public:
   /// @brief Get/Set configuration options before initialization/forking
-  /// @param argc Classic arg count from command line
-  /// @param argv Classic arg vector from command line
-  virtual bool Config(int argc, const char* argv[]);
+  /// @param args Reference to string vector of command line args
+  virtual bool Config(
+      std::vector<std::string>& args);
 
   /// @brief Forks process if daemon mode is set, initializes contexts
   /// @warning Child *must* fork *before* contexts are initialized
@@ -72,33 +72,9 @@ class DaemonSingleton {
 
   bool m_IsDaemon, m_IsRunning;
 
-  /// TODO(anonimal): consider unhooking from singleton
-  /// @var m_IsReloading
-  /// @brief Are tunnels configuration in the process of reloading?
-  bool m_IsReloading;
-
-  /// @var m_Config
-  /// @brief Pointer to configuration object for configuration implementation
-  std::unique_ptr<Configuration> m_Config;
-
- private:
-  /// @brief Initializes router context / core settings
-  void InitRouterContext();
-
-  /// @brief Initializes the router's client context object
-  /// @details Creates tunnels, proxies and I2PControl service
-  void InitClientContext();
-
-  /// TODO(anonimal): consider unhooking from singleton
-  /// @brief Sets up client/server tunnels
-  /// @warning Configuration files must be parsed prior to setup
-  void SetupTunnels();
-
-  /// TODO(anonimal): consider unhooking from singleton
-  /// @brief Should remove old tunnels after tunnels config is updated
-  /// TODO(unassigned): not fully implemented
-  void RemoveOldTunnels(
-      std::vector<std::string>& updated_tunnels);
+  /// @var m_Instance
+  /// @brief Unique pointer to instance object (client/router)
+  std::unique_ptr<Instance> m_Instance;
 
  protected:
   DaemonSingleton();
@@ -113,7 +89,9 @@ class DaemonWin32 : public DaemonSingleton {
     static DaemonWin32 instance;
     return instance;
   }
-  virtual bool Config(int argc, const char* argv[]);
+  virtual bool Config(
+      std::vector<std::string>& args);
+
   virtual bool Init();
   virtual bool Start();
   virtual bool Stop();
@@ -129,11 +107,14 @@ class DaemonLinux : public DaemonSingleton {
     static DaemonLinux instance;
     return instance;
   }
-  virtual bool Config(int argc, const char* argv[]);
+  virtual bool Config(
+      std::vector<std::string>& args);
+
   virtual bool Init();
   virtual bool Start();
   virtual bool Stop();
   void Reload();
+
  private:
   std::string m_PIDPath, m_PIDFile;
   int m_PIDFileHandle;

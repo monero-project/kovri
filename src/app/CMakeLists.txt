@@ -2,8 +2,9 @@ include_directories("../")
 
 set(APP_SRC
   "main.cc"
+  "config.cc"
   "daemon.cc"
-  "util/config.cc")
+  "instance.cc")
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   list(APPEND APP_SRC "daemon_linux.cc")

@@ -34,7 +34,7 @@
 
 #include "daemon.h"
 
-#include "app/util/config.h"
+#include "app/config.h"
 
 #include "core/util/log.h"
 
@@ -45,8 +45,9 @@
 namespace kovri {
 namespace app {
 
-bool DaemonWin32::Config(int argc, const char* argv[]) {
-  return DaemonSingleton::Config(argc, argv);
+bool DaemonWin32::Config(
+    std::vector<std::string>& args) {
+  return DaemonSingleton::Config(args);
 }
 
 bool DaemonWin32::Init() {

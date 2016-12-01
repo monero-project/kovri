@@ -49,6 +49,8 @@
 namespace kovri {
 // TODO(anonimal): this belongs in core namespace
 
+// Simply instantiating in namespace scope ties into, and is limited by, the current singleton design
+// TODO(unassigned): refactoring this requires global work but will help to remove the singleton
 RouterContext context;
 
 RouterContext::RouterContext()

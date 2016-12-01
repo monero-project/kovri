@@ -28,10 +28,15 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#include "config.h"
+#include "app/instance.h"
 
-#include <exception>
-#include <string>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/ini_parser.hpp>
+#include <boost/program_options.hpp>
+
+#include <cstdint>
+#include <stdexcept>
+#include <memory>
 #include <vector>
 
 #include "core/crypto/rand.h"
@@ -43,7 +48,7 @@ namespace app {
 
 namespace bpo = boost::program_options;
 
-bool Configuration::ParseKovriConfig(int argc, const char* argv[]) {
+void Configuration::ParseKovriConfig() {
   // Random generated port if none is supplied via CLI or config
   // See: i2p.i2p/router/java/src/net/i2p/router/transport/udp/UDPEndpoint.java
   // TODO(unassigned): move this elsewhere (outside of ParseArgs()) when possible
@@ -51,10 +56,6 @@ bool Configuration::ParseKovriConfig(int argc, const char* argv[]) {
   // Configuration files
   std::string kovri_config, tunnels_config;
   // Default visible option
-  const std::string kovri_help =
-    "\n- Read kovri.conf for details on cli/config options\n"
-    "- Read tunnels.conf on how to configure tunnels\n"
-    "- Below is a listing of all available options:";
   bpo::options_description help("\nhelp");
   help.add_options()("help,h", "");  // Blank so we can use custom message above
   // Map options values from command-line and config
@@ -114,18 +115,22 @@ bool Configuration::ParseKovriConfig(int argc, const char* argv[]) {
     .add(network)
     .add(client);
   // Map and store command-line options
-  bpo::store(bpo::parse_command_line(argc, argv, cli_options), m_KovriConfig);
+  bpo::store(
+      bpo::command_line_parser(m_Args).options(cli_options).run(), m_KovriConfig);
   bpo::notify(m_KovriConfig);
+
+  // TODO(anonimal): we want to be able to reload config file without original
+  // cli args overwriting any *new* config file options
+
   // Parse config file after mapping command-line
   ParseKovriConfigFile(kovri_config, config_options, m_KovriConfig);
   // Set logging options
   if (!SetLoggingOptions())
-    return false;
+    throw std::runtime_error("Configuration: could not set logging options");
   if (m_KovriConfig.count("help")) {
-    std::cout << kovri_help << config_options; // we don't need to print .add(help)
-    return false;
+    std::cout << config_options << std::endl;
+    throw std::runtime_error("for more details, see user-guide documentation");
   }
-  return true;
 }
 
 // TODO(unassigned): improve this function and use-case

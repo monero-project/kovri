@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2016, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2015-2016, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -26,40 +26,75 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,          //
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF    //
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
- *                                                                                            //
- * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include <thread>
+#ifndef SRC_APP_INSTANCE_H_
+#define SRC_APP_INSTANCE_H_
 
-#include "app/daemon.h"
+#include <string>
+#include <vector>
 
-#include "core/version.h"
-#include "core/util/log.h"
+#include "app/config.h"
 
-int main(int argc, const char* argv[]) {
-  LogPrint("The Kovri I2P Router Project");
-  LogPrint("Version ", KOVRI_VERSION);
-  // TODO(anonimal): ideally, we would only use the daemon to house any number of
-  // kovri instances (client/router contexts) of which we could configure/initialize,
-  // start, and stop from *outside* the daemon instead of having the daemon singleton
-  // control a single kovri instance. We *could* have an app API which creates these
-  // instances on-the-fly but then there's the issue of per-instance configuration.
-  // For now, we deal with the singleton and a single configuration.
-  std::vector<std::string> args(argv, argv + argc);
-  // Configure daemon for initialization
-  if (!Daemon.Config(args))
-    return EXIT_FAILURE;
-  // Initialize daemon mode and contexts
-  if (!Daemon.Init())
-    return EXIT_FAILURE;
-  // Start core/client (must begin in child process if in daemon mode)
-  if (Daemon.Start()) {
-    while (Daemon.m_IsRunning)
-      std::this_thread::sleep_for(std::chrono::seconds(1));
+namespace kovri {
+namespace app {
+
+/// @class Instance
+/// @brief Instance implementation for client / router contexts
+/// @notes It is currently implied that only a single configuration object will
+///   be used by a single instance object.
+class Instance {
+ public:
+   // TODO(unassigned): see note and TODO in main about multiple instances
+   Instance(
+       std::vector<std::string>& args)
+       : m_Config(args) {}
+
+  /// @brief Configures instance
+  void Configure();
+
+  /// @brief Initializes instance (client/router contexts)
+  void Initialize();
+
+  /// @brief Reloads configuration
+  /// @notes TODO(unassigned): should also reload client/router contexts
+  void Reload();
+
+  /// @brief Get configuration object
+  /// @return Reference to configuration object
+  Configuration& GetConfig() noexcept {
+    return m_Config;
   }
-  // Stop client/core
-  if (!Daemon.Stop())
-    return EXIT_FAILURE;
-  return EXIT_SUCCESS;
-}
+
+ private:
+  /// @brief Initializes router context / core settings
+  void InitRouterContext();
+
+  /// @brief Initializes the router's client context object
+  /// @details Creates tunnels, proxies and I2PControl service
+  void InitClientContext();
+
+  /// @brief Sets up (or reloads) client/server tunnels
+  /// @warning Configuration files must be parsed prior to setup
+  void SetupTunnels();
+
+  /// @brief Should remove old tunnels after tunnels config is updated
+  /// TODO(unassigned): not fully implemented
+  void RemoveOldTunnels(
+      std::vector<std::string>& updated_tunnels);
+
+ private:
+  /// @var m_Config
+  /// @brief Configuration implementation
+  Configuration m_Config;
+
+  /// @var m_IsReloading
+  /// @brief Are tunnels configuration in the process of reloading?
+  /// TODO(unassigned): expand types of reloading
+  bool m_IsReloading;
+};
+
+}  // namespace app
+}  // namespace kovri
+
+#endif  // SRC_APP_INSTANCE_H_

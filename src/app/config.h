@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2016, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2015-2016, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -26,22 +26,20 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,          //
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF    //
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
- *                                                                                            //
- * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_APP_UTIL_CONFIG_H_
-#define SRC_APP_UTIL_CONFIG_H_
+#ifndef SRC_APP_CONFIG_H_
+#define SRC_APP_CONFIG_H_
 
-#include <boost/property_tree/ptree.hpp>
 #include <boost/program_options.hpp>
-#include <boost/property_tree/ini_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/filesystem.hpp>
 
-#include <iostream>
+#include <cstdint>
 #include <map>
 #include <string>
+#include <vector>
 
-#include "core/version.h"
 #include "core/util/filesystem.h"
 
 namespace kovri {
@@ -53,56 +51,46 @@ enum struct TunnelsKey : std::uint8_t {
   /// @var Type
   /// @brief Key for type of tunnel  (client/server/HTTP, etc.)
   Type,
-
   /// @var Client
   /// @brief Key for client tunnel
   Client,
-
   /// @var Server
   /// @brief Key for server tunnel
   Server,
-
   /// @var HTTP
   /// @brief Key for HTTP tunnel
   HTTP,
-
   /// @var Address
   /// @brief Key for local client listening address that you'll connect to
   /// @notes Should default to 127.0.0.1
   Address,
-
   /// @var Dest
   /// @brief Key for I2P hostname or .b32 address
   Dest,
-
   /// @var DestPort
   /// @brief Key for I2P destination port used in destination
   DestPort,
-
   /// @var Host
   /// @brief Key for IP address of our local server (that we host)
   /// @notes Should default to 127.0.0.1
   Host,
-
   /// @var InPort
   /// @brief Key for I2P service port. If unset, should be the same as 'port'
   InPort,
-
   /// @var ACL
   /// @brief Key for access control list of I2P addresses for server tunnel
   ACL,
-
   /// @var Port
   /// @brief Key for port of our listening client or server tunnel
   ///   (example: port 80 if you are hosting website)
   Port,
-
   /// @var Keys
   /// @brief Key for client tunnel identity
   ///   or file with LeaseSet of local service I2P address
   Keys,
 };
 
+// TODO(anonimal): remove, we never needed a map - but first needed to confirm that there wasn't another use-case before removing
 /// @var TunnelsConfig
 /// @brief Map of tunnel config keys to string const
 const std::map<TunnelsKey, std::string> TunnelsMap {
@@ -131,18 +119,21 @@ const std::map<TunnelsKey, std::string> TunnelsMap {
 /// @brief Configuration processing and implementation 
 class Configuration {
  public:
+   Configuration(
+       std::vector<std::string>& args)
+       : m_Args(args) {}
+
   /// @brief Parse command line arguments
-  /// @param argc Argument count
-  /// @param argv Argument vector
-  /// @return False on failure
-  bool ParseKovriConfig(
-      int argc,
-      const char* argv[]);
+  void ParseKovriConfig();
 
   /// @brief Parses tunnel configuration file
   void ParseTunnelsConfig();
 
  private:
+  /// @var m_Args
+  /// @brief Vector of string arguments passed to configuration
+  std::vector<std::string> m_Args;
+
   /// @var m_KovriConfig
   /// @brief Variable map for command-line and kovri config file data
   boost::program_options::variables_map m_KovriConfig{};
@@ -217,4 +208,4 @@ class Configuration {
 }  // namespace app
 }  // namespace kovri
 
-#endif  // SRC_APP_UTIL_CONFIG_H_
+#endif  // SRC_APP_CONFIG_H_

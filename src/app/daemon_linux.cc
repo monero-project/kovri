@@ -42,15 +42,13 @@
 
 #include <string>
 
-#include "app/util/config.h"
-
 #include "core/util/log.h"
 #include "core/util/filesystem.h"
 
 void handle_signal(int sig) {
   switch (sig) {
     case SIGHUP:
-      if (Daemon.m_IsDaemon == 1) {
+      if (Daemon.m_IsDaemon) {
         static bool first = true;
         if (first) {
           first = false;
@@ -64,7 +62,7 @@ void handle_signal(int sig) {
     case SIGABRT:
     case SIGTERM:
     case SIGINT:
-      Daemon.m_IsRunning = 0;  // Exit loop
+      Daemon.m_IsRunning = false;  // Exit loop
       break;
   }
 }
@@ -72,8 +70,9 @@ void handle_signal(int sig) {
 namespace kovri {
 namespace app {
 
-bool DaemonLinux::Config(int argc, const char* argv[]) {
-  return DaemonSingleton::Config(argc, argv);
+bool DaemonLinux::Config(
+    std::vector<std::string>& args) {
+  return DaemonSingleton::Config(args);
 }
 
 bool DaemonLinux::Init() {
@@ -164,7 +163,6 @@ bool DaemonLinux::Stop() {
 }
 
 void DaemonLinux::Reload() {
-  // no linux specific reload operations
   DaemonSingleton::Reload();
 }
 

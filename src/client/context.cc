@@ -273,58 +273,43 @@ void ClientContext::RemoveClientTunnels(
   }
 }
 
-// TODO(unassigned): this should be passing a structure
 void ClientContext::UpdateServerTunnel(
-    const std::string& tunnel_name,
-    const std::string& key_file,
-    const std::string& host_str,
-    const std::string& access_list,
-    int port,
-    int in_port,
-    bool http) {
+    const TunnelAttributes& tunnel,
+    bool is_http) {
   bool create_tunnel = false;
   try {
-    kovri::core::PrivateKeys keys = LoadPrivateKeys(key_file);
-    kovri::core::IdentHash i = keys.GetPublic().GetIdentHash();
+    kovri::core::PrivateKeys keys = LoadPrivateKeys(tunnel.keys);
+    kovri::core::IdentHash ident = keys.GetPublic().GetIdentHash();
     // check if it exists in existing local servers
-    auto tunnel = GetServerTunnel(i);
-    if (tunnel == nullptr) {
+    auto server_tunnel = GetServerTunnel(ident);
+    if (server_tunnel == nullptr) {
       // Server with this name does not exist, create it later
       create_tunnel = true;
     } else {
       // Server with this already exists, change the settings
-      tunnel->UpdatePort(port);
-      tunnel->UpdateAddress(host_str);
-      tunnel->UpdateStreamingPort(in_port);
-      tunnel->SetAccessListString(access_list);
+      server_tunnel->UpdatePort(tunnel.port);
+      server_tunnel->UpdateAddress(tunnel.host);
+      server_tunnel->UpdateStreamingPort(tunnel.in_port);
+      server_tunnel->SetAccessListString(tunnel.acl);
       // we don't want to stop existing connections on this tunnel so
       // we DON'T call Stop() as it will call ClearHandlers()
       // this updates the server tunnel stuff
       // TODO(unassigned): fix confusing name (Apply instead of Start)
-      m_ServerTunnels[i]->Start();
+      m_ServerTunnels[ident]->Start();
     }
   } catch (std::ios_base::failure&) {
       // Key file does not exist, let's say it's new, create it later
       create_tunnel = true;
   }
   if (create_tunnel) {
+      // TODO(anonimal): implement tunnel creation function
       // Create the server tunnel
-      auto local_destination = kovri::client::context.LoadLocalDestination(
-          key_file, true);
-      auto server_tunnel = http ?
-          std::make_unique<I2PServerTunnelHTTP>(
-              tunnel_name,
-              host_str,
-              port,
-              local_destination,
-              in_port) :
-          std::make_unique<I2PServerTunnel>(
-              tunnel_name,
-              host_str,
-              port,
-              local_destination,
-              in_port);
-      server_tunnel->SetAccessListString(access_list);
+      auto local_destination =
+        kovri::client::context.LoadLocalDestination(tunnel.keys, true);
+      auto server_tunnel = is_http
+          ? std::make_unique<I2PServerTunnelHTTP>(tunnel, local_destination)
+          : std::make_unique<I2PServerTunnel>(tunnel, local_destination);
+      server_tunnel->SetAccessListString(tunnel.acl);
       // Add the server tunnel
       InsertServerTunnel(local_destination->GetIdentHash(), std::move(server_tunnel));
       // Start the new server tunnel
@@ -332,46 +317,34 @@ void ClientContext::UpdateServerTunnel(
   }
 }
 
-// TODO(unassigned): this should be passing a structure
 void ClientContext::UpdateClientTunnel(
-    const std::string& tunnel_name,
-    const std::string& key_file,
-    const std::string& destination,
-    const std::string& host_str,
-    int port,
-    int dest_port) {
-  auto client_tunnel = GetClientTunnel(tunnel_name);
+    const TunnelAttributes& tunnel) {
+  auto client_tunnel = GetClientTunnel(tunnel.name);
   if (client_tunnel == nullptr) {
     // Client tunnel does not exist yet, create it
-    auto local_destination = LoadLocalDestination(key_file, true);
-    client_tunnel = std::make_unique<I2PClientTunnel>(
-          tunnel_name,
-          destination,
-          host_str,
-          port,
-          local_destination,
-          dest_port);
-    InsertClientTunnel(port, std::move(client_tunnel));
+    auto local_destination = LoadLocalDestination(tunnel.keys, true);
+    client_tunnel = std::make_unique<I2PClientTunnel>(tunnel, local_destination);
+    InsertClientTunnel(tunnel.port, std::move(client_tunnel));
     client_tunnel->Start();
   } else {
     // Client with this name is already locally running, update settings
-    // TODO(unassigned): we MUST have a tunnel given this tunnel_name RIGHT!?
+    // TODO(unassigned): use-case for remaining tunnel attributes?
     std::string current_addr = client_tunnel->GetAddress();
     boost::system::error_code ec;
-    auto next_addr = boost::asio::ip::address::from_string(host_str, ec);
+    auto next_addr = boost::asio::ip::address::from_string(tunnel.host, ec);
     bool rebind = false;
     if (ec)  // New address is not an IP address, compare strings
-      rebind = (host_str != current_addr);
+      rebind = (tunnel.host != current_addr);
     else  // New address is an IP address, compare endpoints
       rebind = (client_tunnel->GetEndpoint() == boost::asio::ip::tcp::endpoint(
-          next_addr, port));
+          next_addr, tunnel.port));
     if (rebind) {
       // The IP address has changed, rebind
       try {
-        client_tunnel->Rebind(host_str, port);
+        client_tunnel->Rebind(tunnel.host, tunnel.port);
       } catch (std::exception& err) {
         LogPrint(eLogError,
-            "ClientContext: failed to rebind ", tunnel_name, ": ", err.what());
+            "ClientContext: failed to rebind ", tunnel.name, ": ", err.what());
       }
     }
   }

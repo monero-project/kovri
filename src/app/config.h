@@ -40,6 +40,8 @@
 #include <string>
 #include <vector>
 
+#include "client/tunnel.h"
+
 #include "core/util/filesystem.h"
 
 namespace kovri {
@@ -117,17 +119,9 @@ class Configuration {
   /// @brief Variable map for command-line and kovri config file data
   boost::program_options::variables_map m_KovriConfig{};
 
-  /// @class TunnelsConfigSection
-  /// @brief Tunnels config file types per section
-  struct TunnelsConfigSection {
-    TunnelsConfigSection() {}
-    std::string name, type, dest, address, keys, host, access_list;
-    std::uint16_t port, dest_port, in_port;
-  };
-
   /// @var m_TunnelsConfig
   /// @brief Vector of all sections in a tunnel configuration
-  std::vector<TunnelsConfigSection> m_TunnelsConfig{};
+  std::vector<kovri::client::TunnelAttributes> m_TunnelsConfig{};
 
  public:
   /// @brief Gets kovri config variable map
@@ -137,8 +131,8 @@ class Configuration {
   }
 
   /// @brief Gets tunnels config member
-  /// @return Reference to tunnels config member vector
-  std::vector<TunnelsConfigSection>& GetParsedTunnelsConfig() noexcept {
+  /// @return Reference to tunnels attributes vector member
+  std::vector<kovri::client::TunnelAttributes>& GetParsedTunnelsConfig() noexcept {
     return m_TunnelsConfig;
   }
 

@@ -164,7 +164,7 @@ void Configuration::ParseTunnelsConfig() {
   }
   // Parse on a per-section basis, store in tunnels config vector
   for (auto& section : pt) {
-    TunnelsConfigSection tunnel;
+    kovri::client::TunnelAttributes tunnel{};
     tunnel.name = section.first;
     const auto& value = section.second;
     try {
@@ -179,12 +179,12 @@ void Configuration::ParseTunnelsConfig() {
         tunnel.dest_port = value.get<std::uint16_t>(GetTunnelParam(Key::DestPort), 0);
       } else if (tunnel.type == GetTunnelParam(Key::Server)
                 || tunnel.type == GetTunnelParam(Key::HTTP)) {
-        tunnel.host = value.get<std::string>(GetTunnelParam(Key::Host));
+        tunnel.host = value.get<std::string>(GetTunnelParam(Key::Host));  // TODO(anonimal): a "host" key is confusing when "address" will do
         tunnel.port = value.get<std::uint16_t>(GetTunnelParam(Key::Port));
         tunnel.keys = value.get<std::string>(GetTunnelParam(Key::Keys));
         // Sets default if missing in file
         tunnel.in_port = value.get<std::uint16_t>(GetTunnelParam(Key::InPort), 0);
-        tunnel.access_list = value.get<std::string>(GetTunnelParam(Key::ACL), "");
+        tunnel.acl = value.get<std::string>(GetTunnelParam(Key::ACL), "");
       } else {
         throw std::runtime_error(
             "Configuration: unknown tunnel type="

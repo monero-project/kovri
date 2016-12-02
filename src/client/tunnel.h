@@ -51,10 +51,18 @@
 namespace kovri {
 namespace client {
 
+/// @class TunnelAttributes
+/// @brief Attributes for client/server tunnel
+/// @notes For details, see tunnels configuration key
+struct TunnelAttributes {
+  TunnelAttributes() : port(0), dest_port(0), in_port(0) {}
+  std::string name, type, dest, address, keys, host, acl;
+  std::uint16_t port, dest_port, in_port;
+};
+
 const std::size_t I2P_TUNNEL_CONNECTION_BUFFER_SIZE = 8192;
 const int I2P_TUNNEL_CONNECTION_MAX_IDLE = 3600;  // in seconds
 const int I2P_TUNNEL_DESTINATION_REQUEST_TIMEOUT = 10;  // in seconds
-
 
 class I2PTunnelConnection
     : public I2PServiceHandler,
@@ -152,14 +160,9 @@ class I2PClientTunnel : public TCPIPAcceptor {
       std::shared_ptr<boost::asio::ip::tcp::socket> socket);
 
  public:
-  // TODO(unassigned): this should be passing a structure
   I2PClientTunnel(
-      const std::string& name,
-      const std::string& destination,
-      const std::string& address,
-      int port,
-      std::shared_ptr<ClientDestination> local_destination,
-      int destination_port = 0);
+      const TunnelAttributes& tunnel,
+      std::shared_ptr<ClientDestination> local_destination);
 
   ~I2PClientTunnel() {}
 
@@ -168,6 +171,8 @@ class I2PClientTunnel : public TCPIPAcceptor {
   std::string GetName() const;
 
  private:
+  // TODO(anonimal): we only need one tunnel attribute's class member.
+  // From there, we can also refactor the getter functions
   std::unique_ptr<const kovri::core::IdentHash> GetIdentHash();
   std::string m_TunnelName;
   std::string m_Destination;
@@ -177,13 +182,9 @@ class I2PClientTunnel : public TCPIPAcceptor {
 
 class I2PServerTunnel : public I2PService {
  public:
-  // TODO(unassigned): this should be passing a structure
   I2PServerTunnel(
-      const std::string& name,
-      const std::string& address,
-      int port,
-      std::shared_ptr<ClientDestination> local_destination,
-      int inport = 0);
+      const TunnelAttributes& tunnel,
+      std::shared_ptr<ClientDestination> local_destination);
 
   void Start();
 
@@ -238,6 +239,8 @@ class I2PServerTunnel : public I2PService {
       std::shared_ptr<kovri::client::Stream> stream);
 
  private:
+  // TODO(anonimal): we only need one tunnel attribute's class member.
+  // From there, we can also refactor the getter functions
   std::string m_Address;
   std::string m_TunnelName;
   int m_Port;
@@ -250,11 +253,8 @@ class I2PServerTunnel : public I2PService {
 class I2PServerTunnelHTTP: public I2PServerTunnel {
  public:
   I2PServerTunnelHTTP(
-      const std::string& name,
-      const std::string& address,
-      int port,
-      std::shared_ptr<ClientDestination> local_destination,
-      int inport = 0);
+      const TunnelAttributes& tunnel,
+      std::shared_ptr<ClientDestination> local_destination);
 
  private:
   void CreateI2PConnection(

@@ -347,20 +347,16 @@ void I2PClientTunnelHandler::Terminate() {
 }
 
 I2PClientTunnel::I2PClientTunnel(
-    const std::string& name,
-    const std::string& destination,
-    const std::string& address,
-    int port,
-    std::shared_ptr<ClientDestination> local_destination,
-    int destination_port)
+    const TunnelAttributes& tunnel,
+    std::shared_ptr<ClientDestination> local_destination)
     : TCPIPAcceptor(
-          address,
-          port,
+          tunnel.address,
+          tunnel.port,
           local_destination),
-      m_TunnelName(name),
-      m_Destination(destination),
+      m_TunnelName(tunnel.name),
+      m_Destination(tunnel.dest),
       m_DestinationIdentHash(nullptr),
-      m_DestinationPort(destination_port) {}
+      m_DestinationPort(tunnel.dest_port) {}
 
 void I2PClientTunnel::Start() {
   TCPIPAcceptor::Start();
@@ -401,19 +397,16 @@ std::shared_ptr<I2PServiceHandler> I2PClientTunnel::CreateHandler(
 }
 
 I2PServerTunnel::I2PServerTunnel(
-    const std::string& name,
-    const std::string& address,
-    int port,
-    std::shared_ptr<ClientDestination> local_destination,
-    int inport)
+    const TunnelAttributes& tunnel,
+    std::shared_ptr<ClientDestination> local_destination)
     : I2PService(local_destination),
-      m_Address(address),
-      m_TunnelName(name),
-      m_Port(port),
+      m_Address(tunnel.host),  // TODO(anonimal): a "host" key is confusing when "address" will do
+      m_TunnelName(tunnel.name),
+      m_Port(tunnel.port),
       m_IsAccessList(false) {
       m_PortDestination =
         local_destination->CreateStreamingDestination(
-            inport > 0 ? inport : port);
+            tunnel.in_port > 0 ? tunnel.in_port : tunnel.port);  // TODO(anonimal): simply not null
 }
 
 void I2PServerTunnel::Start() {
@@ -584,17 +577,11 @@ void I2PServerTunnel::CreateI2PConnection(
 std::string I2PServerTunnel::GetName() const { return m_TunnelName; }
 
 I2PServerTunnelHTTP::I2PServerTunnelHTTP(
-    const std::string& name,
-    const std::string& address,
-    int port,
-    std::shared_ptr<ClientDestination> local_destination,
-    int inport)
+    const TunnelAttributes& tunnel,
+    std::shared_ptr<ClientDestination> local_destination)
     : I2PServerTunnel(
-          name,
-          address,
-          port,
-          local_destination,
-          inport) {}
+          tunnel,
+          local_destination) {}
 
 void I2PServerTunnelHTTP::CreateI2PConnection(
     std::shared_ptr<kovri::client::Stream> stream) {

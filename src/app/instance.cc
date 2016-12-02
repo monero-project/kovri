@@ -152,7 +152,7 @@ void Instance::SetupTunnels() {
   for (auto const& tunnel : m_Config.GetParsedTunnelsConfig()) {
     try {
       // Test which type of tunnel (client or server)
-      if (tunnel.type == GetConfig().GetTunnelParam(Key::Client)) {
+      if (tunnel.type == GetConfig().GetAttribute(Key::Client)) {
         if (m_IsReloading) {
           auto client_tunnel = kovri::client::context.GetClientTunnel(tunnel.port);
           if (client_tunnel && client_tunnel->GetName() != tunnel.name) {
@@ -187,7 +187,7 @@ void Instance::SetupTunnels() {
               "Instance: client tunnel with port ",
               tunnel.port, " already exists");
       } else {  // TODO(unassigned): currently, anything that's not client
-        bool is_http = (tunnel.type == GetConfig().GetTunnelParam(Key::HTTP));
+        bool is_http = (tunnel.type == GetConfig().GetAttribute(Key::HTTP));
         if (m_IsReloading) {
           kovri::client::context.UpdateServerTunnel(tunnel, is_http);
           ++server_count;

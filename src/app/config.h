@@ -105,9 +105,9 @@ class Configuration {
   /// @brief Parses tunnel configuration file
   void ParseTunnelsConfig();
 
-  /// @brief Gets pre-defined tunnel parameter from tunnel config
-  /// @param key Key for tunnels config parameter
-  const std::string GetTunnelParam(Key key);
+  /// @brief Gets pre-defined tunnel attribute from tunnel config
+  /// @param key Key for tunnels config attribute
+  const std::string GetAttribute(Key key);
 
  private:
   /// @var m_Args

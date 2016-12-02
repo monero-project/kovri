@@ -170,21 +170,21 @@ void Configuration::ParseTunnelsConfig() {
       tunnel.name = section.first;
       const auto& value = section.second;
       // Get remaining attributes
-      tunnel.type = value.get<std::string>(GetTunnelParam(Key::Type));
-      tunnel.address = value.get<std::string>(GetTunnelParam(Key::Address), "127.0.0.1");
-      tunnel.port = value.get<std::uint16_t>(GetTunnelParam(Key::Port));
+      tunnel.type = value.get<std::string>(GetAttribute(Key::Type));
+      tunnel.address = value.get<std::string>(GetAttribute(Key::Address), "127.0.0.1");
+      tunnel.port = value.get<std::uint16_t>(GetAttribute(Key::Port));
       // Test which type of tunnel (client or server), add unique attributes
-      if (tunnel.type == GetTunnelParam(Key::Client)) {
-        tunnel.dest = value.get<std::string>(GetTunnelParam(Key::Dest));
-        tunnel.dest_port = value.get<std::uint16_t>(GetTunnelParam(Key::DestPort), 0);
-        tunnel.keys = value.get<std::string>(GetTunnelParam(Key::Keys), "");
-      } else if (tunnel.type == GetTunnelParam(Key::Server)
-                || tunnel.type == GetTunnelParam(Key::HTTP)) {
-        tunnel.in_port = value.get<std::uint16_t>(GetTunnelParam(Key::InPort), 0);
-        tunnel.keys = value.get<std::string>(GetTunnelParam(Key::Keys));  // persistent private key
+      if (tunnel.type == GetAttribute(Key::Client)) {
+        tunnel.dest = value.get<std::string>(GetAttribute(Key::Dest));
+        tunnel.dest_port = value.get<std::uint16_t>(GetAttribute(Key::DestPort), 0);
+        tunnel.keys = value.get<std::string>(GetAttribute(Key::Keys), "");
+      } else if (tunnel.type == GetAttribute(Key::Server)
+                || tunnel.type == GetAttribute(Key::HTTP)) {
+        tunnel.in_port = value.get<std::uint16_t>(GetAttribute(Key::InPort), 0);
+        tunnel.keys = value.get<std::string>(GetAttribute(Key::Keys));  // persistent private key
         // Test/Get/Set for ACL
-        auto white = value.get<std::string>(GetTunnelParam(Key::Whitelist), "");
-        auto black = value.get<std::string>(GetTunnelParam(Key::Blacklist), "");
+        auto white = value.get<std::string>(GetAttribute(Key::Whitelist), "");
+        auto black = value.get<std::string>(GetAttribute(Key::Blacklist), "");
         // Ignore blacklist if whitelist is given
         if (!white.empty()) {
           tunnel.acl.list = white;
@@ -254,7 +254,7 @@ bool Configuration::SetLoggingOptions() {
   return true;
 }
 
-const std::string Configuration::GetTunnelParam(Key key) {
+const std::string Configuration::GetAttribute(Key key) {
   switch (key) {
     // Section types
     case Key::Type:

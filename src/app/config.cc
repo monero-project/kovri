@@ -165,10 +165,11 @@ void Configuration::ParseTunnelsConfig() {
   // Parse on a per-section basis, store in tunnels config vector
   for (auto& section : pt) {
     kovri::client::TunnelAttributes tunnel{};
-    // TODO(anonimal): move into try block, fixes segfault
-    tunnel.name = section.first;
-    const auto& value = section.second;
     try {
+      // Get tunnel name and container for remaining attributes
+      tunnel.name = section.first;
+      const auto& value = section.second;
+      // Get remaining attributes
       tunnel.type = value.get<std::string>(GetTunnelParam(Key::Type));
       tunnel.address = value.get<std::string>(GetTunnelParam(Key::Address), "127.0.0.1");
       tunnel.port = value.get<std::uint16_t>(GetTunnelParam(Key::Port));

@@ -199,7 +199,7 @@ void Instance::SetupTunnels() {
         auto server_tunnel = is_http
           ? std::make_unique<kovri::client::I2PServerTunnelHTTP>(tunnel, local_destination)
           : std::make_unique<kovri::client::I2PServerTunnel>(tunnel, local_destination);
-        server_tunnel->SetAccessListString(tunnel.acl);
+        server_tunnel->SetACL();
         // Insert server tunnel
         bool result = kovri::client::context.InsertServerTunnel(
             local_destination->GetIdentHash(),

@@ -280,27 +280,29 @@ void ClientContext::UpdateServerTunnel(
   try {
     kovri::core::PrivateKeys keys = LoadPrivateKeys(tunnel.keys);
     kovri::core::IdentHash ident = keys.GetPublic().GetIdentHash();
-    // check if it exists in existing local servers
+    // Check if server already exists
     auto server_tunnel = GetServerTunnel(ident);
     if (server_tunnel == nullptr) {
       // Server with this name does not exist, create it later
       create_tunnel = true;
     } else {
-      // Server with this already exists, change the settings
+      // Server already exists, change the settings
+      // TODO(anonimal): we don't need all of these functions; consolidate and set new tunnel attributes
       server_tunnel->UpdatePort(tunnel.port);
       server_tunnel->UpdateAddress(tunnel.address);
       server_tunnel->UpdateStreamingPort(tunnel.in_port);
-      server_tunnel->SetAccessListString(tunnel.acl);
-      // we don't want to stop existing connections on this tunnel so
-      // we DON'T call Stop() as it will call ClearHandlers()
-      // this updates the server tunnel stuff
-      // TODO(unassigned): fix confusing name (Apply instead of Start)
+      server_tunnel->SetACL();
+      // TODO(unassigned): since we don't want to stop existing connections on
+      // this tunnel we want to stay away from clearing any handlers
+      // (e.g., not calling any stop function) but we need to ensure that
+      // the previous bound port is also closed. Needs Review.
+      // TODO(unassigned): consider alternative name (Apply instead of Start)
       m_ServerTunnels[ident]->Start();
     }
   } catch (std::ios_base::failure&) {
-      // Key file does not exist, let's say it's new, create it later
-      create_tunnel = true;
-  }
+    // Key file does not exist (assuming the tunnel is new)
+    create_tunnel = true;
+  }  // TODO(anonimal): catch more
   if (create_tunnel) {
       // TODO(anonimal): implement tunnel creation function
       // Create the server tunnel
@@ -309,7 +311,7 @@ void ClientContext::UpdateServerTunnel(
       auto server_tunnel = is_http
           ? std::make_unique<I2PServerTunnelHTTP>(tunnel, local_destination)
           : std::make_unique<I2PServerTunnel>(tunnel, local_destination);
-      server_tunnel->SetAccessListString(tunnel.acl);
+      server_tunnel->SetACL();
       // Add the server tunnel
       InsertServerTunnel(local_destination->GetIdentHash(), std::move(server_tunnel));
       // Start the new server tunnel

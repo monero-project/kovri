@@ -51,13 +51,22 @@
 namespace kovri {
 namespace client {
 
+/// @class ACL
+/// @brief Access Control List for tunnel attributes
+struct ACL {
+  ACL() : is_white(false), is_black(false) {}
+  std::string list;
+  bool is_white, is_black;
+};
+
 /// @class TunnelAttributes
 /// @brief Attributes for client/server tunnel
 /// @notes For details, see tunnels configuration key
 struct TunnelAttributes {
   TunnelAttributes() : port(0), dest_port(0), in_port(0) {}
-  std::string name, type, dest, address, keys, acl;
+  std::string name, type, dest, address, keys;
   std::uint16_t port, dest_port, in_port;
+  ACL acl{};
 };
 
 const std::size_t I2P_TUNNEL_CONNECTION_BUFFER_SIZE = 8192;
@@ -190,12 +199,33 @@ class I2PServerTunnel : public I2PService {
 
   void Stop();
 
-  void SetAccessList(
-      const std::set<kovri::core::IdentHash>& access_list);
+  /// @brief Set tunnel attributes
+  /// @param tunnel Initialized/populated tunnel attributes class
+  void SetTunnelAttributes(
+      const TunnelAttributes& tunnel) noexcept {
+    m_TunnelAttributes = tunnel;
+  }
 
-  // set access list given csv
-  void SetAccessListString(
-      const std::string& idents_str);
+  /// @brief Return tunnel attributes class member
+  /// @return Const reference to member
+  const TunnelAttributes& GetTunnelAttributes() noexcept {
+    return m_TunnelAttributes;
+  }
+
+  /// @brief Set the Access Control List given in tunnel attributes
+  void SetACL();
+
+  /// @brief Return populated Access Control List
+  /// @return Const reference to member
+  const std::set<kovri::core::IdentHash>& GetACL() noexcept {
+    return m_ACL;
+  }
+
+  /// @brief Enforce Access Control List: whitelist/blacklist/no list
+  /// @param stream Shared pointer to client stream
+  /// @return False If ACL applies to stream (and stream should be closed)
+  bool EnforceACL(
+    std::shared_ptr<kovri::client::Stream> stream);
 
   std::string GetAddress() const {
     return m_Address;
@@ -244,10 +274,12 @@ class I2PServerTunnel : public I2PService {
   std::string m_Address;
   std::string m_TunnelName;
   int m_Port;
+  TunnelAttributes m_TunnelAttributes;
   boost::asio::ip::tcp::endpoint m_Endpoint;
   std::shared_ptr<kovri::client::StreamingDestination> m_PortDestination;
-  std::set<kovri::core::IdentHash> m_AccessList;
-  bool m_IsAccessList;
+  /// @var m_ACL
+  /// @brief Access Control List for inbound streaming connections
+  std::set<kovri::core::IdentHash> m_ACL;
 };
 
 class I2PServerTunnelHTTP: public I2PServerTunnel {

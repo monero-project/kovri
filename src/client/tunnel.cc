@@ -400,10 +400,11 @@ I2PServerTunnel::I2PServerTunnel(
     const TunnelAttributes& tunnel,
     std::shared_ptr<ClientDestination> local_destination)
     : I2PService(local_destination),
+      // TODO(anonimal): see TODO about removing these individual attribute members
       m_Address(tunnel.address),
       m_TunnelName(tunnel.name),
       m_Port(tunnel.port),
-      m_IsAccessList(false) {
+      m_TunnelAttributes(tunnel) {
       m_PortDestination =
         local_destination->CreateStreamingDestination(
             tunnel.in_port > 0 ? tunnel.in_port : tunnel.port);  // TODO(anonimal): simply not null
@@ -518,10 +519,28 @@ void I2PServerTunnel::UpdateStreamingPort(
   }
 }
 
-void I2PServerTunnel::SetAccessList(
-    const std::set<kovri::core::IdentHash>& access_list) {
-  m_AccessList = access_list;
-  m_IsAccessList = true;
+// TODO(anonimal): separate parsing functionality (unit-testable), can be used elsewhere
+void I2PServerTunnel::SetACL() {
+  auto list = GetTunnelAttributes().acl.list;
+  if (list.empty()) {
+    // No list given, ignore
+    return;
+  }
+  std::set<kovri::core::IdentHash> idents;
+  if (list.length() > 0) {
+    std::size_t pos = 0, comma;
+    do {
+      comma = list.find(',', pos);
+      kovri::core::IdentHash ident;
+      ident.FromBase32(
+          list.substr(
+              pos,
+              comma != std::string::npos ? comma - pos : std::string::npos));
+      idents.insert(ident);
+      pos = comma + 1;
+    } while (comma != std::string::npos);
+  }
+  m_ACL = idents;
 }
 
 void I2PServerTunnel::Accept() {
@@ -548,18 +567,44 @@ void I2PServerTunnel::Accept() {
 void I2PServerTunnel::HandleAccept(
     std::shared_ptr<kovri::client::Stream> stream) {
   if (stream) {
-    if (m_IsAccessList) {
-      if (!m_AccessList.count(stream->GetRemoteIdentity().GetIdentHash())) {
-        LogPrint(eLogWarn,
-            "I2PServerTunnel: address ",
-            stream->GetRemoteIdentity().GetIdentHash().ToBase32(),
-            " is not in white list, incoming connection dropped");
-        stream->Close();
-        return;
-      }
-    }
+    if (!EnforceACL(stream))
+      return;
+    LogPrint(eLogDebug,
+        "I2PServerTunnel: creating connection with ",
+        stream->GetRemoteIdentity().GetIdentHash().ToBase32() + ".b32.i2p");
     CreateI2PConnection(stream);
   }
+}
+
+bool I2PServerTunnel::EnforceACL(
+    std::shared_ptr<kovri::client::Stream> stream) {
+  if (GetACL().empty()) {
+    LogPrint(eLogDebug, "I2PServerTunnel: ACL empty, continuing");
+    return true;
+  }
+  auto ident = stream->GetRemoteIdentity().GetIdentHash();
+  bool is_on_list = GetACL().count(ident);
+  auto b32 = ident.ToBase32() + ".b32.i2p";
+  LogPrint(eLogInfo, "I2PServerTunnel: enforcing ACL for ", b32);
+  if (GetTunnelAttributes().acl.is_white) {
+    LogPrint(eLogInfo, "I2PServerTunnel: whitelist enabled");
+    if (is_on_list) {
+      LogPrint(eLogInfo, "I2PServerTunnel: ", b32, " is on whitelist");
+      return true;
+    }
+    LogPrint(eLogWarn,
+        "I2PServerTunnel: ", b32, "is not on whitelist, dropping connection");
+  } else if (GetTunnelAttributes().acl.is_black) {
+    LogPrint(eLogInfo, "I2PServerTunnel: blacklist enabled");
+    if (!is_on_list) {
+      LogPrint(eLogInfo, "I2PServerTunnel: ", b32, " is not on blacklist");
+      return true;
+    }
+    LogPrint(eLogWarn,
+        "I2PServerTunnel: ", b32, " is on blacklist, dropping connection");
+  }
+  stream->Close();
+  return false;
 }
 
 void I2PServerTunnel::CreateI2PConnection(
@@ -594,26 +639,6 @@ void I2PServerTunnelHTTP::CreateI2PConnection(
         GetAddress());
   AddHandler(conn);
   conn->Connect();
-}
-void I2PServerTunnel::SetAccessListString(
-    const std::string& idents_str) {
-  std::set<kovri::core::IdentHash> idents;
-  if (idents_str.length() > 0) {
-    std::size_t pos = 0, comma;
-    do {
-      comma = idents_str.find(',', pos);
-      kovri::core::IdentHash ident;
-      ident.FromBase32(
-          idents_str.substr(
-              pos,
-              comma != std::string::npos ?
-                       comma - pos :
-                       std::string::npos));
-      idents.insert(ident);
-      pos = comma + 1;
-    } while (comma != std::string::npos);
-  }
-  SetAccessList(idents);
 }
 
 }  // namespace client

@@ -165,6 +165,7 @@ void Configuration::ParseTunnelsConfig() {
   // Parse on a per-section basis, store in tunnels config vector
   for (auto& section : pt) {
     kovri::client::TunnelAttributes tunnel{};
+    // TODO(anonimal): move into try block, fixes segfault
     tunnel.name = section.first;
     const auto& value = section.second;
     try {
@@ -180,7 +181,17 @@ void Configuration::ParseTunnelsConfig() {
                 || tunnel.type == GetTunnelParam(Key::HTTP)) {
         tunnel.in_port = value.get<std::uint16_t>(GetTunnelParam(Key::InPort), 0);
         tunnel.keys = value.get<std::string>(GetTunnelParam(Key::Keys));  // persistent private key
-        tunnel.acl = value.get<std::string>(GetTunnelParam(Key::ACL), "");
+        // Test/Get/Set for ACL
+        auto white = value.get<std::string>(GetTunnelParam(Key::Whitelist), "");
+        auto black = value.get<std::string>(GetTunnelParam(Key::Blacklist), "");
+        // Ignore blacklist if whitelist is given
+        if (!white.empty()) {
+          tunnel.acl.list = white;
+          tunnel.acl.is_white = true;
+        } else if (!black.empty()) {
+          tunnel.acl.list = black;
+          tunnel.acl.is_black = true;
+        }
       } else {
         throw std::runtime_error(
             "Configuration: unknown tunnel type="
@@ -268,8 +279,11 @@ const std::string Configuration::GetTunnelParam(Key key) {
     case Key::InPort:
       return "in_port";
       break;
-    case Key::ACL:
-      return "acl";
+    case Key::Whitelist:
+      return "white_list";
+      break;
+    case Key::Blacklist:
+      return "black_list";
       break;
     // Tunnel-agnostic
     case Key::Address:

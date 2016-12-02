@@ -75,9 +75,12 @@ enum struct Key : std::uint8_t {
   /// @var InPort
   /// @brief Key for I2P service port. If unset, should be the same as 'port'
   InPort,
-  /// @var ACL
-  /// @brief Key for access control list of I2P addresses for server tunnel
-  ACL,
+  /// @var Whitelist
+  /// @brief Key for Access Control whitelist of I2P addresses for server tunnel
+  Whitelist,
+  /// @var Blackslist
+  /// @brief Key for Access Control blacklist of I2P addresses for server tunnel
+  Blacklist,
   /// @var Port
   /// @brief Key for port of our listening client or server tunnel
   ///   (example: port 80 if you are hosting website)
@@ -89,7 +92,7 @@ enum struct Key : std::uint8_t {
 };
 
 /// @class Configuration
-/// @brief Configuration processing and implementation 
+/// @brief Configuration processing and implementation
 class Configuration {
  public:
    Configuration(

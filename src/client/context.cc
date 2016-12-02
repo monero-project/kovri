@@ -288,7 +288,7 @@ void ClientContext::UpdateServerTunnel(
     } else {
       // Server with this already exists, change the settings
       server_tunnel->UpdatePort(tunnel.port);
-      server_tunnel->UpdateAddress(tunnel.host);
+      server_tunnel->UpdateAddress(tunnel.address);
       server_tunnel->UpdateStreamingPort(tunnel.in_port);
       server_tunnel->SetAccessListString(tunnel.acl);
       // we don't want to stop existing connections on this tunnel so
@@ -331,17 +331,17 @@ void ClientContext::UpdateClientTunnel(
     // TODO(unassigned): use-case for remaining tunnel attributes?
     std::string current_addr = client_tunnel->GetAddress();
     boost::system::error_code ec;
-    auto next_addr = boost::asio::ip::address::from_string(tunnel.host, ec);
+    auto next_addr = boost::asio::ip::address::from_string(tunnel.address, ec);
     bool rebind = false;
     if (ec)  // New address is not an IP address, compare strings
-      rebind = (tunnel.host != current_addr);
+      rebind = (tunnel.address != current_addr);
     else  // New address is an IP address, compare endpoints
       rebind = (client_tunnel->GetEndpoint() == boost::asio::ip::tcp::endpoint(
           next_addr, tunnel.port));
     if (rebind) {
       // The IP address has changed, rebind
       try {
-        client_tunnel->Rebind(tunnel.host, tunnel.port);
+        client_tunnel->Rebind(tunnel.address, tunnel.port);
       } catch (std::exception& err) {
         LogPrint(eLogError,
             "ClientContext: failed to rebind ", tunnel.name, ": ", err.what());

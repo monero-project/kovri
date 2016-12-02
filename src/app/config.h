@@ -48,7 +48,7 @@ namespace kovri {
 namespace app {
 
 /// @enum Key
-/// @brief Tunnels config key for const tunnel param string
+/// @brief Tunnels config attribute key for const tunnel param string
 enum struct Key : std::uint8_t {
   /// @var Type
   /// @brief Key for type of tunnel  (client/server/HTTP, etc.)
@@ -63,7 +63,7 @@ enum struct Key : std::uint8_t {
   /// @brief Key for HTTP tunnel
   HTTP,
   /// @var Address
-  /// @brief Key for local client listening address that you'll connect to
+  /// @brief Key for local listening address that you or service connects to
   /// @notes Should default to 127.0.0.1
   Address,
   /// @var Dest
@@ -72,10 +72,6 @@ enum struct Key : std::uint8_t {
   /// @var DestPort
   /// @brief Key for I2P destination port used in destination
   DestPort,
-  /// @var Host
-  /// @brief Key for IP address of our local server (that we host)
-  /// @notes Should default to 127.0.0.1
-  Host,
   /// @var InPort
   /// @brief Key for I2P service port. If unset, should be the same as 'port'
   InPort,

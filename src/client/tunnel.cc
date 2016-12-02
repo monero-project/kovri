@@ -400,7 +400,7 @@ I2PServerTunnel::I2PServerTunnel(
     const TunnelAttributes& tunnel,
     std::shared_ptr<ClientDestination> local_destination)
     : I2PService(local_destination),
-      m_Address(tunnel.host),  // TODO(anonimal): a "host" key is confusing when "address" will do
+      m_Address(tunnel.address),
       m_TunnelName(tunnel.name),
       m_Port(tunnel.port),
       m_IsAccessList(false) {

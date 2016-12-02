@@ -169,27 +169,22 @@ void Configuration::ParseTunnelsConfig() {
     const auto& value = section.second;
     try {
       tunnel.type = value.get<std::string>(GetTunnelParam(Key::Type));
-      // Test which type of tunnel (client or server)
+      tunnel.address = value.get<std::string>(GetTunnelParam(Key::Address), "127.0.0.1");
+      tunnel.port = value.get<std::uint16_t>(GetTunnelParam(Key::Port));
+      // Test which type of tunnel (client or server), add unique attributes
       if (tunnel.type == GetTunnelParam(Key::Client)) {
         tunnel.dest = value.get<std::string>(GetTunnelParam(Key::Dest));
-        tunnel.port = value.get<std::uint16_t>(GetTunnelParam(Key::Port));
-        // Sets default if missing in file
-        tunnel.address = value.get<std::string>(GetTunnelParam(Key::Address), "127.0.0.1");
-        tunnel.keys = value.get<std::string>(GetTunnelParam(Key::Keys), "");
         tunnel.dest_port = value.get<std::uint16_t>(GetTunnelParam(Key::DestPort), 0);
+        tunnel.keys = value.get<std::string>(GetTunnelParam(Key::Keys), "");
       } else if (tunnel.type == GetTunnelParam(Key::Server)
                 || tunnel.type == GetTunnelParam(Key::HTTP)) {
-        tunnel.host = value.get<std::string>(GetTunnelParam(Key::Host));  // TODO(anonimal): a "host" key is confusing when "address" will do
-        tunnel.port = value.get<std::uint16_t>(GetTunnelParam(Key::Port));
-        tunnel.keys = value.get<std::string>(GetTunnelParam(Key::Keys));
-        // Sets default if missing in file
         tunnel.in_port = value.get<std::uint16_t>(GetTunnelParam(Key::InPort), 0);
+        tunnel.keys = value.get<std::string>(GetTunnelParam(Key::Keys));  // persistent private key
         tunnel.acl = value.get<std::string>(GetTunnelParam(Key::ACL), "");
       } else {
         throw std::runtime_error(
             "Configuration: unknown tunnel type="
             + tunnel.type + " of " + tunnel.name + " in " + file);
-	return;
       }
     } catch (const std::exception& ex) {
       throw std::runtime_error(
@@ -263,26 +258,23 @@ const std::string Configuration::GetTunnelParam(Key key) {
       return "http";
       break;
     // Client-tunnel specific
+    case Key::Dest:
+      return "dest";
+      break;
+    case Key::DestPort:
+      return "dest_port";
+      break;
+    // Server-tunnel specific
+    case Key::InPort:
+      return "in_port";
+      break;
+    case Key::ACL:
+      return "acl";
+      break;
+    // Tunnel-agnostic
     case Key::Address:
       return "address";
       break;
-    case Key::Dest:
-      return "destination";
-      break;
-    case Key::DestPort:
-      return "destinationport";
-      break;
-    // Server-tunnel specific
-    case Key::Host:
-      return "host";
-      break;
-    case Key::InPort:
-      return "inport";
-      break;
-    case Key::ACL:
-      return "accesslist";
-      break;
-    // Tunnel-agnostic
     case Key::Port:
       return "port";
       break;

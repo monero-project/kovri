@@ -56,7 +56,7 @@ namespace client {
 /// @notes For details, see tunnels configuration key
 struct TunnelAttributes {
   TunnelAttributes() : port(0), dest_port(0), in_port(0) {}
-  std::string name, type, dest, address, keys, host, acl;
+  std::string name, type, dest, address, keys, acl;
   std::uint16_t port, dest_port, in_port;
 };
 

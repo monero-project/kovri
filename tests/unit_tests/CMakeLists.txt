@@ -1,5 +1,6 @@
 set(TESTS_CLIENT
   "client/reseed.cc"
+  "client/util/csv.cc"
   "client/util/http.cc"
   "client/util/zip.cc")
 

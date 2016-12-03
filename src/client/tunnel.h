@@ -180,9 +180,13 @@ class I2PClientTunnel : public TCPIPAcceptor {
   std::string GetName() const;
 
  private:
+  /// @brief Gets identity of membered destination
+  /// @return Unique pointer to ident hash
+  std::unique_ptr<const kovri::core::IdentHash> GetIdentHash();
+
+ private:
   // TODO(anonimal): we only need one tunnel attribute's class member.
   // From there, we can also refactor the getter functions
-  std::unique_ptr<const kovri::core::IdentHash> GetIdentHash();
   std::string m_TunnelName;
   std::string m_Destination;
   std::unique_ptr<const kovri::core::IdentHash> m_DestinationIdentHash;

@@ -368,7 +368,7 @@ void I2PClientTunnel::Stop() {
   m_DestinationIdentHash.reset(nullptr);
 }
 
-/* HACK: maybe we should create a caching IdentHash provider in AddressBook */
+// TODO(unassigned): HACK: maybe we should create a caching IdentHash provider in AddressBook?
 std::unique_ptr<const kovri::core::IdentHash> I2PClientTunnel::GetIdentHash() {
   if (!m_DestinationIdentHash) {
     kovri::core::IdentHash ident_hash;
@@ -527,6 +527,7 @@ void I2PServerTunnel::SetACL() {
     return;
   }
   std::set<kovri::core::IdentHash> idents;
+  // TODO(anonimal): use new CSV utility function
   if (list.length() > 0) {
     std::size_t pos = 0, comma;
     do {

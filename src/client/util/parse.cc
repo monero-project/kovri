@@ -30,59 +30,80 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include <boost/test/unit_test.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/lexical_cast.hpp>
 
-#include "client/util/csv.h"
+#include <string>
+#include <vector>
 
-BOOST_AUTO_TEST_SUITE(CSVTest)
+#include "client/util/parse.h"
 
-// TODO(unassigned): improve + refactor to expand test-cases
+#include "core/util/log.h"
 
-/// @brief Creates a test vector fixture with given string and count
-const std::vector<std::string> CreateTestFixture(
-    const std::string& fixture,
-    const std::size_t count) {
-  std::vector<std::string> test;
-  for (std::size_t i = 0; i < count; i++)
-    test.push_back(std::string(fixture + std::to_string(i)));
-  return test;
+namespace kovri {
+namespace client {
+
+// TODO(unassigned): boost::split refactor? If so, then pass custom delimiter and
+// rename function. If there are not many use-cases, simply use directly within
+// implementation and remove this unit-test.
+const std::vector<std::string> ParseCSV(
+    const std::string& record) {
+  std::vector<std::string> parsed;
+  if (!record.empty()) {
+    std::size_t pos = 0, comma;
+    do {
+      comma = record.find(',', pos);
+      auto value =
+        record.substr(
+            pos,
+            comma != std::string::npos ? comma - pos : std::string::npos);
+      parsed.push_back(value);
+      pos = comma + 1;
+    } while (comma != std::string::npos);
+  }
+  return parsed;
 }
 
-/// @brief Create CSV fixture from non-csv "test" fixture
-const std::vector<std::string> CreateCSVFixture(
-    const std::vector<std::string> fixture) {
-  std::vector<std::string> csv;
-  for (auto const& field : fixture)
-    csv.push_back(std::string(field + ","));
-  return csv;
+// TODO(anonimal): see TODO for this declaration
+void ParseClientDestination(
+    TunnelAttributes* tunnel) {
+  // Get all destination(s)
+  auto parsed = ParseCSV(tunnel->dest);
+  // Pick random destination (if applicable)
+  if (parsed.size() > 1) {
+    // Shuffle to ensure all destinations are accessible
+    // TODO(anonimal): review RandInRange() so we don't need to shuffle
+    kovri::core::Shuffle(parsed.begin(), parsed.end());
+    tunnel->dest =
+      parsed.at(kovri::core::RandInRange<std::size_t>(0, parsed.size() - 1));
+  }
+  LogPrint(eLogDebug, "Client: parsing destination ", tunnel->dest);
+  // If dest has port appended to it, replace previously set dest port
+  std::vector<std::string> dest;
+  boost::split(dest, tunnel->dest, boost::is_any_of(":"));
+  // Return if parsed destination doesn't have port field
+  if (dest.size() <= 1)
+    return;
+  try {
+    // Address book is designed (should be) to handle legitimacy of destination
+    // TODO(unassigned): a catch-all utility function to verify would be useful
+    tunnel->dest = dest.at(0);
+    tunnel->dest_port = boost::lexical_cast<std::uint16_t>(dest.at(1));
+    LogPrint(eLogDebug,
+        "Client: using ", tunnel->dest, " port ", tunnel->dest_port);
+  } catch (const boost::bad_lexical_cast& ex) {
+    throw std::runtime_error(
+        "Client: destination port " + std::string(ex.what()));
+  } catch (const std::exception& ex) {
+    throw std::runtime_error(
+        "Client: exception in " + std::string(__func__)
+        + ": " + std::string(ex.what()));
+  } catch (...) {
+    throw std::runtime_error(
+        "Client: unknown exception in " + std::string(__func__));
+  }
 }
 
-/// @brief Create record from fixture
-const std::string CreateRecord(
-    const std::vector<std::string>& fixture) {
-  std::string record;
-  for (auto const& field : fixture)
-    record.append(field);
-  return record;
-}
-
-// TODO(unassigned): improve + refactor to expand test-cases
-
-BOOST_AUTO_TEST_CASE(CSVParse) {
-  // Create test fixture
-  auto test_fixture = CreateTestFixture("test", 10);
-
-  // Create test record to test against parsed record
-  auto test_record = CreateRecord(test_fixture);
-
-  // Create CSV record to parse
-  auto csv_record = CreateRecord(CreateCSVFixture(test_fixture));
-
-  // Get final parsed record, should return equivalent of test fixture
-  auto final_record = CreateRecord(kovri::client::ParseCSV(csv_record));
-
-  // Test against original test record
-  BOOST_CHECK_EQUAL(final_record, test_record);
-}
-
-BOOST_AUTO_TEST_SUITE_END()
+}  // namespace client
+}  // namespace kovri

@@ -30,28 +30,34 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "client/util/csv.h"
+#ifndef SRC_CLIENT_UTIL_PARSE_H_
+#define SRC_CLIENT_UTIL_PARSE_H_
+
+#include <string>
+#include <vector>
+
+#include "client/tunnel.h"
 
 namespace kovri {
 namespace client {
 
+/// @brief Parses CSV string
+/// @param record String record of CSV
+/// @return Vector of parsed values
 const std::vector<std::string> ParseCSV(
-    const std::string& record) {
-  std::vector<std::string> parsed;
-  if (!record.empty()) {
-    std::size_t pos = 0, comma;
-    do {
-      comma = record.find(',', pos);
-      auto value =
-        record.substr(
-            pos,
-            comma != std::string::npos ? comma - pos : std::string::npos);
-      parsed.push_back(value);
-      pos = comma + 1;
-    } while (comma != std::string::npos);
-  }
-  return parsed;
-}
+    const std::string& record);
+
+/// @brief Parse for multiple CSV destination(s) and also dest:port
+/// @details Free function used solely for configuration which shows that we
+///   need to move nearly everything useful out of app and into client because:
+///   A. we need to, and placing this outside of class Configuration is a hack
+///      until further use-cases can be proven
+///   B. for unit-tests unless we want to hack our way into linking against app
+/// @param tunnel Raw pointer to tunnel attributes
+void ParseClientDestination(
+    TunnelAttributes* tunnel);
 
 }  // namespace client
 }  // namespace kovri
+
+#endif  // SRC_CLIENT_UTIL_PARSE_H_

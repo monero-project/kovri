@@ -39,8 +39,9 @@
 #include <memory>
 #include <vector>
 
-#include "core/crypto/rand.h"
+#include "client/util/parse.h"
 
+#include "core/crypto/rand.h"
 #include "core/util/log.h"
 
 namespace kovri {
@@ -176,9 +177,10 @@ void Configuration::ParseTunnelsConfig() {
       // Test which type of tunnel (client or server), add unique attributes
       if (tunnel.type == GetAttribute(Key::Client)) {
         tunnel.dest = value.get<std::string>(GetAttribute(Key::Dest));
-        // TODO(anonimal): parse destination for CSV
         tunnel.dest_port = value.get<std::uint16_t>(GetAttribute(Key::DestPort), 0);
         tunnel.keys = value.get<std::string>(GetAttribute(Key::Keys), "");
+        // Parse for CSV destinations + dest:port, then set appropriately
+        ParseClientDestination(&tunnel);
       } else if (tunnel.type == GetAttribute(Key::Server)
                 || tunnel.type == GetAttribute(Key::HTTP)) {
         tunnel.in_port = value.get<std::uint16_t>(GetAttribute(Key::InPort), 0);

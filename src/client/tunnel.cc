@@ -39,6 +39,7 @@
 
 #include "client/context.h"
 #include "client/destination.h"
+#include "client/util/csv.h"
 
 #include "core/util/log.h"
 
@@ -519,28 +520,23 @@ void I2PServerTunnel::UpdateStreamingPort(
   }
 }
 
-// TODO(anonimal): separate parsing functionality (unit-testable), can be used elsewhere
 void I2PServerTunnel::SetACL() {
+  // Get tunnel CSV list of ACL
   auto list = GetTunnelAttributes().acl.list;
   if (list.empty()) {
-    // No list given, ignore
+    // No CSV list given, ignore
     return;
   }
+  // Get parsed CSV
+  auto parsed = kovri::client::ParseCSV(list);
+  // Get b32 of each value
   std::set<kovri::core::IdentHash> idents;
-  // TODO(anonimal): use new CSV utility function
-  if (list.length() > 0) {
-    std::size_t pos = 0, comma;
-    do {
-      comma = list.find(',', pos);
-      kovri::core::IdentHash ident;
-      ident.FromBase32(
-          list.substr(
-              pos,
-              comma != std::string::npos ? comma - pos : std::string::npos));
-      idents.insert(ident);
-      pos = comma + 1;
-    } while (comma != std::string::npos);
+  for (auto const& p : parsed) {
+    kovri::core::IdentHash ident;
+    ident.FromBase32(p);
+    idents.insert(ident);
   }
+  // Set ACL
   m_ACL = idents;
 }
 

@@ -74,6 +74,9 @@ bool DaemonSingleton::Config(
   }
   // Set daemon mode (if applicable)
   m_IsDaemon = m_Instance->GetConfig().GetParsedKovriConfig().at("daemon").as<bool>();
+#ifdef _WIN32
+  m_Service = m_Instance->GetConfig().GetParsedKovriConfig().at("service").as<std::string>();
+#endif
   return true;
 }
 

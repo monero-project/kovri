@@ -60,9 +60,7 @@ bool DaemonWin32::Init() {
     m_IsDaemon = true;
   else
     m_IsDaemon = false;
-  std::string service_control =
-    kovri::app::VarMap["service"].as<std::string>();
-  if (service_control == "install") {
+  if (m_Service == "install") {
     InstallService(
         SERVICE_NAME,               // Name of service
         SERVICE_DISPLAY_NAME,       // Name to display
@@ -71,7 +69,7 @@ bool DaemonWin32::Init() {
         SERVICE_ACCOUNT,            // Service running account
         SERVICE_PASSWORD);          // Password of the account
     exit(0);
-  } else if (service_control == "remove") {
+  } else if (m_Service == "remove") {
     UninstallService(SERVICE_NAME);
     exit(0);
   }

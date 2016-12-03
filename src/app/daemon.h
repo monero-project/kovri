@@ -72,6 +72,10 @@ class DaemonSingleton {
 
   bool m_IsDaemon, m_IsRunning;
 
+#ifdef _WIN32
+  std::string m_Service;
+#endif
+
   /// @var m_Instance
   /// @brief Unique pointer to instance object (client/router)
   std::unique_ptr<Instance> m_Instance;

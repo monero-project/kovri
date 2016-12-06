@@ -152,7 +152,8 @@ void Instance::SetupTunnels() {
   for (auto const& tunnel : m_Config.GetParsedTunnelsConfig()) {
     try {
       // Test which type of tunnel (client or server)
-      if (tunnel.type == GetConfig().GetAttribute(Key::Client)) {
+      if (tunnel.type == GetConfig().GetAttribute(Key::Client)
+          ||tunnel.type == GetConfig().GetAttribute(Key::IRC)) {  // TODO(unassigned): see #9
         if (m_IsReloading) {
           auto client_tunnel = kovri::client::context.GetClientTunnel(tunnel.port);
           if (client_tunnel && client_tunnel->GetName() != tunnel.name) {

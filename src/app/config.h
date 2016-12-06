@@ -56,6 +56,9 @@ enum struct Key : std::uint8_t {
   /// @var Client
   /// @brief Key for client tunnel
   Client,
+  /// @var IRC
+  /// @brief Key for IRC tunnel
+  IRC,
   /// @var Server
   /// @brief Key for server tunnel
   Server,

@@ -175,7 +175,8 @@ void Configuration::ParseTunnelsConfig() {
       tunnel.address = value.get<std::string>(GetAttribute(Key::Address), "127.0.0.1");
       tunnel.port = value.get<std::uint16_t>(GetAttribute(Key::Port));
       // Test which type of tunnel (client or server), add unique attributes
-      if (tunnel.type == GetAttribute(Key::Client)) {
+      if (tunnel.type == GetAttribute(Key::Client)
+          || tunnel.type == GetAttribute(Key::IRC)) {
         tunnel.dest = value.get<std::string>(GetAttribute(Key::Dest));
         tunnel.dest_port = value.get<std::uint16_t>(GetAttribute(Key::DestPort), 0);
         tunnel.keys = value.get<std::string>(GetAttribute(Key::Keys), "");
@@ -265,6 +266,9 @@ const std::string Configuration::GetAttribute(Key key) {
       break;
     case Key::Client:
       return "client";
+      break;
+    case Key::IRC:
+      return "irc";
       break;
     case Key::Server:
       return "server";

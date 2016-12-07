@@ -59,6 +59,7 @@ struct ACL {
   bool is_white, is_black;
 };
 
+// TODO(anonimal): signature type (see #369)
 /// @class TunnelAttributes
 /// @brief Attributes for client/server tunnel
 /// @notes For details, see tunnels configuration key
@@ -82,7 +83,7 @@ class I2PTunnelConnection
       I2PService* owner,
       std::shared_ptr<boost::asio::ip::tcp::socket> socket,
       std::shared_ptr<const kovri::core::LeaseSet> lease_set,
-      int port = 0);
+      std::uint16_t port = 0);
 
   // To I2P using simplified API
   I2PTunnelConnection(
@@ -162,12 +163,8 @@ class I2PTunnelConnectionHTTP: public I2PTunnelConnection {
   bool m_HeaderSent;
 };
 
+/// @class I2PClientTunnel
 class I2PClientTunnel : public TCPIPAcceptor {
- protected:
-  // Implements TCPIPAcceptor
-  std::shared_ptr<I2PServiceHandler> CreateHandler(
-      std::shared_ptr<boost::asio::ip::tcp::socket> socket);
-
  public:
   I2PClientTunnel(
       const TunnelAttributes& tunnel,
@@ -175,33 +172,83 @@ class I2PClientTunnel : public TCPIPAcceptor {
 
   ~I2PClientTunnel() {}
 
+  /// @brief Starts TCP/IP acceptor, client tunnel startup
   void Start();
+
+  /// @brief Stops TCP/IP acceptor, client tunnel cleanup
   void Stop();
-  std::string GetName() const;
+
+  /// @brief Get tunnel attributes class member
+  /// @return Const reference to member
+  const TunnelAttributes& GetTunnelAttributes() noexcept {
+    return m_TunnelAttributes;
+  }
+
+  // TODO(unassigned): must this function be virtual? Can we extend tunnel attributes?
+  /// @brief Returns tunnel name
+  std::string GetName() const {
+    return m_TunnelAttributes.name;
+  }
+
+ protected:
+  /// @brief Implements TCPIPAcceptor
+  std::shared_ptr<I2PServiceHandler> CreateHandler(
+      std::shared_ptr<boost::asio::ip::tcp::socket> socket);
 
  private:
-  /// @brief Gets identity of membered destination
+  /// @var m_TunnelAttributes
+  /// @brief Client tunnel attributes
+  TunnelAttributes m_TunnelAttributes;
+
+  /// @brief Gets ident hash of tunnel attribute remote destination
   /// @return Unique pointer to ident hash
-  std::unique_ptr<const kovri::core::IdentHash> GetIdentHash();
+  std::unique_ptr<const kovri::core::IdentHash> GetDestIdentHash();
 
- private:
-  // TODO(anonimal): we only need one tunnel attribute's class member.
-  // From there, we can also refactor the getter functions
-  std::string m_TunnelName;
-  std::string m_Destination;
+  /// @brief Destination ident hash
   std::unique_ptr<const kovri::core::IdentHash> m_DestinationIdentHash;
-  int m_DestinationPort;
 };
 
+// TODO(anonimal): more documentation
+/// @class I2PClientTunnelHandler
+/// @brief Establishes a connection with the desired destination
+class I2PClientTunnelHandler
+    : public I2PServiceHandler,
+      public std::enable_shared_from_this<I2PClientTunnelHandler> {
+ public:
+  I2PClientTunnelHandler(
+      I2PClientTunnel* parent,
+      kovri::core::IdentHash destination,
+      std::uint16_t destination_port,
+      std::shared_ptr<boost::asio::ip::tcp::socket> socket);
+
+  void Handle();
+
+  void Terminate();
+
+ private:
+  void HandleStreamRequestComplete(std::shared_ptr<kovri::client::Stream> stream);
+  kovri::core::IdentHash m_DestinationIdentHash;
+  std::uint16_t m_DestinationPort;
+  std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
+};
+
+/// @class I2PServerTunnel
 class I2PServerTunnel : public I2PService {
  public:
   I2PServerTunnel(
       const TunnelAttributes& tunnel,
       std::shared_ptr<ClientDestination> local_destination);
 
+  /// @brief Starts resolver, server tunnel startup
   void Start();
 
+  /// @brief Server tunnel shutdown, cleanup
   void Stop();
+
+  /// @brief Updates server tunnel with new set tunnel attributes
+  /// @param tunnel Tunnel attributes to update with
+  void UpdateServerTunnel(
+      const TunnelAttributes& tunnel);
 
   /// @brief Set tunnel attributes
   /// @param tunnel Initialized/populated tunnel attributes class
@@ -231,62 +278,58 @@ class I2PServerTunnel : public I2PService {
   bool EnforceACL(
     std::shared_ptr<kovri::client::Stream> stream);
 
-  std::string GetAddress() const {
-    return m_Address;
+  // TODO(unassigned): must this function be virtual? Can we extend tunnel attributes?
+  /// @brief Returns tunnel name
+  std::string GetName() const {
+    return m_TunnelAttributes.name;
   }
 
-  // update the address of this server tunnel
-  void UpdateAddress(
-      const std::string& addr);
-
-  int GetPort() const {
-    return m_Port;
-  }
-
-  // update the out port of this server tunnel
-  void UpdatePort(
-      int port);
-
-  // update the streaming destination's port
-  void UpdateStreamingPort(
-      int port) const;
-
-  const boost::asio::ip::tcp::endpoint& GetEndpoint() const {
+  /// @brief Gets endpoint object
+  /// @return Const reference to endpoint object
+  const boost::asio::ip::tcp::endpoint& GetEndpoint() noexcept {
     return m_Endpoint;
   }
 
-  std::string GetName() const;
-
  private:
+  /// @brief Handles server tunnel endpoint resolution
   void HandleResolve(
       const boost::system::error_code& ecode,
       boost::asio::ip::tcp::resolver::iterator it,
       std::shared_ptr<boost::asio::ip::tcp::resolver> resolver,
       bool accept_after = true);
 
+  /// @brief Prepares for streaming connection handling
   void Accept();
 
+  /// @brief Handles streaming connection
   void HandleAccept(
       std::shared_ptr<kovri::client::Stream> stream);
 
+  /// @brief Creates Streaming connection for inbound in-net connection attempts
+  /// @param stream Shared pointer to stream object
   virtual void CreateI2PConnection(
       std::shared_ptr<kovri::client::Stream> stream);
 
  private:
-  // TODO(anonimal): we only need one tunnel attribute's class member.
-  // From there, we can also refactor the getter functions
-  std::string m_Address;
-  std::string m_TunnelName;
-  int m_Port;
+  /// @var m_TunnelAttributes
+  /// @brief Server tunnel attributes
   TunnelAttributes m_TunnelAttributes;
+
+  /// @var m_Endpoint
+  /// @brief Endpoint for interface binding
   boost::asio::ip::tcp::endpoint m_Endpoint;
+
+  /// @var m_PortDestination
+  /// @brief Used to connect Streaming handling to server tunnel port handling
   std::shared_ptr<kovri::client::StreamingDestination> m_PortDestination;
+
   /// @var m_ACL
   /// @brief Access Control List for inbound streaming connections
   std::set<kovri::core::IdentHash> m_ACL;
 };
 
-class I2PServerTunnelHTTP: public I2PServerTunnel {
+/// @class I2PServerTunnelHTTP
+class I2PServerTunnelHTTP : public I2PServerTunnel {
  public:
   I2PServerTunnelHTTP(
       const TunnelAttributes& tunnel,

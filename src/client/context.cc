@@ -61,6 +61,7 @@ ClientContext::~ClientContext() {
   m_Service.stop();
 }
 
+// TODO(anonimal): nearly all Start/Stop handlers throughout the code-base should be replaced with proper RAII
 void ClientContext::Start() {
   if (!m_SharedLocalDestination) {
     m_SharedLocalDestination = CreateNewLocalDestination();  // Non-public
@@ -87,6 +88,7 @@ void ClientContext::Start() {
   m_AddressBook.Start(m_SharedLocalDestination);
 }
 
+// TODO(anonimal): nearly all Start/Stop handlers throughout the code-base should be replaced with proper RAII
 void ClientContext::Stop() {
   std::lock_guard<std::mutex> lockClient(m_ClientMutex);
   std::lock_guard<std::mutex> lockServer(m_ServerMutex);
@@ -286,12 +288,9 @@ void ClientContext::UpdateServerTunnel(
       // Server with this name does not exist, create it later
       create_tunnel = true;
     } else {
-      // Server already exists, change the settings
-      // TODO(anonimal): we don't need all of these functions; consolidate and set new tunnel attributes
-      server_tunnel->UpdatePort(tunnel.port);
-      server_tunnel->UpdateAddress(tunnel.address);
-      server_tunnel->UpdateStreamingPort(tunnel.in_port);
-      server_tunnel->SetACL();
+      // Server exists, update tunnel attributes and re-bind tunnel
+      // Note: all type checks, etc. are already completed in config handling
+      server_tunnel->UpdateServerTunnel(tunnel);
       // TODO(unassigned): since we don't want to stop existing connections on
       // this tunnel we want to stay away from clearing any handlers
       // (e.g., not calling any stop function) but we need to ensure that
@@ -302,7 +301,14 @@ void ClientContext::UpdateServerTunnel(
   } catch (std::ios_base::failure&) {
     // Key file does not exist (assuming the tunnel is new)
     create_tunnel = true;
-  }  // TODO(anonimal): catch more
+  } catch (const std::exception& ex) {
+    throw std::runtime_error(
+        "ClientContext: exception in " + std::string(__func__)
+        + ": " + std::string(ex.what()));
+  } catch (...) {
+    throw std::runtime_error(
+        "ClientContext: unknown exception in " + std::string(__func__));
+  }
   if (create_tunnel) {
       // TODO(anonimal): implement tunnel creation function
       // Create the server tunnel
@@ -311,7 +317,6 @@ void ClientContext::UpdateServerTunnel(
       auto server_tunnel = is_http
           ? std::make_unique<I2PServerTunnelHTTP>(tunnel, local_destination)
           : std::make_unique<I2PServerTunnel>(tunnel, local_destination);
-      server_tunnel->SetACL();
       // Add the server tunnel
       InsertServerTunnel(local_destination->GetIdentHash(), std::move(server_tunnel));
       // Start the new server tunnel

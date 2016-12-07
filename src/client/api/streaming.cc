@@ -53,7 +53,7 @@ Stream::Stream(
     boost::asio::io_service& service,
     StreamingDestination& local,
     std::shared_ptr<const kovri::core::LeaseSet> remote,
-    int port)
+    std::uint16_t port)
     : m_Service(service),
       m_SendStreamID(0),
       m_SequenceNumber(0),
@@ -926,7 +926,7 @@ void StreamingDestination::HandleNextPacket(
 
 std::shared_ptr<Stream> StreamingDestination::CreateNewOutgoingStream(
     std::shared_ptr<const kovri::core::LeaseSet> remote,
-    int port) {
+    std::uint16_t port) {
   auto s = std::make_shared<Stream>(m_Owner.GetService(), *this, remote, port);
   std::unique_lock<std::mutex> l(m_StreamsMutex);
   m_Streams[s->GetReceiveStreamID()] = s;

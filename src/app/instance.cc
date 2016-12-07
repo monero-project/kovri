@@ -200,7 +200,6 @@ void Instance::SetupTunnels() {
         auto server_tunnel = is_http
           ? std::make_unique<kovri::client::I2PServerTunnelHTTP>(tunnel, local_destination)
           : std::make_unique<kovri::client::I2PServerTunnel>(tunnel, local_destination);
-        server_tunnel->SetACL();
         // Insert server tunnel
         bool result = kovri::client::context.InsertServerTunnel(
             local_destination->GetIdentHash(),
@@ -247,14 +246,14 @@ void Instance::RemoveOldTunnels(
         return std::find(
             updated_tunnels.begin(),
             updated_tunnels.end(),
-            tunnel->GetName()) == updated_tunnels.end();
+            tunnel->GetTunnelAttributes().name) == updated_tunnels.end();
       });
   kovri::client::context.RemoveClientTunnels(
       [&updated_tunnels](kovri::client::I2PClientTunnel* tunnel) {
         return std::find(
             updated_tunnels.begin(),
             updated_tunnels.end(),
-            tunnel->GetName()) == updated_tunnels.end();
+            tunnel->GetTunnelAttributes().name) == updated_tunnels.end();
       });
 }
 

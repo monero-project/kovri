@@ -65,7 +65,7 @@ const std::vector<std::string> ParseCSV(
   return parsed;
 }
 
-// TODO(anonimal): see TODO for this declaration
+// TODO(anonimal): see TODO in declaration
 void ParseClientDestination(
     TunnelAttributes* tunnel) {
   // Get all destination(s)

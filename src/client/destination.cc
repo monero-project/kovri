@@ -539,7 +539,7 @@ void ClientDestination::HandleDataMessage(
 void ClientDestination::CreateStream(
     StreamRequestComplete stream_request_complete,
     const kovri::core::IdentHash& dest,
-    int port) {
+    std::uint16_t port) {
   assert(stream_request_complete);
   auto lease_set = FindLeaseSet(dest);
   if (lease_set) {
@@ -565,7 +565,7 @@ void ClientDestination::CreateStream(
 
 std::shared_ptr<kovri::client::Stream> ClientDestination::CreateStream(
     std::shared_ptr<const kovri::core::LeaseSet> remote,
-    int port) {
+    std::uint16_t port) {
   if (m_StreamingDestination)
     return m_StreamingDestination->CreateNewOutgoingStream(remote, port);
   else
@@ -573,7 +573,7 @@ std::shared_ptr<kovri::client::Stream> ClientDestination::CreateStream(
 }
 
 std::shared_ptr<kovri::client::StreamingDestination> ClientDestination::GetStreamingDestination(
-    int port) const {
+    std::uint16_t port) const {
   if (port) {
     auto it = m_StreamingDestinationsByPorts.find(port);
     if (it != m_StreamingDestinationsByPorts.end())
@@ -601,7 +601,7 @@ bool ClientDestination::IsAcceptingStreams() const {
 }
 
 std::shared_ptr<kovri::client::StreamingDestination> ClientDestination::CreateStreamingDestination(
-    int port) {
+    std::uint16_t port) {
   auto dest =
     std::make_shared<kovri::client::StreamingDestination> (
         *this,

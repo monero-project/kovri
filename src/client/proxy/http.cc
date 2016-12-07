@@ -84,9 +84,10 @@ void HTTPProxyHandler::AsyncSockRead() {
   //   00:27 < zzz2> for a full threat model including "slowloris" attacks, you need to 
   //   enforce max header lines, max header line length, and a total header timeout
   //  00:27 < zzz2> (in addition to the typical read timeout)
+  //  read in header until \r\n\r\n, then read in small portions of body and forward along
   if (m_Socket) {
     // Read the response headers, which are terminated by a blank line.
-    boost::asio::read_until(m_Socket, m_Buffer, "\r\n\r\n",error);
+    boost::asio::read(*m_Socket, m_Buffer,boost::asio::transfer_at_least(1),error);
     if (error == boost::asio::error::eof) {
       LogPrint(eLogError, "HTTPProxyHandler: error reading socket");
       Terminate();
@@ -101,9 +102,9 @@ void HTTPProxyHandler::AsyncSockRead() {
 void HTTPProxyHandler::HandleSockRecv() {
   LogPrint(eLogDebug, "HTTPProxyHandler: sock recv: ", m_Buffer.size());
   boost::asio::streambuf::const_buffers_type bufs = m_Buffer.data();
-  std::string headerData(boost::asio::buffers_begin(bufs), 
+  std::string buffer(boost::asio::buffers_begin(bufs), 
       boost::asio::buffers_begin(bufs) + m_Buffer.size());
-  if (m_Protocol.HandleData(headerData )) {
+  if (m_Protocol.HandleData(buffer )) {
       if (m_Protocol.CreateHTTPRequest()) {
       LogPrint(eLogInfo, "HTTPProxyHandler: proxy requested: ",
           m_Protocol.m_URL);
@@ -163,7 +164,13 @@ void HTTPProxyHandler::HandleStreamRequestComplete(
           m_Socket,
           stream);
     GetOwner()->AddHandler(connection);
-    connection->I2PConnectUnbuffered(m_Protocol.m_Request, m_Socket);
+    connection->I2PConnect(reinterpret_cast<const uint8_t * >(
+          m_Protocol.m_Request.c_str()), m_Protocol.m_Request.size());
+    // change here to read some body and send along instead of sending 
+    // entire body in one go.
+    // asyncsockread should be decoupled from HandleSockRecv.
+    // that way asyncsockread can be called here again to load another buffer.
+    // original /original
     Done(shared_from_this());
   } else {
     LogPrint(eLogError,
@@ -173,7 +180,6 @@ void HTTPProxyHandler::HandleStreamRequestComplete(
   }
 }
 /// @brief all this to change the useragent
-/// Reset/scrub User-Agent
 /// @param len length of string
 bool HTTPProtocol::CreateHTTPRequest() {
   if (!ExtractIncomingRequest())

@@ -37,24 +37,24 @@ BOOST_AUTO_TEST_SUITE(HTTPPProtocolTests)
 
 BOOST_AUTO_TEST_CASE(Short) {
   kovri::client::HTTPProtocol tmp;
-  std::uint8_t tmpData[]="GET anonimal.i2p http/1.1";
-  BOOST_CHECK(!tmp.HandleData(tmpData, sizeof(tmpData)));
+  std::string tmpData = "GET anonimal.i2p http/1.1";
+  BOOST_CHECK(!tmp.HandleData(tmpData ));
 }
 BOOST_AUTO_TEST_CASE(requestLineBad) {
   kovri::client::HTTPProtocol tmp;
-  std::uint8_t tmpData[]="GET http/1.1";
-  BOOST_CHECK(!tmp.HandleData(tmpData, sizeof(tmpData)));
+  std::string tmpData = "GET http/1.1";
+  BOOST_CHECK(!tmp.HandleData(tmpData));
 }
 BOOST_AUTO_TEST_CASE(noHeadersAtAll) {
   kovri::client::HTTPProtocol tmp;
-  std::uint8_t tmpData[]="\r\n";
-  BOOST_CHECK(!tmp.HandleData(tmpData, sizeof(tmpData)));
+  std::string tmpData = "\r\n";
+  BOOST_CHECK(!tmp.HandleData(tmpData));
 }
 BOOST_AUTO_TEST_CASE(ok) {
   kovri::client::HTTPProtocol tmp;
-  std::uint8_t tmpData[]=
-    "GET anonimal.i2p http/1.1\r\nUser-Agent: dummy\r\n\r\n";
-  BOOST_CHECK(tmp.HandleData(tmpData, sizeof(tmpData)));
+  std::string tmpData = "GET anonimal.i2p ";
+  tmpData+="http/1.1\r\nUser-Agent: dummy\r\n\r\n";
+  BOOST_CHECK(tmp.HandleData(tmpData));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

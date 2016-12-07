@@ -78,32 +78,32 @@ std::shared_ptr<kovri::client::I2PServiceHandler>
 }
 
 void HTTPProxyHandler::AsyncSockRead() {
+  boost::system::error_code error;
   LogPrint(eLogDebug, "HTTPProxyHandler: async sock read");
+  //  but there's also use cases where you are providing an inproxy service for others
+  //   00:27 < zzz2> for a full threat model including "slowloris" attacks, you need to 
+  //   enforce max header lines, max header line length, and a total header timeout
+  //  00:27 < zzz2> (in addition to the typical read timeout)
   if (m_Socket) {
-    m_Socket->async_receive(
-        boost::asio::buffer(
-            m_Buffer.data(),
-            m_Buffer.size()),
-        std::bind(
-            &HTTPProxyHandler::HandleSockRecv,
-            shared_from_this(),
-            std::placeholders::_1,
-            std::placeholders::_2));
+    // Read the response headers, which are terminated by a blank line.
+    boost::asio::read_until(m_Socket, m_Buffer, "\r\n\r\n",error);
+    if (error == boost::asio::error::eof) {
+      LogPrint(eLogError, "HTTPProxyHandler: error reading socket");
+      Terminate();
+      return;
+    }
   } else {
     LogPrint(eLogError, "HTTPProxyHandler: no socket for read");
   }
+  HandleSockRecv();
 }
-
-void HTTPProxyHandler::HandleSockRecv(
-    const boost::system::error_code& ecode,
-    std::size_t len) {
-  LogPrint(eLogDebug, "HTTPProxyHandler: sock recv: ", len);
-  if (ecode) {
-    LogPrint(eLogWarn, "HTTPProxyHandler: sock recv got error: ", ecode);
-          Terminate();
-    return;
-  }
-  if (m_Protocol.HandleData(m_Buffer.data(), len)) {
+ 
+void HTTPProxyHandler::HandleSockRecv() {
+  LogPrint(eLogDebug, "HTTPProxyHandler: sock recv: ", m_Buffer.size());
+  boost::asio::streambuf::const_buffers_type bufs = m_Buffer.data();
+  std::string headerData(boost::asio::buffers_begin(bufs), 
+      boost::asio::buffers_begin(bufs) + m_Buffer.size());
+  if (m_Protocol.HandleData(headerData )) {
       if (m_Protocol.CreateHTTPRequest()) {
       LogPrint(eLogInfo, "HTTPProxyHandler: proxy requested: ",
           m_Protocol.m_URL);
@@ -121,12 +121,8 @@ void HTTPProxyHandler::HandleSockRecv(
 }
 
 bool HTTPProtocol::HandleData(
-    std::uint8_t* buf,
-    std::size_t len) {
-  if ((unsigned)len == 0) {
-    return false;
-  }
-  std::string bufString(buf, buf+len);
+    std::string & bufString
+    ) {
   std::vector<std::string> HeaderBody;
   std::vector<std::string> tokens;
   // get header info
@@ -152,7 +148,6 @@ bool HTTPProtocol::HandleData(
   // remove start line
   m_Headers.erase(m_Headers.begin());
   // body line
-  m_Body = HeaderBody[1];
   return true;
 }
 
@@ -168,9 +163,7 @@ void HTTPProxyHandler::HandleStreamRequestComplete(
           m_Socket,
           stream);
     GetOwner()->AddHandler(connection);
-    connection->I2PConnect(
-        reinterpret_cast<const std::uint8_t*>(m_Protocol.m_Request.data()),
-        m_Protocol.m_Request.size());
+    connection->I2PConnectUnbuffered(m_Protocol.m_Request, m_Socket);
     Done(shared_from_this());
   } else {
     LogPrint(eLogError,

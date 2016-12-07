@@ -78,7 +78,7 @@ class HTTPProtocol{
   /// @param buf
   /// @param len
   /// return bool
-  bool HandleData(std::uint8_t* buf, std::size_t len);
+  bool HandleData(std::string  &buf);
 
   /// @brief Parses path for base64 address, inserts into address book
   void HandleJumpService();
@@ -206,10 +206,10 @@ class HTTPResponse{
   explicit HTTPResponse(HTTPProtocol::status_t status){
     std::string htmlbody = "<html>";
     htmlbody+="<head>" ;
-    htmlbody+="<title>HTTP Status</title>" ;
+    htmlbody+="<title>HTTP Error</title>" ;
     htmlbody+="</head>" ;
     htmlbody+="<body>" ;
-    htmlbody+="HTTP Status " + std::to_string(status) + " " +HTTPProtocol::status_message(status);
+    htmlbody+="HTTP Error " + std::to_string(status) + " " +HTTPProtocol::status_message(status);
     htmlbody+= "</body>" ;
     htmlbody+="</html>";
 
@@ -282,15 +282,9 @@ class HTTPProxyHandler
   /// @brief Asynchronously reads data sent to proxy server
   void AsyncSockRead();
 
-  /// @brief Handles buffer received from socket until read is finished
-  void HandleSockRecv(
-      const boost::system::error_code& ecode,
-      std::size_t bytes_transfered);
+  /// @brief Handles buffer received from socket until read headers is finished
+  void HandleSockRecv();
 
-  /// @brief Handles data received from socket
-  bool HandleData(
-      uint8_t* buf,
-      std::size_t len);
 
  private:
   /// @brief Handles stream created by service through proxy handler
@@ -320,7 +314,8 @@ class HTTPProxyHandler
 
   /// @var m_Buffer
   /// @brief Buffer for async socket read
-  std::array<std::uint8_t, static_cast<std::size_t>(Size::buffer)> m_Buffer;
+  boost::asio::streambuf m_Buffer;
+//  std::array<std::uint8_t, static_cast<std::size_t>(Size::buffer)> m_Buffer;
   std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
 };
 

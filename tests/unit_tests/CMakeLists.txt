@@ -1,6 +1,7 @@
 set(TESTS_CLIENT
   "client/reseed.cc"
   "client/util/http.cc"
+  "client/util/parse.cc"
   "client/util/zip.cc")
 
 set(TESTS_CORE

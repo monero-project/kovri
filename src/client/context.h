@@ -119,27 +119,17 @@ class ClientContext {
       std::function<bool(I2PClientTunnel*)> predicate);
 
   /// @brief Updates or creates the specified server tunnel
-  /// @param keyfile the relative filename of the key file
+  /// @param tunnel Const reference to populated/initialized tunnel attributes class
   /// @param http true if server tunnel is an HTTP tunnel
   void UpdateServerTunnel(
-    const std::string& tunnel_name,
-    const std::string& keyfile,
-    const std::string& host_str,
-    const std::string& access_list,
-    int port,
-    int in_port,
-    bool http);
+    const TunnelAttributes& tunnel,
+    bool is_http);  // TODO(anonimal): this isn't ideal
+
 
   /// @brief Updates or creates the specified client tunnel
-  /// @param tunnelName the name of the client tunnel
-  /// @param keyfile the relative filename of the key file
+  /// @param tunnel Const reference to populated/initialized tunnel attributes class
   void UpdateClientTunnel(
-    const std::string& tunnel_name,
-    const std::string& keyfile,
-    const std::string& destination,
-    const std::string& host_str,
-    int port,
-    int dest_port);
+    const TunnelAttributes& tunnel);
 
   /// @brief Registers a shutdown handler, called by ClientContext::RequestShutdown.
   /// @param handler The handler to be called on shutdown

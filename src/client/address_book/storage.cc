@@ -119,6 +119,7 @@ std::size_t AddressBookStorage::Load(
       // TODO(anonimal): how much more hardening do we want?
       if (!host.length())
         continue;  // skip empty line
+      // TODO(anonimal): use new CSV utility after it's expanded?
       std::size_t pos = host.find(',');
       if (pos != std::string::npos) {
         std::string name = host.substr(0, pos++);

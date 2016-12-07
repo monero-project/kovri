@@ -132,20 +132,20 @@ class ClientDestination : public kovri::core::GarlicDestination {
 
   // streaming
   std::shared_ptr<kovri::client::StreamingDestination> CreateStreamingDestination(
-      int port);  // additional
+      std::uint16_t port);  // additional
 
   std::shared_ptr<kovri::client::StreamingDestination> GetStreamingDestination(
-      int port = 0) const;
+      std::uint16_t port = 0) const;
 
   // following methods operate with default streaming destination
   void CreateStream(
       StreamRequestComplete stream_request_complete,
       const kovri::core::IdentHash& dest,
-      int port = 0);
+      std::uint16_t port = 0);
 
   std::shared_ptr<kovri::client::Stream> CreateStream(
       std::shared_ptr<const kovri::core::LeaseSet> remote,
-      int port = 0);
+      std::uint16_t port = 0);
 
   void AcceptStreams(
       const kovri::client::StreamingDestination::Acceptor& acceptor);

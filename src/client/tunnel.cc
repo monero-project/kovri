@@ -39,17 +39,22 @@
 
 #include "client/context.h"
 #include "client/destination.h"
+#include "client/util/parse.h"
 
 #include "core/util/log.h"
 
 namespace kovri {
 namespace client {
 
+//
+// Tunnel connection implementation for all client/server tunnel types
+//
+
 I2PTunnelConnection::I2PTunnelConnection(
     I2PService* owner,
     std::shared_ptr<boost::asio::ip::tcp::socket> socket,
     std::shared_ptr<const kovri::core::LeaseSet> lease_set,
-    int port)
+    std::uint16_t port)
     : I2PServiceHandler(owner),
       m_Socket(socket),
       m_RemoteEndpoint(socket->remote_endpoint()),
@@ -57,7 +62,7 @@ I2PTunnelConnection::I2PTunnelConnection(
         m_Stream = GetOwner()->GetLocalDestination()->CreateStream(
             lease_set,
             port);
-}
+      }
 
 I2PTunnelConnection::I2PTunnelConnection(
     I2PService* owner,
@@ -278,30 +283,19 @@ void I2PTunnelConnectionHTTP::Write(
   }
 }
 
-// This handler tries to stablish a connection with the desired server and
-// dies if it fails to do so.
-class I2PClientTunnelHandler
-    : public I2PServiceHandler,
-      public std::enable_shared_from_this<I2PClientTunnelHandler> {
- public:
-  I2PClientTunnelHandler(
+//
+// Client tunnel handler
+//
+
+ I2PClientTunnelHandler::I2PClientTunnelHandler(
       I2PClientTunnel* parent,
       kovri::core::IdentHash destination,
-      int destination_port,
+      std::uint16_t destination_port,
       std::shared_ptr<boost::asio::ip::tcp::socket> socket)
     : I2PServiceHandler(parent),
       m_DestinationIdentHash(destination),
       m_DestinationPort(destination_port),
       m_Socket(socket) {}
-  void Handle();
-  void Terminate();
-
- private:
-  void HandleStreamRequestComplete(std::shared_ptr<kovri::client::Stream> stream);
-  kovri::core::IdentHash m_DestinationIdentHash;
-  int m_DestinationPort;
-  std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
-};
 
 void I2PClientTunnelHandler::Handle() {
   GetOwner()->GetLocalDestination()->CreateStream(
@@ -346,25 +340,24 @@ void I2PClientTunnelHandler::Terminate() {
   Done(shared_from_this());
 }
 
+//
+// Client tunnel
+//
+
 I2PClientTunnel::I2PClientTunnel(
-    const std::string& name,
-    const std::string& destination,
-    const std::string& address,
-    int port,
-    std::shared_ptr<ClientDestination> local_destination,
-    int destination_port)
+    const TunnelAttributes& tunnel,
+    std::shared_ptr<ClientDestination> local_destination)
     : TCPIPAcceptor(
-          address,
-          port,
+          tunnel.address,
+          tunnel.port,
           local_destination),
-      m_TunnelName(name),
-      m_Destination(destination),
-      m_DestinationIdentHash(nullptr),
-      m_DestinationPort(destination_port) {}
+      m_TunnelAttributes(tunnel),
+      m_DestinationIdentHash(nullptr) {}
+
 
 void I2PClientTunnel::Start() {
   TCPIPAcceptor::Start();
-  GetIdentHash();
+  GetDestIdentHash();
 }
 
 void I2PClientTunnel::Stop() {
@@ -372,49 +365,49 @@ void I2PClientTunnel::Stop() {
   m_DestinationIdentHash.reset(nullptr);
 }
 
-/* HACK: maybe we should create a caching IdentHash provider in AddressBook */
-std::unique_ptr<const kovri::core::IdentHash> I2PClientTunnel::GetIdentHash() {
+// TODO(unassigned): HACK: maybe we should create a caching IdentHash provider in AddressBook?
+std::unique_ptr<const kovri::core::IdentHash> I2PClientTunnel::GetDestIdentHash() {
   if (!m_DestinationIdentHash) {
     kovri::core::IdentHash ident_hash;
-    if (kovri::client::context.GetAddressBook().CheckAddressIdentHashFound(m_Destination, ident_hash))
+    AddressBook& book = kovri::client::context.GetAddressBook();
+    std::string dest = GetTunnelAttributes().dest;
+    if (book.CheckAddressIdentHashFound(dest, ident_hash)) {
       m_DestinationIdentHash = std::make_unique<kovri::core::IdentHash>(ident_hash);
-    else
+    } else {
       LogPrint(eLogWarn,
-          "I2PClientTunnel: remote destination ", m_Destination, " not found");
+          "I2PClientTunnel: remote destination ", dest, " not found");
+    }
   }
   return std::move(m_DestinationIdentHash);
 }
 
-std::string I2PClientTunnel::GetName() const { return m_TunnelName; }
-
 std::shared_ptr<I2PServiceHandler> I2PClientTunnel::CreateHandler(
     std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
-  auto ident_hash = GetIdentHash();
-  if (ident_hash)
-    return std::make_shared<I2PClientTunnelHandler>(
-        this,
-        *ident_hash,
-        m_DestinationPort,
-        socket);
-  else
+  auto ident_hash = GetDestIdentHash();
+  auto port = GetTunnelAttributes().dest_port;
+  if (ident_hash) {
+    return std::make_shared<I2PClientTunnelHandler>(this, *ident_hash, port, socket);
+  } else {
     return nullptr;
+  }
 }
 
+//
+// Server tunnel
+//
+
 I2PServerTunnel::I2PServerTunnel(
-    const std::string& name,
-    const std::string& address,
-    int port,
-    std::shared_ptr<ClientDestination> local_destination,
-    int inport)
+    const TunnelAttributes& tunnel,
+    std::shared_ptr<ClientDestination> local_destination)
     : I2PService(local_destination),
-      m_Address(address),
-      m_TunnelName(name),
-      m_Port(port),
-      m_IsAccessList(false) {
-      m_PortDestination =
-        local_destination->CreateStreamingDestination(
-            inport > 0 ? inport : port);
-}
+      m_TunnelAttributes(tunnel) {
+        SetACL();
+        // TODO(anonimal): assumes local_destination is not null.
+        // I2PService will create a local destination if null but that has no bearing on this member.
+        m_PortDestination =
+          local_destination->CreateStreamingDestination(
+              tunnel.in_port ? tunnel.in_port : tunnel.port);
+      }
 
 void I2PServerTunnel::Start() {
   /**
@@ -432,19 +425,20 @@ void I2PServerTunnel::Start() {
    * A) Get to the core of the problem and rewrite how we handle tunnels
    * B) Implement a strategy for caching and looking up hostname ip addresses
    */
-  m_Endpoint.port(m_Port);
   boost::system::error_code ec;
-  auto addr = boost::asio::ip::address::from_string(m_Address, ec);
+  std::string address = GetTunnelAttributes().address;
+  auto ep_address = boost::asio::ip::address::from_string(address, ec);
+  m_Endpoint.port(GetTunnelAttributes().port);
   if (!ec) {
-    m_Endpoint.address(addr);
+    m_Endpoint.address(ep_address);
     Accept();
   } else {
-    auto resolver =
-      std::make_shared<boost::asio::ip::tcp::resolver>(
-          GetService());
+    // TODO(unassigned): consider a resolver template + handler for boost resolver and other asio
+    typedef boost::asio::ip::tcp::resolver tcp_resolver;
+    auto resolver = std::make_shared<tcp_resolver>(GetService());
     resolver->async_resolve(
-        boost::asio::ip::tcp::resolver::query(
-            m_Address,
+        tcp_resolver::query(
+            address,
             ""),
         std::bind(
             &I2PServerTunnel::HandleResolve,
@@ -481,21 +475,22 @@ void I2PServerTunnel::HandleResolve(
   }
 }
 
-
-void I2PServerTunnel::UpdateAddress(
-    const std::string& addr) {
-  m_Address = addr;
+void I2PServerTunnel::UpdateServerTunnel(
+    const TunnelAttributes& tunnel) {
+  // Update tunnel attributes
+  SetTunnelAttributes(tunnel);
+  // Update server endpoint address
   boost::system::error_code ec;
-  auto a = boost::asio::ip::address::from_string(m_Address, ec);
+  auto ep_address = boost::asio::ip::address::from_string(tunnel.address, ec);
   if (!ec) {
-    m_Endpoint.address(a);
+    m_Endpoint.address(ep_address);
   } else {
-    auto resolver =
-      std::make_shared<boost::asio::ip::tcp::resolver>(
-          GetService());
+    // TODO(unassigned): consider a resolver template + handler for boost resolver and other asio
+    typedef boost::asio::ip::tcp::resolver tcp_resolver;
+    auto resolver = std::make_shared<tcp_resolver>(GetService());
     resolver->async_resolve(
-        boost::asio::ip::tcp::resolver::query(
-            m_Address,
+        tcp_resolver::query(
+            tunnel.address,
             ""),
         std::bind(
             &I2PServerTunnel::HandleResolve,
@@ -504,31 +499,32 @@ void I2PServerTunnel::UpdateAddress(
             std::placeholders::_2,
             resolver,
             false));
+
   }
+  // Update in port (streaming port)
+  m_PortDestination->UpdateLocalPort(tunnel.in_port);
+  // Set ACL
+  SetACL();
 }
 
-void I2PServerTunnel::UpdatePort(
-    int port) {
-  if (port < 0) {
-    throw std::logic_error("I2P server tunnel < 0");
+void I2PServerTunnel::SetACL() {
+  // Get tunnel CSV list of ACL
+  std::string list = GetTunnelAttributes().acl.list;
+  if (list.empty()) {
+    // No CSV list given, ignore
+    return;
   }
-  m_Port = port;
-}
-
-void I2PServerTunnel::UpdateStreamingPort(
-    int port) const {
-  if (port > 0) {
-    std::uint16_t local_port = port;
-    m_PortDestination->UpdateLocalPort(local_port);
-  } else {
-    throw std::logic_error("Streaming port cannot be negative");
+  // Get parsed CSV
+  auto parsed = kovri::client::ParseCSV(list);
+  // Get b32 of each value
+  std::set<kovri::core::IdentHash> idents;
+  for (auto const& p : parsed) {
+    kovri::core::IdentHash ident;
+    ident.FromBase32(p);
+    idents.insert(ident);
   }
-}
-
-void I2PServerTunnel::SetAccessList(
-    const std::set<kovri::core::IdentHash>& access_list) {
-  m_AccessList = access_list;
-  m_IsAccessList = true;
+  // Set ACL
+  m_ACL = idents;
 }
 
 void I2PServerTunnel::Accept() {
@@ -555,18 +551,44 @@ void I2PServerTunnel::Accept() {
 void I2PServerTunnel::HandleAccept(
     std::shared_ptr<kovri::client::Stream> stream) {
   if (stream) {
-    if (m_IsAccessList) {
-      if (!m_AccessList.count(stream->GetRemoteIdentity().GetIdentHash())) {
-        LogPrint(eLogWarn,
-            "I2PServerTunnel: address ",
-            stream->GetRemoteIdentity().GetIdentHash().ToBase32(),
-            " is not in white list, incoming connection dropped");
-        stream->Close();
-        return;
-      }
-    }
+    if (!EnforceACL(stream))
+      return;
+    LogPrint(eLogDebug,
+        "I2PServerTunnel: creating connection with ",
+        stream->GetRemoteIdentity().GetIdentHash().ToBase32() + ".b32.i2p");
     CreateI2PConnection(stream);
   }
+}
+
+bool I2PServerTunnel::EnforceACL(
+    std::shared_ptr<kovri::client::Stream> stream) {
+  if (GetACL().empty()) {
+    LogPrint(eLogDebug, "I2PServerTunnel: ACL empty, continuing");
+    return true;
+  }
+  auto ident = stream->GetRemoteIdentity().GetIdentHash();
+  bool is_on_list = GetACL().count(ident);
+  auto b32 = ident.ToBase32() + ".b32.i2p";
+  LogPrint(eLogInfo, "I2PServerTunnel: enforcing ACL for ", b32);
+  if (GetTunnelAttributes().acl.is_white) {
+    LogPrint(eLogInfo, "I2PServerTunnel: whitelist enabled");
+    if (is_on_list) {
+      LogPrint(eLogInfo, "I2PServerTunnel: ", b32, " is on whitelist");
+      return true;
+    }
+    LogPrint(eLogWarn,
+        "I2PServerTunnel: ", b32, "is not on whitelist, dropping connection");
+  } else if (GetTunnelAttributes().acl.is_black) {
+    LogPrint(eLogInfo, "I2PServerTunnel: blacklist enabled");
+    if (!is_on_list) {
+      LogPrint(eLogInfo, "I2PServerTunnel: ", b32, " is not on blacklist");
+      return true;
+    }
+    LogPrint(eLogWarn,
+        "I2PServerTunnel: ", b32, " is on blacklist, dropping connection");
+  }
+  stream->Close();
+  return false;
 }
 
 void I2PServerTunnel::CreateI2PConnection(
@@ -581,20 +603,12 @@ void I2PServerTunnel::CreateI2PConnection(
   conn->Connect();
 }
 
-std::string I2PServerTunnel::GetName() const { return m_TunnelName; }
-
 I2PServerTunnelHTTP::I2PServerTunnelHTTP(
-    const std::string& name,
-    const std::string& address,
-    int port,
-    std::shared_ptr<ClientDestination> local_destination,
-    int inport)
+    const TunnelAttributes& tunnel,
+    std::shared_ptr<ClientDestination> local_destination)
     : I2PServerTunnel(
-          name,
-          address,
-          port,
-          local_destination,
-          inport) {}
+          tunnel,
+          local_destination) {}
 
 void I2PServerTunnelHTTP::CreateI2PConnection(
     std::shared_ptr<kovri::client::Stream> stream) {
@@ -604,29 +618,9 @@ void I2PServerTunnelHTTP::CreateI2PConnection(
         stream,
         std::make_shared<boost::asio::ip::tcp::socket>(GetService()),
         GetEndpoint(),
-        GetAddress());
+        GetTunnelAttributes().address);
   AddHandler(conn);
   conn->Connect();
-}
-void I2PServerTunnel::SetAccessListString(
-    const std::string& idents_str) {
-  std::set<kovri::core::IdentHash> idents;
-  if (idents_str.length() > 0) {
-    std::size_t pos = 0, comma;
-    do {
-      comma = idents_str.find(',', pos);
-      kovri::core::IdentHash ident;
-      ident.FromBase32(
-          idents_str.substr(
-              pos,
-              comma != std::string::npos ?
-                       comma - pos :
-                       std::string::npos));
-      idents.insert(ident);
-      pos = comma + 1;
-    } while (comma != std::string::npos);
-  }
-  SetAccessList(idents);
 }
 
 }  // namespace client

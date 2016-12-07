@@ -53,7 +53,7 @@ namespace core {
 /// @enum SSUDuration
 /// @brief Constants used to represent various aspects
 ///   of duration used during SSU activity
-enum struct SSUDuration : const std::size_t {
+enum struct SSUDuration : std::uint16_t {
   ResendInterval = 3,  // Seconds
   MaxResends = 5,
   DecayInterval = 20,  // Number of message IDs we store for duplicates check
@@ -82,7 +82,7 @@ struct Fragment {
   std::size_t fragment_num, len;
   bool is_last;
   // TODO(unassigned): document 18 and why ipv4
-  std::array<std::uint8_t, static_cast<std::size_t>(SSUSize::PacketMaxIPv4) + 18> buffer;
+  std::array<std::uint8_t, GetType(SSUSize::PacketMaxIPv4) + 18> buffer;
 };
 
 struct FragmentCmp {
@@ -135,7 +135,7 @@ class SSUData {
   void FlushReceivedMessage();
 
   void Send(
-      std::shared_ptr<kovri::I2NPMessage> msg);
+      std::shared_ptr<kovri::core::I2NPMessage> msg);
 
   void UpdatePacketSize(
       const kovri::core::IdentHash& remote_ident);
@@ -184,7 +184,7 @@ class SSUData {
   boost::asio::deadline_timer m_ResendTimer, m_DecayTimer,
                               m_IncompleteMessagesCleanupTimer;
   std::size_t m_MaxPacketSize, m_PacketSize;
-  kovri::I2NPMessagesHandler m_Handler;
+  kovri::core::I2NPMessagesHandler m_Handler;
 };
 
 }  // namespace core

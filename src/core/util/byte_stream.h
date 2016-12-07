@@ -34,9 +34,21 @@
 
 #include <cstdint>
 #include <cstddef>
+#include <type_traits>
 
 namespace kovri {
 namespace core {
+
+namespace {
+/// @brief Return underlying type (for enumerators)
+/// @param type Enumerator
+/// @warning Should be used with enumerations only
+/// @notes  C++14 required, courtesy of Scott Meyers (2014)
+template <typename T>
+constexpr auto GetType(T type) noexcept {
+  return static_cast<std::underlying_type_t<T>>(type);
+}
+}  // namespace
 
 /// @class InputByteStream
 /// @brief Wraps an array of bytes to provide stream-like functionality.

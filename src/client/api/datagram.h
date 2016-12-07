@@ -100,16 +100,16 @@ class DatagramDestination {
  private:
   void HandleLeaseSetRequestComplete(
       std::shared_ptr<kovri::core::LeaseSet> lease_set,
-      std::unique_ptr<I2NPMessage> msg);
+      std::unique_ptr<kovri::core::I2NPMessage> msg);
 
-  std::unique_ptr<I2NPMessage> CreateDataMessage(
+  std::unique_ptr<kovri::core::I2NPMessage> CreateDataMessage(
       const std::uint8_t* payload,
       std::size_t len,
       std::uint16_t from_port,
       std::uint16_t to_port);
 
   void SendMsg(
-      std::unique_ptr<I2NPMessage> msg,
+      std::unique_ptr<kovri::core::I2NPMessage> msg,
       std::shared_ptr<const kovri::core::LeaseSet> remote);
 
   void HandleDatagram(

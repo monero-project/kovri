@@ -50,20 +50,24 @@
 namespace kovri {
 namespace core {
 
-enum SessionState {
-  SessionStateUnknown,
-  SessionStateIntroduced,
-  SessionStateEstablished,
-  SessionStateClosed,
-  SessionStateFailed
+/// @enum SessionState
+/// @brief SSU session states
+enum struct SessionState : std::uint8_t {
+  Unknown = 0,
+  Introduced,
+  Established,
+  Closed,
+  Failed
 };
 
-enum PeerTestParticipant {
-  PeerTestParticipantUnknown = 0,
-  PeerTestParticipantAlice1,
-  PeerTestParticipantAlice2,
-  PeerTestParticipantBob,
-  PeerTestParticipantCharlie
+/// @enum PeerTestParticipant
+/// @brief Defined peer test participants
+enum struct PeerTestParticipant : std::uint8_t {
+  Unknown = 0,
+  Alice1,
+  Alice2,
+  Bob,
+  Charlie
 };
 
 class SSUPacket;
@@ -208,7 +212,7 @@ class SSUSession
  private:
   boost::asio::io_service& GetService();
 
-  void CreateAESandMACKey(
+  bool CreateAESandMACKey(
       const std::uint8_t* pub_key);
 
   void PostI2NPMessages(

@@ -49,8 +49,7 @@
 #include "core/util/i2p_endian.h"
 
 namespace kovri {
-// TODO(anonimal): I2NP belongs in core namespace
-
+namespace core {
              // I2NP header
 const std::size_t I2NP_HEADER_TYPEID_OFFSET = 0,
              I2NP_HEADER_MSGID_OFFSET = I2NP_HEADER_TYPEID_OFFSET + 1,
@@ -127,24 +126,22 @@ const int NUM_TUNNEL_BUILD_RECORDS = 8,
           MAX_NUM_TRANSIT_TUNNELS = 2500;
 
 enum I2NPMessageType {
-  e_I2NPDatabaseStore = 1,
-  e_I2NPDatabaseLookup = 2,
-  e_I2NPDatabaseSearchReply = 3,
-  e_I2NPDeliveryStatus = 10,
-  e_I2NPGarlic = 11,
-  e_I2NPTunnelData = 18,
-  e_I2NPTunnelGateway = 19,
-  e_I2NPData = 20,
-  e_I2NPTunnelBuild = 21,
-  e_I2NPTunnelBuildReply = 22,
-  e_I2NPVariableTunnelBuild = 23,
-  e_I2NPVariableTunnelBuildReply = 24
+  I2NPDatabaseStore = 1,
+  I2NPDatabaseLookup = 2,
+  I2NPDatabaseSearchReply = 3,
+  I2NPDeliveryStatus = 10,
+  I2NPGarlic = 11,
+  I2NPTunnelData = 18,
+  I2NPTunnelGateway = 19,
+  I2NPData = 20,
+  I2NPTunnelBuild = 21,
+  I2NPTunnelBuildReply = 22,
+  I2NPVariableTunnelBuild = 23,
+  I2NPVariableTunnelBuildReply = 24
 };
 
-namespace core {
 class InboundTunnel;
 class TunnelPool;
-}
 
 struct I2NPMessage {
   std::uint8_t* buf;
@@ -419,7 +416,7 @@ class I2NPMessagesHandler {
   std::vector<std::shared_ptr<I2NPMessage> > m_TunnelMsgs,
                                              m_TunnelGatewayMsgs;
 };
-
+}  // namespace core
 }  // namespace kovri
 
 #endif  // SRC_CORE_ROUTER_I2NP_H_

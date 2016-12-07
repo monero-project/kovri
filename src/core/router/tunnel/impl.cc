@@ -114,7 +114,7 @@ void Tunnel::Build(
     }
     hop = hop->prev;
   }
-  msg->FillI2NPMessageHeader(e_I2NPVariableTunnelBuild);
+  msg->FillI2NPMessageHeader(I2NPVariableTunnelBuild);
   // send message
   if (outbound_tunnel)
     outbound_tunnel->SendTunnelDataMsg(
@@ -193,7 +193,7 @@ void Tunnel::EncryptTunnelMsg(
 }
 
 void Tunnel::SendTunnelDataMsg(
-    std::shared_ptr<kovri::I2NPMessage>) {
+    std::shared_ptr<kovri::core::I2NPMessage>) {
   // TODO(unassigned): review for missing code
   LogPrint(eLogInfo,
       "Tunnel: can't send I2NP messages without delivery instructions");
@@ -213,7 +213,7 @@ void InboundTunnel::HandleTunnelDataMsg(
 void OutboundTunnel::SendTunnelDataMsg(
     const std::uint8_t* gw_hash,
     std::uint32_t gw_tunnel,
-    std::shared_ptr<kovri::I2NPMessage> msg) {
+    std::shared_ptr<kovri::core::I2NPMessage> msg) {
   TunnelMessageBlock block;
   if (gw_hash) {
     block.hash = gw_hash;
@@ -240,7 +240,7 @@ void OutboundTunnel::SendTunnelDataMsg(
 }
 
 void OutboundTunnel::HandleTunnelDataMsg(
-    std::shared_ptr<const kovri::I2NPMessage>) {
+    std::shared_ptr<const kovri::core::I2NPMessage>) {
   LogPrint(eLogError,
       "OutboundTunnel: incoming message for outbound tunnel ",
       GetTunnelID());
@@ -355,6 +355,7 @@ std::shared_ptr<TunnelPool> Tunnels::CreateTunnelPool(
 
 void Tunnels::DeleteTunnelPool(
     std::shared_ptr<TunnelPool> pool) {
+  LogPrint(eLogDebug, "Tunnels: deleting tunnel pool");
   if (pool) {
     StopTunnelPool(pool); {
       std::unique_lock<std::mutex> l(m_PoolsMutex);
@@ -417,19 +418,19 @@ void Tunnels::Run() {
           TunnelBase* tunnel = nullptr;
           std::uint8_t type_ID = msg->GetTypeID();
           switch (type_ID) {
-            case e_I2NPTunnelData:
-            case e_I2NPTunnelGateway: {
+            case I2NPTunnelData:
+            case I2NPTunnelGateway: {
               tunnel_ID = bufbe32toh(msg->GetPayload());
               if (tunnel_ID == prev_tunnel_ID)
                 tunnel = prev_tunnel;
               else if (prev_tunnel)
                 prev_tunnel->FlushTunnelDataMsgs();
-              if (!tunnel && type_ID == e_I2NPTunnelData)
+              if (!tunnel && type_ID == I2NPTunnelData)
                 tunnel = GetInboundTunnel(tunnel_ID).get();
               if (!tunnel)
                 tunnel = GetTransitTunnel(tunnel_ID);
               if (tunnel) {
-                if (type_ID == e_I2NPTunnelData)
+                if (type_ID == I2NPTunnelData)
                   tunnel->HandleTunnelDataMsg(msg);
                 else  // tunnel gateway assumed
                   HandleTunnelGatewayMsg(tunnel, msg);
@@ -439,10 +440,10 @@ void Tunnels::Run() {
               }
               break;
             }
-            case e_I2NPVariableTunnelBuild:
-            case e_I2NPVariableTunnelBuildReply:
-            case e_I2NPTunnelBuild:
-            case e_I2NPTunnelBuildReply:
+            case I2NPVariableTunnelBuild:
+            case I2NPVariableTunnelBuildReply:
+            case I2NPTunnelBuild:
+            case I2NPTunnelBuildReply:
               HandleI2NPMessage(msg->GetBuffer(), msg->GetLength());
             break;
             default:
@@ -488,7 +489,7 @@ void Tunnels::HandleTunnelGatewayMsg(
       "Tunnels: TunnelGateway of ", static_cast<int>(len),
       " bytes for tunnel ", tunnel->GetTunnelID(),
       ". Msg type ", static_cast<int>(type_ID));
-  if (type_ID == e_I2NPDatabaseStore || type_ID == e_I2NPDatabaseSearchReply)
+  if (type_ID == I2NPDatabaseStore || type_ID == I2NPDatabaseSearchReply)
     // transit DatabaseStore my contain new/updated RI
     // or DatabaseSearchReply with new routers
     kovri::core::netdb.PostI2NPMsg(msg);

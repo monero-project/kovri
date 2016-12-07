@@ -224,11 +224,13 @@ IdentityEx& IdentityEx::operator=(const IdentityEx& other) {
     memcpy(&m_StandardIdentity, &other.m_StandardIdentity, DEFAULT_IDENTITY_SIZE);
     m_IdentHash = other.m_IdentHash;
     m_ExtendedLen = other.m_ExtendedLen;
-    if (m_ExtendedLen > 0) {
+    m_ExtendedBuffer.reset(nullptr);
+    if (m_ExtendedLen) {
       m_ExtendedBuffer = std::make_unique<std::uint8_t[]>(m_ExtendedLen);
+      // Ensure that source buffer is not null before we copy (see #432)
+      if (!other.m_ExtendedBuffer.get())
+        throw std::runtime_error("IdentityEx: other extended buffer is null");
       memcpy(m_ExtendedBuffer.get(), other.m_ExtendedBuffer.get(), m_ExtendedLen);
-    } else {
-      m_ExtendedBuffer.reset(nullptr);
     }
     m_Verifier.reset(nullptr);
   }
@@ -251,6 +253,8 @@ std::size_t IdentityEx::FromBuffer(
     LogPrint(eLogError, "IdentityEx: identity buffer length ", len, " is too small");
     return 0;
   }
+  m_ExtendedLen = 0;
+  m_ExtendedBuffer.reset(nullptr);
   memcpy(&m_StandardIdentity, buf, DEFAULT_IDENTITY_SIZE);
   if (m_StandardIdentity.certificate.length) {
     m_ExtendedLen = be16toh(m_StandardIdentity.certificate.length);
@@ -263,9 +267,6 @@ std::size_t IdentityEx::FromBuffer(
           " exceeds buffer length ", len - DEFAULT_IDENTITY_SIZE);
       return 0;
     }
-  } else {
-    m_ExtendedLen = 0;
-    m_ExtendedBuffer.reset(nullptr);
   }
   kovri::core::SHA256().CalculateDigest(m_IdentHash, buf, GetFullLen());
   m_Verifier.reset(nullptr);

@@ -71,10 +71,10 @@ class TunnelBase {
   virtual ~TunnelBase() {}
 
   virtual void HandleTunnelDataMsg(
-      std::shared_ptr<const kovri::I2NPMessage> tunnel_msg) = 0;
+      std::shared_ptr<const kovri::core::I2NPMessage> tunnel_msg) = 0;
 
   virtual void SendTunnelDataMsg(
-      std::shared_ptr<kovri::I2NPMessage> msg) = 0;
+      std::shared_ptr<kovri::core::I2NPMessage> msg) = 0;
 
   virtual void FlushTunnelDataMsgs() {}
 

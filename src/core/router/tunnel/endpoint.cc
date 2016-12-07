@@ -287,19 +287,19 @@ void TunnelEndpoint::HandleNextMessage(
       static_cast<int>(msg.data->GetTypeID()));
   switch (msg.delivery_type) {
     case e_DeliveryTypeLocal:
-      kovri::HandleI2NPMessage(msg.data);
+      kovri::core::HandleI2NPMessage(msg.data);
     break;
     case e_DeliveryTypeTunnel:
       kovri::core::transports.SendMessage(
           msg.hash,
-          kovri::CreateTunnelGatewayMsg(
+          kovri::core::CreateTunnelGatewayMsg(
             msg.tunnel_ID,
             msg.data));
     break;
     case e_DeliveryTypeRouter:
       // check if message is sent to us
       if (msg.hash == kovri::context.GetRouterInfo().GetIdentHash()) {
-        kovri::HandleI2NPMessage(msg.data);
+        kovri::core::HandleI2NPMessage(msg.data);
       } else {
         // to somebody else
         if (!m_IsInbound) {  // outbound transit tunnel

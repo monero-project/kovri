@@ -38,7 +38,7 @@ if(WITH_BINARY)
       endif()
     endif()
   endif()
-  if(WITH_HARDENING AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if(WITH_HARDENING AND CMAKE_CXX_COMPILER_ID STREQUAL GNU)
     set_target_properties(${APP_NAME} PROPERTIES LINK_FLAGS "-z relro -z now")
   endif()
   # FindBoost pulls pthread for thread which is broken for static linking

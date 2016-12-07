@@ -141,9 +141,9 @@ bool SSUHeader::HasExtendedOptions() const {
 }
 
 std::size_t SSUHeader::GetSize() const {
-  auto size = static_cast<std::size_t>(SSUSize::HeaderMin);
+  auto size = GetType(SSUSize::HeaderMin);
   if (HasRekey())
-    size += static_cast<std::size_t>(SSUSize::KeyingMaterial);
+    size += GetType(SSUSize::KeyingMaterial);
   if (HasExtendedOptions())
     size += m_ExtendedOptionsSize + 1;
   return size;
@@ -194,7 +194,7 @@ std::size_t SSUSessionRequestPacket::GetIPAddressSize() const {
 
 std::size_t SSUSessionRequestPacket::GetSize() const {
   return SSUPacket::GetSize()
-         + static_cast<std::size_t>(SSUSize::DHPublic)  // DH X-parameter
+         + GetType(SSUSize::DHPublic)  // DH X-parameter
          + 1                 // Bob's IP address size
          + m_IPAddressSize;  // That many byte representation of IP address
 }
@@ -273,7 +273,7 @@ std::uint32_t SSUSessionCreatedPacket::GetSignedOnTime() const {
 
 std::size_t SSUSessionCreatedPacket::GetSize() const {
   return SSUPacket::GetSize()
-         + static_cast<std::size_t>(SSUSize::DHPublic)  // Y to complete the DH agreement
+         + GetType(SSUSize::DHPublic)  // Y to complete the DH agreement
          + 1 + m_AddressSize  // 1 byte address size, address size,
          + 2 + 4 + 4          // Port size (2 bytes), relay tag size, time size
          + m_SignatureSize;   // Signature size
@@ -394,7 +394,7 @@ std::size_t SSURelayRequestPacket::GetSize() const {
          + 2                // Alice's port number
          + 1                // Challenge size
          + m_ChallengeSize  // That many bytes to be relayed to Charlie in intro
-         + static_cast<std::size_t>(SSUSize::IntroKey)  // Alice's 32-byte Intro key
+         + GetType(SSUSize::IntroKey)  // Alice's 32-byte Intro key
          + 4;               // Nonce of Alice's relay request
 }
 
@@ -642,7 +642,7 @@ std::size_t SSUPeerTestPacket::GetSize() const {
          + 1  // Alice's IP address size
          // TODO(unassigned): that many byte representation of IP address (if size > 0)
          + 2  // Alice's port number
-         + static_cast<std::size_t>(SSUSize::IntroKey);  // Alice's or Charlie's 32-byte introduction key
+         + GetType(SSUSize::IntroKey);  // Alice's or Charlie's 32-byte introduction key
 }
 
 /**
@@ -673,16 +673,16 @@ SSUFragment SSUPacketParser::ParseFragment() {
 }
 
 std::unique_ptr<SSUHeader> SSUPacketParser::ParseHeader() {
-  if (m_Length < static_cast<std::size_t>(SSUSize::HeaderMin))
+  if (m_Length < GetType(SSUSize::HeaderMin))
     throw std::length_error("SSU header too small");
   auto header = std::make_unique<SSUHeader>();
   // Set MAC and IV
-  header->SetMAC(ReadBytes(static_cast<std::size_t>(SSUSize::MAC)));
-  header->SetIV(ReadBytes(static_cast<std::size_t>(SSUSize::IV)));
+  header->SetMAC(ReadBytes(GetType(SSUSize::MAC)));
+  header->SetIV(ReadBytes(GetType(SSUSize::IV)));
   // Extract information from flag (payload type and rekey/extened options)
   const std::uint8_t flag = ReadUInt8();
-  header->SetRekey(flag & static_cast<std::uint8_t>(SSUFlag::Rekey));
-  header->SetExtendedOptions(flag & static_cast<std::uint8_t>(SSUFlag::ExtendedOptions));
+  header->SetRekey(flag & GetType(SSUFlag::Rekey));
+  header->SetExtendedOptions(flag & GetType(SSUFlag::ExtendedOptions));
   header->SetPayloadType(flag >> 4);
   // Extract the time
   header->SetTime(ReadUInt32());
@@ -690,7 +690,7 @@ std::unique_ptr<SSUHeader> SSUPacketParser::ParseHeader() {
     // TODO(EinMByte): Actually do something with the data
     // TODO(EinMByte): See issue #119, for some reason some rekey options
     //                 are sometimes set?
-    ConsumeData(static_cast<std::size_t>(SSUSize::KeyingMaterial));
+    ConsumeData(GetType(SSUSize::KeyingMaterial));
   }
   if (header->HasExtendedOptions()) {
     const std::size_t options_size = ReadUInt8();
@@ -732,6 +732,9 @@ std::unique_ptr<SSUPacket> SSUPacketParser::ParsePacket() {
     case SSUPayloadType::SessionDestroyed:
       packet = ParseSessionDestroyed();
       break;
+    case SSUPayloadType::Unknown:
+    default:
+      throw std::runtime_error("SSUPacketParser: unknown payload type");
   }
   // TODO(EinMByte): Get rid of this
   packet->m_RawDataLength = old_length;
@@ -742,7 +745,7 @@ std::unique_ptr<SSUPacket> SSUPacketParser::ParsePacket() {
 
 std::unique_ptr<SSUSessionRequestPacket> SSUPacketParser::ParseSessionRequest() {
   auto packet = std::make_unique<SSUSessionRequestPacket>();
-  packet->SetDhX(ReadBytes(static_cast<std::size_t>(SSUSize::DHPublic)));
+  packet->SetDhX(ReadBytes(GetType(SSUSize::DHPublic)));
   std::size_t size = ReadUInt8();
   packet->SetIPAddress(ReadBytes(size), size);
   return packet;
@@ -750,7 +753,7 @@ std::unique_ptr<SSUSessionRequestPacket> SSUPacketParser::ParseSessionRequest() 
 
 std::unique_ptr<SSUSessionCreatedPacket> SSUPacketParser::ParseSessionCreated() {
   auto packet = std::make_unique<SSUSessionCreatedPacket>();
-  packet->SetDhY(ReadBytes(static_cast<std::size_t>(SSUSize::DHPublic)));
+  packet->SetDhY(ReadBytes(GetType(SSUSize::DHPublic)));
   std::size_t address_size = ReadUInt8();
   packet->SetIPAddress(ReadBytes(address_size), address_size);
   packet->SetPort(ReadUInt16());
@@ -766,7 +769,8 @@ std::unique_ptr<SSUSessionConfirmedPacket> SSUPacketParser::ParseSessionConfirme
   ConsumeData(1);  // Skip info byte
   std::uint16_t identity_size = ReadUInt16();
   kovri::core::IdentityEx identity;
-  identity.FromBuffer(ReadBytes(identity_size), identity_size);
+  if (!identity.FromBuffer(ReadBytes(identity_size), identity_size))
+    throw std::length_error("SSUPacketParser: invalid length within identity");
   packet->SetRemoteRouterIdentity(identity);
   packet->SetSignedOnTime(ReadUInt32());
   const std::size_t padding_size = ((m_Length - init_length) + identity.GetSignatureLen()) % 16;
@@ -783,7 +787,7 @@ std::unique_ptr<SSURelayRequestPacket> SSUPacketParser::ParseRelayRequest() {
   packet->SetPort(ReadUInt16());
   const std::size_t challenge_size = ReadUInt8();
   packet->SetChallenge(ReadBytes(challenge_size), challenge_size);
-  packet->SetIntroKey(ReadBytes(static_cast<std::size_t>(SSUSize::IntroKey)));
+  packet->SetIntroKey(ReadBytes(GetType(SSUSize::IntroKey)));
   packet->SetNonce(ReadUInt32());
   return packet;
 }
@@ -814,13 +818,13 @@ std::unique_ptr<SSUDataPacket> SSUPacketParser::ParseData() {
   auto packet = std::make_unique<SSUDataPacket>();
   const std::uint8_t flags = ReadUInt8();
   // Read ACKS
-  if (flags & static_cast<std::uint8_t>(SSUFlag::DataExplicitACKsIncluded)) {
+  if (flags & GetType(SSUFlag::DataExplicitACKsIncluded)) {
     const std::size_t nb_explicit_ACKs = ReadUInt8();
     for(std::size_t i = 0; i < nb_explicit_ACKs; ++i)
       packet->AddExplicitACK(ReadUInt32());
   }
   // Read ACK bifields
-  if (flags & static_cast<std::uint8_t>(SSUFlag::DataACKBitfieldsIncluded)) {
+  if (flags & GetType(SSUFlag::DataACKBitfieldsIncluded)) {
     const std::size_t nb_ACKs = ReadUInt8();
     // Read message IDs
     for (std::size_t i = 0; i < nb_ACKs; ++i)
@@ -830,10 +834,10 @@ std::unique_ptr<SSUDataPacket> SSUPacketParser::ParseData() {
     do {
       bitfield = ReadUInt8();
       packet->AddACKBitfield(bitfield);
-    } while (bitfield & static_cast<std::uint8_t>(SSUFlag::DataACKBitFieldHasNext));
+    } while (bitfield & GetType(SSUFlag::DataACKBitFieldHasNext));
   }
   // Ignore possible extended data
-  if (flags & static_cast<std::uint8_t>(SSUFlag::DataExtendedIncluded))
+  if (flags & GetType(SSUFlag::DataExtendedIncluded))
     ReadBytes(ReadUInt8());
   const std::size_t nb_flags = ReadUInt8();
   // Read fragments
@@ -848,7 +852,7 @@ std::unique_ptr<SSUPeerTestPacket> SSUPacketParser::ParsePeerTest() {
   // TODO(EinMByte): Handle other address sizes, or deal with the errors.
   packet->SetIPAddress(buf32toh(ReadBytes((ReadUInt8() == 4) ? 4 : 0)));
   packet->SetPort(ReadUInt16());
-  packet->SetIntroKey(ReadBytes(static_cast<std::size_t>(SSUSize::IntroKey)));
+  packet->SetIntroKey(ReadBytes(GetType(SSUSize::IntroKey)));
   return packet;
 }
 
@@ -880,12 +884,12 @@ std::size_t SSUPacketBuilder::GetPaddedSize(
 
 void SSUPacketBuilder::WriteHeader(SSUHeader* header) {
   if (header->GetMAC())
-    WriteData(header->GetMAC(), static_cast<std::size_t>(SSUSize::MAC));
+    WriteData(header->GetMAC(), GetType(SSUSize::MAC));
   else
-    ProduceData(static_cast<std::size_t>(SSUSize::MAC));  // Write MAC later
-  WriteData(header->GetIV(), static_cast<std::size_t>(SSUSize::IV));
+    ProduceData(GetType(SSUSize::MAC));  // Write MAC later
+  WriteData(header->GetIV(), GetType(SSUSize::IV));
   const std::uint8_t flag =
-      (static_cast<std::uint8_t>(header->GetPayloadType()) << 4) +
+      (GetType(header->GetPayloadType()) << 4) +
       (header->HasRekey() << 3) +
       (header->HasExtendedOptions() << 2);
   WriteUInt8(flag);
@@ -900,13 +904,13 @@ void SSUPacketBuilder::WriteHeader(SSUHeader* header) {
 }
 
 void SSUPacketBuilder::WriteSessionRequest(SSUSessionRequestPacket* packet) {
-  WriteData(packet->GetDhX(), static_cast<std::size_t>(SSUSize::DHPublic));
+  WriteData(packet->GetDhX(), GetType(SSUSize::DHPublic));
   WriteUInt8(packet->GetIPAddressSize());
   WriteData(packet->GetIPAddress(), packet->GetIPAddressSize());
 }
 
 void SSUPacketBuilder::WriteSessionCreated(SSUSessionCreatedPacket* packet) {
-  WriteData(packet->GetDhY(), static_cast<std::size_t>(SSUSize::DHPublic));
+  WriteData(packet->GetDhY(), GetType(SSUSize::DHPublic));
   // TODO(EinMByte): Check for overflow
   WriteUInt8(packet->GetIPAddressSize());
   WriteData(packet->GetIPAddress(), packet->GetIPAddressSize());
@@ -934,27 +938,27 @@ void SSUPacketBuilder::WriteSessionConfirmed(
       packet->GetHeader()->GetSize() + m_Data - begin + signature_size);
   std::uint8_t* const padding = m_Data;
   ProduceData(padding_size);
-  kovri::core::RandBytes(m_Data, padding_size);
+  kovri::core::RandBytes(padding, padding_size);
   WriteData(packet->GetSignature(), signature_size);
 }
 
 void SSUPacketBuilder::WriteRelayRequest(
-    SSURelayRequestPacket* packet) {}
+    SSURelayRequestPacket* /*packet*/) {}
 
 void SSUPacketBuilder::WriteRelayResponse(
-    SSURelayResponsePacket* packet) {}
+    SSURelayResponsePacket* /*packet*/) {}
 
 void SSUPacketBuilder::WriteRelayIntro(
-    SSURelayIntroPacket* packet) {}
+    SSURelayIntroPacket* /*packet*/) {}
 
 void SSUPacketBuilder::WriteData(
-    SSUDataPacket* packet) {}
+    SSUDataPacket* /*packet*/) {}
 
 void SSUPacketBuilder::WritePeerTest(
-    SSUPeerTestPacket* packet) {}
+    SSUPeerTestPacket* /*packet*/) {}
 
 void SSUPacketBuilder::WriteSessionDestroyed(
-    SSUSessionDestroyedPacket* packet) {}
+    SSUSessionDestroyedPacket* /*packet*/) {}
 
 void SSUPacketBuilder::WritePacket(SSUPacket* packet) {
   switch (packet->GetHeader()->GetPayloadType()) {
@@ -985,6 +989,9 @@ void SSUPacketBuilder::WritePacket(SSUPacket* packet) {
     case SSUPayloadType::SessionDestroyed:
       WriteSessionDestroyed(static_cast<SSUSessionDestroyedPacket*>(packet));
       break;
+    case SSUPayloadType::Unknown:
+    default:
+      throw std::runtime_error("SSUPacketBuilder: unknown payload type");
   }
 }
 

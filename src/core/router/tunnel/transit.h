@@ -68,10 +68,10 @@ class TransitTunnel : public TunnelBase {
 
   // implements TunnelBase
   void SendTunnelDataMsg(
-      std::shared_ptr<kovri::I2NPMessage> msg);
+      std::shared_ptr<kovri::core::I2NPMessage> msg);
 
   void HandleTunnelDataMsg(
-      std::shared_ptr<const kovri::I2NPMessage> tunnel_msg);
+      std::shared_ptr<const kovri::core::I2NPMessage> tunnel_msg);
 
   void EncryptTunnelMsg(
       std::shared_ptr<const I2NPMessage> in,
@@ -114,13 +114,13 @@ class TransitTunnelParticipant : public TransitTunnel {
   }
 
   void HandleTunnelDataMsg(
-      std::shared_ptr<const kovri::I2NPMessage> tunnelMsg);
+      std::shared_ptr<const kovri::core::I2NPMessage> tunnel_msg);
 
   void FlushTunnelDataMsgs();
 
  private:
   std::size_t m_NumTransmittedBytes;
-  std::vector<std::shared_ptr<kovri::I2NPMessage> > m_TunnelDataMsgs;
+  std::vector<std::shared_ptr<kovri::core::I2NPMessage> > m_TunnelDataMsgs;
 };
 
 class TransitTunnelGateway : public TransitTunnel {
@@ -140,7 +140,7 @@ class TransitTunnelGateway : public TransitTunnel {
       m_Gateway(this) {}
 
   void SendTunnelDataMsg(
-      std::shared_ptr<kovri::I2NPMessage> msg);
+      std::shared_ptr<kovri::core::I2NPMessage> msg);
 
   void FlushTunnelDataMsgs();
 
@@ -170,7 +170,7 @@ class TransitTunnelEndpoint : public TransitTunnel {
       m_Endpoint(false) {}  // transit endpoint is always outbound
 
   void HandleTunnelDataMsg(
-      std::shared_ptr<const kovri::I2NPMessage> tunnel_msg);
+      std::shared_ptr<const kovri::core::I2NPMessage> tunnel_msg);
 
   std::size_t GetNumTransmittedBytes() const {
     return m_Endpoint.GetNumReceivedBytes();

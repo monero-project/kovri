@@ -240,7 +240,7 @@ void TunnelGateway::SendBuffer() {
   auto tunnel_msgs = m_Buffer.GetTunnelDataMsgs();
   for (auto tunnel_msg : tunnel_msgs) {
     m_Tunnel->EncryptTunnelMsg(tunnel_msg, tunnel_msg);
-    tunnel_msg->FillI2NPMessageHeader(e_I2NPTunnelData);
+    tunnel_msg->FillI2NPMessageHeader(I2NPTunnelData);
     m_NumSentBytes += TUNNEL_DATA_MSG_SIZE;
   }
   kovri::core::transports.SendMessages(

@@ -48,10 +48,10 @@ int main(int argc, char* argv[]) {
     LogPrint(eLogError, "Main: ", ex.what(), "\nTry using --help instead");
     return EXIT_FAILURE;
   }
-  // Initialize settings for client/core
+  // Initialize daemon mode and contexts
   if (!Daemon.Init())
     return EXIT_FAILURE;
-  // Start core/client
+  // Start core/client (must begin in child process if in daemon mode)
   if (Daemon.Start()) {
     while (Daemon.m_IsRunning)
       std::this_thread::sleep_for(std::chrono::seconds(1));

@@ -91,6 +91,7 @@ GarlicRoutingSession::~GarlicRoutingSession() {
   for (auto it : m_UnconfirmedTagsMsgs)
     delete it.second;
   m_UnconfirmedTagsMsgs.clear();
+  m_Owner = nullptr;
 }
 
 GarlicRoutingSession::UnconfirmedTags*
@@ -216,7 +217,7 @@ std::shared_ptr<I2NPMessage> GarlicRoutingSession::WrapSingleMessage(
   len += CreateAESBlock(buf, msg);
   htobe32buf(m->GetPayload(), len);
   m->len += len + 4;
-  m->FillI2NPMessageHeader(e_I2NPGarlic);
+  m->FillI2NPMessageHeader(I2NPGarlic);
   return m;
 }
 
@@ -567,7 +568,7 @@ void GarlicDestination::HandleGarlicPayload(
         if (from && from->GetTunnelPool())
           tunnel = from->GetTunnelPool()->GetNextOutboundTunnel();
         if (tunnel) {  // we have send it through an outbound tunnel
-          auto msg = CreateI2NPMessage(buf, GetI2NPMessageLength(buf), from);
+          auto msg = CreateI2NPMessage(buf, kovri::core::GetI2NPMessageLength(buf), from);
           tunnel->SendTunnelDataMsg(gateway_hash, gateway_tunnel, msg);
         } else {
           LogPrint(eLogInfo,
@@ -585,7 +586,7 @@ void GarlicDestination::HandleGarlicPayload(
             "GarlicDestination: unknown garlic delivery type ",
             static_cast<int>(delivery_type));
     }
-    buf += GetI2NPMessageLength(buf);  // I2NP
+    buf += kovri::core::GetI2NPMessageLength(buf);  // I2NP
     buf += 4;  // CloveID
     buf += 8;  // Date
     buf += 3;  // Certificate

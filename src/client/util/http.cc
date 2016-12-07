@@ -123,9 +123,9 @@ bool HTTP::DownloadViaClearnet() {
   }
   // Create client with options
   Client client(options);
-#if defined(WIN32)  // cpp-netlib/cpp-netlib#696
+  // TODO(unassigned): this top try block is specifically for Windows and ARMv8
+  // but is harmless for all platforms (see #453 and cpp-netlib/cpp-netlib#696)
   try {
-#endif
     try {
       // Create request
       Request request(uri.string());  // A fully-qualified, completed URI
@@ -174,9 +174,7 @@ bool HTTP::DownloadViaClearnet() {
     } catch (const std::exception& ex) {
       LogPrint(eLogError, "HTTP: unable to complete download: ", ex.what());
       return false;
-    }
-#if defined(WIN32)  // cpp-netlib/cpp-netlib#696
-      catch (const std::exception_ptr& ex) {
+    } catch (const std::exception_ptr& ex) {
       LogPrint(eLogError, "HTTP: caught exception_ptr, rethrowing exception");
       std::rethrow_exception(ex);
     }
@@ -184,7 +182,6 @@ bool HTTP::DownloadViaClearnet() {
     LogPrint(eLogError, "HTTP: ", boost::diagnostic_information(ex));
     return false;
   }
-#endif
   return true;
 }
 

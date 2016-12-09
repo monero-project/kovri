@@ -162,7 +162,7 @@ void Transports::Start() {
   LogPrint(eLogDebug, "Transports: starting");
 #ifdef USE_UPNP
   m_UPnP.Start();
-  LogPrint(eLogInfo, "Transports: UPnP started");
+  LogPrint(eLogDebug, "Transports: UPnP started");
 #endif
   m_DHKeysPairSupplier.Start();
   m_IsRunning = true;
@@ -170,11 +170,11 @@ void Transports::Start() {
   // create acceptors
   const auto addresses = context.GetRouterInfo().GetAddresses();
   for (const auto& address : addresses) {
-    LogPrint("Transports: creating servers for address ", address.host);
+    LogPrint(eLogDebug, "Transports: creating servers for address ", address.host);
     if (address.transport_style ==
         kovri::core::RouterInfo::eTransportNTCP && address.host.is_v4()) {
       if (!m_NTCPServer) {
-        LogPrint(eLogInfo, "Transports: TCP listening on port ", address.port);
+        LogPrint(eLogDebug, "Transports: TCP listening on port ", address.port);
         m_NTCPServer = std::make_unique<NTCPServer>(m_Service, address.port);
         m_NTCPServer->Start();
       } else {
@@ -184,7 +184,7 @@ void Transports::Start() {
     if (address.transport_style ==
         kovri::core::RouterInfo::eTransportSSU && address.host.is_v4()) {
       if (!m_SSUServer) {
-        LogPrint(eLogInfo, "Transports: UDP listening on port ", address.port);
+        LogPrint(eLogDebug, "Transports: UDP listening on port ", address.port);
         m_SSUServer = std::make_unique<SSUServer>(m_Service, address.port);
         m_SSUServer->Start();
         DetectExternalIP();
@@ -232,7 +232,7 @@ void Transports::Run() {
     try {
       m_Service.run();
     } catch (std::exception& ex) {
-      LogPrint("Transports: Run(): '", ex.what(), "'");
+      LogPrint(eLogError, "Transports: Run(): '", ex.what(), "'");
     }
   }
 }
@@ -389,7 +389,7 @@ bool Transports::ConnectToPeerNTCP(
     }
   } else {  // we don't have address
     if (address->address_string.length() > 0) {  // trying to resolve
-      LogPrint(eLogInfo,
+      LogPrint(eLogDebug,
           "Transports: NTCP resolving ", address->address_string);
           NTCPResolve(address->address_string, ident);
       return true;
@@ -431,13 +431,14 @@ void Transports::HandleRequestComplete(
   auto it = m_Peers.find(ident);
   if (it != m_Peers.end()) {
     if (router) {
-      LogPrint(eLogInfo,
+      LogPrint(eLogDebug,
           "Transports: router ", router->GetIdentHashAbbreviation(),
           " found, trying to connect");
       it->second.router = router;
       ConnectToPeer(ident, it->second);
     } else {
-      LogPrint("Transports: router not found, failed to send messages");
+      LogPrint(eLogWarn,
+          "Transports: router not found, failed to send messages");
       m_Peers.erase(it);
     }
   }
@@ -471,7 +472,7 @@ void Transports::HandleNTCPResolve(
     auto& peer = it1->second;
     if (!ecode && peer.router) {
       auto address = (*it).endpoint().address();
-      LogPrint(eLogInfo,
+      LogPrint(eLogDebug,
           "Transports: ", (*it).host_name(),
           " has been resolved to ", address);
       auto addr = peer.router->GetNTCPAddress();
@@ -510,7 +511,7 @@ void Transports::PostCloseSession(
   // try SSU first
   if (ssu_session) {
     m_SSUServer->DeleteSession(ssu_session);
-    LogPrint(eLogInfo,
+    LogPrint(eLogDebug,
         "Transports: SSU session [",
         router->GetIdentHashAbbreviation(), "] closed");
   }
@@ -518,7 +519,7 @@ void Transports::PostCloseSession(
       m_NTCPServer->FindNTCPSession(router->GetIdentHash()) : nullptr;
   if (ntcp_session) {
     m_NTCPServer->RemoveNTCPSession(ntcp_session);
-    LogPrint(eLogInfo,
+    LogPrint(eLogDebug,
         "Transports: NTCP session [",
         router->GetIdentHashAbbreviation(), "] closed");
   }
@@ -619,10 +620,10 @@ void Transports::HandlePeerCleanupTimer(
     for (auto it = m_Peers.begin(); it != m_Peers.end();) {
       if (it->second.sessions.empty() &&
           ts > it->second.creation_time + SESSION_CREATION_TIMEOUT) {
-        LogPrint(eLogError,
+        LogPrint(eLogWarn,
             "Transports: session to peer",
             GetFormattedSessionInfo(it->second.router),
-            "has not been created in ", SESSION_CREATION_TIMEOUT, " seconds");
+            "has not been created in ", SESSION_CREATION_TIMEOUT, " seconds ");
         it = m_Peers.erase(it);
       } else {
         it++;

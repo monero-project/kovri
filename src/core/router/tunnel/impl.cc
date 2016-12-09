@@ -159,7 +159,7 @@ bool Tunnel::HandleTunnelBuildResponse(
     const std::uint8_t* record =
       msg + 1 + hop->record_index * TUNNEL_BUILD_RECORD_SIZE;
     std::uint8_t ret = record[BUILD_RESPONSE_RECORD_RET_OFFSET];
-    LogPrint("Tunnel: ret code=", static_cast<int>(ret));
+    LogPrint(eLogDebug, "Tunnel: ret code=", static_cast<int>(ret));
     hop->router->GetProfile()->TunnelBuildResponse(ret);
     if (ret)
       // if any of participants declined the tunnel is not established
@@ -195,7 +195,7 @@ void Tunnel::EncryptTunnelMsg(
 void Tunnel::SendTunnelDataMsg(
     std::shared_ptr<kovri::core::I2NPMessage>) {
   // TODO(unassigned): review for missing code
-  LogPrint(eLogInfo,
+  LogPrint(eLogDebug,
       "Tunnel: can't send I2NP messages without delivery instructions");
 }
 
@@ -469,7 +469,7 @@ void Tunnels::Run() {
         last_ts = ts;
       }
     } catch (std::exception& ex) {
-      LogPrint("Tunnels::Run() exception: ", ex.what());
+      LogPrint(eLogError, "Tunnels::Run() exception: ", ex.what());
     }
   }
 }
@@ -521,7 +521,7 @@ void Tunnels::ManagePendingTunnels(
     switch (tunnel->GetState()) {
       case e_TunnelStatePending:
         if (ts > tunnel->GetCreationTime() + TUNNEL_CREATION_TIMEOUT) {
-          LogPrint(eLogInfo,
+          LogPrint(eLogDebug,
               "Tunnels: pending tunnel build request ",
               it->first, " timeout. Deleted");
           // update stats
@@ -542,7 +542,7 @@ void Tunnels::ManagePendingTunnels(
         }
       break;
       case e_TunnelStateBuildFailed:
-        LogPrint(eLogInfo,
+        LogPrint(eLogDebug,
             "Tunnels: pending tunnel build request ",
             it->first, " failed. Deleted");
         it = pending_tunnels.erase(it);
@@ -565,7 +565,7 @@ void Tunnels::ManageOutboundTunnels() {
     for (auto it = m_OutboundTunnels.begin(); it != m_OutboundTunnels.end();) {
       auto tunnel = *it;
       if (ts > tunnel->GetCreationTime() + TUNNEL_EXPIRATION_TIMEOUT) {
-        LogPrint(eLogInfo,
+        LogPrint(eLogDebug,
             "Tunnels: tunnel ", tunnel->GetTunnelID(), " expired");
         auto pool = tunnel->GetTunnelPool();
         if (pool)
@@ -595,7 +595,7 @@ void Tunnels::ManageOutboundTunnels() {
     auto router = kovri::core::netdb.GetRandomRouter();
     if (!inbound_tunnel || !router)
       return;
-    LogPrint(eLogInfo, "Tunnels: creating one hop outbound tunnel");
+    LogPrint(eLogDebug, "Tunnels: creating one hop outbound tunnel");
     CreateTunnel<OutboundTunnel> (
         std::make_shared<TunnelConfig> (
           std::vector<std::shared_ptr<const kovri::core::RouterInfo> > { router },
@@ -608,7 +608,7 @@ void Tunnels::ManageInboundTunnels() {
     for (auto it = m_InboundTunnels.begin(); it != m_InboundTunnels.end();) {
       auto tunnel = it->second;
       if (ts > tunnel->GetCreationTime() + TUNNEL_EXPIRATION_TIMEOUT) {
-        LogPrint(eLogInfo,
+        LogPrint(eLogDebug,
             "Tunnels: tunnel ", tunnel->GetTunnelID(), " expired");
         auto pool = tunnel->GetTunnelPool();
         if (pool)
@@ -633,7 +633,7 @@ void Tunnels::ManageInboundTunnels() {
     }
   }
   if (m_InboundTunnels.empty()) {
-    LogPrint(eLogInfo,
+    LogPrint(eLogDebug,
         "Tunnels: creating zero hops inbound tunnel");
     CreateZeroHopsInboundTunnel();
     if (!m_ExploratoryPool)
@@ -645,7 +645,7 @@ void Tunnels::ManageInboundTunnels() {
   if (m_OutboundTunnels.empty() || m_InboundTunnels.size() < 5) {
     // trying to create one more inbound tunnel
     auto router = kovri::core::netdb.GetRandomRouter();
-    LogPrint(eLogInfo, "Tunnels: creating one hop inbound tunnel");
+    LogPrint(eLogDebug, "Tunnels: creating one hop inbound tunnel");
     CreateTunnel<InboundTunnel> (
         std::make_shared<TunnelConfig> (
           std::vector<std::shared_ptr<const kovri::core::RouterInfo> > {router}));
@@ -657,7 +657,7 @@ void Tunnels::ManageTransitTunnels() {
   for (auto it = m_TransitTunnels.begin(); it != m_TransitTunnels.end();) {
     if (ts > it->second->GetCreationTime() + TUNNEL_EXPIRATION_TIMEOUT) {
       auto tmp = it->second;
-      LogPrint(eLogInfo,
+      LogPrint(eLogDebug,
           "Tunnels: transit tunnel ", tmp->GetTunnelID(), " expired"); {
         std::unique_lock<std::mutex> l(m_TransitTunnelsMutex);
         it = m_TransitTunnels.erase(it);

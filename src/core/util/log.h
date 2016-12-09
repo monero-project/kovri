@@ -249,6 +249,7 @@ void DeprecatedLogPrint(
   }
 }
 
+// TODO(anonimal): remove. We want specificity.
 template<typename... Args>
 void DeprecatedLogPrint(
     Args... args) {

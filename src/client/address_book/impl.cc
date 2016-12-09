@@ -143,7 +143,7 @@ void AddressBook::LoadPublishers() {
   // edit publisher's file manually with any effect after router start
   // References #337
   if (m_PublishersLoaded) {
-    LogPrint(eLogError, "AddressBook: publisher(s) already loaded");
+    LogPrint(eLogDebug, "AddressBook: publisher(s) already loaded");
     return;
   }
   auto publishers = GetDefaultPublishersFilename();

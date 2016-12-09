@@ -89,7 +89,7 @@ bool Reseed::Start() {
       if (!m_Stream.empty() || attempts == max_attempts)
         return false;
     } else {
-      LogPrint(eLogInfo, "Reseed: fetch successful");
+      LogPrint(eLogDebug, "Reseed: fetch successful");
       break;
     }
   }
@@ -153,7 +153,7 @@ bool Reseed::ProcessCerts() {
       }
     }
   }
-  LogPrint(eLogInfo,
+  LogPrint(eLogDebug,
       "Reseed: successfuly loaded ", num_certs, " certificates");
   return (num_certs > 0);
 }
@@ -188,7 +188,7 @@ bool Reseed::FetchStream() {
 
 bool Reseed::FetchStream(
     const std::string& url) {
-  LogPrint(eLogInfo, "Reseed: fetching stream from ", url);
+  LogPrint(eLogInfo, "Reseed: fetching from ", url);
   // TODO(unassigned): abstract our downloading mechanism (see #168)
   HTTP http(url);
   if (!http.Download())
@@ -201,7 +201,7 @@ bool Reseed::FetchStream(
 
 bool Reseed::FetchStream(
     std::ifstream& ifs) {
-  LogPrint(eLogInfo, "Reseed: fetching stream from file ", m_Stream);
+  LogPrint(eLogInfo, "Reseed: fetching from file ", m_Stream);
   if (ifs) {
     try {
       // Assign file contents to stream

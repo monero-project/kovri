@@ -138,7 +138,7 @@ TransitTunnel* CreateTransitTunnel(
     bool is_gateway,
     bool is_endpoint) {
   if (is_endpoint) {
-    LogPrint(eLogInfo,
+    LogPrint(eLogDebug,
         "TransitTunnel: endpoint ", receive_tunnel_ID, " created");
     return new TransitTunnelEndpoint(
         receive_tunnel_ID,
@@ -147,7 +147,7 @@ TransitTunnel* CreateTransitTunnel(
         layer_key,
         iv_key);
   } else if (is_gateway) {
-    LogPrint(eLogInfo,
+    LogPrint(eLogDebug,
         "TransitTunnel: gateway: ", receive_tunnel_ID, " created");
     return new TransitTunnelGateway(
         receive_tunnel_ID,
@@ -156,7 +156,7 @@ TransitTunnel* CreateTransitTunnel(
         layer_key,
         iv_key);
   } else {
-    LogPrint(eLogInfo,
+    LogPrint(eLogDebug,
         "TransitTunnel: ", receive_tunnel_ID, "->", next_tunnel_ID, " created");
     return new TransitTunnelParticipant(
         receive_tunnel_ID,

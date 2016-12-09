@@ -217,7 +217,7 @@ void I2PTunnelConnection::HandleConnect(
         "I2PTunnelConnection: connect error: ", ecode.message());
     Terminate();
   } else {
-    LogPrint(eLogInfo, "I2PTunnelConnection: connected");
+    LogPrint(eLogDebug, "I2PTunnelConnection: connected");
     if (m_IsQuiet) {
       StreamReceive();
     } else {
@@ -312,7 +312,7 @@ void I2PClientTunnelHandler::HandleStreamRequestComplete(
   if (stream) {
     if (Kill())
       return;
-    LogPrint(eLogInfo, "I2PClientTunnelHandler: new I2PTunnel connection");
+    LogPrint(eLogDebug, "I2PClientTunnelHandler: new I2PTunnel connection");
     auto connection =
       std::make_shared<I2PTunnelConnection>(
           GetOwner(),
@@ -323,9 +323,8 @@ void I2PClientTunnelHandler::HandleStreamRequestComplete(
     Done(shared_from_this());
   } else {
     LogPrint(eLogError,
-        "I2PClientTunnelHandler: ",
-        "I2P Client Tunnel Issue when creating the stream. ",
-        "Check the previous warnings for details.");
+        "I2PClientTunnelHandler: stream not available ",
+        "(router may need more time to integrate into the network)");
     Terminate();
   }
 }
@@ -544,7 +543,8 @@ void I2PServerTunnel::Accept() {
               this,
               std::placeholders::_1));
   } else {
-    LogPrint("I2PServerTunnel: local destination not set for server tunnel");
+    LogPrint(eLogDebug,
+        "I2PServerTunnel: local destination not set for server tunnel");
   }
 }
 
@@ -553,7 +553,7 @@ void I2PServerTunnel::HandleAccept(
   if (stream) {
     if (!EnforceACL(stream))
       return;
-    LogPrint(eLogDebug,
+    LogPrint(eLogInfo,
         "I2PServerTunnel: creating connection with ",
         stream->GetRemoteIdentity().GetIdentHash().ToBase32() + ".b32.i2p");
     CreateI2PConnection(stream);

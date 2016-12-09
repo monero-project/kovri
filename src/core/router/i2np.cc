@@ -280,7 +280,7 @@ std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg(
   buf += 2;
   m->len += (buf - payload);  // payload size
   if (m->len + size > m->max_len) {
-    LogPrint(eLogInfo,
+    LogPrint(eLogDebug,
         "I2NPMessage: DatabaseStore message size is not enough for ",
         m->len + size);
     auto new_msg =  ToSharedI2NPMessage(NewI2NPMessage());
@@ -348,7 +348,7 @@ bool HandleBuildRequestRecords(
             record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET,
             (const std::uint8_t *)kovri::context.GetRouterInfo().GetIdentHash(),
             16)) {
-      LogPrint("I2NPMessage: record ", i, " is ours");
+      LogPrint(eLogDebug, "I2NPMessage: record ", i, " is ours");
       // Get session key from encrypted block
       kovri::core::ElGamalDecrypt(
           kovri::context.GetEncryptionPrivateKey(),
@@ -442,20 +442,20 @@ void HandleVariableTunnelBuildMsg(
     std::uint8_t* buf,
     std::size_t len) {
   int num = buf[0];
-  LogPrint(eLogInfo, "I2NPMessage: VariableTunnelBuild ", num, " records");
+  LogPrint(eLogDebug, "I2NPMessage: VariableTunnelBuild ", num, " records");
   auto tunnel = kovri::core::tunnels.GetPendingInboundTunnel(reply_msg_ID);
   if (tunnel) {
     // endpoint of inbound tunnel
-    LogPrint(eLogInfo,
+    LogPrint(eLogDebug,
         "I2NPMessage: VariableTunnelBuild reply for tunnel ",
         tunnel->GetTunnelID());
     if (tunnel->HandleTunnelBuildResponse(buf, len)) {
-      LogPrint(eLogInfo,
+      LogPrint(eLogDebug,
           "I2NPMessage: inbound tunnel ", tunnel->GetTunnelID(), " has been created");
       tunnel->SetState(kovri::core::e_TunnelStateEstablished);
       kovri::core::tunnels.AddInboundTunnel(tunnel);
     } else {
-      LogPrint(eLogInfo,
+      LogPrint(eLogDebug,
           "I2NPMessage: inbound tunnel ", tunnel->GetTunnelID(), " has been declined");
       tunnel->SetState(kovri::core::e_TunnelStateBuildFailed);
     }
@@ -528,13 +528,13 @@ void HandleVariableTunnelBuildReplyMsg(
     std::uint32_t reply_msg_ID,
     std::uint8_t* buf,
     std::size_t len) {
-  LogPrint(eLogInfo,
+  LogPrint(eLogDebug,
       "I2NPMessage: VariableTunnelBuildReplyMsg reply_msg_ID=", reply_msg_ID);
   auto tunnel = kovri::core::tunnels.GetPendingOutboundTunnel(reply_msg_ID);
   if (tunnel) {
     // reply for outbound tunnel
     if (tunnel->HandleTunnelBuildResponse(buf, len)) {
-      LogPrint(eLogInfo,
+      LogPrint(eLogDebug,
           "I2NPMessage: outbound tunnel ", tunnel->GetTunnelID(), " has been created");
       tunnel->SetState(kovri::core::e_TunnelStateEstablished);
       kovri::core::tunnels.AddOutboundTunnel(tunnel);
@@ -644,7 +644,7 @@ void HandleI2NPMessage(
     std::size_t len) {
   std::uint8_t type_ID = msg[I2NP_HEADER_TYPEID_OFFSET];
   std::uint32_t msg_ID = bufbe32toh(msg + I2NP_HEADER_MSGID_OFFSET);
-  LogPrint(eLogInfo,
+  LogPrint(eLogDebug,
       "I2NPMessage: msg received len=", len,
       ", type=", static_cast<int>(type_ID),
       ", msg_ID=", (unsigned int)msg_ID);
@@ -691,7 +691,7 @@ void HandleI2NPMessage(
           if (msg->from->GetTunnelPool())
             msg->from->GetTunnelPool()->ProcessGarlicMessage(msg);
           else
-            LogPrint(eLogInfo,
+            LogPrint(eLogDebug,
                 "I2NPMessage: local destination for garlic doesn't exist anymore");
         } else {
           kovri::context.ProcessGarlicMessage(msg);

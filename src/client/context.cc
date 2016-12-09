@@ -71,9 +71,9 @@ void ClientContext::Start() {
   }
   std::shared_ptr<ClientDestination> local_destination;
   m_HttpProxy->Start();
-  LogPrint(eLogInfo, "ClientContext: HTTP Proxy started");
+  LogPrint(eLogDebug, "ClientContext: HTTP Proxy started");
   m_SocksProxy->Start();
-  LogPrint(eLogInfo, "ClientContext: SOCKS Proxy Started");
+  LogPrint(eLogDebug, "ClientContext: SOCKS Proxy Started");
   // Start all client tunnels
   for (auto& pair : m_ClientTunnels)
     pair.second->Start();
@@ -82,7 +82,7 @@ void ClientContext::Start() {
     pair.second->Start();
   // I2P Control
   if (m_I2PControlService) {
-    LogPrint(eLogInfo, "ClientContext: starting I2PControlService");
+    LogPrint(eLogDebug, "ClientContext: starting I2PControlService");
     m_I2PControlService->Start();
   }
   m_AddressBook.Start(m_SharedLocalDestination);
@@ -96,28 +96,28 @@ void ClientContext::Stop() {
   if (m_HttpProxy) {
     m_HttpProxy->Stop();
     m_HttpProxy.reset(nullptr);
-    LogPrint(eLogInfo, "ClientContext: HTTP Proxy stopped");
+    LogPrint(eLogDebug, "ClientContext: HTTP Proxy stopped");
   }
   if (m_SocksProxy) {
     m_SocksProxy->Stop();
     m_SocksProxy.reset(nullptr);
-    LogPrint(eLogInfo, "ClientContext: SOCKS Proxy stopped");
+    LogPrint(eLogDebug, "ClientContext: SOCKS Proxy stopped");
   }
   for (auto& it : m_ClientTunnels) {
     it.second->Stop();
-    LogPrint(eLogInfo,
+    LogPrint(eLogDebug,
         "ClientContext: I2P client tunnel on port ", it.first, " stopped");
   }
   m_ClientTunnels.clear();
   for (auto& it : m_ServerTunnels) {
     it.second->Stop();
-    LogPrint(eLogInfo, "ClientContext: I2P server tunnel stopped");
+    LogPrint(eLogDebug, "ClientContext: I2P server tunnel stopped");
   }
   m_ServerTunnels.clear();
   if (m_I2PControlService) {
     m_I2PControlService->Stop();
     m_I2PControlService.reset(nullptr);
-    LogPrint(eLogInfo, "ClientContext: I2PControl stopped");
+    LogPrint(eLogDebug, "ClientContext: I2PControl stopped");
   }
   m_AddressBook.Stop();
   for (auto it : m_Destinations)
@@ -144,9 +144,8 @@ kovri::core::PrivateKeys ClientContext::CreatePrivateKeys(
   len = keys.ToBuffer(buf.get(), len);
   file.write(reinterpret_cast<char *>(buf.get()), len);
   LogPrint(eLogInfo,
-      "ClientContext: new private keys file ", file_path,
-      " for ", m_AddressBook.GetB32AddressFromIdentHash(keys.GetPublic().GetIdentHash()),
-      " created");
+      "ClientContext: created new private keys ", file_path, " for ",
+      m_AddressBook.GetB32AddressFromIdentHash(keys.GetPublic().GetIdentHash()));
   return keys;
 }
 
@@ -168,7 +167,8 @@ kovri::core::PrivateKeys ClientContext::LoadPrivateKeys(
   keys.FromBuffer(buf.get(), len);
   LogPrint(eLogInfo,
       "ClientContext: local address ",
-      m_AddressBook.GetB32AddressFromIdentHash(keys.GetPublic().GetIdentHash()), " loaded");
+      m_AddressBook.GetB32AddressFromIdentHash(keys.GetPublic().GetIdentHash()),
+      " loaded");
   return keys;
 }
 
@@ -227,7 +227,7 @@ std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination(
     const std::map<std::string, std::string>* params) {
   auto it = m_Destinations.find(keys.GetPublic().GetIdentHash());
   if (it != m_Destinations.end()) {
-    LogPrint(eLogInfo,
+    LogPrint(eLogDebug,
         "ClientContext: local destination ",
         m_AddressBook.GetB32AddressFromIdentHash(keys.GetPublic().GetIdentHash()),
         " already exists");

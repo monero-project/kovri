@@ -52,7 +52,7 @@ void IncompleteMessage::AttachNextFragment(
     const std::uint8_t* fragment,
     std::size_t fragment_size) {
   if (msg->len + fragment_size > msg->max_len) {
-    LogPrint(eLogInfo,
+    LogPrint(eLogDebug,
         "Transport: SSU I2NP message size ", msg->max_len, " is not enough");
     auto new_msg = ToSharedI2NPMessage(NewI2NPMessage());
     *new_msg = *msg;
@@ -114,7 +114,7 @@ void SSUData::AdjustPacketSize(
       m_PacketSize <<= 4;
       if (m_PacketSize > m_MaxPacketSize)
         m_PacketSize = m_MaxPacketSize;
-      LogPrint(eLogInfo,
+      LogPrint(eLogDebug,
           "SSUData:", m_Session.GetFormattedSessionInfo(),
           "MTU=", ssu_address->mtu, " packet size=", m_PacketSize);
     } else {
@@ -269,7 +269,7 @@ void SSUData::ProcessFragments(
         // missing fragment
         LogPrint(eLogWarn,
             "SSUData:", m_Session.GetFormattedSessionInfo(),
-            " missing fragments from ",
+            "missing fragments from ",
             static_cast<int>(incomplete_message->next_fragment_num),
             " to ", fragment_num - 1, " of message ", msg_id);
         auto saved_fragment =
@@ -311,13 +311,13 @@ void SSUData::ProcessFragments(
         auto I2NP_type = msg->GetTypeID();
         // we expect DeliveryStatus
         if (I2NP_type == I2NPDeliveryStatus) {
-          LogPrint(eLogInfo,
+          LogPrint(eLogDebug,
               "SSUData:", m_Session.GetFormattedSessionInfo(),
               "SSU session established");
           m_Session.Established();
         } else if (I2NP_type == I2NPDatabaseStore) {
           // we got a database store message
-          LogPrint(eLogInfo,
+          LogPrint(eLogDebug,
               "SSUData:", m_Session.GetFormattedSessionInfo(),
               "Got DSM From SSU");
           m_ReceivedMessages.insert(msg_id);

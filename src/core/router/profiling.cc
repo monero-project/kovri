@@ -248,7 +248,7 @@ void DeleteObsoleteProfiles() {
       }
     }
   }
-  LogPrint(eLogInfo, "Profiling: ", num, " obsolete profiles deleted");
+  LogPrint(eLogDebug, "Profiling: ", num, " obsolete profiles deleted");
 }
 
 }  // namespace core

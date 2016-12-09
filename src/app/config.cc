@@ -69,15 +69,15 @@ void Configuration::ParseKovriConfig() {
     ("log-to-console", bpo::value<bool>()->default_value(true))
     ("log-to-file", bpo::value<bool>()->default_value(true))
     ("log-file-name", bpo::value<std::string>()->default_value(
-        (kovri::core::GetLogsPath() / "kovri_%1N.log").string()))  // TODO(anonimal): #330
+        (kovri::core::GetLogsPath() / "kovri_%Y-%m-%d.log").string()))
     ("log-levels", bpo::value<std::vector<std::string>>()->
                    // Note: we set a default value during validation and
                    // leave blank here to prevent bad_any_cast exception.
                    default_value(std::vector<std::string>(), "")->multitoken())
     ("kovriconf,c", bpo::value<std::string>(&kovri_config)->default_value(
-        kovri::core::GetFullPath("kovri.conf")))  // TODO(anonimal): #330
+        kovri::core::GetFullPath("kovri.conf")))
     ("tunnelsconf,t", bpo::value<std::string>(&tunnels_config)->default_value(
-        kovri::core::GetFullPath("tunnels.conf")));  // TODO(anonimal): #330
+        kovri::core::GetFullPath("tunnels.conf")));
 
   bpo::options_description network("\nnetwork");
   network.add_options()

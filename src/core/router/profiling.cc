@@ -95,7 +95,7 @@ void RouterProfile::Save() {
       PEER_PROFILE_SECTION_USAGE,
       usage);
   // save to file
-  auto path = kovri::core::GetDataPath() / PEER_PROFILES_DIRECTORY;
+  auto path = kovri::core::GetProfilesPath();
   if (!boost::filesystem::exists(path)) {
     // Create directory is necessary
     if (!boost::filesystem::create_directory(path)) {
@@ -123,7 +123,7 @@ void RouterProfile::Save() {
 
 void RouterProfile::Load() {
   std::string base64 = m_IdentHash.ToBase64();
-  auto path = kovri::core::GetDataPath() / PEER_PROFILES_DIRECTORY;
+  auto path = kovri::core::GetProfilesPath();
   path /= std::string("p") + base64[0];
   auto filename = path / (std::string(PEER_PROFILE_PREFIX) + base64 + ".txt");
   if (boost::filesystem::exists(filename)) {
@@ -227,8 +227,7 @@ std::shared_ptr<RouterProfile> GetRouterProfile(
 void DeleteObsoleteProfiles() {
   int num = 0;
   auto ts = boost::posix_time::second_clock::local_time();
-  boost::filesystem::path p(
-      kovri::core::GetDataPath() / PEER_PROFILES_DIRECTORY);
+  boost::filesystem::path p(kovri::core::GetProfilesPath());
   if (boost::filesystem::exists(p)) {
     boost::filesystem::directory_iterator end;
     for (boost::filesystem::directory_iterator it(p); it != end; ++it) {

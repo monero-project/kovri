@@ -60,8 +60,6 @@
 namespace kovri {
 namespace core {
 
-const char NetDb::m_NetDbPath[] = "netDb";
-
 // Simply instantiating in namespace scope ties into, and is limited by, the current singleton design
 // TODO(unassigned): refactoring this requires global work but will help to remove the singleton
 NetDb netdb;
@@ -312,7 +310,7 @@ bool NetDb::CreateNetDb(
 }
 
 bool NetDb::Load() {
-  boost::filesystem::path p(kovri::core::GetDataPath() / m_NetDbPath);
+  boost::filesystem::path p(kovri::core::GetNetDbPath());
   if (!boost::filesystem::exists(p)) {
     // seems netDb doesn't exist yet
     if (!CreateNetDb(p))
@@ -366,10 +364,8 @@ void NetDb::SaveUpdated() {
     std::string s(router_info->GetIdentHashBase64());
     return directory / (std::string("r") + s[0]) / ("router_info_" + s + ".dat");
   };
-  boost::filesystem::path full_directory(
-      kovri::core::GetDataPath() / m_NetDbPath);
-  int count = 0,
-      deleted_count = 0;
+  boost::filesystem::path full_directory(kovri::core::GetNetDbPath());
+  int count = 0, deleted_count = 0;
   auto total = GetNumRouters();
   std::uint64_t ts = kovri::core::GetMillisecondsSinceEpoch();
   for (auto it : m_RouterInfos) {

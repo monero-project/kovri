@@ -102,7 +102,7 @@ void RouterContext::NewRouterInfo() {
 
 void RouterContext::UpdateRouterInfo() {
   m_RouterInfo.CreateBuffer(m_Keys);
-  m_RouterInfo.SaveToFile(kovri::core::GetFullPath(ROUTER_INFO));
+  m_RouterInfo.SaveToFile((kovri::core::GetCorePath() / ROUTER_INFO).string());
   m_LastUpdateTime = kovri::core::GetSecondsSinceEpoch();
 }
 
@@ -309,24 +309,22 @@ void RouterContext::UpdateStats() {
 }
 
 bool RouterContext::Load() {
-  std::ifstream fk(
-      kovri::core::GetFullPath(ROUTER_KEYS).c_str(),
-      std::ifstream::binary | std::ofstream::in);
+  auto path = kovri::core::EnsurePath(kovri::core::GetCorePath());
+  std::ifstream fk((path / ROUTER_KEYS).string(), std::ifstream::binary);
+  // If key does not exist, create
   if (!fk.is_open())
     return false;
-  
   fk.seekg(0, std::ios::end);
   const std::size_t len = fk.tellg();
   fk.seekg(0, std::ios::beg);
   std::unique_ptr<std::uint8_t[]> buf(std::make_unique<std::uint8_t[]>(len));
   fk.read(reinterpret_cast<char*>(buf.get()), len);
   m_Keys.FromBuffer(buf.get(), len);
-
-  kovri::core::RouterInfo routerInfo(
-      kovri::core::GetFullPath(ROUTER_INFO));
+  kovri::core::RouterInfo router_info(
+      (kovri::core::GetCorePath() / ROUTER_INFO).string());
   m_RouterInfo.Update(
-      routerInfo.GetBuffer(),
-      routerInfo.GetBufferLen());
+      router_info.GetBuffer(),
+      router_info.GetBufferLen());
   m_RouterInfo.SetProperty("coreVersion", I2P_VERSION);
   m_RouterInfo.SetProperty("router.version", I2P_VERSION);
   if (IsUnreachable())
@@ -337,8 +335,8 @@ bool RouterContext::Load() {
 
 void RouterContext::SaveKeys() {
   std::ofstream fk(
-      kovri::core::GetFullPath(ROUTER_KEYS).c_str(),
-      std::ofstream::binary | std::ofstream::out);
+      (kovri::core::GetCorePath() / ROUTER_KEYS).string(),
+      std::ofstream::binary);
   const std::size_t len = m_Keys.GetFullLen();
   std::unique_ptr<std::uint8_t[]> buf(std::make_unique<std::uint8_t[]>(len));
   m_Keys.ToBuffer(buf.get(), len);

@@ -145,7 +145,7 @@ class Configuration {
     boost::filesystem::path file(
         GetParsedKovriConfig().at("kovriconfig").as<std::string>());
     if (!file.is_complete())
-      file = kovri::core::GetDataPath() / file;
+      file = kovri::core::GetConfigPath() / file;
     return file;
   }
 
@@ -156,7 +156,7 @@ class Configuration {
     boost::filesystem::path file(
         GetParsedKovriConfig().at("tunnelsconf").as<std::string>());
     if (!file.is_complete())
-      file = kovri::core::GetDataPath() / file;
+      file = kovri::core::GetConfigPath() / file;
     return file;
   }
 

@@ -474,7 +474,7 @@ void I2PControlSession::HandleDatapath(
     Response& response) {
   response.SetParam(
       ROUTER_INFO_DATAPATH,
-      kovri::core::GetDataPath().string());
+      kovri::core::GetCorePath().string());
 }
 
 void I2PControlSession::HandleNetDbKnownPeers(

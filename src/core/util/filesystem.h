@@ -81,23 +81,60 @@ class StringStream {
   std::stringstream m_Stream;
 };
 
-/// @return the full path of a file within the kovri directory
-std::string GetFullPath(const std::string& filename);
+/// @brief Tests existence of path / creates if it does not exist
+/// @param Boost.Filesystem path
+/// @return Created path
+const boost::filesystem::path EnsurePath(
+    const boost::filesystem::path& path);
+
+/// TODO(anonimal): we can refactor all path getter functions, consolidate with key
+
+/// Client paths
+
+/// @return Path to certificates for SU3 verification
+const boost::filesystem::path GetSU3CertsPath();
+
+/// @return Path to SSL certificates for TLS/SSL negotiation
+const boost::filesystem::path GetSSLCertsPath();
+
+/// @return Address book related path
+const boost::filesystem::path GetAddressBookPath();
+
+/// @return Path to client (tunnel) keys
+const boost::filesystem::path GetClientKeysPath();
+
+
+/// Core paths
+
+/// @return Path to network database
+const boost::filesystem::path GetNetDbPath();
+
+/// @return Path to peer profiles
+const boost::filesystem::path GetProfilesPath();
+
+
+/// Data paths
+
+/// @return the path to log storage
+const boost::filesystem::path GetLogsPath();
+
+/// @return Path to configuration files
+const boost::filesystem::path GetConfigPath();
+
+/// @return Path to core section
+const boost::filesystem::path GetCorePath();
+
+/// @return Path to client section
+const boost::filesystem::path GetClientPath();
+
+
+/// Root data directory
 
 /// @return the path of the kovri directory
 const boost::filesystem::path& GetDataPath();
 
 /// @return the default directory for app data
 boost::filesystem::path GetDefaultDataPath();
-
-/// @return the path to certificates for SU3 verification
-boost::filesystem::path GetSU3CertsPath();
-
-/// @return the path to SSL certificates for TLS/SSL negotiation
-boost::filesystem::path GetSSLCertsPath();
-
-/// @return the path to log storage
-const boost::filesystem::path GetLogsPath();
 
 }  // namespace core
 }  // namespace kovri

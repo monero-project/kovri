@@ -41,7 +41,7 @@
 #include <vector>
 
 #include "core/router/identity.h"
-
+#include "core/util/filesystem.h"
 #include "core/util/log.h"
 
 namespace kovri {
@@ -134,7 +134,8 @@ void ClientContext::RequestShutdown() {
 
 kovri::core::PrivateKeys ClientContext::CreatePrivateKeys(
     const std::string& filename) {
-  auto file_path = kovri::core::GetFullPath(filename);
+  auto path = kovri::core::EnsurePath(kovri::core::GetClientKeysPath());
+  auto file_path = (path / filename).string();
   std::ofstream file(file_path, std::ofstream::binary);
   if (!file)
     throw std::runtime_error("ClientContext: could not open private keys for writing");
@@ -151,11 +152,11 @@ kovri::core::PrivateKeys ClientContext::CreatePrivateKeys(
 
 kovri::core::PrivateKeys ClientContext::LoadPrivateKeys(
     const std::string& filename) {
-  auto file_path = kovri::core::GetFullPath(filename);
+  auto file_path = (kovri::core::GetClientKeysPath() / filename).string();
   std::ifstream file(file_path, std::ifstream::binary);
   if (!file) {
     LogPrint(eLogWarn,
-        "ClientContext: can't open file ", file_path, ", creating new one");
+        "ClientContext: ", file_path, " does not exist, creating");
     return CreatePrivateKeys(filename);
   }
   kovri::core::PrivateKeys keys;
@@ -166,9 +167,8 @@ kovri::core::PrivateKeys ClientContext::LoadPrivateKeys(
   file.read(reinterpret_cast<char *>(buf.get()), len);
   keys.FromBuffer(buf.get(), len);
   LogPrint(eLogInfo,
-      "ClientContext: local address ",
-      m_AddressBook.GetB32AddressFromIdentHash(keys.GetPublic().GetIdentHash()),
-      " loaded");
+      "ClientContext: ", file_path, " loaded: uses local address ",
+      m_AddressBook.GetB32AddressFromIdentHash(keys.GetPublic().GetIdentHash()));
   return keys;
 }
 

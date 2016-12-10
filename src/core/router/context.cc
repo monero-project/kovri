@@ -310,7 +310,7 @@ void RouterContext::UpdateStats() {
 
 bool RouterContext::Load() {
   auto path = kovri::core::EnsurePath(kovri::core::GetCorePath());
-  std::ifstream fk((path / ROUTER_KEYS).c_str(), std::ifstream::binary);
+  std::ifstream fk((path / ROUTER_KEYS).string(), std::ifstream::binary);
   // If key does not exist, create
   if (!fk.is_open())
     return false;
@@ -335,8 +335,8 @@ bool RouterContext::Load() {
 
 void RouterContext::SaveKeys() {
   std::ofstream fk(
-      (kovri::core::GetCorePath() / ROUTER_KEYS).c_str(),
-      std::ofstream::binary | std::ofstream::out);
+      (kovri::core::GetCorePath() / ROUTER_KEYS).string(),
+      std::ofstream::binary);
   const std::size_t len = m_Keys.GetFullLen();
   std::unique_ptr<std::uint8_t[]> buf(std::make_unique<std::uint8_t[]>(len));
   m_Keys.ToBuffer(buf.get(), len);

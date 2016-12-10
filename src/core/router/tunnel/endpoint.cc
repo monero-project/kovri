@@ -149,7 +149,7 @@ void TunnelEndpoint::HandleDecryptedTunnelDataMsg(
             else
               LogPrint(eLogError,
                   "TunnelEndpoint: incomplete message ",
-                  msg_ID, "already exists");
+                  msg_ID, " already exists");
           } else {
             m.next_fragment_num = fragment_num;
             HandleFollowOnFragment(msg_ID, is_last_fragment, m);
@@ -181,7 +181,7 @@ void TunnelEndpoint::HandleFollowOnFragment(
       // check if message is not too long
       if (msg.data->len + size < I2NP_MAX_MESSAGE_SIZE) {
         if (msg.data->len + size > msg.data->max_len) {
-          LogPrint(eLogInfo,
+          LogPrint(eLogDebug,
               "TunnelEndpoint: I2NP message size ",
               msg.data->max_len, " is not enough");
           auto new_msg = ToSharedI2NPMessage(NewI2NPMessage());
@@ -207,7 +207,7 @@ void TunnelEndpoint::HandleFollowOnFragment(
         m_IncompleteMessages.erase(it);
       }
     } else {
-      LogPrint(eLogInfo,
+      LogPrint(eLogDebug,
           "TunnelEndpoint: unexpected fragment: ",
           static_cast<int>(m.next_fragment_num),
           " instead: ",
@@ -220,7 +220,7 @@ void TunnelEndpoint::HandleFollowOnFragment(
           m.data);
     }
   } else {
-    LogPrint(eLogInfo,
+    LogPrint(eLogDebug,
         "TunnelEndpoint: first fragment of message ",
         msg_ID, " not found. Saved");
     AddOutOfSequenceFragment(
@@ -249,13 +249,13 @@ void TunnelEndpoint::HandleOutOfSequenceFragment(
   auto it = m_OutOfSequenceFragments.find(msg_ID);
   if (it != m_OutOfSequenceFragments.end()) {
     if (it->second.fragment_num == msg.next_fragment_num) {
-      LogPrint(eLogInfo,
+      LogPrint(eLogDebug,
           "TunnelEndpoint: out-of-sequence fragment ",
           static_cast<int>(it->second.fragment_num),
           " of message ", msg_ID, " found");
       auto size = it->second.data->GetLength();
       if (msg.data->len + size > msg.data->max_len) {
-        LogPrint(eLogInfo,
+        LogPrint(eLogDebug,
             "TunnelEndpoint: I2NP message size ",
             msg.data->max_len, " is not enough");
         auto new_msg = ToSharedI2NPMessage(NewI2NPMessage());
@@ -281,7 +281,7 @@ void TunnelEndpoint::HandleOutOfSequenceFragment(
 
 void TunnelEndpoint::HandleNextMessage(
     const TunnelMessageBlock& msg) {
-  LogPrint(eLogInfo,
+  LogPrint(eLogDebug,
       "TunnelEndpoint: HandleNextMessage(): handle fragment of ",
       msg.data->GetLength(), " bytes, msg type: ",
       static_cast<int>(msg.data->GetTypeID()));

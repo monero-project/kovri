@@ -69,15 +69,15 @@ void Configuration::ParseKovriConfig() {
     ("log-to-console", bpo::value<bool>()->default_value(true))
     ("log-to-file", bpo::value<bool>()->default_value(true))
     ("log-file-name", bpo::value<std::string>()->default_value(
-        (kovri::core::GetLogsPath() / "kovri_%1N.log").string()))  // TODO(anonimal): #330
+        (kovri::core::GetLogsPath() / "kovri_%Y-%m-%d.log").string()))
     ("log-levels", bpo::value<std::vector<std::string>>()->
                    // Note: we set a default value during validation and
                    // leave blank here to prevent bad_any_cast exception.
                    default_value(std::vector<std::string>(), "")->multitoken())
     ("kovriconf,c", bpo::value<std::string>(&kovri_config)->default_value(
-        kovri::core::GetFullPath("kovri.conf")))  // TODO(anonimal): #330
+        kovri::core::GetFullPath("kovri.conf")))
     ("tunnelsconf,t", bpo::value<std::string>(&tunnels_config)->default_value(
-        kovri::core::GetFullPath("tunnels.conf")));  // TODO(anonimal): #330
+        kovri::core::GetFullPath("tunnels.conf")));
 
   bpo::options_description network("\nnetwork");
   network.add_options()
@@ -224,15 +224,15 @@ bool Configuration::SetLoggingOptions() {
    */
   // Test for valid log-levels input
   auto arg_levels = m_KovriConfig["log-levels"].as<std::vector<std::string>>();
-  auto global_levels = core::GetGlobalLogLevels();
-  if (arg_levels.size()) {
+  auto& global_levels = core::GetGlobalLogLevels();
+  if (!arg_levels.empty()) {
     if (arg_levels.size() > global_levels.size()) {
       std::cout << "Invalid number of log levels. Maximum allowed: "
                 << global_levels.size() << std::endl;
       return false;
     }
     // Verify validity of log levels
-    for (auto& level : arg_levels) {
+    for (auto const& level : arg_levels) {
       auto result = global_levels.find(level);
       if (result == global_levels.end()) {
         std::cout << "Invalid log-level(s). See help for options" << std::endl;
@@ -241,9 +241,15 @@ bool Configuration::SetLoggingOptions() {
     }
   } else {
     // Set default log-levels if none present
-    for (auto& level : global_levels)
-      arg_levels.push_back(level.first);
+    for (auto const& level : global_levels)
+      if (level.first != "debug")  // TODO(anonimal): we'll want to use a key
+        arg_levels.push_back(level.first);
   }
+  // Feedback to user which levels are in use
+  std::string levels;
+  for (auto const& level : arg_levels)
+    levels.append(level + " ");
+  LogPrint(eLogInfo, "Configuration: using log levels: ", levels);
   // Set new global log-levels
   core::SetGlobalLogLevels(arg_levels);
   // Set other logging options

@@ -99,24 +99,24 @@ bool DaemonSingleton::Init() {
 // TODO(anonimal): when refactoring TODO's for singleton, have instance Start
 bool DaemonSingleton::Start() {
   try {
-    LogPrint(eLogInfo, "DaemonSingleton: starting NetDb");
+    LogPrint(eLogDebug, "DaemonSingleton: starting NetDb");
     if (!kovri::core::netdb.Start()) {
       LogPrint(eLogError, "DaemonSingleton: NetDb failed to start");
       return false;
     }
     if (kovri::core::netdb.GetNumRouters() < kovri::core::netdb.MIN_REQUIRED_ROUTERS) {
-      LogPrint(eLogInfo, "DaemonSingleton: reseeding NetDb");
+      LogPrint(eLogDebug, "DaemonSingleton: reseeding NetDb");
       kovri::client::Reseed reseed;
       if (!reseed.Start()) {
         LogPrint(eLogError, "DaemonSingleton: reseed failed");
         return false;
       }
     }
-    LogPrint(eLogInfo, "DaemonSingleton: starting transports");
+    LogPrint(eLogDebug, "DaemonSingleton: starting transports");
     kovri::core::transports.Start();
-    LogPrint(eLogInfo, "DaemonSingleton: starting tunnels");
+    LogPrint(eLogDebug, "DaemonSingleton: starting tunnels");
     kovri::core::tunnels.Start();
-    LogPrint(eLogInfo, "DaemonSingleton: starting client");
+    LogPrint(eLogDebug, "DaemonSingleton: starting client");
     kovri::client::context.Start();
   } catch (std::runtime_error& e) {
     LogPrint(eLogError, "DaemonSingleton: runtime start exception: ", e.what());
@@ -125,6 +125,7 @@ bool DaemonSingleton::Start() {
     LogPrint(eLogError, "DaemonSingleton: unknown exception when starting");
     return false;
   }
+  LogPrint(eLogInfo, "DaemonSingleton: successfully started");
   return true;
 }
 
@@ -138,15 +139,14 @@ void DaemonSingleton::Reload() {
 // TODO(anonimal): when refactoring TODO's for singleton, have instance Stop
 bool DaemonSingleton::Stop() {
   try {
-    LogPrint(eLogInfo, "DaemonSingleton: stopping client");
+    LogPrint(eLogDebug, "DaemonSingleton: stopping client");
     kovri::client::context.Stop();
-    LogPrint(eLogInfo, "DaemonSingleton: stopping tunnels");
+    LogPrint(eLogDebug, "DaemonSingleton: stopping tunnels");
     kovri::core::tunnels.Stop();
-    LogPrint(eLogInfo, "DaemonSingleton: stopping transports");
+    LogPrint(eLogDebug, "DaemonSingleton: stopping transports");
     kovri::core::transports.Stop();
-    LogPrint(eLogInfo, "DaemonSingleton: stopping NetDb");
+    LogPrint(eLogDebug, "DaemonSingleton: stopping NetDb");
     kovri::core::netdb.Stop();
-    LogPrint(eLogInfo, "Goodbye!");
   } catch (std::runtime_error& e) {
     LogPrint(eLogError, "DaemonSingleton: runtime stop exception: ", e.what());
     return false;
@@ -154,6 +154,8 @@ bool DaemonSingleton::Stop() {
     LogPrint(eLogError, "DaemonSingleton: unknown exception when stopping");
     return false;
   }
+  LogPrint(eLogInfo, "DaemonSingleton: successfully stopped");
+  LogPrint(eLogInfo, "Goodbye!");
   return true;
 }
 

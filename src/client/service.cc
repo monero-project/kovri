@@ -119,8 +119,7 @@ void TCPIPAcceptor::HandleAccept(
     const boost::system::error_code& ecode,
     std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
   if (!ecode) {
-    LogPrint(eLogDebug,
-        "I2PService: ", GetName(), " accepted");
+    LogPrint(eLogInfo, "I2PService: ", GetName(), " accepted");
     auto handler = CreateHandler(socket);
     if (handler) {
       AddHandler(handler);

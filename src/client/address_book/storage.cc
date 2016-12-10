@@ -130,8 +130,7 @@ std::size_t AddressBookStorage::Load(
         num++;
       }
     }
-    LogPrint(eLogInfo,
-        "AddressBookStorage: ", num, " addresses loaded");
+    LogPrint(eLogDebug, "AddressBookStorage: ", num, " addresses loaded");
   }
   return num;
 }
@@ -149,8 +148,7 @@ std::size_t AddressBookStorage::Save(
       file << it.first << "," << it.second.ToBase32() << std::endl;
       num++;
     }
-    LogPrint(eLogInfo,
-        "AddressBookStorage: ", num, " addresses saved");
+    LogPrint(eLogInfo, "AddressBookStorage: ", num, " addresses saved");
   }
   return num;
 }

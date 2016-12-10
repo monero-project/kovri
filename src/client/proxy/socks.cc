@@ -834,9 +834,8 @@ void SOCKSHandler::HandleStreamRequestComplete(
     m_Stream = stream;
     SOCKSRequestSuccess();
   } else {
-    LogPrint(eLogError,
-        "SOCKSHandler: issue when creating the stream,",
-        "check the previous warnings for details.");
+    LogPrint(eLogError, "SOCKSHandler: stream not available",
+    "(router may need more time to integrate into the network)");
     SOCKSRequestFailed(SOCKS5HostUnreachable);
   }
 }

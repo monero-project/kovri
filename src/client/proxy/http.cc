@@ -223,9 +223,8 @@ void HTTPProxyHandler::HandleStreamRequestComplete(
         m_Request.size());
     Done(shared_from_this());
   } else {
-    LogPrint(eLogError,
-        "HTTPProxyHandler: issue when creating the stream,"
-        "check the previous warnings for details");
+    LogPrint(eLogError, "HTTPProxyHandler: stream not available",
+    "(router may need more time to integrate into the network)");
     // TODO(unassigned): Send correct error message host unreachable
     HTTPRequestFailed();
   }

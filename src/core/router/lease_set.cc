@@ -108,7 +108,7 @@ LeaseSet::LeaseSet(
       m_BufferLen,
       m_Buffer.get() + m_BufferLen);
   m_BufferLen += local_destination->GetIdentity().GetSignatureLen();
-  LogPrint(eLogInfo,
+  LogPrint(eLogDebug,
       "LeaseSet: local LeaseSet of ", tunnels.size(), " leases created");
   ReadFromBuffer();
 }
@@ -149,7 +149,7 @@ void LeaseSet::ReadFromBuffer() {
     // check if lease's gateway is in our netDb
     if (!netdb.FindRouter(lease.tunnel_gateway)) {
       // if not found request it
-      LogPrint(eLogInfo, "LeaseSet: lease's tunnel gateway not found, requesting");
+      LogPrint(eLogDebug, "LeaseSet: lease's tunnel gateway not found, requesting");
       netdb.RequestDestination(lease.tunnel_gateway);
     }
   }

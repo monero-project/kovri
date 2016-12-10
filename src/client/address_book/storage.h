@@ -54,12 +54,6 @@ namespace client {
 /// @class AddressBookDefaults
 /// @brief Default string constants used throughout address book
 struct AddressBookDefaults {
-  /// @brief Pathname of address book within KOVRI_DATA_DIR
-  /// @return Pathname for address book storage
-  std::string GetDefaultPathname() const {
-    return "addressbook";
-  };
-
   /// @brief Gets default publishers filename
   /// @return Default publishers filename
   /// @notes A publishers file holds a list of publisher addresses
@@ -135,10 +129,9 @@ class AddressBookStorage : public AddressBookDefaults {
       const std::map<std::string, kovri::core::IdentHash>& addresses);
 
  private:
-  /// @brief Gets data path and appends address book's path
-  /// @return Boost.Filesystem path of address book path
-  boost::filesystem::path GetAddressBookPath() const {
-    return kovri::core::GetDataPath() / GetDefaultPathname();
+  /// @return Address book path with appended addresses location
+  boost::filesystem::path GetAddressesPath() const {
+    return kovri::core::GetAddressBookPath() / "addresses";
   }
 };
 

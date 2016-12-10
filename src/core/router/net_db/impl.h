@@ -281,8 +281,6 @@ class NetDb {
 
   friend class NetDbRequests;
   NetDbRequests m_Requests;
-
-  static const char m_NetDbPath[];
 };
 
 extern NetDb netdb;

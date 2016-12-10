@@ -48,18 +48,13 @@ namespace kovri {
 namespace client {
 
 AddressBookStorage::AddressBookStorage() {
-  auto path = GetAddressBookPath();
-  if (!boost::filesystem::exists(path)) {
-    if (!boost::filesystem::create_directory(path))
-      LogPrint(eLogError,
-          "AddressBookStorage: failed to create ", path);
-  }
+  kovri::core::EnsurePath(GetAddressesPath());
 }
 
 bool AddressBookStorage::GetAddress(
     const kovri::core::IdentHash& ident,
     kovri::core::IdentityEx& address) const {
-  auto filename = GetAddressBookPath() / (ident.ToBase32() + ".b32");
+  auto filename = GetAddressesPath() / (ident.ToBase32() + ".b32");
   std::ifstream file(filename.string(), std::ifstream::binary);
   if (!file)
     return false;
@@ -82,7 +77,7 @@ bool AddressBookStorage::GetAddress(
 
 void AddressBookStorage::AddAddress(
     const kovri::core::IdentityEx& address) {
-  auto filename = GetAddressBookPath() / (address.GetIdentHash().ToBase32() + ".b32");
+  auto filename = GetAddressesPath() / (address.GetIdentHash().ToBase32() + ".b32");
   std::ofstream file(filename.string(), std::ofstream::binary);
   if (!file)
     LogPrint(eLogError, "AddressBookStorage: can't open file ", filename);
@@ -107,7 +102,7 @@ void AddressBookStorage::RemoveAddress(
 std::size_t AddressBookStorage::Load(
     std::map<std::string, kovri::core::IdentHash>& addresses) {
   std::size_t num = 0;
-  auto filename = GetAddressBookPath() / GetDefaultAddressesFilename();
+  auto filename = kovri::core::GetAddressBookPath() / GetDefaultAddressesFilename();
   std::ifstream file(filename.string());
   if (!file) {
     LogPrint(eLogWarn,
@@ -138,7 +133,7 @@ std::size_t AddressBookStorage::Load(
 std::size_t AddressBookStorage::Save(
     const std::map<std::string, kovri::core::IdentHash>& addresses) {
   std::size_t num = 0;
-  auto filename = GetAddressBookPath() / GetDefaultAddressesFilename();
+  auto filename = kovri::core::GetAddressBookPath() / GetDefaultAddressesFilename();
   std::ofstream file(filename.string(), std::ofstream::out);
   if (!file) {
     LogPrint(eLogError,

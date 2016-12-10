@@ -42,6 +42,7 @@
 #include "client/util/parse.h"
 
 #include "core/crypto/rand.h"
+#include "core/util/filesystem.h"
 #include "core/util/log.h"
 
 namespace kovri {
@@ -75,9 +76,9 @@ void Configuration::ParseKovriConfig() {
                    // leave blank here to prevent bad_any_cast exception.
                    default_value(std::vector<std::string>(), "")->multitoken())
     ("kovriconf,c", bpo::value<std::string>(&kovri_config)->default_value(
-        kovri::core::GetFullPath("kovri.conf")))
+        (kovri::core::GetConfigPath() / "kovri.conf").string()))
     ("tunnelsconf,t", bpo::value<std::string>(&tunnels_config)->default_value(
-        kovri::core::GetFullPath("tunnels.conf")));
+        (kovri::core::GetConfigPath() / "tunnels.conf").string()));
 
   bpo::options_description network("\nnetwork");
   network.add_options()

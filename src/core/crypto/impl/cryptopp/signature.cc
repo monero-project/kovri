@@ -43,6 +43,7 @@
 #include <array>
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 #include "crypto_const.h"
 
@@ -776,16 +777,16 @@ class RSARawVerifier {
             CryptoPP::Integer(signature, key_length),
             CryptoPP::Integer(kovri::core::rsae),
             m_Modulus));  // s^e mod n
-    std::uint8_t buf[key_length];
-    encrypted_signature.Encode(buf, key_length);
-    std::uint8_t digest[Hash::DIGESTSIZE];
-    m_Hash.Final(digest);
-    if (static_cast<int>(key_length) < Hash::DIGESTSIZE)
+    std::vector<std::uint8_t> buf(key_length);
+    encrypted_signature.Encode(buf.data(), buf.size());
+    std::array<std::uint8_t, Hash::DIGESTSIZE> digest{};
+    m_Hash.Final(digest.data());
+    if (buf.size() < Hash::DIGESTSIZE)
       return false;  // Can't verify digest longer than key
     // We assume digest is right aligned, at least for PKCS#1 v1.5 padding
     return !memcmp(
-        buf + (key_length - Hash::DIGESTSIZE),
-        digest,
+        buf.data() + (buf.size() - Hash::DIGESTSIZE),
+        digest.data(),
         Hash::DIGESTSIZE);
 }
 

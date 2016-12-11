@@ -48,7 +48,8 @@ class Instance {
    // TODO(unassigned): see note and TODO in main about multiple instances
    Instance(
        std::vector<std::string>& args)
-       : m_Config(args) {}
+       : m_Config(args),
+         m_IsReloading(false) {}
 
   /// @brief Configures instance
   void Configure();

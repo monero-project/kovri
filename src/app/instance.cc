@@ -48,6 +48,13 @@
 namespace kovri {
 namespace app {
 
+Instance::Instance(
+    std::vector<std::string>& args)
+    : m_Config(args),
+      m_IsReloading(false) {}
+
+Instance::~Instance() {}
+
 void Instance::Configure() {
   LogPrint(eLogDebug, "Instance: configuring");
   GetConfig().ParseKovriConfig();

@@ -46,10 +46,10 @@ namespace app {
 class Instance {
  public:
    // TODO(unassigned): see note and TODO in main about multiple instances
-   Instance(
-       std::vector<std::string>& args)
-       : m_Config(args),
-         m_IsReloading(false) {}
+   explicit Instance(
+       std::vector<std::string>& args);
+
+   ~Instance();
 
   /// @brief Configures instance
   void Configure();

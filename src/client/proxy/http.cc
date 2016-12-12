@@ -77,53 +77,134 @@ std::shared_ptr<kovri::client::I2PServiceHandler>
   return std::make_shared<HTTPProxyHandler>(this, socket);
 }
 
-void HTTPProxyHandler::AsyncSockRead() {
-  boost::system::error_code error;
-  LogPrint(eLogDebug, "HTTPProxyHandler: async sock read");
-  //  but there's also use cases where you are providing an inproxy service for others
-  //   00:27 < zzz2> for a full threat model including "slowloris" attacks, you need to 
-  //   enforce max header lines, max header line length, and a total header timeout
-  //  00:27 < zzz2> (in addition to the typical read timeout)
-  //  read in header until \r\n\r\n, then read in small portions of body and forward along
-  if (m_Socket) {
-    // Read the response headers, which are terminated by a blank line.
-    boost::asio::read(*m_Socket, m_Buffer,boost::asio::transfer_at_least(1),error);
-    if (error == boost::asio::error::eof) {
-      LogPrint(eLogError, "HTTPProxyHandler: error reading socket");
-      Terminate();
+void HTTPProxyHandler::Handle() {
+    LogPrint(eLogDebug, "HTTPProxyHandler: async sock read");
+    if (!m_Socket) {
+      LogPrint(eLogError, "HTTPProxyHandler: no socket for read");
       return;
     }
-  } else {
-    LogPrint(eLogError, "HTTPProxyHandler: no socket for read");
-  }
-  HandleSockRecv();
+
+    AsyncSockRead(m_Socket);
 }
- 
-void HTTPProxyHandler::HandleSockRecv() {
-  LogPrint(eLogDebug, "HTTPProxyHandler: sock recv: ", m_Buffer.size());
-  boost::asio::streambuf::const_buffers_type bufs = m_Buffer.data();
-  std::string buffer(boost::asio::buffers_begin(bufs), 
-      boost::asio::buffers_begin(bufs) + m_Buffer.size());
-  if (m_Protocol.HandleData(buffer )) {
-      if (m_Protocol.CreateHTTPRequest()) {
-      LogPrint(eLogInfo, "HTTPProxyHandler: proxy requested: ",
-          m_Protocol.m_URL);
-      GetOwner()->CreateStream(
-          std::bind(
-              &HTTPProxyHandler::HandleStreamRequestComplete,
-              shared_from_this(),
-              std::placeholders::_1),
-          m_Protocol.m_Address,
-          m_Protocol.m_Port);
-      }
-  } else {
-    HTTPRequestFailed(HTTPResponse(HTTPProtocol::status_t::bad_request));
+
+void HTTPProxyHandler::AsyncSockRead(std::shared_ptr<boost::asio::ip::tcp::socket>
+    socket) {
+
+  boost::asio::streambuf Buffer;
+  boost::system::error_code error;
+  //  TODO(guzzi) but there's also use cases where you are providing an inproxy 
+  //  service for
+  //  others
+  //   00:27 < zzz2> for a full threat model including "slowloris" attacks,
+  //   you need to
+  //   enforce max header lines, max header line length
+  //   and a total header timeout
+  //  00:27 < zzz2> (in addition to the typical read timeout)
+  //  read in header until \r\n\r\n, then read in small portions of body
+  //  and forward along
+  // Read the request headers, which are terminated by a blank line.
+	//TODO(guzzi) timeout needed.
+  boost::asio::async_read_until(*socket, m_Protocol.m_Buffer, "\r\n\r\n", 
+    boost::bind(&HTTPProxyHandler::AsyncHandleRead,
+      shared_from_this(),
+      boost::asio::placeholders::error,
+			boost::asio::placeholders::bytes_transferred
+      ));
+
+}
+void HTTPProxyHandler::AsyncHandleRead(const boost::system::error_code & error, 
+	size_t bytes_transfered){
+  if (error){
+    LogPrint(eLogDebug, "AsyncHandleRead: error sock read: ",
+         bytes_transfered);
+    Terminate();
+    return;
+  }
+  boost::asio::streambuf::const_buffers_type bufs = m_Protocol.m_Buffer.data();
+  std::string tbuffer(boost::asio::buffers_begin(bufs),
+      boost::asio::buffers_begin(bufs) + m_Protocol.m_Buffer.size());
+
+  if(!m_Protocol.HandleData(tbuffer)){
+    LogPrint(eLogDebug, "AsyncHandleRead: error HandleData() ",
+         "check http proxy");
+    Terminate();
+    return;
+  }
+  if(!m_Protocol.CreateHTTPRequest()){
+    LogPrint(eLogDebug, "AsyncHandleRead: error call CreatHTTPRequest() ",
+         "check http proxy");
+    Terminate();
+    return;
+  }
+	// request->streambuf.size() is not necessarily the same 
+	// as bytes_transferred, from Boost-docs:
+	// "After a successful async_read_until operation, the streambuf may contain additional data beyond the delimiter"
+	// The chosen solution is to extract lines from the stream directly when parsing the header. What is left of the
+	// streambuf (maybe some bytes of the content) is appended to in the async_read-function below (for retrieving content).
+	size_t num_additional_bytes=m_Protocol.m_Buffer.size()-bytes_transfered;
+	if(num_additional_bytes>0) {
+		//make m_Buffer into string
+		boost::asio::streambuf::const_buffers_type tmpBuf = m_Protocol.m_Buffer.data();
+		std::string str(boost::asio::buffers_end(tmpBuf)-num_additional_bytes,
+				boost::asio::buffers_end(tmpBuf));
+		//add the additional bytes the m_body
+		m_Protocol.m_Body=str;
+  }
+  auto itRefer = std::find_if(m_Protocol.m_headerMap.begin(), m_Protocol.m_headerMap.end(),
+      [] (std::pair<std::string, std::string> arg) {
+      boost::trim_left(arg.first);
+      boost::trim_right(arg.first);
+      return arg.first == "Content-Length"; });
+  // TODO(guzzi) collect the body
+  // this will be changed and moved ;
+  // to read a small amount of body and i2pconnect; then send;
+  if (itRefer != m_Protocol.m_headerMap.end()) {
+    std::size_t clen = boost::lexical_cast<size_t>(itRefer->second);
+		clen = clen - num_additional_bytes;
+    // need to call one more function to fill body after this read.
+    boost::asio::async_read(*m_Socket, 
+				m_Protocol.m_BodyBuffer,
+				boost::asio::transfer_at_least(clen),
+        boost::bind(&HTTPProxyHandler::HandleSockRecv,
+        shared_from_this(),
+        boost::asio::placeholders::error,
+        boost::asio::placeholders::bytes_transferred));
+
   }
 }
 
-bool HTTPProtocol::HandleData(
-    std::string & bufString
-    ) {
+void HTTPProxyHandler::HandleSockRecv(const boost::system::error_code & error, 
+  std::size_t bytes_transferred) {
+  if (error){
+     LogPrint(eLogDebug, "HTTPSockRecv: error sock read: ",
+       bytes_transferred);
+    Terminate();
+    return;
+  }
+  // TODO(guzzi) should not read entire body into memory
+  // instead read a buffer full ie 512 bytes and I2pconnect and send.
+  boost::asio::streambuf::const_buffers_type bufs = m_Protocol.m_BodyBuffer.data();
+  std::string str(boost::asio::buffers_begin(bufs),
+      boost::asio::buffers_begin(bufs) + m_Protocol.m_BodyBuffer.size());
+  m_Protocol.m_Body += str;
+  m_Protocol.m_Request+=m_Protocol.m_Body;
+
+  LogPrint(eLogDebug, "HTTPProxyHandler: sock recv: ",
+  m_Protocol.m_Buffer.size());
+  if (m_Protocol.CreateHTTPRequest()) {
+  LogPrint(eLogInfo, "HTTPProxyHandler: proxy requested: ",
+        m_Protocol.m_URL);
+  GetOwner()->CreateStream(
+        std::bind(
+            &HTTPProxyHandler::HandleStreamRequestComplete,
+            shared_from_this(),
+            std::placeholders::_1),
+        m_Protocol.m_Address,
+        m_Protocol.m_Port);
+  }
+}
+
+bool HTTPProtocol::HandleData(const std::string & bufString) {
   std::vector<std::string> HeaderBody;
   std::vector<std::string> tokens;
   // get header info
@@ -149,6 +230,19 @@ bool HTTPProtocol::HandleData(
   // remove start line
   m_Headers.erase(m_Headers.begin());
   // body line
+  std::vector<std::pair<std::string, std::string>> headerMap;
+  for (auto it = m_Headers.begin(); it != m_Headers.end(); it++) {
+    std::vector<std::string> keyElement;
+    boost::split(keyElement, *it, boost::is_any_of(":"));
+    std::string key = keyElement[0];
+    keyElement.erase(keyElement.begin());
+    std::string value = boost::algorithm::join(keyElement, ":");
+    // concatenate remaining : values ie times
+    headerMap.push_back(std::pair<std::string, std::string>(key,
+          value));
+  }
+
+  m_headerMap=headerMap;
   return true;
 }
 
@@ -166,7 +260,7 @@ void HTTPProxyHandler::HandleStreamRequestComplete(
     GetOwner()->AddHandler(connection);
     connection->I2PConnect(reinterpret_cast<const uint8_t * >(
           m_Protocol.m_Request.c_str()), m_Protocol.m_Request.size());
-    // change here to read some body and send along instead of sending 
+    // change here to read some body and send along instead of sending
     // entire body in one go.
     // asyncsockread should be decoupled from HandleSockRecv.
     // that way asyncsockread can be called here again to load another buffer.
@@ -191,40 +285,28 @@ bool HTTPProtocol::CreateHTTPRequest() {
   m_Request += m_Path;
   m_Request.push_back(' ');
   m_Request += m_Version + "\r\n";
-  std::pair<std::string, std::string> indexValue;
-  std::vector<std::pair<std::string, std::string>> headerMap;
-  for (auto it = m_Headers.begin(); it != m_Headers.end(); it++) {
-    std::vector<std::string> keyElement;
-    boost::split(keyElement, *it, boost::is_any_of(":"));
-    std::string key = keyElement[0];
-    keyElement.erase(keyElement.begin());
-    std::string value = boost::algorithm::join(keyElement, ":");
-    // concatenate remaining : values ie times
-    headerMap.push_back(std::pair<std::string, std::string>(key,
-          value));
-  }
-  // find and remove/adjust headers
-  auto it = std::find_if(headerMap.begin(), headerMap.end(),
+
+    // find and remove/adjust headers
+  auto it = std::find_if(m_headerMap.begin(), m_headerMap.end(),
       [] (std::pair<std::string, std::string> arg) {
       boost::trim_left(arg.first);
       boost::trim_right(arg.first);
       return arg.first == "User-Agent"; });
-  if (it != headerMap.end()) // found
+  if (it != m_headerMap.end())  //  found
     it->second = " MYOB/6.66 (AN/ON)";
-  auto itRefer = std::find_if(headerMap.begin(), headerMap.end(),
+  auto itRefer = std::find_if(m_headerMap.begin(), m_headerMap.end(),
       [] (std::pair<std::string, std::string> arg) {
       boost::trim_left(arg.first);
       boost::trim_right(arg.first);
       return arg.first == "Referer"; });
-  if (itRefer != headerMap.end()) // found
-    headerMap.erase(itRefer);
+  if (itRefer != m_headerMap.end())  //  found
+    m_headerMap.erase(itRefer);
   for (std::vector<std::pair<std::string, std::string>>::iterator
-      ii = headerMap.begin();
-      ii != headerMap.end(); ++ii) {
+      ii = m_headerMap.begin();
+      ii != m_headerMap.end(); ++ii) {
     m_Request = m_Request + ii->first + ":" + ii->second+ "\r\n";
   }
   m_Request = m_Request + "\r\n";
-  m_Request = m_Request + m_Body;
   return true;
 }
 
@@ -232,7 +314,7 @@ bool HTTPProtocol::ExtractIncomingRequest() {
   LogPrint(eLogDebug,
       "HTTPProxyHandler: method is: ", m_Method,
       ", request is: ", m_URL);
-  // Set defaults and regexp
+  //  Set defaults and regexp
   std::string server = "", port = "80";
   boost::regex regex("http://(.*?)(:(\\d+))?(/.*)");
   boost::smatch smatch;

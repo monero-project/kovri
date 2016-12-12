@@ -41,20 +41,26 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <utility>
 
 #include "client/destination.h"
 #include "client/service.h"
 
 namespace kovri {
 namespace client {
-
-class HTTPProtocol{
+/// @class HTTPProtocol
+/// @brief defines protocol; and read from socket algorithm
+class HTTPProtocol : public std::enable_shared_from_this<HTTPProtocol>{
  public:
   std::string m_RequestLine, m_HeaderLine, m_Request, m_Body,
     m_URL, m_Method, m_Version,  m_Path;
   std::vector<std::string> m_Headers;
   std::string m_Host, m_UserAgent;
   std::string m_Address;
+
+  boost::asio::streambuf m_Buffer;
+  boost::asio::streambuf m_BodyBuffer;
+  std::vector<std::pair<std::string, std::string>> m_headerMap;
   /// @brief Data for incoming request
   std::uint16_t m_Port;
 
@@ -78,9 +84,10 @@ class HTTPProtocol{
   /// @param buf
   /// @param len
   /// return bool
-  bool HandleData(std::string  &buf);
+  bool HandleData(const std::string  &buf);
 
   /// @brief Parses path for base64 address, inserts into address book
+  /// need to change to boolean return for testing
   void HandleJumpService();
 
   /// @brief Performs regex, sets address/port/path, validates version
@@ -199,18 +206,20 @@ class HTTPProtocol{
     }
   }
 };
-
+/// @class HTTPResponse
+/// @brief response for http error messages
 class HTTPResponse{
  public:
   std::string m_Response;
   explicit HTTPResponse(HTTPProtocol::status_t status){
     std::string htmlbody = "<html>";
-    htmlbody+="<head>" ;
-    htmlbody+="<title>HTTP Error</title>" ;
-    htmlbody+="</head>" ;
-    htmlbody+="<body>" ;
-    htmlbody+="HTTP Error " + std::to_string(status) + " " +HTTPProtocol::status_message(status);
-    htmlbody+= "</body>" ;
+    htmlbody+="<head>";
+    htmlbody+="<title>HTTP Error</title>";
+    htmlbody+="</head>";
+    htmlbody+="<body>";
+    htmlbody+="HTTP Error " + std::to_string(status) + " ";
+    htmlbody+=HTTPProtocol::status_message(status);
+    htmlbody+="</body>";
     htmlbody+="</html>";
 
     m_Response =
@@ -219,10 +228,11 @@ class HTTPResponse{
     "Content-type: text/html;charset=UTF-8\r\n" +
     "Content-Encoding: UTF-8\r\n" +
     "Content-length:" + std::to_string(htmlbody.size()) + "\r\n\r\n" + htmlbody;
- }
+  }
 };
 
 /// @class HTTPProxyServerService
+/// setup asio service
 class HTTPProxyServerService
     : public kovri::client::TCPIPAcceptor {
  public:
@@ -257,6 +267,8 @@ class HTTPProxyServerService
 typedef HTTPProxyServerService HTTPProxy;
 
 /// @class HTTPProxyHandler
+/// @brief setup handler for asio service
+/// each service needs a handler
 class HTTPProxyHandler
     : public kovri::client::I2PServiceHandler,
       public std::enable_shared_from_this<HTTPProxyHandler> {
@@ -275,23 +287,29 @@ class HTTPProxyHandler
     Terminate();
   }
 
-  void Handle() {
-    AsyncSockRead();
-  }
+  /// @brief reads data sent to proxy server
+  /// virtual function;
+  /// handle reading the protocol
+  void Handle();
 
-  /// @brief Asynchronously reads data sent to proxy server
-  void AsyncSockRead();
-
-  /// @brief Handles buffer received from socket until read headers is finished
-  void HandleSockRecv();
+  /// @brief Handles buffer received from socket if Handle successful
+  void HandleSockRecv(const boost::system::error_code & error,
+    std::size_t bytes_transfered);
 
 
  private:
+  /// @brief read from a socket
+  // protocol defines its own read algorithm
+  void AsyncSockRead(std::shared_ptr<boost::asio::ip::tcp::socket> socket);
+  void AsyncHandleRead(const boost::system::error_code & error,
+		std::size_t bytes_transferred);
+
+
   /// @brief Handles stream created by service through proxy handler
   void HandleStreamRequestComplete(
       std::shared_ptr<kovri::client::Stream> stream);
 
-    /// @brief Generic request failure handler
+  /// @brief Generic request failure handler
   /// @param error User-defined enumerated error code
   void HTTPRequestFailed(HTTPResponse response);
 
@@ -314,7 +332,6 @@ class HTTPProxyHandler
 
   /// @var m_Buffer
   /// @brief Buffer for async socket read
-  boost::asio::streambuf m_Buffer;
 //  std::array<std::uint8_t, static_cast<std::size_t>(Size::buffer)> m_Buffer;
   std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
 };

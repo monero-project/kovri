@@ -245,7 +245,7 @@ void TunnelPool::CreateTunnels() {
 void TunnelPool::TestTunnels() {
   for (auto it : m_Tests) {
     LogPrint(eLogWarn,
-        "TunnelPool: tunnel test ", static_cast<int>(it.first), " failed");
+        "TunnelPool: tunnel test ", it.first, " failed");
     // if test failed again with another tunnel we consider it failed
     if (it.second.first) {
       if (it.second.first->GetState() == e_TunnelStateTestFailed) {

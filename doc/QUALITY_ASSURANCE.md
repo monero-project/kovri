@@ -13,7 +13,7 @@ The following is a proposed model for QA workflow. While linear in nature, any p
 - Complete specification review on a per module basis; e.g., Streaming, I2PControl, etc.
   - Code must be in-line with essential parts of the specification that will maintain the same (or better) level of anonymity that java I2P provides
   - Refactor/implement/patch when/where needed
-- Ensure C++14 compliant implementation
+- Ensure C++11/14 compliant implementation
   - Review phase 2 if needed
 - Resolve all related TODO's
 - Document code as much as possible with inline comments and Doxygen

@@ -32,7 +32,6 @@
 
 #include <string.h>
 
-#include <algorithm>
 #include <map>
 #include <memory>
 #include <thread>
@@ -76,7 +75,7 @@ void Tunnel::Build(
   std::vector<int> record_indicies;
   for (int i = 0; i < num_records; i++)
     record_indicies.push_back(i);
-  std::random_shuffle(record_indicies.begin(), record_indicies.end());
+  kovri::core::Shuffle(record_indicies.begin(), record_indicies.end());
   // create real records
   std::uint8_t* records = msg->GetPayload() + 1;
   TunnelHopConfig* hop = m_Config->GetFirstHop();

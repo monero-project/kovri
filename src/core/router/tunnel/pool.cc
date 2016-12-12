@@ -380,7 +380,7 @@ bool TunnelPool::SelectExplicitPeers(
   std::vector<int> peer_indicies;
   for (int i = 0; i < size; i++)
     peer_indicies.push_back(i);
-  std::random_shuffle(peer_indicies.begin(), peer_indicies.end());
+  kovri::core::Shuffle(peer_indicies.begin(), peer_indicies.end());
   int num_hops = is_inbound ? m_NumInboundHops : m_NumOutboundHops;
   for (int i = 0; i < num_hops; i++) {
     auto& ident = (*m_ExplicitPeers)[peer_indicies[i]];

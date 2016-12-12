@@ -3,6 +3,10 @@
 ## Quality Assurance
 - View our [Quality Assurance](https://github.com/monero-project/kovri/blob/master/doc/QUALITY_ASSURANCE.md) guide to get an idea of proposed workflow
 
+## Compliance
+- We aim for complete C++11/14 compliance; feel free to use this to your advantage with your work
+- It is also highly recommended to use the standard library and dependency libraries when possible
+
 ## Sending your work
 To contribute your work, please proceed with the following:
 

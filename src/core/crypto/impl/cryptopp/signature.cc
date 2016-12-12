@@ -42,6 +42,7 @@
 
 #include <array>
 #include <cstdint>
+#include <cstring>
 #include <memory>
 #include <vector>
 
@@ -784,7 +785,7 @@ class RSARawVerifier {
     if (buf.size() < Hash::DIGESTSIZE)
       return false;  // Can't verify digest longer than key
     // We assume digest is right aligned, at least for PKCS#1 v1.5 padding
-    return !memcmp(
+    return !std::memcmp(
         buf.data() + (buf.size() - Hash::DIGESTSIZE),
         digest.data(),
         Hash::DIGESTSIZE);

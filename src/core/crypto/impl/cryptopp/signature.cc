@@ -42,7 +42,9 @@
 
 #include <array>
 #include <cstdint>
+#include <cstring>
 #include <memory>
+#include <vector>
 
 #include "crypto_const.h"
 
@@ -760,7 +762,7 @@ class RSARawVerifier {
  public:
   RSARawVerifier(
       const std::uint8_t* signing_key)
-      : n(signing_key, key_length) {}
+      : m_Modulus(signing_key, key_length) {}
 
   void Update(
       const std::uint8_t* buf,
@@ -771,29 +773,27 @@ class RSARawVerifier {
   bool Verify(
       const std::uint8_t* signature) {
     // RSA encryption first
-    CryptoPP::Integer enSig(
-    a_exp_b_mod_c(
-      CryptoPP::Integer(
-          signature,
-          key_length),
-      CryptoPP::Integer(
-          kovri::core::rsae),
-      n));  // s^e mod n
-    std::uint8_t EnSigBuf[key_length];
-    enSig.Encode(EnSigBuf, key_length);
-    std::uint8_t digest[Hash::DIGESTSIZE];
-    m_Hash.Final(digest);
-    if (static_cast<int>(key_length) < Hash::DIGESTSIZE)
+    CryptoPP::Integer encrypted_signature(
+        a_exp_b_mod_c(
+            CryptoPP::Integer(signature, key_length),
+            CryptoPP::Integer(kovri::core::rsae),
+            m_Modulus));  // s^e mod n
+    std::vector<std::uint8_t> buf(key_length);
+    encrypted_signature.Encode(buf.data(), buf.size());
+    std::array<std::uint8_t, Hash::DIGESTSIZE> digest{};
+    m_Hash.Final(digest.data());
+    if (buf.size() < Hash::DIGESTSIZE)
       return false;  // Can't verify digest longer than key
     // We assume digest is right aligned, at least for PKCS#1 v1.5 padding
-    return !memcmp(
-        EnSigBuf + (key_length - Hash::DIGESTSIZE),
-        digest,
+    return !std::memcmp(
+        buf.data() + (buf.size() - Hash::DIGESTSIZE),
+        digest.data(),
         Hash::DIGESTSIZE);
 }
 
  private:
-  CryptoPP::Integer n;  // RSA modulus
+  /// @brief RSA modulus 'n'
+  CryptoPP::Integer m_Modulus;
   Hash m_Hash;
 };
 

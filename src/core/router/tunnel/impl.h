@@ -135,11 +135,11 @@ class Tunnel : public TunnelBase {
       std::shared_ptr<I2NPMessage> out);
 
   std::uint32_t GetNextTunnelID() const {
-    return m_Config->GetFirstHop()->tunnel_ID;
+    return m_Config->GetFirstHop()->GetTunnelID();
   }
 
   const kovri::core::IdentHash& GetNextIdentHash() const {
-    return m_Config->GetFirstHop()->router->GetIdentHash();
+    return m_Config->GetFirstHop()->GetCurrentRouter()->GetIdentHash();
   }
 
  private:
@@ -167,7 +167,7 @@ class OutboundTunnel
       const std::vector<TunnelMessageBlock>& msgs);
 
   std::shared_ptr<const kovri::core::RouterInfo> GetEndpointRouter() const {
-    return GetTunnelConfig()->GetLastHop()->router;
+    return GetTunnelConfig()->GetLastHop()->GetCurrentRouter();
   }
 
   std::size_t GetNumSentBytes() const {
@@ -205,7 +205,7 @@ class InboundTunnel
 
   // implements TunnelBase
   std::uint32_t GetTunnelID() const {
-    return GetTunnelConfig()->GetLastHop()->next_tunnel_ID;
+    return GetTunnelConfig()->GetLastHop()->GetNextTunnelID();
   }
 
  private:

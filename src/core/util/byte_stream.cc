@@ -39,6 +39,8 @@
 namespace kovri {
 namespace core {
 
+// TODO(anonimal): refactor raw values with sizeof types
+
 InputByteStream::InputByteStream(
     std::uint8_t* data,
     std::size_t len)
@@ -48,7 +50,7 @@ InputByteStream::InputByteStream(
 void InputByteStream::ConsumeData(
     std::size_t amount) {
   if (amount > m_Length)
-    throw std::length_error("SSUPacketParser: too many bytes to consume.");
+    throw std::length_error("SSUPacketParser: too many bytes to consume.");  // TODO(anonimal): fix message
   m_Data += amount;
   m_Length -= amount;
 }
@@ -79,7 +81,7 @@ OutputByteStream::OutputByteStream(
 
 void OutputByteStream::ProduceData(std::size_t amount) {
   if (amount > m_Length)
-    throw std::length_error("SSUPacketParser: too many bytes to produce.");
+    throw std::length_error("SSUPacketParser: too many bytes to produce.");  // TODO(anonimal): fix message
   m_Data += amount;
   m_Length -= amount;
 }
@@ -87,7 +89,7 @@ void OutputByteStream::ProduceData(std::size_t amount) {
 void OutputByteStream::WriteData(const std::uint8_t* data, std::size_t len) {
   std::uint8_t* ptr = m_Data; 
   ProduceData(len);
-  memcpy(ptr, data, len);
+  memcpy(ptr, data, len);  // TODO(anonimal): std::memcpy
 }
 
 void OutputByteStream::WriteUInt8(std::uint8_t data) {
@@ -109,6 +111,8 @@ void OutputByteStream::WriteUInt32(std::uint32_t data) {
 std::uint8_t* OutputByteStream::GetPosition() const {
   return m_Data;
 }
+
+// TODO(anonimal): create stream data/size getters
 
 } // namespace core
 } // namespace kovri

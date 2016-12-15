@@ -33,58 +33,107 @@
 #ifndef SRC_CORE_ROUTER_TUNNEL_CONFIG_H_
 #define SRC_CORE_ROUTER_TUNNEL_CONFIG_H_
 
+#include <array>
 #include <memory>
 #include <cstdint>
 #include <vector>
 #include <sstream>
 
+#include "core/crypto/rand.h"
 #include "core/crypto/tunnel.h"
-
 #include "core/router/info.h"
 
 namespace kovri {
 namespace core {
 
-struct TunnelHopConfig {
+/// @class TunnelAESRecordAttributes
+/// @brief AES-related attributes for build request record
+/// @warning *Must* be initialized with random data
+struct TunnelAESRecordAttributes {
+  TunnelAESRecordAttributes();
+  std::array<std::uint8_t, 32> layer_key, IV_key, reply_key;
+  std::array<std::uint8_t, 16> reply_IV;
+};
+
+/// @class TunnelHopConfig
+class TunnelHopConfig {
+ public:
   explicit TunnelHopConfig(
-      std::shared_ptr<const kovri::core::RouterInfo> r);
+      std::shared_ptr<const RouterInfo> router);
 
-  void SetNextRouter(
-      std::shared_ptr<const kovri::core::RouterInfo> r);
-
-  void SetReplyHop(
-      const TunnelHopConfig* reply_first_hop);
-
-  void SetNext(
-      TunnelHopConfig* n);
-
-  void SetPrev(
-      TunnelHopConfig* p);
-
+  /// @brief Creates a build request record for tunnel build message
   void CreateBuildRequestRecord(
       std::uint8_t* record,
-      std::uint32_t reply_msg_ID) const;
+      std::uint32_t reply_msg_ID);
 
-  std::shared_ptr<const kovri::core::RouterInfo> router,
-                                               next_router;
+  std::shared_ptr<const RouterInfo> GetCurrentRouter() const noexcept;
 
-  std::uint32_t tunnel_ID,
-           next_tunnel_ID;
+  void SetNextRouter(
+      std::shared_ptr<const RouterInfo> router,
+      std::uint32_t tunnel_id = Rand<std::uint32_t>(),
+      bool is_endpoint = false);
 
-  std::uint8_t layer_key[32],
-          iv_key[32],
-          reply_key[32],
-          reply_IV[16],
-          rand_pad[29];
+  std::shared_ptr<const RouterInfo> GetNextRouter() const noexcept;
 
-  bool is_gateway,
-       is_endpoint;
+  void SetNextHop(TunnelHopConfig* hop);
+  TunnelHopConfig* GetNextHop() const noexcept;
 
-  TunnelHopConfig *next,
-                  *prev;
+  void SetPreviousHop(TunnelHopConfig* hop) noexcept;
+  TunnelHopConfig* GetPreviousHop() const noexcept;
 
-  kovri::core::TunnelDecryption decryption;
-  int record_index;  // record # in tunnel build message
+  void SetReplyHop(const TunnelHopConfig* hop);
+
+  std::uint32_t GetTunnelID() const;
+  std::uint32_t GetNextTunnelID() const noexcept;
+
+  const TunnelAESRecordAttributes& GetAESAttributes() const;
+
+  void SetIsGateway(bool value) noexcept;
+  bool IsGateway() const noexcept;
+
+  void SetIsEndpoint(bool value) noexcept;
+  bool IsEndpoint() const noexcept;
+
+  TunnelDecryption& GetDecryption() noexcept;
+
+  // TODO(anonimal): review type
+  void SetRecordIndex(int record) noexcept;
+  int GetRecordIndex() const noexcept;
+
+ private:
+  /// @brief Current router (hop) in path
+  std::shared_ptr<const RouterInfo> m_CurrentRouter;
+
+  /// @brief Tunnel ID of current router (hop)
+  std::uint32_t m_TunnelID;
+
+  /// @brief AES-related attributes for request record
+  TunnelAESRecordAttributes m_AESRecordAttributes;
+
+  /// @brief Next router (hop) in path
+  std::shared_ptr<const RouterInfo> m_NextRouter;
+
+  /// @brief Tunnel ID of next router (hop)
+  std::uint32_t m_NextTunnelID;
+
+  /// @brief Previous hop in tunnel
+  TunnelHopConfig *m_PreviousHop;
+
+  /// @brief Next hop in tunnel
+  TunnelHopConfig *m_NextHop;
+
+  /// @brief Is router (hop) a tunnel gateway?
+  bool m_IsGateway;
+
+  /// @brief Is router (hop) a tunnel endpoint?
+  bool m_IsEndpoint;
+
+  // TODO(anonimal): review type
+  /// @brief Record number within tunnel build message
+  int m_RecordIndex;
+
+  /// @brief Decryption implementation
+  TunnelDecryption m_Decryption;
 };
 
 class TunnelConfig : public std::enable_shared_from_this<TunnelConfig> {
@@ -119,8 +168,7 @@ class TunnelConfig : public std::enable_shared_from_this<TunnelConfig> {
         m_LastHop(nullptr) {}
 
  private:
-  TunnelHopConfig *m_FirstHop,
-                  *m_LastHop;
+  TunnelHopConfig *m_FirstHop, *m_LastHop;
 };
 
 }  // namespace core

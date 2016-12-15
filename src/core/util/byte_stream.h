@@ -26,9 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,          //
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF    //
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
- *                                                                                            //
- * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
+
 #ifndef SRC_CORE_UTIL_BYTESTREAM_H_
 #define SRC_CORE_UTIL_BYTESTREAM_H_
 
@@ -114,7 +113,7 @@ class OutputByteStream {
   /// @brief Advances the internal data pointer by the given amount
   /// @param amount the amount by which to advance the data pointer
   /// @throw std::length_error if amount exceeds the remaining buffer length
-  void ProduceData(std::size_t amount);
+  void ProduceData(std::size_t amount);  // TODO(unassigned): rename to something less confusing
 
   /// @brief Writes data into buffer
   /// @note Increments buffer pointer position after writing data
@@ -140,6 +139,7 @@ class OutputByteStream {
 
   uint8_t* GetPosition() const;
 
+  // TODO(anonimal): create stream data/size getters
  protected:
   std::uint8_t* m_Data; ///< Pointer to the first unwritten byte
   std::size_t m_Length; ///< Remaining length of the stream

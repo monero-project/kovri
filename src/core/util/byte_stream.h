@@ -137,12 +137,20 @@ class OutputByteStream {
   /// @param data Data to write
   void WriteUInt32(std::uint32_t data);
 
-  uint8_t* GetPosition() const;
+  /// @brief Get current pointer position of written data
+  std::uint8_t* GetPosition() const;
 
-  // TODO(anonimal): create stream data/size getters
+  /// @brief Gets pointer to beginning of written data
+  std::uint8_t* GetData() const;
+
+  /// @brief Gets total stream size given during construction
+  std::size_t GetSize() const;
+
  protected:
   std::uint8_t* m_Data; ///< Pointer to the first unwritten byte
   std::size_t m_Length; ///< Remaining length of the stream
+  std::size_t m_Counter;  ///< Counter for amount of incremented data
+  std::size_t m_Size;  ///< Total size of stream given at initialization
 };
 
 } // namespace core

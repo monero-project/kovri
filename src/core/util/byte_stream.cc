@@ -77,13 +77,17 @@ std::uint8_t InputByteStream::ReadUInt8() {
 OutputByteStream::OutputByteStream(
   std::uint8_t* data,
   std::size_t len)
-  : m_Data(data), m_Length(len) { }
+  : m_Data(data),
+    m_Length(len),
+    m_Counter(0),
+    m_Size(len) {}
 
 void OutputByteStream::ProduceData(std::size_t amount) {
   if (amount > m_Length)
     throw std::length_error("SSUPacketParser: too many bytes to produce.");  // TODO(anonimal): fix message
   m_Data += amount;
   m_Length -= amount;
+  m_Counter += amount;
 }
 
 void OutputByteStream::WriteData(const std::uint8_t* data, std::size_t len) {
@@ -112,7 +116,13 @@ std::uint8_t* OutputByteStream::GetPosition() const {
   return m_Data;
 }
 
-// TODO(anonimal): create stream data/size getters
+std::uint8_t* OutputByteStream::GetData() const {
+  return m_Data - m_Counter;
+}
+
+std::size_t OutputByteStream::GetSize() const {
+  return m_Size;
+}
 
 } // namespace core
 } // namespace kovri

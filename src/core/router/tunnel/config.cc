@@ -214,9 +214,8 @@ void TunnelHopConfig::CreateBuildRequestRecord(
 
   // ElGamal encrypt with the hop's public encryption key
   GetCurrentRouter()->GetElGamalEncryption()->Encrypt(
-      // TODO(anonimal): create/use stream data/size getters
-      clear_text.data(),
-      clear_text.size(),
+      stream->GetData(),
+      stream->GetSize(),
       // TODO(unassigned): Passing pointer argument interferes with more needed refactor work.
       // Pointing to record argument appears to only lead to more spaghetti code
       record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET);

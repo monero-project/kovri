@@ -226,7 +226,7 @@ void TunnelHopConfig::CreateBuildRequestRecord(
   // First half of the SHA-256 of the current hop's router identity
   std::memcpy(
       record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET,
-      GetCurrentRouter()->GetIdentHash(),
+      local_ident,
       BUILD_REQUEST_RECORD_CURRENT_HOP_IDENT_HASH_SIZE);
 }
 

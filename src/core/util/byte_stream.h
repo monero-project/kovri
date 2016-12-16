@@ -75,6 +75,12 @@ class InputByteStream {
   std::uint8_t* ReadBytes(
       std::size_t amount);
 
+  /// @brief Reads a std::uint64_t, i.e. a 8 byte unsigned integer
+  /// @return the newly read std::uint64_t
+  /// @throw std::length_error if less than 8 bytes are available for reading
+  /// @note The integer is converted from big endian to the host format.
+  std::uint64_t ReadUInt64();
+
   /// @brief Reads a std::uint32_t, i.e. a 4 byte unsigned integer
   /// @return the newly read std::uint32_t
   /// @throw std::length_error if less than 4 bytes are available for reading
@@ -136,6 +142,12 @@ class OutputByteStream {
   /// @note Increments buffer pointer position after writing data
   /// @param data Data to write
   void WriteUInt32(std::uint32_t data);
+
+  /// @brief Writes a 64-bit unsigned integer type into buffer
+  /// @note Converts bytes from host to big-endian order
+  /// @note Increments buffer pointer position after writing data
+  /// @param data Data to write
+  void WriteUInt64(std::uint64_t data);
 
   /// @brief Get current pointer position of written data
   std::uint8_t* GetPosition() const;

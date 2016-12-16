@@ -70,7 +70,7 @@ TunnelHopConfig::TunnelHopConfig(
       m_IsEndpoint(true),
       m_RecordIndex(0) {
         if (!router)
-          throw std::runtime_error("TunnelHopConfig: no router available");
+          throw std::runtime_error("TunnelHopConfig: current router is null");
       }
 
 std::shared_ptr<const RouterInfo> TunnelHopConfig::GetCurrentRouter() const noexcept {
@@ -81,6 +81,8 @@ void TunnelHopConfig::SetNextRouter(
     std::shared_ptr<const RouterInfo> router,
     std::uint32_t tunnel_id,
     bool is_endpoint) {
+  if (!router)
+    throw std::runtime_error("TunnelHopConfig: next router is null");
   m_NextRouter = router;
   m_NextTunnelID = tunnel_id;
   m_IsEndpoint = is_endpoint;
@@ -91,7 +93,8 @@ std::shared_ptr<const RouterInfo> TunnelHopConfig::GetNextRouter() const noexcep
 }
 
 void TunnelHopConfig::SetReplyHop(const TunnelHopConfig* hop) {
-  // TODO(anonimal): if null?
+  if (!hop)
+    throw std::runtime_error("TunnelHopConfig: reply hop is null");
   SetNextRouter(hop->GetCurrentRouter(), hop->GetTunnelID(), true);
 }
 
@@ -227,6 +230,7 @@ void TunnelHopConfig::CreateBuildRequestRecord(
       BUILD_REQUEST_RECORD_CURRENT_HOP_IDENT_HASH_SIZE);
 }
 
+// TODO(unassigned): smart pointers, please
 TunnelConfig::TunnelConfig(
     std::vector<std::shared_ptr<const kovri::core::RouterInfo> > peers,
     std::shared_ptr<const TunnelConfig> reply_tunnel_config)
@@ -240,8 +244,6 @@ TunnelConfig::TunnelConfig(
       m_FirstHop = hop;
     prev = hop;
   }
-  // TODO(unassigned): We shouldn't depend on the assumption that we're
-  // initialized with non-empty vector of peers (if null, we'll fall apart)
   if (prev) {
     m_LastHop = prev;
     if (reply_tunnel_config) {  // outbound

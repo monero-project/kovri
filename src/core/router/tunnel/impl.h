@@ -166,7 +166,7 @@ class OutboundTunnel
   void SendTunnelDataMsg(
       const std::vector<TunnelMessageBlock>& msgs);
 
-  std::shared_ptr<const kovri::core::RouterInfo> GetEndpointRouter() const {
+  const std::shared_ptr<const kovri::core::RouterInfo>& GetEndpointRouter() const noexcept {
     return GetTunnelConfig()->GetLastHop()->GetCurrentRouter();
   }
 

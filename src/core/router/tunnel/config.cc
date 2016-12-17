@@ -70,10 +70,10 @@ TunnelHopConfig::TunnelHopConfig(
       m_IsEndpoint(true),
       m_RecordIndex(0) {
         if (!router)
-          throw std::runtime_error("TunnelHopConfig: current router is null");
+          throw std::invalid_argument("TunnelHopConfig: current router is null");
       }
 
-std::shared_ptr<const RouterInfo> TunnelHopConfig::GetCurrentRouter() const noexcept {
+const std::shared_ptr<const RouterInfo>& TunnelHopConfig::GetCurrentRouter() const noexcept {
   return m_CurrentRouter;
 }
 
@@ -82,19 +82,19 @@ void TunnelHopConfig::SetNextRouter(
     std::uint32_t tunnel_id,
     bool is_endpoint) {
   if (!router)
-    throw std::runtime_error("TunnelHopConfig: next router is null");
+    throw std::invalid_argument("TunnelHopConfig: next router is null");
   m_NextRouter = router;
   m_NextTunnelID = tunnel_id;
   m_IsEndpoint = is_endpoint;
 }
 
-std::shared_ptr<const RouterInfo> TunnelHopConfig::GetNextRouter() const noexcept {
+const std::shared_ptr<const RouterInfo>& TunnelHopConfig::GetNextRouter() const noexcept {
   return m_NextRouter;
 }
 
 void TunnelHopConfig::SetReplyHop(const TunnelHopConfig* hop) {
   if (!hop)
-    throw std::runtime_error("TunnelHopConfig: reply hop is null");
+    throw std::invalid_argument("TunnelHopConfig: reply hop is null");
   SetNextRouter(hop->GetCurrentRouter(), hop->GetTunnelID(), true);
 }
 

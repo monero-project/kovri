@@ -149,6 +149,8 @@ class OutputByteStream {
   /// @param data Data to write
   void WriteUInt64(std::uint64_t data);
 
+  // TODO(unassigned): see comments in #510
+
   /// @brief Get current pointer position of written data
   std::uint8_t* GetPosition() const;
 

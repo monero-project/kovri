@@ -66,19 +66,19 @@ class TunnelHopConfig {
       std::uint8_t* record,
       std::uint32_t reply_msg_ID);
 
-  std::shared_ptr<const RouterInfo> GetCurrentRouter() const noexcept;
+  const std::shared_ptr<const RouterInfo>& GetCurrentRouter() const noexcept;
 
   void SetNextRouter(
       std::shared_ptr<const RouterInfo> router,
       std::uint32_t tunnel_id = Rand<std::uint32_t>(),
       bool is_endpoint = false);
 
-  std::shared_ptr<const RouterInfo> GetNextRouter() const noexcept;
+  const std::shared_ptr<const RouterInfo>& GetNextRouter() const noexcept;
 
   void SetNextHop(TunnelHopConfig* hop);
   TunnelHopConfig* GetNextHop() const noexcept;
 
-  void SetPreviousHop(TunnelHopConfig* hop) noexcept;
+  void SetPreviousHop(TunnelHopConfig* hop) noexcept;  // TODO(unassigned): see comment in #510
   TunnelHopConfig* GetPreviousHop() const noexcept;
 
   void SetReplyHop(const TunnelHopConfig* hop);

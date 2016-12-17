@@ -121,6 +121,8 @@ void OutputByteStream::WriteUInt64(std::uint64_t data) {
   WriteData(buf, sizeof(buf));
 }
 
+// TODO(unassigned): see comments in #510
+
 std::uint8_t* OutputByteStream::GetPosition() const {
   return m_Data;
 }

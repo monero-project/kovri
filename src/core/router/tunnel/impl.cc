@@ -85,10 +85,10 @@ void Tunnel::Build(
     hop->CreateBuildRequestRecord(
         records + idx * TUNNEL_BUILD_RECORD_SIZE,
         // we set reply_msg_ID for last hop only
-        hop->next ? kovri::core::Rand<std::uint32_t>() : reply_msg_ID);
-    hop->record_index = idx;
+        hop->GetNextHop() ? Rand<std::uint32_t>() : reply_msg_ID);
+    hop->SetRecordIndex(idx);
     i++;
-    hop = hop->next;
+    hop = hop->GetNextHop();
   }
   // fill up fake records with random data
   for (int i = num_hops; i < num_records; i++) {
@@ -99,19 +99,19 @@ void Tunnel::Build(
   }
   // decrypt real records
   kovri::core::CBCDecryption decryption;
-  hop = m_Config->GetLastHop()->prev;
+  hop = m_Config->GetLastHop()->GetPreviousHop();
   while (hop) {
-    decryption.SetKey(hop->reply_key);
+    decryption.SetKey(hop->GetAESAttributes().reply_key.data());
     // decrypt records after current hop
-    TunnelHopConfig* hop1 = hop->next;
+    TunnelHopConfig* hop1 = hop->GetNextHop();
     while (hop1) {
-      decryption.SetIV(hop->reply_IV);
+      decryption.SetIV(hop->GetAESAttributes().reply_IV.data());
       std::uint8_t* record =
-        records + hop1->record_index*TUNNEL_BUILD_RECORD_SIZE;
+        records + hop1->GetRecordIndex() * TUNNEL_BUILD_RECORD_SIZE;
       decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, record);
-      hop1 = hop1->next;
+      hop1 = hop1->GetNextHop();
     }
-    hop = hop->prev;
+    hop = hop->GetPreviousHop();
   }
   msg->FillI2NPMessageHeader(I2NPVariableTunnelBuild);
   // send message
@@ -135,42 +135,44 @@ bool Tunnel::HandleTunnelBuildResponse(
   kovri::core::CBCDecryption decryption;
   TunnelHopConfig* hop = m_Config->GetLastHop();
   while (hop) {
-    decryption.SetKey(hop->reply_key);
+    decryption.SetKey(hop->GetAESAttributes().reply_key.data());
     // decrypt records before and including current hop
     TunnelHopConfig* hop1 = hop;
     while (hop1) {
-      auto idx = hop1->record_index;
+      auto idx = hop1->GetRecordIndex();
       if (idx >= 0 && idx < msg[0]) {
         std::uint8_t* record = msg + 1 + idx * TUNNEL_BUILD_RECORD_SIZE;
-        decryption.SetIV(hop->reply_IV);
+        decryption.SetIV(hop->GetAESAttributes().reply_IV.data());
         decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, record);
       } else {
         LogPrint(eLogWarn,
             "Tunnel: hop index ", idx, " is out of range");
       }
-      hop1 = hop1->prev;
+      hop1 = hop1->GetPreviousHop();
     }
-    hop = hop->prev;
+    hop = hop->GetPreviousHop();
   }
   bool established = true;
   hop = m_Config->GetFirstHop();
   while (hop) {
     const std::uint8_t* record =
-      msg + 1 + hop->record_index * TUNNEL_BUILD_RECORD_SIZE;
+      msg + 1 + hop->GetRecordIndex() * TUNNEL_BUILD_RECORD_SIZE;
     std::uint8_t ret = record[BUILD_RESPONSE_RECORD_RET_OFFSET];
     LogPrint(eLogDebug, "Tunnel: ret code=", static_cast<int>(ret));
-    hop->router->GetProfile()->TunnelBuildResponse(ret);
+    hop->GetCurrentRouter()->GetProfile()->TunnelBuildResponse(ret);
     if (ret)
       // if any of participants declined the tunnel is not established
       established = false;
-    hop = hop->next;
+    hop = hop->GetNextHop();
   }
   if (established) {
     // change reply keys to layer keys
     hop = m_Config->GetFirstHop();
     while (hop) {
-      hop->decryption.SetKeys(hop->layer_key, hop->iv_key);
-      hop = hop->next;
+      hop->GetDecryption().SetKeys(
+          hop->GetAESAttributes().layer_key.data(),
+          hop->GetAESAttributes().IV_key.data());
+      hop = hop->GetNextHop();
     }
   }
   if (established)
@@ -185,8 +187,8 @@ void Tunnel::EncryptTunnelMsg(
   std::uint8_t* out_payload = out->GetPayload() + 4;
   TunnelHopConfig* hop = m_Config->GetLastHop();
   while (hop) {
-    hop->decryption.Decrypt(in_payload, out_payload);
-    hop = hop->prev;
+    hop->GetDecryption().Decrypt(in_payload, out_payload);
+    hop = hop->GetPreviousHop();
     in_payload = out_payload;
   }
 }
@@ -528,9 +530,9 @@ void Tunnels::ManagePendingTunnels(
           if (config) {
             auto hop = config->GetFirstHop();
             while (hop) {
-              if (hop->router)
-                hop->router->GetProfile()->TunnelNonReplied();
-              hop = hop->next;
+              if (hop->GetCurrentRouter())
+                hop->GetCurrentRouter()->GetProfile()->TunnelNonReplied();
+              hop = hop->GetNextHop();
             }
           }
           // delete

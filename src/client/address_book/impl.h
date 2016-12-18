@@ -83,11 +83,6 @@ class AddressBook : public AddressBookDefaults {
         m_PublishersLoaded(false),
         m_SubscriberIsDownloading(false) {}
 
-  /// @brief Stops address book implementation
-  ~AddressBook() {
-    Stop();
-  }
-
   /// @brief Starts address book fetching and processing of spec-related files
   /// @param local_destination Shared pointer to destination instance used to
   ///   generate lease set and tunnel pool for downloading new subscription(s)

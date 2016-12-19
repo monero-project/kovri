@@ -321,7 +321,7 @@ void HTTPProxyHandler::HandleJumpService() {
   // We should ask the user for confirmation before proceeding.
   // Previous reference: http://pastethis.i2p/raw/pn5fL4YNJL7OSWj3Sc6N/
   // We *could* redirect the user again to avoid dirtiness in the browser
-  kovri::client::context.GetAddressBook().InsertAddressIntoStorage( m_Address, base64);
+  kovri::client::context.GetAddressBook().InsertAddressIntoStorage(m_Address, base64);
   m_Path.erase(pos);
 }
 

@@ -126,7 +126,7 @@ class HTTPProxyHandler
     not_implemented = 501,
     bad_gateway = 502,
     service_unavailable = 503,
-    http_not_supported= 505,
+    http_not_supported = 505,
     space_unavailable = 507
   };
 

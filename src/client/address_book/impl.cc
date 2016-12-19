@@ -143,12 +143,12 @@ void AddressBook::LoadPublishers() {
   // edit publisher's file manually with any effect after router start
   // References #337
   if (m_PublishersLoaded) {
-    LogPrint(eLogError, "AddressBook: publisher(s) already loaded");
+    LogPrint(eLogDebug, "AddressBook: publisher(s) already loaded");
     return;
   }
   auto publishers = GetDefaultPublishersFilename();
   LogPrint(eLogInfo, "AddressBook: loading publisher file ", publishers);
-  std::ifstream file(kovri::core::GetFullPath(publishers));
+  std::ifstream file((kovri::core::GetAddressBookPath() / publishers).string());
   if (file) {
     // Publisher URI
     std::string publisher;
@@ -211,7 +211,7 @@ void AddressBook::LoadSubscriptionFromPublisher() {
   }
   // If available, load default subscription from file
   auto filename = GetDefaultSubscriptionFilename();
-  std::ifstream file(kovri::core::GetFullPath(filename));
+  std::ifstream file((kovri::core::GetAddressBookPath() / filename).string());
   LogPrint(eLogInfo, "AddressBook: loading subscription ", filename);
   if (file) {  // Open subscription, validate, and save to storage
     m_SubscriptionFileIsReady = true;
@@ -300,7 +300,7 @@ bool AddressBook::ValidateSubscriptionThenSaveToStorage(
   std::ofstream file;
   if (!m_SubscriptionFileIsReady) {
     LogPrint(eLogDebug, "AddressBook: preparing subscription file");
-    file.open(kovri::core::GetFullPath(GetDefaultSubscriptionFilename()));
+    file.open((kovri::core::GetAddressBookPath() / GetDefaultSubscriptionFilename()).string());
     if (file)
       m_SubscriptionFileIsReady = true;
   }

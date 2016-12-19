@@ -32,6 +32,8 @@
 
 #include "core/router/tunnel/config.h"
 
+#include <array>
+#include <cstring>
 #include <vector>
 
 #include "core/crypto/rand.h"
@@ -39,6 +41,8 @@
 #include "core/router/context.h"
 #include "core/router/i2np.h"
 
+#include "core/util/byte_stream.h"
+#include "core/util/log.h"
 #include "core/util/timestamp.h"
 
 namespace kovri {
@@ -46,120 +50,187 @@ namespace core {
 
 // TODO(unassigned): refactor all tunnel implementation (applies across entire namespace)
 
+TunnelAESRecordAttributes::TunnelAESRecordAttributes() {
+  RandBytes(layer_key.data(), layer_key.size());
+  RandBytes(IV_key.data(), IV_key.size());
+  RandBytes(reply_key.data(), reply_key.size());
+  RandBytes(reply_IV.data(), reply_IV.size());
+}
+
 TunnelHopConfig::TunnelHopConfig(
-    std::shared_ptr<const kovri::core::RouterInfo> r) {
-  kovri::core::RandBytes(layer_key, 32);
-  kovri::core::RandBytes(iv_key, 32);
-  kovri::core::RandBytes(reply_key, 32);
-  kovri::core::RandBytes(reply_IV, 16);
-  kovri::core::RandBytes(rand_pad, 29);
-  tunnel_ID = kovri::core::Rand<std::uint32_t>();
-  is_gateway = true;
-  is_endpoint = true;
-  router = r;
-  next_router = nullptr;
-  next_tunnel_ID = 0;
-  next = nullptr;
-  prev = nullptr;
-  record_index = 0;
+    std::shared_ptr<const RouterInfo> router)
+    : m_CurrentRouter(router),
+      m_TunnelID(Rand<std::uint32_t>()),
+      m_AESRecordAttributes(),
+      m_NextRouter(nullptr),
+      m_NextTunnelID(0),
+      m_PreviousHop(nullptr),
+      m_NextHop(nullptr),
+      m_IsGateway(true),
+      m_IsEndpoint(true),
+      m_RecordIndex(0) {
+        if (!router)
+          throw std::invalid_argument("TunnelHopConfig: current router is null");
+      }
+
+const std::shared_ptr<const RouterInfo>& TunnelHopConfig::GetCurrentRouter() const noexcept {
+  return m_CurrentRouter;
 }
 
 void TunnelHopConfig::SetNextRouter(
-    std::shared_ptr<const kovri::core::RouterInfo> r) {
-  next_router = r;
-  is_endpoint = false;
-  next_tunnel_ID = kovri::core::Rand<std::uint32_t>();
+    std::shared_ptr<const RouterInfo> router,
+    std::uint32_t tunnel_id,
+    bool is_endpoint) {
+  if (!router)
+    throw std::invalid_argument("TunnelHopConfig: next router is null");
+  m_NextRouter = router;
+  m_NextTunnelID = tunnel_id;
+  m_IsEndpoint = is_endpoint;
 }
 
-void TunnelHopConfig::SetReplyHop(
-    const TunnelHopConfig* reply_first_hop) {
-  next_router = reply_first_hop->router;
-  next_tunnel_ID = reply_first_hop->tunnel_ID;
-  is_endpoint = true;
+const std::shared_ptr<const RouterInfo>& TunnelHopConfig::GetNextRouter() const noexcept {
+  return m_NextRouter;
 }
 
-void TunnelHopConfig::SetNext(
-    TunnelHopConfig* n) {
-  next = n;
-  if (next) {
-    next->prev = this;
-    next->is_gateway = false;
-    is_endpoint = false;
-    next_router = next->router;
-    next_tunnel_ID = next->tunnel_ID;
+void TunnelHopConfig::SetReplyHop(const TunnelHopConfig* hop) {
+  if (!hop)
+    throw std::invalid_argument("TunnelHopConfig: reply hop is null");
+  SetNextRouter(hop->GetCurrentRouter(), hop->GetTunnelID(), true);
+}
+
+void TunnelHopConfig::SetNextHop(TunnelHopConfig* hop) {
+  m_NextHop = hop;
+  if (m_NextHop) {
+    m_NextHop->m_PreviousHop = this;
+    m_NextHop->m_IsGateway = false;
+    SetNextRouter(m_NextHop->GetCurrentRouter(), m_NextHop->GetTunnelID());
   }
 }
 
-void TunnelHopConfig::SetPrev(
-    TunnelHopConfig* p) {
-  prev = p;
-  if (prev) {
-    prev->next = this;
-    prev->is_endpoint = false;
-    is_gateway = false;
+TunnelHopConfig* TunnelHopConfig::GetNextHop() const noexcept {
+  return m_NextHop;
+}
+
+void TunnelHopConfig::SetPreviousHop(TunnelHopConfig* hop) noexcept {
+  m_PreviousHop = hop;
+  if (m_PreviousHop) {
+    m_PreviousHop->m_NextHop = this;
+    m_PreviousHop->m_IsEndpoint = false;
+    m_IsGateway = false;
   }
+}
+
+TunnelHopConfig* TunnelHopConfig::GetPreviousHop() const noexcept {
+  return m_PreviousHop;
+}
+
+std::uint32_t TunnelHopConfig::GetTunnelID() const {
+  return m_TunnelID;
+}
+
+std::uint32_t TunnelHopConfig::GetNextTunnelID() const noexcept {
+  return m_NextTunnelID;
+}
+
+const TunnelAESRecordAttributes& TunnelHopConfig::GetAESAttributes() const {
+  return m_AESRecordAttributes;
+}
+
+void TunnelHopConfig::SetIsGateway(bool value) noexcept {
+  m_IsGateway = value;
+}
+
+bool TunnelHopConfig::IsGateway() const noexcept {
+  return m_IsGateway;
+}
+
+void TunnelHopConfig::SetIsEndpoint(bool value) noexcept {
+  m_IsEndpoint = value;
+}
+
+bool TunnelHopConfig::IsEndpoint() const noexcept {
+  return m_IsEndpoint;
+}
+
+TunnelDecryption& TunnelHopConfig::GetDecryption() noexcept {
+  return m_Decryption;
+}
+
+// TODO(anonimal): review type
+void TunnelHopConfig::SetRecordIndex(int record) noexcept {
+  m_RecordIndex = record;
+}
+
+// TODO(anonimal): review type
+int TunnelHopConfig::GetRecordIndex() const noexcept {
+  return m_RecordIndex;
 }
 
 void TunnelHopConfig::CreateBuildRequestRecord(
     std::uint8_t* record,
-    std::uint32_t reply_msg_ID) const {
-  std::uint8_t clear_text[BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE] = {};
-  htobe32buf(
-      clear_text + BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET,
-      tunnel_ID);
-  memcpy(
-      clear_text + BUILD_REQUEST_RECORD_OUR_IDENT_OFFSET,
-      router->GetIdentHash(),
-      32);
-  htobe32buf(
-      clear_text + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET,
-      next_tunnel_ID);
-  memcpy(
-      clear_text + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
-      next_router->GetIdentHash(),
-      32);
-  memcpy(
-      clear_text + BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET,
-      layer_key,
-      32);
-  memcpy(
-      clear_text + BUILD_REQUEST_RECORD_IV_KEY_OFFSET,
-      iv_key,
-      32);
-  memcpy(
-      clear_text + BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET,
-      reply_key,
-      32);
-  memcpy(
-      clear_text + BUILD_REQUEST_RECORD_REPLY_IV_OFFSET,
-      reply_IV,
-      16);
+    std::uint32_t reply_msg_ID) {
+  LogPrint(eLogDebug, "TunnelHopConfig: creating build request record");
+
+  // Create clear text record
+  std::array<std::uint8_t, BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE> clear_text{};
+  auto stream = std::make_unique<OutputByteStream>(clear_text.data(), clear_text.size());
+
+  // Tunnel ID to receive messages as
+  stream->WriteUInt32(GetTunnelID());
+
+  // Local ident hash
+  auto& local_ident = GetCurrentRouter()->GetIdentHash();
+  stream->WriteData(local_ident, sizeof(local_ident));
+
+  // Next tunnel ID
+  stream->WriteUInt32(GetNextTunnelID());
+
+  // Next ident hash
+  auto& next_ident = GetNextRouter()->GetIdentHash();
+  stream->WriteData(next_ident, sizeof(next_ident));
+
+  // AES attributes
+  auto& aes = GetAESAttributes();
+  stream->WriteData(aes.layer_key.data(), aes.layer_key.size());
+  stream->WriteData(aes.IV_key.data(), aes.IV_key.size());
+  stream->WriteData(aes.reply_key.data(), aes.reply_key.size());
+  stream->WriteData(aes.reply_IV.data(), aes.reply_IV.size());
+
+  // Flag (IBGW or OBEP or neither (intermediary))
   std::uint8_t flag = 0;
-  if (is_gateway)
+  if (IsGateway())
     flag |= 0x80;
-  if (is_endpoint)
+  if (IsEndpoint())
     flag |= 0x40;
-  clear_text[BUILD_REQUEST_RECORD_FLAG_OFFSET] = flag;
-  htobe32buf(
-      clear_text + BUILD_REQUEST_RECORD_REQUEST_TIME_OFFSET,
-      kovri::core::GetHoursSinceEpoch());
-  htobe32buf(
-      clear_text + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET,
-      reply_msg_ID);
-  memcpy(
-      clear_text + BUILD_REQUEST_RECORD_PADDING_OFFSET,
-      rand_pad,
-      29);
-  router->GetElGamalEncryption()->Encrypt(
-      clear_text,
-      BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE,
+  stream->WriteUInt8(flag);
+
+  // Request time
+  stream->WriteUInt32(GetHoursSinceEpoch());  // TODO(unassigned): should we/does boost "round down"?
+
+  // Next message ID
+  stream->WriteUInt32(reply_msg_ID);
+
+  // Uninterpreted / Random padding
+  std::array<std::uint8_t, BUILD_REQUEST_RECORD_RAND_PAD_SIZE> padding;
+  RandBytes(padding.data(), padding.size());
+  stream->WriteData(padding.data(), padding.size());
+
+  // ElGamal encrypt with the hop's public encryption key
+  GetCurrentRouter()->GetElGamalEncryption()->Encrypt(
+      stream->GetData(),
+      stream->GetSize(),
+      // TODO(unassigned): Passing pointer argument interferes with more needed refactor work.
+      // Pointing to record argument appears to only lead to more spaghetti code
       record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET);
-  memcpy(
+
+  // First half of the SHA-256 of the current hop's router identity
+  std::memcpy(
       record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET,
-      (const std::uint8_t *)router->GetIdentHash(),
-      16);
+      local_ident,
+      BUILD_REQUEST_RECORD_CURRENT_HOP_IDENT_HASH_SIZE);
 }
 
+// TODO(unassigned): smart pointers, please
 TunnelConfig::TunnelConfig(
     std::vector<std::shared_ptr<const kovri::core::RouterInfo> > peers,
     std::shared_ptr<const TunnelConfig> reply_tunnel_config)
@@ -168,17 +239,15 @@ TunnelConfig::TunnelConfig(
   for (auto it : peers) {
     auto hop = new TunnelHopConfig(it);
     if (prev)
-      prev->SetNext(hop);
+      prev->SetNextHop(hop);
     else
       m_FirstHop = hop;
     prev = hop;
   }
-  // TODO(unassigned): We shouldn't depend on the assumption that we're
-  // initialized with non-empty vector of peers (if null, we'll fall apart)
   if (prev) {
     m_LastHop = prev;
     if (reply_tunnel_config) {  // outbound
-      m_FirstHop->is_gateway = false;
+      m_FirstHop->SetIsGateway(false);
       m_LastHop->SetReplyHop(reply_tunnel_config->GetFirstHop());
     } else {  // inbound
       m_LastHop->SetNextRouter(kovri::context.GetSharedRouterInfo());
@@ -190,7 +259,7 @@ TunnelConfig::~TunnelConfig() {
   TunnelHopConfig* hop = m_FirstHop;
   while (hop) {
     auto tmp = hop;
-    hop = hop->next;
+    hop = hop->GetNextHop();
     delete tmp;
   }
 }
@@ -208,21 +277,21 @@ int TunnelConfig::GetNumHops() const {
   TunnelHopConfig* hop = m_FirstHop;
   while (hop) {
     num++;
-    hop = hop->next;
+    hop = hop->GetNextHop();
   }
   return num;
 }
 
 bool TunnelConfig::IsInbound() const {
-  return m_FirstHop->is_gateway;
+  return m_FirstHop->IsGateway();
 }
 
 std::vector<std::shared_ptr<const kovri::core::RouterInfo> > TunnelConfig::GetPeers() const {
   std::vector<std::shared_ptr<const kovri::core::RouterInfo> > peers;
   TunnelHopConfig* hop = m_FirstHop;
   while (hop) {
-    peers.push_back(hop->router);
-    hop = hop->next;
+    peers.push_back(hop->GetCurrentRouter());
+    hop = hop->GetNextHop();
   }
   return peers;
 }
@@ -232,14 +301,14 @@ void TunnelConfig::Print(
   TunnelHopConfig* hop = m_FirstHop;
   if (!IsInbound())  // outbound
     s << "me";
-  s << "-->" << m_FirstHop->tunnel_ID;
+  s << "-->" << m_FirstHop->GetTunnelID();
   while (hop) {
-    s << ":" << hop->router->GetIdentHashAbbreviation() << "-->";
-    if (!hop->is_endpoint)
-      s << hop->next_tunnel_ID;
+    s << ":" << hop->GetCurrentRouter()->GetIdentHashAbbreviation() << "-->";
+    if (!hop->IsEndpoint())
+      s << hop->GetNextTunnelID();
     else
       return;
-    hop = hop->next;
+    hop = hop->GetNextHop();
   }
   // we didn't reach endpoint; this means that we are the last hop
   s << ":me";

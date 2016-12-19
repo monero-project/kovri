@@ -173,7 +173,7 @@ class Stream : public std::enable_shared_from_this<Stream> {
       boost::asio::io_service& service,
       StreamingDestination& local,
       std::shared_ptr<const kovri::core::LeaseSet> remote,
-      int port = 0);
+      std::uint16_t port = 0);
   // Incoming
   Stream(
       boost::asio::io_service& service,
@@ -360,7 +360,7 @@ class StreamingDestination {
 
   std::shared_ptr<Stream> CreateNewOutgoingStream(
       std::shared_ptr<const kovri::core::LeaseSet> remote,
-      int port = 0);
+      std::uint16_t port = 0);
 
   void DeleteStream(
       std::shared_ptr<Stream> stream);

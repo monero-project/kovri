@@ -28,13 +28,21 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#include "config.h"
+#include "app/instance.h"
 
-#include <string>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/ini_parser.hpp>
+#include <boost/program_options.hpp>
+
+#include <cstdint>
+#include <stdexcept>
+#include <memory>
 #include <vector>
 
-#include "core/crypto/rand.h"
+#include "client/util/parse.h"
 
+#include "core/crypto/rand.h"
+#include "core/util/filesystem.h"
 #include "core/util/log.h"
 
 namespace kovri {
@@ -42,12 +50,7 @@ namespace app {
 
 namespace bpo = boost::program_options;
 
-// TODO(unassigned): not ideal, we can create a useful class
-bpo::variables_map VarMap;
-
-bool ParseArgs(
-    int argc,
-    char* argv[]) {
+void Configuration::ParseKovriConfig() {
   // Random generated port if none is supplied via CLI or config
   // See: i2p.i2p/router/java/src/net/i2p/router/transport/udp/UDPEndpoint.java
   // TODO(unassigned): move this elsewhere (outside of ParseArgs()) when possible
@@ -55,10 +58,6 @@ bool ParseArgs(
   // Configuration files
   std::string kovri_config, tunnels_config;
   // Default visible option
-  const std::string kovri_help =
-    "\n- Read kovri.conf for details on cli/config options\n"
-    "- Read tunnels.conf on how to configure tunnels\n"
-    "- Below is a listing of all available options:";
   bpo::options_description help("\nhelp");
   help.add_options()("help,h", "");  // Blank so we can use custom message above
   // Map options values from command-line and config
@@ -71,15 +70,15 @@ bool ParseArgs(
     ("log-to-console", bpo::value<bool>()->default_value(true))
     ("log-to-file", bpo::value<bool>()->default_value(true))
     ("log-file-name", bpo::value<std::string>()->default_value(
-        (kovri::core::GetLogsPath() / "kovri_%1N.log").string()))  // TODO(anonimal): #330
+        (kovri::core::GetLogsPath() / "kovri_%Y-%m-%d.log").string()))
     ("log-levels", bpo::value<std::vector<std::string>>()->
                    // Note: we set a default value during validation and
                    // leave blank here to prevent bad_any_cast exception.
                    default_value(std::vector<std::string>(), "")->multitoken())
     ("kovriconf,c", bpo::value<std::string>(&kovri_config)->default_value(
-        kovri::core::GetFullPath("kovri.conf")))  // TODO(anonimal): #330
+        (kovri::core::GetConfigPath() / "kovri.conf").string()))
     ("tunnelsconf,t", bpo::value<std::string>(&tunnels_config)->default_value(
-        kovri::core::GetFullPath("tunnels.conf")));  // TODO(anonimal): #330
+        (kovri::core::GetConfigPath() / "tunnels.conf").string()));
 
   bpo::options_description network("\nnetwork");
   network.add_options()
@@ -118,22 +117,26 @@ bool ParseArgs(
     .add(network)
     .add(client);
   // Map and store command-line options
-  bpo::store(bpo::parse_command_line(argc, argv, cli_options), VarMap);
-  bpo::notify(VarMap);
+  bpo::store(
+      bpo::command_line_parser(m_Args).options(cli_options).run(), m_KovriConfig);
+  bpo::notify(m_KovriConfig);
+
+  // TODO(anonimal): we want to be able to reload config file without original
+  // cli args overwriting any *new* config file options
+
   // Parse config file after mapping command-line
-  ParseConfigFile(kovri_config, config_options, VarMap);
+  ParseKovriConfigFile(kovri_config, config_options, m_KovriConfig);
   // Set logging options
   if (!SetLoggingOptions())
-    return false;
-  if (VarMap.count("help")) {
-    std::cout << kovri_help << config_options; // we don't need to print .add(help)
-    return false;
+    throw std::runtime_error("Configuration: could not set logging options");
+  if (m_KovriConfig.count("help")) {
+    std::cout << config_options << std::endl;
+    throw std::runtime_error("for more details, see user-guide documentation");
   }
-  return true;
 }
 
-// TODO(unassigned): improve this function and use-case for it
-void ParseConfigFile(
+// TODO(unassigned): improve this function and use-case
+void Configuration::ParseKovriConfigFile(
     std::string& file,
     bpo::options_description& options,
     bpo::variables_map& var_map) {
@@ -146,23 +149,91 @@ void ParseConfigFile(
   }
 }
 
-bool SetLoggingOptions() {
-  namespace log = kovri::core;
+void Configuration::ParseTunnelsConfig() {
+  auto file = GetTunnelsConfigFile().string();
+  boost::property_tree::ptree pt;
+  // Read file
+  try {
+    boost::property_tree::read_ini(file, pt);
+  } catch (const std::exception& ex) {
+    throw std::runtime_error(
+        "Configuration: can't read " + file + ": " + ex.what());
+    return;
+  } catch (...) {
+    throw std::runtime_error(
+        "Configuration: can't read " + file + ": unknown exception");
+    return;
+  }
+  // Parse on a per-section basis, store in tunnels config vector
+  for (auto& section : pt) {
+    kovri::client::TunnelAttributes tunnel{};
+    try {
+      // Get tunnel name and container for remaining attributes
+      tunnel.name = section.first;
+      const auto& value = section.second;
+      // Get remaining attributes
+      tunnel.type = value.get<std::string>(GetAttribute(Key::Type));
+      tunnel.address = value.get<std::string>(GetAttribute(Key::Address), "127.0.0.1");
+      tunnel.port = value.get<std::uint16_t>(GetAttribute(Key::Port));
+      // Test which type of tunnel (client or server), add unique attributes
+      if (tunnel.type == GetAttribute(Key::Client)
+          || tunnel.type == GetAttribute(Key::IRC)) {
+        tunnel.dest = value.get<std::string>(GetAttribute(Key::Dest));
+        tunnel.dest_port = value.get<std::uint16_t>(GetAttribute(Key::DestPort), 0);
+        tunnel.keys = value.get<std::string>(GetAttribute(Key::Keys), "");
+        // Parse for CSV destinations + dest:port, then set appropriately
+        ParseClientDestination(&tunnel);
+      } else if (tunnel.type == GetAttribute(Key::Server)
+                || tunnel.type == GetAttribute(Key::HTTP)) {
+        tunnel.in_port = value.get<std::uint16_t>(GetAttribute(Key::InPort), 0);
+        tunnel.keys = value.get<std::string>(GetAttribute(Key::Keys));  // persistent private key
+        // Test/Get/Set for ACL
+        auto white = value.get<std::string>(GetAttribute(Key::Whitelist), "");
+        auto black = value.get<std::string>(GetAttribute(Key::Blacklist), "");
+        // Ignore blacklist if whitelist is given
+        if (!white.empty()) {
+          tunnel.acl.list = white;
+          tunnel.acl.is_white = true;
+        } else if (!black.empty()) {
+          tunnel.acl.list = black;
+          tunnel.acl.is_black = true;
+        }
+      } else {
+        throw std::runtime_error(
+            "Configuration: unknown tunnel type="
+            + tunnel.type + " of " + tunnel.name + " in " + file);
+      }
+    } catch (const std::exception& ex) {
+      throw std::runtime_error(
+          "Configuration: can't read tunnel "
+          + tunnel.name + " params: " + ex.what());
+    } catch (...) {
+      throw std::runtime_error(
+          "Configuration: can't read tunnel "
+          + tunnel.name + " unknown exception");
+    }
+    // Save section for later client insertion
+    m_TunnelsConfig.push_back(tunnel);
+  }
+}
+
+bool Configuration::SetLoggingOptions() {
+  namespace core = kovri::core;
   /**
    * TODO(unassigned): write custom validator for log-levels
    * so we can set values via config file.
    */
   // Test for valid log-levels input
-  auto arg_levels = VarMap["log-levels"].as<std::vector<std::string>>();
-  auto global_levels = core::GetGlobalLogLevels();
-  if (arg_levels.size()) {
+  auto arg_levels = m_KovriConfig["log-levels"].as<std::vector<std::string>>();
+  auto& global_levels = core::GetGlobalLogLevels();
+  if (!arg_levels.empty()) {
     if (arg_levels.size() > global_levels.size()) {
       std::cout << "Invalid number of log levels. Maximum allowed: "
                 << global_levels.size() << std::endl;
       return false;
     }
     // Verify validity of log levels
-    for (auto& level : arg_levels) {
+    for (auto const& level : arg_levels) {
       auto result = global_levels.find(level);
       if (result == global_levels.end()) {
         std::cout << "Invalid log-level(s). See help for options" << std::endl;
@@ -171,21 +242,78 @@ bool SetLoggingOptions() {
     }
   } else {
     // Set default log-levels if none present
-    for (auto& level : global_levels)
-      arg_levels.push_back(level.first);
+    for (auto const& level : global_levels)
+      if (level.first != "debug")  // TODO(anonimal): we'll want to use a key
+        arg_levels.push_back(level.first);
   }
+  // Feedback to user which levels are in use
+  std::string levels;
+  for (auto const& level : arg_levels)
+    levels.append(level + " ");
+  LogPrint(eLogInfo, "Configuration: using log levels: ", levels);
   // Set new global log-levels
   core::SetGlobalLogLevels(arg_levels);
   // Set other logging options
-  core::SetOptionLogToConsole(VarMap["log-to-console"].as<bool>());
+  core::SetOptionLogToConsole(m_KovriConfig["log-to-console"].as<bool>());
   // TODO(unassigned): the following daemon test is a HACK to ensure that
   // log-to-console is enabled in daemon mode (or else we'll boost.log segfault)
-  // See the issue tracker for soon-to-be-opened issue
-  if (VarMap["daemon"].as<bool>())
+  // See #469
+  if (m_KovriConfig["daemon"].as<bool>())
     core::SetOptionLogToConsole(true);
-  core::SetOptionLogToFile(VarMap["log-to-file"].as<bool>());
-  core::SetOptionLogFileName(VarMap["log-file-name"].as<std::string>());
+  core::SetOptionLogToFile(m_KovriConfig["log-to-file"].as<bool>());
+  core::SetOptionLogFileName(m_KovriConfig["log-file-name"].as<std::string>());
   return true;
+}
+
+const std::string Configuration::GetAttribute(Key key) {
+  switch (key) {
+    // Section types
+    case Key::Type:
+      return "type";
+      break;
+    case Key::Client:
+      return "client";
+      break;
+    case Key::IRC:
+      return "irc";
+      break;
+    case Key::Server:
+      return "server";
+      break;
+    case Key::HTTP:
+      return "http";
+      break;
+    // Client-tunnel specific
+    case Key::Dest:
+      return "dest";
+      break;
+    case Key::DestPort:
+      return "dest_port";
+      break;
+    // Server-tunnel specific
+    case Key::InPort:
+      return "in_port";
+      break;
+    case Key::Whitelist:
+      return "white_list";
+      break;
+    case Key::Blacklist:
+      return "black_list";
+      break;
+    // Tunnel-agnostic
+    case Key::Address:
+      return "address";
+      break;
+    case Key::Port:
+      return "port";
+      break;
+    case Key::Keys:
+      return "keys";
+      break;
+    default:
+      return "";  // not needed (avoids nagging -Wreturn-type)
+      break;
+  };
 }
 
 }  // namespace app

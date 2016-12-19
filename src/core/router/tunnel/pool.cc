@@ -73,13 +73,13 @@ void TunnelPool::SetExplicitPeers(
     int size = m_ExplicitPeers->size();
     if (m_NumInboundHops > size) {
       m_NumInboundHops = size;
-      LogPrint(eLogInfo,
+      LogPrint(eLogDebug,
           "TunnelPool: inbound tunnel length has been adjusted to ",
           size, " for explicit peers");
     }
     if (m_NumOutboundHops > size) {
       m_NumOutboundHops = size;
-      LogPrint(eLogInfo,
+      LogPrint(eLogDebug,
           "TunnelPool: outbound tunnel length has been adjusted to ",
           size, " for explicit peers");
     }
@@ -245,7 +245,7 @@ void TunnelPool::CreateTunnels() {
 void TunnelPool::TestTunnels() {
   for (auto it : m_Tests) {
     LogPrint(eLogWarn,
-        "TunnelPool: tunnel test ", static_cast<int>(it.first), " failed");
+        "TunnelPool: tunnel test ", it.first, " failed");
     // if test failed again with another tunnel we consider it failed
     if (it.second.first) {
       if (it.second.first->GetState() == e_TunnelStateTestFailed) {
@@ -319,7 +319,7 @@ void TunnelPool::ProcessDeliveryStatus(
       it->second.first->SetState(e_TunnelStateEstablished);
     if (it->second.second->GetState() == e_TunnelStateTestFailed)
       it->second.second->SetState(e_TunnelStateEstablished);
-    LogPrint(eLogInfo,
+    LogPrint(eLogDebug,
         "TunnelPool: tunnel test ", it->first,
         " successful: ", kovri::core::GetMillisecondsSinceEpoch() - timestamp,
         " milliseconds");
@@ -380,7 +380,7 @@ bool TunnelPool::SelectExplicitPeers(
   std::vector<int> peer_indicies;
   for (int i = 0; i < size; i++)
     peer_indicies.push_back(i);
-  std::random_shuffle(peer_indicies.begin(), peer_indicies.end());
+  kovri::core::Shuffle(peer_indicies.begin(), peer_indicies.end());
   int num_hops = is_inbound ? m_NumInboundHops : m_NumOutboundHops;
   for (int i = 0; i < num_hops; i++) {
     auto& ident = (*m_ExplicitPeers)[peer_indicies[i]];
@@ -388,7 +388,7 @@ bool TunnelPool::SelectExplicitPeers(
     if (r) {
       hops.push_back(r);
     } else {
-      LogPrint(eLogInfo,
+      LogPrint(eLogDebug,
           "TunnelPool: can't find router for ", ident.ToBase64());
       kovri::core::netdb.RequestDestination(ident);
       return false;
@@ -401,7 +401,7 @@ void TunnelPool::CreateInboundTunnel() {
   auto outbound_tunnel = GetNextOutboundTunnel();
   if (!outbound_tunnel)
     outbound_tunnel = tunnels.GetNextOutboundTunnel();
-  LogPrint(eLogInfo, "TunnelPool: creating destination inbound tunnel");
+  LogPrint(eLogDebug, "TunnelPool: creating destination inbound tunnel");
   std::vector<std::shared_ptr<const kovri::core::RouterInfo> > hops;
   if (SelectPeers(hops, true)) {
     std::reverse(hops.begin(), hops.end());
@@ -420,7 +420,7 @@ void TunnelPool::RecreateInboundTunnel(
   auto outbound_tunnel = GetNextOutboundTunnel();
   if (!outbound_tunnel)
     outbound_tunnel = tunnels.GetNextOutboundTunnel();
-  LogPrint(eLogInfo, "TunnelPool: re-creating destination inbound tunnel");
+  LogPrint(eLogDebug, "TunnelPool: re-creating destination inbound tunnel");
   auto new_tunnel =
     tunnels.CreateTunnel<InboundTunnel> (
       tunnel->GetTunnelConfig()->Clone(),
@@ -433,7 +433,7 @@ void TunnelPool::CreateOutboundTunnel() {
   if (!inbound_tunnel)
     inbound_tunnel = tunnels.GetNextInboundTunnel();
   if (inbound_tunnel) {
-    LogPrint(eLogInfo, "TunnelPool: creating destination outbound tunnel");
+    LogPrint(eLogDebug, "TunnelPool: creating destination outbound tunnel");
     std::vector<std::shared_ptr<const kovri::core::RouterInfo> > hops;
     if (SelectPeers(hops, false)) {
       auto tunnel = tunnels.CreateTunnel<OutboundTunnel> (
@@ -446,8 +446,9 @@ void TunnelPool::CreateOutboundTunnel() {
           "TunnelPool: can't create outbound tunnel, no peers available");
     }
   } else {
-    LogPrint(eLogError,
-        "TunnelPool: can't create outbound tunnel, no inbound tunnels found");
+    LogPrint(eLogWarn,
+        "TunnelPool: can't create outbound tunnel, no inbound tunnels found "
+        "(router may need more time to integrate into the network)");
   }
 }
 
@@ -457,7 +458,7 @@ void TunnelPool::RecreateOutboundTunnel(
   if (!inbound_tunnel)
     inbound_tunnel = tunnels.GetNextInboundTunnel();
   if (inbound_tunnel) {
-    LogPrint(eLogInfo, "TunnelPool: re-creating destination outbound tunnel");
+    LogPrint(eLogDebug, "TunnelPool: re-creating destination outbound tunnel");
     auto new_tunnel = tunnels.CreateTunnel<OutboundTunnel> (
       tunnel->GetTunnelConfig()->Clone(
         inbound_tunnel->GetTunnelConfig()));
@@ -470,7 +471,7 @@ void TunnelPool::RecreateOutboundTunnel(
 
 void TunnelPool::CreatePairedInboundTunnel(
     std::shared_ptr<OutboundTunnel> outbound_tunnel) {
-  LogPrint(eLogInfo, "TunnelPool: creating paired inbound tunnel");
+  LogPrint(eLogDebug, "TunnelPool: creating paired inbound tunnel");
   auto tunnel = tunnels.CreateTunnel<InboundTunnel> (
       outbound_tunnel->GetTunnelConfig()->Invert(),
       outbound_tunnel);

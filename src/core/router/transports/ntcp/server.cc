@@ -104,12 +104,12 @@ void NTCPServer::HandleAccept(
     boost::system::error_code ec;
     auto ep = conn->GetSocket().remote_endpoint(ec);
     if (!ec) {
-      LogPrint(eLogInfo, "NTCPServer: connected from ", ep);
+      LogPrint(eLogDebug, "NTCPServer: connected from ", ep);
       auto it = m_BanList.find(ep.address());
       if (it != m_BanList.end()) {
         std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
         if (ts < it->second) {
-          LogPrint(eLogInfo,
+          LogPrint(eLogDebug,
               "NTCPServer: ", ep.address(), " is banned for ",
               it->second - ts, " more seconds");
           conn = nullptr;
@@ -147,13 +147,13 @@ void NTCPServer::HandleAcceptV6(
     boost::system::error_code ec;
     auto ep = conn->GetSocket().remote_endpoint(ec);
     if (!ec) {
-      LogPrint(eLogInfo,
+      LogPrint(eLogDebug,
           "NTCPServer: V6 connected from ", ep);
       auto it = m_BanList.find(ep.address());
       if (it != m_BanList.end()) {
         std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
         if (ts < it->second) {
-          LogPrint(eLogInfo,
+          LogPrint(eLogDebug,
               "NTCPServer: ", ep.address(), " is banned for ",
               it->second - ts, " more seconds");
           conn = nullptr;
@@ -187,7 +187,7 @@ void NTCPServer::Connect(
     const boost::asio::ip::address& address,
     std::size_t port,
     std::shared_ptr<NTCPSession> conn) {
-  LogPrint(eLogInfo,
+  LogPrint(eLogDebug,
       "NTCPServer: connecting to [",
       context.GetRouterInfo().GetIdentHashAbbreviation(), "] ",
       address , ":",  port);
@@ -208,15 +208,14 @@ void NTCPServer::HandleConnect(
     const boost::system::error_code& ecode) {
   if (ecode) {
     LogPrint(eLogError,
-      "NTCPServer:  connect error '", ecode.message(), "'");
-  
+      "NTCPServer: connection handler error '", ecode.message(), "'");
     if (ecode != boost::asio::error::operation_aborted)
       kovri::core::netdb.SetUnreachable(
           conn->GetRemoteIdentity().GetIdentHash(),
           true);
     conn->Terminate();
   } else {
-    LogPrint(eLogInfo,
+    LogPrint(eLogDebug,
         "NTCPServer: connected to ", conn->GetSocket().remote_endpoint());
     if (conn->GetSocket().local_endpoint().protocol() ==
         boost::asio::ip::tcp::v6())  // ipv6
@@ -267,7 +266,7 @@ void NTCPServer::Ban(
   std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
   m_BanList[session->GetRemoteEndpoint().address()] =
     ts + static_cast<std::size_t>(NTCPTimeoutLength::ban_expiration);
-  LogPrint(eLogInfo,
+  LogPrint(eLogWarn,
       "NTCPServer:", session->GetFormattedSessionInfo(), "has been banned for ",
       static_cast<std::size_t>(NTCPTimeoutLength::ban_expiration), " seconds");
 }

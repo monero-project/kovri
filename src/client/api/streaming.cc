@@ -53,7 +53,7 @@ Stream::Stream(
     boost::asio::io_service& service,
     StreamingDestination& local,
     std::shared_ptr<const kovri::core::LeaseSet> remote,
-    int port)
+    std::uint16_t port)
     : m_Service(service),
       m_SendStreamID(0),
       m_SequenceNumber(0),
@@ -250,7 +250,7 @@ void Stream::ProcessPacket(
   if (flags & PACKET_FLAG_FROM_INCLUDED) {
     option_data += m_RemoteIdentity.FromBuffer(
         option_data, packet->GetOptionSize());
-    LogPrint(eLogInfo,
+    LogPrint(eLogDebug,
         "Stream: from identity ",
         m_RemoteIdentity.GetIdentHash().ToBase64());
     if (!m_RemoteLeaseSet)
@@ -289,7 +289,7 @@ void Stream::ProcessPacket(
   }
   m_LastReceivedSequenceNumber = received_seqn;
   if (flags & (PACKET_FLAG_CLOSE | PACKET_FLAG_RESET)) {
-    LogPrint(eLogInfo,
+    LogPrint(eLogDebug,
         "Stream: ", (flags & PACKET_FLAG_RESET) ? "reset" : "closed");
     m_Status = eStreamStatusReset;
     Close();
@@ -540,7 +540,7 @@ void Stream::SendQuickAck() {
   size += 2;  // options size
   p.len = size;
   SendPackets(std::vector<Packet *> { &p });
-  LogPrint(eLogInfo, "Stream: quick Ack sent. ", static_cast<int>(num_nacks), " NACKs");
+  LogPrint(eLogDebug, "Stream: quick Ack sent. ", static_cast<int>(num_nacks), " NACKs");
 }
 
 void Stream::Close() {
@@ -549,7 +549,7 @@ void Stream::Close() {
       m_Status = eStreamStatusClosing;
       Close();  // recursion
       if (m_Status == eStreamStatusClosing)  // still closing
-        LogPrint(eLogInfo, "Stream: trying to send stream data before closing");
+        LogPrint(eLogDebug, "Stream: trying to send stream data before closing");
     break;
     case eStreamStatusReset:
       SendClose();
@@ -614,7 +614,7 @@ void Stream::SendClose() {
   m_LocalDestination.GetOwner().Sign(packet, size, signature);
   p->len = size;
   m_Service.post(std::bind(&Stream::SendPacket, shared_from_this(), p));
-  LogPrint(eLogInfo, "Stream: FIN sent");
+  LogPrint(eLogDebug, "Stream: FIN sent");
 }
 
 std::size_t Stream::ConcatenatePackets(
@@ -794,7 +794,7 @@ void Stream::UpdateCurrentRemoteLease(
       m_LocalDestination.GetOwner().FindLeaseSet(
         m_RemoteIdentity.GetIdentHash());
     if (!m_RemoteLeaseSet)
-      LogPrint(eLogInfo,
+      LogPrint(eLogDebug,
           "Stream: LeaseSet ",
           m_RemoteIdentity.GetIdentHash().ToBase64(), " not found");
   }
@@ -926,7 +926,7 @@ void StreamingDestination::HandleNextPacket(
 
 std::shared_ptr<Stream> StreamingDestination::CreateNewOutgoingStream(
     std::shared_ptr<const kovri::core::LeaseSet> remote,
-    int port) {
+    std::uint16_t port) {
   auto s = std::make_shared<Stream>(m_Owner.GetService(), *this, remote, port);
   std::unique_lock<std::mutex> l(m_StreamsMutex);
   m_Streams[s->GetReceiveStreamID()] = s;
@@ -963,7 +963,7 @@ void StreamingDestination::HandleDataMessagePayload(
     decompressor.Get(uncompressed->buf, uncompressed->len);
     HandleNextPacket(uncompressed);
   } else {
-    LogPrint(eLogInfo,
+    LogPrint(eLogDebug,
         "StreamingDestination: received packet size ",
         uncompressed->len, " exceeds max packet size. Skipped");
     delete uncompressed;

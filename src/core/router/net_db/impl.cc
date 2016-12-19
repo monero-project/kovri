@@ -60,8 +60,8 @@
 namespace kovri {
 namespace core {
 
-const char NetDb::m_NetDbPath[] = "netDb";
-
+// Simply instantiating in namespace scope ties into, and is limited by, the current singleton design
+// TODO(unassigned): refactoring this requires global work but will help to remove the singleton
 NetDb netdb;
 
 NetDb::NetDb()
@@ -213,7 +213,7 @@ void NetDb::AddRouterInfo(
     auto ts = r->GetTimestamp();
     r->Update(buf, len);
     if (r->GetTimestamp() > ts)
-      LogPrint(eLogInfo, "NetDb: RouterInfo updated");
+      LogPrint(eLogDebug, "NetDb: RouterInfo updated");
   } else {
     LogPrint(eLogDebug, "NetDb: new RouterInfo added");
     r = std::make_shared<RouterInfo> (buf, len); {
@@ -239,15 +239,15 @@ void NetDb::AddLeaseSet(
     if (it != m_LeaseSets.end()) {
       it->second->Update(buf, len);
       if (it->second->IsValid()) {
-        LogPrint(eLogInfo, "NetDb: LeaseSet updated");
+        LogPrint(eLogDebug, "NetDb: LeaseSet updated");
       } else {
-        LogPrint(eLogInfo, "NetDb: LeaseSet update failed");
+        LogPrint(eLogError, "NetDb: LeaseSet update failed");
         m_LeaseSets.erase(it);
       }
     } else {
       auto lease_set = std::make_shared<LeaseSet>(buf, len);
       if (lease_set->IsValid()) {
-        LogPrint(eLogInfo, "NetDb: new LeaseSet added");
+        LogPrint(eLogDebug, "NetDb: new LeaseSet added");
         m_LeaseSets[ident] = lease_set;
       } else {
         LogPrint(eLogError, "NetDb: new LeaseSet validation failed");
@@ -287,7 +287,7 @@ void NetDb::SetUnreachable(
 // (In java version, scheduler fixes this as well as sort RIs.)
 bool NetDb::CreateNetDb(
     boost::filesystem::path directory) {
-  LogPrint(eLogInfo, "NetDb: creating ", directory.string());
+  LogPrint(eLogDebug, "NetDb: creating ", directory.string());
   if (!boost::filesystem::create_directory(directory)) {
     LogPrint(eLogError, "NetDb: failed to create ", directory.string());
     return false;
@@ -310,7 +310,7 @@ bool NetDb::CreateNetDb(
 }
 
 bool NetDb::Load() {
-  boost::filesystem::path p(kovri::core::GetDataPath() / m_NetDbPath);
+  boost::filesystem::path p(kovri::core::GetNetDbPath());
   if (!boost::filesystem::exists(p)) {
     // seems netDb doesn't exist yet
     if (!CreateNetDb(p))
@@ -346,14 +346,14 @@ bool NetDb::Load() {
         } else {
           bool is_removed = boost::filesystem::remove(full_path);
           if (is_removed)
-            LogPrint(eLogInfo,
+            LogPrint(eLogDebug,
                 "NetDb: ", full_path, " unreachable router removed");
         }
       }
     }
   }
-  LogPrint(eLogInfo, "NetDb: ", num_routers, " routers loaded");
-  LogPrint(eLogInfo, "NetDb: ", m_Floodfills.size(), " floodfills loaded");
+  LogPrint(eLogDebug, "NetDb: ", num_routers, " routers loaded");
+  LogPrint(eLogDebug, "NetDb: ", m_Floodfills.size(), " floodfills loaded");
   return true;
 }
 
@@ -364,10 +364,8 @@ void NetDb::SaveUpdated() {
     std::string s(router_info->GetIdentHashBase64());
     return directory / (std::string("r") + s[0]) / ("router_info_" + s + ".dat");
   };
-  boost::filesystem::path full_directory(
-      kovri::core::GetDataPath() / m_NetDbPath);
-  int count = 0,
-      deleted_count = 0;
+  boost::filesystem::path full_directory(kovri::core::GetNetDbPath());
+  int count = 0, deleted_count = 0;
   auto total = GetNumRouters();
   std::uint64_t ts = kovri::core::GetMillisecondsSinceEpoch();
   for (auto it : m_RouterInfos) {
@@ -434,9 +432,9 @@ void NetDb::SaveUpdated() {
     }
   }
   if (count > 0)
-    LogPrint(eLogInfo, "NetDb: ", count, " new/updated routers saved");
+    LogPrint(eLogDebug, "NetDb: ", count, " new/updated routers saved");
   if (deleted_count > 0) {
-    LogPrint(eLogInfo, "NetDb: ", deleted_count, " routers deleted");
+    LogPrint(eLogDebug, "NetDb: ", deleted_count, " routers deleted");
     // clean up RouterInfos table
     std::unique_lock<std::mutex> l(m_RouterInfosMutex);
     for (auto it = m_RouterInfos.begin(); it != m_RouterInfos.end();) {
@@ -459,7 +457,7 @@ void NetDb::RequestDestination(
         false,
         request_complete);  // non-exploratory
   if (!dest) {
-    LogPrint(eLogWarn,
+    LogPrint(eLogDebug,
         "NetDb: destination ", destination.ToBase64(), " was already requested");
     return;
   }
@@ -564,7 +562,7 @@ void NetDb::HandleDatabaseSearchReplyMsg(
   int l = kovri::core::ByteStreamToBase64(buf, 32, key.data(), key.size());
   key.at(l) = 0;
   int num = buf[32];  // num
-  LogPrint(eLogInfo, "NetDb: DatabaseSearchReply for ", key.data(), " num=", num);
+  LogPrint(eLogDebug, "NetDb: DatabaseSearchReply for ", key.data(), " num=", num);
   IdentHash ident(buf);
   auto dest = m_Requests.FindRequest(ident);
   if (dest) {
@@ -593,7 +591,7 @@ void NetDb::HandleDatabaseSearchReplyMsg(
                   CreateDatabaseStoreMsg()
                   });
               // request destination
-              LogPrint(eLogInfo, 
+              LogPrint(eLogDebug,
                   "NetDb: trying ", key.data(),
                   " at ", count,
                   " floodfill ", next_floodfill->GetIdentHash().ToBase64());
@@ -609,7 +607,7 @@ void NetDb::HandleDatabaseSearchReplyMsg(
             }
           } else {
             LogPrint(eLogWarn,
-                "NetDb: ", key.data(), " was not found in ", max_ff, "floodfills");
+                "NetDb: ", key.data(), " was not found in ", max_ff, " floodfills");
           }
           if (msgs.size() > 0)
             outbound->SendTunnelDataMsg(msgs);
@@ -632,18 +630,17 @@ void NetDb::HandleDatabaseSearchReplyMsg(
     std::array<char, 48> peer_hash;
     int l1 = kovri::core::ByteStreamToBase64(router, 32, peer_hash.data(), peer_hash.size());
     peer_hash.at(l1) = 0;
-    LogPrint(eLogInfo, "NetDb: ", i, ": ", peer_hash.data());
+    LogPrint(eLogDebug, "NetDb: ", i, ": ", peer_hash.data());
     auto r = FindRouter(router);
     if (!r || kovri::core::GetMillisecondsSinceEpoch() >
         r->GetTimestamp() +
         static_cast<std::uint32_t>(NetDbTime::RouterExpiration))  {
       // router with ident not found or too old
-      LogPrint(eLogInfo,
+      LogPrint(eLogDebug,
           "NetDb: found new/outdated router, requesting RouterInfo");
       RequestDestination(router);
     } else {
-      LogPrint(eLogInfo,
-          "NetDb: router with ident found");
+      LogPrint(eLogDebug, "NetDb: router with ident found");
     }
   }
 }
@@ -660,7 +657,7 @@ void NetDb::HandleDatabaseLookupMsg(
   int l = kovri::core::ByteStreamToBase64(buf, 32, key.data(), key.size());
   key.at(l) = 0;
   std::uint8_t flag = buf[64];
-  LogPrint(eLogInfo, "NetDb: DatabaseLookup for ", key.data(),
+  LogPrint(eLogDebug, "NetDb: DatabaseLookup for ", key.data(),
       " received flags=", static_cast<int>(flag));
   std::uint8_t lookup_type = flag & DATABASE_LOOKUP_TYPE_FLAGS_MASK;
   const std::uint8_t* excluded = buf + 65;
@@ -679,7 +676,7 @@ void NetDb::HandleDatabaseLookupMsg(
   }
   std::shared_ptr<I2NPMessage> reply_msg;
   if (lookup_type == DATABASE_LOOKUP_TYPE_EXPLORATORY_LOOKUP) {
-    LogPrint(eLogInfo,
+    LogPrint(eLogDebug,
         "NetDb: exploratory close to  ", key.data(), " ", num_excluded, " excluded");
     std::set<IdentHash> excluded_routers;
     for (int i = 0; i < num_excluded; i++) {
@@ -700,7 +697,7 @@ void NetDb::HandleDatabaseLookupMsg(
         lookup_type == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP) {
       auto router = FindRouter(ident);
       if (router) {
-        LogPrint(eLogInfo, "NetDb: requested RouterInfo ", key.data(), " found");
+        LogPrint(eLogDebug, "NetDb: requested RouterInfo ", key.data(), " found");
         router->LoadBuffer();
         if (router->GetBuffer())
           reply_msg = CreateDatabaseStoreMsg(router);
@@ -710,12 +707,12 @@ void NetDb::HandleDatabaseLookupMsg(
           lookup_type == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP)) {
       auto lease_set = FindLeaseSet(ident);
       if (lease_set) {  // we don't send back our LeaseSets
-        LogPrint(eLogInfo, "NetDb: requested LeaseSet ", key.data(), " found");
+        LogPrint(eLogDebug, "NetDb: requested LeaseSet ", key.data(), " found");
         reply_msg = CreateDatabaseStoreMsg(lease_set);
       }
     }
     if (!reply_msg) {
-      LogPrint(eLogInfo,
+      LogPrint(eLogDebug,
           "NetDb: requested ", key.data(), " not found. ", num_excluded, " excluded");
       std::set<IdentHash> excluded_routers;
       for (int i = 0; i < num_excluded; i++) {
@@ -775,7 +772,7 @@ void NetDb::Explore(
   std::vector<kovri::core::TunnelMessageBlock> msgs;
   std::set<const RouterInfo *> floodfills;
   // TODO(unassigned): docs
-  LogPrint(eLogInfo, "NetDb: exploring ", num_destinations, " new routers");
+  LogPrint(eLogDebug, "NetDb: exploring ", num_destinations, " new routers");
   for (int i = 0; i < num_destinations; i++) {
     kovri::core::RandBytes(random_hash.data(), random_hash.size());
     auto dest = m_Requests.CreateRequest(random_hash.data(), true);  // exploratory
@@ -829,7 +826,7 @@ void NetDb::Publish() {
         excluded);
     if (floodfill) {
       std::uint32_t reply_token = kovri::core::Rand<std::uint32_t>();
-      LogPrint(eLogInfo,
+      LogPrint(eLogDebug,
           "NetDb: publishing our RouterInfo to ",
           floodfill->GetIdentHashAbbreviation(),
           ". reply token=", reply_token);
@@ -1004,7 +1001,7 @@ std::shared_ptr<const RouterInfo> NetDb::GetClosestNonFloodfill(
 void NetDb::ManageLeaseSets() {
   for (auto it = m_LeaseSets.begin(); it != m_LeaseSets.end();) {
     if (!it->second->HasNonExpiredLeases()) {  // all leases expired
-      LogPrint(eLogInfo,
+      LogPrint(eLogDebug,
           "NetDb: LeaseSet ", it->second->GetIdentHash().ToBase64(), " expired");
       it = m_LeaseSets.erase(it);
     } else {

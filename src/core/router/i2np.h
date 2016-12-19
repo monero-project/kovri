@@ -50,6 +50,9 @@
 
 namespace kovri {
 namespace core {
+
+// TODO(anonimal): good God, get rid of all of this
+
              // I2NP header
 const std::size_t I2NP_HEADER_TYPEID_OFFSET = 0,
              I2NP_HEADER_MSGID_OFFSET = I2NP_HEADER_TYPEID_OFFSET + 1,
@@ -100,6 +103,9 @@ const std::size_t I2NP_HEADER_TYPEID_OFFSET = 0,
              BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET = BUILD_REQUEST_RECORD_REQUEST_TIME_OFFSET + 4,
              BUILD_REQUEST_RECORD_PADDING_OFFSET = BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET + 4,
              BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE = 222,
+             BUILD_REQUEST_RECORD_RAND_PAD_SIZE = 29,
+             // First half of the SHA-256 of the current hop's router identity
+             BUILD_REQUEST_RECORD_CURRENT_HOP_IDENT_HASH_SIZE = 16,
 
              // BuildRequestRecordEncrypted
              BUILD_REQUEST_RECORD_TO_PEER_OFFSET = 0,

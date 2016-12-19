@@ -34,12 +34,15 @@
 #define SRC_APP_DAEMON_H_
 
 #include <string>
+#include <memory>
 
 #ifdef _WIN32
 #define Daemon kovri::app::DaemonWin32::Instance()
 #else
 #define Daemon kovri::app::DaemonLinux::Instance()
 #endif
+
+#include "app/instance.h"
 
 #include "core/util/log.h"
 #include "core/util/filesystem.h"
@@ -49,6 +52,11 @@ namespace app {
 
 class DaemonSingleton {
  public:
+  /// @brief Get/Set configuration options before initialization/forking
+  /// @param args Reference to string vector of command line args
+  virtual bool Config(
+      std::vector<std::string>& args);
+
   /// @brief Forks process if daemon mode is set, initializes contexts
   /// @warning Child *must* fork *before* contexts are initialized
   virtual bool Init();
@@ -64,15 +72,13 @@ class DaemonSingleton {
 
   bool m_IsDaemon, m_IsRunning;
 
- private:
-  /// @brief Initializes router context / core settings
-  void InitRouterContext();
+#ifdef _WIN32
+  std::string m_Service;
+#endif
 
-  /// @brief Initializes the router's client context object
-  /// @details Creates tunnels, proxies and I2PControl service
-  void InitClientContext();
-  void SetupTunnels();
-  void ReloadTunnels();
+  /// @var m_Instance
+  /// @brief Unique pointer to instance object (client/router)
+  std::unique_ptr<Instance> m_Instance;
 
  protected:
   DaemonSingleton();
@@ -87,6 +93,9 @@ class DaemonWin32 : public DaemonSingleton {
     static DaemonWin32 instance;
     return instance;
   }
+  virtual bool Config(
+      std::vector<std::string>& args);
+
   virtual bool Init();
   virtual bool Start();
   virtual bool Stop();
@@ -102,10 +111,14 @@ class DaemonLinux : public DaemonSingleton {
     static DaemonLinux instance;
     return instance;
   }
+  virtual bool Config(
+      std::vector<std::string>& args);
+
   virtual bool Init();
   virtual bool Start();
   virtual bool Stop();
   void Reload();
+
  private:
   std::string m_PIDPath, m_PIDFile;
   int m_PIDFileHandle;

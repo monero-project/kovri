@@ -30,30 +30,34 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_APP_UTIL_FILESYSTEM_H_
-#define SRC_APP_UTIL_FILESYSTEM_H_
+#ifndef SRC_CLIENT_UTIL_PARSE_H_
+#define SRC_CLIENT_UTIL_PARSE_H_
 
-#include <boost/filesystem.hpp>
-#include <boost/program_options.hpp>
-#include <boost/program_options/detail/config_file.hpp>
-
-#include <map>
-#include <set>
 #include <string>
+#include <vector>
 
-#include "core/util/log.h"
-#include "core/util/filesystem.h"
+#include "client/tunnel.h"
 
 namespace kovri {
-namespace app {
+namespace client {
 
-/// @return the path of the configuration file
-boost::filesystem::path GetConfigFile();
+/// @brief Parses CSV string
+/// @param record String record of CSV
+/// @return Vector of parsed values
+const std::vector<std::string> ParseCSV(
+    const std::string& record);
 
-/// @return the path of the tunnels configuration file
-boost::filesystem::path GetTunnelsConfigFile();
+/// @brief Parse for multiple CSV destination(s) and also dest:port
+/// @details Free function used solely for configuration which shows that we
+///   need to move nearly everything useful out of app and into client because:
+///   A. we need to, and placing this outside of class Configuration is a hack
+///      until further use-cases can be proven
+///   B. for unit-tests unless we want to hack our way into linking against app
+/// @param tunnel Raw pointer to tunnel attributes
+void ParseClientDestination(
+    TunnelAttributes* tunnel);
 
-}  // namespace app
+}  // namespace client
 }  // namespace kovri
 
-#endif  // SRC_APP_UTIL_FILE_SYSTEM_H_
+#endif  // SRC_CLIENT_UTIL_PARSE_H_

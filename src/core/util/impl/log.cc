@@ -415,10 +415,19 @@ class LogImpl {
   /// @notes We use file_backend_sink because simply add_stream'ing a file to
   ///   the ostream backend will not provide needed keywords (AFAICT)
   file_sink_ptr GetFileSink() {
+    namespace keywords = boost::log::keywords;
+    namespace sinks = boost::log::sinks;
     m_FileBackend = boost::make_shared<file_backend_t>(
-          boost::log::keywords::file_name = m_FileName,
-          boost::log::keywords::rotation_size = 10 * 1024 * 1024);  // 10 MiB
+          keywords::file_name = m_FileName,
+          keywords::time_based_rotation =
+            sinks::file::rotation_at_time_point(0, 0, 0));  // Rotate at midnight
     g_LogFileSink = boost::shared_ptr<file_sink_t>(new file_sink_t(m_FileBackend));
+    // A possible file collector for rotation, but only useful with Boost 1.61+
+    /*g_LogFileSink->locked_backend()->set_file_collector(
+        sinks::file::make_collector(
+            keywords::target = kovri::core::GetLogsPath(),
+            keywords::max_files = 7));  // 7 files = 1 file a day
+    g_LogFileSink->locked_backend()->scan_for_files(sinks::file::scan_all);*/
     g_LogFileSink->set_filter(boost::log::expressions::attr<LogLevel>("Severity") >= m_LogLevel);
     g_LogFileSink->set_formatter(&LogImpl::Format);
     return g_LogFileSink;

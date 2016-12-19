@@ -90,8 +90,6 @@ void HTTPProxyHandler::Handle() {
 void HTTPProxyHandler::AsyncSockRead(std::shared_ptr<boost::asio::ip::tcp::socket>
     socket) {
 
-  boost::asio::streambuf Buffer;
-  boost::system::error_code error;
   //  TODO(guzzi) but there's also use cases where you are providing an inproxy 
   //  service for
   //  others
@@ -104,13 +102,36 @@ void HTTPProxyHandler::AsyncSockRead(std::shared_ptr<boost::asio::ip::tcp::socke
   //  and forward along
   // Read the request headers, which are terminated by a blank line.
 	//TODO(guzzi) timeout needed.
+	boost::optional<boost::system::error_code> timer_result;
+  boost::optional<boost::system::error_code> read_result;
+  boost::asio::deadline_timer timer( socket->get_io_service() );
+  timer.expires_from_now( boost::posix_time::milliseconds(5000) );
+  timer.async_wait( boost::bind(&HTTPProxyHandler::set_result,
+		shared_from_this(), &timer_result,boost::asio::placeholders::error) );
+
   boost::asio::async_read_until(*socket, m_Protocol.m_Buffer, "\r\n\r\n", 
     boost::bind(&HTTPProxyHandler::AsyncHandleRead,
       shared_from_this(),
-      boost::asio::placeholders::error,
+      read_result,
 			boost::asio::placeholders::bytes_transferred
       ));
 
+  boost::system::error_code ec;
+	while(1) {
+			socket->get_io_service().reset();
+			socket->get_io_service().poll_one(ec);
+
+			if ( read_result ) {
+					timer.cancel(); // cancel the timeout operation as it has not completed yet
+					return;
+
+			} else if ( timer_result ) {
+				LogPrint(eLogDebug, "AsyncHandleRead: error sock read: ",
+						 m_Protocol.m_Buffer.size());
+				Terminate();
+				return;
+			}
+	}
 }
 void HTTPProxyHandler::AsyncHandleRead(const boost::system::error_code & error, 
 	size_t bytes_transfered){

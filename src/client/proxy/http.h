@@ -33,6 +33,9 @@
 #ifndef SRC_CLIENT_PROXY_HTTP_H_
 #define SRC_CLIENT_PROXY_HTTP_H_
 
+#include <boost/asio/deadline_timer.hpp>
+#include <boost/bind.hpp>
+#include <boost/optional.hpp>
 #include <boost/asio.hpp>
 #include <boost/network/protocol/http/server.hpp>
 #include <array>
@@ -287,6 +290,10 @@ class HTTPProxyHandler
     Terminate();
   }
 
+	void set_result( boost::optional<boost::system::error_code> * a, boost::system::error_code b ) {
+			if( b == 0)
+					a->reset( b );
+	}
   /// @brief reads data sent to proxy server
   /// virtual function;
   /// handle reading the protocol
@@ -295,7 +302,6 @@ class HTTPProxyHandler
   /// @brief Handles buffer received from socket if Handle successful
   void HandleSockRecv(const boost::system::error_code & error,
     std::size_t bytes_transfered);
-
 
  private:
   /// @brief read from a socket

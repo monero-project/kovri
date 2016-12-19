@@ -72,7 +72,8 @@ HTTPProxyServer::HTTPProxyServer(
             kovri::client::context.GetSharedLocalDestination()),
       m_Name(name) {}
 
-std::shared_ptr<kovri::client::I2PServiceHandler> HTTPProxyServer::CreateHandler(
+std::shared_ptr<kovri::client::I2PServiceHandler>
+  HTTPProxyServer::CreateHandler(
     std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
   return std::make_shared<HTTPProxyHandler>(this, socket);
 }
@@ -189,13 +190,13 @@ bool HTTPProxyHandler::HandleData(
             LogPrint(eLogError,
                 "HTTPProxyHandler: rejected invalid request ending with: ",
                 static_cast<std::size_t>(*buf));
-            HTTPRequestFailed();  // TODO(unassigned): add correct code
+            HTTPRequestFailed(status_t::bad_request);
             return false;
         }
       break;
       default:
         LogPrint(eLogError, "HTTPProxyHandler: invalid state: ", m_State);
-        HTTPRequestFailed();  // TODO(unassigned): add correct code 500
+        HTTPRequestFailed(status_t::internal_server_error);
         return false;
     }
     buf++;
@@ -223,10 +224,10 @@ void HTTPProxyHandler::HandleStreamRequestComplete(
         m_Request.size());
     Done(shared_from_this());
   } else {
-    LogPrint(eLogError, "HTTPProxyHandler: stream not available",
-    "(router may need more time to integrate into the network)");
-    // TODO(unassigned): Send correct error message host unreachable
-    HTTPRequestFailed();
+    LogPrint(eLogError,
+        "HTTPProxyHandler: issue when creating the stream,"
+        "check the previous warnings for details");
+    HTTPRequestFailed(status_t::service_unavailable);
   }
 }
 
@@ -284,7 +285,7 @@ bool HTTPProxyHandler::ExtractIncomingRequest() {
   // Check for HTTP version
   if (m_Version != "HTTP/1.0" && m_Version != "HTTP/1.1") {
     LogPrint(eLogError, "HTTPProxyHandler: unsupported version: ", m_Version);
-    HTTPRequestFailed();  // TODO(unassigned): send correct responses
+    HTTPRequestFailed(status_t::http_not_supported);
     return false;
   }
   return true;
@@ -327,11 +328,28 @@ void HTTPProxyHandler::HandleJumpService() {
 /* All hope is lost beyond this point */
 // TODO(unassigned): handle this appropriately
 void HTTPProxyHandler::HTTPRequestFailed(
-    /*Error error*/) {
-  static std::string response =
-    "HTTP/1.0 500 Internal Server Error\r\n"
-    "Content-type: text/html\r\n"
-    "Content-length: 0\r\n";
+    status_t statusCode) {
+
+    std::string htmlbody = "<html>";
+    htmlbody+="<head>";
+    htmlbody+="<title>HTTP Error</title>";
+    htmlbody+="</head>";
+    htmlbody+="<body>";
+    htmlbody+="HTTP Error " + std::to_string(statusCode) + " ";
+    htmlbody+=status_message(statusCode);
+    if (statusCode == status_t::service_unavailable) {
+      htmlbody+=" Please wait for the router to integrate";
+    }
+    htmlbody+="</body>";
+    htmlbody+="</html>";
+
+    std::string response =
+    "HTTP/1.0 " + std::to_string(statusCode) + " " +
+    status_message(statusCode)+"\r\n" +
+    "Content-type: text/html;charset=UTF-8\r\n" +
+    "Content-Encoding: UTF-8\r\n" +
+    "Content-length:" + std::to_string(htmlbody.size()) + "\r\n\r\n" + htmlbody;
+
   boost::asio::async_write(
       *m_Socket,
       boost::asio::buffer(

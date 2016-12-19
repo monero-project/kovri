@@ -103,7 +103,113 @@ class HTTPProxyHandler
   void Handle() {
     AsyncSockRead();
   }
+  enum status_t {
+    ok = 200,
+    created = 201,
+    accepted = 202,
+    no_content = 204,
+    partial_content = 206,
+    multiple_choices = 300,
+    moved_permanently = 301,
+    moved_temporarily = 302,
+    not_modified = 304,
+    bad_request = 400,
+    unauthorized = 401,
+    forbidden = 403,
+    not_found = 404,
+    not_supported = 405,
+    not_acceptable = 406,
+    request_timeout = 408,
+    precondition_failed = 412,
+    unsatisfiable_range = 416,
+    internal_server_error = 500,
+    not_implemented = 501,
+    bad_gateway = 502,
+    service_unavailable = 503,
+    http_not_supported = 505,
+    space_unavailable = 507
+  };
 
+  // this is copied from cpp-netlib.
+  // we should ultimately use cpp-netlib as a proxy when one is available.
+  static char const* status_message(status_t status) {
+    static char const ok_[] = "OK", created_[] = "Created",
+                      accepted_[] = "Accepted", no_content_[] = "No Content",
+                      multiple_choices_[] = "Multiple Choices",
+                      moved_permanently_[] = "Moved Permanently",
+                      moved_temporarily_[] = "Moved Temporarily",
+                      not_modified_[] = "Not Modified",
+                      bad_request_[] = "Bad Request",
+                      unauthorized_[] = "Unauthorized",
+                      forbidden_[] = "Fobidden", not_found_[] = "Not Found",
+                      not_supported_[] = "Not Supported",
+                      not_acceptable_[] = "Not Acceptable",
+                      internal_server_error_[] = "Internal Server Error",
+                      not_implemented_[] = "Not Implemented",
+                      bad_gateway_[] = "Bad Gateway",
+                      service_unavailable_[] = "Service Unavailable",
+                      unknown_[] = "Unknown",
+                      partial_content_[] = "Partial Content",
+                      request_timeout_[] = "Request Timeout",
+                      precondition_failed_[] = "Precondition Failed",
+                      unsatisfiable_range_[] =
+                          "Requested Range Not Satisfiable",
+                      http_not_supported_[]= "HTTP Version Not Supported",
+                      space_unavailable_[] =
+                          "Insufficient Space to Store Resource";
+    switch (status) {
+      case ok:
+        return ok_;
+      case created:
+        return created_;
+      case accepted:
+        return accepted_;
+      case no_content:
+        return no_content_;
+      case multiple_choices:
+        return multiple_choices_;
+      case moved_permanently:
+        return moved_permanently_;
+      case moved_temporarily:
+        return moved_temporarily_;
+      case not_modified:
+        return not_modified_;
+      case bad_request:
+        return bad_request_;
+      case unauthorized:
+        return unauthorized_;
+      case forbidden:
+        return forbidden_;
+      case not_found:
+        return not_found_;
+      case not_supported:
+        return not_supported_;
+      case not_acceptable:
+        return not_acceptable_;
+      case internal_server_error:
+        return internal_server_error_;
+      case not_implemented:
+        return not_implemented_;
+      case bad_gateway:
+        return bad_gateway_;
+      case service_unavailable:
+        return service_unavailable_;
+      case partial_content:
+        return partial_content_;
+      case request_timeout:
+        return request_timeout_;
+      case precondition_failed:
+        return precondition_failed_;
+      case unsatisfiable_range:
+        return unsatisfiable_range_;
+      case http_not_supported:
+        return http_not_supported_;
+      case space_unavailable:
+        return space_unavailable_;
+      default:
+        return unknown_;
+    }
+  }
  private:
   /// @brief Asynchronously reads data sent to proxy server
   void AsyncSockRead();
@@ -170,7 +276,7 @@ class HTTPProxyHandler
 
   /// @brief Generic request failure handler
   /// @param error User-defined enumerated error code
-  void HTTPRequestFailed(/*Error error*/);
+  void HTTPRequestFailed(status_t);
 
   /// @brief Tests if our sent response to browser has failed
   /// @param ecode Boost error code

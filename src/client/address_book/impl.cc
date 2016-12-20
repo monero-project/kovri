@@ -314,11 +314,13 @@ bool AddressBook::SaveSubscription(
         throw std::runtime_error("AddressBook: could not open subscription " + file_name);
       // Save hosts and matching identities
       for (auto const& address : addresses) {
+        const std::string& host = address.first;
+        const auto& ident = address.second;
         // Write/overwrite to subscription file
-        file << address.first << '\n';
+        file << host << '\n';
         // Add to address book
-        m_Storage->AddAddress(address.second);
-        m_Addresses[address.first] = address.second.GetIdentHash();  // TODO(anonimal): setter?
+        m_Storage->AddAddress(ident);
+        m_Addresses[host] = ident.GetIdentHash();  // TODO(anonimal): setter?
       }
       // Flush subscription file
       file << std::flush;
@@ -341,40 +343,41 @@ AddressBook::ValidateSubscription(std::istream& stream) {
   LogPrint(eLogDebug, "AddressBook: validating subscription");
   // Map host to address identity
   std::map<std::string, kovri::core::IdentityEx> addresses;
+  // To ensure valid Hostname=Base64Address
+  std::string line;
   // To ensure valid hostname
-  std::string hostname;
   // Note: do not rely on [a-z] to catch all letters as it may fail on some locales
   const std::string alpha = "abcdefghijklmnopqrstuvwxyz";
   // TODO(unassigned): expand when we want to venture beyond the .i2p TLD
   std::regex regex("((?:[-"+alpha+"0-9]+.)+["+alpha+"|(i2p)]{2,})");
   try {
     // Read through stream, add to address book
-    while (std::getline(stream, hostname)) {
+    while (std::getline(stream, line)) {
       // Skip empty / too large lines
-      if (hostname.empty() || hostname.size() > AddressBookSize::SubscriptionLine)
+      if (line.empty() || line.size() > AddressBookSize::SubscriptionLine)
         continue;
       // TODO(anonimal): Boost refactor
       // Clear whitespace before and after host (on the line)
-      hostname.erase(
+      line.erase(
           std::remove_if(
-              hostname.begin(),
-              hostname.end(),
+              line.begin(),
+              line.end(),
               [](char whitespace) { return std::isspace(whitespace); }),
-          hostname.end());
+          line.end());
       // Parse Hostname=Base64Address from line
       kovri::core::IdentityEx ident;
-      std::size_t pos = hostname.find('=');
+      std::size_t pos = line.find('=');
       if (pos != std::string::npos) {
-        const std::string name = hostname.substr(0, pos++);
-        const std::string addr = hostname.substr(pos);
-        // Ensure only valid Hostname=Base64Address
-        if (name.empty() || addr.empty()
-            || !std::regex_search(name, regex)
+        const std::string host = line.substr(0, pos++);
+        const std::string addr = line.substr(pos);
+        // Ensure only valid lines
+        if (host.empty() || addr.empty()
+            || !std::regex_search(host, regex)
             || !ident.FromBase64(addr)) {
           LogPrint(eLogWarn, "AddressBook: malformed address, skipping");
           continue;
         }
-        addresses[name] = ident;  // Host is valid, save
+        addresses[host] = ident;  // Host is valid, save
       }
     }
   } catch (const std::exception& ex) {

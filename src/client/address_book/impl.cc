@@ -32,6 +32,7 @@
 
 #include "client/address_book/impl.h"
 
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/asio.hpp>
 
 #include <array>
@@ -42,6 +43,7 @@
 #include <fstream>
 #include <map>
 #include <memory>
+#include <utility>
 
 #include "client/address_book/storage.h"
 #include "client/destination.h"
@@ -111,7 +113,7 @@ void AddressBook::SubscriberUpdateTimer(
   LogPrint(eLogDebug, "AddressBook: begin ", __func__);
   if (ecode) {
     LogPrint(eLogError,
-        "AddressBook: SubscriberUpdateTimer() exception: ", ecode.message());
+        "AddressBook: ", __func__, " exception: ", ecode.message());
     return;
   }
   // Load publishers (see below about multiple publishers)
@@ -120,6 +122,7 @@ void AddressBook::SubscriberUpdateTimer(
   if (m_SubscriptionIsLoaded
       && !m_SubscriberIsDownloading
       && m_SharedLocalDestination->IsReady()) {
+    LogPrint(eLogDebug, "AddressBook: ready to download new subscription");
     DownloadSubscription();
   } else {
     if (!m_SubscriptionIsLoaded) {
@@ -214,10 +217,8 @@ void AddressBook::LoadSubscriptionFromPublisher() {
   std::ifstream file((kovri::core::GetAddressBookPath() / filename).string());
   LogPrint(eLogInfo, "AddressBook: loading subscription ", filename);
   if (file) {  // Open subscription, validate, and save to storage
-    m_SubscriptionFileIsReady = true;
-    if (!ValidateSubscriptionThenSaveToStorage(file))
-      LogPrint(eLogWarn,
-          "AddressBook: invalid host in ", filename, ", not loading");
+    if (!SaveSubscription(file))
+      LogPrint(eLogWarn, "AddressBook: could not load subscription ", filename);
   } else {  // Use default publisher and download
     LogPrint(eLogWarn, "AddressBook: ", filename, " not found");
     if (!m_SubscriberIsDownloading) {
@@ -267,7 +268,7 @@ void AddressBookSubscriber::DownloadSubscriptionImpl() {
   bool download_result = m_HTTP.Download();
   if (download_result) {
     std::stringstream stream(m_HTTP.GetDownloadedContents());
-    if (!m_Book.ValidateSubscriptionThenSaveToStorage(stream)) {
+    if (!m_Book.SaveSubscription(stream)) {
       // Error during validation or storage, download again later
       download_result = false;
     }
@@ -293,65 +294,95 @@ void AddressBook::HostsDownloadComplete(
 }
 
 // TODO(unassigned): extend this to append new hosts (when other subscriptions are used)
-bool AddressBook::ValidateSubscriptionThenSaveToStorage(
-    std::istream& stream) {
-  // Save to subscription file if file does not exist or we have fresh download
+bool AddressBook::SaveSubscription(
+    std::istream& stream,
+    std::string file_name) {
   std::unique_lock<std::mutex> lock(m_AddressBookMutex);
-  std::ofstream file;
-  if (!m_SubscriptionFileIsReady) {
-    LogPrint(eLogDebug, "AddressBook: preparing subscription file");
-    file.open((kovri::core::GetAddressBookPath() / GetDefaultSubscriptionFilename()).string());
-    if (file)
-      m_SubscriptionFileIsReady = true;
-  }
-  LogPrint(eLogDebug, "AddressBook: validating subscription");
-  // Host per line and total number of host addresses
-  std::string host;
-  std::size_t num_addresses = 0;
-  // Read through stream, add to address book
-  while (std::getline(stream, host)) {
-    // If found, clear whitespace before and after host (on the line)
-    host.erase(
-        std::remove_if(
-            host.begin(),
-            host.end(),
-            [](char whitespace) { return std::isspace(whitespace); }),
-        host.end());
-    // If found, skip empty line
-    if (!host.length())
-      continue;
-    // File ready, write/overwrite to disk
-    if (m_SubscriptionFileIsReady)
-      file << host << '\n';
-    // Parse host from address, save to address book
-    std::size_t pos = host.find('=');
-    if (pos != std::string::npos) {
-      const std::string name = host.substr(0, pos++);
-      const std::string addr = host.substr(pos);
-      kovri::core::IdentityEx ident;
-      if (ident.FromBase64(addr)) {
-        m_Addresses[name] = ident.GetIdentHash();
+  m_SubscriptionIsLoaded = false;  // TODO(anonimal): see TODO for multiple subscriptions
+  try {
+    auto addresses = ValidateSubscription(stream);
+    if (!addresses.empty()) {
+      LogPrint(eLogDebug, "AddressBook: processing ", addresses.size(), " addresses");
+      // Stream may be a file or downloaded stream.
+      // Regardless, we want to write/overwrite the subscription file.
+      if (file_name.empty())  // Use default filename if none given.
+        file_name = (kovri::core::GetAddressBookPath() / GetDefaultSubscriptionFilename()).string();
+      LogPrint(eLogDebug, "AddressBook: opening subscription file ", file_name);
+      // TODO(anonimal): move file saving to storage class?
+      std::ofstream file;
+      file.open(file_name);
+      if (!file)
+        throw std::runtime_error("AddressBook: could not open subscription " + file_name);
+      // Save hosts and matching identities
+      for (auto const& address : addresses) {
+        const std::string& host = address.first;
+        const auto& ident = address.second;
+        // Write/overwrite to subscription file
+        file << host << '\n';
+        // Add to address book
         m_Storage->AddAddress(ident);
-        num_addresses++;
-      } else {
-        LogPrint(eLogError,
-            "AddressBook: malformed address ", addr, " for ", name);
-        m_SubscriptionIsLoaded = false;
+        m_Addresses[host] = ident.GetIdentHash();  // TODO(anonimal): setter?
+      }
+      // Flush subscription file
+      file << std::flush;
+      // Save a *list* of hosts within subscription to a catalog (CSV) file
+      m_Storage->Save(m_Addresses);
+      m_SubscriptionIsLoaded = true;
+    }
+  } catch (const std::exception& ex) {
+    LogPrint(eLogError, "AddressBook: exception in  ", __func__, ": ", ex.what());
+  } catch (...) {
+    LogPrint(eLogError, "AddressBook: unknown exception in  ", __func__);
+  }
+  return m_SubscriptionIsLoaded;
+}
+
+// TODO(anonimal): unit-test
+
+const std::map<std::string, kovri::core::IdentityEx>
+AddressBook::ValidateSubscription(std::istream& stream) {
+  LogPrint(eLogDebug, "AddressBook: validating subscription");
+  // Map host to address identity
+  std::map<std::string, kovri::core::IdentityEx> addresses;
+  // To ensure valid Hostname=Base64Address
+  std::string line;
+  // To ensure valid hostname
+  // Note: uncomment if this regexp fails on some locales (to not rely on [a-z])
+  //const std::string alpha = "abcdefghijklmnopqrstuvwxyz";
+  // TODO(unassigned): expand when we want to venture beyond the .i2p TLD
+  // TODO(unassigned): IDN ccTLDs support?
+  std::regex regex("(?=^.{1,253}$)(^(((?!-)[a-zA-Z0-9-]{1,63})|((?!-)[a-zA-Z0-9-]{1,63}\\.)+[a-zA-Z]+[(i2p)]{2,63})$)");
+  try {
+    // Read through stream, add to address book
+    while (std::getline(stream, line)) {
+      // Skip empty / too large lines
+      if (line.empty() || line.size() > AddressBookSize::SubscriptionLine)
+        continue;
+      // Trim whitespace before and after line
+      boost::trim(line);
+      // Parse Hostname=Base64Address from line
+      kovri::core::IdentityEx ident;
+      std::size_t pos = line.find('=');
+      if (pos != std::string::npos) {
+        const std::string host = line.substr(0, pos++);
+        const std::string addr = line.substr(pos);
+        // Ensure only valid lines
+        if (host.empty() || addr.empty()
+            || !std::regex_search(host, regex)
+            || !ident.FromBase64(addr)) {
+          LogPrint(eLogWarn, "AddressBook: malformed address, skipping");
+          continue;
+        }
+        addresses[host] = ident;  // Host is valid, save
       }
     }
+  } catch (const std::exception& ex) {
+    LogPrint(eLogError, "AddressBook: exception during validation: ", ex.what());
+    addresses.clear();
+  } catch (...) {
+    throw std::runtime_error("AddressBook: unknown exception during validation");
   }
-  // Flush subscription file
-  if (m_SubscriptionFileIsReady)
-    file << std::flush;
-  if (num_addresses) {
-    LogPrint(eLogDebug, "AddressBook: saving addresses");
-    // Save list of hosts within subscription to a catalog file
-    m_Storage->Save(m_Addresses);
-    m_SubscriptionIsLoaded = true;
-  }
-  LogPrint(eLogInfo, "AddressBook: ", num_addresses, " addresses processed");
-  m_SubscriptionFileIsReady = false;  // Reset for fresh download
-  return m_SubscriptionIsLoaded;
+  return addresses;
 }
 
 // For in-net download only

@@ -79,15 +79,9 @@ class AddressBook : public AddressBookDefaults {
       : m_SharedLocalDestination(nullptr),
         m_Storage(nullptr),
         m_SubscriberUpdateTimer(nullptr),
-        m_SubscriptionFileIsReady(false),
         m_SubscriptionIsLoaded(false),
         m_PublishersLoaded(false),
         m_SubscriberIsDownloading(false) {}
-
-  /// @brief Stops address book implementation
-  ~AddressBook() {
-    Stop();
-  }
 
   /// @brief Starts address book fetching and processing of spec-related files
   /// @param local_destination Shared pointer to destination instance used to
@@ -132,7 +126,6 @@ class AddressBook : public AddressBookDefaults {
 
   /// @brief Creates new address book filesystem storage instance
   /// @return Unique pointer to address book filesystem storage instance
-  //std::unique_ptr<AddressBookStorage> GetNewStorageInstance() {
   std::unique_ptr<AddressBookStorage> GetNewStorageInstance() {
     return std::make_unique<AddressBookStorage>();
   }
@@ -140,11 +133,21 @@ class AddressBook : public AddressBookDefaults {
   /// @brief Wrapper function for subscriber download
   void DownloadSubscription();
 
-  /// @brief Validates and saves hosts (subscription) from stream into address book
+  /// @brief Saves subscription to address book
+  /// @details Saves to subscription file if file does not exist or we have fresh download
   /// @param stream Reference to file stream of hosts (subscription)
-  /// @return False if malformed host in subscription
-  bool ValidateSubscriptionThenSaveToStorage(
-      std::istream& stream);
+  /// @param file_name Optional filename to write to (used for multiple subscriptions)
+  /// @return True if subscription was successfully loaded
+  /// @warning Must validate before saving
+  bool SaveSubscription(
+      std::istream& stream,
+      std::string file_name = "");
+
+  /// @brief Validates subscription, saves hosts to file
+  /// @param stream Stream to process
+  /// @return Vector of paired hostname to identity
+  const std::map<std::string, kovri::core::IdentityEx>
+  ValidateSubscription(std::istream& stream);
 
   /// @brief Sets the download state as complete and resets timer as needed
   /// @details Resets update timer according to the state of completed download
@@ -233,10 +236,6 @@ class AddressBook : public AddressBookDefaults {
   /// @brief Unique pointer to Boost.Asio deadline_timer
   /// @details Handles all timer-related needs for subscription fetching
   std::unique_ptr<boost::asio::deadline_timer> m_SubscriberUpdateTimer;
-
-  /// @var m_SubscriptionFileIsReady
-  /// @brief If subscription file is opened and ready for reading/writing
-  std::atomic<bool> m_SubscriptionFileIsReady;
 
   /// @var m_SubscriptionIsLoaded
   /// @brief Are hosts loaded into memory?

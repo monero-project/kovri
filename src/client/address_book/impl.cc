@@ -346,10 +346,11 @@ AddressBook::ValidateSubscription(std::istream& stream) {
   // To ensure valid Hostname=Base64Address
   std::string line;
   // To ensure valid hostname
-  // Note: do not rely on [a-z] to catch all letters as it may fail on some locales
-  const std::string alpha = "abcdefghijklmnopqrstuvwxyz";
+  // Note: uncomment if this regexp fails on some locales (to not rely on [a-z])
+  //const std::string alpha = "abcdefghijklmnopqrstuvwxyz";
   // TODO(unassigned): expand when we want to venture beyond the .i2p TLD
-  std::regex regex("((?:[-"+alpha+"0-9]+.)+["+alpha+"|(i2p)]{2,})");
+  // TODO(unassigned): IDN ccTLDs support?
+  std::regex regex("(?=^.{1,253}$)(^(((?!-)[a-zA-Z0-9-]{1,63})|((?!-)[a-zA-Z0-9-]{1,63}\\.)+[a-zA-Z]+[(i2p)]{2,63})$)");
   try {
     // Read through stream, add to address book
     while (std::getline(stream, line)) {

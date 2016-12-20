@@ -1,4 +1,5 @@
 set(TESTS_CLIENT
+  "client/address_book/impl.cc"
   "client/reseed.cc"
   "client/util/http.cc"
   "client/util/parse.cc"

@@ -318,6 +318,7 @@ bool AddressBook::SaveSubscription(
         file << address.first << '\n';
         // Add to address book
         m_Storage->AddAddress(address.second);
+        m_Addresses[address.first] = address.second.GetIdentHash();  // TODO(anonimal): setter?
       }
       // Flush subscription file
       file << std::flush;
@@ -335,19 +336,24 @@ bool AddressBook::SaveSubscription(
 
 // TODO(anonimal): unit-test
 
-const std::vector<std::pair<std::string, kovri::core::IdentityEx>>
+const std::map<std::string, kovri::core::IdentityEx>
 AddressBook::ValidateSubscription(std::istream& stream) {
   LogPrint(eLogDebug, "AddressBook: validating subscription");
-  std::vector<std::pair<std::string, kovri::core::IdentityEx>> addresses;
-  std::string hostname;  // Paired to address identity
+  // Map host to address identity
+  std::map<std::string, kovri::core::IdentityEx> addresses;
+  // To ensure valid hostname
+  std::string hostname;
+  // Note: do not rely on [a-z] to catch all letters as it may fail on some locales
+  const std::string alpha = "abcdefghijklmnopqrstuvwxyz";
+  // TODO(unassigned): expand when we want to venture beyond the .i2p TLD
+  std::regex regex("((?:[-"+alpha+"0-9]+.)+["+alpha+"|(i2p)]{2,})");
   try {
     // Read through stream, add to address book
     while (std::getline(stream, hostname)) {
-      // TODO(anonimal): Boost refactor
-      // TODO(anonimal): allow GPG clearsigned subscriptions?
-      // Skip empty line
-      if (hostname.empty())
+      // Skip empty / too large lines
+      if (hostname.empty() || hostname.size() > AddressBookSize::SubscriptionLine)
         continue;
+      // TODO(anonimal): Boost refactor
       // Clear whitespace before and after host (on the line)
       hostname.erase(
           std::remove_if(
@@ -356,21 +362,20 @@ AddressBook::ValidateSubscription(std::istream& stream) {
               [](char whitespace) { return std::isspace(whitespace); }),
           hostname.end());
       // Parse Hostname=Base64Address from line
-      kovri::core::IdentityEx ident;  // For host ident hash (from Base64 address)
+      kovri::core::IdentityEx ident;
       std::size_t pos = hostname.find('=');
       if (pos != std::string::npos) {
         const std::string name = hostname.substr(0, pos++);
         const std::string addr = hostname.substr(pos);
-        // TODO(anonimal):  ensure only valid hostname (and missing hostname)
-        if (!ident.FromBase64(addr)) {
-          LogPrint(eLogError,
-              "AddressBook: malformed address ", addr, " for ", name);
+        // Ensure only valid Hostname=Base64Address
+        if (name.empty() || addr.empty()
+            || !std::regex_search(name, regex)
+            || !ident.FromBase64(addr)) {
+          LogPrint(eLogWarn, "AddressBook: malformed address, skipping");
           continue;
         }
-        m_Addresses[name] = ident.GetIdentHash();  // TODO(anonimal): setter?
+        addresses[hostname] = ident;  // Host is valid, save
       }
-      // TODO(anonimal): more hardening?
-      addresses.push_back(std::make_pair(hostname, ident));  // Host is valid, save
     }
   } catch (const std::exception& ex) {
     LogPrint(eLogError, "AddressBook: exception during validation: ", ex.what());

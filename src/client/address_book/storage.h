@@ -85,6 +85,13 @@ struct AddressBookDefaults {
   std::string GetDefaultAddressesFilename() const {
     return "addresses.csv";
   }
+
+  /// @enum AddressBookSize
+  enum AddressBookSize : std::uint16_t {
+    /// @brief Line in subscription file
+    /// @Note Arbitrary amount, should never need to exceed this amount
+    SubscriptionLine = 600,
+  };
 };
 
 /// @class AddressBookStorage

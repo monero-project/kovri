@@ -126,7 +126,6 @@ class AddressBook : public AddressBookDefaults {
 
   /// @brief Creates new address book filesystem storage instance
   /// @return Unique pointer to address book filesystem storage instance
-  //std::unique_ptr<AddressBookStorage> GetNewStorageInstance() {
   std::unique_ptr<AddressBookStorage> GetNewStorageInstance() {
     return std::make_unique<AddressBookStorage>();
   }
@@ -147,9 +146,8 @@ class AddressBook : public AddressBookDefaults {
   /// @brief Validates subscription, saves hosts to file
   /// @param stream Stream to process
   /// @return Vector of paired hostname to identity
-  const std::vector<std::pair<std::string, kovri::core::IdentityEx>>
-  ValidateSubscription(
-      std::istream& stream);
+  const std::map<std::string, kovri::core::IdentityEx>
+  ValidateSubscription(std::istream& stream);
 
   /// @brief Sets the download state as complete and resets timer as needed
   /// @details Resets update timer according to the state of completed download

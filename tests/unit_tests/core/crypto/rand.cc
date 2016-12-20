@@ -32,7 +32,9 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <cstdint>
 #include <limits>
+#include <stdexcept>
 
 #include "core/crypto/rand.h"
 
@@ -40,62 +42,66 @@
 
 BOOST_AUTO_TEST_SUITE(RandInRange)
 
+/// @class Range
 template <class T>
 struct Range {
-  T repeated, count;
+  T repeated, tally;
   T min, max, result;
-  T Test();
+  void Test();
   Range()
       : repeated(0),
-        count(0),
+        tally(0),
         min(0),
-        max(std::numeric_limits<T>::max()) {
-          result = Test();
-        }
+        max(std::numeric_limits<T>::max()),
+        result(0) {}
 };
 
+/// @brief Test if random range of type T is within given thresholds
+/// @notes This not a test for entropy but rather to ensure a reasonable
+///  implementation (e.g., not stuck repeating the same value 100 times, etc.)
 template <class T>
-T Range<T>::Test() {
-  do {
+void Range<T>::Test() {
+  for (T i = 0; i < /*Arbitrary value*/ 100; i++) {
     repeated = result;
     result = kovri::core::RandInRange<T>(min, max);
-    count++;
-  } while ((count != 100));  // Arbitrary number
-  return ((result >= min) &&
-          (result <= max) &&
-          (result != repeated));  // A bit harsh?
+    if (result < min || result > max)
+      throw std::out_of_range(std::string("RandInRange: returned ") + std::to_string(result));
+    if (result == repeated)
+      tally++;
+    if (tally > 3)  // Arbitrary threshold, small to allow probability for smaller types
+      throw std::length_error(std::string("RandInRange: tally exceeded threshold"));
+  }
 }
 
 BOOST_AUTO_TEST_CASE(_uint8_t) {
-  Range<uint8_t> test;
-  BOOST_CHECK(test.result);
+  Range<std::uint8_t> range;
+  BOOST_CHECK_NO_THROW(range.Test());
 }
 
 BOOST_AUTO_TEST_CASE(_uint16_t) {
-  Range<uint16_t> test;
-  BOOST_CHECK(test.result);
+  Range<std::uint16_t> range;
+  BOOST_CHECK_NO_THROW(range.Test());
 }
 
 BOOST_AUTO_TEST_CASE(_uint32_t) {
-  Range<uint32_t> test;
-  BOOST_CHECK(test.result);
+  Range<std::uint32_t> range;
+  BOOST_CHECK_NO_THROW(range.Test());
 }
 
 BOOST_AUTO_TEST_CASE(_uint64_t) {
-  Range<uint64_t> test;
-  BOOST_CHECK(test.result);
+  Range<std::uint64_t> range;
+  BOOST_CHECK_NO_THROW(range.Test());
 }
 
-// Signed, so test for negative results
-// regardless of initialized lowerbound
+// Signed, so test for negative results regardless of initialized lowerbound
 BOOST_AUTO_TEST_CASE(_int) {
-  Range<int> test;
-  BOOST_CHECK(test.result);
+  Range<int> range;
+  BOOST_CHECK_NO_THROW(range.Test());
 }
 
 BOOST_AUTO_TEST_CASE(_long) {
-  Range<long> test;
-  BOOST_CHECK(test.result);
+  Range<long> range;
+  BOOST_CHECK_NO_THROW(range.Test());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -32,6 +32,7 @@
 
 #include "client/address_book/impl.h"
 
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/asio.hpp>
 
 #include <array>
@@ -357,14 +358,8 @@ AddressBook::ValidateSubscription(std::istream& stream) {
       // Skip empty / too large lines
       if (line.empty() || line.size() > AddressBookSize::SubscriptionLine)
         continue;
-      // TODO(anonimal): Boost refactor
-      // Clear whitespace before and after host (on the line)
-      line.erase(
-          std::remove_if(
-              line.begin(),
-              line.end(),
-              [](char whitespace) { return std::isspace(whitespace); }),
-          line.end());
+      // Trim whitespace before and after line
+      boost::trim(line);
       // Parse Hostname=Base64Address from line
       kovri::core::IdentityEx ident;
       std::size_t pos = line.find('=');

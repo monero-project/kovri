@@ -67,7 +67,7 @@ struct SubscriptionFixture {
     // Validate
     std::vector<std::string> validated;
     for (auto const& v : Validate(lines))
-      validated.push_back(v.first);
+      validated.push_back(v.first + "=" + v.second.ToBase64());
     return validated != subscription ? false : true;
   }
 

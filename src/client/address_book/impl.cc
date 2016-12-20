@@ -374,7 +374,7 @@ AddressBook::ValidateSubscription(std::istream& stream) {
           LogPrint(eLogWarn, "AddressBook: malformed address, skipping");
           continue;
         }
-        addresses[hostname] = ident;  // Host is valid, save
+        addresses[name] = ident;  // Host is valid, save
       }
     }
   } catch (const std::exception& ex) {

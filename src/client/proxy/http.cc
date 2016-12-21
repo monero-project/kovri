@@ -35,6 +35,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/regex.hpp>
 #include <boost/tokenizer.hpp>
+#include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/regex.hpp>
 #include <atomic>
 #include <utility>
@@ -102,10 +103,12 @@ void HTTPProxyHandler::AsyncSockRead(std::shared_ptr<boost::asio::ip::tcp::socke
   //  and forward along
   // Read the request headers, which are terminated by a blank line.
 	//TODO(guzzi) timeout needed.
-  //
+  // unit test: One example is the addressbook unit-test I merged earlier. 
+  // You can see how it works purely on stream data and not any actual file/disk i/o
   boost::system::error_code read_result;
 	boost::optional<boost::system::error_code> timer_result;
-  boost::asio::deadline_timer timer( socket->get_io_service() );
+  boost::asio::io_service & service  = socket->get_io_service();
+  boost::asio::deadline_timer timer(service);
   timer.expires_from_now( boost::posix_time::milliseconds(5000) );
   timer.async_wait( boost::bind(&HTTPProxyHandler::set_result,
 		shared_from_this(), &timer_result,boost::asio::placeholders::error) );
@@ -117,6 +120,7 @@ void HTTPProxyHandler::AsyncSockRead(std::shared_ptr<boost::asio::ip::tcp::socke
       ));
   boost::system::error_code ec;
 	while(1) {
+    if(socket) {
 			socket->get_io_service().reset();
 			socket->get_io_service().poll_one(ec);
 
@@ -130,6 +134,9 @@ void HTTPProxyHandler::AsyncSockRead(std::shared_ptr<boost::asio::ip::tcp::socke
 				Terminate();
 				return;
 			}
+    } else {
+      return;
+    }
 	}
 }
 void HTTPProxyHandler::AsyncHandleRead(const boost::system::error_code & error, 
@@ -161,6 +168,7 @@ void HTTPProxyHandler::AsyncHandleRead(const boost::system::error_code & error,
 	// "After a successful async_read_until operation, the streambuf may contain additional data beyond the delimiter"
 	// The chosen solution is to extract lines from the stream directly when parsing the header. What is left of the
 	// streambuf (maybe some bytes of the content) is appended to in the async_read-function below (for retrieving content).
+  //  other sites to test post: tracker2.postman.i2p and trac.i2p2.i2p
 	size_t num_additional_bytes=m_Protocol.m_Buffer.size()-bytes_transfered;
 	if(num_additional_bytes>0) {
 		//make m_Buffer into string
@@ -179,9 +187,14 @@ void HTTPProxyHandler::AsyncHandleRead(const boost::system::error_code & error,
   // this will be changed and moved ;
   // to read a small amount of body and i2pconnect; then send;
   if (itRefer != m_Protocol.m_headerMap.end()) {
-    std::size_t clen = boost::lexical_cast<size_t>(itRefer->second);
+   
+    std::istringstream iss(boost::trim_left_copy(itRefer->second));
+    size_t clen;
+    iss >> clen;
+    //std::size_t clen = boost::lexical_cast<size_t>(itRefer->second));
 		clen = clen - num_additional_bytes;
     // need to call one more function to fill body after this read.
+    if (clen > 0) {
     boost::asio::async_read(*m_Socket, 
 				m_Protocol.m_BodyBuffer,
 				boost::asio::transfer_at_least(clen),
@@ -189,6 +202,9 @@ void HTTPProxyHandler::AsyncHandleRead(const boost::system::error_code & error,
         shared_from_this(),
         boost::asio::placeholders::error,
         boost::asio::placeholders::bytes_transferred));
+    } else {
+      HandleSockRecv(boost::system::error_code(),0);
+    }
 
   } else {
     // was missing call to handleSockRecv if no body.  

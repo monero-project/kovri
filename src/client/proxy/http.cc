@@ -102,20 +102,19 @@ void HTTPProxyHandler::AsyncSockRead(std::shared_ptr<boost::asio::ip::tcp::socke
   //  and forward along
   // Read the request headers, which are terminated by a blank line.
 	//TODO(guzzi) timeout needed.
+  //
+  boost::system::error_code read_result;
 	boost::optional<boost::system::error_code> timer_result;
-  boost::optional<boost::system::error_code> read_result;
   boost::asio::deadline_timer timer( socket->get_io_service() );
   timer.expires_from_now( boost::posix_time::milliseconds(5000) );
   timer.async_wait( boost::bind(&HTTPProxyHandler::set_result,
 		shared_from_this(), &timer_result,boost::asio::placeholders::error) );
-
   boost::asio::async_read_until(*socket, m_Protocol.m_Buffer, "\r\n\r\n", 
     boost::bind(&HTTPProxyHandler::AsyncHandleRead,
       shared_from_this(),
       read_result,
 			boost::asio::placeholders::bytes_transferred
       ));
-
   boost::system::error_code ec;
 	while(1) {
 			socket->get_io_service().reset();
@@ -191,6 +190,10 @@ void HTTPProxyHandler::AsyncHandleRead(const boost::system::error_code & error,
         boost::asio::placeholders::error,
         boost::asio::placeholders::bytes_transferred));
 
+  } else {
+    // was missing call to handleSockRecv if no body.  
+    // call with success error code and zero bytes transfered additional
+    HandleSockRecv(boost::system::error_code(),0);
   }
 }
 
@@ -288,6 +291,7 @@ void HTTPProxyHandler::HandleStreamRequestComplete(
     // original /original
     Done(shared_from_this());
   } else {
+    // TODO guzzi change to issue createing stream error 
     LogPrint(eLogError,
         "HTTPProxyHandler: issue when creating the stream,"
         "check the previous warnings for details");

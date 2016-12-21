@@ -30,66 +30,80 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_APP_UTIL_CONFIG_H_
-#define SRC_APP_UTIL_CONFIG_H_
-
-#include <boost/filesystem/fstream.hpp>
-#include <boost/program_options.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include <string>
-#include <iostream>
+#include <vector>
 
-#include "core/version.h"
-#include "filesystem.h"
+#include "client/util/parse.h"
+
+#include "core/util/log.h"
 
 namespace kovri {
-namespace app {
+namespace client {
 
-const char I2P_TUNNELS_SECTION_TYPE[] = "type";
-const char I2P_TUNNELS_SECTION_TYPE_CLIENT[] = "client";
-const char I2P_TUNNELS_SECTION_TYPE_SERVER[] = "server";
-const char I2P_TUNNELS_SECTION_TYPE_HTTP[] = "http";
+// TODO(unassigned): boost::split refactor? If so, then pass custom delimiter and
+// rename function. If there are not many use-cases, simply use directly within
+// implementation and remove this unit-test.
+const std::vector<std::string> ParseCSV(
+    const std::string& record) {
+  std::vector<std::string> parsed;
+  if (!record.empty()) {
+    std::size_t pos = 0, comma;
+    do {
+      comma = record.find(',', pos);
+      auto value =
+        record.substr(
+            pos,
+            comma != std::string::npos ? comma - pos : std::string::npos);
+      parsed.push_back(value);
+      pos = comma + 1;
+    } while (comma != std::string::npos);
+  }
+  return parsed;
+}
 
-const char I2P_CLIENT_TUNNEL_PORT[] = "port";
-const char I2P_CLIENT_TUNNEL_ADDRESS[] = "address";
-const char I2P_CLIENT_TUNNEL_DESTINATION[] = "destination";
-const char I2P_CLIENT_TUNNEL_KEYS[] = "keys";
-const char I2P_CLIENT_TUNNEL_DESTINATION_PORT[] = "destinationport";
+// TODO(anonimal): see TODO in declaration
+void ParseClientDestination(
+    TunnelAttributes* tunnel) {
+  // Get all destination(s)
+  auto parsed = ParseCSV(tunnel->dest);
+  // Pick random destination (if applicable)
+  if (parsed.size() > 1) {
+    // Shuffle to ensure all destinations are accessible
+    // TODO(anonimal): review RandInRange() so we don't need to shuffle
+    kovri::core::Shuffle(parsed.begin(), parsed.end());
+    tunnel->dest =
+      parsed.at(kovri::core::RandInRange<std::size_t>(0, parsed.size() - 1));
+  }
+  LogPrint(eLogDebug, "Client: parsing destination ", tunnel->dest);
+  // If dest has port appended to it, replace previously set dest port
+  std::vector<std::string> dest;
+  boost::split(dest, tunnel->dest, boost::is_any_of(":"));
+  // Return if parsed destination doesn't have port field
+  if (dest.size() <= 1)
+    return;
+  try {
+    // Address book is designed (should be) to handle legitimacy of destination
+    // TODO(unassigned): a catch-all utility function to verify would be useful
+    tunnel->dest = dest.at(0);
+    tunnel->dest_port = boost::lexical_cast<std::uint16_t>(dest.at(1));
+    LogPrint(eLogDebug,
+        "Client: using ", tunnel->dest, " port ", tunnel->dest_port);
+  } catch (const boost::bad_lexical_cast& ex) {
+    throw std::runtime_error(
+        "Client: destination port " + std::string(ex.what()));
+  } catch (const std::exception& ex) {
+    throw std::runtime_error(
+        "Client: exception in " + std::string(__func__)
+        + ": " + std::string(ex.what()));
+  } catch (...) {
+    throw std::runtime_error(
+        "Client: unknown exception in " + std::string(__func__));
+  }
+}
 
-const char I2P_SERVER_TUNNEL_HOST[] = "host";
-const char I2P_SERVER_TUNNEL_PORT[] = "port";
-const char I2P_SERVER_TUNNEL_KEYS[] = "keys";
-const char I2P_SERVER_TUNNEL_INPORT[] = "inport";
-const char I2P_SERVER_TUNNEL_ACCESS_LIST[] = "accesslist";
-
-// TODO(unassigned): not ideal, we can create a useful class
-/// @var VarMap
-/// @brief Variable map for command-line and config file args
-extern boost::program_options::variables_map VarMap;
-
-/// @brief Parse command line arguments
-/// @return False on failure
-bool ParseArgs(
-    int argc,
-    char* argv[]);
-
-/// @brief Parses configuration file and maps options
-/// @param config File name
-/// @param config_options Reference to instantiated options_description
-/// @param var_map Reference to instantiated variables map
-/// @notes command-line opts take precedence over config file opts)
-void ParseConfigFile(
-    std::string& config,
-    boost::program_options::options_description& config_options,
-    boost::program_options::variables_map& var_map);
-
-/// @brief Sets logging options after validating user input
-/// @return False on failure
-/// @notes We set here instead of router context because we start logging
-///   before router context and client context are initialized
-bool SetLoggingOptions();
-
-}  // namespace app
+}  // namespace client
 }  // namespace kovri
-
-#endif  // SRC_APP_UTIL_CONFIG_H_

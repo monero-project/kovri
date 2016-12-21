@@ -158,7 +158,7 @@ void SSUSession::ProcessNextMessage(
   kovri::core::transports.UpdateReceivedBytes(len);
   if (m_State == SessionState::Introduced) {
     // HolePunch received
-    LogPrint("SSUSession: SSU HolePunch of ", len, " bytes received");
+    LogPrint(eLogDebug, "SSUSession: SSU HolePunch of ", len, " bytes received");
     m_State = SessionState::Unknown;
     Connect();
   } else {
@@ -308,7 +308,7 @@ void SSUSession::ProcessSessionRequest(
 }
 
 void SSUSession::SendSessionRequest() {
-  LogPrint(eLogError,
+  LogPrint(eLogDebug,
       "SSUSession:", GetFormattedSessionInfo(), "sending SessionRequest");
   auto intro_key = GetIntroKey();
   if (!intro_key) {
@@ -383,7 +383,7 @@ void SSUSession::ProcessSessionCreated(
   }
   s.Insert(packet->GetIPAddress(), packet->GetIPAddressSize());  // our IP
   s.Insert<std::uint16_t>(htobe16(packet->GetPort()));  // our port
-  LogPrint(eLogInfo,
+  LogPrint(eLogDebug,
       "SSUSession:", GetFormattedSessionInfo(),
       "ProcessSessionCreated(): our external address is ",
       our_IP.to_string(), ":", packet->GetPort());
@@ -669,7 +669,7 @@ void SSUSession::ProcessRelayResponse(SSUPacket* pkt) {
     memcpy(bytes.data(), packet->GetIPAddressAlice(), 16);
     our_IP = boost::asio::ip::address_v6(bytes);
   }
-  LogPrint(eLogInfo,
+  LogPrint(eLogDebug,
       "SSUSession:", GetFormattedSessionInfo(),
       "ProcessRelayResponse(): our external address is ",
       our_IP.to_string(), ":", packet->GetPortAlice());

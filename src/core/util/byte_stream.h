@@ -26,9 +26,8 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,          //
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF    //
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
- *                                                                                            //
- * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
+
 #ifndef SRC_CORE_UTIL_BYTESTREAM_H_
 #define SRC_CORE_UTIL_BYTESTREAM_H_
 
@@ -76,6 +75,12 @@ class InputByteStream {
   std::uint8_t* ReadBytes(
       std::size_t amount);
 
+  /// @brief Reads a std::uint64_t, i.e. a 8 byte unsigned integer
+  /// @return the newly read std::uint64_t
+  /// @throw std::length_error if less than 8 bytes are available for reading
+  /// @note The integer is converted from big endian to the host format.
+  std::uint64_t ReadUInt64();
+
   /// @brief Reads a std::uint32_t, i.e. a 4 byte unsigned integer
   /// @return the newly read std::uint32_t
   /// @throw std::length_error if less than 4 bytes are available for reading
@@ -114,7 +119,7 @@ class OutputByteStream {
   /// @brief Advances the internal data pointer by the given amount
   /// @param amount the amount by which to advance the data pointer
   /// @throw std::length_error if amount exceeds the remaining buffer length
-  void ProduceData(std::size_t amount);
+  void ProduceData(std::size_t amount);  // TODO(unassigned): rename to something less confusing
 
   /// @brief Writes data into buffer
   /// @note Increments buffer pointer position after writing data
@@ -138,11 +143,28 @@ class OutputByteStream {
   /// @param data Data to write
   void WriteUInt32(std::uint32_t data);
 
-  uint8_t* GetPosition() const;
+  /// @brief Writes a 64-bit unsigned integer type into buffer
+  /// @note Converts bytes from host to big-endian order
+  /// @note Increments buffer pointer position after writing data
+  /// @param data Data to write
+  void WriteUInt64(std::uint64_t data);
+
+  // TODO(unassigned): see comments in #510
+
+  /// @brief Get current pointer position of written data
+  std::uint8_t* GetPosition() const;
+
+  /// @brief Gets pointer to beginning of written data
+  std::uint8_t* GetData() const;
+
+  /// @brief Gets total stream size given during construction
+  std::size_t GetSize() const;
 
  protected:
   std::uint8_t* m_Data; ///< Pointer to the first unwritten byte
   std::size_t m_Length; ///< Remaining length of the stream
+  std::size_t m_Counter;  ///< Counter for amount of incremented data
+  std::size_t m_Size;  ///< Total size of stream given at initialization
 };
 
 } // namespace core

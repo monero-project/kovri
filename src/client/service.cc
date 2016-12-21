@@ -57,7 +57,7 @@ I2PService::I2PService(
 void I2PService::CreateStream(
     StreamRequestComplete stream_request_complete,
     const std::string& dest,
-    int port) {
+    std::uint16_t port) {
   assert(stream_request_complete);
   kovri::core::IdentHash ident_hash;
   if (kovri::client::context.GetAddressBook().CheckAddressIdentHashFound(dest, ident_hash)) {
@@ -119,8 +119,7 @@ void TCPIPAcceptor::HandleAccept(
     const boost::system::error_code& ecode,
     std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
   if (!ecode) {
-    LogPrint(eLogDebug,
-        "I2PService: ", GetName(), " accepted");
+    LogPrint(eLogInfo, "I2PService: ", GetName(), " accepted");
     auto handler = CreateHandler(socket);
     if (handler) {
       AddHandler(handler);

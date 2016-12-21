@@ -462,7 +462,7 @@ void RouterInfo::WriteToStream(
 const std::uint8_t* RouterInfo::LoadBuffer() {
   if (!m_Buffer) {
     if (LoadFile())
-      LogPrint(eLogInfo,
+      LogPrint(eLogDebug,
           "RouterInfo: buffer for ",
           GetIdentHashAbbreviation(), " loaded from file");
   }

@@ -32,7 +32,6 @@
 
 #include <string.h>
 
-#include <algorithm>
 #include <map>
 #include <memory>
 #include <thread>
@@ -76,7 +75,7 @@ void Tunnel::Build(
   std::vector<int> record_indicies;
   for (int i = 0; i < num_records; i++)
     record_indicies.push_back(i);
-  std::random_shuffle(record_indicies.begin(), record_indicies.end());
+  kovri::core::Shuffle(record_indicies.begin(), record_indicies.end());
   // create real records
   std::uint8_t* records = msg->GetPayload() + 1;
   TunnelHopConfig* hop = m_Config->GetFirstHop();
@@ -86,10 +85,10 @@ void Tunnel::Build(
     hop->CreateBuildRequestRecord(
         records + idx * TUNNEL_BUILD_RECORD_SIZE,
         // we set reply_msg_ID for last hop only
-        hop->next ? kovri::core::Rand<std::uint32_t>() : reply_msg_ID);
-    hop->record_index = idx;
+        hop->GetNextHop() ? Rand<std::uint32_t>() : reply_msg_ID);
+    hop->SetRecordIndex(idx);
     i++;
-    hop = hop->next;
+    hop = hop->GetNextHop();
   }
   // fill up fake records with random data
   for (int i = num_hops; i < num_records; i++) {
@@ -100,19 +99,19 @@ void Tunnel::Build(
   }
   // decrypt real records
   kovri::core::CBCDecryption decryption;
-  hop = m_Config->GetLastHop()->prev;
+  hop = m_Config->GetLastHop()->GetPreviousHop();
   while (hop) {
-    decryption.SetKey(hop->reply_key);
+    decryption.SetKey(hop->GetAESAttributes().reply_key.data());
     // decrypt records after current hop
-    TunnelHopConfig* hop1 = hop->next;
+    TunnelHopConfig* hop1 = hop->GetNextHop();
     while (hop1) {
-      decryption.SetIV(hop->reply_IV);
+      decryption.SetIV(hop->GetAESAttributes().reply_IV.data());
       std::uint8_t* record =
-        records + hop1->record_index*TUNNEL_BUILD_RECORD_SIZE;
+        records + hop1->GetRecordIndex() * TUNNEL_BUILD_RECORD_SIZE;
       decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, record);
-      hop1 = hop1->next;
+      hop1 = hop1->GetNextHop();
     }
-    hop = hop->prev;
+    hop = hop->GetPreviousHop();
   }
   msg->FillI2NPMessageHeader(I2NPVariableTunnelBuild);
   // send message
@@ -136,42 +135,44 @@ bool Tunnel::HandleTunnelBuildResponse(
   kovri::core::CBCDecryption decryption;
   TunnelHopConfig* hop = m_Config->GetLastHop();
   while (hop) {
-    decryption.SetKey(hop->reply_key);
+    decryption.SetKey(hop->GetAESAttributes().reply_key.data());
     // decrypt records before and including current hop
     TunnelHopConfig* hop1 = hop;
     while (hop1) {
-      auto idx = hop1->record_index;
+      auto idx = hop1->GetRecordIndex();
       if (idx >= 0 && idx < msg[0]) {
         std::uint8_t* record = msg + 1 + idx * TUNNEL_BUILD_RECORD_SIZE;
-        decryption.SetIV(hop->reply_IV);
+        decryption.SetIV(hop->GetAESAttributes().reply_IV.data());
         decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, record);
       } else {
         LogPrint(eLogWarn,
             "Tunnel: hop index ", idx, " is out of range");
       }
-      hop1 = hop1->prev;
+      hop1 = hop1->GetPreviousHop();
     }
-    hop = hop->prev;
+    hop = hop->GetPreviousHop();
   }
   bool established = true;
   hop = m_Config->GetFirstHop();
   while (hop) {
     const std::uint8_t* record =
-      msg + 1 + hop->record_index * TUNNEL_BUILD_RECORD_SIZE;
+      msg + 1 + hop->GetRecordIndex() * TUNNEL_BUILD_RECORD_SIZE;
     std::uint8_t ret = record[BUILD_RESPONSE_RECORD_RET_OFFSET];
-    LogPrint("Tunnel: ret code=", static_cast<int>(ret));
-    hop->router->GetProfile()->TunnelBuildResponse(ret);
+    LogPrint(eLogDebug, "Tunnel: ret code=", static_cast<int>(ret));
+    hop->GetCurrentRouter()->GetProfile()->TunnelBuildResponse(ret);
     if (ret)
       // if any of participants declined the tunnel is not established
       established = false;
-    hop = hop->next;
+    hop = hop->GetNextHop();
   }
   if (established) {
     // change reply keys to layer keys
     hop = m_Config->GetFirstHop();
     while (hop) {
-      hop->decryption.SetKeys(hop->layer_key, hop->iv_key);
-      hop = hop->next;
+      hop->GetDecryption().SetKeys(
+          hop->GetAESAttributes().layer_key.data(),
+          hop->GetAESAttributes().IV_key.data());
+      hop = hop->GetNextHop();
     }
   }
   if (established)
@@ -186,8 +187,8 @@ void Tunnel::EncryptTunnelMsg(
   std::uint8_t* out_payload = out->GetPayload() + 4;
   TunnelHopConfig* hop = m_Config->GetLastHop();
   while (hop) {
-    hop->decryption.Decrypt(in_payload, out_payload);
-    hop = hop->prev;
+    hop->GetDecryption().Decrypt(in_payload, out_payload);
+    hop = hop->GetPreviousHop();
     in_payload = out_payload;
   }
 }
@@ -195,7 +196,7 @@ void Tunnel::EncryptTunnelMsg(
 void Tunnel::SendTunnelDataMsg(
     std::shared_ptr<kovri::core::I2NPMessage>) {
   // TODO(unassigned): review for missing code
-  LogPrint(eLogInfo,
+  LogPrint(eLogDebug,
       "Tunnel: can't send I2NP messages without delivery instructions");
 }
 
@@ -246,6 +247,8 @@ void OutboundTunnel::HandleTunnelDataMsg(
       GetTunnelID());
 }
 
+// Simply instantiating in namespace scope ties into, and is limited by, the current singleton design
+// TODO(unassigned): refactoring this requires global work but will help to remove the singleton
 Tunnels tunnels;
 
 Tunnels::Tunnels()
@@ -467,7 +470,7 @@ void Tunnels::Run() {
         last_ts = ts;
       }
     } catch (std::exception& ex) {
-      LogPrint("Tunnels::Run() exception: ", ex.what());
+      LogPrint(eLogError, "Tunnels::Run() exception: ", ex.what());
     }
   }
 }
@@ -519,7 +522,7 @@ void Tunnels::ManagePendingTunnels(
     switch (tunnel->GetState()) {
       case e_TunnelStatePending:
         if (ts > tunnel->GetCreationTime() + TUNNEL_CREATION_TIMEOUT) {
-          LogPrint(eLogInfo,
+          LogPrint(eLogDebug,
               "Tunnels: pending tunnel build request ",
               it->first, " timeout. Deleted");
           // update stats
@@ -527,9 +530,9 @@ void Tunnels::ManagePendingTunnels(
           if (config) {
             auto hop = config->GetFirstHop();
             while (hop) {
-              if (hop->router)
-                hop->router->GetProfile()->TunnelNonReplied();
-              hop = hop->next;
+              if (hop->GetCurrentRouter())
+                hop->GetCurrentRouter()->GetProfile()->TunnelNonReplied();
+              hop = hop->GetNextHop();
             }
           }
           // delete
@@ -540,7 +543,7 @@ void Tunnels::ManagePendingTunnels(
         }
       break;
       case e_TunnelStateBuildFailed:
-        LogPrint(eLogInfo,
+        LogPrint(eLogDebug,
             "Tunnels: pending tunnel build request ",
             it->first, " failed. Deleted");
         it = pending_tunnels.erase(it);
@@ -563,7 +566,7 @@ void Tunnels::ManageOutboundTunnels() {
     for (auto it = m_OutboundTunnels.begin(); it != m_OutboundTunnels.end();) {
       auto tunnel = *it;
       if (ts > tunnel->GetCreationTime() + TUNNEL_EXPIRATION_TIMEOUT) {
-        LogPrint(eLogInfo,
+        LogPrint(eLogDebug,
             "Tunnels: tunnel ", tunnel->GetTunnelID(), " expired");
         auto pool = tunnel->GetTunnelPool();
         if (pool)
@@ -593,7 +596,7 @@ void Tunnels::ManageOutboundTunnels() {
     auto router = kovri::core::netdb.GetRandomRouter();
     if (!inbound_tunnel || !router)
       return;
-    LogPrint(eLogInfo, "Tunnels: creating one hop outbound tunnel");
+    LogPrint(eLogDebug, "Tunnels: creating one hop outbound tunnel");
     CreateTunnel<OutboundTunnel> (
         std::make_shared<TunnelConfig> (
           std::vector<std::shared_ptr<const kovri::core::RouterInfo> > { router },
@@ -606,7 +609,7 @@ void Tunnels::ManageInboundTunnels() {
     for (auto it = m_InboundTunnels.begin(); it != m_InboundTunnels.end();) {
       auto tunnel = it->second;
       if (ts > tunnel->GetCreationTime() + TUNNEL_EXPIRATION_TIMEOUT) {
-        LogPrint(eLogInfo,
+        LogPrint(eLogDebug,
             "Tunnels: tunnel ", tunnel->GetTunnelID(), " expired");
         auto pool = tunnel->GetTunnelPool();
         if (pool)
@@ -631,7 +634,7 @@ void Tunnels::ManageInboundTunnels() {
     }
   }
   if (m_InboundTunnels.empty()) {
-    LogPrint(eLogInfo,
+    LogPrint(eLogDebug,
         "Tunnels: creating zero hops inbound tunnel");
     CreateZeroHopsInboundTunnel();
     if (!m_ExploratoryPool)
@@ -643,7 +646,7 @@ void Tunnels::ManageInboundTunnels() {
   if (m_OutboundTunnels.empty() || m_InboundTunnels.size() < 5) {
     // trying to create one more inbound tunnel
     auto router = kovri::core::netdb.GetRandomRouter();
-    LogPrint(eLogInfo, "Tunnels: creating one hop inbound tunnel");
+    LogPrint(eLogDebug, "Tunnels: creating one hop inbound tunnel");
     CreateTunnel<InboundTunnel> (
         std::make_shared<TunnelConfig> (
           std::vector<std::shared_ptr<const kovri::core::RouterInfo> > {router}));
@@ -655,7 +658,7 @@ void Tunnels::ManageTransitTunnels() {
   for (auto it = m_TransitTunnels.begin(); it != m_TransitTunnels.end();) {
     if (ts > it->second->GetCreationTime() + TUNNEL_EXPIRATION_TIMEOUT) {
       auto tmp = it->second;
-      LogPrint(eLogInfo,
+      LogPrint(eLogDebug,
           "Tunnels: transit tunnel ", tmp->GetTunnelID(), " expired"); {
         std::unique_lock<std::mutex> l(m_TransitTunnelsMutex);
         it = m_TransitTunnels.erase(it);

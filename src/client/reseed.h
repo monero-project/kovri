@@ -117,13 +117,12 @@ class Reseed {
     "https://netdb.i2p2.no/",  // Requires SNI
     "https://reseed.i2p-projekt.de/",
     "https://reseed.i2p.vzaws.com:8443/",
-    "https://uk.reseed.i2p2.no:444/",
-    "https://us.reseed.i2p2.no:444/",
     // Note: for "Let's Encrypt" certs,
     // we currently require DST Root CA X3 (not ISRG Root X1)
     "https://i2p-0.manas.ca:8443/",
     "https://i2p.manas.ca:8443/",
     "https://reseed.atomike.ninja/",  // Requires SNI
+    "https://reseed.memcpy.io/",  // Requires SNI
   };
 };
 

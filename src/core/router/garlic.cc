@@ -111,7 +111,7 @@ void GarlicRoutingSession::MessageConfirmed(
   TagsConfirmed(msg_ID);
   if (msg_ID == m_LeaseSetUpdateMsgID) {
     m_LeaseSetUpdateStatus = eLeaseSetUpToDate;
-    LogPrint(eLogInfo, "GarlicRoutingSession: leaseset update confirmed");
+    LogPrint(eLogDebug, "GarlicRoutingSession: leaseset update confirmed");
   } else {
     CleanupExpiredTags();
   }
@@ -179,9 +179,9 @@ std::shared_ptr<I2NPMessage> GarlicRoutingSession::WrapSingleMessage(
     }
   }
   // create message
-  if (!tag_found) {  // new session
-    LogPrint(eLogWarn,
-        "GarlicRoutingSession: no garlic tags available, using ElGamal");
+  if (!tag_found) {
+    LogPrint(eLogDebug,
+        "GarlicRoutingSession: no garlic tag available, using ElGamal");
     if (!m_Destination) {
       LogPrint(eLogWarn,
           "GarlicRoutingSession: can't use ElGamal for unknown destination");
@@ -204,7 +204,9 @@ std::shared_ptr<I2NPMessage> GarlicRoutingSession::WrapSingleMessage(
     m_Encryption.SetIV(iv.data());
     buf += 514;
     len += 514;
-  } else {  // existing session
+  } else {
+    LogPrint(eLogDebug,
+        "GarlicRoutingSession: garlic tag available, using existing session");
     // session tag
     memcpy(buf, tag, 32);
     std::array<std::uint8_t, 32> iv;  // IV is first 16 bytes
@@ -480,7 +482,7 @@ void GarlicDestination::HandleGarlicMessage(
           it++;
         }
       }
-      LogPrint(eLogInfo,
+      LogPrint(eLogDebug,
           "GarlicDestination: ", num_expired_tags,
           " tags expired for ", GetIdentHash().ToBase64());
     }
@@ -571,7 +573,7 @@ void GarlicDestination::HandleGarlicPayload(
           auto msg = CreateI2NPMessage(buf, kovri::core::GetI2NPMessageLength(buf), from);
           tunnel->SendTunnelDataMsg(gateway_hash, gateway_tunnel, msg);
         } else {
-          LogPrint(eLogInfo,
+          LogPrint(eLogDebug,
               "GarlicDestination: no outbound tunnels available for garlic clove");
         }
         break;
@@ -629,7 +631,7 @@ void GarlicDestination::CleanupRoutingSessions() {
   std::unique_lock<std::mutex> l(m_SessionsMutex);
   for (auto it = m_Sessions.begin(); it != m_Sessions.end();) {
     if (!it->second->CleanupExpiredTags()) {
-      LogPrint(eLogInfo,
+      LogPrint(eLogDebug,
           "GarlicDestination: routing session to ",
           it->first.ToBase32(), " deleted");
       it = m_Sessions.erase(it);
@@ -657,7 +659,7 @@ void GarlicDestination::HandleDeliveryStatusMessage(
     if (it != m_CreatedSessions.end()) {
       it->second->MessageConfirmed(msg_ID);
       m_CreatedSessions.erase(it);
-      LogPrint(eLogInfo, "GarlicDestination: message ", msg_ID, " acknowledged");
+      LogPrint(eLogDebug, "GarlicDestination: message ", msg_ID, " acknowledged");
     }
   }
 }

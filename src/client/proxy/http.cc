@@ -296,7 +296,7 @@ void HTTPProxyHandler::HandleStreamRequestComplete(
         "HTTPProxyHandler: issue when creating the stream,"
         "check the previous warnings for details");
     HTTPRequestFailed(HTTPResponse(HTTPProtocol::status_t::not_found));
-  }
+ }
 }
 /// @brief all this to change the useragent
 /// @param len length of string

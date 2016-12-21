@@ -33,6 +33,7 @@
 #ifndef SRC_APP_WIN32_SERVICE_H_
 #define SRC_APP_WIN32_SERVICE_H_
 
+#include <winsock2.h>
 #include <windows.h>
 #define WIN32_LEAN_AND_MEAN
 #include <memory>

@@ -32,6 +32,7 @@
 
 #include "core/util/byte_stream.h"
 
+#include <cstring>
 #include <stdexcept>
 
 #include "core/util/i2p_endian.h"
@@ -48,7 +49,7 @@ InputByteStream::InputByteStream(
 void InputByteStream::ConsumeData(
     std::size_t amount) {
   if (amount > m_Length)
-    throw std::length_error("SSUPacketParser: too many bytes to consume.");
+    throw std::length_error("InputByteStream: too many bytes to consume.");
   m_Data += amount;
   m_Length -= amount;
 }
@@ -60,54 +61,78 @@ std::uint8_t* InputByteStream::ReadBytes(
   return ptr;
 }
 
+std::uint64_t InputByteStream::ReadUInt64() {
+  return bufbe64toh(ReadBytes(sizeof(std::uint64_t)));
+}
+
 std::uint32_t InputByteStream::ReadUInt32() {
-  return bufbe32toh(ReadBytes(4));
+  return bufbe32toh(ReadBytes(sizeof(std::uint32_t)));
 }
 
 std::uint16_t InputByteStream::ReadUInt16() {
-  return bufbe16toh(ReadBytes(2));
+  return bufbe16toh(ReadBytes(sizeof(std::uint16_t)));
 }
 
 std::uint8_t InputByteStream::ReadUInt8() {
-  return *ReadBytes(1);
+  return *ReadBytes(sizeof(std::uint8_t));
 }
 
 OutputByteStream::OutputByteStream(
   std::uint8_t* data,
   std::size_t len)
-  : m_Data(data), m_Length(len) { }
+  : m_Data(data),
+    m_Length(len),
+    m_Counter(0),
+    m_Size(len) {}
 
 void OutputByteStream::ProduceData(std::size_t amount) {
   if (amount > m_Length)
-    throw std::length_error("SSUPacketParser: too many bytes to produce.");
+    throw std::length_error("OutputByteStream: too many bytes to produce.");
   m_Data += amount;
   m_Length -= amount;
+  m_Counter += amount;
 }
 
 void OutputByteStream::WriteData(const std::uint8_t* data, std::size_t len) {
   std::uint8_t* ptr = m_Data; 
   ProduceData(len);
-  memcpy(ptr, data, len);
+  std::memcpy(ptr, data, len);
 }
 
 void OutputByteStream::WriteUInt8(std::uint8_t data) {
-  WriteData(&data, 1);
+  WriteData(&data, sizeof(std::uint8_t));
 }
 
 void OutputByteStream::WriteUInt16(std::uint16_t data) {
-  std::uint8_t buf[2] = {};
+  std::uint8_t buf[sizeof(std::uint16_t)] = {};
   htobe16buf(buf, data);
   WriteData(buf, sizeof(buf));
 }
 
 void OutputByteStream::WriteUInt32(std::uint32_t data) {
-  std::uint8_t buf[4] = {};
+  std::uint8_t buf[sizeof(std::uint32_t)] = {};
   htobe32buf(buf, data);
   WriteData(buf, sizeof(buf));
 }
 
+void OutputByteStream::WriteUInt64(std::uint64_t data) {
+  std::uint8_t buf[sizeof(std::uint64_t)] = {};
+  htobe64buf(buf, data);
+  WriteData(buf, sizeof(buf));
+}
+
+// TODO(unassigned): see comments in #510
+
 std::uint8_t* OutputByteStream::GetPosition() const {
   return m_Data;
+}
+
+std::uint8_t* OutputByteStream::GetData() const {
+  return m_Data - m_Counter;
+}
+
+std::size_t OutputByteStream::GetSize() const {
+  return m_Size;
 }
 
 } // namespace core

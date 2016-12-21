@@ -93,7 +93,7 @@ class I2PService {
  void CreateStream(
       StreamRequestComplete stream_request_complete,
       const std::string& dest,
-      int port = 0);
+      std::uint16_t port = 0);
   /// @brief return io_service reference of member local destination
   inline boost::asio::io_service& GetService() {
     return m_LocalDestination->GetService();
@@ -159,7 +159,7 @@ class TCPIPAcceptor : public I2PService {
  public:
   TCPIPAcceptor(
       const std::string& address,
-      int port,
+      std::uint16_t port,
       std::shared_ptr<ClientDestination> local_destination = nullptr)
       : I2PService(local_destination),
         m_Address(address),
@@ -174,7 +174,7 @@ class TCPIPAcceptor : public I2PService {
 
   TCPIPAcceptor(
       const std::string& address,
-      int port,
+      std::uint16_t port,
       kovri::core::SigningKeyType kt)
     : I2PService(kt),
       m_Address(address),

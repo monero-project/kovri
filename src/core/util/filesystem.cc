@@ -47,35 +47,73 @@
 namespace kovri {
 namespace core {
 
+/// @var g_AppName
+/// @brief Global name for data directory on all platforms
 std::string g_AppName("kovri");
 
-boost::filesystem::path GetSU3CertsPath() {
-  return GetDataPath() / "certificates" / "su3";
+const boost::filesystem::path EnsurePath(
+    const boost::filesystem::path& path) {
+  if (!boost::filesystem::exists(path)) {
+    if (!boost::filesystem::create_directory(path)) {
+      throw std::runtime_error(
+          "Filesystem: failed to create " + std::string(path.string()));
+    }
+  }
+  return path;
 }
 
-boost::filesystem::path GetSSLCertsPath() {
-  return GetDataPath() / "certificates" / "ssl";
+/// TODO(anonimal): we can refactor all path getter functions, consolidate with key
+
+/// Client paths
+
+const boost::filesystem::path GetSU3CertsPath() {
+  return GetClientPath() / "certificates" / "su3";
 }
+
+const boost::filesystem::path GetSSLCertsPath() {
+  return GetClientPath() / "certificates" / "ssl";
+}
+
+const boost::filesystem::path GetAddressBookPath() {
+  return GetClientPath() / "address_book";
+}
+
+const boost::filesystem::path GetClientKeysPath() {
+  return GetClientPath() / "keys";
+}
+
+/// Core paths
+
+const boost::filesystem::path GetNetDbPath() {
+  return GetCorePath() / "network_database";
+}
+
+const boost::filesystem::path GetProfilesPath() {
+  return GetCorePath() / "peer_profiles";
+}
+
+/// Data paths
 
 const boost::filesystem::path GetLogsPath() {
   return GetDataPath() / "logs";
 }
 
-std::string GetFullPath(
-    const std::string& filename) {
-  std::string full_path = GetDataPath().string();
-#ifdef _WIN32
-  full_path.append("\\");
-#else
-  full_path.append("/");
-#endif
-  full_path.append(filename);
-  return full_path;
+const boost::filesystem::path GetConfigPath() {
+  return GetDataPath() / "config";
 }
 
+const boost::filesystem::path GetCorePath() {
+  return GetDataPath() / "core";
+}
+
+const boost::filesystem::path GetClientPath() {
+  return GetDataPath() / "client";
+}
+
+/// Root data directory
+
 const boost::filesystem::path& GetDataPath() {
-  static boost::filesystem::path path;
-  path = GetDefaultDataPath();
+  static boost::filesystem::path path = GetDefaultDataPath();
   if (!boost::filesystem::exists(path)) {
     // Create data directory
     if (!boost::filesystem::create_directory(path)) {
@@ -91,9 +129,9 @@ const boost::filesystem::path& GetDataPath() {
 
 boost::filesystem::path GetDefaultDataPath() {
   // Custom path, or default path:
-  // Windows < Vista: C:\Documents and Settings\Username\Application Data\kovri
-  // Windows >= Vista: C:\Users\Username\AppData\Roaming\kovri
-  // Mac: ~/Library/Application Support/kovri
+  // Windows < Vista: C:\Documents and Settings\Username\Application Data\Kovri
+  // Windows >= Vista: C:\Users\Username\AppData\Roaming\Kovri
+  // Mac: ~/Library/Application Support/Kovri
   // Unix: ~/.kovri
 #ifdef KOVRI_CUSTOM_DATA_PATH
   return boost::filesystem::path(std::string(KOVRI_CUSTOM_DATA_PATH));

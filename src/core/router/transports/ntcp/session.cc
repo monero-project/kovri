@@ -814,7 +814,7 @@ void NTCPSession::HandleReceivedPayload(
       "!!! HandleReceivedPayload(): '", ecode.message(), "'");
     if (!m_NumReceivedBytes) {
       // Ban peer
-      LogPrint(eLogInfo,
+      LogPrint(eLogWarn,
           "NTCPSession:", GetFormattedSessionInfo(), "!!! banning");
       m_Server.Ban(shared_from_this());
     }
@@ -1114,7 +1114,7 @@ void NTCPSession::Terminate() {
     m_SendQueue.clear();
     m_NextMessage = nullptr;
     m_TerminationTimer.cancel();
-    LogPrint(eLogInfo,
+    LogPrint(eLogDebug,
         "NTCPSession:", GetFormattedSessionInfo(), "*** session terminated");
   }
 }

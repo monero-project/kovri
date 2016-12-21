@@ -259,7 +259,7 @@ void UPnP::Discover() {
       return;
     } else {
       if (m_externalIPAddress[0]) {
-        LogPrint(eLogInfo,
+        LogPrint(eLogDebug,
             "UPnP: external IP address: ", m_externalIPAddress);
         kovri::context.UpdateAddress(
             boost::asio::ip::address::from_string(
@@ -315,7 +315,7 @@ void UPnP::TryPortMapping(
           "0");
 #endif
       if (r == UPNPCOMMAND_SUCCESS) {
-        LogPrint(eLogInfo,
+        LogPrint(eLogDebug,
             "UPnP: port mapping successful. (", m_NetworkAddr,
             ":", upnp_port.c_str(),
             " type ", upnp_type.c_str() ,
@@ -360,7 +360,7 @@ void UPnP::CloseMapping(
      upnp_port.c_str(),
       upnp_type.c_str(),
       0);
-  LogPrint(eLogInfo,
+  LogPrint(eLogDebug,
       "UPnP: UPNP_DeletePortMappingFunc() returned : ", r, "\n");
 }
 

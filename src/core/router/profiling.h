@@ -42,7 +42,6 @@
 namespace kovri {
 namespace core {
 
-const char PEER_PROFILES_DIRECTORY[] = "peerProfiles";
 const char PEER_PROFILE_PREFIX[] = "profile-";
 // sections
 const char PEER_PROFILE_SECTION_PARTICIPATION[] = "participation";

@@ -38,8 +38,8 @@
 ## Developers
 - Before sending a pull-request, read through our [contributing guide](https://github.com/monero-project/kovri/blob/master/doc/CONTRIBUTING.md)
 - To get funded for your work, [submit a proposal](https://forum.getmonero.org/7/open-tasks/2379/forum-funding-system-ffs-sticky) to Monero's [Forum Funding System](https://forum.getmonero.org/8/funding-required)
-- A [GitLab mirror](https://repo.getmonero.org/monero-project/kovri) is available for non-push repository access ([Kovri/I2P/Tor access is WIP](https://github.com/monero-project/meta/issues/9))
-- Build details are available on [build.getmonero.org](https://build.getmonero.org/) or with Kovri/I2P at [monero-build.i2p](http://monero-build.i2p/)
+- A [GitLab mirror](https://about.gitlab.com/) for non-push repository access is available at [repo.getmonero.org](https://repo.getmonero.org/monero-project/kovri) and (for Kovri/I2P) [monero-repo.i2p](http://monero-repo.i2p/monero-project/kovri)
+- Build details are available on [build.getmonero.org](https://build.getmonero.org/) and (for Kovri/I2P) [monero-build.i2p](http://monero-build.i2p/)
 
 ## Contact
 - IRC: [Freenode](https://webchat.freenode.net/) | [OFTC](https://webchat.oftc.net/) | Irc2P

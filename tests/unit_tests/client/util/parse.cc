@@ -30,113 +30,102 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CORE_UTIL_FILESYSTEM_H_
-#define SRC_CORE_UTIL_FILESYSTEM_H_
+#include <boost/test/unit_test.hpp>
 
-#include <boost/filesystem.hpp>
+#include "client/util/parse.h"
 
-#include <cstdint>
-#include <sstream>
-#include <string>
+BOOST_AUTO_TEST_SUITE(ClientParsing)
 
-namespace kovri {
-namespace core {
-
-/// @class StringStream
-/// @details A wrapper for casting and strongly-typed classes
-/// @param String to be treated as stream
-class StringStream {
- public:
-  StringStream(const std::string& stream) {
-    m_Stream.str(stream);
+// TODO(unassigned): improve + refactor to expand test-cases
+struct CSVFixture {
+  /// @brief Creates a test vector with given string and count
+  const std::vector<std::string> CreateTestVector(
+      const std::string& test,
+      const std::size_t count) {
+    std::vector<std::string> vec;
+    for (std::size_t i = 0; i < count; i++)
+      vec.push_back(std::string(test + std::to_string(i)));
+    return vec;
   }
 
-  template <typename SizeCast = std::size_t, typename Buffer, typename Size>
-  void Read(Buffer& buf, Size&& size) {
-    m_Stream.read(
-        reinterpret_cast<char *>(&buf),
-        static_cast<SizeCast>(std::forward<Size>(size)));
+  /// @brief Create CSV vector from non-CSV "test" vector
+  const std::vector<std::string> CreateCSVVector(
+      const std::vector<std::string>& csv) {
+    std::vector<std::string> vec;
+    for (auto const& field : csv)
+      vec.push_back(std::string(field + ","));
+    return vec;
   }
 
-  template <typename SizeCast = std::size_t, typename Offset>
-  void Seekg(Offset&& off, std::ios_base::seekdir way) {
-    m_Stream.seekg(
-      static_cast<SizeCast>(std::forward<Offset>(off)),
-      way);
+  /// @brief Create record from vector
+  const std::string CreateRecord(
+      const std::vector<std::string>& vec) {
+    std::string record;
+    for (auto const& field : vec)
+      record.append(field);
+    return record;
   }
-
-  std::size_t Tellg() {
-    return m_Stream.tellg();
-  }
-
-  bool EndOfFile() {
-    return m_Stream.eof() ? true : false;
-  }
-
-  std::string Str() {
-    return m_Stream.str();
-  }
-
- private:
-  std::stringstream m_Stream;
 };
 
-/// @brief Tests existence of path / creates if it does not exist
-/// @param Boost.Filesystem path
-/// @return Created path
-const boost::filesystem::path EnsurePath(
-    const boost::filesystem::path& path);
+// TODO(unassigned): improve + refactor to expand test-cases
+BOOST_AUTO_TEST_CASE(ParseCSV) {
+  CSVFixture csv;
+  // Create test fixture
+  auto test_vector = csv.CreateTestVector("test", 10);
 
-/// TODO(anonimal): we can refactor all path getter functions, consolidate with key
+  // Create test record to test against parsed record
+  auto test_record = csv.CreateRecord(test_vector);
 
-/// Client paths
+  // Create CSV record to parse
+  auto csv_record = csv.CreateRecord(csv.CreateCSVVector(test_vector));
 
-/// @return Path to certificates for SU3 verification
-const boost::filesystem::path GetSU3CertsPath();
+  // Get final parsed record, should return equivalent of test fixture
+  auto final_record = csv.CreateRecord(kovri::client::ParseCSV(csv_record));
 
-/// @return Path to SSL certificates for TLS/SSL negotiation
-const boost::filesystem::path GetSSLCertsPath();
+  // Test against original test record
+  BOOST_CHECK_EQUAL(final_record, test_record);
+}
 
-/// @return Address book related path
-const boost::filesystem::path GetAddressBookPath();
+struct TunnelFixture {
+  kovri::client::TunnelAttributes tunnel{};
+};
 
-/// @return Path to client (tunnel) keys
-const boost::filesystem::path GetClientKeysPath();
+// Test for correct delimiter parsing against plain configuration
+BOOST_AUTO_TEST_CASE(ParseClientDestination) {
+  // Create plain destination
+  auto plain = std::make_unique<TunnelFixture>();
 
+  plain->tunnel.dest = "anonimal.i2p";
+  plain->tunnel.dest_port = 80;
 
-/// Core paths
+  kovri::client::ParseClientDestination(&plain->tunnel);
 
-/// @return Path to network database
-const boost::filesystem::path GetNetDbPath();
+  // Create delimited destination
+  auto delimited = std::make_unique<TunnelFixture>();
 
-/// @return Path to peer profiles
-const boost::filesystem::path GetProfilesPath();
+  delimited->tunnel.dest = "anonimal.i2p:80";
+  delimited->tunnel.dest_port = 12345;
 
+  kovri::client::ParseClientDestination(&delimited->tunnel);
 
-/// Data paths
+  // Both destinations should be equal after being parsed
+  BOOST_CHECK_EQUAL(delimited->tunnel.dest, plain->tunnel.dest);
+  BOOST_CHECK_EQUAL(delimited->tunnel.dest_port, plain->tunnel.dest_port);
+}
 
-/// @return the path to log storage
-const boost::filesystem::path GetLogsPath();
+// Test for bad port length
+BOOST_AUTO_TEST_CASE(CatchBadClientDestination) {
+  // Create bad destination
+  auto bad = std::make_unique<TunnelFixture>();
 
-/// @return Path to configuration files
-const boost::filesystem::path GetConfigPath();
+  bad->tunnel.dest = "anonimal.i2p:111111111";
+  bad->tunnel.dest_port = 80;
 
-/// @return Path to core section
-const boost::filesystem::path GetCorePath();
+  BOOST_REQUIRE_THROW(
+      kovri::client::ParseClientDestination(&bad->tunnel),
+      std::exception);
 
-/// @return Path to client section
-const boost::filesystem::path GetClientPath();
+  // TODO(unassigned): expand test-case (see TODO in function definition)
+}
 
-
-/// Root data directory
-
-/// @return the path of the kovri directory
-const boost::filesystem::path& GetDataPath();
-
-/// @return the default directory for app data
-boost::filesystem::path GetDefaultDataPath();
-
-}  // namespace core
-}  // namespace kovri
-
-#endif  // SRC_CORE_UTIL_FILESYSTEM_H_
+BOOST_AUTO_TEST_SUITE_END()

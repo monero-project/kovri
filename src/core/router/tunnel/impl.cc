@@ -324,7 +324,7 @@ std::shared_ptr<InboundTunnel> Tunnels::GetNextInboundTunnel() {
 std::shared_ptr<OutboundTunnel> Tunnels::GetNextOutboundTunnel() {
   // TODO(unassigned): integer size
   std::uint32_t s = m_OutboundTunnels.size();
-  std::uint32_t ind = kovri::core::RandInRange<std::uint32_t>(std::uint32_t{0}, s - 1);
+  std::uint32_t ind = kovri::core::RandInRange32(0, s - 1);
   std::uint32_t i = 0;
   std::shared_ptr<OutboundTunnel> tunnel;
   for (auto it : m_OutboundTunnels) {

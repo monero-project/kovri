@@ -76,7 +76,7 @@ void ParseClientDestination(
     // TODO(anonimal): review RandInRange() so we don't need to shuffle
     kovri::core::Shuffle(parsed.begin(), parsed.end());
     tunnel->dest =
-      parsed.at(kovri::core::RandInRange<std::size_t>(0, parsed.size() - 1));
+      parsed.at(kovri::core::RandInRange32(0, parsed.size() - 1));
   }
   LogPrint(eLogDebug, "Client: parsing destination ", tunnel->dest);
   // If dest has port appended to it, replace previously set dest port

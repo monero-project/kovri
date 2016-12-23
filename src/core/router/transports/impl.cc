@@ -652,7 +652,7 @@ std::shared_ptr<const kovri::core::RouterInfo> Transports::GetRandomPeer() const
   auto it = m_Peers.begin();
   std::advance(
       it,
-      kovri::core::RandInRange<std::size_t>(0, s - 1));
+      kovri::core::RandInRange32(0, s - 1));
   return it->second.router;
 }
 

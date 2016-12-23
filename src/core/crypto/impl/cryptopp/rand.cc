@@ -42,5 +42,12 @@ void RandBytes(
   prng.GenerateBlock(dataptr, datalen);
 }
 
+std::uint32_t RandInRange32(
+    std::uint32_t min,
+    std::uint32_t max) {
+  CryptoPP::AutoSeededRandomPool prng;
+  return prng.GenerateWord32(min, max);
+}
+
 }  // namespace core
 }  // namespace kovri

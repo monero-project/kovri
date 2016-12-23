@@ -237,7 +237,7 @@ void AddressBook::DownloadSubscription() {
       "AddressBook: picking random subscription from total publisher count: ",
       publisher_count);
   // Pick a random publisher to subscribe from
-  auto publisher = kovri::core::RandInRange<std::size_t>(0, publisher_count - 1);
+  auto publisher = kovri::core::RandInRange32(0, publisher_count - 1);
   m_SubscriberIsDownloading = true;
   try {
     m_Subscribers.at(publisher)->DownloadSubscription();

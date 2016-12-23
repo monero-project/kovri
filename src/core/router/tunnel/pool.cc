@@ -185,7 +185,7 @@ typename TTunnels::value_type TunnelPool::GetNextTunnel(
     typename TTunnels::value_type excluded) const {
   if (tunnels.empty ())
     return nullptr;
-  std::uint32_t ind = kovri::core::RandInRange<std::uint32_t>(0, tunnels.size() / 2);
+  std::uint32_t ind = kovri::core::RandInRange32(0, tunnels.size() / 2);
   std::uint32_t i = 0;
   typename TTunnels::value_type tunnel = nullptr;
   for (auto it : tunnels) {

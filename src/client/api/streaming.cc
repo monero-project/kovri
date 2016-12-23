@@ -825,7 +825,7 @@ void Stream::UpdateCurrentRemoteLease(
       }
       if (!updated) {
         std::uint32_t i =
-          kovri::core::RandInRange<std::uint32_t>(
+          kovri::core::RandInRange32(
               0, leases.size() - 1);
         if (m_CurrentRemoteLease.end_date &&
             leases[i].tunnel_ID == m_CurrentRemoteLease.tunnel_ID)

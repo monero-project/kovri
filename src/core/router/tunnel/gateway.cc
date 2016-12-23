@@ -208,7 +208,7 @@ void TunnelGatewayBuffer::CompleteCurrentTunnelDataMessage() {
   if (padding_size > 0) {
     // non-zero padding
     std::uint32_t random_offset =
-      kovri::core::RandInRange<std::uint32_t>(
+      kovri::core::RandInRange32(
         0,
         TUNNEL_DATA_MAX_PAYLOAD_SIZE - padding_size);
     memcpy(

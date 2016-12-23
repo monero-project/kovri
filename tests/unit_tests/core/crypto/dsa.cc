@@ -77,7 +77,7 @@ BOOST_FIXTURE_TEST_CASE(DSASHA1SignVerifyBadSignature, DSAFixture) {
   kovri::core::RandBytes(message, key_message_len);
   signer->Sign(message, key_message_len, signature);
   // introduce an error in the signature
-  signature[5] ^= kovri::core::RandInRange<uint8_t>(1, 128);
+  signature[5] ^= kovri::core::RandInRange32(1, 128);
   // it should fail verification
   BOOST_CHECK_EQUAL(verifier->Verify(message, key_message_len, signature), false);
 }
@@ -87,7 +87,7 @@ BOOST_FIXTURE_TEST_CASE(DSASHA1SignVerifyBadMessage, DSAFixture) {
   kovri::core::RandBytes(message, key_message_len);
   signer->Sign(message, key_message_len, signature);
   // introduce an error in the message
-  message[5] ^= kovri::core::RandInRange<uint8_t>(1, 128);
+  message[5] ^= kovri::core::RandInRange32(1, 128);
   // this should also fail verification
   BOOST_CHECK_EQUAL(verifier->Verify(message, key_message_len, signature), false);
 }
@@ -97,8 +97,8 @@ BOOST_FIXTURE_TEST_CASE(DSASHA1SignVerifyBadSignatureAndMessage, DSAFixture) {
   kovri::core::RandBytes(message, key_message_len);
   signer->Sign(message, key_message_len, signature);
   // introduce errors in both the message and signature
-  message[6] ^= kovri::core::RandInRange<uint8_t>(1, 128);
-  signature[2] ^= kovri::core::RandInRange<uint8_t>(1, 128);
+  message[6] ^= kovri::core::RandInRange32(1, 128);
+  signature[2] ^= kovri::core::RandInRange32(1, 128);
   // this should fail verification as well
   BOOST_CHECK_EQUAL(verifier->Verify(message, key_message_len, signature), false);
 }

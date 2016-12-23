@@ -177,7 +177,7 @@ bool Reseed::FetchStream() {
   } else {
     m_Stream =
       m_Hosts.at(
-          kovri::core::RandInRange<std::size_t>(0, m_Hosts.size() - 1)) +
+          kovri::core::RandInRange32(0, m_Hosts.size() - 1)) +
       m_Filename;
     if (FetchStream(m_Stream))
       return true;

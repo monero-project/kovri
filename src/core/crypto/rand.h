@@ -31,10 +31,8 @@
 #ifndef SRC_CORE_CRYPTO_RAND_H_
 #define SRC_CORE_CRYPTO_RAND_H_
 
-#include <cinttypes>  // imaxabs()
+#include <algorithm>
 #include <cstdint>
-#include <cstdlib>
-#include <stdexcept>
 
 namespace kovri {
 namespace core {
@@ -47,7 +45,7 @@ namespace core {
       std::size_t length);
 
   /// @brief Generates a random of type T
-  /// @return
+  /// @return Random value of type T
   template<class T>
   T Rand() {
     T ret;
@@ -58,29 +56,13 @@ namespace core {
     return ret;
   }
 
-  /// @brief Generates a random integer in range of type T (signed or unsigned).
-  /// @param T Integer type
+  /// @brief Generates a random unsigned integer in given range
+  /// @warning If min/max < 0, results are undefined
+  /// @warning If type is greater than unsigned int, results are undefined
   /// @param min Lowerbound
   /// @param max Upperbound
   /// @return Random number in range [min, max]
-  /// (if (min < 0), results are undefined)
-  template<class T = std::size_t>
-  T RandInRange(T min, T max) {
-    if ((min > max) || (max < 0)) {
-      throw std::logic_error("RandInRange(): logic error");
-    } else if (min == max) {
-      return min;
-    }
-    T dlt = max - min;
-    // We never want a negative if T is signed
-    T ret = imaxabs(Rand<T>());
-    // If 0, use dlt
-    if (!(ret %= dlt)) {
-      ret = dlt;
-    }
-    ret += min;
-    return ret;
-  }
+  std::uint32_t RandInRange32(std::uint32_t min, std::uint32_t max);
 
   /// @brief CSPRNG shuffle of a sequence container
   /// @param begin iterator to the first element in container
@@ -92,7 +74,7 @@ namespace core {
     for (; begin != end; ++begin)
       std::iter_swap(
           begin,
-          begin + kovri::core::RandInRange<std::size_t>(0, end - begin - 1));
+          begin + RandInRange32(0, end - begin - 1));
   }
 
 }  // namespace core

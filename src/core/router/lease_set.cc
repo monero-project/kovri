@@ -98,7 +98,7 @@ LeaseSet::LeaseSet(
       kovri::core::TUNNEL_EXPIRATION_TIMEOUT -
       kovri::core::TUNNEL_EXPIRATION_THRESHOLD;  // 1 minute before expiration
     ts *= 1000;  // in milliseconds
-    ts += kovri::core::RandInRange<std::size_t>(0, 5);  // + random milliseconds
+    ts += kovri::core::RandInRange32(0, 5);  // + random milliseconds
     htobe64buf(m_Buffer.get() + m_BufferLen, ts);
     m_BufferLen += 8;  // end date
   }

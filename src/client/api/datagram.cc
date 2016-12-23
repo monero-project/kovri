@@ -154,7 +154,7 @@ void DatagramDestination::SendMsg(
   auto leases = remote->GetNonExpiredLeases();
   if (!leases.empty() && outbound_tunnel) {
     std::vector<kovri::core::TunnelMessageBlock> msgs;
-    std::uint32_t i = kovri::core::RandInRange<std::uint32_t>(0, leases.size() - 1);
+    std::uint32_t i = kovri::core::RandInRange32(0, leases.size() - 1);
     auto garlic = m_Owner.WrapMessage(
         remote,
         ToSharedI2NPMessage(std::move(msg)),

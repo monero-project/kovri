@@ -71,7 +71,7 @@ BOOST_FIXTURE_TEST_CASE(ElgamalEncryptDecryptFail, ElgamalFixture) {
   kovri::core::RandBytes(plaintext, key_message_len);
   enc->Encrypt(plaintext, key_message_len, ciphertext, false);
   // Introduce an error in the ciphertext
-  ciphertext[4] ^= kovri::core::RandInRange<uint8_t>(1, 128);
+  ciphertext[4] ^= kovri::core::RandInRange32(1, 128);
   BOOST_CHECK(!kovri::core::ElGamalDecrypt(private_key, ciphertext, result, false));
 }
 
@@ -82,7 +82,7 @@ BOOST_FIXTURE_TEST_CASE(ElgamalEncryptDecryptZeroPadBadPad, ElgamalFixture) {
   kovri::core::RandBytes(plaintext, key_message_len);
   enc->Encrypt(plaintext, key_message_len, ciphertext, true);
   // Introduce an error in the ciphertext zeropadding
-  ciphertext[0] = kovri::core::RandInRange<uint8_t>(1, 128);
+  ciphertext[0] = kovri::core::RandInRange32(1, 128);
   BOOST_CHECK(!kovri::core::ElGamalDecrypt(private_key, ciphertext, result, true));
 }
 

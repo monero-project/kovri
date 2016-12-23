@@ -435,7 +435,7 @@ std::shared_ptr<SSUSession> SSUServer::GetRandomSession(
       filtered_sessions.push_back(session.second);
   if (filtered_sessions.size() > 0) {
     std::size_t s = filtered_sessions.size();
-    std::size_t ind = kovri::core::RandInRange<std::size_t>(0, s - 1);
+    std::size_t ind = kovri::core::RandInRange32(0, s - 1);
     return filtered_sessions[ind];
   }
   return nullptr;

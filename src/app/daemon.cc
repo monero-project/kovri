@@ -118,8 +118,8 @@ bool DaemonSingleton::Start() {
     kovri::core::tunnels.Start();
     LogPrint(eLogDebug, "DaemonSingleton: starting client");
     kovri::client::context.Start();
-  } catch (std::runtime_error& e) {
-    LogPrint(eLogError, "DaemonSingleton: runtime start exception: ", e.what());
+  } catch (const std::exception& ex) {
+    LogPrint(eLogError, "DaemonSingleton: start exception: ", ex.what());
     return false;
   }  catch (...) {
     LogPrint(eLogError, "DaemonSingleton: unknown exception when starting");
@@ -147,8 +147,8 @@ bool DaemonSingleton::Stop() {
     kovri::core::transports.Stop();
     LogPrint(eLogDebug, "DaemonSingleton: stopping NetDb");
     kovri::core::netdb.Stop();
-  } catch (std::runtime_error& e) {
-    LogPrint(eLogError, "DaemonSingleton: runtime stop exception: ", e.what());
+  } catch (const std::exception& ex) {
+    LogPrint(eLogError, "DaemonSingleton: stop exception: ", ex.what());
     return false;
   }  catch (...) {
     LogPrint(eLogError, "DaemonSingleton: unknown exception when stopping");

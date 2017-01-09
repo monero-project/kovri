@@ -6,6 +6,7 @@ set(APP_SRC
   "daemon.cc"
   "instance.cc")
 
+# TODO(anonimal): refactor
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   list(APPEND APP_SRC "daemon_linux.cc")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
@@ -25,18 +26,23 @@ if(WITH_BINARY)
     ${APP_NAME}
     ${CLIENT_NAME} ${CORE_NAME}
     ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-  if(MINGW)
-    target_link_libraries(${APP_NAME} ws2_32 wsock32 iphlpapi)
-  endif()
-  if(NOT MSVC) # FIXME: incremental linker file name (.ilk) collision for dll & exe
-    set_target_properties(
-      ${APP_NAME} PROPERTIES OUTPUT_NAME "${PROJECT_NAME}")
-    if(WITH_STATIC)
+  set_target_properties(${APP_NAME} PROPERTIES OUTPUT_NAME "${PROJECT_NAME}")
+  if(WITH_STATIC)
+    if(NOT MINGW)
       set_target_properties(${APP_NAME} PROPERTIES LINK_FLAGS "-static-libgcc -static-libstdc++")
-      if(APPLE)
-        set_target_properties(${APP_NAME} PROPERTIES LINK_FLAGS "-lstdc++" )
+    endif()
+			if(CLANG AND NOT ARM)
+      set_target_properties(${APP_NAME} PROPERTIES LINK_FLAGS "-lstdc++")
+      if(FREEBSD)
+        set_target_properties(${APP_NAME} PROPERTIES LINK_FLAGS "-lm -lc++")
       endif()
     endif()
+    if(MINGW)
+      set_target_properties(${APP_NAME} PROPERTIES LINK_FLAGS "-static")
+    endif()
+  endif()
+  if(MINGW)
+    target_link_libraries(${APP_NAME} wsock32 iphlpapi ws2_32)
   endif()
   if(WITH_HARDENING AND CMAKE_CXX_COMPILER_ID STREQUAL GNU)
     set_target_properties(${APP_NAME} PROPERTIES LINK_FLAGS "-z relro -z now")

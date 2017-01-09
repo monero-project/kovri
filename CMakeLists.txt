@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.12)
-project("kovri")
+project("kovri" C CXX)
 
 # Configurable options
 option(KOVRI_DATA_PATH "The path to the kovri data folder")
@@ -27,6 +27,23 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug)
 endif()
 
+# Check whether we're on a 32-bit or 64-bit system
+if(CMAKE_SIZEOF_VOID_P EQUAL "8")
+  set(ARCH_WIDTH "64")
+else()
+  set(ARCH_WIDTH "32")
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  set(LINUX TRUE)
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+  set(FREEBSD TRUE)
+endif()
+
+# TODO(anonimal): continue with systems as needed
+
 ### TODO(unassigned): improve detection and use-case
 # Minimal processor detection (needed for ARM build)
 set(CPU "${CMAKE_SYSTEM_PROCESSOR}")
@@ -45,7 +62,7 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 3.5)
     message(FATAL_ERROR "Clang 3.5 or higher is required")
   endif()
-  set(Clang TRUE)  # TODO(unassigned): make use of this
+  set(CLANG TRUE)
 endif()
 
 # Check for C++14 support (minimum version compilers guarantee this)
@@ -87,12 +104,6 @@ if(NOT MSVC)
   endif()
 endif()
 
-# Compiler flags customization (by system)
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
-  # "'sleep_for' is not a member of 'std::this_thread'" in gcc 4.7/4.8
-  add_definitions("-D_GLIBCXX_USE_NANOSLEEP=1")
-endif()
-
 if(WITH_UPNP)
   add_definitions(-DUSE_UPNP)
   if(NOT MSVC)
@@ -100,21 +111,35 @@ if(WITH_UPNP)
   endif()
 endif()
 
-# Libraries
-# TODO: once CMake 3.1+ becomes mainstream, see e.g.
-#  http://stackoverflow.com/a/29871891/673826 use imported Threads::Threads
-#  instead
-set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
-if(THREADS_HAVE_PTHREAD_ARG) # compile time flag
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
-endif()
-
-if(NOT WIN32)
+if(NOT WIN32 AND NOT WITH_STATIC)
   # TODO: Consider separate compilation for COMMON_SRC for library.
   # No need in -fPIC overhead for binary if not interested in library
   # HINT: revert c266cff CMakeLists.txt: compilation speed up
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+endif()
+
+if(WITH_STATIC)
+  set(Boost_USE_STATIC_LIBS ON)
+  set(Boost_USE_STATIC_RUNTIME ON)
+  set(BUILD_SHARED_LIBS OFF)
+  if(MINGW)
+    # Needed for windows static build to ensure full paths are used/libraries linked
+    string(REGEX MATCH "^[^/]:/[^/]*" msys2_install_path "${CMAKE_C_COMPILER}")
+    message(STATUS "MSYS location: ${msys2_install_path}")
+    set(CMAKE_INCLUDE_PATH "${msys2_install_path}/mingw${ARCH_WIDTH}/include")
+    set(DEFLIB ${msys2_install_path}/mingw${ARCH_WIDTH}/lib)
+    list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_DIRECTORIES ${DEFLIB})
+    list(REMOVE_ITEM CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES ${DEFLIB})
+    # NOTE: leave uncommented for openssl static
+    if(MINGW)
+      set(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
+    endif()
+  endif()
+  if(${CMAKE_CXX_COMPILER} MATCHES ".*-openwrt-.*")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+    set(CMAKE_THREAD_LIBS_INIT
+      "gcc_eh -Wl,-u,pthread_create,-u,pthread_once,-u,pthread_mutex_lock,-u,pthread_mutex_unlock,-u,pthread_join,-u,pthread_equal,-u,pthread_detach,-u,pthread_cond_wait,-u,pthread_cond_signal,-u,pthread_cond_destroy,-u,pthread_cond_broadcast,-u,pthread_cancel")
+  endif()
 endif()
 
 find_package(
@@ -130,8 +155,20 @@ if(NOT Boost_FOUND)
   message(FATAL_ERROR "Boost not found or requirement not satisfied. See building instructions.")
 else()
   message(STATUS "Found Boost: ${Boost_INCLUDE_DIR}, ${Boost_LIBRARIES}")
-  add_definitions(-DBOOST_ALL_DYN_LINK)
+  if(NOT WITH_STATIC)
+    add_definitions(-DBOOST_ALL_DYN_LINK)
+  endif()
   include_directories(${Boost_INCLUDE_DIRS})
+endif()
+
+# Libraries
+# TODO: once CMake 3.1+ becomes mainstream, see e.g.
+#  http://stackoverflow.com/a/29871891/673826 use imported Threads::Threads
+#  instead
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+if(THREADS_HAVE_PTHREAD_ARG) # compile time flag
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 endif()
 
 if(WITH_CRYPTOPP)
@@ -144,20 +181,24 @@ if(WITH_CRYPTOPP)
   endif()
 endif()
 
-if(APPLE)
+# Despite only cpp-netlib requiring openssl, OSX apparently needs this as well
+if (APPLE)
   # If we're on OS X check for Homebrew's copy of OpenSSL instead of Apple's
   if (NOT OpenSSL_DIR)
     execute_process (COMMAND brew --prefix openssl
       OUTPUT_VARIABLE OPENSSL_ROOT_DIR
       OUTPUT_STRIP_TRAILING_WHITESPACE)
   endif()
-endif()
-
-find_package(OpenSSL REQUIRED)
-if(NOT DEFINED OPENSSL_INCLUDE_DIR)
-  message(FATAL_ERROR "Could not find OpenSSL. Please download and install it first!")
-else()
-  include_directories(${OPENSSL_INCLUDE_DIR})
+  if (WITH_STATIC)
+    #set(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
+    set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
+  endif()
+  find_package(OpenSSL REQUIRED)
+  if(NOT DEFINED OPENSSL_INCLUDE_DIR)
+    message(FATAL_ERROR "Could not find OpenSSL. Please download and install it first!")
+  else()
+    include_directories(${OPENSSL_INCLUDE_DIR})
+  endif()
 endif()
 
 # Note: we're actually building off branch 0.13-release - not 0.12.0.
@@ -175,24 +216,11 @@ if(WITH_CPPNETLIB)
   endif()
 endif()
 
+# TODO(anonimal): when UPnP is working, consider static as well
 if(WITH_UPNP)
   find_package(MiniUPnPc REQUIRED)
   if(NOT ${MINIUPNPC_FOUND})
     message(FATAL_ERROR "Could not find MiniUPnPc. See building instructions.")
-  endif()
-endif()
-
-if(WITH_STATIC)
-  set(Boost_USE_STATIC_LIBS ON)
-  set(Boost_USE_STATIC_RUNTIME OFF)
-  set(BUILD_SHARED_LIBS OFF)
-  if(NOT WIN32)
-    set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
-  endif()
-  if(${CMAKE_CXX_COMPILER} MATCHES ".*-openwrt-.*")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
-    set(CMAKE_THREAD_LIBS_INIT
-      "gcc_eh -Wl,-u,pthread_create,-u,pthread_once,-u,pthread_mutex_lock,-u,pthread_mutex_unlock,-u,pthread_join,-u,pthread_equal,-u,pthread_detach,-u,pthread_cond_wait,-u,pthread_cond_signal,-u,pthread_cond_destroy,-u,pthread_cond_broadcast,-u,pthread_cancel")
   endif()
 endif()
 

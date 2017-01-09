@@ -63,6 +63,8 @@ cmake = cmake $(cmake-gen) $(cmake-debug)
 
 # Dependencies options
 cmake-cpp-netlib = -D CPP-NETLIB_BUILD_TESTS=OFF -D CPP-NETLIB_BUILD_EXAMPLES=OFF
+# TODO(unassigned): currently, out dependencies are static but cpp-netlib's dependencies are not by default
+cmake-cpp-netlib-static = -D CPP-NETLIB_STATIC_OPENSSL=ON -D CPP-NETLIB_STATIC_BOOST=ON
 cmake-cryptopp = -D BUILD_TESTING=OFF -D BUILD_SHARED=OFF
 
 # Current off-by-default Kovri build options
@@ -101,7 +103,14 @@ dynamic: dependencies
 	mkdir -p $(build)
 	cd $(build) && $(cmake) ../ && $(MAKE)
 
-static: dependencies
+# TODO(unassigned): currently, out dependencies are static but cpp-netlib's dependencies are not by default
+static-dependencies:
+	mkdir -p $(cpp-netlib-build)
+	cd $(cpp-netlib-build) && $(cmake) $(cmake-cpp-netlib) $(cmake-cpp-netlib-static) ../ && $(MAKE)
+	mkdir -p $(cryptopp-build)
+	cd $(cryptopp-build) && $(cmake) $(cmake-cryptopp) ../ && $(MAKE)
+
+static: static-dependencies
 	mkdir -p $(build)
 	cd $(build) && $(cmake) $(cmake-static) ../ && $(MAKE)
 

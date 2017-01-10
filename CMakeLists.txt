@@ -23,6 +23,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 # Default build is Debug
+# TODO(anonimal): currently, there are no release-specific flags (fix this when we're out of alpha)
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug)
 endif()
@@ -81,13 +82,16 @@ if(NOT MSVC)
   if(NOT ARM)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -maes")
   endif()
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -pedantic")
-  # TODO: The following is incompatible with static build and enabled hardening
-  #  for OpenWRT.
+  # TOOD(unassigned): we actually don't need this and it's quite annoying
+  #set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -pedantic")
+
+  # TODO(unassigned): we currently are not developing for OpenWRT
+  # TODO(unassgiend): review if the following is incompatible with static build and enabled hardening for OpenWRT
   # Multiple definitions of __stack_chk_fail (libssp & libc)
-  set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} -flto -s -ffunction-sections -fdata-sections")
+  #set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} -flto -s -ffunction-sections -fdata-sections")
   # -flto is added from above
-  set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "-Wl,--gc-sections")
+  #set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "-Wl,--gc-sections")
+
   if(WITH_HARDENING)
     add_definitions("-D_FORTIFY_SOURCE=2")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wformat -Wformat-security -Werror=format-security")

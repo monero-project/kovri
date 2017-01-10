@@ -53,19 +53,19 @@ endif
 cmake-data-path = -D KOVRI_DATA_PATH=$(data-path)
 
 # Release types
-# TODO(unassigned): put these to good use; will require rewrite of root recipe.
 cmake-debug = -D CMAKE_BUILD_TYPE=Debug
-# TODO(unassigned): use release flag for dependencies when we release
-#cmake-release = -D CMAKE_BUILD_TYPE=Release
+cmake-release = -D CMAKE_BUILD_TYPE=Release
 
 # Our base cmake command
-cmake = cmake $(cmake-gen) $(cmake-debug)
+cmake = cmake $(cmake-gen)
 
 # Dependencies options
-cmake-cpp-netlib = -D CPP-NETLIB_BUILD_TESTS=OFF -D CPP-NETLIB_BUILD_EXAMPLES=OFF
-# TODO(unassigned): currently, out dependencies are static but cpp-netlib's dependencies are not by default
-cmake-cpp-netlib-static = -D CPP-NETLIB_STATIC_OPENSSL=ON -D CPP-NETLIB_STATIC_BOOST=ON
-cmake-cryptopp = -D BUILD_TESTING=OFF -D BUILD_SHARED=OFF
+
+# TODO(unassigned): currently, our dependencies are static but cpp-netlib's dependencies are not by default
+cmake-cpp-netlib = $(cmake-release) -D CPP-NETLIB_BUILD_TESTS=OFF -D CPP-NETLIB_BUILD_EXAMPLES=OFF
+cmake-cpp-netlib-static = $(cmake-cpp-netlib) -D CPP-NETLIB_STATIC_OPENSSL=ON -D CPP-NETLIB_STATIC_BOOST=ON
+
+cmake-cryptopp = $(cmake-release) -D BUILD_TESTING=OFF -D BUILD_SHARED=OFF
 
 # Current off-by-default Kovri build options
 cmake-upnp       = -D WITH_UPNP=ON
@@ -90,7 +90,7 @@ remove-build = rm -fR $(build) $(cpp-netlib-build) $(cryptopp-build) $(doxygen-o
 copy-resources = mkdir -p $(data-path) && cp -fR pkg/* $(data-path)
 run-tests = ./kovri-tests && ./kovri-benchmarks
 
-# TODO(unassigned): implement cmake-release build options
+# TODO(unassigned): cmake release by default?
 all: dynamic
 
 dependencies:
@@ -101,48 +101,54 @@ dependencies:
 
 dynamic: dependencies
 	mkdir -p $(build)
-	cd $(build) && $(cmake) ../ && $(MAKE)
+	cd $(build) && $(cmake) $(cmake-debug) ../ && $(MAKE)
 
-# TODO(unassigned): currently, out dependencies are static but cpp-netlib's dependencies are not by default
+release: dynamic
+        # TODO(unassigned): cmake release flags + optimizations/hardening when we're out of alpha
+
+# TODO(unassigned): currently, our dependencies are static but cpp-netlib's dependencies are not by default
 static-dependencies:
 	mkdir -p $(cpp-netlib-build)
-	cd $(cpp-netlib-build) && $(cmake) $(cmake-cpp-netlib) $(cmake-cpp-netlib-static) ../ && $(MAKE)
+	cd $(cpp-netlib-build) && $(cmake) $(cmake-cpp-netlib-static) ../ && $(MAKE)
 	mkdir -p $(cryptopp-build)
 	cd $(cryptopp-build) && $(cmake) $(cmake-cryptopp) ../ && $(MAKE)
 
 static: static-dependencies
 	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-static) ../ && $(MAKE)
+	cd $(build) && $(cmake) $(cmake-debug) $(cmake-static) ../ && $(MAKE)
+
+release-static: static
+        # TODO(unassigned): cmake release flags + optimizations/hardening when we're out of alpha
 
 # We need (or very much should have) optimizations with hardening
 optimized-hardening: dependencies
 	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-optimize) $(cmake-hardening) ../ && $(MAKE)
+	cd $(build) && $(cmake) $(cmake-debug) $(cmake-optimize) $(cmake-hardening) ../ && $(MAKE)
 
 upnp: dependencies
 	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-upnp) ../ && $(MAKE)
+	cd $(build) && $(cmake) $(cmake-debug) $(cmake-upnp) ../ && $(MAKE)
 
 all-options: dependencies
 	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-optimize) $(cmake-hardening) $(cmake-upnp) ../ && $(MAKE)
+	cd $(build) && $(cmake) $(cmake-debug) $(cmake-optimize) $(cmake-hardening) $(cmake-upnp) ../ && $(MAKE)
 
 tests: dependencies
 	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-tests) $(cmake-benchmarks) ../ && $(MAKE) #&& $(run-tests)  # Reinstate once #317 is resolved
+	cd $(build) && $(cmake) $(cmake-debug) $(cmake-tests) $(cmake-benchmarks) ../ && $(MAKE)
 
 tests-optimized-hardening: dependencies
 	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-optimize) $(cmake-hardening) $(cmake-tests) $(cmake-benchmarks) ../ && $(MAKE) #&& $(run-tests)  # Reinstate once #317 is resolved
+	cd $(build) && $(cmake) $(cmake-debug) $(cmake-optimize) $(cmake-hardening) $(cmake-tests) $(cmake-benchmarks) ../ && $(MAKE)
 
 # Note: leaving out hardening because of need for optimizations
 coverage: dependencies
 	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-coverage) $(cmake-upnp) ../ && $(MAKE)
+	cd $(build) && $(cmake) $(cmake-debug) $(cmake-coverage) $(cmake-upnp) ../ && $(MAKE)
 
 coverage-tests: dependencies
 	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-coverage) $(cmake-tests) $(cmake-benchmarks) ../ && $(MAKE) #&& $(run-tests)  # Reinstate once #317 is resolved
+	cd $(build) && $(cmake) $(cmake-debug) $(cmake-coverage) $(cmake-tests) $(cmake-benchmarks) ../ && $(MAKE)
 
 doxygen:
 	mkdir -p $(build)
@@ -172,4 +178,4 @@ install-resources:
 	  fi; \
 	fi
 
-.PHONY: all dependencies dynamic static optimized-hardening upnp all-options tests tests-optimized-hardening doxygen help clean install-resources
+.PHONY: all dependencies static-dependencies dynamic release static release-static optimized-hardening upnp all-options tests tests-optimized-hardening coverage coverage-tests doxygen help clean install-resources

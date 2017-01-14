@@ -51,61 +51,7 @@
 
 namespace kovri {
 namespace client {
-/// @class HTTPProtocol
-/// @brief defines protocol; and read from socket algorithm
-class HTTPProtocol : public std::enable_shared_from_this<HTTPProtocol>{
- public:
-  std::string m_RequestLine, m_HeaderLine, m_Request, m_Body,
-    m_URL, m_Method, m_Version,  m_Path;
-  std::vector<std::string> m_Headers;
-  std::string m_Host, m_UserAgent;
-  std::string m_Address;
-
-  boost::asio::streambuf m_Buffer;
-  boost::asio::streambuf m_BodyBuffer;
-  std::vector<std::pair<std::string, std::string>> m_headerMap;
-  /// @brief Data for incoming request
-  std::uint16_t m_Port;
-
-  /// @var m_JumpService
-  /// @brief Address helpers for base64 jump service
-  const std::array<std::string, 4> m_JumpService {
-  {
-    "?i2paddresshelper=",
-    "&i2paddresshelper=",
-    "?kovrijumpservice=",
-    "&kovrijumpservice=",
-  }
-  };
-
-  HTTPProtocol():m_Port(0) {}
-  enum msg_t {
-    response,
-    request
-  };
-  /// @brief loads variables in class;
-  /// @param buf
-  /// @param len
-  /// return bool
-  bool HandleData(const std::string  &buf);
-
-  /// @brief Parses path for base64 address, inserts into address book
-  /// need to change to boolean return for testing
-  void HandleJumpService();
-
-  /// @brief Performs regex, sets address/port/path, validates version
-  ///   on request sent from user
-  /// @return true on success
-  bool ExtractIncomingRequest();
-
-  /// @brief Processes original request: extracts, validates,
-  ///   calls jump service, appends original request
-  /// @return true on success
-  bool CreateHTTPRequest();
-
-  const unsigned int HEADERBODY_LEN = 2;
-  const unsigned int REQUESTLINE_HEADERS_MIN = 1;
-
+struct HTTPResponseCodes{
   enum status_t {
     ok = 200,
     created = 201,
@@ -129,6 +75,7 @@ class HTTPProtocol : public std::enable_shared_from_this<HTTPProtocol>{
     not_implemented = 501,
     bad_gateway = 502,
     service_unavailable = 503,
+    http_not_supported = 505,
     space_unavailable = 507
   };
 
@@ -153,6 +100,7 @@ class HTTPProtocol : public std::enable_shared_from_this<HTTPProtocol>{
                       partial_content_[] = "Partial Content",
                       request_timeout_[] = "Request Timeout",
                       precondition_failed_[] = "Precondition Failed",
+                      http_not_supported_[]= "HTTP Version Not Supported",
                       unsatisfiable_range_[] =
                           "Requested Range Not Satisfiable",
                       space_unavailable_[] =
@@ -202,6 +150,8 @@ class HTTPProtocol : public std::enable_shared_from_this<HTTPProtocol>{
         return precondition_failed_;
       case unsatisfiable_range:
         return unsatisfiable_range_;
+      case http_not_supported:
+        return http_not_supported_;
       case space_unavailable:
         return space_unavailable_;
       default:
@@ -214,26 +164,85 @@ class HTTPProtocol : public std::enable_shared_from_this<HTTPProtocol>{
 class HTTPResponse{
  public:
   std::string m_Response;
-  explicit HTTPResponse(HTTPProtocol::status_t status){
+  explicit HTTPResponse(HTTPResponseCodes::status_t status){
     std::string htmlbody = "<html>";
     htmlbody+="<head>";
     htmlbody+="<title>HTTP Error</title>";
     htmlbody+="</head>";
     htmlbody+="<body>";
     htmlbody+="HTTP Error " + std::to_string(status) + " ";
-    htmlbody+=HTTPProtocol::status_message(status);
+    htmlbody+=HTTPResponseCodes::status_message(status);
+    if (status == HTTPResponseCodes::status_t::service_unavailable) {
+      htmlbody+=" Please wait for the router to integrate";
+    }
     htmlbody+="</body>";
     htmlbody+="</html>";
 
     m_Response =
     "HTTP/1.0 " + std::to_string(status) + " " +
-    HTTPProtocol::status_message(status)+"\r\n" +
+    HTTPResponseCodes::status_message(status)+"\r\n" +
     "Content-type: text/html;charset=UTF-8\r\n" +
     "Content-Encoding: UTF-8\r\n" +
     "Content-length:" + std::to_string(htmlbody.size()) + "\r\n\r\n" + htmlbody;
   }
 };
 
+/// @class HTTPProtocol
+/// @brief defines protocol; and read from socket algorithm
+class HTTPProtocol : public std::enable_shared_from_this<HTTPProtocol>{
+ public:
+  std::string m_RequestLine, m_HeaderLine, m_Request, m_Body,
+    m_URL, m_Method, m_Version,  m_Path;
+  std::vector<std::string> m_Headers;
+  std::string m_Host, m_UserAgent;
+  std::string m_Address;
+
+  boost::asio::streambuf m_Buffer;
+  boost::asio::streambuf m_BodyBuffer;
+  std::vector<std::pair<std::string, std::string>> m_headerMap;
+  /// @brief Data for incoming request
+  std::uint16_t m_Port;
+
+  /// @var m_JumpService
+  /// @brief Address helpers for base64 jump service
+  const std::array<std::string, 4> m_JumpService {
+  {
+    "?i2paddresshelper=",
+    "&i2paddresshelper=",
+    "?kovrijumpservice=",
+    "&kovrijumpservice=",
+  }
+  };
+  HTTPResponse m_ErrorResponse;
+  HTTPProtocol():m_Port(0), m_ErrorResponse(HTTPResponseCodes::status_t::ok) {
+  }
+  enum msg_t {
+    response,
+    request
+  };
+  /// @brief loads variables in class;
+  /// @param buf
+  /// @param len
+  /// return bool
+  bool HandleData(const std::string  &buf);
+
+  /// @brief Parses path for base64 address, inserts into address book
+  /// need to change to boolean return for testing
+  void HandleJumpService();
+
+  /// @brief Performs regex, sets address/port/path, validates version
+  ///   on request sent from user
+  /// @return true on success
+  bool ExtractIncomingRequest();
+
+  /// @brief Processes original request: extracts, validates,
+  ///   calls jump service, appends original request
+  /// @return true on success
+  bool CreateHTTPRequest();
+
+  const unsigned int HEADERBODY_LEN = 2;
+  const unsigned int REQUESTLINE_HEADERS_MIN = 1;
+};
 /// @class HTTPProxyServerService
 /// setup asio service
 class HTTPProxyServerService
@@ -290,10 +299,11 @@ class HTTPProxyHandler
     Terminate();
   }
 
-	void set_result( boost::optional<boost::system::error_code> * a, boost::system::error_code b ) {
-			if( b == 0)
-					a->reset( b );
-	}
+  void set_result(boost::optional<boost::system::error_code> * a,
+      boost::system::error_code b ) {
+    if (b == 0)
+      a->reset(b);
+  }
   /// @brief reads data sent to proxy server
   /// virtual function;
   /// handle reading the protocol
@@ -305,10 +315,19 @@ class HTTPProxyHandler
 
  private:
   /// @brief read from a socket
-  // protocol defines its own read algorithm
+  /*****************************************
+   *AsyncRead Tree
+   *AsyncSockRead             - perform async read
+   *  -AsyncHandleReadHeaders - handle read header info
+   *    -HTTPProtocol::HandleData   - handle header info
+   *    -HandleSockRecv       - read body if needed
+   *      -HTTPProtocol::CreateHTTPStreamRequest -  create stream request
+   *      -HandleStreamRequestComplete           -  connect to i2p tunnel
+   ****************************************/
   void AsyncSockRead(std::shared_ptr<boost::asio::ip::tcp::socket> socket);
-  void AsyncHandleRead(const boost::system::error_code & error,
-		std::size_t bytes_transferred);
+  // @brief handle read data
+  void AsyncHandleReadHeaders(const boost::system::error_code & error,
+    std::size_t bytes_transferred);
 
 
   /// @brief Handles stream created by service through proxy handler
@@ -316,8 +335,7 @@ class HTTPProxyHandler
       std::shared_ptr<kovri::client::Stream> stream);
 
   /// @brief Generic request failure handler
-  /// @param error User-defined enumerated error code
-  void HTTPRequestFailed(HTTPResponse response);
+  void HTTPRequestFailed();
 
   /// @brief Tests if our sent response to browser has failed
   /// @param ecode Boost error code

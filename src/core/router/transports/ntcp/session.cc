@@ -51,6 +51,7 @@
 #include "core/router/transports/impl.h"
 
 #include "core/util/base64.h"
+#include "core/util/byte_stream.h"
 #include "core/util/i2p_endian.h"
 #include "core/util/log.h"
 #include "core/util/timestamp.h"

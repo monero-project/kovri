@@ -104,6 +104,9 @@ void NTCPSession::ServerLogin() {
     LOG(error)
       << "NTCPSession:" << GetFormattedSessionInfo()
       << "!!! ServerLogin(): '" << error_code.message() << "'";
+    LOG(debug)
+      << "NTCPSession:" << GetFormattedSessionInfo()
+      << GetFormattedPhaseInfo(Phase::One);
   }
 }
 
@@ -125,18 +128,25 @@ void NTCPSession::ClientLogin() {
         << "*** Phase1, acquiring DH keys pair";
       m_DHKeysPair = transports.GetNextDHKeysPair();
     }
+    // X as calculated from Diffie-Hellman
     const std::uint8_t* x = m_DHKeysPair->public_key.data();
     memcpy(
         m_Establisher->phase1.pub_key.data(),
         x,
         static_cast<std::size_t>(NTCPSize::pub_key));
+    // HXxorHI: SHA256 Hash(X) xored with SHA256 Hash(Bob's RouterIdentity)
     kovri::core::SHA256().CalculateDigest(
         m_Establisher->phase1.HXxorHI.data(),
         x,
         static_cast<std::size_t>(NTCPSize::pub_key));
+    // HXxorHI: get ident hash, then XOR
     const std::uint8_t* ident = m_RemoteIdentity.GetIdentHash();
     for (std::size_t i = 0; i < static_cast<std::size_t>(NTCPSize::hash); i++)
       m_Establisher->phase1.HXxorHI.at(i) ^= ident[i];
+    // Send phase1
+    LOG(debug)
+      << "NTCPSession:" << GetFormattedSessionInfo()
+      << GetFormattedPhaseInfo(Phase::One);
     LOG(debug)
       << "NTCPSession:" << GetFormattedSessionInfo() << "<-- Phase1, sending";
     boost::asio::async_write(
@@ -155,6 +165,9 @@ void NTCPSession::ClientLogin() {
     LOG(error)
       << "NTCPSession:" << GetFormattedSessionInfo()
       << "!!! " << __func__ << ": '" << ecode.message() << "'";
+    LOG(debug)
+      << "NTCPSession:" << GetFormattedSessionInfo()
+      << GetFormattedPhaseInfo(Phase::One);
   }
 }
 
@@ -192,8 +205,12 @@ void NTCPSession::HandlePhase1Received(
     LOG(error)
       << "NTCPSession:" << GetFormattedSessionInfo()
       << "!!! Phase1 receive error '" << ecode.message() << "'";
-    if (ecode != boost::asio::error::operation_aborted)
+    if (ecode != boost::asio::error::operation_aborted) {
+      LOG(debug)
+        << "NTCPSession:" << GetFormattedSessionInfo()
+        << GetFormattedPhaseInfo(Phase::One);
       Terminate();
+    }
   } else {
     LOG(debug)
       << "NTCPSession:" << GetFormattedSessionInfo()
@@ -208,7 +225,10 @@ void NTCPSession::HandlePhase1Received(
       if ((m_Establisher->phase1.HXxorHI.at(i) ^ ident[i]) != digest.at(i)) {
         LOG(error)
           << "NTCPSession:" << GetFormattedSessionInfo()
-          << "!!! HandlePhase1Received(): wrong ident";
+          << "!!! " << __func__ << ": wrong ident";
+        LOG(debug)
+          << "NTCPSession:" << GetFormattedSessionInfo()
+          << GetFormattedPhaseInfo(Phase::One);
         Terminate();
         return;
       }
@@ -235,6 +255,7 @@ void NTCPSession::SendPhase2() {
       << "*** Phase2, acquiring DH keys pair";
     m_DHKeysPair = transports.GetNextDHKeysPair();
   }
+  // Y from Diffie Hellman
   const std::uint8_t* y = m_DHKeysPair->public_key.data();
   memcpy(
       m_Establisher->phase2.pub_key.data(),
@@ -250,15 +271,19 @@ void NTCPSession::SendPhase2() {
       xy.data() + static_cast<std::size_t>(NTCPSize::pub_key),
       y,
       static_cast<std::size_t>(NTCPSize::pub_key));
+  // Hash of XY
   kovri::core::SHA256().CalculateDigest(
       m_Establisher->phase2.encrypted.hxy.data(),
       xy.data(),
       static_cast<std::size_t>(NTCPSize::pub_key) * 2);
+  // Timestamp B
   std::uint32_t ts_B = htobe32(kovri::core::GetSecondsSinceEpoch());
   m_Establisher->phase2.encrypted.timestamp = ts_B;
+  // Random padding
   kovri::core::RandBytes(
       m_Establisher->phase2.encrypted.padding.data(),
       static_cast<std::size_t>(NTCPSize::padding));
+  // AES key
   kovri::core::AESKey aes_key;
   CreateAESKey(m_Establisher->phase1.pub_key.data(), aes_key);
   m_Encryption.SetKey(aes_key);
@@ -327,6 +352,9 @@ void NTCPSession::HandlePhase2Received(
       LOG(error)
         << "NTCPSession:" << GetFormattedSessionInfo()
         << "!!! Phase2 error, RI is not valid";
+      LOG(debug)
+        << "NTCPSession:" << GetFormattedSessionInfo()
+        << GetFormattedPhaseInfo(Phase::Two);
       kovri::core::netdb.SetUnreachable(
           GetRemoteIdentity().GetIdentHash(),
           true);
@@ -338,6 +366,9 @@ void NTCPSession::HandlePhase2Received(
     LOG(debug)
       << "NTCPSession:" << GetFormattedSessionInfo()
       << "*** Phase2 received, processing";
+    LOG(debug)
+      << "NTCPSession:" << GetFormattedSessionInfo()
+      << GetFormattedPhaseInfo(Phase::Two);
     kovri::core::AESKey aes_key;
     CreateAESKey(m_Establisher->phase2.pub_key.data(), aes_key);
     m_Decryption.SetKey(aes_key);
@@ -368,11 +399,17 @@ void NTCPSession::HandlePhase2Received(
       LOG(error)
         << "NTCPSession:" << GetFormattedSessionInfo()
         << "!!! Phase2 << incorrect hash";
+      LOG(debug) 
+        << "NTCPSession:" << GetFormattedSessionInfo()
+        << GetFormattedPhaseInfo(Phase::Two);
       transports.ReuseDHKeysPair(std::move(m_DHKeysPair));
       m_DHKeysPair.reset(nullptr);
       Terminate();
       return;
     }
+    LOG(debug)
+      << "NTCPSession:" << GetFormattedSessionInfo()
+      << GetFormattedPhaseInfo(Phase::Two));
     LOG(debug)
       << "NTCPSession:" << GetFormattedSessionInfo()
       << "*** Phase2 successful, proceeding to Phase3";
@@ -1116,6 +1153,54 @@ void NTCPSession::Terminate() {
     LOG(debug)
       << "NTCPSession:" << GetFormattedSessionInfo() << "*** session terminated";
   }
+}
+
+// Utilities
+
+const std::string NTCPSession::GetFormattedPhaseInfo(const Phase& num) {
+  if (!m_Establisher)
+    return "*** null establisher";
+  std::string info;
+  switch (num) {
+    case Phase::One: {
+      info += "*** Phase1 ";
+      // X as calculated from Diffie-Hellman
+      auto& pub_key = m_Establisher->phase1.pub_key;
+      info += "[pub key X] ";
+      info += GetFormattedHex(pub_key.data(), pub_key.size());
+      // SHA256 Hash(X) xored with SHA256 Hash(Bob's RouterIdentity)
+      auto& HXxorHI = m_Establisher->phase1.HXxorHI;
+      info += "[HXxorHI] ";
+      info += GetFormattedHex(HXxorHI.data(), HXxorHI.size());
+      break;
+    }
+    case Phase::Two: {
+      info += "*** Phase2 ";
+      // Y as calculated from Diffie-Hellman
+      auto& pub_key = m_Establisher->phase2.pub_key;
+      info += ("[pub key Y] ");
+      info += GetFormattedHex(pub_key.data(), pub_key.size());
+      // Hash of X concat with Y
+      auto& hxy = m_Establisher->phase2.encrypted.hxy;
+      info += ("[hash of XY] ");
+      info += GetFormattedHex(hxy.data(), hxy.size());
+      // Bob's timestamp
+      auto& ts_B = m_Establisher->phase2.encrypted.timestamp;
+      info += ("[timestamp B] ");
+      info += GetFormattedHex(reinterpret_cast<const std::uint8_t *>(&ts_B), sizeof(ts_B));
+      // Padding
+      auto& rand = m_Establisher->phase2.encrypted.padding;
+      info += ("[random padding] ");
+      info += GetFormattedHex(rand.data(), rand.size());
+      break;
+    }
+    // TODO(anonimal): finish
+    case Phase::Three:
+    case Phase::Four:
+    default:
+      break;
+  };
+  return info;
 }
 
 }  // namespace core

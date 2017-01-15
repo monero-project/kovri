@@ -69,7 +69,7 @@ class NTCPSession
  public:
   NTCPSession(
       NTCPServer& server,
-      std::shared_ptr<const kovri::core::RouterInfo> in_RemoteRouter = nullptr);
+      std::shared_ptr<const kovri::core::RouterInfo> remote_router = nullptr);
 
   ~NTCPSession();
 

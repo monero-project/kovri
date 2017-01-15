@@ -90,36 +90,23 @@ void HTTPProxyHandler::Handle() {
 
 void HTTPProxyHandler::AsyncSockRead(
     std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
-  //  TODO(guzzi) but there's also use cases where you are providing an inproxy
-  //  service for
-  //  others
-  //   00:27 < zzz2> for a full threat model including "slowloris" attacks,
-  //   you need to
-  //   enforce max header lines, max header line length
-  //   and a total header timeout
-  //  00:27 < zzz2> (in addition to the typical read timeout)
-  //  read in header until \r\n\r\n, then read in small portions of body
-  //  and forward along
+  // TODO(guzzi) but there's also use cases where you are providing an inproxy
+  // service for
+  // others
+  // 00:27 < zzz2> for a full threat model including "slowloris" attacks,
+  // you need to
+  // enforce max header lines, max header line length
+  // and a total header timeout
+  // 00:27 < zzz2> (in addition to the typical read timeout)
+  // read in header until \r\n\r\n, then read in small portions of body
+  // and forward along
   // Read the request headers, which are terminated by a blank line.
-  // TODO(guzzi) timeout needed.
+  // TODO(guzzi)
   // unit test: One example is the addressbook unit-test I merged earlier.
   // You can see how it works purely on stream data and not any actual file/disk
   // i/o
 
   boost::system::error_code read_result;
-  /*
-  boost::optional<boost::system::error_code> timer_result;
-  boost::asio::io_service& service = socket->get_io_service();
-  boost::asio::deadline_timer timer(service);
-  timer.expires_from_now(boost::posix_time::milliseconds(100000));
-  // 100 seconds
-  timer.async_wait(
-      boost::bind(
-          &HTTPProxyHandler::set_result,
-          shared_from_this(),
-          &timer_result,
-          boost::asio::placeholders::error));
-  */
   boost::asio::async_read_until(
       *socket,
       m_Protocol.m_Buffer,
@@ -130,30 +117,6 @@ void HTTPProxyHandler::AsyncSockRead(
           read_result,
           boost::asio::placeholders::bytes_transferred));
   boost::system::error_code ec;
-  /*
-  while (1) {
-    if (socket) {
-      socket->get_io_service().reset();
-      socket->get_io_service().poll_one(ec);
-      if (read_result) {
-        timer.cancel();  // cancel the timeout operation as
-        // it has not completed yet
-        return;
-      } else if (timer_result) {
-        LogPrint(
-            eLogDebug,
-            "AsyncHandleRead: error timer expired: ",
-            m_Protocol.m_Buffer.size());
-        Terminate(); // this is causing further a crash. suspect 
-        // further reads are not aware socket is destroyed.
-        return;
-      }
-    } else {
-      timer.cancel();  // cancel the timeout operation as socket is null
-      return;
-    }
-  }
-  */
 }
 void HTTPProxyHandler::AsyncHandleReadHeaders(
     const boost::system::error_code& error,
@@ -174,25 +137,6 @@ void HTTPProxyHandler::AsyncHandleReadHeaders(
     HTTPRequestFailed();  // calls Terminate
     return;
   }
-  /*
-  if (!m_Protocol.CreateHTTPRequest()) {
-    LogPrint(
-        eLogDebug,
-        "AsyncHandleRead: error call CreatHTTPRequest() ",
-        "check http proxy");
-    HTTPRequestFailed();  // calls Terminate
-    return;
-  }
-  */
-  //  request->streambuf.size() is not necessarily the same
-  //  as bytes_transferred, from Boost-docs:
-  //  "After a successful async_read_until operation, the streambuf
-  //  may contain additional data beyond the delimiter"
-  //  The chosen solution is to extract lines from the stream directly
-  //  when parsing the header. What is left of the
-  //  streambuf (maybe some bytes of the content) is appended to in the
-  //  async_read-function below (for retrieving content).
-  //  other sites to test post: tracker2.postman.i2p and trac.i2p2.i2p
   size_t num_additional_bytes = m_Protocol.m_Buffer.size() - bytes_transfered;
   if (num_additional_bytes > 0) {
     // make m_Buffer into string
@@ -249,7 +193,9 @@ void HTTPProxyHandler::HandleSockRecv(
   // TODO(guzzi) should not read entire body into memory
   // instead read a buffer full ie 512 bytes and I2pconnect and send.
   // if we read some buffer into the body buffer variable then save it to m_body
-  if (bytes_transferred!=0) {
+  // will need another function handler call that loops itself until all is read
+  // and then finishes up below. if 0 is read it instead closes the connection
+  if (bytes_transferred != 0) {
     boost::asio::streambuf::const_buffers_type bufs
         = m_Protocol.m_BodyBuffer.data();
     std::string str(
@@ -331,15 +277,6 @@ void HTTPProxyHandler::HandleStreamRequestComplete(
     connection->I2PConnect(
         reinterpret_cast<const uint8_t*>(m_Protocol.m_Request.c_str()),
         m_Protocol.m_Request.size());
-    /*
-    boost::asio::streambuf bodyBuffer;
-    size_t bytes_transfered;
-    do {
-      boost::asio::async_read(s, boost::asio::buffer(bodyBuffer, 1000), handler);
-    } (while bytes_transfered !=0)
-    */
-    // change here to read some body and send along instead of sending
-    // entire body in one go.
     Done(shared_from_this());
   } else {
     LogPrint(

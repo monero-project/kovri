@@ -314,16 +314,15 @@ class HTTPProxyHandler
     std::size_t bytes_transfered);
 
  private:
-  /// @brief read from a socket
-  /*****************************************
-   *AsyncRead Tree
+  /*! @brief read from a socket
+   *
    *AsyncSockRead             - perform async read
    *  -AsyncHandleReadHeaders - handle read header info
    *    -HTTPProtocol::HandleData   - handle header info
    *    -HandleSockRecv       - read body if needed
    *      -HTTPProtocol::CreateHTTPStreamRequest -  create stream request
    *      -HandleStreamRequestComplete           -  connect to i2p tunnel
-   ****************************************/
+   */
   void AsyncSockRead(std::shared_ptr<boost::asio::ip::tcp::socket> socket);
   // @brief handle read data
   void AsyncHandleReadHeaders(const boost::system::error_code & error,

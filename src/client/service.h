@@ -33,8 +33,6 @@
 #ifndef SRC_CLIENT_SERVICE_H_
 #define SRC_CLIENT_SERVICE_H_
 
-#include <boost/asio.hpp>
-
 #include <atomic>
 #include <memory>
 #include <mutex>
@@ -42,7 +40,7 @@
 #include <unordered_set>
 
 #include "client/destination.h"
-
+#include <boost/asio.hpp>
 #include "core/router/identity.h"
 
 namespace kovri {
@@ -62,7 +60,7 @@ class I2PService {
   virtual ~I2PService() { ClearHandlers(); }
   /// @brief add a hander to set
   /// @param conn I2pService pointer handler to add
-  inline void AddHandler(
+ inline void AddHandler(
       std::shared_ptr<I2PServiceHandler> conn) {
     std::unique_lock<std::mutex> l(m_HandlersMutex);
     m_Handlers.insert(conn);
@@ -84,7 +82,7 @@ class I2PService {
     return m_LocalDestination;
   }
   /// @brief Set new member local destination
-  /// @param dest pointer of type ClientDestination
+ /// @param dest pointer of type ClientDestination
   inline void SetLocalDestination(
       std::shared_ptr<ClientDestination> dest) {
     m_LocalDestination = dest;
@@ -92,7 +90,7 @@ class I2PService {
   /// @brief create a stream to a destination
   /// @param stream_request_complete
   /// @param port send port
-  void CreateStream(
+ void CreateStream(
       StreamRequestComplete stream_request_complete,
       const std::string& dest,
       std::uint16_t port = 0);
@@ -109,10 +107,12 @@ class I2PService {
 
   /// @brief return name of service. must override;
   /// different services return strings to name them;
-  virtual std::string GetName() const = 0;
+ virtual std::string GetName() const = 0;
 
  private:
+  /// pointer to localDestination
   std::shared_ptr<ClientDestination> m_LocalDestination;
+  /// set of handlers
   std::unordered_set<std::shared_ptr<I2PServiceHandler> > m_Handlers;
   std::mutex m_HandlersMutex;
 };
@@ -150,7 +150,6 @@ class I2PServiceHandler {
   I2PService* m_Service;
   std::atomic<bool> m_Dead;  // To avoid cleaning up multiple times
 };
-
 /**
  * TODO(unassigned): support IPv6 too
  * This is a service that listens for connections on
@@ -203,7 +202,7 @@ class TCPIPAcceptor : public I2PService {
       std::uint16_t port);
   /// @brief get the endpoint
   // @return the endpoint this TCPIPAcceptor is bound on
-  boost::asio::ip::tcp::endpoint GetEndpoint() const {
+ boost::asio::ip::tcp::endpoint GetEndpoint() const {
     return m_Acceptor.local_endpoint();
   }
 

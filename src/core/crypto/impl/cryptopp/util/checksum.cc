@@ -56,8 +56,7 @@ class Adler32::Adler32Impl {
           input,
           length);
     } catch (CryptoPP::Exception e) {
-      LogPrint(eLogError,
-          "Adler32: CalculateDigest() caught exception '", e.what(), "'");
+      LOG(error) << "Adler32: " << __func__ << " caught exception '" << e.what() << "'";
     }
   }
 

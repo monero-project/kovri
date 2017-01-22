@@ -62,7 +62,7 @@ bool HTTP::Download(
 
 bool HTTP::Download() {
   if (!GetURI().is_valid()) {
-    LogPrint(eLogError, "URI: invalid URI");
+    LOG(error) << "URI: invalid URI";
     return false;
   }
   // TODO(anonimal): ideally, we simply swapout the request/response handler
@@ -107,7 +107,7 @@ bool HTTP::DownloadViaClearnet() {
     const std::string cert = uri.host() + ".crt";
     const boost::filesystem::path cert_path = kovri::core::GetSSLCertsPath() / cert;
     if (!boost::filesystem::exists(cert_path)) {
-      LogPrint(eLogError, "HTTP: certificate unavailable: ", cert_path);
+      LOG(error) << "HTTP: certificate unavailable: " << cert_path;
       return false;
     }
     // Set SSL options
@@ -164,22 +164,22 @@ bool HTTP::DownloadViaClearnet() {
           break;
         // File requested is unchanged since previous download
         case static_cast<std::uint16_t>(ResponseCode::HTTP_NOT_MODIFIED):
-          LogPrint(eLogInfo, "HTTP: no new updates available from ", uri.host());
+          LOG(info) << "HTTP: no new updates available from " << uri.host();
           break;
         // Useless response code
         default:
-          LogPrint(eLogWarn, "HTTP: response code: ", response.status());
+          LOG(warning) << "HTTP: response code: " << response.status();
           return false;
       }
     } catch (const std::exception& ex) {
-      LogPrint(eLogError, "HTTP: unable to complete download: ", ex.what());
+      LOG(error) << "HTTP: unable to complete download: " << ex.what();
       return false;
     } catch (const std::exception_ptr& ex) {
-      LogPrint(eLogError, "HTTP: caught exception_ptr, rethrowing exception");
+      LOG(error) << "HTTP: caught exception_ptr, rethrowing exception";
       std::rethrow_exception(ex);
     }
   } catch (const boost::system::system_error& ex) {
-    LogPrint(eLogError, "HTTP: ", boost::diagnostic_information(ex));
+    LOG(error) << "HTTP: " << boost::diagnostic_information(ex);
     return false;
   }
   return true;
@@ -220,12 +220,11 @@ bool HTTP::DownloadViaI2P() {
               std::chrono::seconds(
                   static_cast<std::uint8_t>(Timeout::Request)))
           == std::cv_status::timeout)
-        LogPrint(eLogError, "HTTP: lease-set request timeout expired");
+        LOG(error) << "HTTP: lease-set request timeout expired";
     }
     // Test against requested lease-set
     if (!lease_set) {
-      LogPrint(eLogError,
-          "HTTP: lease-set for address ", uri.host(), " not found");
+      LOG(error) << "HTTP: lease-set for address " << uri.host() << " not found";
     } else {
       PrepareI2PRequest();  // TODO(anonimal): remove after refactor
       // Send request
@@ -262,14 +261,14 @@ bool HTTP::DownloadViaI2P() {
                 std::chrono::seconds(
                     static_cast<std::uint8_t>(Timeout::Request)))
             == std::cv_status::timeout)
-          LogPrint(eLogError,"HTTP: in-net timeout expired");
+          LOG(error) << "HTTP: in-net timeout expired";
       }
       // Process remaining buffer
       while (std::size_t len = stream->ReadSome(buf.data(), buf.size()))
         m_Response.write(reinterpret_cast<char *>(buf.data()), len);
     }
   } else {
-    LogPrint(eLogError, "HTTP: can't resolve I2P address: ", uri.host());
+    LOG(error) << "HTTP: can't resolve I2P address: " << uri.host();
     return false;
   }
   return ProcessI2PResponse();  // TODO(anonimal): remove after refactor
@@ -344,9 +343,9 @@ bool HTTP::ProcessI2PResponse() {
     }
   } else if (response_code
              == static_cast<std::uint16_t>(ResponseCode::HTTP_NOT_MODIFIED)) {
-    LogPrint(eLogInfo, "HTTP: no new updates available from ", GetURI().host());
+    LOG(info) << "HTTP: no new updates available from " << GetURI().host();
   } else {
-    LogPrint(eLogWarn, "HTTP: response code: ", response_code);
+    LOG(warning) << "HTTP: response code: " << response_code;
     return false;
   }
   return true;
@@ -378,8 +377,7 @@ void HTTP::MergeI2PChunkedResponse(
       merged.write(buf.get(), len);
       std::getline(response, hex);  // read \r\n after chunk
     } else {
-      LogPrint(eLogError,
-          "HTTP: stream error, unable to read line from chunked response");
+      LOG(error) << "HTTP: stream error, unable to read line from chunked response";
       break;
     }
   }

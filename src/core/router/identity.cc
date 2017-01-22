@@ -166,9 +166,9 @@ IdentityEx::IdentityEx(
         break;
       }
       default:
-        LogPrint(eLogWarn,
-            "IdentityEx: signing key type ",
-            static_cast<int>(type), " is not supported");
+        LOG(warning)
+          << "IdentityEx: signing key type "
+          << static_cast<int>(type) << " is not supported";
     }
     m_ExtendedLen = 4 + excess_len;  // 4 bytes extra + excess length
     // fill certificate
@@ -250,7 +250,7 @@ std::size_t IdentityEx::FromBuffer(
     const std::uint8_t* buf,
     std::size_t len) {
   if (len < DEFAULT_IDENTITY_SIZE) {
-    LogPrint(eLogError, "IdentityEx: identity buffer length ", len, " is too small");
+    LOG(error) << "IdentityEx: identity buffer length " << len << " is too small";
     return 0;
   }
   m_ExtendedLen = 0;
@@ -262,9 +262,9 @@ std::size_t IdentityEx::FromBuffer(
       m_ExtendedBuffer = std::make_unique<std::uint8_t[]>(m_ExtendedLen);
       memcpy(m_ExtendedBuffer.get(), buf + DEFAULT_IDENTITY_SIZE, m_ExtendedLen);
     } else {
-      LogPrint(eLogError,
-          "IdentityEx: certificate length ", m_ExtendedLen,
-          " exceeds buffer length ", len - DEFAULT_IDENTITY_SIZE);
+      LOG(error)
+        << "IdentityEx: certificate length " << m_ExtendedLen
+        << " exceeds buffer length " << len - DEFAULT_IDENTITY_SIZE;
       return 0;
     }
   }
@@ -406,9 +406,9 @@ void IdentityEx::CreateVerifier() const  {
       break;
     }
     default:
-      LogPrint(eLogWarn,
-          "IdentityEx: signing key type ",
-          static_cast<int>(key_type), " is not supported");
+      LOG(warning)
+        << "IdentityEx: signing key type "
+        << static_cast<int>(key_type) << " is not supported";
   }
 }
 
@@ -532,9 +532,10 @@ void PrivateKeys::CreateSigner() {
       m_Signer = std::make_unique<kovri::core::EDDSA25519Signer>(m_SigningPrivateKey);
     break;
     default:
-      LogPrint(eLogWarn,
-          "IdentityEx: Signing key type ",
-          static_cast<int>(m_Public.GetSigningKeyType()), " is not supported");
+      LOG(warning)
+        << "IdentityEx: Signing key type "
+        << static_cast<int>(m_Public.GetSigningKeyType())
+        << " is not supported";
   }
 }
 
@@ -582,9 +583,9 @@ PrivateKeys PrivateKeys::CreateRandomKeys(SigningKeyType type) {
           signing_public_key);
     break;
     default:
-      LogPrint(eLogWarn,
-          "IdentityEx: Signing key type ",
-          static_cast<int>(type), " is not supported, creating DSA-SHA1");
+      LOG(warning)
+        << "IdentityEx: Signing key type "
+        << static_cast<int>(type) << " is not supported, creating DSA-SHA1";
     case SIGNING_KEY_TYPE_DSA_SHA1:
       return PrivateKeys(kovri::core::CreateRandomKeys());  // DSA-SHA1
   }

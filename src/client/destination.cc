@@ -84,7 +84,7 @@ ClientDestination::ClientDestination(
       int len = boost::lexical_cast<int>(it->second);
       if (len > 0) {
         inbound_tunnel_len = len;
-        LogPrint(eLogDebug, "ClientDestination: inbound tunnel length set to ", len);
+        LOG(debug) << "ClientDestination: inbound tunnel length set to " << len;
       }
     }
     it = params->find(I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH);
@@ -92,8 +92,8 @@ ClientDestination::ClientDestination(
       int len = boost::lexical_cast<int>(it->second);
       if (len > 0) {
         outbound_tunnel_len = len;
-        LogPrint(eLogDebug,
-            "ClientDestination: outbound tunnel length set to ", len);
+        LOG(debug)
+          << "ClientDestination: outbound tunnel length set to " << len;
       }
     }
     it = params->find(I2CP_PARAM_INBOUND_TUNNELS_QUANTITY);
@@ -101,8 +101,8 @@ ClientDestination::ClientDestination(
       int quantity = boost::lexical_cast<int>(it->second);
       if (quantity > 0) {
         inbound_tunnels_quantity = quantity;
-        LogPrint(eLogDebug,
-            "ClientDestination: inbound tunnels quantity set to ", quantity);
+        LOG(debug)
+          << "ClientDestination: inbound tunnels quantity set to " << quantity;
       }
     }
     it = params->find(I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY);
@@ -110,8 +110,8 @@ ClientDestination::ClientDestination(
       int quantity = boost::lexical_cast<int>(it->second);
       if (quantity > 0) {
         outbound_tunnels_quantity = quantity;
-        LogPrint(eLogDebug,
-            "ClientDestination: outbound tunnels quantity set to ", quantity);
+        LOG(debug)
+          << "ClientDestination: outbound tunnels quantity set to " << quantity;
       }
     }
     it = params->find(I2CP_PARAM_EXPLICIT_PEERS);
@@ -124,8 +124,7 @@ ClientDestination::ClientDestination(
         ident.FromBase64(b64);
         explicit_peers->push_back(ident);
       }
-      LogPrint(eLogDebug,
-          "ClientDestination: explicit peers set to ", it->second);
+      LOG(debug) << "ClientDestination: explicit peers set to " << it->second;
     }
   }
   m_Pool =
@@ -138,9 +137,9 @@ ClientDestination::ClientDestination(
   if (explicit_peers)
     m_Pool->SetExplicitPeers(explicit_peers);
   if (m_IsPublic)
-    LogPrint(eLogDebug,
-        "ClientDestination: created local address ",
-        kovri::core::GetB32Address(GetIdentHash()));
+    LOG(debug)
+      << "ClientDestination: created local address "
+      << kovri::core::GetB32Address(GetIdentHash());
   // TODO(unassigned): ???
   m_StreamingDestination =
     std::make_shared<kovri::client::StreamingDestination> (*this);
@@ -160,8 +159,7 @@ void ClientDestination::Run() {
     try {
       m_Service.run();
     } catch (std::exception& ex) {
-      LogPrint(eLogError,
-          "ClientDestination::Run() exception: ", ex.what());
+      LOG(error) << "ClientDestination::Run() exception: " << ex.what();
     }
   }
 }
@@ -221,8 +219,7 @@ std::shared_ptr<const kovri::core::LeaseSet> ClientDestination::FindLeaseSet(
     if (it->second->HasNonExpiredLeases())
       return it->second;
     else
-      LogPrint(eLogDebug,
-          "ClientDestination: all leases of remote LeaseSet expired");
+      LOG(debug) << "ClientDestination: all leases of remote LeaseSet expired";
   } else {
     auto ls = kovri::core::netdb.FindLeaseSet(ident);
     if (ls) {
@@ -324,22 +321,21 @@ void ClientDestination::HandleDatabaseStoreMessage(
   std::uint32_t reply_token = bufbe32toh(buf + kovri::core::DATABASE_STORE_REPLY_TOKEN_OFFSET);
   std::size_t offset = kovri::core::DATABASE_STORE_HEADER_SIZE;
   if (reply_token) {
-    LogPrint(eLogDebug,
-        "ClientDestination: reply token is ignored for DatabaseStore");
+    LOG(debug) << "ClientDestination: reply token is ignored for DatabaseStore";
     offset += 36;
   }
   // LeaseSet
   std::shared_ptr<kovri::core::LeaseSet> lease_set;
   if (buf[kovri::core::DATABASE_STORE_TYPE_OFFSET] == 1) {
-    LogPrint(eLogDebug, "ClientDestination: remote LeaseSet");
+    LOG(debug) << "ClientDestination: remote LeaseSet";
     auto it = m_RemoteLeaseSets.find(buf + kovri::core::DATABASE_STORE_KEY_OFFSET);
     if (it != m_RemoteLeaseSets.end()) {
       lease_set = it->second;
       lease_set->Update(buf + offset, len - offset);
       if (lease_set->IsValid()) {
-        LogPrint(eLogDebug, "ClientDestination: remote LeaseSet updated");
+        LOG(debug) << "ClientDestination: remote LeaseSet updated";
       } else {
-        LogPrint(eLogError, "ClientDestination: remote LeaseSet update failed");
+        LOG(error) << "ClientDestination: remote LeaseSet update failed";
         m_RemoteLeaseSets.erase(it);
         lease_set = nullptr;
       }
@@ -347,18 +343,17 @@ void ClientDestination::HandleDatabaseStoreMessage(
       lease_set =
         std::make_shared<kovri::core::LeaseSet> (buf + offset, len - offset);
       if (lease_set->IsValid()) {
-        LogPrint(eLogDebug, "ClientDestination: new remote LeaseSet added");
+        LOG(debug) << "ClientDestination: new remote LeaseSet added";
         m_RemoteLeaseSets[buf + kovri::core::DATABASE_STORE_KEY_OFFSET] = lease_set;
       } else {
-        LogPrint(eLogError,
-            "ClientDestination: new remote LeaseSet verification failed");
+        LOG(error) << "ClientDestination: new remote LeaseSet verification failed";
         lease_set = nullptr;
       }
     }
   } else {
-    LogPrint(eLogError,
-        "ClientDestination: unexpected client's DatabaseStore type ",
-        buf[kovri::core::DATABASE_STORE_TYPE_OFFSET], ". Dropped");
+    LOG(error)
+      << "ClientDestination: unexpected client's DatabaseStore type "
+      << buf[kovri::core::DATABASE_STORE_TYPE_OFFSET] << ". Dropped";
   }
   auto it1 = m_LeaseSetRequests.find(buf + kovri::core::DATABASE_STORE_KEY_OFFSET);
   if (it1 != m_LeaseSetRequests.end()) {
@@ -375,9 +370,9 @@ void ClientDestination::HandleDatabaseSearchReplyMessage(
     std::size_t) {
   kovri::core::IdentHash key(buf);
   int num = buf[32];  // num
-  LogPrint(eLogDebug,
-      "ClientDestination: DatabaseSearchReply for ",
-      key.ToBase64(), " num=", num);
+  LOG(debug)
+    << "ClientDestination: DatabaseSearchReply for "
+    << key.ToBase64() << " num=" << num;
   auto it = m_LeaseSetRequests.find(key);
   if (it != m_LeaseSetRequests.end()) {
     LeaseSetRequest* request = it->second;
@@ -387,24 +382,23 @@ void ClientDestination::HandleDatabaseSearchReplyMessage(
         kovri::core::IdentHash peer_hash(buf + 33 + i * 32);
         auto floodfill = kovri::core::netdb.FindRouter(peer_hash);
         if (floodfill) {
-          LogPrint(eLogDebug,
-              "ClientDestination: requesting ",
-              key.ToBase64(), " at ", peer_hash.ToBase64());
+          LOG(debug)
+            << "ClientDestination: requesting "
+            << key.ToBase64() << " at " << peer_hash.ToBase64();
           if (SendLeaseSetRequest(key, floodfill, request))
             found = true;
         } else {
-          LogPrint(eLogDebug,
-              "ClientDestination: found new floodfill, requesting it");
+          LOG(debug) << "ClientDestination: found new floodfill, requesting it";
           kovri::core::netdb.RequestDestination(peer_hash);
         }
       }
       if (!found)
-        LogPrint(eLogError,
-            "ClientDestination: suggested floodfills are not presented in NetDb");
+        LOG(error)
+          << "ClientDestination: suggested floodfills are not presented in NetDb";
     } else {
-      LogPrint(eLogDebug,
-          "ClientDestination: ", key.ToBase64(), " was not found on ",
-          MAX_NUM_FLOODFILLS_PER_REQUEST, " floodfills");
+      LOG(debug)
+        << "ClientDestination: " << key.ToBase64() << " was not found on "
+        << MAX_NUM_FLOODFILLS_PER_REQUEST << " floodfills";
     }
     if (!found) {
       if (request->request_complete)
@@ -413,8 +407,8 @@ void ClientDestination::HandleDatabaseSearchReplyMessage(
       m_LeaseSetRequests.erase(key);
     }
   } else {
-    LogPrint(eLogWarn,
-        "ClientDestination: request for ", key.ToBase64(), " not found");
+    LOG(warning)
+      << "ClientDestination: request for " << key.ToBase64() << " not found";
   }
 }
 
@@ -423,7 +417,7 @@ void ClientDestination::HandleDeliveryStatusMessage(
   std::uint32_t msg_ID =
     bufbe32toh(msg->GetPayload() + kovri::core::DELIVERY_STATUS_MSGID_OFFSET);
   if (msg_ID == m_PublishReplyToken) {
-    LogPrint(eLogDebug, "ClientDestination: publishing confirmed");
+    LOG(debug) << "ClientDestination: publishing confirmed";
     m_ExcludedFloodfills.clear();
     m_PublishReplyToken = 0;
   } else {
@@ -440,18 +434,16 @@ void ClientDestination::SetLeaseSetUpdated() {
 
 void ClientDestination::Publish() {
   if (!m_LeaseSet || !m_Pool) {
-    LogPrint(eLogError,
-        "ClientDestination: can't publish non-existing LeaseSet");
+    LOG(error) << "ClientDestination: can't publish non-existing LeaseSet";
     return;
   }
   if (m_PublishReplyToken) {
-    LogPrint(eLogDebug, "Publishing is pending");
+    LOG(debug) << "Publishing is pending";
     return;
   }
   auto outbound = m_Pool->GetNextOutboundTunnel();
   if (!outbound) {
-    LogPrint(eLogError,
-        "ClientDestination: can't publish LeaseSet, no outbound tunnels");
+    LOG(error) << "ClientDestination: can't publish LeaseSet, no outbound tunnels";
     return;
   }
   std::set<kovri::core::IdentHash> excluded;
@@ -460,14 +452,14 @@ void ClientDestination::Publish() {
         m_LeaseSet->GetIdentHash(),
         m_ExcludedFloodfills);
   if (!floodfill) {
-    LogPrint(eLogError,
-        "ClientDestination: can't publish LeaseSet, no more floodfills found");
+    LOG(error)
+      << "ClientDestination: can't publish LeaseSet, no more floodfills found";
     m_ExcludedFloodfills.clear();
     return;
   }
   m_ExcludedFloodfills.insert(floodfill->GetIdentHash());
-  LogPrint(eLogDebug,
-      "ClientDestination: publish LeaseSet of ", GetIdentHash().ToBase32());
+  LOG(debug)
+    << "ClientDestination: publish LeaseSet of " << GetIdentHash().ToBase32();
   m_PublishReplyToken = kovri::core::Rand<std::uint32_t>();
   auto msg =
     WrapMessage(
@@ -490,9 +482,9 @@ void ClientDestination::HandlePublishConfirmationTimer(
     const boost::system::error_code& ecode) {
   if (ecode != boost::asio::error::operation_aborted) {
     if (m_PublishReplyToken) {
-      LogPrint(eLogWarn,
-          "ClientDestination: publish confirmation was not received in ",
-          PUBLISH_CONFIRMATION_TIMEOUT, " seconds. Trying again");
+      LOG(warning)
+        << "ClientDestination: publish confirmation was not received in "
+        << PUBLISH_CONFIRMATION_TIMEOUT << " seconds. Trying again";
       m_PublishReplyToken = 0;
       Publish();
     }
@@ -514,8 +506,7 @@ void ClientDestination::HandleDataMessage(
       if (dest)
         dest->HandleDataMessagePayload(buf, length);
       else
-        LogPrint(eLogWarn,
-            "ClientDestination: missing streaming destination");
+        LOG(warning) << "ClientDestination: missing streaming destination";
     }
     break;
     case PROTOCOL_TYPE_DATAGRAM:
@@ -527,12 +518,12 @@ void ClientDestination::HandleDataMessage(
             buf,
             length);
       else
-        LogPrint(eLogWarn,
-            "ClientDestination: missing streaming destination");
+        LOG(warning) << "ClientDestination: missing streaming destination";
     break;
     default:
-      LogPrint(eLogWarn,
-          "ClientDestination: HandleDataMessage(): unexpected protocol ", buf[9]);
+      LOG(warning)
+        << "ClientDestination: " << __func__
+        << ": unexpected protocol " << buf[9];  // TODO(unassigned): refactor
   }
 }
 
@@ -661,15 +652,16 @@ void ClientDestination::RequestLeaseSet(
         m_LeaseSetRequests.erase(dest);
       }
     } else {  // duplicate
-      LogPrint(eLogError,
-          "ClientDestination: request of ", dest.ToBase64(), " is pending already");
+      LOG(error)
+        << "ClientDestination: request of "
+        << dest.ToBase64() << " is pending already";
       // TODO(unassigned): queue up requests
       if (request->request_complete)
         request->request_complete(nullptr);
       delete request;
     }
   } else {
-    LogPrint(eLogError, "ClientDestination: no floodfills found");
+    LOG(error) << "ClientDestination: no floodfills found";
   }
 }
 
@@ -679,10 +671,10 @@ bool ClientDestination::SendLeaseSetRequest(
     LeaseSetRequest* request) {
   auto reply_tunnel = m_Pool->GetNextInboundTunnel();
   if (!reply_tunnel)
-    LogPrint(eLogError, "ClientDestination: no inbound tunnels found");
+    LOG(error) << "ClientDestination: no inbound tunnels found";
   auto outbound_tunnel = m_Pool->GetNextOutboundTunnel();
   if (!outbound_tunnel)
-    LogPrint(eLogError, "ClientDestination: no outbound tunnels found");
+    LOG(error) << "ClientDestination: no outbound tunnels found";
   if (reply_tunnel && outbound_tunnel) {
     request->excluded.insert(next_floodfill->GetIdentHash());
     request->request_time = kovri::core::GetSecondsSinceEpoch();
@@ -741,10 +733,10 @@ void ClientDestination::HandleRequestTimoutTimer(
         else
           done = true;
       } else {
-        LogPrint(eLogDebug,
-            "ClientDestination: ",
-            dest.ToBase64(), " was not found within ",
-            MAX_LEASESET_REQUEST_TIMEOUT, " seconds");
+        LOG(debug)
+          << "ClientDestination: "
+          << dest.ToBase64() << " was not found within "
+          << MAX_LEASESET_REQUEST_TIMEOUT << " seconds";
         done = true;
       }
       if (done) {
@@ -776,9 +768,9 @@ void ClientDestination::HandleCleanupTimer(
 void ClientDestination::CleanupRemoteLeaseSets() {
   for (auto it = m_RemoteLeaseSets.begin(); it != m_RemoteLeaseSets.end();) {
     if (!it->second->HasNonExpiredLeases()) {  // all leases expired
-      LogPrint(eLogDebug,
-          "ClientDestination: remote LeaseSet ",
-          it->second->GetIdentHash().ToBase64(), " expired");
+      LOG(debug)
+        << "ClientDestination: remote LeaseSet "
+        << it->second->GetIdentHash().ToBase64() << " expired";
       it = m_RemoteLeaseSets.erase(it);
     } else {
       it++;

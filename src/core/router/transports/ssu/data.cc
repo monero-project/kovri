@@ -52,8 +52,9 @@ void IncompleteMessage::AttachNextFragment(
     const std::uint8_t* fragment,
     std::size_t fragment_size) {
   if (msg->len + fragment_size > msg->max_len) {
-    LogPrint(eLogDebug,
-        "Transport: SSU I2NP message size ", msg->max_len, " is not enough");
+    LOG(debug)
+      << "Transport: SSU I2NP message size "
+      << msg->max_len << " is not enough";
     auto new_msg = ToSharedI2NPMessage(NewI2NPMessage());
     *new_msg = *msg;
     msg = new_msg;
@@ -81,12 +82,12 @@ SSUData::SSUData(
 SSUData::~SSUData() {}
 
 void SSUData::Start() {
-  LogPrint(eLogDebug, "SSUData: starting");
+  LOG(debug) << "SSUData: starting";
   ScheduleIncompleteMessagesCleanup();
 }
 
 void SSUData::Stop() {
-  LogPrint(eLogDebug, "SSUData: stopping");
+  LOG(debug) << "SSUData: stopping";
   m_ResendTimer.cancel();
   m_DecayTimer.cancel();
   m_IncompleteMessagesCleanupTimer.cancel();
@@ -94,8 +95,7 @@ void SSUData::Stop() {
 
 void SSUData::AdjustPacketSize(
     const kovri::core::RouterInfo& remote_router) {
-  LogPrint(eLogDebug,
-      "SSUData: adjusting packet size");
+  LOG(debug) << "SSUData: adjusting packet size";
   auto ssu_address = remote_router.GetSSUAddress();
   if (ssu_address && ssu_address->mtu) {
     if (m_Session.IsV6 ())
@@ -114,11 +114,11 @@ void SSUData::AdjustPacketSize(
       m_PacketSize <<= 4;
       if (m_PacketSize > m_MaxPacketSize)
         m_PacketSize = m_MaxPacketSize;
-      LogPrint(eLogDebug,
-          "SSUData:", m_Session.GetFormattedSessionInfo(),
-          "MTU=", ssu_address->mtu, " packet size=", m_PacketSize);
+      LOG(debug)
+        << "SSUData:" << m_Session.GetFormattedSessionInfo()
+        << "MTU=" << ssu_address->mtu << " packet size=" << m_PacketSize;
     } else {
-      LogPrint(eLogWarn, "SSUData: unexpected MTU ", ssu_address->mtu);
+      LOG(warning) << "SSUData: unexpected MTU " << ssu_address->mtu;
       m_PacketSize = m_MaxPacketSize;
     }
   }
@@ -126,9 +126,9 @@ void SSUData::AdjustPacketSize(
 
 void SSUData::UpdatePacketSize(
     const kovri::core::IdentHash& remote_ident) {
-  LogPrint(eLogDebug,
-      "SSUData:", m_Session.GetFormattedSessionInfo(),
-      "updating packet size");
+  LOG(debug)
+    << "SSUData:" << m_Session.GetFormattedSessionInfo()
+    << "updating packet size";
   auto router_info = kovri::core::netdb.FindRouter(remote_ident);
   if (router_info)
     AdjustPacketSize(*router_info);
@@ -137,7 +137,7 @@ void SSUData::UpdatePacketSize(
 void SSUData::ProcessSentMessageACK(
     std::uint32_t msg_id) {
   // TODO(unassigned): too spammy? keep?
-  //LogPrint(eLogDebug,
+  //LOG(debug) <<
       //"SSUData:", m_Session.GetFormattedSessionInfo(),
       //"processing sent message ACK");
   auto it = m_SentMessages.find(msg_id);
@@ -151,8 +151,8 @@ void SSUData::ProcessSentMessageACK(
 void SSUData::ProcessACKs(
     std::uint8_t*& buf,
     std::uint8_t flag) {
-  LogPrint(eLogDebug,
-      "SSUData:", m_Session.GetFormattedSessionInfo(), "processing ACKs");
+  LOG(debug)
+    << "SSUData:" << m_Session.GetFormattedSessionInfo() << "processing ACKs";
   if (flag & GetType(SSUFlag::DataExplicitACKsIncluded)) {
     // explicit ACKs
     auto num_ACKs = *buf;
@@ -198,9 +198,9 @@ void SSUData::ProcessACKs(
 
 void SSUData::ProcessFragments(
     std::uint8_t* buf) {
-  LogPrint(eLogDebug,
-      "SSUData:", m_Session.GetFormattedSessionInfo(),
-      "processing fragments");
+  LOG(debug)
+    << "SSUData:" << m_Session.GetFormattedSessionInfo()
+    << "processing fragments";
   auto num_fragments = *buf;  // number of fragments
   buf++;
   for (auto i = 0; i < num_fragments; i++) {
@@ -215,9 +215,9 @@ void SSUData::ProcessFragments(
     bool is_last = fragment_info & 0x010000;  // bit 16
     std::uint8_t fragment_num = fragment_info >> 17;  // bits 23 - 17
     if (fragment_size >= GetType(SSUSize::PacketMaxIPv4)) {
-      LogPrint(eLogError,
-          "SSUData:", m_Session.GetFormattedSessionInfo(),
-          "fragment size ", fragment_size, "exceeds max SSU packet size");
+      LOG(error)
+        << "SSUData:" << m_Session.GetFormattedSessionInfo()
+        << "fragment size " << fragment_size << "exceeds max SSU packet size";
       return;
     }
     //  find message with message ID
@@ -254,24 +254,24 @@ void SSUData::ProcessFragments(
           }
         }
         if (is_last)
-          LogPrint(eLogDebug,
-              "SSUData:", m_Session.GetFormattedSessionInfo(),
-              "message ", msg_id, " is complete");
+          LOG(debug)
+            << "SSUData:" << m_Session.GetFormattedSessionInfo()
+            << "message " << msg_id << " is complete";
       }
     } else {
       if (fragment_num < incomplete_message->next_fragment_num) {
         // duplicate fragment
-        LogPrint(eLogWarn,
-            "SSUData:", m_Session.GetFormattedSessionInfo(),
-            " ignoring duplicate fragment ", static_cast<int>(fragment_num),
-            " of message ", msg_id);
+        LOG(warning)
+          << "SSUData:" << m_Session.GetFormattedSessionInfo()
+          << " ignoring duplicate fragment " << static_cast<int>(fragment_num)
+          << " of message " << msg_id;
       } else {
         // missing fragment
-        LogPrint(eLogWarn,
-            "SSUData:", m_Session.GetFormattedSessionInfo(),
-            "missing fragments from ",
-            static_cast<int>(incomplete_message->next_fragment_num),
-            " to ", fragment_num - 1, " of message ", msg_id);
+        LOG(warning)
+          << "SSUData:" << m_Session.GetFormattedSessionInfo()
+          << "missing fragments from "
+          << static_cast<int>(incomplete_message->next_fragment_num)
+          << " to " << fragment_num - 1 << " of message " << msg_id;
         auto saved_fragment =
           std::make_unique<Fragment>(fragment_num, buf, fragment_size, is_last);
         if (incomplete_message->saved_fragments.insert(
@@ -279,10 +279,10 @@ void SSUData::ProcessFragments(
           incomplete_message->last_fragment_insert_time =
             kovri::core::GetSecondsSinceEpoch();
         else
-          LogPrint(eLogWarn,
-              "SSUData:", m_Session.GetFormattedSessionInfo(),
-              "fragment ", static_cast<int>(fragment_num),
-              " of message ", msg_id, " is already saved");
+          LOG(warning)
+            << "SSUData:" << m_Session.GetFormattedSessionInfo()
+            << "fragment " << static_cast<int>(fragment_num)
+            << " of message " << msg_id << " is already saved";
       }
       is_last = false;
     }
@@ -303,30 +303,30 @@ void SSUData::ProcessFragments(
           m_ReceivedMessages.insert(msg_id);
           m_Handler.PutNextMessage(msg);
         } else {
-          LogPrint(eLogWarn,
-              "SSUData:", m_Session.GetFormattedSessionInfo(),
-              "SSU message ", msg_id, " already received");
+          LOG(warning)
+            << "SSUData:" << m_Session.GetFormattedSessionInfo()
+            << "SSU message " << msg_id << " already received";
         }
       } else {
         auto I2NP_type = msg->GetTypeID();
         // we expect DeliveryStatus
         if (I2NP_type == I2NPDeliveryStatus) {
-          LogPrint(eLogDebug,
-              "SSUData:", m_Session.GetFormattedSessionInfo(),
-              "SSU session established");
+          LOG(debug)
+            << "SSUData:" << m_Session.GetFormattedSessionInfo()
+            << "SSU session established";
           m_Session.Established();
         } else if (I2NP_type == I2NPDatabaseStore) {
           // we got a database store message
-          LogPrint(eLogDebug,
-              "SSUData:", m_Session.GetFormattedSessionInfo(),
-              "Got DSM From SSU");
+          LOG(debug)
+            << "SSUData:" << m_Session.GetFormattedSessionInfo()
+            << "Got DSM From SSU";
           m_ReceivedMessages.insert(msg_id);
           m_Handler.PutNextMessage(msg);
         } else {
-          LogPrint(eLogError,
-              "SSUData:", m_Session.GetFormattedSessionInfo(),
-              "SSU unexpected message ",
-              static_cast<int>(msg->GetTypeID()));
+          LOG(error)
+            << "SSUData:" << m_Session.GetFormattedSessionInfo()
+            << "SSU unexpected message "
+            << static_cast<int>(msg->GetTypeID());
         }
       }
     } else {
@@ -337,9 +337,9 @@ void SSUData::ProcessFragments(
 }
 
 void SSUData::FlushReceivedMessage() {
-  LogPrint(eLogDebug,
-      "SSUData:", m_Session.GetFormattedSessionInfo(),
-      "flushing received message");
+  LOG(debug)
+    << "SSUData:" << m_Session.GetFormattedSessionInfo()
+    << "flushing received message";
   m_Handler.Flush();
 }
 
@@ -349,10 +349,10 @@ void SSUData::ProcessMessage(
   // std::uint8_t* start = buf;
   std::uint8_t flag = *buf;
   buf++;
-  LogPrint(eLogDebug,
-      "SSUData:", m_Session.GetFormattedSessionInfo(),
-      "processing message: flags=", static_cast<std::size_t>(flag),
-      " len=", len);
+  LOG(debug)
+    << "SSUData:" << m_Session.GetFormattedSessionInfo()
+    << "processing message: flags=" << static_cast<std::size_t>(flag)
+    << " len=" << len;
   // process acks if presented
   if (flag &
       (GetType(SSUFlag::DataACKBitfieldsIncluded) |
@@ -362,10 +362,10 @@ void SSUData::ProcessMessage(
   if (flag & GetType(SSUFlag::DataExtendedIncluded)) {
     std::uint8_t extended_data_size = *buf;
     buf++;  // size
-    LogPrint(eLogDebug,
-        "SSUData:", m_Session.GetFormattedSessionInfo(),
-        "SSU extended data of ",
-        static_cast<int>(extended_data_size), " bytes presented");
+    LOG(debug)
+      << "SSUData:" << m_Session.GetFormattedSessionInfo()
+      << "SSU extended data of "
+      << static_cast<int>(extended_data_size) << " bytes presented";
     buf += extended_data_size;
   }
   // process data
@@ -374,14 +374,14 @@ void SSUData::ProcessMessage(
 
 void SSUData::Send(
     std::shared_ptr<kovri::core::I2NPMessage> msg) {
-  LogPrint(eLogDebug,
-      "SSUData:", m_Session.GetFormattedSessionInfo(),
-      "sending message");
+  LOG(debug)
+    << "SSUData:" << m_Session.GetFormattedSessionInfo()
+    << "sending message";
   auto msg_id = msg->ToSSU();
   if (m_SentMessages.count(msg_id) > 0) {
-    LogPrint(eLogWarn,
-        "SSUData:", m_Session.GetFormattedSessionInfo(),
-        "message ", msg_id, " was already sent");
+    LOG(warning)
+      << "SSUData:" << m_Session.GetFormattedSessionInfo()
+      << "message " << msg_id << " was already sent";
     return;
   }
   if (m_SentMessages.empty())  // schedule resend at first message only
@@ -435,9 +435,9 @@ void SSUData::Send(
     try {
       m_Session.Send(buf, size);
     } catch (boost::system::system_error& ec) {
-      LogPrint(eLogError,
-          "SSUData:", m_Session.GetFormattedSessionInfo(),
-          "can't send SSU fragment: '", ec.what(), "'");
+      LOG(error)
+        << "SSUData:" << m_Session.GetFormattedSessionInfo()
+        << "can't send SSU fragment: '" << ec.what() << "'";
     }
     if (!is_last) {
       len -= payload_size;
@@ -451,9 +451,9 @@ void SSUData::Send(
 
 void SSUData::SendMsgACK(
     std::uint32_t msg_id) {
-  LogPrint(eLogDebug,
-      "SSUData:", m_Session.GetFormattedSessionInfo(),
-      "sending message ACK");
+  LOG(debug)
+    << "SSUData:" << m_Session.GetFormattedSessionInfo()
+    << "sending message ACK";
   // actual length is 44 = 37 + 7 but pad it to multiple of 16
   std::array<std::uint8_t, 48 + 18> buf;
   auto payload = buf.data() + GetType(SSUSize::HeaderMin);
@@ -472,13 +472,13 @@ void SSUData::SendMsgACK(
 void SSUData::SendFragmentACK(
     std::uint32_t msg_id,
     std::size_t fragment_num) {
-  LogPrint(eLogDebug,
-      "SSUData:", m_Session.GetFormattedSessionInfo(),
-      "sending fragment ACK");
+  LOG(debug)
+    << "SSUData:" << m_Session.GetFormattedSessionInfo()
+    << "sending fragment ACK";
   if (fragment_num > 64) {
-    LogPrint(eLogWarn,
-        "SSUData:", m_Session.GetFormattedSessionInfo(),
-        "fragment number ", fragment_num, " exceeds 64");
+    LOG(warning)
+      << "SSUData:" << m_Session.GetFormattedSessionInfo()
+      << "fragment number " << fragment_num << " exceeds 64";
     return;
   }
   std::array<std::uint8_t, 64 + 18> buf;  // TODO(unassigned): document values
@@ -503,9 +503,9 @@ void SSUData::SendFragmentACK(
 }
 
 void SSUData::ScheduleResend() {
-  LogPrint(eLogDebug,
-      "SSUData:", m_Session.GetFormattedSessionInfo(),
-      "scheduling resend");
+  LOG(debug)
+    << "SSUData:" << m_Session.GetFormattedSessionInfo()
+    << "scheduling resend";
   m_ResendTimer.cancel();
   m_ResendTimer.expires_from_now(
       boost::posix_time::seconds(
@@ -519,9 +519,9 @@ void SSUData::ScheduleResend() {
 
 void SSUData::HandleResendTimer(
     const boost::system::error_code& ecode) {
-  LogPrint(eLogDebug,
-      "SSUData:", m_Session.GetFormattedSessionInfo(),
-      "handling resend timer");
+  LOG(debug)
+    << "SSUData:" << m_Session.GetFormattedSessionInfo()
+    << "handling resend timer";
   if (ecode != boost::asio::error::operation_aborted) {
     auto ts = kovri::core::GetSecondsSinceEpoch();
     for (auto it = m_SentMessages.begin(); it != m_SentMessages.end();) {
@@ -532,9 +532,9 @@ void SSUData::HandleResendTimer(
               try {
                 m_Session.Send(fragment->buffer.data(), fragment->len);  // resend
               } catch (boost::system::system_error& ec) {
-                LogPrint(eLogError,
-                    "SSUData:", m_Session.GetFormattedSessionInfo(),
-                    "can't resend SSU fragment: '", ec.what(), "'");
+                LOG(error)
+                  << "SSUData:" << m_Session.GetFormattedSessionInfo()
+                  << "can't resend SSU fragment: '" << ec.what() << "'";
               }
             }
           it->second->num_resends++;
@@ -542,10 +542,10 @@ void SSUData::HandleResendTimer(
              += it->second->num_resends * GetType(SSUDuration::ResendInterval);
           it++;
         } else {
-          LogPrint(eLogError,
-              "SSUData:", m_Session.GetFormattedSessionInfo(),
-              "SSU message has not been ACKed after ",
-              static_cast<std::size_t>(SSUDuration::MaxResends), " attempts. Deleted");
+          LOG(error)
+            << "SSUData:" << m_Session.GetFormattedSessionInfo()
+            << "SSU message has not been ACKed after "
+            << static_cast<std::size_t>(SSUDuration::MaxResends) << " attempts. Deleted";
           it = m_SentMessages.erase(it);
         }
       } else {
@@ -557,9 +557,8 @@ void SSUData::HandleResendTimer(
 }
 
 void SSUData::ScheduleDecay() {
-  LogPrint(eLogDebug,
-      "SSUData:", m_Session.GetFormattedSessionInfo(),
-      "scheduling decay");
+  LOG(debug)
+    << "SSUData:" << m_Session.GetFormattedSessionInfo() << "scheduling decay";
   m_DecayTimer.cancel();
   m_DecayTimer.expires_from_now(
       boost::posix_time::seconds(
@@ -573,17 +572,17 @@ void SSUData::ScheduleDecay() {
 
 void SSUData::HandleDecayTimer(
     const boost::system::error_code& ecode) {
-  LogPrint(eLogDebug,
-      "SSUData:", m_Session.GetFormattedSessionInfo(),
-      "handling decay");
+  LOG(debug)
+    << "SSUData:" << m_Session.GetFormattedSessionInfo()
+    << "handling decay";
   if (ecode != boost::asio::error::operation_aborted)
     m_ReceivedMessages.clear();
 }
 
 void SSUData::ScheduleIncompleteMessagesCleanup() {
-  LogPrint(eLogDebug,
-      "SSUData:", m_Session.GetFormattedSessionInfo(),
-      "scheduling incomplete messages cleanup");
+  LOG(debug)
+    << "SSUData:" << m_Session.GetFormattedSessionInfo()
+    << "scheduling incomplete messages cleanup";
   m_IncompleteMessagesCleanupTimer.cancel();
   m_IncompleteMessagesCleanupTimer.expires_from_now(
       boost::posix_time::seconds(
@@ -597,18 +596,18 @@ void SSUData::ScheduleIncompleteMessagesCleanup() {
 
 void SSUData::HandleIncompleteMessagesCleanupTimer(
     const boost::system::error_code& ecode) {
-  LogPrint(eLogDebug,
-      "SSUData:", m_Session.GetFormattedSessionInfo(),
-      "handling incomplete messages cleanup");
+  LOG(debug)
+    << "SSUData:" << m_Session.GetFormattedSessionInfo()
+    << "handling incomplete messages cleanup";
   if (ecode != boost::asio::error::operation_aborted) {
     auto ts = kovri::core::GetSecondsSinceEpoch();
     auto timeout = GetType(SSUDuration::IncompleteMessagesCleanupTimeout);
     for (auto it = m_IncompleteMessages.begin(); it != m_IncompleteMessages.end();) {
       if (ts > it->second->last_fragment_insert_time + timeout) {
-        LogPrint(eLogError,
-            "SSUData:", m_Session.GetFormattedSessionInfo(),
-            "SSU message ", it->first, " was not completed in ",
-            timeout, " seconds. Deleted");
+        LOG(error)
+          << "SSUData:" << m_Session.GetFormattedSessionInfo()
+          << "SSU message " << it->first << " was not completed in "
+          << timeout << " seconds. Deleted";
         it = m_IncompleteMessages.erase(it);
       } else {
         it++;

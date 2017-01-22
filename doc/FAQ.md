@@ -11,7 +11,10 @@ Kovri is in active development and currently pre-alpha. Kovri is *not* yet integ
 Currently, you can use the Kovri to connect to (and partake in) the I2P network: browse eepsites, connect to IRC, and run client and server tunnels.
 
 ## When is your first release?
-An alpha release is in the works for a release this year (2016). Once other essential quality-assurance has been resolved and an API has been fully implemented, we will bring-forth a beta release.
+An alpha release is in the works for early 2017. Once other essential quality-assurance has been resolved and an API has been fully implemented, we will bring-forth a beta release.
+
+## Why does my log show a date/time different from my timezone?
+Logs are recorded in UTC to protect your privacy. By using UTC, you are in a better position to upload log pastes to share with developers or the community without impacting your anonymity.
 
 ## What is the development team currently focusing on?
 Currently, we are focusing on everything listed in our [issues tracker](https://github.com/monero-project/kovri/issues/). They cover a bulk of what we need to finish before an official release (alpha, beta, or greater).

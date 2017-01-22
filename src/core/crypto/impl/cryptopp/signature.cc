@@ -126,7 +126,9 @@ class DSASigner::DSASignerImpl {
     try {
       signer.SignMessage(prng, buf, len, signature);
     } catch (CryptoPP::Exception& e) {
-      LogPrint(eLogError, "DSASignerImpl: Sign() caught exception '", e.what(), "'");
+      LOG(error)
+        << "DSASignerImpl: " << __func__
+        << " caught exception '" << e.what() << "'";
     }
   }
 
@@ -170,7 +172,7 @@ void CreateDSARandomKeys(
         public_signing_key,
         DSA_PUBLIC_KEY_LENGTH);
   } catch (CryptoPP::Exception& e) {
-      LogPrint(eLogError, "CreateDSARandomKeys(): caught exception '", e.what(), "'");
+    LOG(error) << __func__ << ": caught exception '" << e.what() << "'";
   }
 }
 
@@ -245,7 +247,7 @@ class ECDSASigner : public Signer {
     try {
       signer.SignMessage(prng, buf, len, signature);
     } catch (CryptoPP::Exception& e) {
-      LogPrint(eLogError, "ECDSASigner: Sign() caught exception '", e.what(), "'");
+      LOG(error) << __func__ << ": caught exception '" << e.what() << "'";
     }
   }
 
@@ -275,7 +277,7 @@ inline void CreateECDSARandomKeys(
     q.x.Encode(public_signing_key, key_length / 2);
     q.y.Encode(public_signing_key + key_length / 2, key_length / 2);
   } catch (CryptoPP::Exception& e) {
-      LogPrint(eLogError, "CreateECDSARandomKeys(): caught exception '", e.what(), "'");
+    LOG(error) << __func__ << ": caught exception '" << e.what() << "'";
   }
 }
 
@@ -553,7 +555,8 @@ class RSASigner {
     try {
       signer.SignMessage(prng, buf, len, signature);
     } catch (CryptoPP::Exception& e) {
-      LogPrint(eLogError, "RSASigner: Sign() caught exception '", e.what(), "'");
+      LOG(error)
+        << "RSASigner: " << __func__ << " caught exception '" << e.what() << "'";
     }
   }
 
@@ -583,7 +586,7 @@ void CreateRSARandomKeys(
         public_signing_key,
         public_key_length);
   } catch (CryptoPP::Exception& e) {
-    LogPrint(eLogError, "CreateRSARandomKeys(): caught exception '", e.what(), "'");
+    LOG(error) << __func__ << " caught exception '" << e.what() << "'";
   }
 }
 

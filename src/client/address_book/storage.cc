@@ -61,8 +61,8 @@ bool AddressBookStorage::GetAddress(
   file.seekg(0, std::ios::end);
   const std::size_t len = file.tellg();
   if (len < kovri::core::DEFAULT_IDENTITY_SIZE) {
-    LogPrint(eLogError,
-        "AddressBookStorage: file ", filename, " is too short. ", len);
+    LOG(error)
+      << "AddressBookStorage: file " << filename << " is too short. " << len;
     return false;
   }
   file.seekg(0, std::ios::beg);
@@ -80,7 +80,7 @@ void AddressBookStorage::AddAddress(
   auto filename = GetAddressesPath() / (address.GetIdentHash().ToBase32() + ".b32");
   std::ofstream file(filename.string(), std::ofstream::binary);
   if (!file)
-    LogPrint(eLogError, "AddressBookStorage: can't open file ", filename);
+    LOG(error) << "AddressBookStorage: can't open file " << filename;
   const std::size_t len = address.GetFullLen();
   auto buf = std::make_unique<std::uint8_t[]>(len);
   // For sanity, the validity of identity length is incumbent upon the parent caller.
@@ -105,8 +105,7 @@ std::size_t AddressBookStorage::Load(
   auto filename = kovri::core::GetAddressBookPath() / GetDefaultAddressesFilename();
   std::ifstream file(filename.string());
   if (!file) {
-    LogPrint(eLogWarn,
-        "AddressBookStorage: ", filename, " not found");
+    LOG(warning) << "AddressBookStorage: " << filename << " not found";
   } else {
     addresses.clear();
     std::string host;
@@ -125,7 +124,7 @@ std::size_t AddressBookStorage::Load(
         num++;
       }
     }
-    LogPrint(eLogDebug, "AddressBookStorage: ", num, " addresses loaded");
+    LOG(debug) << "AddressBookStorage: " << num << " addresses loaded";
   }
   return num;
 }
@@ -136,14 +135,13 @@ std::size_t AddressBookStorage::Save(
   auto filename = kovri::core::GetAddressBookPath() / GetDefaultAddressesFilename();
   std::ofstream file(filename.string(), std::ofstream::out);
   if (!file) {
-    LogPrint(eLogError,
-        "AddressBookStorage: can't open file ", filename);
+    LOG(error) << "AddressBookStorage: can't open file " << filename;
   } else {
     for (auto const& it : addresses) {
       file << it.first << "," << it.second.ToBase32() << std::endl;
       num++;
     }
-    LogPrint(eLogInfo, "AddressBookStorage: ", num, " addresses saved");
+    LOG(info) << "AddressBookStorage: " << num << " addresses saved";
   }
   return num;
 }

@@ -28,11 +28,11 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#ifndef SRC_CORE_UTIL_LOG_H_
-#define SRC_CORE_UTIL_LOG_H_
+#include "core/util/log.h"
 
 #include <boost/log/trivial.hpp>
-#include <boost/log/sources/global_logger_storage.hpp>
+#include <boost/log/sources/severity_logger.hpp>
+#include <boost/log/sources/severity_channel_logger.hpp>
 
 // TODO(anonimal):
 // Boost.Log uses an "application-wide singleton" (note: our logger/sink setup applies globally from instance configuration)
@@ -41,13 +41,13 @@
 // (we could create an (inheritable?) logging class with overloaded stream operator and adjust our logging initialization and macro accordingly, or consider other options)
 // Also note that a singleton will effect having multiple logging library options (there's no need to do that though when we have huge flexibility with sinks)
 
-BOOST_LOG_GLOBAL_LOGGER(g_Logger, boost::log::sources::severity_logger_mt<boost::log::trivial::severity_level>)
-#define LOG(severity) BOOST_LOG_SEV(g_Logger::get(), boost::log::trivial::severity)
+BOOST_LOG_GLOBAL_LOGGER_INIT(g_Logger, boost::log::sources::severity_logger_mt) {
+  boost::log::sources::severity_logger_mt<boost::log::trivial::severity_level> logger;
+  return logger;
+}
 
 namespace kovri {
 namespace core {
 
 }  // namespace core
 }  // namespace kovri
-
-#endif  // SRC_CORE_UTIL_LOG_H_

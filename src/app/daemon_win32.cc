@@ -74,16 +74,16 @@ bool DaemonWin32::Init() {
     exit(0);
   }
   if (m_IsDaemon) {
-    LogPrint(eLogInfo, "DaemonWin32: service session");
+    LOG(info) << "DaemonWin32: service session";
     I2PService service(SERVICE_NAME);
     if (!I2PService::Run(service)) {
-      LogPrint(eLogError,
-          "DaemonWin32: service failed to run w/err 0x%08lx\n", GetLastError());
+      LOG(error)
+        << "DaemonWin32: service failed to run w/err 0x%08lx\n", GetLastError();
       exit(EXIT_FAILURE);
     }
     exit(EXIT_SUCCESS);
   } else {
-    LogPrint(eLogInfo, "DaemonWin32: user session");
+    LOG(info) << "DaemonWin32: user session";
   }
   return DaemonSingleton::Init();
 }

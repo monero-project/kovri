@@ -169,7 +169,7 @@ int TunnelHopConfig::GetRecordIndex() const noexcept {
 void TunnelHopConfig::CreateBuildRequestRecord(
     std::uint8_t* record,
     std::uint32_t reply_msg_ID) {
-  LogPrint(eLogDebug, "TunnelHopConfig: creating build request record");
+  LOG(debug) << "TunnelHopConfig: creating build request record";
 
   // Create clear text record
   std::array<std::uint8_t, BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE> clear_text{};

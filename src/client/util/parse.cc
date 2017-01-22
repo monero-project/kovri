@@ -78,7 +78,7 @@ void ParseClientDestination(
     tunnel->dest =
       parsed.at(kovri::core::RandInRange32(0, parsed.size() - 1));
   }
-  LogPrint(eLogDebug, "Client: parsing destination ", tunnel->dest);
+  LOG(debug) << "Client: parsing destination " << tunnel->dest;
   // If dest has port appended to it, replace previously set dest port
   std::vector<std::string> dest;
   boost::split(dest, tunnel->dest, boost::is_any_of(":"));
@@ -90,8 +90,8 @@ void ParseClientDestination(
     // TODO(unassigned): a catch-all utility function to verify would be useful
     tunnel->dest = dest.at(0);
     tunnel->dest_port = boost::lexical_cast<std::uint16_t>(dest.at(1));
-    LogPrint(eLogDebug,
-        "Client: using ", tunnel->dest, " port ", tunnel->dest_port);
+    LOG(debug)
+      << "Client: using " << tunnel->dest << " port " << tunnel->dest_port;
   } catch (const boost::bad_lexical_cast& ex) {
     throw std::runtime_error(
         "Client: destination port " + std::string(ex.what()));

@@ -105,7 +105,16 @@ class Configuration {
   /// @brief Parse command line arguments
   void ParseKovriConfig();
 
+  /// @details This configures/sets up the global logger. It's isn't needed in class or namespace scope except to ease in configuration after the logger has been initialized globally
+  /// @warning Kovri config must first be parsed
+  void SetupLogging();
+
+  /// @brief Tests/Configures AES-NI if available
+  /// @warning Kovri config must first be parsed
+  void SetupAESNI();
+
   /// @brief Parses tunnel configuration file
+  /// @warning Logging must be setup to see any debug output
   void ParseTunnelsConfig();
 
   /// @brief Gets pre-defined tunnel attribute from tunnel config
@@ -171,13 +180,6 @@ class Configuration {
       std::string& config,
       boost::program_options::options_description& config_options,
       boost::program_options::variables_map& var_map);
-
-  /// @brief Sets logging options after validating user input
-  /// @return False on failure
-  /// @notes We set here instead of router context because we start logging
-  ///   before router context and client context are initialized
-  /// @warning Kovri config must first be parsed
-  bool SetLoggingOptions();
 };
 
 }  // namespace app

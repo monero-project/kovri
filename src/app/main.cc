@@ -31,21 +31,19 @@
  */
 
 #include <thread>
+#include <vector>
 
 #include "app/daemon.h"
 
-#include "core/version.h"
-#include "core/util/log.h"
-
 int main(int argc, const char* argv[]) {
-  LogPrint("The Kovri I2P Router Project");
-  LogPrint("Version ", KOVRI_VERSION);
   // TODO(anonimal): ideally, we would only use the daemon to house any number of
   // kovri instances (client/router contexts) of which we could configure/initialize,
   // start, and stop from *outside* the daemon instead of having the daemon singleton
   // control a single kovri instance. We *could* have an app API which creates these
   // instances on-the-fly but then there's the issue of per-instance configuration.
   // For now, we deal with the singleton and a single configuration.
+  // TODO(anonimal): also note that Boost.Log uses an application-wide singleton so that must be resolved
+  // before any other singleton removal is considered (if still applicable, see notes in log impl)
   std::vector<std::string> args(argv, argv + argc);
   // Configure daemon for initialization
   if (!Daemon.Config(args))

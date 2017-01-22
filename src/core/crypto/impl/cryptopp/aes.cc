@@ -44,34 +44,38 @@
 namespace kovri {
 namespace core {
 
+/// @brief Used for runtime AES-NI
+static bool g_HasAESNI(false);
+
+/// @note Initialize once to avoid repeated tests for AES-NI
+void SetupAESNI() {
+  g_HasAESNI = HasAESNI();
+}
+
+/// @note Used for runtime AES-NI
+bool UsingAESNI() {
+  return g_HasAESNI;
+}
+
 /// TODO(unassigned): if we switch libraries, we should move AES-NI elsewhere.
 /// TODO(unassigned): ARM support? MSVC x86-64 support?
 bool HasAESNI() {
 #if defined(__x86_64__) || defined(_M_X64)  // TODO(unassigned): hack until we implement ARM AES-NI
   unsigned int eax, ecx;  // We only need ECX
   const unsigned int flag = (1 << 25);  // ECX bit 25 for AES-NI
-  LogPrint(eLogDebug, "Crypto: checking for AES-NI...");
+  LOG(debug) << "Crypto: checking for AES-NI...";
   __asm__ __volatile__(
       "cpuid"
       : "=a"(eax), "=c"(ecx)  // 0x2000000;
       : "a"(1), "c"(0)
       : "%ebx", "%edx");
   if ((ecx & flag) == flag) {
-    LogPrint(eLogDebug, "Crypto: AES-NI is available!");
+    LOG(debug) << "Crypto: AES-NI is available!";
     return true;
   }
 #endif
-  LogPrint(eLogDebug, "Crypto: AES-NI is not available. Using library.");
+  LOG(debug) << "Crypto: AES-NI is not available, using library.";
   return false;
-}
-
-// Initialize once to avoid repeated tests for AES-NI
-// TODO(unassigned): better place to initialize?
-static const bool g_HasAESNI(HasAESNI());
-
-// For runtime AES-NI
-bool UsingAESNI() {
-  return g_HasAESNI;
 }
 
 /// @class ECBCryptoAESNI
@@ -152,8 +156,9 @@ class ECBEncryption::ECBEncryptionImpl : public ECBCryptoAESNI {
       try {
         m_Encryption.SetKey(key, 32);
       } catch (CryptoPP::Exception e) {
-        LogPrint(eLogError,
-            "ECBEncryptionImpl: SetKey() caught exception '", e.what(), "'");
+        LOG(error)
+          << "ECBEncryptionImpl: " << __func__
+          << " caught exception '" << e.what() << "'";
       }
     }
   }
@@ -175,8 +180,9 @@ class ECBEncryption::ECBEncryptionImpl : public ECBCryptoAESNI {
       try {
         m_Encryption.ProcessData(out->buf, in->buf, 16);
       } catch (CryptoPP::Exception e) {
-        LogPrint(eLogError,
-            "ECBEncryptionImpl: Encrypt() caught exception '", e.what(), "'");
+        LOG(error)
+          << "ECBEncryptionImpl: " << __func__
+          << " caught exception '" << e.what() << "'";
       }
     }
   }
@@ -251,8 +257,9 @@ class ECBDecryption::ECBDecryptionImpl : public ECBCryptoAESNI {
       try {
         m_Decryption.SetKey(key, 32);
       } catch (CryptoPP::Exception e) {
-        LogPrint(eLogError,
-            "ECBDecryptionImpl: SetKey() caught exception '", e.what(), "'");
+        LOG(error)
+          << "ECBDecryptionImpl: " << __func__
+          << " caught exception '" << e.what() << "'";
       }
     }
   }
@@ -274,8 +281,9 @@ class ECBDecryption::ECBDecryptionImpl : public ECBCryptoAESNI {
       try {
         m_Decryption.ProcessData(out->buf, in->buf, 16);
       } catch (CryptoPP::Exception e) {
-        LogPrint(eLogError,
-            "ECBDecryptionImpl: Decrypt() caught exception '", e.what(), "'");
+        LOG(error)
+          << "ECBDecryptionImpl: " << __func__
+          << " caught exception '" << e.what() << "'";
       }
     }
   }

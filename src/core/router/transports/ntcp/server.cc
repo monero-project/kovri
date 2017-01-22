@@ -61,7 +61,7 @@ NTCPServer::~NTCPServer() {}
 
 void NTCPServer::Start() {
   if (!m_IsRunning) {
-    LogPrint(eLogDebug, "NTCPServer: starting");
+    LOG(debug) << "NTCPServer: starting";
     m_IsRunning = true;
     // Create acceptors
     m_NTCPAcceptor =
@@ -100,18 +100,18 @@ void NTCPServer::HandleAccept(
     std::shared_ptr<NTCPSession> conn,
     const boost::system::error_code& ecode) {
   if (!ecode) {
-    LogPrint(eLogDebug, "NTCPServer: handling accepted connection");
+    LOG(debug) << "NTCPServer: handling accepted connection";
     boost::system::error_code ec;
     auto ep = conn->GetSocket().remote_endpoint(ec);
     if (!ec) {
-      LogPrint(eLogDebug, "NTCPServer: connected from ", ep);
+      LOG(debug) << "NTCPServer: connected from " << ep;
       auto it = m_BanList.find(ep.address());
       if (it != m_BanList.end()) {
         std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
         if (ts < it->second) {
-          LogPrint(eLogDebug,
-              "NTCPServer: ", ep.address(), " is banned for ",
-              it->second - ts, " more seconds");
+          LOG(debug)
+            << "NTCPServer: " << ep.address() << " is banned for "
+            << it->second - ts << " more seconds";
           conn = nullptr;
         } else {
           m_BanList.erase(it);
@@ -120,12 +120,11 @@ void NTCPServer::HandleAccept(
       if (conn)
         conn->ServerLogin();
     } else {
-      LogPrint(eLogError,
-          "NTCPServer: HandleAccept() remote endpoint: ", ec.message());
+      LOG(error)
+        << "NTCPServer: " << __func__ << " remote endpoint: " << ec.message();
     }
   } else {
-    LogPrint(eLogError,
-        "NTCPServer: HandleAccept(): '", ecode.message(), "'");
+    LOG(error) << "NTCPServer: " << __func__ << ": '" << ecode.message() << "'";
   }
   if (ecode != boost::asio::error::operation_aborted) {
     conn = std::make_shared<NTCPSession>(*this);
@@ -143,19 +142,18 @@ void NTCPServer::HandleAcceptV6(
     std::shared_ptr<NTCPSession> conn,
     const boost::system::error_code& ecode) {
   if (!ecode) {
-    LogPrint(eLogDebug, "NTCPServer: handling V6 accepted connection");
+    LOG(debug) << "NTCPServer: handling V6 accepted connection";
     boost::system::error_code ec;
     auto ep = conn->GetSocket().remote_endpoint(ec);
     if (!ec) {
-      LogPrint(eLogDebug,
-          "NTCPServer: V6 connected from ", ep);
+      LOG(debug) << "NTCPServer: V6 connected from " << ep;
       auto it = m_BanList.find(ep.address());
       if (it != m_BanList.end()) {
         std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
         if (ts < it->second) {
-          LogPrint(eLogDebug,
-              "NTCPServer: ", ep.address(), " is banned for ",
-              it->second - ts, " more seconds");
+          LOG(debug)
+            << "NTCPServer: " << ep.address() << " is banned for "
+            << it->second - ts << " more seconds";
           conn = nullptr;
         } else {
           m_BanList.erase(it);
@@ -164,12 +162,11 @@ void NTCPServer::HandleAcceptV6(
       if (conn)
         conn->ServerLogin();
     } else {
-      LogPrint(eLogError,
-          "NTCPServer: HandleAcceptV6() remote endpoint: ", ec.message());
+      LOG(error)
+          << "NTCPServer: " << __func__ << " remote endpoint: " << ec.message();
     }
   } else {
-    LogPrint(eLogError,
-        "NTCPServer: HandleAcceptV6(): '", ecode.message(), "'");
+    LOG(error) << "NTCPServer: " << __func__ << ": '" << ecode.message() << "'";
   }
   if (ecode != boost::asio::error::operation_aborted) {
     conn = std::make_shared<NTCPSession>(*this);
@@ -187,11 +184,10 @@ void NTCPServer::Connect(
     const boost::asio::ip::address& address,
     std::size_t port,
     std::shared_ptr<NTCPSession> conn) {
-  LogPrint(eLogDebug,
-      "NTCPServer: connecting to [",
-      context.GetRouterInfo().GetIdentHashAbbreviation(), "] ",
-      address , ":",  port);
-
+  LOG(debug)
+    << "NTCPServer: connecting to "
+    << "[" << context.GetRouterInfo().GetIdentHashAbbreviation() << "] "
+    << address << ":" << port;
   conn->GetSocket().async_connect(
       boost::asio::ip::tcp::endpoint(
           address,
@@ -207,22 +203,20 @@ void NTCPServer::HandleConnect(
     std::shared_ptr<NTCPSession> conn,
     const boost::system::error_code& ecode) {
   if (ecode) {
-    LogPrint(eLogError,
-      "NTCPServer: connection handler error '", ecode.message(), "'");
+    LOG(error)
+      << "NTCPServer: connection handler error '" << ecode.message() << "'";
     if (ecode != boost::asio::error::operation_aborted)
       kovri::core::netdb.SetUnreachable(
           conn->GetRemoteIdentity().GetIdentHash(),
           true);
     conn->Terminate();
   } else {
-    LogPrint(eLogDebug,
-        "NTCPServer: connected to ", conn->GetSocket().remote_endpoint());
-    if (conn->GetSocket().local_endpoint().protocol() ==
-        boost::asio::ip::tcp::v6())  // ipv6
-      context.UpdateNTCPV6Address(
-          conn->GetSocket().local_endpoint().address());
+    LOG(debug)
+      << "NTCPServer: connected to " << conn->GetSocket().remote_endpoint();
+    // TODO(anonimal): minor local endpoint refactor
+    if (conn->GetSocket().local_endpoint().protocol() == boost::asio::ip::tcp::v6())
+      context.UpdateNTCPV6Address(conn->GetSocket().local_endpoint().address());
     conn->ClientLogin();
-
     m_Service.post([conn, this]() {
         this->AddNTCPSession(conn);
     });
@@ -232,9 +226,9 @@ void NTCPServer::HandleConnect(
 void NTCPServer::AddNTCPSession(
     std::shared_ptr<NTCPSession> session) {
   if (session) {
-    LogPrint(eLogDebug,
-        "NTCPServer: ", session->GetSocket().remote_endpoint(),
-        " *** adding NTCP session");
+    LOG(debug)
+      << "NTCPServer: " << session->GetSocket().remote_endpoint()
+      << " *** adding NTCP session";
     std::unique_lock<std::mutex> l(m_NTCPSessionsMutex);
     m_NTCPSessions[session->GetRemoteIdentity().GetIdentHash()] = session;
   }
@@ -243,9 +237,9 @@ void NTCPServer::AddNTCPSession(
 void NTCPServer::RemoveNTCPSession(
     std::shared_ptr<NTCPSession> session) {
   if (session) {
-    LogPrint(eLogDebug,
-        "NTCPServer:", session->GetFormattedSessionInfo(),
-        "*** removing NTCP session");
+    LOG(debug)
+      << "NTCPServer:" << session->GetFormattedSessionInfo()
+      << "*** removing NTCP session";
     std::unique_lock<std::mutex> l(m_NTCPSessionsMutex);
     m_NTCPSessions.erase(session->GetRemoteIdentity().GetIdentHash());
   }
@@ -253,7 +247,7 @@ void NTCPServer::RemoveNTCPSession(
 
 std::shared_ptr<NTCPSession> NTCPServer::FindNTCPSession(
     const kovri::core::IdentHash& ident) {
-  LogPrint(eLogDebug, "NTCPServer: finding NTCP session");
+  LOG(debug) << "NTCPServer: finding NTCP session";
   std::unique_lock<std::mutex> l(m_NTCPSessionsMutex);
   auto it = m_NTCPSessions.find(ident);
   if (it != m_NTCPSessions.end())
@@ -266,13 +260,13 @@ void NTCPServer::Ban(
   std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
   m_BanList[session->GetRemoteEndpoint().address()] =
     ts + static_cast<std::size_t>(NTCPTimeoutLength::ban_expiration);
-  LogPrint(eLogWarn,
-      "NTCPServer:", session->GetFormattedSessionInfo(), "has been banned for ",
-      static_cast<std::size_t>(NTCPTimeoutLength::ban_expiration), " seconds");
+  LOG(warning)
+    << "NTCPServer:" << session->GetFormattedSessionInfo() << "has been banned for "
+    << static_cast<std::size_t>(NTCPTimeoutLength::ban_expiration) << " seconds";
 }
 
 void NTCPServer::Stop() {
-  LogPrint(eLogDebug, "NTCPServer: stopping");
+  LOG(debug) << "NTCPServer: stopping";
   m_NTCPSessions.clear();
   if (m_IsRunning) {
     m_IsRunning = false;

@@ -116,7 +116,7 @@ bool RouterInfo::LoadFile() {
     s.seekg(0, std::ios::end);
     m_BufferLen = s.tellg();
     if (m_BufferLen < 40) {
-      LogPrint(eLogError, "RouterInfo: file", m_FullPath, " is malformed");
+      LOG(error) << "RouterInfo: file" << m_FullPath << " is malformed";
       return false;
     }
     s.seekg(0, std::ios::beg);
@@ -124,7 +124,7 @@ bool RouterInfo::LoadFile() {
       m_Buffer = std::make_unique<std::uint8_t[]>(MAX_RI_BUFFER_SIZE);
     s.read(reinterpret_cast<char *>(m_Buffer.get()), m_BufferLen);
   } else {
-    LogPrint(eLogError, "RouterInfo: can't open file ", m_FullPath);
+    LOG(error) << "RouterInfo: can't open file " << m_FullPath;
     return false;
   }
   return true;
@@ -150,7 +150,7 @@ void RouterInfo::ReadFromBuffer(
           reinterpret_cast<std::uint8_t *>(m_Buffer.get()),
           len,
           reinterpret_cast<std::uint8_t *>(m_Buffer.get() + len))) {
-      LogPrint(eLogError, "RouterInfo: signature verification failed");
+      LOG(error) << "RouterInfo: signature verification failed";
       m_IsUnreachable = true;
     }
     m_RouterIdentity.DropVerifier();
@@ -200,7 +200,7 @@ void RouterInfo::ReadFromStream(
             address.address_string = value;
           } else {
             // TODO(unassigned): resolve address for SSU
-            LogPrint(eLogWarn, "RouterInfo: unexpected SSU address ", value);
+            LOG(warning) << "RouterInfo: unexpected SSU address " << value;
             is_valid_address = false;
           }
         } else {
@@ -462,9 +462,9 @@ void RouterInfo::WriteToStream(
 const std::uint8_t* RouterInfo::LoadBuffer() {
   if (!m_Buffer) {
     if (LoadFile())
-      LogPrint(eLogDebug,
-          "RouterInfo: buffer for ",
-          GetIdentHashAbbreviation(), " loaded from file");
+      LOG(debug)
+        << "RouterInfo: buffer for "
+        << GetIdentHashAbbreviation() << " loaded from file";
   }
   return m_Buffer.get();
 }
@@ -496,9 +496,9 @@ void RouterInfo::SaveToFile(
     if (f.is_open())
       f.write(reinterpret_cast<char *>(m_Buffer.get()), m_BufferLen);
     else
-      LogPrint(eLogError, "RouterInfo: can't save RouterInfo to ", full_path);
+      LOG(error) << "RouterInfo: can't save RouterInfo to " << full_path;
   } else {
-    LogPrint(eLogError, "RouterInfo: can't save RouterInfo, buffer is empty");
+    LOG(error) << "RouterInfo: can't save RouterInfo, buffer is empty";
   }
 }
 

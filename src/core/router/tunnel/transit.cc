@@ -81,10 +81,10 @@ void TransitTunnelParticipant::FlushTunnelDataMsgs() {
   if (!m_TunnelDataMsgs.empty()) {
     auto num = m_TunnelDataMsgs.size();
     if (num > 1)
-      LogPrint(eLogDebug,
-          "TransitTunnelParticipant: ", GetTunnelID(),
-          "->", GetNextTunnelID(),
-          " ", num);
+      LOG(debug)
+        << "TransitTunnelParticipant: " << GetTunnelID()
+        << "->" << GetNextTunnelID()
+        << " " << num;
     kovri::core::transports.SendMessages(
         GetNextIdentHash(),
         m_TunnelDataMsgs);
@@ -94,16 +94,14 @@ void TransitTunnelParticipant::FlushTunnelDataMsgs() {
 
 void TransitTunnel::SendTunnelDataMsg(
     std::shared_ptr<kovri::core::I2NPMessage>) {
-  LogPrint(eLogError,
-      "TransitTunnel: we are not a gateway for transit tunnel: ",
-      m_TunnelID);
+  LOG(error)
+    << "TransitTunnel: we are not a gateway for transit tunnel: " << m_TunnelID;
 }
 
 void TransitTunnel::HandleTunnelDataMsg(
     std::shared_ptr<const kovri::core::I2NPMessage>) {
-  LogPrint(eLogError,
-      "TransitTunnel: incoming tunnel message is not supported: ",
-      m_TunnelID);
+  LOG(error)
+    << "TransitTunnel: incoming tunnel message is not supported: " << m_TunnelID;
 }
 
 void TransitTunnelGateway::SendTunnelDataMsg(
@@ -124,8 +122,7 @@ void TransitTunnelEndpoint::HandleTunnelDataMsg(
     std::shared_ptr<const kovri::core::I2NPMessage> tunnel_msg) {
   auto new_msg = CreateEmptyTunnelDataMsg();
   EncryptTunnelMsg(tunnel_msg, new_msg);
-  LogPrint(eLogDebug,
-      "TransitTunnelEndpoint: endpoint for ", GetTunnelID());
+  LOG(debug) << "TransitTunnelEndpoint: endpoint for " << GetTunnelID();
   m_Endpoint.HandleDecryptedTunnelDataMsg(new_msg);
 }
 
@@ -138,8 +135,7 @@ TransitTunnel* CreateTransitTunnel(
     bool is_gateway,
     bool is_endpoint) {
   if (is_endpoint) {
-    LogPrint(eLogDebug,
-        "TransitTunnel: endpoint ", receive_tunnel_ID, " created");
+    LOG(debug) << "TransitTunnel: endpoint " << receive_tunnel_ID << " created";
     return new TransitTunnelEndpoint(
         receive_tunnel_ID,
         next_ident,
@@ -147,8 +143,7 @@ TransitTunnel* CreateTransitTunnel(
         layer_key,
         iv_key);
   } else if (is_gateway) {
-    LogPrint(eLogDebug,
-        "TransitTunnel: gateway: ", receive_tunnel_ID, " created");
+    LOG(debug) << "TransitTunnel: gateway: " << receive_tunnel_ID << " created";
     return new TransitTunnelGateway(
         receive_tunnel_ID,
         next_ident,
@@ -156,8 +151,8 @@ TransitTunnel* CreateTransitTunnel(
         layer_key,
         iv_key);
   } else {
-    LogPrint(eLogDebug,
-        "TransitTunnel: ", receive_tunnel_ID, "->", next_tunnel_ID, " created");
+    LOG(debug)
+      << "TransitTunnel: " << receive_tunnel_ID << "->" << next_tunnel_ID << " created";
     return new TransitTunnelParticipant(
         receive_tunnel_ID,
         next_ident,

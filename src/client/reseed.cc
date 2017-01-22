@@ -70,9 +70,9 @@ namespace client {
  */
 bool Reseed::Start() {
   // Load SU3 (not SSL) certificates
-  LogPrint(eLogDebug, "Reseed: processing certificates...");
+  LOG(debug) << "Reseed: processing certificates...";
   if (!ProcessCerts()) {
-    LogPrint(eLogError, "Reseed: failed to load certificates");
+    LOG(error) << "Reseed: failed to load certificates";
     return false;
   }
   // Fetch SU3 stream for reseed
@@ -83,20 +83,20 @@ bool Reseed::Start() {
     // With CLI reseed, we'll break after first failed attempt.
     if (!FetchStream()) {
       attempts++;
-      LogPrint(eLogError,
-          "Reseed: fetch failed after ",
-          attempts, " of ", max_attempts, " attempts");
+      LOG(error)
+        << "Reseed: fetch failed after "
+        << attempts << " of " << max_attempts << " attempts";
       if (!m_Stream.empty() || attempts == max_attempts)
         return false;
     } else {
-      LogPrint(eLogDebug, "Reseed: fetch successful");
+      LOG(debug) << "Reseed: fetch successful";
       break;
     }
   }
   // Implement SU3
   SU3 su3(m_Stream, m_SigningKeys);
   if (!su3.SU3Impl()) {
-    LogPrint(eLogError, "Reseed: SU3 implementation failed");
+    LOG(error) << "Reseed: SU3 implementation failed";
     return false;
   }
   // Insert extracted RI's into NetDb
@@ -105,7 +105,7 @@ bool Reseed::Start() {
           router.second.data(),
           router.second.size()))
       return false;
-  LogPrint(eLogInfo, "Reseed: implementation successful");
+  LOG(info) << "Reseed: implementation successful";
   return true;
 }
 
@@ -114,7 +114,7 @@ bool Reseed::ProcessCerts() {
   boost::filesystem::path path = kovri::core::GetSU3CertsPath();
   boost::filesystem::directory_iterator it(path), end;
   if (!boost::filesystem::exists(path)) {
-    LogPrint(eLogError, "Reseed: certificates ", path, " don't exist");
+    LOG(error) << "Reseed: certificates " << path << " don't exist";
     return false;
   }
   // Instantiate X.509 object
@@ -123,7 +123,7 @@ bool Reseed::ProcessCerts() {
   std::size_t num_certs = 0;
   BOOST_FOREACH(boost::filesystem::path const& cert, std::make_pair(it, end)) {
     if (boost::filesystem::is_regular_file(cert)) {
-      LogPrint(eLogDebug, "Reseed: acquiring signing key from ", cert);
+      LOG(debug) << "Reseed: acquiring signing key from " << cert;
       std::ifstream ifs(cert.string(), std::ifstream::binary);
       if (ifs) {
         try {
@@ -135,17 +135,17 @@ bool Reseed::ProcessCerts() {
           // Close stream
           ifs.close();
         } catch (const std::exception& e) {
-          LogPrint(eLogError,
-              "Reseed: exception '", e.what(),
-              "' caught when processing certificate", cert);
+          LOG(error)
+            << "Reseed: exception '" << e.what()
+            << "' caught when processing certificate" << cert;
           return false;
         }
       } else {
-        LogPrint(eLogError, "Reseed: ", cert, " does not exist");
+        LOG(error) << "Reseed: " << cert << " does not exist";
         return false;
       }
       if (m_SigningKeys.empty()) {
-        LogPrint(eLogError, "Reseed: failed to get signing key from ", cert);
+        LOG(error) << "Reseed: failed to get signing key from " << cert;
         return false;
       }
       if (num_certs < std::numeric_limits<std::uint8_t>::max()) {
@@ -153,8 +153,7 @@ bool Reseed::ProcessCerts() {
       }
     }
   }
-  LogPrint(eLogDebug,
-      "Reseed: successfuly loaded ", num_certs, " certificates");
+  LOG(debug) << "Reseed: successfuly loaded " << num_certs << " certificates";
   return (num_certs > 0);
 }
 
@@ -188,7 +187,7 @@ bool Reseed::FetchStream() {
 
 bool Reseed::FetchStream(
     const std::string& url) {
-  LogPrint(eLogInfo, "Reseed: fetching from ", url);
+  LOG(info) << "Reseed: fetching from " << url;
   // TODO(unassigned): abstract our downloading mechanism (see #168)
   HTTP http(url);
   if (!http.Download())
@@ -201,7 +200,7 @@ bool Reseed::FetchStream(
 
 bool Reseed::FetchStream(
     std::ifstream& ifs) {
-  LogPrint(eLogInfo, "Reseed: fetching from file ", m_Stream);
+  LOG(info) << "Reseed: fetching from file " << m_Stream;
   if (ifs) {
     try {
       // Assign file contents to stream
@@ -210,14 +209,14 @@ bool Reseed::FetchStream(
            std::istreambuf_iterator<char>());
       ifs.close();
     } catch (const std::exception& e) {
-      LogPrint(eLogError,
-          "Reseed: exception '", e.what(),
-          "' caught when processing ", m_Stream);
+      LOG(error)
+        << "Reseed: exception '" << e.what()
+        << "' caught when processing " << m_Stream;
       return false;
     }
     return true;
   }
-  LogPrint(eLogError, "Reseed: ", m_Stream, " does not exist");
+  LOG(error) << "Reseed: " << m_Stream << " does not exist";
   return false;
 }
 
@@ -241,19 +240,19 @@ bool SU3::SU3Impl() {
    * it would be nice to skip su3 all-together, decompress as appropriate, and
    * validate for RI type - then insert into NetDb.
    */
-  LogPrint(eLogDebug, "SU3: preparing stream...");
+  LOG(debug) << "SU3: preparing stream...";
   if (!PrepareStream()) {
-    LogPrint(eLogError, "SU3: preparation failed");
+    LOG(error) << "SU3: preparation failed";
     return false;
   }
-  LogPrint(eLogDebug, "SU3: verifying stream...");
+  LOG(debug) << "SU3: verifying stream...";
   if (!VerifySignature()) {
-    LogPrint(eLogError, "SU3: verification failed");
+    LOG(error) << "SU3: verification failed";
     return false;
   }
-  LogPrint(eLogDebug, "SU3: extracting content...");
+  LOG(debug) << "SU3: extracting content...";
   if (!ExtractContent()) {
-    LogPrint(eLogError, "SU3: extraction failed");
+    LOG(error) << "SU3: extraction failed";
     return false;
   }
   return true;
@@ -264,7 +263,7 @@ bool SU3::PrepareStream() {
     // Validate stream as an SU3
     m_Stream.Read(*m_Data->magic_number.data(), Size::magic_number);
     if (m_Data->magic_number.data() != m_MagicValue) {
-      LogPrint(eLogError, "SU3: invalid magic value");
+      LOG(error) << "SU3: invalid magic value";
       return false;
     }
     // File format version offset (spec defines it as 0, so we don't need it)
@@ -273,14 +272,14 @@ bool SU3::PrepareStream() {
     m_Stream.Read(m_Data->signature_type, Size::signature_type);
     m_Data->signature_type = be16toh(m_Data->signature_type);
     if (m_Data->signature_type != kovri::core::SIGNING_KEY_TYPE_RSA_SHA512_4096) {  // Temporary (see #160)
-      LogPrint(eLogError, "SU3: signature type not supported");
+      LOG(error) << "SU3: signature type not supported";
       return false;
     }
     // Prepare signature length
     m_Stream.Read(m_Data->signature_length, Size::signature_length);
     m_Data->signature_length = be16toh(m_Data->signature_length);
     if (m_Data->signature_length != sizeof(kovri::core::PublicKey)) {  // Temporary (see #160)
-      LogPrint(eLogError, "SU3: invalid signature length");
+      LOG(error) << "SU3: invalid signature length";
       return false;
     }
     // Unused offset
@@ -289,7 +288,7 @@ bool SU3::PrepareStream() {
     m_Stream.Read(m_Data->version_length, Size::version_length);
     if (m_Data->version_length <
         static_cast<std::size_t>(Size::minimal_version)) {
-      LogPrint(eLogError, "SU3: version length too short");
+      LOG(error) << "SU3: version length too short";
       return false;
     }
     // Unused offset
@@ -297,14 +296,14 @@ bool SU3::PrepareStream() {
     // Get signer ID length
     m_Stream.Read(m_Data->signer_id_length, Size::signer_id_length);
     if (!m_Data->signer_id_length) {
-      LogPrint(eLogError, "SU3: invalid signer ID length");
+      LOG(error) << "SU3: invalid signer ID length";
       return false;
     }
     // Prepare content length
     m_Stream.Read(m_Data->content_length, Size::content_length);
     m_Data->content_length = be64toh(m_Data->content_length);
     if (!m_Data->content_length) {
-      LogPrint(eLogError, "SU3: invalid content length");
+      LOG(error) << "SU3: invalid content length";
       return false;
     }
     // Unused offset
@@ -315,18 +314,18 @@ bool SU3::PrepareStream() {
       case static_cast<std::size_t>(FileType::zip_file):
         break;
       case static_cast<std::size_t>(FileType::xml_file):
-        LogPrint(eLogError, "SU3: XML not supported");
+        LOG(error) << "SU3: XML not supported";
         return false;
       case static_cast<std::size_t>(FileType::html_file):
-        LogPrint(eLogError, "SU3: HTML not supported");
+        LOG(error) << "SU3: HTML not supported";
         return false;
       case static_cast<std::size_t>(FileType::xml_gz_file):
-        LogPrint(eLogError, "SU3: Gzip compressed XML not supported");
+        LOG(error) << "SU3: Gzip compressed XML not supported";
         return false;
       default:
-        LogPrint(eLogError,
-            "SU3: invalid file type ",
-            static_cast<std::size_t>(m_Data->file_type));
+        LOG(error)
+          << "SU3: invalid file type "
+          << static_cast<std::size_t>(m_Data->file_type);
         return false;
     }
     // Unused offset
@@ -337,21 +336,21 @@ bool SU3::PrepareStream() {
       case static_cast<std::size_t>(ContentType::unknown):
         break;
       case static_cast<std::size_t>(ContentType::router_update):
-        LogPrint(eLogError, "SU3: Router Update not yet supported");
+        LOG(error) << "SU3: Router Update not yet supported";
         return false;
       case static_cast<std::size_t>(ContentType::plugin_related):
-        LogPrint(eLogError, "SU3: Plugins not yet supported");
+        LOG(error) << "SU3: Plugins not yet supported";
         return false;
       case static_cast<std::size_t>(ContentType::reseed_data):
-        LogPrint(eLogDebug, "SU3: found reseed data");
+        LOG(debug) << "SU3: found reseed data";
         break;
       case static_cast<std::size_t>(ContentType::news_feed):
-        LogPrint(eLogError, "SU3: News Feed not yet supported");
+        LOG(error) << "SU3: News Feed not yet supported";
         return false;
       default:
-        LogPrint(eLogError,
-            "SU3: invalid content type ",
-            static_cast<std::size_t>(m_Data->content_type));
+        LOG(error)
+          << "SU3: invalid content type "
+          << static_cast<std::size_t>(m_Data->content_type);
         return false;
     }
     // Unused offset
@@ -365,7 +364,7 @@ bool SU3::PrepareStream() {
     const std::string alpha = "abcdefghijklmnopqrstuvwxyz";
     std::regex regex("([-"+alpha+"0-9+._']{1,254})@((?:[-"+alpha+"0-9]+.)+["+alpha+"|(i2p)]{2,})");
     if (!std::regex_search(m_Data->signer_id.data(), regex)) {
-      LogPrint(eLogError, "SU3: invalid signer ID");
+      LOG(error) << "SU3: invalid signer ID";
       return false;
     }
     // Save position
@@ -383,11 +382,10 @@ bool SU3::PrepareStream() {
     // Our content position is the same as signature position
     m_Data->content_position = m_Data->signature_position;
   } catch (const std::exception& e) {
-    LogPrint(eLogError,
-        "SU3: caught exception '", e.what(), "' during preparation");
+    LOG(error) << "SU3: caught exception '" << e.what() << "' during preparation";
     return false;
   }
-  LogPrint(eLogDebug, "SU3: preparation successful");
+  LOG(debug) << "SU3: preparation successful";
   return true;
 }
 
@@ -395,8 +393,8 @@ bool SU3::VerifySignature() {
   // Get signing keys from extracted/processed SU3 certs
   auto signing_key_it = m_SigningKeys.find(m_Data->signer_id.data());
   if (signing_key_it == m_SigningKeys.end()) {
-    LogPrint(eLogError,
-        "SU3: certificate for ", m_Data->signer_id.data(), " not loaded");
+    LOG(error)
+      << "SU3: certificate for " << m_Data->signer_id.data() << " not loaded";
     return false;
   }
   // Verify hash of content data and signature
@@ -405,7 +403,7 @@ bool SU3::VerifySignature() {
       kovri::core::RSASHA5124096RawVerifier verifier(signing_key_it->second);
       verifier.Update(m_Data->content.data(), m_Data->content.size());
       if (!verifier.Verify(m_Data->signature.data())) {
-        LogPrint(eLogError, "SU3: signature failed");
+        LOG(error) << "SU3: signature failed";
         return false;
       }
       break;
@@ -415,27 +413,27 @@ bool SU3::VerifySignature() {
     // tested during stream preparation. We'll leave this here
     // because it will eventually be useful.
     default:
-      LogPrint(eLogError,
-          "SU3: signature type ", m_Data->signature_type, " is not supported");
+      LOG(error)
+        << "SU3: signature type " << m_Data->signature_type << " is not supported";
       return false;
   }
-  LogPrint(eLogDebug, "SU3: verification successful");
+  LOG(debug) << "SU3: verification successful";
   return true;
 }
 
 bool SU3::ExtractContent() {
-  LogPrint(eLogDebug, "SU3: unzipping stream");
+  LOG(debug) << "SU3: unzipping stream";
   kovri::client::ZIP zip(
       m_Stream.Str(),
       m_Data->content_length,
       m_Data->content_position);
   if (!zip.Unzip()) {
-    LogPrint(eLogError, "SU3: unzip failed");
+    LOG(error) << "SU3: unzip failed";
     return false;
   }
   // Get unzipped RI's for Reseed
   m_RouterInfos = zip.m_Contents;
-  LogPrint(eLogDebug, "SU3: extraction successful");
+  LOG(debug) << "SU3: extraction successful";
   return true;
 }
 

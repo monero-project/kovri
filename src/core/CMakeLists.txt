@@ -27,7 +27,7 @@ set(CORE_SRC
   "util/base64.cc"
   "util/byte_stream.cc"
   "util/filesystem.cc"
-  "util/impl/log.cc"
+  "util/log.cc"
   "util/mtu.cc")
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")

@@ -61,12 +61,12 @@ class X509::X509Impl {
   const std::map<std::string, PublicKey> GetSigningKey(
       std::stringstream& certificate) {
     if (!ProcessCert(certificate)) {
-      LogPrint(eLogError, "X509: failed to process certificate");
+      LOG(error) << "X509: failed to process certificate";
       // Return emptied map on failure (if not already empty)
       m_SigningKeys.clear();
       return m_SigningKeys;
     }
-    LogPrint(eLogDebug, "X509: successfully acquired signing key");
+    LOG(debug) << "X509: successfully acquired signing key";
     return m_SigningKeys;
   }
 
@@ -91,7 +91,7 @@ class X509::X509Impl {
     auto pos1 = cert.find(margin["header"]);
     auto pos2 = cert.find(margin["footer"]);
     if (pos1 == std::string::npos || pos2 == std::string::npos) {
-      LogPrint(eLogError, "X509: certificate is not PEM");
+      LOG(error) << "X509: certificate is not PEM";
       return false;
     }
     // Read in base64 content and decode
@@ -99,10 +99,10 @@ class X509::X509Impl {
     pos2 -= pos1;
     std::string base64 = cert.substr(pos1, pos2);
     if (!PEMDecode(base64.data(), base64.size())) {
-      LogPrint(eLogError, "X509: failed to decode certificate");
+      LOG(error) << "X509: failed to decode certificate";
       return false;
     }
-    LogPrint(eLogDebug, "X509: successfully processed certificate");
+    LOG(debug) << "X509: successfully processed certificate";
     return true;
   }
 
@@ -184,7 +184,7 @@ class X509::X509Impl {
           n.Encode(value, sizeof(PublicKey));
           m_SigningKeys[name] = value;
         } else {
-          LogPrint(eLogError, "X509: unknown issuer, skipped");
+          LOG(error) << "X509: unknown issuer, skipped";
         }
       }
       publicKey.SkipAll();
@@ -192,7 +192,7 @@ class X509::X509Impl {
       x509Cert.SkipAll();
       return true;
     } catch (CryptoPP::Exception& e) {
-      LogPrint(eLogError, "X509: PEM decoding exception '", e.what(), "'");
+      LOG(error) << "X509: PEM decoding exception '" << e.what() << "'";
       return false;
     }
   }

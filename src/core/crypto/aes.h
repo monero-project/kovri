@@ -42,6 +42,19 @@
 namespace kovri {
 namespace core {
 
+/// @note Initialize once to avoid repeated tests for AES-NI
+void SetupAESNI();
+
+/// @brief Checks for AES-NI support in Intel/AMD processors
+/// @note https://en.wikipedia.org/wiki/CPUID
+/// @return True if supported, false if not
+bool HasAESNI();
+
+/// @brief Returns result of AES-NI check
+/// @note Used for runtime AES-NI implementation
+/// @return True we are using AES-NI, false if not
+bool UsingAESNI();
+
 struct CipherBlock {
   std::uint8_t buf[16];
   void operator^=(const CipherBlock& other) {  // XOR
@@ -86,16 +99,6 @@ class AESAlignedBuffer {  // 16 bytes alignment
   std::uint8_t m_UnalignedBuffer[Size + 15] = {};  // up to 15 bytes alignment
   std::uint8_t* m_Buf;
 };
-
-/// @brief Checks for AES-NI support in Intel/AMD processors
-/// @note https://en.wikipedia.org/wiki/CPUID
-/// @return True if supported, false if not
-bool HasAESNI();
-
-/// @brief Returns result of AESNIExists()
-/// @note Used for runtime AES-NI implementation
-/// @return True we are using AES-NI, false if not
-bool UsingAESNI();
 
 /**
  *

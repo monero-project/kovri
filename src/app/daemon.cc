@@ -66,10 +66,10 @@ bool DaemonSingleton::Config(
   try {
     m_Instance->Configure();
   } catch (const std::exception& ex) {
-    LogPrint(eLogError, "DaemonSingleton: ", ex.what());
+    LOG(error) << "DaemonSingleton: " << ex.what();
     return false;
   } catch (...) {
-    LogPrint(eLogError, "DaemonSingleton: unknown exception when configuring");
+    LOG(error) << "DaemonSingleton: unknown exception when configuring";
     return false;
   }
   // Set daemon mode (if applicable)
@@ -85,12 +85,10 @@ bool DaemonSingleton::Init() {
   try {
     m_Instance->Initialize();
   } catch (const std::exception& ex) {
-    LogPrint(eLogError,
-        "DaemonSingleton: exception during initialization: ", ex.what());
+    LOG(error) << "DaemonSingleton: exception during initialization: " << ex.what();
     return false;
   } catch (...) {
-    LogPrint(eLogError,
-        "DaemonSingleton: unknown exception during initialization");
+    LOG(error) << "DaemonSingleton: unknown exception during initialization";
     return false;
   }
   return true;
@@ -99,39 +97,39 @@ bool DaemonSingleton::Init() {
 // TODO(anonimal): when refactoring TODO's for singleton, have instance Start
 bool DaemonSingleton::Start() {
   try {
-    LogPrint(eLogDebug, "DaemonSingleton: starting NetDb");
+    LOG(debug) << "DaemonSingleton: starting NetDb";
     if (!kovri::core::netdb.Start()) {
-      LogPrint(eLogError, "DaemonSingleton: NetDb failed to start");
+      LOG(error) << "DaemonSingleton: NetDb failed to start";
       return false;
     }
     if (kovri::core::netdb.GetNumRouters() < kovri::core::netdb.MIN_REQUIRED_ROUTERS) {
-      LogPrint(eLogDebug, "DaemonSingleton: reseeding NetDb");
+      LOG(debug) << "DaemonSingleton: reseeding NetDb";
       kovri::client::Reseed reseed;
       if (!reseed.Start()) {
-        LogPrint(eLogError, "DaemonSingleton: reseed failed");
+        LOG(error) << "DaemonSingleton: reseed failed";
         return false;
       }
     }
-    LogPrint(eLogDebug, "DaemonSingleton: starting transports");
+    LOG(debug) << "DaemonSingleton: starting transports";
     kovri::core::transports.Start();
-    LogPrint(eLogDebug, "DaemonSingleton: starting tunnels");
+    LOG(debug) << "DaemonSingleton: starting tunnels";
     kovri::core::tunnels.Start();
-    LogPrint(eLogDebug, "DaemonSingleton: starting client");
+    LOG(debug) << "DaemonSingleton: starting client";
     kovri::client::context.Start();
   } catch (const std::exception& ex) {
-    LogPrint(eLogError, "DaemonSingleton: start exception: ", ex.what());
+    LOG(error) << "DaemonSingleton: start exception: " << ex.what();
     return false;
   }  catch (...) {
-    LogPrint(eLogError, "DaemonSingleton: unknown exception when starting");
+    LOG(error) << "DaemonSingleton: unknown exception when starting";
     return false;
   }
-  LogPrint(eLogInfo, "DaemonSingleton: successfully started");
+  LOG(info) << "DaemonSingleton: successfully started";
   return true;
 }
 
 void DaemonSingleton::Reload() {
   // TODO(unassigned): do we want to add locking?
-  LogPrint(eLogInfo, "DaemonSingleton: reloading configuration");
+  LOG(info) << "DaemonSingleton: reloading configuration";
   // Reload tunnels configuration
   m_Instance->Reload();
 }
@@ -139,23 +137,23 @@ void DaemonSingleton::Reload() {
 // TODO(anonimal): when refactoring TODO's for singleton, have instance Stop
 bool DaemonSingleton::Stop() {
   try {
-    LogPrint(eLogDebug, "DaemonSingleton: stopping client");
+    LOG(debug) << "DaemonSingleton: stopping client";
     kovri::client::context.Stop();
-    LogPrint(eLogDebug, "DaemonSingleton: stopping tunnels");
+    LOG(debug) << "DaemonSingleton: stopping tunnels";
     kovri::core::tunnels.Stop();
-    LogPrint(eLogDebug, "DaemonSingleton: stopping transports");
+    LOG(debug) << "DaemonSingleton: stopping transports";
     kovri::core::transports.Stop();
-    LogPrint(eLogDebug, "DaemonSingleton: stopping NetDb");
+    LOG(debug) << "DaemonSingleton: stopping NetDb";
     kovri::core::netdb.Stop();
   } catch (const std::exception& ex) {
-    LogPrint(eLogError, "DaemonSingleton: stop exception: ", ex.what());
+    LOG(error) << "DaemonSingleton: stop exception: " << ex.what();
     return false;
   }  catch (...) {
-    LogPrint(eLogError, "DaemonSingleton: unknown exception when stopping");
+    LOG(error) << "DaemonSingleton: unknown exception when stopping";
     return false;
   }
-  LogPrint(eLogInfo, "DaemonSingleton: successfully stopped");
-  LogPrint(eLogInfo, "Goodbye!");
+  LOG(info) << "DaemonSingleton: successfully stopped";
+  LOG(info) << "Goodbye!";
   return true;
 }
 

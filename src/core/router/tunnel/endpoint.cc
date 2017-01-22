@@ -76,9 +76,8 @@ void TunnelEndpoint::HandleDecryptedTunnelDataMsg(
         // payload + iv
         TUNNEL_DATA_MSG_SIZE - (fragment - msg->GetPayload()) + 16);
     if (memcmp(hash, decrypted, 4)) {
-      LogPrint(eLogError,
-          "TunnelEndpoint: ",
-          "HandleDecryptedTunnelDataMsg(): checksum verification failed");
+      LOG(error)
+        << "TunnelEndpoint: " << __func__ << ": checksum verification failed";
       return;
     }
     // process fragments
@@ -147,24 +146,23 @@ void TunnelEndpoint::HandleDecryptedTunnelDataMsg(
             if (ret.second)
               HandleOutOfSequenceFragment(msg_ID, ret.first->second);
             else
-              LogPrint(eLogError,
-                  "TunnelEndpoint: incomplete message ",
-                  msg_ID, " already exists");
+              LOG(error)
+                << "TunnelEndpoint: incomplete message "
+                << msg_ID << " already exists";
           } else {
             m.next_fragment_num = fragment_num;
             HandleFollowOnFragment(msg_ID, is_last_fragment, m);
           }
         } else {
-          LogPrint(eLogError,
-              "TunnelEndpoint: message is fragmented, "
-              "but msg_ID is not presented");
+          LOG(error)
+            << "TunnelEndpoint: message is fragmented, "
+            << "but msg_ID is not presented";
         }
       }
       fragment += size;
     }
   } else {
-    LogPrint(eLogError,
-        "TunnelEndpoint: HandleDecryptedTunnelDataMsg(): zero not found");
+    LOG(error) << "TunnelEndpoint: " << __func__ << ": zero not found";
   }
 }
 
@@ -181,9 +179,9 @@ void TunnelEndpoint::HandleFollowOnFragment(
       // check if message is not too long
       if (msg.data->len + size < I2NP_MAX_MESSAGE_SIZE) {
         if (msg.data->len + size > msg.data->max_len) {
-          LogPrint(eLogDebug,
-              "TunnelEndpoint: I2NP message size ",
-              msg.data->max_len, " is not enough");
+          LOG(debug)
+            << "TunnelEndpoint: I2NP message size "
+            << msg.data->max_len << " is not enough";
           auto new_msg = ToSharedI2NPMessage(NewI2NPMessage());
           *new_msg = *(msg.data);
           msg.data = new_msg;
@@ -200,19 +198,19 @@ void TunnelEndpoint::HandleFollowOnFragment(
           HandleOutOfSequenceFragment(msg_ID, msg);
         }
       } else {
-        LogPrint(eLogError,
-            "TunnelEndpoint: fragment ", m.next_fragment_num,
-            " of message ", msg_ID,
-            "exceeds max I2NP message size. Message dropped");
+        LOG(error)
+          << "TunnelEndpoint: fragment " << m.next_fragment_num
+          << " of message " << msg_ID
+          << "exceeds max I2NP message size. Message dropped";
         m_IncompleteMessages.erase(it);
       }
     } else {
-      LogPrint(eLogDebug,
-          "TunnelEndpoint: unexpected fragment: ",
-          static_cast<int>(m.next_fragment_num),
-          " instead: ",
-          static_cast<int>(msg.next_fragment_num),
-          " of message ", msg_ID, ". Saved");
+      LOG(debug)
+        << "TunnelEndpoint: unexpected fragment: "
+        << static_cast<int>(m.next_fragment_num)
+        << " instead: "
+        << static_cast<int>(msg.next_fragment_num)
+        << " of message " << msg_ID << ". Saved";
       AddOutOfSequenceFragment(
           msg_ID,
           m.next_fragment_num,
@@ -220,9 +218,9 @@ void TunnelEndpoint::HandleFollowOnFragment(
           m.data);
     }
   } else {
-    LogPrint(eLogDebug,
-        "TunnelEndpoint: first fragment of message ",
-        msg_ID, " not found. Saved");
+    LOG(debug)
+      << "TunnelEndpoint: first fragment of message "
+      << msg_ID << " not found. Saved";
     AddOutOfSequenceFragment(
         msg_ID,
         m.next_fragment_num,
@@ -249,15 +247,15 @@ void TunnelEndpoint::HandleOutOfSequenceFragment(
   auto it = m_OutOfSequenceFragments.find(msg_ID);
   if (it != m_OutOfSequenceFragments.end()) {
     if (it->second.fragment_num == msg.next_fragment_num) {
-      LogPrint(eLogDebug,
-          "TunnelEndpoint: out-of-sequence fragment ",
-          static_cast<int>(it->second.fragment_num),
-          " of message ", msg_ID, " found");
+      LOG(debug)
+        << "TunnelEndpoint: out-of-sequence fragment "
+        << static_cast<int>(it->second.fragment_num)
+        << " of message " << msg_ID << " found";
       auto size = it->second.data->GetLength();
       if (msg.data->len + size > msg.data->max_len) {
-        LogPrint(eLogDebug,
-            "TunnelEndpoint: I2NP message size ",
-            msg.data->max_len, " is not enough");
+        LOG(debug)
+          << "TunnelEndpoint: I2NP message size "
+          << msg.data->max_len << " is not enough";
         auto new_msg = ToSharedI2NPMessage(NewI2NPMessage());
         *new_msg = *(msg.data);
         msg.data = new_msg;
@@ -281,10 +279,10 @@ void TunnelEndpoint::HandleOutOfSequenceFragment(
 
 void TunnelEndpoint::HandleNextMessage(
     const TunnelMessageBlock& msg) {
-  LogPrint(eLogDebug,
-      "TunnelEndpoint: HandleNextMessage(): handle fragment of ",
-      msg.data->GetLength(), " bytes, msg type: ",
-      static_cast<int>(msg.data->GetTypeID()));
+  LOG(debug)
+    << "TunnelEndpoint: " << __func__ << " handle fragment of "
+    << msg.data->GetLength() << " bytes, msg type: "
+    << static_cast<int>(msg.data->GetTypeID());
   switch (msg.delivery_type) {
     case e_DeliveryTypeLocal:
       kovri::core::HandleI2NPMessage(msg.data);
@@ -310,16 +308,16 @@ void TunnelEndpoint::HandleNextMessage(
           // TODO(unassigned): ^ ???
           kovri::core::transports.SendMessage(msg.hash, msg.data);
         } else {  // we shouldn't send this message. possible leakage
-          LogPrint(eLogError,
-              "TunnelEndpoint: message to another router "
-              "arrived from an inbound tunnel. Dropped");
+          LOG(error)
+            << "TunnelEndpoint: message to another router "
+            << "arrived from an inbound tunnel. Dropped";
         }
       }
     break;
     default:
-      LogPrint(eLogError,
-          "TunnelMessage: unknown delivery type ",
-          static_cast<int>(msg.delivery_type));
+      LOG(error)
+        << "TunnelMessage: unknown delivery type "
+        << static_cast<int>(msg.delivery_type);
   }
 }
 

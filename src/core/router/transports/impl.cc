@@ -62,7 +62,7 @@ DHKeysPairSupplier::~DHKeysPairSupplier() {
 }
 
 void DHKeysPairSupplier::Start() {
-  LogPrint(eLogDebug, "DHKeysPairSupplier: starting");
+  LOG(debug) << "DHKeysPairSupplier: starting";
   m_IsRunning = true;
   m_Thread =
     std::make_unique<std::thread>(
@@ -81,7 +81,7 @@ void DHKeysPairSupplier::Stop() {
 }
 
 void DHKeysPairSupplier::Run() {
-  LogPrint(eLogDebug, "DHKeysPairSupplier: running");
+  LOG(debug) << "DHKeysPairSupplier: running";
   while (m_IsRunning) {
     if (m_QueueSize > m_Queue.size ())
       CreateDHKeysPairs(m_QueueSize - m_Queue.size());
@@ -92,7 +92,7 @@ void DHKeysPairSupplier::Run() {
 
 void DHKeysPairSupplier::CreateDHKeysPairs(
     std::size_t num) {
-  LogPrint(eLogDebug, "DHKeysPairSupplier: creating");
+  LOG(debug) << "DHKeysPairSupplier: creating";
   for (std::size_t i = 0; i < num; i++) {
     auto pair = std::make_unique<kovri::core::DHKeysPair>();
     kovri::core::DiffieHellman().GenerateKeyPair(
@@ -104,7 +104,7 @@ void DHKeysPairSupplier::CreateDHKeysPairs(
 }
 
 std::unique_ptr<DHKeysPair> DHKeysPairSupplier::Acquire() {
-  LogPrint(eLogDebug, "DHKeysPairSupplier: acquiring");
+  LOG(debug) << "DHKeysPairSupplier: acquiring";
   std::unique_lock<std::mutex> l(m_AcquiredMutex);
   if (!m_Queue.empty()) {
     auto pair = std::move(m_Queue.front());
@@ -123,7 +123,7 @@ std::unique_ptr<DHKeysPair> DHKeysPairSupplier::Acquire() {
 
 void DHKeysPairSupplier::Return(
     std::unique_ptr<DHKeysPair> pair) {
-  LogPrint(eLogDebug, "DHKeysPairSupplier: returning");
+  LOG(debug) << "DHKeysPairSupplier: returning";
   std::unique_lock<std::mutex> l(m_AcquiredMutex);
   m_Queue.push(std::move(pair));
 }
@@ -159,10 +159,10 @@ Transports::~Transports() {
 }
 
 void Transports::Start() {
-  LogPrint(eLogDebug, "Transports: starting");
+  LOG(debug) << "Transports: starting";
 #ifdef USE_UPNP
   m_UPnP.Start();
-  LogPrint(eLogDebug, "Transports: UPnP started");
+  LOG(debug) << "Transports: UPnP started";
 #endif
   m_DHKeysPairSupplier.Start();
   m_IsRunning = true;
@@ -170,26 +170,26 @@ void Transports::Start() {
   // create acceptors
   const auto addresses = context.GetRouterInfo().GetAddresses();
   for (const auto& address : addresses) {
-    LogPrint(eLogDebug, "Transports: creating servers for address ", address.host);
+    LOG(debug) << "Transports: creating servers for address " << address.host;
     if (address.transport_style ==
         kovri::core::RouterInfo::eTransportNTCP && address.host.is_v4()) {
       if (!m_NTCPServer) {
-        LogPrint(eLogDebug, "Transports: TCP listening on port ", address.port);
+        LOG(debug) << "Transports: TCP listening on port " << address.port;
         m_NTCPServer = std::make_unique<NTCPServer>(m_Service, address.port);
         m_NTCPServer->Start();
       } else {
-        LogPrint(eLogError, "Transports: TCP server already exists");
+        LOG(error) << "Transports: TCP server already exists";
       }
     }
     if (address.transport_style ==
         kovri::core::RouterInfo::eTransportSSU && address.host.is_v4()) {
       if (!m_SSUServer) {
-        LogPrint(eLogDebug, "Transports: UDP listening on port ", address.port);
+        LOG(debug) << "Transports: UDP listening on port " << address.port;
         m_SSUServer = std::make_unique<SSUServer>(m_Service, address.port);
         m_SSUServer->Start();
         DetectExternalIP();
       } else {
-        LogPrint(eLogError, "Transports: SSU server already exists");
+        LOG(error) << "Transports: SSU server already exists";
       }
     }
   }
@@ -227,18 +227,18 @@ void Transports::Stop() {
 }
 
 void Transports::Run() {
-  LogPrint(eLogDebug, "Transports: running");
+  LOG(debug) << "Transports: running";
   while (m_IsRunning) {
     try {
       m_Service.run();
     } catch (std::exception& ex) {
-      LogPrint(eLogError, "Transports: Run(): '", ex.what(), "'");
+      LOG(error) << "Transports: " << __func__ << ": '" << ex.what() << "'";
     }
   }
 }
 
 void Transports::UpdateBandwidth() {
-  LogPrint(eLogDebug, "Transports: updating bandwidth");
+  LOG(debug) << "Transports: updating bandwidth";
   const std::uint64_t ts = kovri::core::GetMillisecondsSinceEpoch();
   if (m_LastBandwidthUpdateTime > 0) {
     auto delta = ts - m_LastBandwidthUpdateTime;
@@ -257,11 +257,11 @@ void Transports::UpdateBandwidth() {
 
 bool Transports::IsBandwidthExceeded() const {
   if (std::max(m_InBandwidth, m_OutBandwidth) > LOW_BANDWIDTH_LIMIT) {
-    LogPrint(eLogDebug, "Transports: bandwidth has been exceeded");
+    LOG(debug) << "Transports: bandwidth has been exceeded";
     return true;
   }
   if (kovri::context.GetRouterInfo().IsHighBandwidth())
-    LogPrint(eLogDebug, "Transports: bandwidth has not been exceeded");
+    LOG(debug) << "Transports: bandwidth has not been exceeded";
   return false;
 }
 
@@ -276,7 +276,7 @@ void Transports::SendMessage(
 void Transports::SendMessages(
     const kovri::core::IdentHash& ident,
     const std::vector<std::shared_ptr<kovri::core::I2NPMessage>>& msgs) {
-  LogPrint(eLogDebug, "Transports: sending messages");
+  LOG(debug) << "Transports: sending messages";
   m_Service.post(
       std::bind(
           &Transports::PostMessages,
@@ -288,7 +288,7 @@ void Transports::SendMessages(
 void Transports::PostMessages(
     kovri::core::IdentHash ident,
     std::vector<std::shared_ptr<kovri::core::I2NPMessage>> msgs) {
-  LogPrint(eLogDebug, "Transports: posting messages");
+  LOG(debug) << "Transports: posting messages";
   if (ident == kovri::context.GetRouterInfo().GetIdentHash()) {
     // we send it to ourself
     for (auto msg : msgs)
@@ -305,7 +305,7 @@ void Transports::PostMessages(
           Peer{ 0, router, {}, kovri::core::GetSecondsSinceEpoch(), {} })).first;
       connected = ConnectToPeer(ident, it->second);
     } catch (std::exception& ex) {
-      LogPrint(eLogError, "Transports: PostMessages(): '", ex.what(), "'");
+      LOG(error) << "Transports: " << __func__ << ", '" << ex.what() << "'";
     }
     if (!connected)
       return;
@@ -322,7 +322,7 @@ bool Transports::ConnectToPeer(
     const kovri::core::IdentHash& ident,
     Peer& peer) {
   if (!peer.router) {  // We don't have the RI
-    LogPrint(eLogDebug, "Transports: RI not found, requesting");
+    LOG(debug) << "Transports: RI not found, requesting";
     kovri::core::netdb.RequestDestination(
         ident,
         std::bind(
@@ -332,12 +332,9 @@ bool Transports::ConnectToPeer(
             ident));
     return true;
   }
-
   // We have the RI, connect to it
-  LogPrint(eLogDebug,
-      "Transports: connecting to peer",
-      GetFormattedSessionInfo(peer.router));
-
+  LOG(debug)
+    << "Transports: connecting to peer" << GetFormattedSessionInfo(peer.router);
   // If only NTCP or SSU is supported, always try the supported transport
   // If both are supported, SSU is used for the second attempt
   // Peers that fail on all supported transports are removed
@@ -350,16 +347,14 @@ bool Transports::ConnectToPeer(
     result = ConnectToPeerNTCP(ident, peer);
   else if (peer.num_attempts == 1)
     result = ConnectToPeerSSU(peer);
-
   // Increase the number of attempts (even when no transports are available)
   ++peer.num_attempts;
   if (result)
     return true;
-
   // Couldn't connect, get rid of this peer
-  LogPrint(eLogError,
-      "Transports:", GetFormattedSessionInfo(peer.router),
-      "no NTCP/SSU address available");
+  LOG(error)
+    << "Transports:" << GetFormattedSessionInfo(peer.router)
+    << "no NTCP/SSU address available";
   peer.Done();
   m_Peers.erase(ident);
   return false;
@@ -370,17 +365,13 @@ bool Transports::ConnectToPeerNTCP(
     Peer& peer) {
   if (!m_NTCPServer)
     return false;  // NTCP not supported
-
-  LogPrint(eLogDebug,
-      "Transports: attempting NTCP for peer",
-      GetFormattedSessionInfo(peer.router));
-
+  LOG(debug)
+    << "Transports: attempting NTCP for peer"
+    << GetFormattedSessionInfo(peer.router);
   const auto address = peer.router->GetNTCPAddress(!context.SupportsV6());
-
   // No NTCP address found
   if (!address)
     return false;
-
   if (!address->host.is_unspecified()) {
     if (!peer.router->UsesIntroducer() && !peer.router->IsUnreachable()) {
       auto s = std::make_shared<NTCPSession>(*m_NTCPServer, peer.router);
@@ -389,9 +380,9 @@ bool Transports::ConnectToPeerNTCP(
     }
   } else {  // we don't have address
     if (address->address_string.length() > 0) {  // trying to resolve
-      LogPrint(eLogDebug,
-          "Transports: NTCP resolving ", address->address_string);
-          NTCPResolve(address->address_string, ident);
+      LOG(debug) <<
+          "Transports: NTCP resolving " << address->address_string;
+      NTCPResolve(address->address_string, ident);
       return true;
     }
   }
@@ -401,18 +392,13 @@ bool Transports::ConnectToPeerNTCP(
 bool Transports::ConnectToPeerSSU(Peer& peer) {
   if (!m_SSUServer)
     return false;  // SSU not supported
-
-  LogPrint(eLogDebug,
-    "Transports: attempting SSU for peer",
-    GetFormattedSessionInfo(peer.router));
-
+  LOG(debug) <<
+    "Transports: attempting SSU for peer"
+    << GetFormattedSessionInfo(peer.router);
   if (m_SSUServer->GetSession(peer.router))
     return true;
-
   return false;
 }
-
-
 
 void Transports::RequestComplete(
     std::shared_ptr<const kovri::core::RouterInfo> router,
@@ -431,14 +417,13 @@ void Transports::HandleRequestComplete(
   auto it = m_Peers.find(ident);
   if (it != m_Peers.end()) {
     if (router) {
-      LogPrint(eLogDebug,
-          "Transports: router ", router->GetIdentHashAbbreviation(),
-          " found, trying to connect");
+      LOG(debug)
+        << "Transports: router " << router->GetIdentHashAbbreviation()
+        << " found, trying to connect";
       it->second.router = router;
       ConnectToPeer(ident, it->second);
     } else {
-      LogPrint(eLogWarn,
-          "Transports: router not found, failed to send messages");
+      LOG(warning) << "Transports: router not found, failed to send messages";
       m_Peers.erase(it);
     }
   }
@@ -472,9 +457,9 @@ void Transports::HandleNTCPResolve(
     auto& peer = it1->second;
     if (!ecode && peer.router) {
       auto address = (*it).endpoint().address();
-      LogPrint(eLogDebug,
-          "Transports: ", (*it).host_name(),
-          " has been resolved to ", address);
+      LOG(debug)
+        << "Transports: " << (*it).host_name()
+        << " has been resolved to " << address;
       auto addr = peer.router->GetNTCPAddress();
       if (addr) {
         auto s = std::make_shared<NTCPSession>(*m_NTCPServer, peer.router);
@@ -482,8 +467,8 @@ void Transports::HandleNTCPResolve(
         return;
       }
     }
-    LogPrint(eLogError,
-        "Transports: unable to resolve NTCP address: ", ecode.message());
+    LOG(error)
+      << "Transports: unable to resolve NTCP address: " << ecode.message();
     m_Peers.erase(it1);
   }
 }
@@ -493,10 +478,9 @@ void Transports::CloseSession(
     std::shared_ptr<const kovri::core::RouterInfo> router) {
   if (!router)
     return;
-
-  LogPrint(eLogDebug,
-      "Transports: closing session for [",
-      router->GetIdentHashAbbreviation(), "]");
+  LOG(debug)
+    << "Transports: closing session for "
+    << "[" << router->GetIdentHashAbbreviation() << "]";
   m_Service.post(
       std::bind(
           &Transports::PostCloseSession,
@@ -511,29 +495,26 @@ void Transports::PostCloseSession(
   // try SSU first
   if (ssu_session) {
     m_SSUServer->DeleteSession(ssu_session);
-    LogPrint(eLogDebug,
-        "Transports: SSU session [",
-        router->GetIdentHashAbbreviation(), "] closed");
+    LOG(debug)
+      << "Transports: SSU session "
+      << "[" << router->GetIdentHashAbbreviation() << "] closed";
   }
   auto ntcp_session = m_NTCPServer ?
       m_NTCPServer->FindNTCPSession(router->GetIdentHash()) : nullptr;
   if (ntcp_session) {
     m_NTCPServer->RemoveNTCPSession(ntcp_session);
-    LogPrint(eLogDebug,
-        "Transports: NTCP session [",
-        router->GetIdentHashAbbreviation(), "] closed");
+    LOG(debug)
+      << "Transports: NTCP session "
+      << "[" << router->GetIdentHashAbbreviation() << "] closed";
   }
 }
 
 void Transports::DetectExternalIP() {
-  LogPrint(eLogDebug, "Transports: detecting external IP");
-
+  LOG(debug) << "Transports: detecting external IP";
   if (!m_SSUServer) {  // SSU not supported
-    LogPrint(eLogError,
-        "Transports: can't detect external IP, SSU is not available");
+    LOG(error) << "Transports: can't detect external IP, SSU is not available";
     return;
   }
-
   kovri::context.SetStatus(eRouterStatusTesting);
   // TODO(unassigned): Why 5 times? (make constant)
   for (int i = 0; i < 5; i++) {
@@ -550,21 +531,20 @@ void Transports::DetectExternalIP() {
 }
 
 std::unique_ptr<DHKeysPair> Transports::GetNextDHKeysPair() {
-  LogPrint(eLogDebug, "Transports: getting next DH keys pair");
+  LOG(debug) << "Transports: getting next DH keys pair";
   return m_DHKeysPairSupplier.Acquire();
 }
 
 void Transports::ReuseDHKeysPair(
     std::unique_ptr<DHKeysPair> pair) {
-  LogPrint(eLogDebug, "Transports: reusing DH keys pair");
+  LOG(debug) << "Transports: reusing DH keys pair";
   m_DHKeysPairSupplier.Return(std::move(pair));
 }
 
 void Transports::PeerConnected(
     std::shared_ptr<TransportSession> session) {
   auto router = session->GetRemoteRouter();
-  LogPrint(eLogDebug,
-      "Transports:", GetFormattedSessionInfo(router), "connecting");
+  LOG(debug) << "Transports:" << GetFormattedSessionInfo(router) << "connecting";
   m_Service.post([session, this]() {
     auto ident = session->GetRemoteIdentity().GetIdentHash();
     auto it = m_Peers.find(ident);
@@ -584,7 +564,7 @@ void Transports::PeerConnected(
 
 void Transports::PeerDisconnected(
     std::shared_ptr<TransportSession> session) {
-  LogPrint(eLogDebug, "Transports: disconnecting peer");
+  LOG(debug) << "Transports: disconnecting peer";
   m_Service.post([session, this]() {
     auto ident = session->GetRemoteIdentity().GetIdentHash();
     auto it = m_Peers.find(ident);
@@ -602,28 +582,28 @@ void Transports::PeerDisconnected(
 
 bool Transports::IsConnected(
     const kovri::core::IdentHash& ident) const {
-  LogPrint(eLogDebug, "Transports: testing if connected");
+  LOG(debug) << "Transports: testing if connected";
   auto it = m_Peers.find(ident);
   if (it != m_Peers.end()) {
-    LogPrint(eLogDebug, "Transports: we are connected");
+    LOG(debug) << "Transports: we are connected";
     return true;
   }
-  LogPrint(eLogDebug, "Transports: we are not connected");
+  LOG(debug) << "Transports: we are not connected";
   return false;
 }
 
 void Transports::HandlePeerCleanupTimer(
     const boost::system::error_code& ecode) {
-  LogPrint(eLogDebug, "Transports: handling peer cleanup timer");
+  LOG(debug) << "Transports: handling peer cleanup timer";
   if (ecode != boost::asio::error::operation_aborted) {
     auto ts = kovri::core::GetSecondsSinceEpoch();
     for (auto it = m_Peers.begin(); it != m_Peers.end();) {
       if (it->second.sessions.empty() &&
           ts > it->second.creation_time + SESSION_CREATION_TIMEOUT) {
-        LogPrint(eLogWarn,
-            "Transports: session to peer",
-            GetFormattedSessionInfo(it->second.router),
-            "has not been created in ", SESSION_CREATION_TIMEOUT, " seconds ");
+        LOG(warning)
+          << "Transports: session to peer"
+          << GetFormattedSessionInfo(it->second.router)
+          << "has not been created in " << SESSION_CREATION_TIMEOUT << " seconds";
         it = m_Peers.erase(it);
       } else {
         it++;
@@ -645,7 +625,7 @@ void Transports::HandlePeerCleanupTimer(
 }
 
 std::shared_ptr<const kovri::core::RouterInfo> Transports::GetRandomPeer() const {
-  LogPrint(eLogDebug, "Transports: getting random peer");
+  LOG(debug) << "Transports: getting random peer";
   if (m_Peers.empty())  // ensure m.Peers.size() >= 1
     return nullptr;
   std::size_t s = m_Peers.size();
@@ -656,6 +636,7 @@ std::shared_ptr<const kovri::core::RouterInfo> Transports::GetRandomPeer() const
   return it->second.router;
 }
 
+// TODO(anonimal): optimize (will alter design)
 std::string Transports::GetFormattedSessionInfo(
     std::shared_ptr<const kovri::core::RouterInfo>& router) const {
   if (router) {
@@ -665,7 +646,6 @@ std::string Transports::GetFormattedSessionInfo(
   }
   return "[hash unavailable]";
 }
-
 
 }  // namespace core
 }  // namespace kovri

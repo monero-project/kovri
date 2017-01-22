@@ -95,7 +95,7 @@ std::uint16_t GetMTUUnix(
     const boost::asio::ip::address& local_address) {
   ifaddrs* ifaddr, *ifa = nullptr;
   if (getifaddrs(&ifaddr) == -1) {
-    LogPrint(eLogError, "MTU: can't execute getifaddrs()");
+    LOG(error) << "MTU: can't execute getifaddrs()";
     return MTU_FALLBACK;
   }
   int family = 0;
@@ -118,8 +118,7 @@ std::uint16_t GetMTUUnix(
   if (ifa && family) {  // interface found?
     int fd = socket(family, SOCK_DGRAM, 0);
     if (fd < 0) {
-      LogPrint(eLogError,
-          "MTU: failed to create datagram socket: ", strerror(errno));
+      LOG(error) << "MTU: failed to create datagram socket: " << strerror(errno);
     } else {
       ifreq ifr;
       // set interface for query
@@ -128,13 +127,12 @@ std::uint16_t GetMTUUnix(
       if (ioctl(fd, SIOCGIFMTU, &ifr) >= 0)
         mtu = ifr.ifr_mtu;  // MTU
       else
-        LogPrint(eLogError, "MTU: failed to run ioctl");
+        LOG(error) << "MTU: failed to run ioctl";
       close(fd);
     }
   } else {
-    LogPrint(eLogWarn,
-        "MTU: interface for local address",
-        local_address.to_string(), " not found");
+    LOG(warning) << "MTU: interface for local address"
+      << local_address.to_string() << " not found";
   }
   freeifaddrs(ifaddr);
   return mtu;
@@ -163,9 +161,9 @@ std::uint16_t GetMTUWindowsIpv4(
       addresses,
       &out_buf_len);
   if (ret_val != NO_ERROR) {
-    LogPrint(eLogError,
-        "MTU: GetMTUWindowsIpv4() has failed:",
-        "enclosed GetAdaptersAddresses() call has failed");
+    LOG(error)
+      << "MTU: " << __func__ << " has failed:"
+      << "enclosed GetAdaptersAddresses() call has failed";
     FREE(addresses);
     return MTU_FALLBACK;
   }
@@ -175,9 +173,9 @@ std::uint16_t GetMTUWindowsIpv4(
       current_addresses->FirstUnicastAddress;
     unicast = current_addresses->FirstUnicastAddress;
     if (unicast == nullptr) {
-      LogPrint(eLogError,
-          "MTU: GetMTUWindowsIpv4() has failed:",
-          "not a unicast ipv4 address; this is not supported");
+      LOG(error)
+        << "MTU: " << __func__ << " has failed:"
+        << "not a unicast ipv4 address; this is not supported";
     }
     for (int i = 0; unicast != nullptr; ++i) {
       LPSOCKADDR addr = unicast->Address.lpSockaddr;
@@ -193,9 +191,9 @@ std::uint16_t GetMTUWindowsIpv4(
     }
     current_addresses = current_addresses->Next;
   }
-  LogPrint(eLogError,
-      "MTU: GetMTUWindowsIpv4() error:",
-      "no usable unicast ipv4 addresses found");
+  LOG(error)
+    << "MTU: " << __func__ << " has failed:"
+    << "no usable unicast ipv4 addresses found";
   FREE(addresses);
   return MTU_FALLBACK;
 }
@@ -222,9 +220,9 @@ std::uint16_t GetMTUWindowsIpv6(
       addresses,
       &out_buf_len);
   if (ret_val != NO_ERROR) {
-    LogPrint(eLogError,
-      "MTU: GetMTUWindowsIpv6() has failed:",
-      "enclosed GetAdaptersAddresses() call has failed");
+    LOG(error)
+      << "MTU: " << __func__ << " has failed:"
+      << "enclosed GetAdaptersAddresses() call has failed";
     FREE(addresses);
     return MTU_FALLBACK;
   }
@@ -235,9 +233,9 @@ std::uint16_t GetMTUWindowsIpv6(
       current_addresses->FirstUnicastAddress;
     unicast = current_addresses->FirstUnicastAddress;
     if (unicast == nullptr) {
-      LogPrint(eLogError,
-          "MTU: GetMTUWindowsIpv6() has failed:",
-          "not a unicast ipv6 address; this is not supported");
+      LOG(error)
+        << "MTU: " << __func__ << " has failed:"
+        << "not a unicast ipv6 address; this is not supported";
     }
     for (int i = 0; unicast != nullptr; ++i) {
       LPSOCKADDR addr = unicast->Address.lpSockaddr;
@@ -261,9 +259,9 @@ std::uint16_t GetMTUWindowsIpv6(
     }
     current_addresses = current_addresses->Next;
   }
-  LogPrint(eLogError,
-      "MTU: GetMTUWindowsIpv6() error:",
-      "no usable unicast ipv6 addresses found");
+  LOG(error)
+    << "MTU: " << __func__ << " error:"
+    << "no usable unicast ipv6 addresses found";
   FREE(addresses);
   return MTU_FALLBACK;
 }
@@ -290,9 +288,9 @@ std::uint16_t GetMTUWindows(
         &(input_address.sin6_addr));
     return GetMTUWindowsIpv6(input_address);
   } else {
-    LogPrint(eLogError,
-        "MTU: GetMTUWindows() has failed:",
-        "address family is not supported");
+    LOG(error)
+      << "MTU: " << __func__ << " has failed:"
+      << "address family is not supported";
     return MTU_FALLBACK;
   }
 }
@@ -310,9 +308,9 @@ std::uint16_t GetMTU(
 #else
   auto mtu = MTU_FALLBACK;
 #endif
-  LogPrint(eLogDebug, "MTU: our MTU=", mtu);
+  LOG(debug) << "MTU: our MTU=" << mtu;
   if (!mtu || mtu > MTU_MAX) {
-    LogPrint(eLogDebug, "MTU: scaling MTU to ", MTU_MAX);
+    LOG(debug) << "MTU: scaling MTU to " << MTU_MAX;
     mtu = MTU_MAX;
   }
   return mtu;

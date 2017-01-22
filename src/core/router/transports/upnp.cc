@@ -129,9 +129,9 @@ F GetKnownProcAddressImpl(
     F) {
   auto proc = reinterpret_cast<F>(dlsym(hmod, name));
   if (!proc) {
-    LogPrint(eLogError,
-        "UPnP: error resolving ", name,
-        " from UPNP library. This often happens if there is version mismatch!");
+    LOG(error)
+      << "UPnP: error resolving " << name << " from UPNP library. "
+      << "This often happens if there is version mismatch!";
   }
   return proc;
 }
@@ -164,9 +164,9 @@ void UPnP::Start() {
     m_Module = dlopen("libminiupnpc.so", RTLD_LAZY);
 #endif
     if (m_Module == NULL) {
-      LogPrint(eLogError,
-          "UPnP: error loading UPNP library.",
-          "This often happens if there is version mismatch!");
+      LOG(error)
+        << "UPnP: error loading UPNP library."
+        << "This often happens if there is version mismatch!";
       return;
     } else {
       upnpDiscoverFunc = GetKnownProcAddress(
@@ -254,19 +254,17 @@ void UPnP::Discover() {
         m_upnpData.first.servicetype,
         m_externalIPAddress);
     if (r != UPNPCOMMAND_SUCCESS) {
-      LogPrint(eLogError,
-          "UPnP: UPNP_GetExternalIPAddressFunc() returned ", r);
+      LOG(error) << "UPnP: UPNP_GetExternalIPAddressFunc() returned " << r;
       return;
     } else {
       if (m_externalIPAddress[0]) {
-        LogPrint(eLogDebug,
-            "UPnP: external IP address: ", m_externalIPAddress);
+        LOG(debug) << "UPnP: external IP address: " << m_externalIPAddress;
         kovri::context.UpdateAddress(
             boost::asio::ip::address::from_string(
               m_externalIPAddress));
         return;
       } else {
-        LogPrint(eLogError, "UPnP: GetExternalIPAddress failed.");
+        LOG(error) << "UPnP: GetExternalIPAddress failed.";
         return;
       }
     }
@@ -315,20 +313,22 @@ void UPnP::TryPortMapping(
           "0");
 #endif
       if (r == UPNPCOMMAND_SUCCESS) {
-        LogPrint(eLogDebug,
-            "UPnP: port mapping successful. (", m_NetworkAddr,
-            ":", upnp_port.c_str(),
-            " type ", upnp_type.c_str() ,
-            " -> ", m_externalIPAddress,
-            ":", upnp_port.c_str(), ")");
+        LOG(debug)
+          << "UPnP: port mapping successful. "
+          << "(" << m_NetworkAddr
+          << ":" << upnp_port.c_str()
+          << " type " << upnp_type.c_str()
+          << " -> " << m_externalIPAddress
+          << ":" << upnp_port.c_str() << ")";
         return;
       }
       // TODO(unassigned): do we really want to retry on *all* errors? (see upnpcommands.h)
-      LogPrint(eLogError,
-          "UPnP: AddPortMapping (", upnp_port.c_str(),
-          ", ", upnp_port.c_str(),
-          ", ", m_NetworkAddr,
-          ") failed with code ", r);
+      LOG(error)
+        << "UPnP: AddPortMapping "
+        << "(" << upnp_port.c_str()
+        << " << " << upnp_port.c_str()
+        << " << " << m_NetworkAddr
+        << ") failed with code " << r;
       // Try again later
       // TODO(unassigned): magic number to be addressed along with bigger refactor
       std::this_thread::sleep_for(std::chrono::minutes(20));
@@ -360,8 +360,7 @@ void UPnP::CloseMapping(
      upnp_port.c_str(),
       upnp_type.c_str(),
       0);
-  LogPrint(eLogDebug,
-      "UPnP: UPNP_DeletePortMappingFunc() returned : ", r, "\n");
+  LOG(debug) << "UPnP: UPNP_DeletePortMappingFunc() returned : " << r << "\n";
 }
 
 void UPnP::Close() {

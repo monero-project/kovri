@@ -1,6 +1,7 @@
 set(TESTS_CLIENT
   "client/address_book/impl.cc"
   "client/reseed.cc"
+  "client/proxy/http.cc"
   "client/util/http.cc"
   "client/util/parse.cc"
   "client/util/zip.cc")

@@ -138,8 +138,7 @@ void I2PTunnelConnection::HandleReceived(
     const boost::system::error_code& ecode,
     std::size_t bytes_transferred) {
   if (ecode) {
-    LogPrint(eLogError,
-        "I2PTunnelConnection: read error: ", ecode.message());
+    LOG(error) << "I2PTunnelConnection: read error: " << ecode.message();
     if (ecode != boost::asio::error::operation_aborted)
       Terminate();
   } else {
@@ -161,8 +160,7 @@ void I2PTunnelConnection::HandleReceived(
 void I2PTunnelConnection::HandleWrite(
     const boost::system::error_code& ecode) {
   if (ecode) {
-    LogPrint(eLogError,
-        "I2PTunnelConnection: write error: ", ecode.message());
+    LOG(error) << "I2PTunnelConnection: write error: " << ecode.message();
     if (ecode != boost::asio::error::operation_aborted)
       Terminate();
   } else {
@@ -188,8 +186,7 @@ void I2PTunnelConnection::HandleStreamReceive(
     const boost::system::error_code& ecode,
     std::size_t bytes_transferred) {
   if (ecode) {
-    LogPrint(eLogError,
-        "I2PTunnelConnection: stream read error: ", ecode.message());
+    LOG(error) << "I2PTunnelConnection: stream read error: " << ecode.message();
     if (ecode != boost::asio::error::operation_aborted)
       Terminate();
   } else {
@@ -213,11 +210,10 @@ void I2PTunnelConnection::Write(
 void I2PTunnelConnection::HandleConnect(
     const boost::system::error_code& ecode) {
   if (ecode) {
-    LogPrint(eLogError,
-        "I2PTunnelConnection: connect error: ", ecode.message());
+    LOG(error) << "I2PTunnelConnection: connect error: " << ecode.message();
     Terminate();
   } else {
-    LogPrint(eLogDebug, "I2PTunnelConnection: connected");
+    LOG(debug) << "I2PTunnelConnection: connected";
     if (m_IsQuiet) {
       StreamReceive();
     } else {
@@ -312,7 +308,7 @@ void I2PClientTunnelHandler::HandleStreamRequestComplete(
   if (stream) {
     if (Kill())
       return;
-    LogPrint(eLogDebug, "I2PClientTunnelHandler: new I2PTunnel connection");
+    LOG(debug) << "I2PClientTunnelHandler: new I2PTunnel connection";
     auto connection =
       std::make_shared<I2PTunnelConnection>(
           GetOwner(),
@@ -322,9 +318,9 @@ void I2PClientTunnelHandler::HandleStreamRequestComplete(
     connection->I2PConnect();
     Done(shared_from_this());
   } else {
-    LogPrint(eLogError,
-        "I2PClientTunnelHandler: stream not available ",
-        "(router may need more time to integrate into the network)");
+    LOG(error)
+      << "I2PClientTunnelHandler: stream not available "
+      << "(router may need more time to integrate into the network)";
     Terminate();
   }
 }
@@ -373,8 +369,8 @@ std::unique_ptr<const kovri::core::IdentHash> I2PClientTunnel::GetDestIdentHash(
     if (book.CheckAddressIdentHashFound(dest, ident_hash)) {
       m_DestinationIdentHash = std::make_unique<kovri::core::IdentHash>(ident_hash);
     } else {
-      LogPrint(eLogWarn,
-          "I2PClientTunnel: remote destination ", dest, " not found");
+      LOG(warning)
+        << "I2PClientTunnel: remote destination " << dest << " not found";
     }
   }
   return std::move(m_DestinationIdentHash);
@@ -460,17 +456,17 @@ void I2PServerTunnel::HandleResolve(
     bool accept_after) {
   if (!ecode) {
     auto addr = (*it).endpoint().address();
-    LogPrint(eLogInfo,
-        "I2PServerTunnel: server tunnel ",
-        (*it).host_name(), " has been resolved to ", addr);
+    LOG(info)
+      << "I2PServerTunnel: server tunnel "
+      << (*it).host_name() << " has been resolved to " << addr;
     m_Endpoint.address(addr);
     if (accept_after) {
       Accept();
     }
   } else {
-    LogPrint(eLogError,
-        "I2PServerTunnel: unable to resolve server tunnel address: ",
-        ecode.message());
+    LOG(error)
+      << "I2PServerTunnel: unable to resolve server tunnel address: "
+      << ecode.message();
   }
 }
 
@@ -543,8 +539,8 @@ void I2PServerTunnel::Accept() {
               this,
               std::placeholders::_1));
   } else {
-    LogPrint(eLogDebug,
-        "I2PServerTunnel: local destination not set for server tunnel");
+    LOG(debug)
+      << "I2PServerTunnel: local destination not set for server tunnel";
   }
 }
 
@@ -553,9 +549,9 @@ void I2PServerTunnel::HandleAccept(
   if (stream) {
     if (!EnforceACL(stream))
       return;
-    LogPrint(eLogInfo,
-        "I2PServerTunnel: creating connection with ",
-        stream->GetRemoteIdentity().GetIdentHash().ToBase32() + ".b32.i2p");
+    LOG(info)
+      << "I2PServerTunnel: creating connection with "
+      << stream->GetRemoteIdentity().GetIdentHash().ToBase32() + ".b32.i2p";
     CreateI2PConnection(stream);
   }
 }
@@ -563,29 +559,30 @@ void I2PServerTunnel::HandleAccept(
 bool I2PServerTunnel::EnforceACL(
     std::shared_ptr<kovri::client::Stream> stream) {
   if (GetACL().empty()) {
-    LogPrint(eLogDebug, "I2PServerTunnel: ACL empty, continuing");
+    LOG(debug) << "I2PServerTunnel: ACL empty, continuing";
     return true;
   }
   auto ident = stream->GetRemoteIdentity().GetIdentHash();
   bool is_on_list = GetACL().count(ident);
   auto b32 = ident.ToBase32() + ".b32.i2p";
-  LogPrint(eLogInfo, "I2PServerTunnel: enforcing ACL for ", b32);
+  LOG(info) << "I2PServerTunnel: enforcing ACL for " << b32;
   if (GetTunnelAttributes().acl.is_white) {
-    LogPrint(eLogInfo, "I2PServerTunnel: whitelist enabled");
+    LOG(info) << "I2PServerTunnel: whitelist enabled";
     if (is_on_list) {
-      LogPrint(eLogInfo, "I2PServerTunnel: ", b32, " is on whitelist");
+      LOG(info) << "I2PServerTunnel: " << b32 << " is on whitelist";
       return true;
     }
-    LogPrint(eLogWarn,
-        "I2PServerTunnel: ", b32, "is not on whitelist, dropping connection");
+    LOG(warning)
+      << "I2PServerTunnel: " << b32
+      << "is not on whitelist, dropping connection";
   } else if (GetTunnelAttributes().acl.is_black) {
-    LogPrint(eLogInfo, "I2PServerTunnel: blacklist enabled");
+    LOG(info) << "I2PServerTunnel: blacklist enabled";
     if (!is_on_list) {
-      LogPrint(eLogInfo, "I2PServerTunnel: ", b32, " is not on blacklist");
+      LOG(info) << "I2PServerTunnel: " << b32 << " is not on blacklist";
       return true;
     }
-    LogPrint(eLogWarn,
-        "I2PServerTunnel: ", b32, " is on blacklist, dropping connection");
+    LOG(warning)
+      << "I2PServerTunnel: " << b32 << " is on blacklist, dropping connection";
   }
   stream->Close();
   return false;

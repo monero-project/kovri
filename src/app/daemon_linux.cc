@@ -55,9 +55,9 @@ void handle_signal(int sig) {
           return;
         }
       }
-      LogPrint("Reloading config...");
+      LOG(info) << "Reloading config...";
       Daemon.Reload();
-      LogPrint("Config reloaded");
+      LOG(info) << "Config reloaded";
       break;
     case SIGABRT:
     case SIGTERM:
@@ -80,28 +80,28 @@ bool DaemonLinux::Init() {
     // Parent
     pid_t pid = fork();
     if (pid > 0)  {
-      LogPrint(eLogDebug, "DaemonLinux: fork success");
+      LOG(debug) << "DaemonLinux: fork success";
       ::exit(EXIT_SUCCESS);
     }
     if (pid < 0) {
-      LogPrint(eLogError, "DaemonLinux: fork error");
+      LOG(error) << "DaemonLinux: fork error";
       return false;
     }
     // Child
-    LogPrint(eLogDebug, "DaemonLinux: creating process group");
+    LOG(debug) << "DaemonLinux: creating process group";
     umask(0);
     int sid = setsid();
     if (sid < 0) {
-      LogPrint(eLogDebug, "DaemonLinux: could not create process group");
+      LOG(debug) << "DaemonLinux: could not create process group";
       return false;
     }
-    LogPrint(eLogDebug, "DaemonLinux: changing directory to ", m_PIDPath);
+    LOG(debug) << "DaemonLinux: changing directory to " << m_PIDPath;
     if (chdir(m_PIDPath.c_str()) == -1) {
-      LogPrint(eLogError, "DaemonLinux: could not change directory: ", errno);
+      LOG(error) << "DaemonLinux: could not change directory: " << errno;
       return false;
     }
     // Close stdin/stdout/stderr descriptors
-    LogPrint(eLogDebug, "DaemonLinux: closing descriptors");
+    LOG(debug) << "DaemonLinux: closing descriptors";
     ::close(0);
     if (::open("/dev/null", O_RDWR) < 0)
       return false;
@@ -113,28 +113,29 @@ bool DaemonLinux::Init() {
       return false;
   }
   // PID file
-  LogPrint(eLogDebug, "DaemonLinux: opening pid file ", m_PIDFile);
+  LOG(debug) << "DaemonLinux: opening pid file " << m_PIDFile;
   m_PIDFileHandle = open(m_PIDFile.c_str(), O_RDWR | O_CREAT, 0600);
   if (m_PIDFileHandle < 0) {
-    LogPrint(eLogError,
-        "DaemonLinux: could not open pid file ", m_PIDFile, ". Is file in use?");
+    LOG(error)
+      << "DaemonLinux: could not open pid file "
+      << m_PIDFile << ". Is file in use?";
     return false;
   }
-  LogPrint(eLogDebug, "DaemonLinux: locking pid file");
+  LOG(debug) << "DaemonLinux: locking pid file";
   if (lockf(m_PIDFileHandle, F_TLOCK, 0) < 0) {
-    LogPrint(eLogError,
-        "DaemonLinux: could not lock pid file ", m_PIDFile, ": ", errno);
+    LOG(error)
+      << "DaemonLinux: could not lock pid file " << m_PIDFile << ": " << errno;
     return false;
   }
-  LogPrint(eLogDebug, "DaemonLinux: writing pid file");
+  LOG(debug) << "DaemonLinux: writing pid file";
   std::array<char, 10> pid{};
   snprintf(pid.data(), pid.size(), "%d\n", getpid());
   if (write(m_PIDFileHandle, pid.data(), strlen(pid.data())) < 0) {
-    LogPrint(eLogError,
-        "DaemonLinux: could not write pid file ", m_PIDFile, ": ", errno);
+    LOG(error)
+      << "DaemonLinux: could not write pid file " << m_PIDFile << ": " << errno;
     return false;
   }
-  LogPrint(eLogDebug, "DaemonLinux: pid file ready");
+  LOG(debug) << "DaemonLinux: pid file ready";
   // Signal handler
   struct sigaction sa{};
   sa.sa_handler = handle_signal;
@@ -152,12 +153,12 @@ bool DaemonLinux::Start() {
 }
 
 bool DaemonLinux::Stop() {
-  LogPrint(eLogDebug, "DaemonLinux: closing pid file ", m_PIDFile);
+  LOG(debug) << "DaemonLinux: closing pid file " << m_PIDFile;
   if (close(m_PIDFileHandle) == 0) {
     unlink(m_PIDFile.c_str());
   } else {
-    LogPrint(eLogError,
-        "DaemonLinux: could not close pid file ", m_PIDFile, ": ", errno);
+    LOG(error)
+      << "DaemonLinux: could not close pid file " << m_PIDFile << ": " << errno;
   }
   return DaemonSingleton::Stop();
 }

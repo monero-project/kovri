@@ -104,8 +104,9 @@ bool SSUSession::CreateAESandMACKey(
   kovri::core::DiffieHellman dh;
   std::array<std::uint8_t, 256> shared_key;
   if (!dh.Agree(shared_key.data(), m_DHKeysPair->private_key.data(), pub_key)) {
-    LogPrint(eLogError,
-        "SSUSession:", GetFormattedSessionInfo(), "couldn't create shared key");
+    LOG(error)
+      << "SSUSession:" << GetFormattedSessionInfo()
+      << "couldn't create shared key";
     return false;
   }
   std::uint8_t* session_key = m_SessionKey();
@@ -123,9 +124,9 @@ bool SSUSession::CreateAESandMACKey(
     while (!*non_zero) {
       non_zero++;
       if (non_zero - shared_key.data() > 32) {
-        LogPrint(eLogWarn,
-            "SSUSession:", GetFormattedSessionInfo(),
-            "first 32 bytes of shared key is all zeros. Ignored");
+        LOG(warning)
+          << "SSUSession:" << GetFormattedSessionInfo()
+          << "first 32 bytes of shared key is all zeros. Ignored";
         return false;
       }
     }
@@ -151,14 +152,14 @@ void SSUSession::ProcessNextMessage(
     std::size_t len,
     const boost::asio::ip::udp::endpoint& sender_endpoint) {
   m_NumReceivedBytes += len;
-  LogPrint(eLogDebug,
-      "SSUSession:", GetFormattedSessionInfo(),
-      "--> ", len, " bytes transferred, ",
-      GetNumReceivedBytes(), " total bytes received");
+  LOG(debug)
+    << "SSUSession:" << GetFormattedSessionInfo()
+    << "--> " << len << " bytes transferred << "
+    << GetNumReceivedBytes() << " total bytes received";
   kovri::core::transports.UpdateReceivedBytes(len);
   if (m_State == SessionState::Introduced) {
     // HolePunch received
-    LogPrint(eLogDebug, "SSUSession: SSU HolePunch of ", len, " bytes received");
+    LOG(debug) << "SSUSession: SSU HolePunch of " << len << " bytes received";
     m_State = SessionState::Unknown;
     Connect();
   } else {
@@ -181,16 +182,15 @@ void SSUSession::ProcessNextMessage(
         // try own intro key
         auto address = kovri::context.GetRouterInfo().GetSSUAddress();
         if (!address) {
-          LogPrint(eLogError,
-              "SSUSession: ProcessNextMessage(): SSU is not supported");
+          LOG(error) << "SSUSession: " << __func__ << ": SSU is not supported";
           return;
         }
         if (Validate(buf, len, address->key)) {
           Decrypt(buf, len, address->key);
         } else {
-          LogPrint(eLogError,
-              "SSUSession: MAC verification failed ",
-              len, " bytes from ", sender_endpoint);
+          LOG(error)
+            << "SSUSession: MAC verification failed "
+            << len << " bytes from " << sender_endpoint;
           m_Server.DeleteSession(shared_from_this());
           return;
         }
@@ -211,14 +211,14 @@ void SSUSession::ProcessDecryptedMessage(
   try {
     packet = parser.ParsePacket();
   } catch(const std::exception& e) {
-    LogPrint(eLogError,
-        "SSUSession: invalid SSU session packet from ", sender_endpoint,
-        " --> ", e.what());
+    LOG(error)
+      << "SSUSession: invalid SSU session packet from " << sender_endpoint
+      << " --> " << e.what();
     return;
   } catch (...) {
-    LogPrint(eLogError,
-        "SSUSession: invalid SSU session packet from ", sender_endpoint,
-        " --> unknown exception");
+    LOG(error)
+      << "SSUSession: invalid SSU session packet from " << sender_endpoint
+      << " --> unknown exception";
     return;
   }
   switch (packet->GetHeader()->GetPayloadType()) {
@@ -235,11 +235,11 @@ void SSUSession::ProcessDecryptedMessage(
       ProcessSessionConfirmed(packet.get());
       break;
     case SSUPayloadType::PeerTest:
-      LogPrint(eLogDebug, "SSUSession: PeerTest received");
+      LOG(debug) << "SSUSession: PeerTest received";
       ProcessPeerTest(packet.get(), sender_endpoint);
       break;
     case SSUPayloadType::SessionDestroyed:
-      LogPrint(eLogDebug, "SSUSession: SessionDestroy received");
+      LOG(debug) << "SSUSession: SessionDestroy received";
       m_Server.DeleteSession(shared_from_this());
       break;
     case SSUPayloadType::RelayResponse:
@@ -248,17 +248,17 @@ void SSUSession::ProcessDecryptedMessage(
         m_Server.DeleteSession(shared_from_this());
       break;
     case SSUPayloadType::RelayRequest:
-      LogPrint(eLogDebug, "SSUSession: RelayRequest received");
+      LOG(debug) << "SSUSession: RelayRequest received";
       ProcessRelayRequest(packet.get(), sender_endpoint);
       break;
     case SSUPayloadType::RelayIntro:
-      LogPrint(eLogDebug, "SSUSession: RelayIntro received");
+      LOG(debug) << "SSUSession: RelayIntro received";
       ProcessRelayIntro(packet.get());
       break;
     default:
-      LogPrint(eLogWarn,
-          "SSUSession: unexpected payload type: ",
-          static_cast<int>(packet->GetHeader()->GetPayloadType()));
+      LOG(warning)
+        << "SSUSession: unexpected payload type: "
+        << static_cast<int>(packet->GetHeader()->GetPayloadType());
   }
 }
 
@@ -293,28 +293,28 @@ void SSUSession::ProcessSessionRequest(
   if (IsOutbound()) {
     return;
   }
-  LogPrint(eLogDebug, "SSUSession: SessionRequest received");
+  LOG(debug) << "SSUSession: SessionRequest received";
   auto packet = static_cast<SSUSessionRequestPacket*>(pkt);
   SetRemoteEndpoint(sender_endpoint);
   if (!m_DHKeysPair)
     m_DHKeysPair = transports.GetNextDHKeysPair();
   if (!CreateAESandMACKey(packet->GetDhX())) {
-    LogPrint(eLogError,
-        "SSUSession:", GetFormattedSessionInfo(),
-        "invalid DH-X, not sending SessionCreated");
+    LOG(error)
+      << "SSUSession:" << GetFormattedSessionInfo()
+      << "invalid DH-X, not sending SessionCreated";
     return;
   }
   SendSessionCreated(packet->GetDhX());
 }
 
 void SSUSession::SendSessionRequest() {
-  LogPrint(eLogDebug,
-      "SSUSession:", GetFormattedSessionInfo(), "sending SessionRequest");
+  LOG(debug)
+    << "SSUSession:" << GetFormattedSessionInfo() << "sending SessionRequest";
   auto intro_key = GetIntroKey();
   if (!intro_key) {
-    LogPrint(eLogError,
-        "SSUSession:", GetFormattedSessionInfo(),
-        "SendSessionRequest(): SSU is not supported");
+    LOG(error)
+      << "SSUSession:" << GetFormattedSessionInfo()
+      << __func__ << ": SSU is not supported";
     return;
   }
   SSUSessionRequestPacket packet;
@@ -351,22 +351,22 @@ void SSUSession::SendSessionRequest() {
 void SSUSession::ProcessSessionCreated(
     SSUPacket* pkt) {
   if (!m_RemoteRouter || !m_DHKeysPair) {
-    LogPrint(eLogWarn,
-        "SSUSession:", GetFormattedSessionInfo(),
-        "unsolicited SessionCreated message");
+    LOG(warning)
+      << "SSUSession:" << GetFormattedSessionInfo()
+      << "unsolicited SessionCreated message";
     return;
   }
-  LogPrint(eLogDebug,
-      "SSUSession:", GetFormattedSessionInfo(),
-      "SessionCreated received");
+  LOG(debug)
+    << "SSUSession:" << GetFormattedSessionInfo()
+    << "SessionCreated received";
   m_Timer.cancel();  // connect timer
   auto packet = static_cast<SSUSessionCreatedPacket*>(pkt);
   // x, y, our IP, our port, remote IP, remote port, relay tag, signed on time
   SignedData s;
   if (!CreateAESandMACKey(packet->GetDhY())) {
-    LogPrint(eLogError,
-        "SSUSession:", GetFormattedSessionInfo(),
-        "invalid DH-Y, not sending SessionConfirmed");
+    LOG(error)
+      << "SSUSession:" << GetFormattedSessionInfo()
+      << "invalid DH-Y, not sending SessionConfirmed";
     return;
   }
   s.Insert(m_DHKeysPair->public_key.data(), 256);  // x
@@ -383,10 +383,10 @@ void SSUSession::ProcessSessionCreated(
   }
   s.Insert(packet->GetIPAddress(), packet->GetIPAddressSize());  // our IP
   s.Insert<std::uint16_t>(htobe16(packet->GetPort()));  // our port
-  LogPrint(eLogDebug,
-      "SSUSession:", GetFormattedSessionInfo(),
-      "ProcessSessionCreated(): our external address is ",
-      our_IP.to_string(), ":", packet->GetPort());
+  LOG(debug)
+    << "SSUSession:" << GetFormattedSessionInfo()
+    << __func__ << ": our external address is "
+    << our_IP.to_string() << ":" << packet->GetPort();
   kovri::context.UpdateAddress(our_IP);
   if (GetRemoteEndpoint().address().is_v4()) {
     // remote IP v4
@@ -417,9 +417,9 @@ void SSUSession::ProcessSessionCreated(
         packet->GetIPAddressSize(),
         packet->GetPort());
   } else {  // invalid signature
-    LogPrint(eLogError,
-        "SSUSession:", GetFormattedSessionInfo(),
-        "SessionCreated signature verification failed");
+    LOG(error)
+      << "SSUSession:" << GetFormattedSessionInfo()
+      << "SessionCreated signature verification failed";
     // Reset the session key, Java routers might resent the message if it
     //  failed the first time
     m_IsSessionKey = false;
@@ -433,9 +433,9 @@ void SSUSession::SendSessionCreated(
     kovri::context.GetRouterInfo().GetSSUV6Address() :
     kovri::context.GetRouterInfo().GetSSUAddress(true);  // v4 only
   if (!intro_key || !address) {
-    LogPrint(eLogError,
-        "SSUSession:", GetFormattedSessionInfo(),
-        "SendSessionCreated(): SSU is not supported");
+    LOG(error)
+      << "SSUSession:" << GetFormattedSessionInfo()
+      << "SendSessionCreated(): SSU is not supported";
     return;
   }
   SSUSessionCreatedPacket packet;
@@ -517,13 +517,12 @@ void SSUSession::SendSessionCreated(
 void SSUSession::ProcessSessionConfirmed(SSUPacket* pkt) {
   if (m_SessionConfirmData == nullptr) {
     // No session confirm data
-    LogPrint(eLogError,
-        "SSUSession:", GetFormattedSessionInfo(),
-        "unsolicited SessionConfirmed");
+    LOG(error)
+      << "SSUSession:" << GetFormattedSessionInfo() << "unsolicited SessionConfirmed";
     return;
   }
-  LogPrint(eLogDebug,
-      "SSUSession:", GetFormattedSessionInfo(), "SessionConfirmed received");
+  LOG(debug)
+    << "SSUSession:" << GetFormattedSessionInfo() << "SessionConfirmed received";
   auto packet = static_cast<SSUSessionConfirmedPacket*>(pkt);
   m_RemoteIdentity = packet->GetRemoteRouterIdentity();
   m_Data.UpdatePacketSize(m_RemoteIdentity.GetIdentHash());
@@ -535,8 +534,8 @@ void SSUSession::ProcessSessionConfirmed(SSUPacket* pkt) {
     return;
   }
   // bad state or verification failed
-  LogPrint(eLogError,
-      "SSUSession:", GetFormattedSessionInfo(), "SessionConfirmed Failed");
+  LOG(error)
+    << "SSUSession:" << GetFormattedSessionInfo() << "SessionConfirmed Failed";
 }
 
 void SSUSession::SendSessionConfirmed(
@@ -604,9 +603,9 @@ void SSUSession::SendRelayRequest(
     const std::uint8_t* introducer_key) {
   auto address = kovri::context.GetRouterInfo().GetSSUAddress();
   if (!address) {
-    LogPrint(eLogError,
-        "SSUSession:", GetFormattedSessionInfo(),
-        "SendRelayRequest(): SSU is not supported");
+    LOG(error)
+      << "SSUSession:" << GetFormattedSessionInfo()
+      << __func__ << ": SSU is not supported";
     return;
   }
   std::array<std::uint8_t, 96 + 18> buf {};  // TODO(unassigned): document size values
@@ -655,8 +654,8 @@ void SSUSession::SendRelayRequest(
  */
 
 void SSUSession::ProcessRelayResponse(SSUPacket* pkt) {
-  LogPrint(eLogDebug,
-      "SSUSession:", GetFormattedSessionInfo(), "RelayResponse received");
+  LOG(debug)
+    << "SSUSession:" << GetFormattedSessionInfo() << "RelayResponse received";
   auto packet = static_cast<SSURelayResponsePacket*>(pkt);
   // TODO(EinMByte): Check remote (charlie) address
   boost::asio::ip::address our_IP;
@@ -669,10 +668,10 @@ void SSUSession::ProcessRelayResponse(SSUPacket* pkt) {
     memcpy(bytes.data(), packet->GetIPAddressAlice(), 16);
     our_IP = boost::asio::ip::address_v6(bytes);
   }
-  LogPrint(eLogDebug,
-      "SSUSession:", GetFormattedSessionInfo(),
-      "ProcessRelayResponse(): our external address is ",
-      our_IP.to_string(), ":", packet->GetPortAlice());
+  LOG(debug)
+    << "SSUSession:" << GetFormattedSessionInfo()
+    << __func__ << ": our external address is "
+    << our_IP.to_string() << ":" << packet->GetPortAlice();
   kovri::context.UpdateAddress(our_IP);
 }
 
@@ -685,9 +684,9 @@ void SSUSession::SendRelayResponse(
   auto payload = buf.data() + GetType(SSUSize::HeaderMin);
   // Charlie's address always v4
   if (!to.address().is_v4()) {
-    LogPrint(eLogError,
-        "SSUSession:", GetFormattedSessionInfo(),
-        "SendRelayResponse: Charlie's IP must be V4");
+    LOG(error)
+      << "SSUSession:" << GetFormattedSessionInfo()
+      << __func__ << ": Charlie's IP must be V4";
     return;
   }
   *payload = 4;
@@ -740,7 +739,7 @@ void SSUSession::SendRelayResponse(
         is_IPv4 ? 64 : 80,
         from);
   }
-  LogPrint(eLogDebug, "SSUSession: RelayResponse sent");
+  LOG(debug) << "SSUSession: RelayResponse sent";
 }
 
 /**
@@ -761,11 +760,10 @@ void SSUSession::ProcessRelayIntro(SSUPacket* pkt) {
             address,
             packet->GetPort()));
   } else {
-    LogPrint(eLogWarn,
-        "SSUSession:", GetFormattedSessionInfo(),
-        "ProcessRelayIntro(): address size ",
-        packet->GetIPAddressSize(),
-        " is not supported");
+    LOG(warning)
+      << "SSUSession:" << GetFormattedSessionInfo()
+      << __func__ << ": address size " << packet->GetIPAddressSize()
+      << " is not supported";
   }
 }
 
@@ -776,9 +774,9 @@ void SSUSession::SendRelayIntro(
     return;
   // Alice's address always v4
   if (!from.address().is_v4()) {
-    LogPrint(eLogError,
-        "SSUSession:", GetFormattedSessionInfo(),
-        "SendRelayIntro(): Alice's IP must be V4");
+    LOG(error)
+      << "SSUSession:" << GetFormattedSessionInfo()
+      << __func__ << ": Alice's IP must be V4";
     return;
   }
   std::array<std::uint8_t, 48 + 18> buf {};
@@ -803,8 +801,7 @@ void SSUSession::SendRelayIntro(
       buf.data(),
       48,
       session->GetRemoteEndpoint());
-  LogPrint(eLogDebug,
-      "SSUSession: ", GetFormattedSessionInfo(), "RelayIntro sent");
+  LOG(debug) << "SSUSession: " << GetFormattedSessionInfo() << "RelayIntro sent";
 }
 
 /**
@@ -838,9 +835,9 @@ void SSUSession::ProcessPeerTest(
     const boost::asio::ip::udp::endpoint& sender_endpoint) {
   auto packet = static_cast<SSUPeerTestPacket*>(pkt);
   if (packet->GetPort() && !packet->GetIPAddress()) {
-    LogPrint(eLogWarn,
-        "SSUSession:", GetFormattedSessionInfo(), "address size ",
-        " bytes not supported");
+    LOG(warning)
+      << "SSUSession:" << GetFormattedSessionInfo() << "address size "
+      << " bytes not supported";
     return;
   }
   auto peer_test = GetType(SSUPayloadType::PeerTest);
@@ -848,15 +845,15 @@ void SSUSession::ProcessPeerTest(
     // existing test
     case PeerTestParticipant::Alice1: {
       if (m_State == SessionState::Established) {
-        LogPrint(eLogDebug,
-            "SSUSession:", GetFormattedSessionInfo(),
-            "PeerTest from Bob. We are Alice");
+        LOG(debug)
+          << "SSUSession:" << GetFormattedSessionInfo()
+          << "PeerTest from Bob. We are Alice";
         if (kovri::context.GetStatus() == eRouterStatusTesting)  // still not OK
           kovri::context.SetStatus(eRouterStatusFirewalled);
       } else {
-        LogPrint(eLogDebug,
-            "SSUSession:", GetFormattedSessionInfo(),
-            "first PeerTest from Charlie. We are Alice");
+        LOG(debug)
+          << "SSUSession:" << GetFormattedSessionInfo()
+          << "first PeerTest from Charlie. We are Alice";
         kovri::context.SetStatus(eRouterStatusOK);
         m_Server.UpdatePeerTest(
             packet->GetNonce(),
@@ -873,23 +870,23 @@ void SSUSession::ProcessPeerTest(
     }
     case PeerTestParticipant::Alice2: {
       if (m_State == SessionState::Established) {
-        LogPrint(eLogDebug,
-            "SSUSession:", GetFormattedSessionInfo(),
-            "PeerTest from Bob. We are Alice");
+        LOG(debug)
+          << "SSUSession:" << GetFormattedSessionInfo()
+          << "PeerTest from Bob. We are Alice";
       } else {
         // PeerTest successive
-        LogPrint(eLogDebug,
-            "SSUSession:", GetFormattedSessionInfo(),
-            "second PeerTest from Charlie. We are Alice");
+        LOG(debug)
+          << "SSUSession:" << GetFormattedSessionInfo()
+          << "second PeerTest from Charlie. We are Alice";
         kovri::context.SetStatus(eRouterStatusOK);
         m_Server.RemovePeerTest(packet->GetNonce());
       }
       break;
     }
     case PeerTestParticipant::Bob: {
-      LogPrint(eLogDebug,
-          "SSUSession:", GetFormattedSessionInfo(),
-          "PeerTest from Charlie. We are Bob");
+      LOG(debug)
+        << "SSUSession:" << GetFormattedSessionInfo()
+        << "PeerTest from Charlie. We are Bob";
       // session with Alice from PeerTest
       auto session = m_Server.GetPeerTestSession(packet->GetNonce());
       if (session && session->m_State == SessionState::Established)
@@ -901,9 +898,9 @@ void SSUSession::ProcessPeerTest(
       break;
     }
     case PeerTestParticipant::Charlie: {
-      LogPrint(eLogDebug,
-          "SSUSession:", GetFormattedSessionInfo(),
-          "PeerTest from Alice. We are Charlie");
+      LOG(debug)
+        << "SSUSession:" << GetFormattedSessionInfo()
+        << "PeerTest from Alice. We are Charlie";
       SendPeerTest(
           packet->GetNonce(),
           sender_endpoint.address().to_v4().to_ulong(),
@@ -917,9 +914,9 @@ void SSUSession::ProcessPeerTest(
       if (m_State == SessionState::Established) {
         // new test
         if (packet->GetPort()) {
-          LogPrint(eLogDebug,
-              "SSUSession:", GetFormattedSessionInfo(),
-              "PeerTest from Bob. We are Charlie");
+          LOG(debug)
+            << "SSUSession:" << GetFormattedSessionInfo()
+            << "PeerTest from Bob. We are Charlie";
           m_Server.NewPeerTest(packet->GetNonce(), PeerTestParticipant::Charlie);
           Send(  // back to Bob
               peer_test,
@@ -931,9 +928,9 @@ void SSUSession::ProcessPeerTest(
               be16toh(packet->GetPort()),
               packet->GetIntroKey());
         } else {
-          LogPrint(eLogDebug,
-              "SSUSession:", GetFormattedSessionInfo(),
-              "PeerTest from Alice. We are Bob");
+          LOG(debug)
+            << "SSUSession:" << GetFormattedSessionInfo()
+            << "PeerTest from Alice. We are Bob";
           // Charlie
           auto session = m_Server.GetRandomEstablishedSession(shared_from_this());
           if (session) {
@@ -950,8 +947,8 @@ void SSUSession::ProcessPeerTest(
           }
         }
       } else {
-        LogPrint(eLogError,
-            "SSUSession:", GetFormattedSessionInfo(), "unexpected PeerTest");
+        LOG(error)
+          << "SSUSession:" << GetFormattedSessionInfo() << "unexpected PeerTest";
       }
     }
   }
@@ -987,9 +984,9 @@ void SSUSession::SendPeerTest(
     if (addr)
       memcpy(payload, addr->key, 32);  // intro key
     else
-      LogPrint(eLogError,
-          "SSUSession:", GetFormattedSessionInfo(),
-          "SSU is not supported, can't send PeerTest");
+      LOG(error)
+        << "SSUSession:" << GetFormattedSessionInfo()
+        << "SSU is not supported, can't send PeerTest";
   } else {
     memcpy(payload, intro_key, 32);  // intro key
   }
@@ -1022,13 +1019,12 @@ void SSUSession::SendPeerTest(
 
 void SSUSession::SendPeerTest() {
   // we are Alice
-  LogPrint(eLogDebug,
-      "SSUSession: <--", GetFormattedSessionInfo(), "sending PeerTest");
+  LOG(debug) << "SSUSession: <--" << GetFormattedSessionInfo() << "sending PeerTest";
   auto address = kovri::context.GetRouterInfo().GetSSUAddress();
   if (!address) {
-    LogPrint(eLogError,
-        "SSUSession:", GetFormattedSessionInfo(),
-        "SSU is not supported, can't send PeerTest");
+    LOG(error)
+      << "SSUSession:" << GetFormattedSessionInfo()
+      << "SSU is not supported, can't send PeerTest";
     return;
   }
   auto nonce = kovri::core::Rand<std::uint32_t>();
@@ -1062,12 +1058,12 @@ void SSUSession::SendSesionDestroyed() {
     try {
       Send(buf.data(), 48);
     } catch(std::exception& ex) {
-      LogPrint(eLogError,
-          "SSUSession:", GetFormattedSessionInfo(),
-          "SendSesionDestroyed(): '", ex.what(), "'");
+      LOG(error)
+        << "SSUSession:" << GetFormattedSessionInfo()
+        << __func__ << ": '" << ex.what() << "'";
     }
-    LogPrint(eLogDebug,
-        "SSUSession:", GetFormattedSessionInfo(), "SessionDestroyed sent");
+    LOG(debug)
+      << "SSUSession:" << GetFormattedSessionInfo() << "SessionDestroyed sent";
   }
 }
 
@@ -1084,8 +1080,8 @@ void SSUSession::SendKeepAlive() {
         buf.data(),
         48);
     Send(buf.data(), 48);
-    LogPrint(eLogDebug,
-        "SSUSession:", GetFormattedSessionInfo(), "keep-alive sent");
+    LOG(debug)
+      << "SSUSession:" << GetFormattedSessionInfo() << "keep-alive sent";
     ScheduleTermination();
   }
 }
@@ -1099,9 +1095,9 @@ void SSUSession::FillHeaderAndEncrypt(
     const std::uint8_t* mac_key,
     std::uint8_t flag) {
   if (len < GetType(SSUSize::HeaderMin)) {
-    LogPrint(eLogError,
-        "SSUSession:", GetFormattedSessionInfo(),
-        "unexpected SSU packet length ", len);
+    LOG(error)
+      << "SSUSession:" << GetFormattedSessionInfo()
+      << "unexpected SSU packet length " << len;
     return;
   }
   SSUSessionPacket pkt(buf, len);
@@ -1170,9 +1166,9 @@ void SSUSession::FillHeaderAndEncrypt(
     std::uint8_t* buf,
     std::size_t len) {
   if (len < GetType(SSUSize::HeaderMin)) {
-    LogPrint(eLogError,
-        "SSUSession:", GetFormattedSessionInfo(),
-        "unexpected SSU packet length ", len);
+    LOG(error)
+      << "SSUSession:" << GetFormattedSessionInfo()
+      << "unexpected SSU packet length " << len;
     return;
   }
   SSUSessionPacket pkt(buf, len);
@@ -1201,9 +1197,9 @@ void SSUSession::Decrypt(
     std::size_t len,
     const std::uint8_t* aes_key) {
   if (len < GetType(SSUSize::HeaderMin)) {
-    LogPrint(eLogError,
-        "SSUSession:", GetFormattedSessionInfo(),
-        "Decrypt(): unexpected SSU packet length ", len);
+    LOG(error)
+      << "SSUSession:" << GetFormattedSessionInfo()
+      << __func__ << ": unexpected SSU packet length " << len;
     return;
   }
   SSUSessionPacket pkt(buf, len);
@@ -1222,9 +1218,9 @@ void SSUSession::DecryptSessionKey(
     std::uint8_t* buf,
     std::size_t len) {
   if (len < GetType(SSUSize::HeaderMin)) {
-    LogPrint(eLogError,
-        "SSUSession:", GetFormattedSessionInfo(),
-        "DecryptSessionKey(): unexpected SSU packet length ", len);
+    LOG(error)
+      << "SSUSession:" << GetFormattedSessionInfo()
+      << __func__ << ": unexpected SSU packet length " << len;
     return;
   }
   SSUSessionPacket pkt(buf, len);
@@ -1244,9 +1240,9 @@ bool SSUSession::Validate(
     std::size_t len,
     const std::uint8_t* mac_key) {
   if (len < GetType(SSUSize::HeaderMin)) {
-    LogPrint(eLogError,
-        "SSUSession:", GetFormattedSessionInfo(),
-        "Validate(): unexpected SSU packet length ", len);
+    LOG(error)
+      << "SSUSession:" << GetFormattedSessionInfo()
+      << __func__ << ": unexpected SSU packet length " << len;
     return false;
   }
   SSUSessionPacket pkt(buf, len);
@@ -1275,9 +1271,9 @@ void SSUSession::Connect() {
 
 void SSUSession::WaitForConnect() {
   if (IsOutbound())
-    LogPrint(eLogWarn,
-        "SSUSession:", GetFormattedSessionInfo(),
-        "WaitForConnect() for outgoing session");
+    LOG(warning)
+      << "SSUSession:" << GetFormattedSessionInfo()
+      << __func__ << " for outgoing session";  // TODO(anonimal): message
   else
     ScheduleConnectTimer();
 }
@@ -1298,10 +1294,10 @@ void SSUSession::HandleConnectTimer(
     const boost::system::error_code& ecode) {
   if (!ecode) {
     // timeout expired
-    LogPrint(eLogError,
-        "SSUSession:", GetFormattedSessionInfo(),
-        "session was not established after ",
-        static_cast<std::size_t>(SSUDuration::ConnectTimeout), " seconds");
+    LOG(error)
+      << "SSUSession:" << GetFormattedSessionInfo()
+      << "session was not established after "
+      << static_cast<std::size_t>(SSUDuration::ConnectTimeout) << " seconds";
     Failed();
   }
 }
@@ -1391,9 +1387,9 @@ void SSUSession::ScheduleTermination() {
 void SSUSession::HandleTerminationTimer(
     const boost::system::error_code& ecode) {
   if (ecode != boost::asio::error::operation_aborted) {
-    LogPrint(eLogError,
-        "SSUSession:", GetFormattedSessionInfo(), "no activity for ",
-        static_cast<std::size_t>(SSUDuration::TerminationTimeout), " seconds");
+    LOG(error)
+      << "SSUSession:" << GetFormattedSessionInfo() << "no activity for "
+      << static_cast<std::size_t>(SSUDuration::TerminationTimeout) << " seconds";
     Failed();
   }
 }
@@ -1438,9 +1434,9 @@ void SSUSession::Send(
   if (padding_size > 0)
     msg_size += (16 - padding_size);
   if (msg_size > GetType(SSUSize::MTUv4)) {
-    LogPrint(eLogWarn,
-        "SSUSession:", GetFormattedSessionInfo(),
-        "<-- payload size ", msg_size, " exceeds MTU");
+    LOG(warning)
+      << "SSUSession:" << GetFormattedSessionInfo()
+      << "<-- payload size " << msg_size << " exceeds MTU";
     return;
   }
   memcpy(buf.data() + GetType(SSUSize::HeaderMin), payload, len);
@@ -1453,10 +1449,10 @@ void SSUSession::Send(
     const std::uint8_t* buf,
     std::size_t size) {
   m_NumSentBytes += size;
-  LogPrint(eLogDebug,
-      "SSUSession:", GetFormattedSessionInfo(),
-      "<-- ", size, " bytes transferred, ",
-      GetNumSentBytes(), " total bytes sent");
+  LOG(debug)
+    << "SSUSession:" << GetFormattedSessionInfo()
+    << "<-- " << size << " bytes transferred, "
+    << GetNumSentBytes() << " total bytes sent";
   kovri::core::transports.UpdateSentBytes(size);
   m_Server.Send(buf, size, GetRemoteEndpoint());
 }

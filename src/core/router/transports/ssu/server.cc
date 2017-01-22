@@ -78,7 +78,7 @@ SSUServer::SSUServer(
 SSUServer::~SSUServer() {}
 
 void SSUServer::Start() {
-  LogPrint(eLogDebug, "SSUServer: starting");
+  LOG(debug) << "SSUServer: starting";
   m_IsRunning = true;
   m_Service.post(
       std::bind(
@@ -96,7 +96,7 @@ void SSUServer::Start() {
 }
 
 void SSUServer::Stop() {
-  LogPrint(eLogDebug, "SSUServer: stopping");
+  LOG(debug) << "SSUServer: stopping";
   DeleteAllSessions();
   m_IsRunning = false;
   m_Socket.close();
@@ -106,13 +106,13 @@ void SSUServer::Stop() {
 void SSUServer::AddRelay(
     std::uint32_t tag,
     const boost::asio::ip::udp::endpoint& relay) {
-  LogPrint(eLogDebug, "SSUServer: adding relay");
+  LOG(debug) << "SSUServer: adding relay";
   m_Relays[tag] = relay;
 }
 
 std::shared_ptr<SSUSession> SSUServer::FindRelaySession(
     std::uint32_t tag) {
-  LogPrint(eLogDebug, "SSUServer: finding relay session");
+  LOG(debug) << "SSUServer: finding relay session";
   auto it = m_Relays.find(tag);
   if (it != m_Relays.end())
     return FindSession(it->second);
@@ -123,24 +123,24 @@ void SSUServer::Send(
     const std::uint8_t* buf,
     std::size_t len,
     const boost::asio::ip::udp::endpoint& to) {
-  LogPrint(eLogDebug, "SSUServer: sending data");
+  LOG(debug) << "SSUServer: sending data";
   if (to.protocol() == boost::asio::ip::udp::v4()) {
     try {
       m_Socket.send_to(boost::asio::buffer(buf, len), to);
     } catch (const std::exception& ex) {
-      LogPrint(eLogError, "SSUServer: send error: '", ex.what(), "'");
+      LOG(error) << "SSUServer: send error: '" << ex.what() << "'";
     }
   } else {
     try {
       m_SocketV6.send_to(boost::asio::buffer(buf, len), to);
     } catch (const std::exception& ex) {
-      LogPrint(eLogError, "SSUServer: V6 send error: '", ex.what(), "'");
+      LOG(error) << "SSUServer: V6 send error: '" << ex.what() << "'";
     }
   }
 }
 
 void SSUServer::Receive() {
-  LogPrint(eLogDebug, "SSUServer: receiving data");
+  LOG(debug) << "SSUServer: receiving data";
   RawSSUPacket* packet = new RawSSUPacket();  // always freed in ensuing handlers
   m_Socket.async_receive_from(
       boost::asio::buffer(
@@ -156,7 +156,7 @@ void SSUServer::Receive() {
 }
 
 void SSUServer::ReceiveV6() {
-  LogPrint(eLogDebug, "SSUServer: V6: receiving data");
+  LOG(debug) << "SSUServer: V6: receiving data";
   RawSSUPacket* packet = new RawSSUPacket();  // always freed in ensuing handlers
   m_SocketV6.async_receive_from(
       boost::asio::buffer(
@@ -176,7 +176,7 @@ void SSUServer::HandleReceivedFrom(
     const boost::system::error_code& ecode,
     std::size_t bytes_transferred,
     RawSSUPacket* packet) {
-  LogPrint(eLogDebug, "SSUServer: handling received data");
+  LOG(debug) << "SSUServer: handling received data";
   if (!ecode) {
     packet->len = bytes_transferred;
     std::vector<RawSSUPacket *> packets;
@@ -201,7 +201,7 @@ void SSUServer::HandleReceivedFrom(
             packets));
     Receive();
   } else {
-    LogPrint(eLogError, "SSUServer: receive error: ", ecode.message());
+    LOG(error) << "SSUServer: receive error: " << ecode.message();
     delete packet;  // free packet, now
   }
 }
@@ -211,7 +211,7 @@ void SSUServer::HandleReceivedFromV6(
     const boost::system::error_code& ecode,
     std::size_t bytes_transferred,
     RawSSUPacket* packet) {
-  LogPrint(eLogDebug, "SSUServer: V6: handling received data");
+  LOG(debug) << "SSUServer: V6: handling received data";
   if (!ecode) {
     packet->len = bytes_transferred;
     std::vector<RawSSUPacket *> packets;
@@ -235,14 +235,14 @@ void SSUServer::HandleReceivedFromV6(
             packets));
     ReceiveV6();
   } else {
-    LogPrint(eLogError, "SSUServer: V6 receive error: ", ecode.message());
+    LOG(error) << "SSUServer: V6 receive error: " << ecode.message();
     delete packet;  // free packet, now
   }
 }
 
 void SSUServer::HandleReceivedPackets(
     std::vector<RawSSUPacket *> packets) {
-  LogPrint(eLogDebug, "SSUServer: handling received packets");
+  LOG(debug) << "SSUServer: handling received packets";
   std::shared_ptr<SSUSession> session;
   for (auto packet : packets) {
     auto pkt = packet;
@@ -260,15 +260,14 @@ void SSUServer::HandleReceivedPackets(
             std::unique_lock<std::mutex> l(m_SessionsMutex);
             m_Sessions[pkt->from] = session;
           }
-          LogPrint(eLogDebug,
-              "SSUServer: created new SSU session from ",
-              session->GetRemoteEndpoint());
+          LOG(debug)
+            << "SSUServer: created new SSU session from "
+            << session->GetRemoteEndpoint();
         }
       }
       session->ProcessNextMessage(pkt->buf, pkt->len, pkt->from);
     } catch (std::exception& ex) {
-      LogPrint(eLogError,
-          "SSUServer: HandleReceivedPackets(): '", ex.what(), "'");
+      LOG(error) << "SSUServer: " << __func__ << ": '" << ex.what() << "'";
       if (session)
         session->FlushData();
       session = nullptr;
@@ -281,7 +280,7 @@ void SSUServer::HandleReceivedPackets(
 
 std::shared_ptr<SSUSession> SSUServer::FindSession(
     std::shared_ptr<const kovri::core::RouterInfo> router) const {
-  LogPrint(eLogDebug, "SSUServer: finding session from RI");
+  LOG(debug) << "SSUServer: finding session from RI";
   if (!router)
     return nullptr;
   auto address = router->GetSSUAddress(true);  // v4 only
@@ -300,7 +299,7 @@ std::shared_ptr<SSUSession> SSUServer::FindSession(
 
 std::shared_ptr<SSUSession> SSUServer::FindSession(
     const boost::asio::ip::udp::endpoint& ep) const {
-  LogPrint(eLogDebug, "SSUServer: finding session from endpoint");
+  LOG(debug) << "SSUServer: finding session from endpoint";
   auto it = m_Sessions.find(ep);
   if (it != m_Sessions.end())
     return it->second;
@@ -311,7 +310,7 @@ std::shared_ptr<SSUSession> SSUServer::FindSession(
 std::shared_ptr<SSUSession> SSUServer::GetSession(
     std::shared_ptr<const kovri::core::RouterInfo> router,
     bool peer_test) {
-  LogPrint(eLogDebug, "SSUServer: getting session");
+  LOG(debug) << "SSUServer: getting session";
   std::shared_ptr<SSUSession> session;
   if (router) {
     auto address = router->GetSSUAddress(!context.SupportsV6());
@@ -335,9 +334,9 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
         session->SetRemoteIdentHashAbbreviation();
         if (!router->UsesIntroducer()) {
           // connect directly
-          LogPrint(eLogDebug,
-              "SSUServer: creating new session to",
-              session->GetFormattedSessionInfo());
+          LOG(debug)
+            << "SSUServer: creating new session to"
+            << session->GetFormattedSessionInfo();
           session->Connect();
         } else {
           // connect through introducer
@@ -358,12 +357,11 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
               }
             }
             if (introducer_session) {  // session found
-              LogPrint(eLogDebug,
-                  "SSUServer: ", introducer->host, ":", introducer->port,
-                  "session to introducer already exists");
+              LOG(debug)
+                << "SSUServer: " << introducer->host << ":" << introducer->port
+                << "session to introducer already exists";
             } else {  // create new
-              LogPrint(eLogDebug,
-                  "SSUServer: creating new session to introducer");
+              LOG(debug) << "SSUServer: creating new session to introducer";
               introducer = &(address->introducers[0]);  // TODO(unassigned): ???
               boost::asio::ip::udp::endpoint introducerEndpoint(
                   introducer->host,
@@ -376,11 +374,11 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
               m_Sessions[introducerEndpoint] = introducer_session;
             }
             // introduce
-            LogPrint(eLogDebug, "SSUServer: introducing new SSU session to [",
-                router->GetIdentHashAbbreviation(), "] through introducer [",
-                introducer_session->GetRemoteIdentHashAbbreviation(), "] ",
-                introducer->host, ":",
-                introducer->port);
+            LOG(debug)
+              << "SSUServer: introducing new SSU session to "
+              << "[" << router->GetIdentHashAbbreviation() << "] through introducer "
+              << "[" << introducer_session->GetRemoteIdentHashAbbreviation() << "] "
+              << introducer->host << ":" << introducer->port;
             session->WaitForIntroduction();
             // if we are unreachable
             if (kovri::context.GetRouterInfo().UsesIntroducer()) {
@@ -389,9 +387,9 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
             }
             introducer_session->Introduce(introducer->tag, introducer->key);
           } else {
-            LogPrint(eLogWarn,
-                "SSUServer: can't connect to unreachable router."
-                "No introducers presented");
+            LOG(warning)
+              << "SSUServer: can't connect to unreachable router."
+              << "No introducers presented";
             std::unique_lock<std::mutex> l(m_SessionsMutex);
             m_Sessions.erase(remote_endpoint);
             session.reset();
@@ -399,9 +397,10 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
         }
       }
     } else {
-      LogPrint(eLogWarn,
-          "SSUServer: router [", router->GetIdentHashAbbreviation(),
-          "] doesn't have SSU address");
+      LOG(warning)
+        << "SSUServer: router "
+        << "[" << router->GetIdentHashAbbreviation() << "] "
+        << "doesn't have SSU address";
     }
   }
   return session;
@@ -409,7 +408,7 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
 
 void SSUServer::DeleteSession(
     std::shared_ptr<SSUSession> session) {
-  LogPrint(eLogDebug, "SSUServer: deleting session");
+  LOG(debug) << "SSUServer: deleting session";
   if (session) {
     session->Close();
     std::unique_lock<std::mutex> l(m_SessionsMutex);
@@ -418,7 +417,7 @@ void SSUServer::DeleteSession(
 }
 
 void SSUServer::DeleteAllSessions() {
-  LogPrint(eLogDebug, "SSUServer: deleting all sessions");
+  LOG(debug) << "SSUServer: deleting all sessions";
   std::unique_lock<std::mutex> l(m_SessionsMutex);
   for (auto it : m_Sessions)
     it.second->Close();
@@ -428,7 +427,7 @@ void SSUServer::DeleteAllSessions() {
 template<typename Filter>
 std::shared_ptr<SSUSession> SSUServer::GetRandomSession(
     Filter filter) {
-  LogPrint(eLogDebug, "SSUServer: getting random session");
+  LOG(debug) << "SSUServer: getting random session";
   std::vector<std::shared_ptr<SSUSession>> filtered_sessions;
   for (auto session : m_Sessions)
     if (filter (session.second))
@@ -443,7 +442,7 @@ std::shared_ptr<SSUSession> SSUServer::GetRandomSession(
 
 std::shared_ptr<SSUSession> SSUServer::GetRandomEstablishedSession(
     std::shared_ptr<const SSUSession> excluded) {
-  LogPrint(eLogDebug, "SSUServer: getting random established session");
+  LOG(debug) << "SSUServer: getting random established session";
   return GetRandomSession(
       [excluded](std::shared_ptr<SSUSession> session)->bool {
       return session->GetState() == SessionState::Established &&
@@ -453,7 +452,7 @@ std::shared_ptr<SSUSession> SSUServer::GetRandomEstablishedSession(
 
 std::set<SSUSession *> SSUServer::FindIntroducers(
     std::size_t max_num_introducers) {
-  LogPrint(eLogDebug, "SSUServer: finding introducers");
+  LOG(debug) << "SSUServer: finding introducers";
   std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
   std::set<SSUSession *> ret;
   for (std::size_t i = 0; i < max_num_introducers; i++) {
@@ -474,7 +473,7 @@ std::set<SSUSession *> SSUServer::FindIntroducers(
 }
 
 void SSUServer::ScheduleIntroducersUpdateTimer() {
-  LogPrint(eLogDebug, "SSUServer: scheduling introducers update timer");
+  LOG(debug) << "SSUServer: scheduling introducers update timer";
   m_IntroducersUpdateTimer.expires_from_now(
       boost::posix_time::seconds(
           GetType(SSUDuration::KeepAliveInterval)));
@@ -487,8 +486,7 @@ void SSUServer::ScheduleIntroducersUpdateTimer() {
 
 void SSUServer::HandleIntroducersUpdateTimer(
     const boost::system::error_code& ecode) {
-  LogPrint(eLogDebug,
-      "SSUServer: handling introducers update timer");
+  LOG(debug) << "SSUServer: handling introducers update timer";
   if (ecode != boost::asio::error::operation_aborted) {
     // timeout expired
     if (kovri::context.GetStatus() == eRouterStatusTesting) {
@@ -545,7 +543,7 @@ void SSUServer::NewPeerTest(
     std::uint32_t nonce,
     PeerTestParticipant role,
     std::shared_ptr<SSUSession> session) {
-  LogPrint(eLogDebug, "SSUServer: new peer test");
+  LOG(debug) << "SSUServer: new peer test";
   m_PeerTests[nonce] = {
     kovri::core::GetMillisecondsSinceEpoch(),
     role,
@@ -555,7 +553,7 @@ void SSUServer::NewPeerTest(
 
 PeerTestParticipant SSUServer::GetPeerTestParticipant(
     std::uint32_t nonce) {
-  LogPrint(eLogDebug, "SSUServer: getting PeerTest participant");
+  LOG(debug) << "SSUServer: getting PeerTest participant";
   auto it = m_PeerTests.find(nonce);
   if (it != m_PeerTests.end())
     return it->second.role;
@@ -565,7 +563,7 @@ PeerTestParticipant SSUServer::GetPeerTestParticipant(
 
 std::shared_ptr<SSUSession> SSUServer::GetPeerTestSession(
     std::uint32_t nonce) {
-  LogPrint(eLogDebug, "SSUServer: getting PeerTest session");
+  LOG(debug) << "SSUServer: getting PeerTest session";
   auto it = m_PeerTests.find(nonce);
   if (it != m_PeerTests.end())
     return it->second.session;
@@ -576,7 +574,7 @@ std::shared_ptr<SSUSession> SSUServer::GetPeerTestSession(
 void SSUServer::UpdatePeerTest(
     std::uint32_t nonce,
     PeerTestParticipant role) {
-  LogPrint(eLogDebug, "SSUServer: updating PeerTest");
+  LOG(debug) << "SSUServer: updating PeerTest";
   auto it = m_PeerTests.find(nonce);
   if (it != m_PeerTests.end())
     it->second.role = role;
@@ -584,12 +582,12 @@ void SSUServer::UpdatePeerTest(
 
 void SSUServer::RemovePeerTest(
     std::uint32_t nonce) {
-  LogPrint(eLogDebug, "SSUServer: removing PeerTest");
+  LOG(debug) << "SSUServer: removing PeerTest";
   m_PeerTests.erase(nonce);
 }
 
 void SSUServer::SchedulePeerTestsCleanupTimer() {
-  LogPrint(eLogDebug, "SSUServer: scheduling PeerTests cleanup timer");
+  LOG(debug) << "SSUServer: scheduling PeerTests cleanup timer";
   m_PeerTestsCleanupTimer.expires_from_now(
       boost::posix_time::seconds(
           GetType(SSUDuration::PeerTestTimeout)));
@@ -602,7 +600,7 @@ void SSUServer::SchedulePeerTestsCleanupTimer() {
 
 void SSUServer::HandlePeerTestsCleanupTimer(
     const boost::system::error_code& ecode) {
-  LogPrint(eLogDebug, "SSUServer: handling PeerTests cleanup timer");
+  LOG(debug) << "SSUServer: handling PeerTests cleanup timer";
   if (ecode != boost::asio::error::operation_aborted) {
     std::size_t num_deleted = 0;
     std::uint64_t ts = kovri::core::GetMillisecondsSinceEpoch();
@@ -617,8 +615,8 @@ void SSUServer::HandlePeerTestsCleanupTimer(
       }
     }
     if (num_deleted > 0)
-      LogPrint(eLogDebug,
-          "SSUServer: ", num_deleted, " peer tests have been expired");
+      LOG(debug)
+        << "SSUServer: " << num_deleted << " peer tests have been expired";
     SchedulePeerTestsCleanupTimer();
   }
 }

@@ -352,7 +352,7 @@ class SOCKSHandler
 };
 
 void SOCKSHandler::AsyncSocketRead() {
-  LogPrint(eLogDebug, "SOCKSHandler: async socket read");
+  LOG(debug) << "SOCKSHandler: async socket read";
   if (m_Socket)
     m_Socket->async_receive(
         boost::asio::buffer(
@@ -364,18 +364,18 @@ void SOCKSHandler::AsyncSocketRead() {
             std::placeholders::_1,
             std::placeholders::_2));
   else
-    LogPrint(eLogError, "SOCKSHandler: no socket read");
+    LOG(error) << "SOCKSHandler: no socket read";
 }
 
 void SOCKSHandler::Terminate() {
   if (Kill()) return;
   if (m_Socket) {
-    LogPrint(eLogDebug, "SOCKSHandler: close socket");
+    LOG(debug) << "SOCKSHandler: close socket";
     m_Socket->close();
     m_Socket = nullptr;
   }
   if (m_Stream) {
-    LogPrint(eLogDebug, "SOCKSHandler: close stream");
+    LOG(debug) << "SOCKSHandler: close stream";
     m_Stream.reset();
   }
   Done(shared_from_this());
@@ -428,8 +428,7 @@ bool SOCKSHandler::SOCKS5ChooseAuth() {
   m_Response[1] = m_AuthChosen;  // Response code
   boost::asio::const_buffers_1 response(m_Response, 2);
   if (m_AuthChosen == Invalid) {
-    LogPrint(eLogWarn,
-        "SOCKSHandler: SOCKS5 authentication negotiation failed");
+    LOG(warning) << "SOCKSHandler: SOCKS5 authentication negotiation failed";
     boost::asio::async_write(
         *m_Socket,
         response,
@@ -439,8 +438,9 @@ bool SOCKSHandler::SOCKS5ChooseAuth() {
             std::placeholders::_1));
     return false;
   } else {
-    LogPrint(eLogDebug,
-        "SOCKSHandler: SOCKS5 choosing authentication method: ", m_AuthChosen);
+    LOG(debug)
+      << "SOCKSHandler: SOCKS5 choosing authentication method: "
+      << m_AuthChosen;
     boost::asio::async_write(
         *m_Socket,
         response,
@@ -459,7 +459,7 @@ void SOCKSHandler::SOCKSRequestFailed(
   assert(error != SOCKS4Success && error != SOCKS5Success);
   switch (m_SOCKSVersion) {
     case SOCKS4:
-      LogPrint(eLogWarn, "SOCKSHandler: SOCKS4 failed: ", error);
+      LOG(warning) << "SOCKSHandler: SOCKS4 failed: " << error;
       // Transparently map SOCKS5 errors
       if (error < SOCKS4Success)
         error = SOCKS4Fail;
@@ -469,7 +469,7 @@ void SOCKSHandler::SOCKSRequestFailed(
           m_Port);
     break;
     case SOCKS5:
-      LogPrint(eLogWarn, "SOCKSHandler: SOCKS5 failed: ", error);
+      LOG(warning) << "SOCKSHandler: SOCKS5 failed: " << error;
       response = GenerateSOCKS5Response(
           error,
           m_AddressType,
@@ -492,11 +492,11 @@ void SOCKSHandler::SOCKSRequestSuccess() {
   // this should depend on things like the command type and callbacks may change
   switch (m_SOCKSVersion) {
     case SOCKS4:
-      LogPrint(eLogInfo, "SOCKSHandler: SOCKS4 connection success");
+      LOG(info) << "SOCKSHandler: SOCKS4 connection success";
       response = GenerateSOCKS4Response(SOCKS4Success, m_SOCKS4aIP, m_Port);
     break;
     case SOCKS5:
-      LogPrint(eLogInfo, "SOCKSHandler: SOCKS5 connection success");
+      LOG(info) << "SOCKSHandler: SOCKS5 connection success";
       auto s = kovri::client::context.GetAddressBook().GetB32AddressFromIdentHash(
           GetOwner()->GetLocalDestination()->GetIdentHash());
       Address address;
@@ -548,7 +548,7 @@ void SOCKSHandler::EnterState(
 bool SOCKSHandler::ValidateSOCKSRequest() {
   if (m_Command != Connect) {
     // TODO(unassigned): we need to support binds and other features!
-    LogPrint(eLogError, "SOCKSHandler: unsupported command: ", m_Command);
+    LOG(error) << "SOCKSHandler: unsupported command: " << m_Command;
     SOCKSRequestFailed(SOCKS5UnsupportedCommand);
     return false;
   }
@@ -556,11 +556,12 @@ bool SOCKSHandler::ValidateSOCKSRequest() {
   if (m_AddressType != DNS) {
     switch (m_SOCKSVersion) {
       case SOCKS5:
-        LogPrint(eLogError, "SOCKSHandler: SOCKS5 unsupported address type: ",
-            m_AddressType);
+        LOG(error)
+          << "SOCKSHandler: SOCKS5 unsupported address type: "
+          << m_AddressType;
       break;
       case SOCKS4:
-        LogPrint(eLogError, "SOCKSHandler: SOCKS4a rejected because it's actually SOCKS4");
+        LOG(error) << "SOCKSHandler: SOCKS4a rejected because it's actually SOCKS4";
       break;
     }
     SOCKSRequestFailed(SOCKS5UnsupportedAddress);
@@ -569,8 +570,7 @@ bool SOCKSHandler::ValidateSOCKSRequest() {
   // TODO(unassigned): we may want to support other domains
   if (m_AddressType == DNS &&
       m_Address.dns.ToString().find(".i2p") == std::string::npos) {
-    LogPrint(eLogError,
-        "SOCKSHandler: invalid hostname: ", m_Address.dns.ToString());
+    LOG(error) << "SOCKSHandler: invalid hostname: " << m_Address.dns.ToString();
     SOCKSRequestFailed(SOCKS5UnsupportedAddress);
     return false;
   }
@@ -596,8 +596,9 @@ bool SOCKSHandler::HandleData(
             EnterState(GetSOCKS5AuthNum);
           break;
           default:
-            LogPrint(eLogError, "SOCKSHandler: rejected invalid version: ",
-                (static_cast<int>(*socket_buffer)));
+            LOG(error)
+              << "SOCKSHandler: rejected invalid version: "
+              << static_cast<int>(*socket_buffer);
             Terminate();
             return false;
         }
@@ -623,8 +624,9 @@ bool SOCKSHandler::HandleData(
             if (m_SOCKSVersion == SOCKS5)
               break;
           default:
-            LogPrint(eLogError, "SOCKSHandler: invalid command: ",
-                (static_cast<int>(*socket_buffer)));
+            LOG(error)
+              << "SOCKSHandler: invalid command: "
+              << static_cast<int>(*socket_buffer);
             SOCKSRequestFailed(SOCKS5Fail);
             return false;
         }
@@ -682,7 +684,7 @@ bool SOCKSHandler::HandleData(
           break;
         }
         if (m_Address.dns.size >= MAX_SOCKS_HOSTNAME_SIZE) {
-          LogPrint(eLogError, "SOCKSHandler: SOCKS4a destination is too large");
+          LOG(error) << "SOCKSHandler: SOCKS4a destination is too large";
           SOCKSRequestFailed(SOCKS4Fail);
           return false;
         }
@@ -690,9 +692,9 @@ bool SOCKSHandler::HandleData(
       break;
       case GetSOCKS5RequestVersion:
         if (*socket_buffer != SOCKS5) {
-          LogPrint(eLogError,
-              "SOCKSHandler: SOCKS5 rejected unknown request version: ",
-              (static_cast<int>(*socket_buffer)));
+          LOG(error)
+            << "SOCKSHandler: SOCKS5 rejected unknown request version: "
+            << static_cast<int>(*socket_buffer);
           SOCKSRequestFailed(SOCKS5Fail);
           return false;
         }
@@ -700,9 +702,9 @@ bool SOCKSHandler::HandleData(
       break;
       case GetSOCKS5ReservedField:
         if (*socket_buffer != 0) {
-          LogPrint(eLogError,
-              "SOCKSHandler: SOCKS5 unknown reserved field: ",
-              (static_cast<int>(*socket_buffer)));
+          LOG(error)
+            << "SOCKSHandler: SOCKS5 unknown reserved field: "
+            << static_cast<int>(*socket_buffer);
           SOCKSRequestFailed(SOCKS5Fail);
           return false;
         }
@@ -720,9 +722,9 @@ bool SOCKSHandler::HandleData(
             EnterState(GetSOCKS5HostSize);
             break;
           default:
-            LogPrint(eLogError,
-                "SOCKSHandler: SOCKS5 unknown address type: ",
-                (static_cast<int>(*socket_buffer)));
+            LOG(error)
+              << "SOCKSHandler: SOCKS5 unknown address type: "
+              << static_cast<int>(*socket_buffer);
             SOCKSRequestFailed(SOCKS5Fail);
             return false;
         }
@@ -741,7 +743,7 @@ bool SOCKSHandler::HandleData(
         if (m_ParseLeft == 0) EnterState(GetPort);
       break;
       default:
-        LogPrint(eLogError, "SOCKSHandler: parse state?? ", m_State);
+        LOG(error) << "SOCKSHandler: parse state?? " << m_State;
         Terminate();
         return false;
     }
@@ -759,16 +761,17 @@ bool SOCKSHandler::HandleData(
 void SOCKSHandler::HandleSocketReceive(
     const boost::system::error_code& ecode,
     std::size_t len) {
-  LogPrint(eLogDebug, "SOCKSHandler: socket receive: ", len);
+  LOG(debug) << "SOCKSHandler: socket receive: " << len;
   if (ecode) {
-    LogPrint(eLogError, "SOCKSHandler: socket receive got error: ", ecode);
+    LOG(error) << "SOCKSHandler: socket receive got error: " << ecode;
     Terminate();
     return;
   }
   if (HandleData(m_SocketBuffer, len)) {
     if (m_State == Complete) {
-      LogPrint(eLogInfo, "SOCKSHandler: SOCKS requested ",
-          m_Address.dns.ToString(), ":" , m_Port);
+      LOG(info)
+        << "SOCKSHandler: SOCKS requested "
+        << m_Address.dns.ToString() << ":"  << m_Port;
       GetOwner()->CreateStream(
           std::bind(
               &SOCKSHandler::HandleStreamRequestComplete,
@@ -784,14 +787,11 @@ void SOCKSHandler::HandleSocketReceive(
 
 void SOCKSHandler::SentSOCKSFailed(
     const boost::system::error_code & ecode) {
-  if (!ecode) {
-    Terminate();
-  } else {
-    LogPrint(eLogError,
-        "SOCKSHandler: closing socket after sending failure: ",
-        ecode.message());
-    Terminate();
-  }
+  if (ecode)
+    LOG(error)
+      << "SOCKSHandler: closing socket after sending failure: "
+      << ecode.message();
+  Terminate();
 }
 
 void SOCKSHandler::SentSOCKSDone(
@@ -799,7 +799,7 @@ void SOCKSHandler::SentSOCKSDone(
   if (!ecode) {
     if (Kill())
       return;
-    LogPrint(eLogInfo, "SOCKSHandler: new I2PTunnel connection");
+    LOG(info) << "SOCKSHandler: new I2PTunnel connection";
     auto connection =
       std::make_shared<kovri::client::I2PTunnelConnection>(
           GetOwner(),
@@ -811,9 +811,9 @@ void SOCKSHandler::SentSOCKSDone(
         m_RemainingDataLen);
     Done(shared_from_this());
   } else {
-    LogPrint(eLogError,
-        "SOCKSHandler: closing socket after completion reply: ",
-        ecode.message());
+    LOG(error)
+      << "SOCKSHandler: closing socket after completion reply: "
+      << ecode.message();
     Terminate();
   }
 }
@@ -821,9 +821,9 @@ void SOCKSHandler::SentSOCKSDone(
 void SOCKSHandler::SentSOCKSResponse(
     const boost::system::error_code & ecode) {
   if (ecode) {
-    LogPrint(eLogError,
-        "SOCKSHandler: closing socket after sending reply: ",
-        ecode.message());
+    LOG(error)
+      << "SOCKSHandler: closing socket after sending reply: "
+      << ecode.message();
     Terminate();
   }
 }
@@ -834,8 +834,9 @@ void SOCKSHandler::HandleStreamRequestComplete(
     m_Stream = stream;
     SOCKSRequestSuccess();
   } else {
-    LogPrint(eLogError, "SOCKSHandler: stream not available",
-    "(router may need more time to integrate into the network)");
+    LOG(error)
+      << "SOCKSHandler: stream not available "
+      << "(router may need more time to integrate into the network)";
     SOCKSRequestFailed(SOCKS5HostUnreachable);
   }
 }

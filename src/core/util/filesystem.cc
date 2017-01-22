@@ -117,7 +117,7 @@ const boost::filesystem::path& GetDataPath() {
   if (!boost::filesystem::exists(path)) {
     // Create data directory
     if (!boost::filesystem::create_directory(path)) {
-      LogPrint(eLogError, "Filesystem: failed to create data directory!");
+      LOG(error) << "Filesystem: failed to create data directory!";
       path = "";
       return path;
     }

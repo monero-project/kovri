@@ -42,8 +42,10 @@
 
 #include "client/context.h"
 
+#include "core/crypto/aes.h"  // For AES-NI detection/initialization
 #include "core/router/context.h"
 #include "core/util/log.h"
+#include "core/version.h"
 
 namespace kovri {
 namespace app {
@@ -56,20 +58,28 @@ Instance::Instance(
 Instance::~Instance() {}
 
 void Instance::Configure() {
-  LogPrint(eLogDebug, "Instance: configuring");
+  // TODO(anonimal): instance configuration should probably be moved to libcore
   GetConfig().ParseKovriConfig();
+  // TODO(anonimal): Initializing of sources/streams/sinks must come after we've properly configured the logger.
+  //   we do this here so we can catch debug logging before instance "initialization". This is not ideal
+  GetConfig().SetupLogging();
+  // Log the banner
+  LOG(info) << "The Kovri I2P Router Project";
+  LOG(info) << "Version " << KOVRI_VERSION;
+  // Continue with configuration/setup
+  GetConfig().SetupAESNI();
   GetConfig().ParseTunnelsConfig();
 }
 
-// TODO(unassigned): what use-case to unhook contexts from an instance?
+// TODO(anonimal): we want RAII
 void Instance::Initialize() {
-  LogPrint(eLogDebug, "Instance: initializing");
+  // TODO(anonimal): what use-case to unhook contexts from an instance? Alternate client/core implementations?
   InitClientContext();
   InitRouterContext();
 }
 
 void Instance::Reload() {
-  LogPrint(eLogDebug, "Instance: reloading");
+  LOG(info) << "Instance: reloading";
   // TODO(unassigned): reload kovri.conf
   // TODO(unassigned): locking etc.
   // TODO(unassigned): client/router contexts
@@ -80,14 +90,14 @@ void Instance::Reload() {
 
 // TODO(unassigned): see TODO's for router/client context and singleton
 void Instance::InitRouterContext() {
-  LogPrint(eLogDebug, "Instance: initializing router context");
+  LOG(debug) << "Instance: initializing router context";
   auto map = m_Config.GetParsedKovriConfig();
   auto host = map["host"].as<std::string>();
   auto port = map["port"].as<int>();
   // TODO(unassigned): context should be in core namespace (see TODO in router context)
   context.Init(host, port);
   context.UpdatePort(port);
-  LogPrint(eLogInfo, "Instance: listening on port ", map["port"].as<int>());
+  LOG(info) << "Instance: listening on port " << map["port"].as<int>();
   context.UpdateAddress(boost::asio::ip::address::from_string(host));
   context.SetSupportsV6(map["v6"].as<bool>());
   context.SetFloodfill(map["floodfill"].as<bool>());
@@ -108,7 +118,7 @@ void Instance::InitRouterContext() {
 
 // TODO(unassigned): see TODO's for router/client context and singleton
 void Instance::InitClientContext() {
-  LogPrint(eLogDebug, "Instance: initializing client context");
+  LOG(debug) << "Instance: initializing client context";
   // TODO(unassigned): a useful shutdown handler but needs to callback to daemon
   // singleton's member. It's only used for I2PControl (and currently doesn't work)
   // so we'll have to figure out another way to *not* rely on the singleton to
@@ -167,9 +177,9 @@ void Instance::SetupTunnels() {
             // Conflicting port
             // TODO(unassigned): what if we interchange two client tunnels' ports?
             // TODO(unassigned): the addresses could differ
-            LogPrint(eLogError,
-                "Instance: ",
-                tunnel.name, " will not be updated, conflicting port");
+            LOG(error)
+              << "Instance: " << tunnel.name
+              << " will not be updated, conflicting port";
             continue;
           }
           kovri::client::context.UpdateClientTunnel(tunnel);
@@ -191,9 +201,7 @@ void Instance::SetupTunnels() {
         if (result)
           ++client_count;
         else
-          LogPrint(eLogError,
-              "Instance: client tunnel with port ",
-              tunnel.port, " already exists");
+          LOG(error) << "Instance: client tunnel with port " << tunnel.port << " already exists";
       } else {  // TODO(unassigned): currently, anything that's not client
         bool is_http = (tunnel.type == GetConfig().GetAttribute(Key::HTTP));
         if (m_IsReloading) {
@@ -214,36 +222,29 @@ void Instance::SetupTunnels() {
         if (result) {
           ++server_count;
         } else {
-          LogPrint(eLogError,
-              "Instance: server tunnel for destination ",
-              kovri::client::context.GetAddressBook().GetB32AddressFromIdentHash(
-                  local_destination->GetIdentHash()),
-              " already exists");
+          LOG(error)
+            << "Instance: server tunnel for destination "
+            << kovri::client::context.GetAddressBook().GetB32AddressFromIdentHash(local_destination->GetIdentHash())
+            << " already exists";
         }
       }
     } catch (const std::exception& ex) {
-      LogPrint(eLogError,
-          "Instance: exception during tunnel setup: ", ex.what());
+      LOG(error) << "Instance: exception during tunnel setup: " << ex.what();
       return;
     } catch (...) {
-      LogPrint(eLogError,
-          "Instance: unknown exception during tunnel setup");
+      LOG(error) << "Instance: unknown exception during tunnel setup";
       return;
     }
   }  // end of iteration block
   if (m_IsReloading) {
-    LogPrint(eLogInfo,
-        "Instance: ", client_count, " client tunnels updated");
-    LogPrint(eLogInfo,
-        "Instance: ", server_count, " server tunnels updated");
+    LOG(info) << "Instance: " << client_count << " client tunnels updated";
+    LOG(info) << "Instance: " << server_count << " server tunnels updated";
     // TODO(unassigned): this was never fully implemented
     RemoveOldTunnels(updated_tunnels);
     return;
   }
-  LogPrint(eLogInfo,
-      "Instance: ", client_count, " client tunnels created");
-  LogPrint(eLogInfo,
-      "Instance: ", server_count, " server tunnels created");
+  LOG(info) << "Instance: " << client_count << " client tunnels created";
+  LOG(info) << "Instance: " << server_count << " server tunnels created";
 }
 
 void Instance::RemoveOldTunnels(

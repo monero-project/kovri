@@ -62,8 +62,9 @@ class DiffieHellman::DiffieHellmanImpl {
           private_key,
           public_key);
     } catch (CryptoPP::Exception e) {
-      LogPrint(eLogError,
-          "DiffieHellman: GenerateKeyPair() caught exception '", e.what(), "'");
+      LOG(error)
+        << "DiffieHellman: " << __func__
+        << " caught exception '" << e.what() << "'";
     }
   }
 

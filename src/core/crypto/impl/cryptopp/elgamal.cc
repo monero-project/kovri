@@ -99,8 +99,9 @@ class ElGamalEncryption::ElGamalEncryptionImpl {
         b.Encode(encrypted + 256, 256);
       }
     } catch (CryptoPP::Exception e) {
-      LogPrint(eLogError,
-          "ElGamalEncryptionImpl: Encrypt() caught exception '", e.what(), "'");
+      LOG(error)
+        << "ElGamalEncryptionImpl: " << __func__
+        << " caught exception '" << e.what() << "'";
     }
   }
 
@@ -168,8 +169,7 @@ void GenerateElGamalKeyPair(
     DiffieHellman().GenerateKeyPair(priv, pub);
 #endif
   } catch (CryptoPP::Exception e) {
-    LogPrint(eLogError,
-        "GenerateElGamalKeyPair(): caught exception '", e.what(), "'");
+    LOG(error) << __func__ << ": caught exception '" << e.what() << "'";
   }
 }
 

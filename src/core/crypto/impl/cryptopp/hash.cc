@@ -63,8 +63,8 @@ class MD5::MD5Impl {
           input,
           length);
     } catch (CryptoPP::Exception e) {
-      LogPrint(eLogError,
-          "MD5Impl: CalculateDigest() caught exception '", e.what(), "'");
+      LOG(error)
+        << "MD5Impl: " << __func__ << " caught exception '" << e.what() << "'";
     }
   }
 
@@ -108,8 +108,8 @@ class SHA256::SHA256Impl {
           input,
           length);
     } catch (CryptoPP::Exception e) {
-      LogPrint(eLogError,
-          "SHA256Impl: CalculateDigest() caught exception '", e.what(), "'");
+      LOG(error)
+        << "SHA256Impl: " << __func__ << " caught exception '" << e.what() << "'";
     }
   }
 
@@ -170,8 +170,8 @@ class SHA512::SHA512Impl {
           input,
           length);
     } catch (CryptoPP::Exception e) {
-      LogPrint(eLogError,
-          "SHA512Impl: CalculateDigest() caught exception '", e.what(), "'");
+      LOG(error)
+        << "SHA512Impl: " << __func__ << " caught exception '" << e.what() << "'";
     }
   }
 
@@ -181,8 +181,8 @@ class SHA512::SHA512Impl {
     try {
       m_SHA512.Update(input, length);
     } catch (CryptoPP::Exception e) {
-      LogPrint(eLogError,
-          "SHA512Impl: Update() caught exception '", e.what(), "'");
+      LOG(error)
+        << "SHA512Impl: " << __func__ << " caught exception '" << e.what() << "'";
     }
   }
 
@@ -191,8 +191,8 @@ class SHA512::SHA512Impl {
     try {
       m_SHA512.Final(digest);
     } catch (CryptoPP::Exception e) {
-      LogPrint(eLogError,
-          "SHA512Impl: Final() caught exception '", e.what(), "'");
+      LOG(error)
+        << "SHA512Impl: " << __func__ << " caught exception '" << e.what() << "'";
     }
   }
 

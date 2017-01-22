@@ -97,7 +97,7 @@ void I2PControlService::Run() {
     try {
       m_Service.run();
     } catch (const std::exception& ex) {
-      LogPrint(eLogError, "I2PControlService::Run() exception: ", ex.what());
+      LOG(error) << "I2PControlService::Run() exception: " << ex.what();
     }
   }
 }
@@ -120,14 +120,13 @@ void I2PControlService::HandleAccept(
   if (ecode != boost::asio::error::operation_aborted)
     Accept();
   if (!ecode) {
-    LogPrint(eLogInfo,
-        "I2PControlService: new I2PControl request from ",
-        socket->remote_endpoint());
+    LOG(info)
+      << "I2PControlService: new I2PControl request from "
+      << socket->remote_endpoint();
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
     ReadRequest(socket);
   } else {
-    LogPrint(eLogError,
-        "I2PControlService: accept error: ",  ecode.message());
+    LOG(error) << "I2PControlService: accept error: " <<  ecode.message();
   }
 }
 
@@ -151,7 +150,7 @@ void I2PControlService::HandleRequestReceived(
     std::shared_ptr<boost::asio::ip::tcp::socket> socket,
     std::shared_ptr<I2PControlBuffer> buf) {
   if (ecode) {
-    LogPrint(eLogError, "I2PControlService: read error: ", ecode.message());
+    LOG(error) << "I2PControlService: read error: " << ecode.message();
     return;
   }
   try {
@@ -163,22 +162,20 @@ void I2PControlService::HandleRequestReceived(
       while (!ss.eof() && header != "\r")
         std::getline(ss, header);
       if (ss.eof()) {
-        LogPrint(eLogError,
-            "I2PControlService: malformed I2PControl request."
-            "HTTP header expected");
+        LOG(error)
+          << "I2PControlService: malformed I2PControl request."
+          << "HTTP header expected";
         return;  // TODO(unassigned): implement
       }
     }
-    LogPrint(eLogDebug, "I2PControlService: creating response");
+    LOG(debug) << "I2PControlService: creating response";
     I2PControlSession::Response response = m_Session->HandleRequest(ss);
-    LogPrint(eLogDebug, "I2PControlService: sending response");
+    LOG(debug) << "I2PControlService: sending response";
     SendResponse(socket, buf, response.ToJsonString(), is_html);
   } catch (const std::exception& ex) {
-    LogPrint(eLogError,
-        "I2PControlService: handle request exception: ", ex.what());
+    LOG(error) << "I2PControlService: handle request exception: " << ex.what();
   } catch (...) {
-    LogPrint(eLogError,
-        "I2PControlService: handle request unknown exception");
+    LOG(error) << "I2PControlService: handle request unknown exception";
   }
 }
 
@@ -226,7 +223,7 @@ void I2PControlService::HandleResponseSent(
     std::shared_ptr<boost::asio::ip::tcp::socket> socket,
     std::shared_ptr<I2PControlBuffer>) {
   if (ecode)
-    LogPrint(eLogError, "I2PControlService: write error: ", ecode.message());
+    LOG(error) << "I2PControlService: write error: " << ecode.message();
   socket->close();
 }
 

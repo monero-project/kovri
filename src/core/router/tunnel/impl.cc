@@ -129,9 +129,8 @@ void Tunnel::Build(
 bool Tunnel::HandleTunnelBuildResponse(
     std::uint8_t* msg,
     std::size_t) {
-  LogPrint(eLogDebug,
-      "Tunnel: TunnelBuildResponse ",
-      static_cast<int>(msg[0]), " records.");
+  LOG(debug)
+    << "Tunnel: TunnelBuildResponse " << static_cast<int>(msg[0]) << " records.";
   kovri::core::CBCDecryption decryption;
   TunnelHopConfig* hop = m_Config->GetLastHop();
   while (hop) {
@@ -145,8 +144,7 @@ bool Tunnel::HandleTunnelBuildResponse(
         decryption.SetIV(hop->GetAESAttributes().reply_IV.data());
         decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, record);
       } else {
-        LogPrint(eLogWarn,
-            "Tunnel: hop index ", idx, " is out of range");
+        LOG(warning) << "Tunnel: hop index " << idx << " is out of range";
       }
       hop1 = hop1->GetPreviousHop();
     }
@@ -158,7 +156,7 @@ bool Tunnel::HandleTunnelBuildResponse(
     const std::uint8_t* record =
       msg + 1 + hop->GetRecordIndex() * TUNNEL_BUILD_RECORD_SIZE;
     std::uint8_t ret = record[BUILD_RESPONSE_RECORD_RET_OFFSET];
-    LogPrint(eLogDebug, "Tunnel: ret code=", static_cast<int>(ret));
+    LOG(debug) << "Tunnel: ret code=" << static_cast<int>(ret);
     hop->GetCurrentRouter()->GetProfile()->TunnelBuildResponse(ret);
     if (ret)
       // if any of participants declined the tunnel is not established
@@ -196,8 +194,7 @@ void Tunnel::EncryptTunnelMsg(
 void Tunnel::SendTunnelDataMsg(
     std::shared_ptr<kovri::core::I2NPMessage>) {
   // TODO(unassigned): review for missing code
-  LogPrint(eLogDebug,
-      "Tunnel: can't send I2NP messages without delivery instructions");
+  LOG(debug) << "Tunnel: can't send I2NP messages without delivery instructions";
 }
 
 void InboundTunnel::HandleTunnelDataMsg(
@@ -242,9 +239,9 @@ void OutboundTunnel::SendTunnelDataMsg(
 
 void OutboundTunnel::HandleTunnelDataMsg(
     std::shared_ptr<const kovri::core::I2NPMessage>) {
-  LogPrint(eLogError,
-      "OutboundTunnel: incoming message for outbound tunnel ",
-      GetTunnelID());
+  LOG(error)
+    << "OutboundTunnel: incoming message for outbound tunnel "
+    << GetTunnelID();
 }
 
 // Simply instantiating in namespace scope ties into, and is limited by, the current singleton design
@@ -358,7 +355,7 @@ std::shared_ptr<TunnelPool> Tunnels::CreateTunnelPool(
 
 void Tunnels::DeleteTunnelPool(
     std::shared_ptr<TunnelPool> pool) {
-  LogPrint(eLogDebug, "Tunnels: deleting tunnel pool");
+  LOG(debug) << "Tunnels: deleting tunnel pool";
   if (pool) {
     StopTunnelPool(pool); {
       std::unique_lock<std::mutex> l(m_PoolsMutex);
@@ -382,8 +379,9 @@ void Tunnels::AddTransitTunnel(
         std::make_pair(
           tunnel->GetTunnelID(),
           tunnel)).second) {
-    LogPrint(eLogError,
-        "Tunnels: transit tunnel ", tunnel->GetTunnelID(), " already exists");
+    LOG(error)
+      << "Tunnels: transit tunnel "
+      << tunnel->GetTunnelID() << " already exists";
     delete tunnel;
   }
 }
@@ -438,8 +436,7 @@ void Tunnels::Run() {
                 else  // tunnel gateway assumed
                   HandleTunnelGatewayMsg(tunnel, msg);
               } else {
-                LogPrint(eLogWarn,
-                    "Tunnels: tunnel ", tunnel_ID, " not found");
+                LOG(warning) << "Tunnels: tunnel " << tunnel_ID << " not found";
               }
               break;
             }
@@ -450,9 +447,9 @@ void Tunnels::Run() {
               HandleI2NPMessage(msg->GetBuffer(), msg->GetLength());
             break;
             default:
-              LogPrint(eLogError,
-                  "Tunnels: unexpected messsage type ",
-                  static_cast<int>(type_ID));
+              LOG(error)
+                << "Tunnels: unexpected messsage type "
+                << static_cast<int>(type_ID);
           }
           msg = m_Queue.Get();
           if (msg) {
@@ -470,7 +467,7 @@ void Tunnels::Run() {
         last_ts = ts;
       }
     } catch (std::exception& ex) {
-      LogPrint(eLogError, "Tunnels::Run() exception: ", ex.what());
+      LOG(error) << "Tunnels: " << __func__ << " exception: " << ex.what();
     }
   }
 }
@@ -479,7 +476,7 @@ void Tunnels::HandleTunnelGatewayMsg(
     TunnelBase* tunnel,
     std::shared_ptr<I2NPMessage> msg) {
   if (!tunnel) {
-    LogPrint(eLogError, "Tunnels: missing tunnel for TunnelGateway");
+    LOG(error) << "Tunnels: missing tunnel for TunnelGateway";
     return;
   }
   const std::uint8_t* payload = msg->GetPayload();
@@ -488,10 +485,10 @@ void Tunnels::HandleTunnelGatewayMsg(
   msg->offset += I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE;
   msg->len = msg->offset + len;
   auto type_ID = msg->GetTypeID();
-  LogPrint(eLogDebug,
-      "Tunnels: TunnelGateway of ", static_cast<int>(len),
-      " bytes for tunnel ", tunnel->GetTunnelID(),
-      ". Msg type ", static_cast<int>(type_ID));
+  LOG(debug)
+    << "Tunnels: TunnelGateway of " << static_cast<int>(len)
+    << " bytes for tunnel " << tunnel->GetTunnelID()
+    << ". Msg type " << static_cast<int>(type_ID);
   if (type_ID == I2NPDatabaseStore || type_ID == I2NPDatabaseSearchReply)
     // transit DatabaseStore my contain new/updated RI
     // or DatabaseSearchReply with new routers
@@ -522,9 +519,9 @@ void Tunnels::ManagePendingTunnels(
     switch (tunnel->GetState()) {
       case e_TunnelStatePending:
         if (ts > tunnel->GetCreationTime() + TUNNEL_CREATION_TIMEOUT) {
-          LogPrint(eLogDebug,
-              "Tunnels: pending tunnel build request ",
-              it->first, " timeout. Deleted");
+          LOG(debug)
+            << "Tunnels: pending tunnel build request "
+            << it->first << " timeout. Deleted";
           // update stats
           auto config = tunnel->GetTunnelConfig();
           if (config) {
@@ -543,9 +540,9 @@ void Tunnels::ManagePendingTunnels(
         }
       break;
       case e_TunnelStateBuildFailed:
-        LogPrint(eLogDebug,
-            "Tunnels: pending tunnel build request ",
-            it->first, " failed. Deleted");
+        LOG(debug)
+          << "Tunnels: pending tunnel build request "
+          << it->first << " failed. Deleted";
         it = pending_tunnels.erase(it);
         m_NumFailedTunnelCreations++;
       break;
@@ -566,8 +563,7 @@ void Tunnels::ManageOutboundTunnels() {
     for (auto it = m_OutboundTunnels.begin(); it != m_OutboundTunnels.end();) {
       auto tunnel = *it;
       if (ts > tunnel->GetCreationTime() + TUNNEL_EXPIRATION_TIMEOUT) {
-        LogPrint(eLogDebug,
-            "Tunnels: tunnel ", tunnel->GetTunnelID(), " expired");
+        LOG(debug) << "Tunnels: tunnel " << tunnel->GetTunnelID() << " expired";
         auto pool = tunnel->GetTunnelPool();
         if (pool)
           pool->TunnelExpired(tunnel);
@@ -596,7 +592,7 @@ void Tunnels::ManageOutboundTunnels() {
     auto router = kovri::core::netdb.GetRandomRouter();
     if (!inbound_tunnel || !router)
       return;
-    LogPrint(eLogDebug, "Tunnels: creating one hop outbound tunnel");
+    LOG(debug) << "Tunnels: creating one hop outbound tunnel";
     CreateTunnel<OutboundTunnel> (
         std::make_shared<TunnelConfig> (
           std::vector<std::shared_ptr<const kovri::core::RouterInfo> > { router },
@@ -609,8 +605,7 @@ void Tunnels::ManageInboundTunnels() {
     for (auto it = m_InboundTunnels.begin(); it != m_InboundTunnels.end();) {
       auto tunnel = it->second;
       if (ts > tunnel->GetCreationTime() + TUNNEL_EXPIRATION_TIMEOUT) {
-        LogPrint(eLogDebug,
-            "Tunnels: tunnel ", tunnel->GetTunnelID(), " expired");
+        LOG(debug) << "Tunnels: tunnel " << tunnel->GetTunnelID() << " expired";
         auto pool = tunnel->GetTunnelPool();
         if (pool)
           pool->TunnelExpired(tunnel);
@@ -634,8 +629,7 @@ void Tunnels::ManageInboundTunnels() {
     }
   }
   if (m_InboundTunnels.empty()) {
-    LogPrint(eLogDebug,
-        "Tunnels: creating zero hops inbound tunnel");
+    LOG(debug) << "Tunnels: creating zero hops inbound tunnel";
     CreateZeroHopsInboundTunnel();
     if (!m_ExploratoryPool)
       m_ExploratoryPool =
@@ -646,7 +640,7 @@ void Tunnels::ManageInboundTunnels() {
   if (m_OutboundTunnels.empty() || m_InboundTunnels.size() < 5) {
     // trying to create one more inbound tunnel
     auto router = kovri::core::netdb.GetRandomRouter();
-    LogPrint(eLogDebug, "Tunnels: creating one hop inbound tunnel");
+    LOG(debug) << "Tunnels: creating one hop inbound tunnel";
     CreateTunnel<InboundTunnel> (
         std::make_shared<TunnelConfig> (
           std::vector<std::shared_ptr<const kovri::core::RouterInfo> > {router}));
@@ -658,8 +652,7 @@ void Tunnels::ManageTransitTunnels() {
   for (auto it = m_TransitTunnels.begin(); it != m_TransitTunnels.end();) {
     if (ts > it->second->GetCreationTime() + TUNNEL_EXPIRATION_TIMEOUT) {
       auto tmp = it->second;
-      LogPrint(eLogDebug,
-          "Tunnels: transit tunnel ", tmp->GetTunnelID(), " expired"); {
+      LOG(debug) << "Tunnels: transit tunnel " << tmp->GetTunnelID() << " expired"; {
         std::unique_lock<std::mutex> l(m_TransitTunnelsMutex);
         it = m_TransitTunnels.erase(it);
       }

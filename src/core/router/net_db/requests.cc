@@ -163,17 +163,17 @@ void NetDbRequests::ManageRequests() {
           } else {
             is_complete = true;
             if (!inbound)
-              LogPrint(eLogWarn, "NetDbRequests: no inbound tunnels");
+              LOG(warning) << "NetDbRequests: no inbound tunnels";
             if (!outbound)
-              LogPrint(eLogWarn, "NetDbRequests: no outbound tunnels");
+              LOG(warning) << "NetDbRequests: no outbound tunnels";
             if (!next_floodfill)
-              LogPrint(eLogWarn, "NetDbRequests: no more floodfills");
+              LOG(warning) << "NetDbRequests: no more floodfills";
           }
         } else {
           if (!dest->IsExploratory())
-            LogPrint(eLogWarn,
-                "NetDbRequests: ", dest->GetDestination().ToBase64(),
-                " not found after ", attempts, " attempts");
+            LOG(warning)
+              << "NetDbRequests: " << dest->GetDestination().ToBase64()
+              << " not found after " << attempts << " attempts";
           is_complete = true;
         }
       }

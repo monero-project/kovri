@@ -30,9 +30,26 @@
 
 #include "app/instance.h"
 
+// Config parsing
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/program_options.hpp>
+
+// Logging
+#include <boost/core/null_deleter.hpp>
+#include <boost/log/expressions/formatters/date_time.hpp>
+#include <boost/log/attributes.hpp>
+#include <boost/log/core.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/sinks.hpp>
+#include <boost/log/sources/logger.hpp>
+#include <boost/log/sources/record_ostream.hpp>
+#include <boost/log/sources/severity_channel_logger.hpp>
+#include <boost/log/sources/severity_logger.hpp>
+#include <boost/log/support/date_time.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/make_shared.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include <cstdint>
 #include <stdexcept>
@@ -41,9 +58,11 @@
 
 #include "client/util/parse.h"
 
+#include "core/crypto/aes.h"
 #include "core/crypto/rand.h"
 #include "core/util/filesystem.h"
-#include "core/util/log.h"
+
+// TODO(anonimal): instance configuration should probably be moved to libcore
 
 namespace kovri {
 namespace app {
@@ -70,11 +89,15 @@ void Configuration::ParseKovriConfig() {
     ("log-to-console", bpo::value<bool>()->default_value(true))
     ("log-to-file", bpo::value<bool>()->default_value(true))
     ("log-file-name", bpo::value<std::string>()->default_value(
-        (kovri::core::GetLogsPath() / "kovri_%Y-%m-%d.log").string()))
-    ("log-levels", bpo::value<std::vector<std::string>>()->
-                   // Note: we set a default value during validation and
-                   // leave blank here to prevent bad_any_cast exception.
-                   default_value(std::vector<std::string>(), "")->multitoken())
+        (kovri::core::GetLogsPath() / "kovri_%Y-%m-%d.log").string()))  // TODO(anonimal): use only 1 log file?
+    // Log levels
+    // 0 = fatal
+    // 1 = error fatal
+    // 2 = warn error fatal
+    // 3 = info warn error fatal
+    // 4 = debug info warn error fatal
+    // 5 = trace debug info warn error fatal
+    ("log-level", bpo::value<std::uint16_t>()->default_value(3))
     ("kovriconf,c", bpo::value<std::string>(&kovri_config)->default_value(
         (kovri::core::GetConfigPath() / "kovri.conf").string()))
     ("tunnelsconf,t", bpo::value<std::string>(&tunnels_config)->default_value(
@@ -118,21 +141,18 @@ void Configuration::ParseKovriConfig() {
     .add(client);
   // Map and store command-line options
   bpo::store(
-      bpo::command_line_parser(m_Args).options(cli_options).run(), m_KovriConfig);
+      bpo::command_line_parser(m_Args).options(cli_options).run(),
+      m_KovriConfig);
   bpo::notify(m_KovriConfig);
-
-  // TODO(anonimal): we want to be able to reload config file without original
-  // cli args overwriting any *new* config file options
-
-  // Parse config file after mapping command-line
-  ParseKovriConfigFile(kovri_config, config_options, m_KovriConfig);
-  // Set logging options
-  if (!SetLoggingOptions())
-    throw std::runtime_error("Configuration: could not set logging options");
+  // Help options
   if (m_KovriConfig.count("help")) {
     std::cout << config_options << std::endl;
-    throw std::runtime_error("for more details, see user-guide documentation");
+    throw std::runtime_error("for more details, see user-guide or config file");
   }
+  // Parse config file after mapping command-line
+  // TODO(anonimal): we want to be able to reload config file without original
+  // cli args overwriting any *new* config file options
+  ParseKovriConfigFile(kovri_config, config_options, m_KovriConfig);
 }
 
 // TODO(unassigned): improve this function and use-case
@@ -141,12 +161,92 @@ void Configuration::ParseKovriConfigFile(
     bpo::options_description& options,
     bpo::variables_map& var_map) {
   std::ifstream filename(file.c_str());
-  if (!filename) {
-    std::cout << "Could not open " << file << "!\n";
-  } else {
-    bpo::store(bpo::parse_config_file(filename, options), var_map);
-    bpo::notify(var_map);
-  }
+  if (!filename)
+    throw std::runtime_error("Could not open " + file + "!\n");
+  bpo::store(bpo::parse_config_file(filename, options), var_map);
+  bpo::notify(var_map);
+}
+
+void Configuration::SetupLogging() {
+  namespace logging = boost::log;
+  namespace expr = boost::log::expressions;
+  namespace sinks = boost::log::sinks;
+  namespace attrs = boost::log::attributes;
+  namespace keywords = boost::log::keywords;
+  // Get global logger
+  // TODO(unassigned): depends on global logging initialization. See notes in log impl
+  auto core = logging::core::get();
+  // Add core attributes
+  core->add_global_attribute("TimeStamp", attrs::local_clock());  // TODO(anonimal): change to UTC time
+  core->add_global_attribute("ThreadID", attrs::current_thread_id());
+  // Get/Set filter log level
+  auto log_level = m_KovriConfig["log-level"].as<std::uint16_t>();
+  logging::trivial::severity_level severity;
+  switch (log_level) {
+    case 0:
+        severity = logging::trivial::fatal;
+      break;
+    case 1:
+        severity = logging::trivial::error;
+      break;
+    case 2:
+        severity = logging::trivial::warning;
+      break;
+    case 3:
+        severity = logging::trivial::info;
+      break;
+    case 4:
+        severity = logging::trivial::debug;
+      break;
+    case 5:
+        severity = logging::trivial::trace;
+      break;
+    default:
+      throw std::invalid_argument("Configuration: invalid log-level, see documentation");
+      break;
+  };
+  core->set_filter(expr::attr<logging::trivial::severity_level>("Severity") >= severity);
+  // Create text backend + sink
+  typedef sinks::synchronous_sink<sinks::text_ostream_backend> text_ostream_sink;
+  auto text_sink = boost::make_shared<text_ostream_sink>();
+  text_sink->locked_backend()->add_stream(
+      boost::shared_ptr<std::ostream>(&std::clog, boost::null_deleter()));
+  // Create file backend
+  typedef sinks::asynchronous_sink<sinks::text_file_backend> text_file_sink;
+  auto file_backend =
+    boost::make_shared<sinks::text_file_backend>(
+        keywords::file_name = m_KovriConfig["log-file-name"].as<std::string>(),
+        keywords::time_based_rotation = sinks::file::rotation_at_time_point(0, 0, 0));  // Rotate at midnight
+  // If debug/trace, enable auto flush to (try to) catch records right before segfault
+  if (severity <= logging::trivial::debug)  // Our severity levels are processed in reverse
+    file_backend->auto_flush();
+  // Create file sink
+  auto file_sink =
+    boost::shared_ptr<text_file_sink>(std::make_unique<text_file_sink>(file_backend));
+  // Set sink formatting
+  logging::formatter format = expr::stream
+      << "[" << expr::format_date_time(
+          expr::attr<boost::posix_time::ptime>("TimeStamp"), "%Y.%m.%d %T.%f") << "]"
+      << " [" << expr::attr<attrs::current_thread_id::value_type>("ThreadID") << "]"
+      << " [" << logging::trivial::severity << "]"
+      << "  " << expr::smessage;
+  text_sink->set_formatter(format);
+  file_sink->set_formatter(format);
+  // Add sinks
+  core->add_sink(text_sink);
+  core->add_sink(file_sink);
+  // Remove sinks if needed (we must first have added sinks to remove)
+  bool log_to_console = m_KovriConfig["log-to-console"].as<bool>();
+  bool log_to_file = m_KovriConfig["log-to-file"].as<bool>();
+  if (!log_to_console)
+    core->remove_sink(text_sink);
+  if (!log_to_file)
+    core->remove_sink(file_sink);
+}
+
+void Configuration::SetupAESNI() {
+  // TODO(anonimal): implement user-option to disable AES-NI auto-detection
+  kovri::core::SetupAESNI();
 }
 
 void Configuration::ParseTunnelsConfig() {
@@ -215,54 +315,6 @@ void Configuration::ParseTunnelsConfig() {
     // Save section for later client insertion
     m_TunnelsConfig.push_back(tunnel);
   }
-}
-
-bool Configuration::SetLoggingOptions() {
-  namespace core = kovri::core;
-  /**
-   * TODO(unassigned): write custom validator for log-levels
-   * so we can set values via config file.
-   */
-  // Test for valid log-levels input
-  auto arg_levels = m_KovriConfig["log-levels"].as<std::vector<std::string>>();
-  auto& global_levels = core::GetGlobalLogLevels();
-  if (!arg_levels.empty()) {
-    if (arg_levels.size() > global_levels.size()) {
-      std::cout << "Invalid number of log levels. Maximum allowed: "
-                << global_levels.size() << std::endl;
-      return false;
-    }
-    // Verify validity of log levels
-    for (auto const& level : arg_levels) {
-      auto result = global_levels.find(level);
-      if (result == global_levels.end()) {
-        std::cout << "Invalid log-level(s). See help for options" << std::endl;
-        return false;
-      }
-    }
-  } else {
-    // Set default log-levels if none present
-    for (auto const& level : global_levels)
-      if (level.first != "debug")  // TODO(anonimal): we'll want to use a key
-        arg_levels.push_back(level.first);
-  }
-  // Feedback to user which levels are in use
-  std::string levels;
-  for (auto const& level : arg_levels)
-    levels.append(level + " ");
-  LogPrint(eLogInfo, "Configuration: using log levels: ", levels);
-  // Set new global log-levels
-  core::SetGlobalLogLevels(arg_levels);
-  // Set other logging options
-  core::SetOptionLogToConsole(m_KovriConfig["log-to-console"].as<bool>());
-  // TODO(unassigned): the following daemon test is a HACK to ensure that
-  // log-to-console is enabled in daemon mode (or else we'll boost.log segfault)
-  // See #469
-  if (m_KovriConfig["daemon"].as<bool>())
-    core::SetOptionLogToConsole(true);
-  core::SetOptionLogToFile(m_KovriConfig["log-to-file"].as<bool>());
-  core::SetOptionLogFileName(m_KovriConfig["log-file-name"].as<std::string>());
-  return true;
 }
 
 const std::string Configuration::GetAttribute(Key key) {

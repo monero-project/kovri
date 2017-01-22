@@ -89,11 +89,11 @@ void AddressBook::Start(
     std::shared_ptr<ClientDestination> local_destination) {
   // We need tunnels so we can download in-net
   if (!local_destination) {
-    LogPrint(eLogError,
-      "AddressBook: won't start: we need a client destination");
+    LOG(error)
+      << "AddressBook: won't start: we need a client destination";
     return;
   }
-  LogPrint(eLogInfo, "AddressBook: starting service");
+  LOG(info) << "AddressBook: starting service";
   m_SharedLocalDestination = local_destination;
   m_SubscriberUpdateTimer =
     std::make_unique<boost::asio::deadline_timer>(
@@ -110,10 +110,10 @@ void AddressBook::Start(
 
 void AddressBook::SubscriberUpdateTimer(
     const boost::system::error_code& ecode) {
-  LogPrint(eLogDebug, "AddressBook: begin ", __func__);
+  LOG(debug) << "AddressBook: begin " << __func__;
   if (ecode) {
-    LogPrint(eLogError,
-        "AddressBook: ", __func__, " exception: ", ecode.message());
+    LOG(error)
+      << "AddressBook: " << __func__ << " exception: " << ecode.message();
     return;
   }
   // Load publishers (see below about multiple publishers)
@@ -122,7 +122,7 @@ void AddressBook::SubscriberUpdateTimer(
   if (m_SubscriptionIsLoaded
       && !m_SubscriberIsDownloading
       && m_SharedLocalDestination->IsReady()) {
-    LogPrint(eLogDebug, "AddressBook: ready to download new subscription");
+    LOG(debug) << "AddressBook: ready to download new subscription";
     DownloadSubscription();
   } else {
     if (!m_SubscriptionIsLoaded) {
@@ -146,11 +146,11 @@ void AddressBook::LoadPublishers() {
   // edit publisher's file manually with any effect after router start
   // References #337
   if (m_PublishersLoaded) {
-    LogPrint(eLogDebug, "AddressBook: publisher(s) already loaded");
+    LOG(debug) << "AddressBook: publisher(s) already loaded";
     return;
   }
   auto publishers = GetDefaultPublishersFilename();
-  LogPrint(eLogInfo, "AddressBook: loading publisher file ", publishers);
+  LOG(info) << "AddressBook: loading publisher file " << publishers;
   std::ifstream file((kovri::core::GetAddressBookPath() / publishers).string());
   if (file) {
     // Publisher URI
@@ -172,20 +172,20 @@ void AddressBook::LoadPublishers() {
       // Perform URI sanity test
       http.SetURI(publisher);
       if (!http.GetURI().is_valid()) {
-        LogPrint(eLogWarn,
-            "AddressBook: invalid/malformed publisher URI, skipping");
+        LOG(warning)
+          << "AddressBook: invalid/malformed publisher URI, skipping";
         continue;
       }
       // Save publisher to subscriber
       m_Subscribers.push_back(
           std::make_unique<AddressBookSubscriber>(*this, publisher));
     }
-    LogPrint(eLogInfo,
-        "AddressBook: ", m_Subscribers.size(), " publishers loaded");
+    LOG(info)
+      << "AddressBook: " << m_Subscribers.size() << " publishers loaded";
   } else {
     auto publisher = GetDefaultPublisherURI();
-    LogPrint(eLogWarn,
-        "AddressBook: ", publishers, " unavailable; using ", publisher);
+    LOG(warning)
+      << "AddressBook: " << publishers << " unavailable; using " << publisher;
     m_Subscribers.push_back(
         std::make_unique<AddressBookSubscriber>(*this, publisher));
     // TODO(anonimal): create default publisher file if file is missing
@@ -200,7 +200,7 @@ void AddressBook::LoadSubscriptionFromPublisher() {
     LoadPublishers();
   // Ensure we have a storage instance ready
   if (!m_Storage) {
-    LogPrint(eLogDebug, "AddressBook: creating new storage instance");
+    LOG(debug) << "AddressBook: creating new storage instance";
     m_Storage = GetNewStorageInstance();
   }
   // If so, see if we have addresses from subscription already saved
@@ -208,24 +208,24 @@ void AddressBook::LoadSubscriptionFromPublisher() {
   // we need to remove and/or work around this block and m_SubscriptionIsLoaded
   if (m_Storage->Load(m_Addresses)) {
     // If so, we don't need to download from a publisher
-    LogPrint(eLogDebug, "AddressBook: subscription is already loaded");
+    LOG(debug) << "AddressBook: subscription is already loaded";
     m_SubscriptionIsLoaded = true;
     return;
   }
   // If available, load default subscription from file
   auto filename = GetDefaultSubscriptionFilename();
   std::ifstream file((kovri::core::GetAddressBookPath() / filename).string());
-  LogPrint(eLogInfo, "AddressBook: loading subscription ", filename);
+  LOG(info) << "AddressBook: loading subscription " << filename;
   if (file) {  // Open subscription, validate, and save to storage
     if (!SaveSubscription(file))
-      LogPrint(eLogWarn, "AddressBook: could not load subscription ", filename);
+      LOG(warning) << "AddressBook: could not load subscription " << filename;
   } else {  // Use default publisher and download
-    LogPrint(eLogWarn, "AddressBook: ", filename, " not found");
+    LOG(warning) << "AddressBook: " << filename << " not found";
     if (!m_SubscriberIsDownloading) {
-      LogPrint(eLogDebug, "AddressBook: subscriber not downloading, downloading");
+      LOG(debug) << "AddressBook: subscriber not downloading, downloading";
       DownloadSubscription();
     } else {
-      LogPrint(eLogWarn, "AddressBook: subscriber is downloading");
+      LOG(warning) << "AddressBook: subscriber is downloading";
     }
   }
 }
@@ -233,20 +233,18 @@ void AddressBook::LoadSubscriptionFromPublisher() {
 void AddressBook::DownloadSubscription() {
   // Get number of available publishers (guaranteed > 0)
   auto publisher_count = m_Subscribers.size();
-  LogPrint(eLogDebug,
-      "AddressBook: picking random subscription from total publisher count: ",
-      publisher_count);
+  LOG(debug)
+    << "AddressBook: picking random subscription from total publisher count: "
+    << publisher_count;
   // Pick a random publisher to subscribe from
   auto publisher = kovri::core::RandInRange32(0, publisher_count - 1);
   m_SubscriberIsDownloading = true;
   try {
     m_Subscribers.at(publisher)->DownloadSubscription();
   } catch (const std::exception& ex) {
-    LogPrint(eLogError,
-        "AddressBook: download subscription exception: ", ex.what());
+    LOG(error) << "AddressBook: download subscription exception: " << ex.what();
   } catch (...) {
-    LogPrint(eLogError,
-        "AddressBook: download subscription unknown exception");
+    LOG(error) << "AddressBook: download subscription unknown exception";
   }
   // Ensure false here if exception occured before subscriber completed download
   m_SubscriberIsDownloading = false;
@@ -254,17 +252,18 @@ void AddressBook::DownloadSubscription() {
 
 void AddressBookSubscriber::DownloadSubscription() {
   // TODO(unassigned): exception handling
-  LogPrint(eLogDebug, "AddressBookSubscriber: creating thread for download");
+  LOG(debug) << "AddressBookSubscriber: creating thread for download";
   std::thread download(&AddressBookSubscriber::DownloadSubscriptionImpl, this);
   download.join();
 }
 
 void AddressBookSubscriber::DownloadSubscriptionImpl() {
   // TODO(anonimal): ensure thread safety
-  LogPrint(eLogInfo,
-      "AddressBookSubscriber: downloading subscription ", m_HTTP.GetURI().string(),
-      " ETag: ", m_HTTP.GetPreviousETag(),
-      " Last-Modified: ", m_HTTP.GetPreviousLastModified());
+  LOG(info)
+    << "AddressBookSubscriber: downloading subscription "
+    << m_HTTP.GetURI().string()
+    << " ETag: " << m_HTTP.GetPreviousETag()
+    << " Last-Modified: " << m_HTTP.GetPreviousLastModified();
   bool download_result = m_HTTP.Download();
   if (download_result) {
     std::stringstream stream(m_HTTP.GetDownloadedContents());
@@ -278,7 +277,7 @@ void AddressBookSubscriber::DownloadSubscriptionImpl() {
 
 void AddressBook::HostsDownloadComplete(
     bool success) {
-  LogPrint(eLogDebug, "AddressBook: subscription download complete");
+  LOG(debug) << "AddressBook: subscription download complete";
   if (m_SubscriberUpdateTimer) {
     m_SubscriberUpdateTimer->expires_from_now(
         boost::posix_time::minutes(
@@ -302,12 +301,12 @@ bool AddressBook::SaveSubscription(
   try {
     auto addresses = ValidateSubscription(stream);
     if (!addresses.empty()) {
-      LogPrint(eLogDebug, "AddressBook: processing ", addresses.size(), " addresses");
+      LOG(debug) << "AddressBook: processing " << addresses.size() << " addresses";
       // Stream may be a file or downloaded stream.
       // Regardless, we want to write/overwrite the subscription file.
       if (file_name.empty())  // Use default filename if none given.
         file_name = (kovri::core::GetAddressBookPath() / GetDefaultSubscriptionFilename()).string();
-      LogPrint(eLogDebug, "AddressBook: opening subscription file ", file_name);
+      LOG(debug) << "AddressBook: opening subscription file " << file_name;
       // TODO(anonimal): move file saving to storage class?
       std::ofstream file;
       file.open(file_name);
@@ -330,9 +329,9 @@ bool AddressBook::SaveSubscription(
       m_SubscriptionIsLoaded = true;
     }
   } catch (const std::exception& ex) {
-    LogPrint(eLogError, "AddressBook: exception in  ", __func__, ": ", ex.what());
+    LOG(error) << "AddressBook: exception in " << __func__ << ": " << ex.what();
   } catch (...) {
-    LogPrint(eLogError, "AddressBook: unknown exception in  ", __func__);
+    LOG(error) << "AddressBook: unknown exception in " << __func__;
   }
   return m_SubscriptionIsLoaded;
 }
@@ -341,7 +340,7 @@ bool AddressBook::SaveSubscription(
 
 const std::map<std::string, kovri::core::IdentityEx>
 AddressBook::ValidateSubscription(std::istream& stream) {
-  LogPrint(eLogDebug, "AddressBook: validating subscription");
+  LOG(debug) << "AddressBook: validating subscription";
   // Map host to address identity
   std::map<std::string, kovri::core::IdentityEx> addresses;
   // To ensure valid Hostname=Base64Address
@@ -370,14 +369,14 @@ AddressBook::ValidateSubscription(std::istream& stream) {
         if (host.empty() || addr.empty()
             || !std::regex_search(host, regex)
             || !ident.FromBase64(addr)) {
-          LogPrint(eLogWarn, "AddressBook: malformed address, skipping");
+          LOG(warning) << "AddressBook: malformed address, skipping";
           continue;
         }
         addresses[host] = ident;  // Host is valid, save
       }
     }
   } catch (const std::exception& ex) {
-    LogPrint(eLogError, "AddressBook: exception during validation: ", ex.what());
+    LOG(error) << "AddressBook: exception during validation: ", ex.what();
     addresses.clear();
   } catch (...) {
     throw std::runtime_error("AddressBook: unknown exception during validation");
@@ -392,7 +391,7 @@ bool AddressBook::CheckAddressIdentHashFound(
   auto pos = address.find(".b32.i2p");
   if (pos != std::string::npos) {
     if (!kovri::core::Base32ToByteStream(address.c_str(), pos, ident, 32)) {
-      LogPrint(eLogError, "AddressBook: invalid base32 address");
+      LOG(error) << "AddressBook: invalid base32 address";
       return false;
     }
     return true;
@@ -440,9 +439,9 @@ void AddressBook::InsertAddressIntoStorage(
     m_Storage = GetNewStorageInstance();
   m_Storage->AddAddress(ident);
   m_Addresses[address] = ident.GetIdentHash();
-  LogPrint(eLogInfo,
-      "AddressBook: ", address, "->",
-      GetB32AddressFromIdentHash(ident.GetIdentHash()), " added");
+  LOG(info)
+    << "AddressBook: " << address << "->"
+    << GetB32AddressFromIdentHash(ident.GetIdentHash()) << " added";
 }
 
 void AddressBook::Stop() {
@@ -453,18 +452,18 @@ void AddressBook::Stop() {
   }
   // Finish downloading
   if (m_SubscriberIsDownloading) {
-    LogPrint(eLogInfo,
-        "AddressBook: subscription is downloading, waiting for termination");
+    LOG(info)
+      << "AddressBook: subscription is downloading, waiting for termination";
     for (std::size_t seconds = 0;
          seconds < static_cast<std::uint16_t>(kovri::client::Timeout::Receive);
          seconds++) {
       if (!m_SubscriberIsDownloading) {
-        LogPrint(eLogInfo, "AddressBook: subscription download complete");
+        LOG(info) << "AddressBook: subscription download complete";
         break;
       }
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
-    LogPrint(eLogError, "AddressBook: subscription download hangs");
+    LOG(error) << "AddressBook: subscription download hangs";
     m_SubscriberIsDownloading = false;
   }
   // Save addresses to storage

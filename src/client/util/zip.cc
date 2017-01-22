@@ -66,10 +66,10 @@ bool ZIP::Unzip() {
       m_Data->header_signature = le32toh(m_Data->header_signature);
       if (m_Data->header_signature ==
           static_cast<std::size_t>(Signature::header)) {
-        LogPrint(eLogDebug, "ZIP: preparing local file...");
+        LOG(debug) << "ZIP: preparing local file...";
         if (!PrepareLocalFile())
           return false;
-        LogPrint(eLogDebug, "ZIP: decompressing local file...");
+        LOG(debug) << "ZIP: decompressing local file...";
         if (!DecompressLocalFile())
           return false;
         // Skip data descriptor section if present
@@ -78,7 +78,7 @@ bool ZIP::Unzip() {
       } else {
         if (m_Data->header_signature !=
             static_cast<std::size_t>(Signature::central_dir_header)) {
-          LogPrint(eLogError, "ZIP: missing central directory header");
+          LOG(error) << "ZIP: missing central directory header";
           return false;
         }
         break;  // No more files to extract
@@ -89,11 +89,10 @@ bool ZIP::Unzip() {
         break;
     }
   } catch (const std::exception& e) {
-    LogPrint(eLogError,
-        "ZIP: caught exception '", e.what(), "' during unzip");
+    LOG(error) << "ZIP: caught exception '" << e.what() << "' during unzip";
     return false;
   }
-  LogPrint(eLogDebug, "ZIP: successfully unzipped stream");
+  LOG(debug) << "ZIP: successfully unzipped stream";
   return true;
 }
 
@@ -112,14 +111,14 @@ bool ZIP::PrepareLocalFile() {
     // Get CRC-32 checksum
     m_Stream.Read(*m_Data->crc_32.data(), Size::crc_32);
     if (!m_Data->crc_32.data()) {
-      LogPrint(eLogWarn, "ZIP: CRC-32 checksum was null");
+      LOG(warning) << "ZIP: CRC-32 checksum was null";
       return false;
     }
     // Prepare compressed file size
     m_Stream.Read(m_Data->compressed_size, Size::compressed_size);
     m_Data->compressed_size = le32toh(m_Data->compressed_size);
     if (!m_Data->compressed_size)
-      LogPrint(eLogWarn, "ZIP: compressed file size was null");
+      LOG(warning) << "ZIP: compressed file size was null";
     // Prepare uncompressed file size
     m_Stream.Read(m_Data->uncompressed_size, Size::uncompressed_size);
     m_Data->uncompressed_size = le32toh(m_Data->uncompressed_size);
@@ -129,9 +128,9 @@ bool ZIP::PrepareLocalFile() {
     // If we expand ZIP beyond SU3, we'll have to remove this check
     if ((m_Data->local_filename_length !=
         static_cast<std::size_t>(Size::ri_filename_length))) {
-      LogPrint(eLogError,
-          "ZIP: archived filename length not appropriate: ",
-          static_cast<std::size_t>(m_Data->local_filename_length));
+      LOG(error)
+        << "ZIP: archived filename length not appropriate: "
+        << static_cast<std::size_t>(m_Data->local_filename_length);
       return false;
     }
     // Prepare extra field length
@@ -148,7 +147,7 @@ bool ZIP::PrepareLocalFile() {
     if (m_Data->bit_flag & Descriptor.bit_flag) {
       std::size_t pos = m_Stream.Tellg();
       if (!FindDataDescriptor()) {
-        LogPrint(eLogError, "ZIP: archive data descriptor not found");
+        LOG(error) << "ZIP: archive data descriptor not found";
         return false;
       }
       m_Stream.Read(*m_Data->crc_32.data(), Size::crc_32);
@@ -161,11 +160,10 @@ bool ZIP::PrepareLocalFile() {
       m_Stream.Seekg(pos, std::ios::beg);  // Back to compressed data
     }
   } catch (const std::exception& e) {
-    LogPrint(eLogError,
-        "ZIP: caught exception '", e.what(), "' during preparation");
+    LOG(error) << "ZIP: caught exception '" << e.what() << "' during preparation";
     return false;
   }
-  LogPrint(eLogDebug, "ZIP: successfully prepared file");
+  LOG(debug) << "ZIP: successfully prepared file";
   return true;
 }
 
@@ -186,9 +184,9 @@ bool ZIP::FindDataDescriptor() {
 }
 
 bool ZIP::DecompressLocalFile() {
-  LogPrint(eLogDebug,
-      "ZIP: processing file ", m_Data->local_filename.data(),
-      " ", m_Data->compressed_size, " bytes");
+  LOG(debug)
+    << "ZIP: processing file " << m_Data->local_filename.data()
+    << " " << m_Data->compressed_size << " bytes";
   try {
     // Resize for next file
     m_Data->compressed.resize(m_Data->compressed_size);
@@ -196,7 +194,7 @@ bool ZIP::DecompressLocalFile() {
     m_Stream.Read(*m_Data->compressed.data(), m_Data->compressed.size());
     switch (m_Data->compression_method) {
       case static_cast<std::size_t>(Method::deflate): {
-        LogPrint(eLogDebug, "ZIP: file uses compression method 'deflate'");
+        LOG(debug) << "ZIP: file uses compression method 'deflate'";
         // Instantiate decompressor
         kovri::core::DeflateDecompressor decompressor;
         // Put in data to decompress
@@ -219,34 +217,33 @@ bool ZIP::DecompressLocalFile() {
             m_Contents.insert(
                 { m_Data->local_file_count, std::move(m_Data->uncompressed) });
           } else {
-            LogPrint(eLogError, "ZIP: CRC-32 Failed");
+            LOG(error) << "ZIP: CRC-32 Failed";
             return false;
           }
         } else {
-          LogPrint(eLogError,
-              "ZIP: actual uncompressed size ", decompressor.MaxRetrievable(),
-              " exceeds ", m_Data->uncompressed_size, " from header");
+          LOG(error)
+            << "ZIP: actual uncompressed size " << decompressor.MaxRetrievable()
+            << " exceeds " << m_Data->uncompressed_size << " from header";
           return false;
         }
         break;
       }
       case static_cast<std::size_t>(Method::stored): {
-        LogPrint(eLogDebug, "ZIP: file uses compression method 'stored'");
+        LOG(debug) << "ZIP: file uses compression method 'stored'";
         // Store/map the local file as-is
         m_Contents.insert(
             { m_Data->local_file_count, std::move(m_Data->compressed) });
         break;
       }
       default:
-        LogPrint(eLogError,
-            "ZIP: file uses an unsupported compression method");
+        LOG(error) << "ZIP: file uses an unsupported compression method";
         return false;
     }
   } catch (...) {
-    LogPrint(eLogError, "ZIP: caught exception during decompression");
+    LOG(error) << "ZIP: caught exception during decompression";
     return false;
   }
-  LogPrint(eLogDebug, "ZIP: successfully processed file");
+  LOG(debug) << "ZIP: successfully processed file";
   m_Data->local_file_count++;  // Move onto next file for processing
   return true;
 }

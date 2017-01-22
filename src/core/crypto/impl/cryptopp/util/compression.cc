@@ -54,9 +54,9 @@ class DeflateDecompressor::DeflateDecompressorImpl {
       // Signal the end of messages to the object
       m_Inflator.MessageEnd();
     } catch (CryptoPP::Exception& e) {
-      LogPrint(eLogError,
-          "DeflateDecompressorImpl: Put() caught exception '",
-          e.what(), "'");
+      LOG(error)
+        << "DeflateDecompressorImpl: " << __func__
+        << " caught exception '" << e.what() << "'";
     }
     return unprocessed_bytes;
   }
@@ -68,9 +68,9 @@ class DeflateDecompressor::DeflateDecompressorImpl {
     try {
       bytes_consumed = m_Inflator.Get(buffer, length);
     } catch (CryptoPP::Exception& e) {
-      LogPrint(eLogError,
-          "DeflateDecompressorImpl: Get() caught exception '",
-          e.what(), "'");
+      LOG(error)
+        << "DeflateDecompressorImpl: " << __func__
+        << " caught exception '" << e.what() << "'";
     }
     return bytes_consumed;
   }
@@ -80,9 +80,9 @@ class DeflateDecompressor::DeflateDecompressorImpl {
     try {
       max = m_Inflator.MaxRetrievable();
     } catch (CryptoPP::Exception& e) {
-      LogPrint(eLogError,
-          "DeflateDecompressorImpl: MaxRetrievable() caught exception '",
-          e.what(), "'");
+      LOG(error)
+        << "DeflateDecompressorImpl: " << __func__
+        << " caught exception '" << e.what() << "'";
       max = 0;
     }
     return max;
@@ -96,9 +96,9 @@ class DeflateDecompressor::DeflateDecompressorImpl {
     try {
       verify = CryptoPP::CRC32().VerifyDigest(hash, data, length);
     } catch (CryptoPP::Exception& e) {
-      LogPrint(eLogError,
-          "DeflateDecompressorImpl: Verify() caught exception '",
-          e.what(), "'");
+      LOG(error)
+        << "DeflateDecompressorImpl: " << __func__
+        << " caught exception '" << e.what() << "'";
       return false;
     }
     return verify;
@@ -157,8 +157,8 @@ class Gzip::GzipImpl {
     try {
       m_Gzip.SetDeflateLevel(deflate_level);
     } catch (CryptoPP::Exception& e) {
-      LogPrint(eLogError,
-          "GzipImpl: SetDeflateLevel() caught exception '", e.what(), "'");
+      LOG(error)
+        << "GzipImpl: " << __func__ << " caught exception '" << e.what() << "'";
     }
   }
 
@@ -170,8 +170,8 @@ class Gzip::GzipImpl {
       unprocessed_bytes = m_Gzip.Put(buffer, length);
       m_Gzip.MessageEnd();
     } catch (CryptoPP::Exception& e) {
-      LogPrint(eLogError,
-          "GzipImpl: Put() caught exception '", e.what(), "'");
+      LOG(error)
+        << "GzipImpl: " << __func__ << " caught exception '" << e.what() << "'";
     }
     return unprocessed_bytes;
   }
@@ -183,8 +183,8 @@ class Gzip::GzipImpl {
     try {
       bytes_consumed = m_Gzip.Get(buffer, length);
     } catch (CryptoPP::Exception& e) {
-      LogPrint(eLogError,
-          "GzipImpl: Get() caught exception '", e.what(), "'");
+      LOG(error)
+        << "GzipImpl: " << __func__ << " caught exception '" << e.what() << "'";
     }
     return bytes_consumed;
   }
@@ -194,8 +194,8 @@ class Gzip::GzipImpl {
     try {
       max = m_Gzip.MaxRetrievable();
     } catch (CryptoPP::Exception& e) {
-      LogPrint(eLogError,
-          "GzipImpl: MaxRetrievable() caught exception '", e.what(), "'");
+      LOG(error)
+        << "GzipImpl: " << __func__ << " caught exception '" << e.what() << "'";
       max = 0;
     }
     return max;
@@ -256,8 +256,8 @@ class Gunzip::GunzipImpl {
       unprocessed_bytes = m_Gunzip.Put(buffer, length);
       m_Gunzip.MessageEnd();
     } catch (CryptoPP::Exception& e) {
-      LogPrint(eLogError,
-          "GunzipImpl: Put() caught exception '", e.what(), "'");
+      LOG(error)
+        << "GunzipImpl: " << __func__ << " caught exception '" << e.what() << "'";
     }
     return unprocessed_bytes;
   }
@@ -269,8 +269,8 @@ class Gunzip::GunzipImpl {
     try {
       bytes_consumed = m_Gunzip.Get(buffer, length);
     } catch (CryptoPP::Exception& e) {
-      LogPrint(eLogError,
-          "GunzipImpl: Get() caught exception '", e.what(), "'");
+      LOG(error)
+        << "GunzipImpl: " << __func__ << " caught exception '" << e.what() << "'";
     }
     return bytes_consumed;
   }
@@ -280,8 +280,8 @@ class Gunzip::GunzipImpl {
     try {
       max = m_Gunzip.MaxRetrievable();
     } catch (CryptoPP::Exception& e) {
-      LogPrint(eLogError,
-          "GunzipImpl: MaxRetrievable() caught exception '", e.what(), "'");
+      LOG(error)
+        << "GunzipImpl: " << __func__ << " caught exception '" << e.what() << "'";
       max = 0;
     }
     return max;

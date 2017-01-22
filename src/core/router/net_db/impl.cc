@@ -115,21 +115,20 @@ void NetDb::Run() {
         while (msg) {
           switch (msg->GetTypeID()) {
             case I2NPDatabaseStore:
-              LogPrint(eLogDebug, "NetDb: DatabaseStore");
+              LOG(debug) << "NetDb: DatabaseStore";
               HandleDatabaseStoreMsg(msg);
             break;
             case I2NPDatabaseSearchReply:
-              LogPrint(eLogDebug, "NetDb: DatabaseSearchReply");
+              LOG(debug) << "NetDb: DatabaseSearchReply";
               HandleDatabaseSearchReplyMsg(msg);
             break;
             case I2NPDatabaseLookup:
-              LogPrint(eLogDebug, "NetDb: DatabaseLookup");
+              LOG(debug) << "NetDb: DatabaseLookup";
               HandleDatabaseLookupMsg(msg);
             break;
             default:
               // TODO(unassigned): error handling
-              LogPrint(eLogError,
-                  "NetDb: unexpected message type ", msg->GetTypeID());
+              LOG(error) << "NetDb: unexpected message type " << msg->GetTypeID();
               // kovri::HandleI2NPMessage(msg);
           }
           if (num_msgs > static_cast<std::uint16_t>(NetDbSize::MaxMessagesRead))
@@ -187,7 +186,7 @@ void NetDb::Run() {
         last_exploratory = ts;
       }
     } catch(std::exception& ex) {
-      LogPrint(eLogError, "NetDb::Run(): ", ex.what());
+      LOG(error) << "NetDb: " << __func__ << " exception: " << ex.what();
     }
   }
 }
@@ -197,7 +196,7 @@ bool NetDb::AddRouterInfo(
     int len) {
   IdentityEx identity;
   if (!identity.FromBuffer(buf, len)) {
-    LogPrint(eLogError, "NetDb: unable to add router info");
+    LOG(error) << "NetDb: unable to add router info";
     return false;
   }
   AddRouterInfo(identity.GetIdentHash(), buf, len);
@@ -213,9 +212,9 @@ void NetDb::AddRouterInfo(
     auto ts = r->GetTimestamp();
     r->Update(buf, len);
     if (r->GetTimestamp() > ts)
-      LogPrint(eLogDebug, "NetDb: RouterInfo updated");
+      LOG(debug) << "NetDb: RouterInfo updated";
   } else {
-    LogPrint(eLogDebug, "NetDb: new RouterInfo added");
+    LOG(debug) << "NetDb: new RouterInfo added";
     r = std::make_shared<RouterInfo> (buf, len); {
       std::unique_lock<std::mutex> l(m_RouterInfosMutex);
       m_RouterInfos[r->GetIdentHash()] = r;
@@ -239,18 +238,18 @@ void NetDb::AddLeaseSet(
     if (it != m_LeaseSets.end()) {
       it->second->Update(buf, len);
       if (it->second->IsValid()) {
-        LogPrint(eLogDebug, "NetDb: LeaseSet updated");
+        LOG(debug) << "NetDb: LeaseSet updated";
       } else {
-        LogPrint(eLogError, "NetDb: LeaseSet update failed");
+        LOG(error) << "NetDb: LeaseSet update failed";
         m_LeaseSets.erase(it);
       }
     } else {
       auto lease_set = std::make_shared<LeaseSet>(buf, len);
       if (lease_set->IsValid()) {
-        LogPrint(eLogDebug, "NetDb: new LeaseSet added");
+        LOG(debug) << "NetDb: new LeaseSet added";
         m_LeaseSets[ident] = lease_set;
       } else {
-        LogPrint(eLogError, "NetDb: new LeaseSet validation failed");
+        LOG(error) << "NetDb: new LeaseSet validation failed";
       }
     }
   }
@@ -287,9 +286,9 @@ void NetDb::SetUnreachable(
 // (In java version, scheduler fixes this as well as sort RIs.)
 bool NetDb::CreateNetDb(
     boost::filesystem::path directory) {
-  LogPrint(eLogDebug, "NetDb: creating ", directory.string());
+  LOG(debug) << "NetDb: creating " << directory.string();
   if (!boost::filesystem::create_directory(directory)) {
-    LogPrint(eLogError, "NetDb: failed to create ", directory.string());
+    LOG(error) << "NetDb: failed to create " << directory.string();
     return false;
   }
   // list of chars might appear in base64 string
@@ -346,14 +345,13 @@ bool NetDb::Load() {
         } else {
           bool is_removed = boost::filesystem::remove(full_path);
           if (is_removed)
-            LogPrint(eLogDebug,
-                "NetDb: ", full_path, " unreachable router removed");
+            LOG(debug) << "NetDb: " << full_path << " unreachable router removed";
         }
       }
     }
   }
-  LogPrint(eLogDebug, "NetDb: ", num_routers, " routers loaded");
-  LogPrint(eLogDebug, "NetDb: ", m_Floodfills.size(), " floodfills loaded");
+  LOG(debug) << "NetDb: " << num_routers << " routers loaded";
+  LOG(debug) << "NetDb: " << m_Floodfills.size() << " floodfills loaded";
   return true;
 }
 
@@ -432,9 +430,9 @@ void NetDb::SaveUpdated() {
     }
   }
   if (count > 0)
-    LogPrint(eLogDebug, "NetDb: ", count, " new/updated routers saved");
+    LOG(debug) << "NetDb: " << count << " new/updated routers saved";
   if (deleted_count > 0) {
-    LogPrint(eLogDebug, "NetDb: ", deleted_count, " routers deleted");
+    LOG(debug) << "NetDb: " << deleted_count << " routers deleted";
     // clean up RouterInfos table
     std::unique_lock<std::mutex> l(m_RouterInfosMutex);
     for (auto it = m_RouterInfos.begin(); it != m_RouterInfos.end();) {
@@ -457,8 +455,9 @@ void NetDb::RequestDestination(
         false,
         request_complete);  // non-exploratory
   if (!dest) {
-    LogPrint(eLogDebug,
-        "NetDb: destination ", destination.ToBase64(), " was already requested");
+    LOG(debug)
+      << "NetDb: destination " << destination.ToBase64()
+      << " was already requested";
     return;
   }
   auto floodfill =
@@ -471,7 +470,7 @@ void NetDb::RequestDestination(
         dest->CreateRequestMessage(
             floodfill->GetIdentHash()));
   } else {
-    LogPrint(eLogError, "NetDb: no floodfills found");
+    LOG(error) << "NetDb: no floodfills found";
     m_Requests.RequestComplete(destination, nullptr);
   }
 }
@@ -482,7 +481,7 @@ void NetDb::HandleDatabaseStoreMsg(
   std::size_t len = m->GetSize();
   IdentHash ident(buf + DATABASE_STORE_KEY_OFFSET);
   if (ident.IsZero()) {
-    LogPrint(eLogError, "NetDb: database store with zero ident, dropped");
+    LOG(error) << "NetDb: database store with zero ident, dropped";
     return;
   }
   std::uint32_t reply_token = bufbe32toh(buf + DATABASE_STORE_REPLY_TOKEN_OFFSET);
@@ -499,8 +498,7 @@ void NetDb::HandleDatabaseStoreMsg(
       if (outbound)
         outbound->SendTunnelDataMsg(buf + offset, tunnel_ID, delivery_status);
       else
-        LogPrint(eLogError,
-            "NetDb: no outbound tunnels for DatabaseStore reply found");
+        LOG(error) << "NetDb: no outbound tunnels for DatabaseStore reply found";
     }
     offset += 32;
     if (context.IsFloodfill()) {
@@ -524,15 +522,15 @@ void NetDb::HandleDatabaseStoreMsg(
     }
   }
   if (buf[DATABASE_STORE_TYPE_OFFSET]) {  // type
-    LogPrint(eLogDebug, "NetDb: LeaseSet");
+    LOG(debug) << "NetDb: LeaseSet";
     AddLeaseSet(ident, buf + offset, len - offset, m->from);
   } else {
-    LogPrint(eLogDebug, "NetDb: RouterInfo");
+    LOG(debug) << "NetDb: RouterInfo";
     std::size_t size = bufbe16toh(buf + offset);
     offset += 2;
     if (size > MAX_RI_BUFFER_SIZE || size > len - offset) {
-      LogPrint(eLogError,
-          "NetDb: invalid RouterInfo length ", static_cast<int>(size));
+      LOG(error)
+        << "NetDb: invalid RouterInfo length " << static_cast<int>(size);
       return;
     }
     try {
@@ -544,13 +542,12 @@ void NetDb::HandleDatabaseStoreMsg(
         decompressor.Get(uncompressed.data(), uncompressed_size);
         AddRouterInfo(ident, uncompressed.data(), uncompressed_size);
       } else {
-        LogPrint(eLogError,
-            "NetDb: invalid RouterInfo uncompressed length ",
-            static_cast<int>(uncompressed_size));
+        LOG(error)
+          << "NetDb: invalid RouterInfo uncompressed length "
+          << static_cast<int>(uncompressed_size);
       }
     } catch (...) {
-      LogPrint(eLogError,
-          "NetDb: HandleDatabaseStoreMsg() caught exception ");
+      LOG(error) << "NetDb: " << __func__ << " caught unknown exception";
     }
   }
 }
@@ -562,7 +559,7 @@ void NetDb::HandleDatabaseSearchReplyMsg(
   int l = kovri::core::ByteStreamToBase64(buf, 32, key.data(), key.size());
   key.at(l) = 0;
   int num = buf[32];  // num
-  LogPrint(eLogDebug, "NetDb: DatabaseSearchReply for ", key.data(), " num=", num);
+  LOG(debug) << "NetDb: DatabaseSearchReply for " << key.data() << " num=" << num;
   IdentHash ident(buf);
   auto dest = m_Requests.FindRequest(ident);
   if (dest) {
@@ -591,10 +588,10 @@ void NetDb::HandleDatabaseSearchReplyMsg(
                   CreateDatabaseStoreMsg()
                   });
               // request destination
-              LogPrint(eLogDebug,
-                  "NetDb: trying ", key.data(),
-                  " at ", count,
-                  " floodfill ", next_floodfill->GetIdentHash().ToBase64());
+              LOG(debug)
+                << "NetDb: trying " << key.data()
+                << " at " << count
+                << " floodfill " << next_floodfill->GetIdentHash().ToBase64();
               auto msg = dest->CreateRequestMessage(next_floodfill, inbound);
               msgs.push_back(
                   kovri::core::TunnelMessageBlock {
@@ -606,8 +603,9 @@ void NetDb::HandleDatabaseSearchReplyMsg(
               delete_dest = false;
             }
           } else {
-            LogPrint(eLogWarn,
-                "NetDb: ", key.data(), " was not found in ", max_ff, " floodfills");
+            LOG(warning)
+              << "NetDb: " << key.data() << " was not found in "
+              << max_ff << " floodfills";
           }
           if (msgs.size() > 0)
             outbound->SendTunnelDataMsg(msgs);
@@ -621,8 +619,7 @@ void NetDb::HandleDatabaseSearchReplyMsg(
       m_Requests.RequestComplete(ident, nullptr);
     }
   } else {
-    LogPrint(eLogWarn,
-        "NetDb: requested destination for ", key.data(), " not found");
+    LOG(warning) << "NetDb: requested destination for " << key.data() << " not found";
   }
   // try responses
   for (int i = 0; i < num; i++) {
@@ -630,17 +627,16 @@ void NetDb::HandleDatabaseSearchReplyMsg(
     std::array<char, 48> peer_hash;
     int l1 = kovri::core::ByteStreamToBase64(router, 32, peer_hash.data(), peer_hash.size());
     peer_hash.at(l1) = 0;
-    LogPrint(eLogDebug, "NetDb: ", i, ": ", peer_hash.data());
+    LOG(debug) << "NetDb: " << i << ": " << peer_hash.data();
     auto r = FindRouter(router);
     if (!r || kovri::core::GetMillisecondsSinceEpoch() >
         r->GetTimestamp() +
         static_cast<std::uint32_t>(NetDbTime::RouterExpiration))  {
       // router with ident not found or too old
-      LogPrint(eLogDebug,
-          "NetDb: found new/outdated router, requesting RouterInfo");
+      LOG(debug) << "NetDb: found new/outdated router, requesting RouterInfo";
       RequestDestination(router);
     } else {
-      LogPrint(eLogDebug, "NetDb: router with ident found");
+      LOG(debug) << "NetDb: router with ident found";
     }
   }
 }
@@ -650,15 +646,16 @@ void NetDb::HandleDatabaseLookupMsg(
   const std::uint8_t* buf = msg->GetPayload();
   IdentHash ident(buf);
   if (ident.IsZero()) {
-    LogPrint(eLogError, "NetDb: DatabaseLookup for zero ident. Ignored");
+    LOG(error) << "NetDb: DatabaseLookup for zero ident. Ignored";
     return;
   }
   std::array<char, 48> key;
   int l = kovri::core::ByteStreamToBase64(buf, 32, key.data(), key.size());
   key.at(l) = 0;
   std::uint8_t flag = buf[64];
-  LogPrint(eLogDebug, "NetDb: DatabaseLookup for ", key.data(),
-      " received flags=", static_cast<int>(flag));
+  LOG(debug)
+    << "NetDb: DatabaseLookup for " << key.data()
+    << " received flags=" << static_cast<int>(flag);
   std::uint8_t lookup_type = flag & DATABASE_LOOKUP_TYPE_FLAGS_MASK;
   const std::uint8_t* excluded = buf + 65;
   std::uint32_t reply_tunnel_ID = 0;
@@ -670,14 +667,15 @@ void NetDb::HandleDatabaseLookupMsg(
   excluded += 2;
   if (num_excluded >
       static_cast<std::uint16_t>(NetDbSize::MaxExcludedPeers)) {
-    LogPrint(eLogWarn,
-        "NetDb: number of excluded peers", num_excluded, " exceeds the maximum");
+    LOG(warning)
+      << "NetDb: number of excluded peers" << num_excluded << " exceeds the maximum";
     num_excluded = 0;  // TODO(unassigned): ???
   }
   std::shared_ptr<I2NPMessage> reply_msg;
   if (lookup_type == DATABASE_LOOKUP_TYPE_EXPLORATORY_LOOKUP) {
-    LogPrint(eLogDebug,
-        "NetDb: exploratory close to  ", key.data(), " ", num_excluded, " excluded");
+    LOG(debug)
+      << "NetDb: exploratory close to  " << key.data()
+      << " " << num_excluded << " excluded";
     std::set<IdentHash> excluded_routers;
     for (int i = 0; i < num_excluded; i++) {
       excluded_routers.insert(excluded);
@@ -697,7 +695,7 @@ void NetDb::HandleDatabaseLookupMsg(
         lookup_type == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP) {
       auto router = FindRouter(ident);
       if (router) {
-        LogPrint(eLogDebug, "NetDb: requested RouterInfo ", key.data(), " found");
+        LOG(debug) << "NetDb: requested RouterInfo " << key.data() << " found";
         router->LoadBuffer();
         if (router->GetBuffer())
           reply_msg = CreateDatabaseStoreMsg(router);
@@ -707,13 +705,14 @@ void NetDb::HandleDatabaseLookupMsg(
           lookup_type == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP)) {
       auto lease_set = FindLeaseSet(ident);
       if (lease_set) {  // we don't send back our LeaseSets
-        LogPrint(eLogDebug, "NetDb: requested LeaseSet ", key.data(), " found");
+        LOG(debug) << "NetDb: requested LeaseSet " << key.data() << " found";
         reply_msg = CreateDatabaseStoreMsg(lease_set);
       }
     }
     if (!reply_msg) {
-      LogPrint(eLogDebug,
-          "NetDb: requested ", key.data(), " not found. ", num_excluded, " excluded");
+      LOG(debug)
+        << "NetDb: requested " << key.data() << " not found. "
+        << num_excluded << " were excluded";
       std::set<IdentHash> excluded_routers;
       for (int i = 0; i < num_excluded; i++) {
         excluded_routers.insert(excluded);
@@ -772,13 +771,12 @@ void NetDb::Explore(
   std::vector<kovri::core::TunnelMessageBlock> msgs;
   std::set<const RouterInfo *> floodfills;
   // TODO(unassigned): docs
-  LogPrint(eLogDebug, "NetDb: exploring ", num_destinations, " new routers");
+  LOG(debug) << "NetDb: exploring " << num_destinations << " new routers";
   for (int i = 0; i < num_destinations; i++) {
     kovri::core::RandBytes(random_hash.data(), random_hash.size());
     auto dest = m_Requests.CreateRequest(random_hash.data(), true);  // exploratory
     if (!dest) {
-      LogPrint(eLogWarn,
-          "NetDb: exploratory destination was already requested");
+      LOG(warning) << "NetDb: exploratory destination was already requested";
       return;
     }
     auto floodfill = GetClosestFloodfill(random_hash.data(), dest->GetExcludedPeers());
@@ -826,10 +824,10 @@ void NetDb::Publish() {
         excluded);
     if (floodfill) {
       std::uint32_t reply_token = kovri::core::Rand<std::uint32_t>();
-      LogPrint(eLogDebug,
-          "NetDb: publishing our RouterInfo to ",
-          floodfill->GetIdentHashAbbreviation(),
-          ". reply token=", reply_token);
+      LOG(debug)
+        << "NetDb: publishing our RouterInfo to "
+        << floodfill->GetIdentHashAbbreviation()
+        << ". reply token=" << reply_token;
       kovri::core::transports.SendMessage(
           floodfill->GetIdentHash(),
           CreateDatabaseStoreMsg(
@@ -1001,8 +999,9 @@ std::shared_ptr<const RouterInfo> NetDb::GetClosestNonFloodfill(
 void NetDb::ManageLeaseSets() {
   for (auto it = m_LeaseSets.begin(); it != m_LeaseSets.end();) {
     if (!it->second->HasNonExpiredLeases()) {  // all leases expired
-      LogPrint(eLogDebug,
-          "NetDb: LeaseSet ", it->second->GetIdentHash().ToBase64(), " expired");
+      LOG(debug)
+        << "NetDb: LeaseSet " << it->second->GetIdentHash().ToBase64()
+        << " expired";
       it = m_LeaseSets.erase(it);
     } else {
       it++;

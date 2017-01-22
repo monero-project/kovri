@@ -83,7 +83,6 @@ class DaemonSingleton {
  protected:
   DaemonSingleton();
   virtual ~DaemonSingleton();
-  std::shared_ptr<kovri::core::Log> m_Log;
 };
 
 #ifdef _WIN32

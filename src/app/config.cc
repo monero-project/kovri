@@ -177,7 +177,7 @@ void Configuration::SetupLogging() {
   // TODO(unassigned): depends on global logging initialization. See notes in log impl
   auto core = logging::core::get();
   // Add core attributes
-  core->add_global_attribute("TimeStamp", attrs::local_clock());  // TODO(anonimal): change to UTC time
+  core->add_global_attribute("TimeStamp", attrs::utc_clock());
   core->add_global_attribute("ThreadID", attrs::current_thread_id());
   // Get/Set filter log level
   auto log_level = m_KovriConfig["log-level"].as<std::uint16_t>();

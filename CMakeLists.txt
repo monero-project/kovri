@@ -55,8 +55,8 @@ endif()
 
 # Detect minimum compiler version
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9.3)
-    message(FATAL_ERROR "GCC 4.9.3 or higher is required")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9.2)
+    message(FATAL_ERROR "GCC 4.9.2 or higher is required")
   endif()
   set(GNU TRUE)
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")

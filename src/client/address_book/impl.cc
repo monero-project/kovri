@@ -314,8 +314,8 @@ bool AddressBook::SaveSubscription(
       for (auto const& address : addresses) {
         const std::string& host = address.first;
         const auto& ident = address.second;
-        // Write/overwrite to subscription file
-        file << host << '\n';
+        // Write/overwrite Hostname=Base64Address pairing to subscription file
+        file << host << "=" << ident.ToBase64() << '\n';  // TODO(anonimal): this is not optimal, especially for large subscriptions
         // Add to address book
         m_Storage->AddAddress(ident);
         m_Addresses[host] = ident.GetIdentHash();  // TODO(anonimal): setter?

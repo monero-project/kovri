@@ -116,10 +116,15 @@ bool HTTP::DownloadViaClearnet() {
       .openssl_certificate(cert_path.string())
       .openssl_sni_hostname(uri.host())
       .openssl_ciphers(
-          "ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES"
-          ":ECDH+3DES:DH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES"
+          "ECDH+AESGCM:DH+AESGCM"
+          ":ECDH+AES256:DH+AES256"
+          ":ECDH+AES128:DH+AES"
+          ":RSA+AESGCM:RSA+AES"
           ":!aNULL:!MD5")
-      .openssl_options(SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_ALL);
+      .openssl_options(
+          SSL_OP_SINGLE_ECDH_USE | SSL_OP_SINGLE_DH_USE
+          | SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1
+          | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3);
   }
   // Create client with options
   Client client(options);

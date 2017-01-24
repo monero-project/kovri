@@ -58,17 +58,6 @@
 namespace kovri {
 namespace client {
 
-/// @enum SubscriberTimeout
-/// @brief Constants used for timeout intervals when fetching subscriptions
-/// @notes Scoped to prevent namespace pollution (otherwise, purely stylistic)
-enum struct SubscriberTimeout : std::uint16_t {
-  // Minutes
-  InitialUpdate = 3,
-  InitialRetry = 1,
-  ContinuousUpdate = 720,  // 12 hours
-  ContinuousRetry = 5,
-};
-
 class AddressBookSubscriber;
 /// @class AddressBook
 /// @brief Address book implementation

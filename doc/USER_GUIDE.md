@@ -29,7 +29,7 @@ For complete detailed options:
 $ cd build/ && ./kovri
 ```
 
-- Wait 5-10 minutes or so to get bootstrapped into the network before attempting to use services
+- Wait 5 minutes or so to get bootstrapped into the network before attempting to use services
 
 ## Step 4. Join us on IRC
 1. Startup your [IRC client](https://en.wikipedia.org/wiki/List_of_IRC_clients)

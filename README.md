@@ -1,7 +1,7 @@
 [<img width="300" src="https://static.getmonero.org/images/kovri/logo.png" alt="ˈKoʊvriː" />](https://github.com/monero-project/kovri)
 
-1. To cover, veil, wrap *[(Esperanto)](https://en.wikipedia.org/wiki/Esperanto)*
-2. A secure, private, untraceable C++ implementation of the [I2P](https://geti2p.net) anonymous network
+1. [To cover, veil, wrap](https://en.wikipedia.org/wiki/Esperanto)
+2. A secure, private, untraceable C++ implementation of the [I2P anonymous network](https://getmonero.org/knowledge-base/moneropedia/i2p)
 
 ## Disclaimer
 - Currently **pre-alpha** software; under heavy development (and not yet integrated with monero)
@@ -30,16 +30,16 @@
 | License   | [![License](https://img.shields.io/badge/license-BSD3-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 ## Documentation
-- End-users and developers: read more about Kovri in the [Moneropedia](https://getmonero.org/knowledge-base/moneropedia/kovri)
-- To install dependencies and build Kovri, follow the [build instructions](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md)
-- Once built, to get up and running with Kovri, see the [user guide](https://github.com/monero-project/kovri/blob/master/doc/USER_GUIDE.md)
-- Many [FAQ's](https://github.com/monero-project/kovri/blob/master/doc/FAQ.md) and other documentation are also available in the [doc directory](https://github.com/monero-project/kovri/tree/master/doc)
+- [Moneropedia](https://getmonero.org/knowledge-base/moneropedia/kovri) is recommended for all users and developers
+- [Build Instructions](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md) to install dependencies and build Kovri
+- [User Guide](https://github.com/monero-project/kovri/blob/master/doc/USER_GUIDE.md) to get up and running with Kovri
+- [FAQ's](https://github.com/monero-project/kovri/blob/master/doc/FAQ.md) and other documentation available in the [doc directory](https://github.com/monero-project/kovri/tree/master/doc)
 
 ## Developers
-- Before sending a pull-request, read through our [contributing guide](https://github.com/monero-project/kovri/blob/master/doc/CONTRIBUTING.md)
-- To get funded for your work, [submit a proposal](https://forum.getmonero.org/7/open-tasks/2379/forum-funding-system-ffs-sticky) to Monero's [Forum Funding System](https://forum.getmonero.org/8/funding-required)
-- A [GitLab mirror](https://about.gitlab.com/) for non-push repository access is available at [repo.getmonero.org](https://repo.getmonero.org/monero-project/kovri) and (for Kovri/I2P) [monero-repo.i2p](http://monero-repo.i2p/monero-project/kovri)
-- Build details are available on [build.getmonero.org](https://build.getmonero.org/) and (for Kovri/I2P) [monero-build.i2p](http://monero-build.i2p/)
+- [Contributing Guide](https://github.com/monero-project/kovri/blob/master/doc/CONTRIBUTING.md) before sending a pull-request
+- [Forum Funding System](https://forum.getmonero.org/8/funding-required) to get funded for your work, [submit a proposal](https://forum.getmonero.org/7/open-tasks/2379/forum-funding-system-ffs-sticky)
+- [build.getmonero.org](https://build.getmonero.org/) or monero-build.i2p for detailed build information
+- [repo.getmonero.org](https://repo.getmonero.org/monero-project/kovri) or monero-repo.i2p are alternatives to GitHub for non-push repository access
 
 ## Contact
 - IRC: [Freenode](https://webchat.freenode.net/) | [OFTC](https://webchat.oftc.net/) | Irc2P

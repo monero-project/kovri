@@ -6,7 +6,7 @@ $ cpplint src/path/to/my/file
 ```
 3. Run [clang-format](http://llvm.org/releases/3.8.0/tools/clang/docs/ClangFormat.html) with ```-style=file``` using provided [.clang-format](https://github.com/monero-project/kovri/blob/master/.clang-format)
 ```bash
-$ cd kovri/ && clang-format -style=file src/path/to/my/file
+$ cd kovri/ && clang-format -i -style=file src/path/to/my/file
 ```
 
 ## Here's what's currently not caught by clang-format and differs from Google's proposed C++ style

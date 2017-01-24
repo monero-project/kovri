@@ -4,7 +4,7 @@
 
 ### Linux / MacOSX / FreeBSD 10
 - [Git](https://git-scm.com/download) 1.9.1
-- [GCC](https://gcc.gnu.org/) 4.9.3
+- [GCC](https://gcc.gnu.org/) 4.9.2
 - [CMake](https://cmake.org/) 2.8.12
 - [Boost](http://www.boost.org/) 1.58
 - [OpenSSL](https://openssl.org/) (always the latest stable version)
@@ -121,9 +121,9 @@ Required dependencies:
 ```bash
 $ sudo pkg install git cmake gmake clang36 openssl
 # Build latest boost (1.58 minimum)
-$ wget https://sourceforge.net/projects/boost/files/boost/1.61.0/boost_1_61_0.tar.bz2/download -O boost_1_61_0.tar.bz2
-$ tar xvjf boost_1_61_0.tar.bz2 && cd boost_1_61_0
-$ ./bootstrap.sh --with-toolset=clang  # OK to build with clang < 3.6
+$ wget [latest boost] -O latest_boost.tar.bz2
+$ tar xvjf latest_boost.tar.bz2 && cd latest_boost
+$ ./bootstrap.sh --with-toolset=clang  # OK to build with clang 3.5
 $ sudo ./b2 --toolset=clang install
 ```
 Optional dependencies:
@@ -197,7 +197,7 @@ $ gmake && gmake install-resources
 ```
 - Replace ```make``` with ```gmake``` for all other build options
 
-### Custom data path
+### (Optional) Custom data path
 You can customize Kovri's data path to your liking. Simply export ```KOVRI_DATA_PATH```; example:
 
 ```bash

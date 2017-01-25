@@ -99,8 +99,7 @@ void AddressBook::Start(
     std::make_unique<boost::asio::deadline_timer>(
         m_SharedLocalDestination->GetService());
   m_SubscriberUpdateTimer->expires_from_now(
-      boost::posix_time::minutes(
-          static_cast<std::uint16_t>(SubscriberTimeout::InitialUpdate)));
+      boost::posix_time::minutes(SubscriberTimeout::InitialUpdate));
   m_SubscriberUpdateTimer->async_wait(
       std::bind(
           &AddressBook::SubscriberUpdateTimer,
@@ -131,8 +130,7 @@ void AddressBook::SubscriberUpdateTimer(
     }
     // Try again after timeout
     m_SubscriberUpdateTimer->expires_from_now(
-        boost::posix_time::minutes(
-            static_cast<std::uint16_t>(SubscriberTimeout::InitialRetry)));
+        boost::posix_time::minutes(SubscriberTimeout::InitialRetry));
     m_SubscriberUpdateTimer->async_wait(
         std::bind(
             &AddressBook::SubscriberUpdateTimer,
@@ -281,9 +279,9 @@ void AddressBook::HostsDownloadComplete(
   if (m_SubscriberUpdateTimer) {
     m_SubscriberUpdateTimer->expires_from_now(
         boost::posix_time::minutes(
-            success ?
-            static_cast<std::uint16_t>(SubscriberTimeout::ContinuousUpdate) :
-            static_cast<std::uint16_t>(SubscriberTimeout::ContinuousRetry)));
+            success
+            ? SubscriberTimeout::ContinuousUpdate
+            : SubscriberTimeout::ContinuousRetry));
     m_SubscriberUpdateTimer->async_wait(
         std::bind(
             &AddressBook::SubscriberUpdateTimer,
@@ -316,8 +314,8 @@ bool AddressBook::SaveSubscription(
       for (auto const& address : addresses) {
         const std::string& host = address.first;
         const auto& ident = address.second;
-        // Write/overwrite to subscription file
-        file << host << '\n';
+        // Write/overwrite Hostname=Base64Address pairing to subscription file
+        file << host << "=" << ident.ToBase64() << '\n';  // TODO(anonimal): this is not optimal, especially for large subscriptions
         // Add to address book
         m_Storage->AddAddress(ident);
         m_Addresses[host] = ident.GetIdentHash();  // TODO(anonimal): setter?

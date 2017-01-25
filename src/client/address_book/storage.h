@@ -54,6 +54,25 @@ namespace client {
 /// @class AddressBookDefaults
 /// @brief Default string constants used throughout address book
 struct AddressBookDefaults {
+  /// @enum AddressBookSize
+  enum AddressBookSize : std::uint16_t {
+    /// @brief Line in subscription file
+    /// @Note Arbitrary amount, should never need to exceed this amount
+    //SubscriptionLine = 782,  // TODO(unassigned): review and confirm: 253 for domain name + 1 ("=") + maximum b64 size of identity (528?)
+    SubscriptionLine = 800,  // Until the above is confirmed, give a little wiggle room
+  };
+
+  /// @enum SubscriberTimeout
+  /// @brief Constants used for timeout intervals when fetching subscriptions
+  /// @notes Scoped to prevent namespace pollution (otherwise, purely stylistic)
+  enum SubscriberTimeout : std::uint16_t {
+    // Minutes
+    InitialUpdate = 3,
+    InitialRetry = 1,
+    ContinuousUpdate = 720,  // 12 hours
+    ContinuousRetry = 5,
+  };
+
   /// @brief Gets default publishers filename
   /// @return Default publishers filename
   /// @notes A publishers file holds a list of publisher addresses
@@ -85,14 +104,6 @@ struct AddressBookDefaults {
   std::string GetDefaultAddressesFilename() const {
     return "addresses.csv";
   }
-
-  /// @enum AddressBookSize
-  enum AddressBookSize : std::uint16_t {
-    /// @brief Line in subscription file
-    /// @Note Arbitrary amount, should never need to exceed this amount
-    //SubscriptionLine = 782,  // TODO(unassigned): review and confirm: 253 for domain name + 1 ("=") + maximum b64 size of identity (528?)
-    SubscriptionLine = 800,  // Until the above is confirmed, give a little wiggle room
-  };
 };
 
 /// @class AddressBookStorage

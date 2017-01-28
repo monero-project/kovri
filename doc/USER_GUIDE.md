@@ -56,3 +56,27 @@ Notes:
 - Read more about Kovri in the [Moneropedia](https://getmonero.org/knowledge-base/moneropedia/kovri).
 - Open your feature requests or report bugs on our [issues tracker](https://github.com/monero-project/kovri/issues)
 - Learn more about the I2P network on the [java I2P website](https://geti2p.net/en/docs)
+
+# Alternatively, Docker
+
+## Step 1. Install Docker
+Installing Docker is outside the scope of this document, please see the [docker documentation](https://docs.docker.com/engine/installation/)
+
+## Step 2. Configuring / Open Firewall
+
+The docker image comes with the defaults of kovri, but can be configured as explained in earlier sections.
+
+You should choose a random port and open that port (see earlier sections).
+
+## Step 3. Running
+
+### Default Settings
+```bash
+KOVRI_PORT=42085 && sudo docker run -p 127.0.0.1:4446:4446 -p 127.0.0.1:6669:6669 -p $KOVRI_PORT --env KOVRI_PORT=$KOVRI_PORT geti2p/kovri
+```
+
+### Custom Settings 
+Where `./kovri-settings/` contains `kovri.conf` and `tunnels.conf`.
+```bash
+KOVRI_PORT=42085 && sudo docker run -p 127.0.0.1:4446:4446 -p 127.0.0.1:6669:6669 -p $KOVRI_PORT --env KOVRI_PORT=$KOVRI_PORT -v kovri-settings:/home/kovri/.kovri/config:ro geti2p/kovri
+```

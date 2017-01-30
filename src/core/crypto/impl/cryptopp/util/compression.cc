@@ -256,8 +256,8 @@ class Gunzip::GunzipImpl {
       unprocessed_bytes = m_Gunzip.Put(buffer, length);
       m_Gunzip.MessageEnd();
     } catch (CryptoPP::Exception& e) {
-      LOG(error)
-        << "GunzipImpl: " << __func__ << " caught exception '" << e.what() << "'";
+      // TODO(anonimal): this is a trivial hotfix patch for #538. What we really need is an exception dispatcher for the crypto impl (if not globally)
+      throw std::runtime_error("GunzipImpl: " + std::string(__func__) + " caught exception '" + e.what() + "'");
     }
     return unprocessed_bytes;
   }

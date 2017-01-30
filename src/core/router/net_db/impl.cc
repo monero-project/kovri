@@ -538,14 +538,16 @@ void NetDb::HandleDatabaseStoreMsg(
       decompressor.Put(buf + offset, size);
       std::array<std::uint8_t, MAX_RI_BUFFER_SIZE> uncompressed;
       std::size_t uncompressed_size = decompressor.MaxRetrievable();
-      if (uncompressed_size <= MAX_RI_BUFFER_SIZE) {
-        decompressor.Get(uncompressed.data(), uncompressed_size);
-        AddRouterInfo(ident, uncompressed.data(), uncompressed_size);
-      } else {
+      if (uncompressed_size > MAX_RI_BUFFER_SIZE) {
         LOG(error)
           << "NetDb: invalid RouterInfo uncompressed length "
           << static_cast<int>(uncompressed_size);
+	return;
       }
+      decompressor.Get(uncompressed.data(), uncompressed_size);
+      AddRouterInfo(ident, uncompressed.data(), uncompressed_size);
+    } catch (const std::exception& ex) {
+      LOG(error) << "NetDb: " << __func__ << ": '" << ex.what() << "'";
     } catch (...) {
       LOG(error) << "NetDb: " << __func__ << " caught unknown exception";
     }

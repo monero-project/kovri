@@ -120,6 +120,10 @@ static: static-dependencies
 release-static: static
         # TODO(unassigned): cmake release flags + optimizations/hardening when we're out of alpha
 
+release-static-android: static-dependencies
+	mkdir -p $(build)
+	cd $(build) && $(cmake) $(cmake-debug) $(cmake-static) -D ANDROID=1 -D KOVRI_DATA_PATH="/data/local/tmp/.kovri" ../ && $(MAKE)
+
 # We need (or very much should have) optimizations with hardening
 optimized-hardening: dependencies
 	mkdir -p $(build)

@@ -32,6 +32,13 @@
 
 #include "app/daemon.h"
 
+#ifdef __ANDROID__
+#define F_TLOCK LOCK_EX|LOCK_NB
+inline int lockf(int fd, int cmd, off_t /* ignored_len */) {
+    return flock(fd, cmd);
+}
+#endif /* __ANDROID__ */
+
 #ifndef _WIN32
 
 #include <fcntl.h>

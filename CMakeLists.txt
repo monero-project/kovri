@@ -79,7 +79,7 @@ endif()
 # Compiler flags (by vendor)
 if(NOT MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Winvalid-pch")
-  if(NOT ARM)
+  if( (NOT ARM) AND (NOT ANDROID) )
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -maes")
   endif()
   # TOOD(unassigned): we actually don't need this and it's quite annoying
@@ -99,6 +99,12 @@ if(NOT MSVC)
     if(GNU AND NOT MINGW)
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -z relro -z now")
     endif()
+  endif()
+  if(ANDROID)
+    #From Android 5: "only position independent executables (PIE) are supported"
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIE")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIE")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fPIE -pie")
   endif()
   if(WITH_OPTIMIZE AND NOT WITH_COVERAGE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
@@ -185,10 +191,10 @@ if(WITH_CRYPTOPP)
   endif()
 endif()
 
-# Despite only cpp-netlib requiring openssl, OSX apparently needs this as well
-if (APPLE)
+# Despite only cpp-netlib requiring openssl, OSX and ANDROID apparently needs this as well
+if (APPLE OR ANDROID)
   # If we're on OS X check for Homebrew's copy of OpenSSL instead of Apple's
-  if (NOT OpenSSL_DIR)
+  if (APPLE AND NOT OpenSSL_DIR)
     execute_process (COMMAND brew --prefix openssl
       OUTPUT_VARIABLE OPENSSL_ROOT_DIR
       OUTPUT_STRIP_TRAILING_WHITESPACE)

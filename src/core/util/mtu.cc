@@ -31,7 +31,11 @@
  */
 
 #include "mtu.h"
-#if defined(__linux__) || \
+#if defined(__ANDROID__)
+#include <sys/types.h>
+#include <webrtc/base/ifaddrs-android.h>
+using namespace rtc;
+#elif defined(__linux__) || \
     defined(__FreeBSD_kernel__) || \
     defined(__APPLE__) || \
     defined(__OpenBSD__)

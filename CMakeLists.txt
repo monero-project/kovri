@@ -188,6 +188,7 @@ if(WITH_CRYPTOPP)
   else()
     message(STATUS "Found Crypto++: ${CryptoPP_INCLUDE_DIR}, ${CryptoPP_LIBRARIES}")
     include_directories(${CryptoPP_INCLUDE_DIR}/../)  # We back-track for <cryptopp/*>
+    add_definitions(-DWITH_CRYPTOPP)
   endif()
 endif()
 

@@ -57,137 +57,159 @@ Tunnel::Tunnel(
     : m_Config(config),
       m_Pool(nullptr),
       m_State(e_TunnelStatePending),
-      m_IsRecreated(false) {}
+      m_IsRecreated(false),
+      m_Exception(__func__) {}
 
 Tunnel::~Tunnel() {}
 
 void Tunnel::Build(
     std::uint32_t reply_msg_ID,
     std::shared_ptr<OutboundTunnel> outbound_tunnel) {
-  auto num_hops = m_Config->GetNumHops();
-  int num_records = num_hops <= STANDARD_NUM_RECORDS ?
-    STANDARD_NUM_RECORDS :
-    num_hops;
-  auto msg = NewI2NPShortMessage();
-  *msg->GetPayload() = num_records;
-  msg->len += num_records * TUNNEL_BUILD_RECORD_SIZE + 1;
-  // shuffle records
-  std::vector<int> record_indicies;
-  for (int i = 0; i < num_records; i++)
-    record_indicies.push_back(i);
-  kovri::core::Shuffle(record_indicies.begin(), record_indicies.end());
-  // create real records
-  std::uint8_t* records = msg->GetPayload() + 1;
-  TunnelHopConfig* hop = m_Config->GetFirstHop();
-  int i = 0;
-  while (hop) {
-    int idx = record_indicies[i];
-    hop->CreateBuildRequestRecord(
-        records + idx * TUNNEL_BUILD_RECORD_SIZE,
-        // we set reply_msg_ID for last hop only
-        hop->GetNextHop() ? Rand<std::uint32_t>() : reply_msg_ID);
-    hop->SetRecordIndex(idx);
-    i++;
-    hop = hop->GetNextHop();
-  }
-  // fill up fake records with random data
-  for (int i = num_hops; i < num_records; i++) {
-    int idx = record_indicies[i];
-    kovri::core::RandBytes(
-        records + idx * TUNNEL_BUILD_RECORD_SIZE,
-        TUNNEL_BUILD_RECORD_SIZE);
-  }
-  // decrypt real records
-  kovri::core::CBCDecryption decryption;
-  hop = m_Config->GetLastHop()->GetPreviousHop();
-  while (hop) {
-    decryption.SetKey(hop->GetAESAttributes().reply_key.data());
-    // decrypt records after current hop
-    TunnelHopConfig* hop1 = hop->GetNextHop();
-    while (hop1) {
-      decryption.SetIV(hop->GetAESAttributes().reply_IV.data());
-      std::uint8_t* record =
-        records + hop1->GetRecordIndex() * TUNNEL_BUILD_RECORD_SIZE;
-      decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, record);
-      hop1 = hop1->GetNextHop();
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try {
+    auto num_hops = m_Config->GetNumHops();
+    int num_records = num_hops <= STANDARD_NUM_RECORDS ?
+      STANDARD_NUM_RECORDS :
+      num_hops;
+    auto msg = NewI2NPShortMessage();
+    *msg->GetPayload() = num_records;
+    msg->len += num_records * TUNNEL_BUILD_RECORD_SIZE + 1;
+    // shuffle records
+    std::vector<int> record_indicies;
+    for (int i = 0; i < num_records; i++)
+      record_indicies.push_back(i);
+    kovri::core::Shuffle(record_indicies.begin(), record_indicies.end());
+    // create real records
+    std::uint8_t* records = msg->GetPayload() + 1;
+    TunnelHopConfig* hop = m_Config->GetFirstHop();
+    int i = 0;
+    while (hop) {
+      int idx = record_indicies[i];
+      hop->CreateBuildRequestRecord(
+          records + idx * TUNNEL_BUILD_RECORD_SIZE,
+          // we set reply_msg_ID for last hop only
+          hop->GetNextHop() ? Rand<std::uint32_t>() : reply_msg_ID);
+      hop->SetRecordIndex(idx);
+      i++;
+      hop = hop->GetNextHop();
     }
-    hop = hop->GetPreviousHop();
+    // fill up fake records with random data
+    for (int i = num_hops; i < num_records; i++) {
+      int idx = record_indicies[i];
+      kovri::core::RandBytes(
+          records + idx * TUNNEL_BUILD_RECORD_SIZE,
+          TUNNEL_BUILD_RECORD_SIZE);
+    }
+    // decrypt real records
+    kovri::core::CBCDecryption decryption;
+    hop = m_Config->GetLastHop()->GetPreviousHop();
+    while (hop) {
+      decryption.SetKey(hop->GetAESAttributes().reply_key.data());
+      // decrypt records after current hop
+      TunnelHopConfig* hop1 = hop->GetNextHop();
+      while (hop1) {
+        decryption.SetIV(hop->GetAESAttributes().reply_IV.data());
+        std::uint8_t* record =
+          records + hop1->GetRecordIndex() * TUNNEL_BUILD_RECORD_SIZE;
+        decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, record);
+        hop1 = hop1->GetNextHop();
+      }
+      hop = hop->GetPreviousHop();
+    }
+    msg->FillI2NPMessageHeader(I2NPVariableTunnelBuild);
+    // send message
+    if (outbound_tunnel)
+      outbound_tunnel->SendTunnelDataMsg(
+          GetNextIdentHash(),
+          0,
+          ToSharedI2NPMessage(std::move(msg)));
+    else
+      kovri::core::transports.SendMessage(
+          GetNextIdentHash(),
+          ToSharedI2NPMessage(std::move(msg)));
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
   }
-  msg->FillI2NPMessageHeader(I2NPVariableTunnelBuild);
-  // send message
-  if (outbound_tunnel)
-    outbound_tunnel->SendTunnelDataMsg(
-        GetNextIdentHash(),
-        0,
-        ToSharedI2NPMessage(std::move(msg)));
-  else
-    kovri::core::transports.SendMessage(
-        GetNextIdentHash(),
-        ToSharedI2NPMessage(std::move(msg)));
 }
 
 bool Tunnel::HandleTunnelBuildResponse(
     std::uint8_t* msg,
     std::size_t) {
-  LOG(debug)
-    << "Tunnel: TunnelBuildResponse " << static_cast<int>(msg[0]) << " records.";
-  kovri::core::CBCDecryption decryption;
-  TunnelHopConfig* hop = m_Config->GetLastHop();
-  while (hop) {
-    decryption.SetKey(hop->GetAESAttributes().reply_key.data());
-    // decrypt records before and including current hop
-    TunnelHopConfig* hop1 = hop;
-    while (hop1) {
-      auto idx = hop1->GetRecordIndex();
-      if (idx >= 0 && idx < msg[0]) {
-        std::uint8_t* record = msg + 1 + idx * TUNNEL_BUILD_RECORD_SIZE;
-        decryption.SetIV(hop->GetAESAttributes().reply_IV.data());
-        decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, record);
-      } else {
-        LOG(warning) << "Tunnel: hop index " << idx << " is out of range";
-      }
-      hop1 = hop1->GetPreviousHop();
-    }
-    hop = hop->GetPreviousHop();
-  }
   bool established = true;
-  hop = m_Config->GetFirstHop();
-  while (hop) {
-    const std::uint8_t* record =
-      msg + 1 + hop->GetRecordIndex() * TUNNEL_BUILD_RECORD_SIZE;
-    std::uint8_t ret = record[BUILD_RESPONSE_RECORD_RET_OFFSET];
-    LOG(debug) << "Tunnel: ret code=" << static_cast<int>(ret);
-    hop->GetCurrentRouter()->GetProfile()->TunnelBuildResponse(ret);
-    if (ret)
-      // if any of participants declined the tunnel is not established
-      established = false;
-    hop = hop->GetNextHop();
-  }
-  if (established) {
-    // change reply keys to layer keys
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try {
+    LOG(debug)
+      << "Tunnel: TunnelBuildResponse " << static_cast<int>(msg[0]) << " records.";
+    kovri::core::CBCDecryption decryption;
+    TunnelHopConfig* hop = m_Config->GetLastHop();
+    while (hop) {
+      decryption.SetKey(hop->GetAESAttributes().reply_key.data());
+      // decrypt records before and including current hop
+      TunnelHopConfig* hop1 = hop;
+      while (hop1) {
+        auto idx = hop1->GetRecordIndex();
+        if (idx >= 0 && idx < msg[0]) {
+          std::uint8_t* record = msg + 1 + idx * TUNNEL_BUILD_RECORD_SIZE;
+          decryption.SetIV(hop->GetAESAttributes().reply_IV.data());
+          decryption.Decrypt(record, TUNNEL_BUILD_RECORD_SIZE, record);
+        } else {
+          LOG(warning) << "Tunnel: hop index " << idx << " is out of range";
+        }
+        hop1 = hop1->GetPreviousHop();
+      }
+      hop = hop->GetPreviousHop();
+    }
     hop = m_Config->GetFirstHop();
     while (hop) {
-      hop->GetDecryption().SetKeys(
-          hop->GetAESAttributes().layer_key.data(),
-          hop->GetAESAttributes().IV_key.data());
+      const std::uint8_t* record =
+        msg + 1 + hop->GetRecordIndex() * TUNNEL_BUILD_RECORD_SIZE;
+      std::uint8_t ret = record[BUILD_RESPONSE_RECORD_RET_OFFSET];
+      LOG(debug) << "Tunnel: ret code=" << static_cast<int>(ret);
+      hop->GetCurrentRouter()->GetProfile()->TunnelBuildResponse(ret);
+      if (ret)
+        // if any of participants declined the tunnel is not established
+        established = false;
       hop = hop->GetNextHop();
     }
+    if (established) {
+      // change reply keys to layer keys
+      hop = m_Config->GetFirstHop();
+      while (hop) {
+        hop->GetDecryption().SetKeys(
+            hop->GetAESAttributes().layer_key.data(),
+            hop->GetAESAttributes().IV_key.data());
+        hop = hop->GetNextHop();
+      }
+    }
+    if (established)
+      m_State = e_TunnelStateEstablished;
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
   }
-  if (established)
-    m_State = e_TunnelStateEstablished;
   return established;
 }
 
 void Tunnel::EncryptTunnelMsg(
     std::shared_ptr<const I2NPMessage> in,
     std::shared_ptr<I2NPMessage> out) {
-  const std::uint8_t* in_payload = in->GetPayload() + 4;
-  std::uint8_t* out_payload = out->GetPayload() + 4;
-  TunnelHopConfig* hop = m_Config->GetLastHop();
-  while (hop) {
-    hop->GetDecryption().Decrypt(in_payload, out_payload);
-    hop = hop->GetPreviousHop();
-    in_payload = out_payload;
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try {
+    const std::uint8_t* in_payload = in->GetPayload() + 4;
+    std::uint8_t* out_payload = out->GetPayload() + 4;
+    TunnelHopConfig* hop = m_Config->GetLastHop();
+    while (hop) {
+      hop->GetDecryption().Decrypt(in_payload, out_payload);
+      hop = hop->GetPreviousHop();
+      in_payload = out_payload;
+    }
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
   }
 }
 

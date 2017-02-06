@@ -53,7 +53,8 @@ namespace client {
 DatagramDestination::DatagramDestination(
     kovri::client::ClientDestination& owner)
     : m_Owner(owner),
-      m_Receiver(nullptr) {}
+      m_Receiver(nullptr),
+      m_Exception(__func__) {}
 
 namespace {  // Helper facilities to transfer messages.
 
@@ -104,39 +105,46 @@ void DatagramDestination::SendDatagramTo(
     const kovri::core::IdentHash& ident,
     std::uint16_t from_port,
     std::uint16_t to_port) {
-  std::uint8_t buf[MAX_DATAGRAM_SIZE];
-  auto identity_len = m_Owner.GetIdentity().ToBuffer(buf, MAX_DATAGRAM_SIZE);
-  std::uint8_t* signature = buf + identity_len;
-  auto signature_len = m_Owner.GetIdentity().GetSignatureLen();
-  std::uint8_t* buf1 = signature + signature_len;
-  std::size_t header_len = identity_len + signature_len;
-  memcpy(buf1, payload, len);
-  if (m_Owner.GetIdentity().GetSigningKeyType()
-      == kovri::core::SIGNING_KEY_TYPE_DSA_SHA1) {
-    std::uint8_t hash[32];
-    kovri::core::SHA256().CalculateDigest(hash, buf1, len);
-    m_Owner.Sign(hash, 32, signature);
-  } else {
-    m_Owner.Sign(buf1, len, signature);
-  }
-  std::unique_ptr<kovri::core::I2NPMessage> msg
-      = CreateDataMessage(buf, len + header_len, from_port, to_port);
-  std::shared_ptr<const kovri::core::LeaseSet> remote
-      = m_Owner.FindLeaseSet(ident);
+  // TODO(anonimal): this try block should be larger or handled entirely by caller
+  try {
+    std::uint8_t buf[MAX_DATAGRAM_SIZE];
+    auto identity_len = m_Owner.GetIdentity().ToBuffer(buf, MAX_DATAGRAM_SIZE);
+    std::uint8_t* signature = buf + identity_len;
+    auto signature_len = m_Owner.GetIdentity().GetSignatureLen();
+    std::uint8_t* buf1 = signature + signature_len;
+    std::size_t header_len = identity_len + signature_len;
+    memcpy(buf1, payload, len);
+    if (m_Owner.GetIdentity().GetSigningKeyType()
+        == kovri::core::SIGNING_KEY_TYPE_DSA_SHA1) {
+      std::uint8_t hash[32];
+      kovri::core::SHA256().CalculateDigest(hash, buf1, len);
+      m_Owner.Sign(hash, 32, signature);
+    } else {
+      m_Owner.Sign(buf1, len, signature);
+    }
+    std::unique_ptr<kovri::core::I2NPMessage> msg
+        = CreateDataMessage(buf, len + header_len, from_port, to_port);
+    std::shared_ptr<const kovri::core::LeaseSet> remote
+        = m_Owner.FindLeaseSet(ident);
 
-  ReleasableSharedPtr<kovri::core::I2NPMessage> temp_msg
-      = make_releasable_shared_ptr(msg.release());
-  if (remote) {
-    m_Owner.GetService().post([this, temp_msg, remote] {
-      SendMsg(std::unique_ptr<kovri::core::I2NPMessage>(release(temp_msg)), remote);
-    });
-  } else {
-    m_Owner.RequestDestination(
-        ident,
-        [this, temp_msg](const std::shared_ptr<kovri::core::LeaseSet>& remote) {
-          HandleLeaseSetRequestComplete(
-              remote, std::unique_ptr<kovri::core::I2NPMessage>(release(temp_msg)));
-        });
+    ReleasableSharedPtr<kovri::core::I2NPMessage> temp_msg
+        = make_releasable_shared_ptr(msg.release());
+    if (remote) {
+      m_Owner.GetService().post([this, temp_msg, remote] {
+        SendMsg(std::unique_ptr<kovri::core::I2NPMessage>(release(temp_msg)), remote);
+      });
+    } else {
+      m_Owner.RequestDestination(
+          ident,
+          [this, temp_msg](const std::shared_ptr<kovri::core::LeaseSet>& remote) {
+            HandleLeaseSetRequestComplete(
+                remote, std::unique_ptr<kovri::core::I2NPMessage>(release(temp_msg)));
+          });
+    }
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
   }
 }
 
@@ -178,32 +186,39 @@ void DatagramDestination::HandleDatagram(
     std::uint16_t to_port,
     const std::uint8_t* buf,
     std::size_t len) {
-  kovri::core::IdentityEx identity;
-  std::size_t identity_len = identity.FromBuffer(buf, len);
-  const std::uint8_t* signature = buf + identity_len;
-  std::size_t header_len = identity_len + identity.GetSignatureLen();
-  bool verified = false;
-  if (identity.GetSigningKeyType() == kovri::core::SIGNING_KEY_TYPE_DSA_SHA1) {
-    std::uint8_t hash[32];
-    kovri::core::SHA256().CalculateDigest(hash, buf + header_len, len - header_len);
-    verified = identity.Verify(hash, 32, signature);
-  } else {
-    verified =
-      identity.Verify(buf + header_len, len - header_len, signature);
-  }
-  if (verified) {
-    auto it = m_ReceiversByPorts.find(to_port);
-    if (it != m_ReceiversByPorts.end())
-        it->second(
-            identity, from_port, to_port, buf + header_len, len - header_len);
-    else if (m_Receiver != nullptr)
-        m_Receiver(
-            identity, from_port, to_port, buf + header_len, len - header_len);
-    else
-        LOG(warning) << "DatagramDestination: receiver for datagram is not set";
-  } else {
-    LOG(warning)
-      << "DatagramDestination: datagram signature verification failed";
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try {
+    kovri::core::IdentityEx identity;
+    std::size_t identity_len = identity.FromBuffer(buf, len);
+    const std::uint8_t* signature = buf + identity_len;
+    std::size_t header_len = identity_len + identity.GetSignatureLen();
+    bool verified = false;
+    if (identity.GetSigningKeyType() == kovri::core::SIGNING_KEY_TYPE_DSA_SHA1) {
+      std::uint8_t hash[32];
+      kovri::core::SHA256().CalculateDigest(hash, buf + header_len, len - header_len);
+      verified = identity.Verify(hash, 32, signature);
+    } else {
+      verified =
+        identity.Verify(buf + header_len, len - header_len, signature);
+    }
+    if (verified) {
+      auto it = m_ReceiversByPorts.find(to_port);
+      if (it != m_ReceiversByPorts.end())
+          it->second(
+              identity, from_port, to_port, buf + header_len, len - header_len);
+      else if (m_Receiver != nullptr)
+          m_Receiver(
+              identity, from_port, to_port, buf + header_len, len - header_len);
+      else
+          LOG(warning) << "DatagramDestination: receiver for datagram is not set";
+    } else {
+      LOG(warning)
+        << "DatagramDestination: datagram signature verification failed";
+    }
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
   }
 }
 
@@ -213,17 +228,22 @@ void DatagramDestination::HandleDataMessagePayload(
     const std::uint8_t* buf,
     std::size_t len) {
   // Gunzip it
-  kovri::core::Gunzip decompressor;
-  decompressor.Put(buf, len);
-  std::uint8_t uncompressed[MAX_DATAGRAM_SIZE];
-  auto uncompressed_len = decompressor.MaxRetrievable();
-  if (uncompressed_len <= MAX_DATAGRAM_SIZE) {
-    decompressor.Get(uncompressed, uncompressed_len);
-    HandleDatagram(from_port, to_port, uncompressed, uncompressed_len);
-  } else {
-    LOG(warning)
-      << "DatagramDestination: the received datagram size "
-      << uncompressed_len << " exceeds max size";
+  try {
+    kovri::core::Gunzip decompressor;
+    decompressor.Put(buf, len);
+    std::uint8_t uncompressed[MAX_DATAGRAM_SIZE];
+    auto uncompressed_len = decompressor.MaxRetrievable();
+    if (uncompressed_len <= MAX_DATAGRAM_SIZE) {
+      decompressor.Get(uncompressed, uncompressed_len);
+      HandleDatagram(from_port, to_port, uncompressed, uncompressed_len);
+    } else {
+      LOG(warning)
+        << "DatagramDestination: the received datagram size "
+        << uncompressed_len << " exceeds max size";
+    }
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
   }
 }
 
@@ -234,17 +254,22 @@ std::unique_ptr<kovri::core::I2NPMessage> DatagramDestination::CreateDataMessage
     std::uint16_t to_port) {
   std::unique_ptr<kovri::core::I2NPMessage> msg = kovri::core::NewI2NPMessage();
   kovri::core::Gzip compressor;  // default level
-  compressor.Put(payload, len);
-  std::size_t size = compressor.MaxRetrievable();
-  std::uint8_t* buf = msg->GetPayload();
-  htobe32buf(buf, size);  // length
-  buf += 4;
-  compressor.Get(buf, size);
-  htobe16buf(buf + 4, from_port);  // source port
-  htobe16buf(buf + 6, to_port);  // destination port
-  buf[9] = kovri::client::PROTOCOL_TYPE_DATAGRAM;  // datagram protocol
-  msg->len += size + 4;
-  msg->FillI2NPMessageHeader(kovri::core::I2NPData);
+  try {
+    compressor.Put(payload, len);
+    std::size_t size = compressor.MaxRetrievable();
+    std::uint8_t* buf = msg->GetPayload();
+    htobe32buf(buf, size);  // length
+    buf += 4;
+    compressor.Get(buf, size);
+    htobe16buf(buf + 4, from_port);  // source port
+    htobe16buf(buf + 6, to_port);  // destination port
+    buf[9] = kovri::client::PROTOCOL_TYPE_DATAGRAM;  // datagram protocol
+    msg->len += size + 4;
+    msg->FillI2NPMessageHeader(kovri::core::I2NPData);
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+  }
   return msg;
 }
 

@@ -53,6 +53,7 @@
 #include "core/router/lease_set.h"
 #include "core/router/tunnel/impl.h"
 
+#include "core/util/exception.h"
 #include "core/util/i2p_endian.h"
 
 namespace kovri {
@@ -341,6 +342,8 @@ class Stream : public std::enable_shared_from_this<Stream> {
   std::uint64_t m_LastWindowSizeIncreaseTime;
   int m_NumResendAttempts;
   SendHandler m_SendHandler;
+
+  kovri::core::Exception m_Exception;
 };
 
 class StreamingDestination {
@@ -351,7 +354,9 @@ class StreamingDestination {
       kovri::client::ClientDestination& owner,
       std::uint16_t local_port = 0)
       : m_Owner(owner),
-        m_LocalPort(local_port) {}
+        m_LocalPort(local_port),
+        m_Exception(__func__) {}
+
   ~StreamingDestination() {}
 
   void Start();
@@ -408,6 +413,7 @@ class StreamingDestination {
   std::mutex m_StreamsMutex;
   std::map<std::uint32_t, std::shared_ptr<Stream> > m_Streams;
   Acceptor m_Acceptor;
+  kovri::core::Exception m_Exception;
 };
 
 //-------------------------------------------------

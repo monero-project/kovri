@@ -49,7 +49,8 @@ TunnelGatewayBuffer::TunnelGatewayBuffer(
     std::uint32_t tunnel_ID)
     : m_TunnelID(tunnel_ID),
       m_CurrentTunnelDataMsg(nullptr),
-      m_RemainingSize(0) {
+      m_RemainingSize(0),
+      m_Exception(__func__) {
   kovri::core::RandBytes(
       m_NonZeroRandomBuffer,
       TUNNEL_DATA_MAX_PAYLOAD_SIZE);
@@ -189,36 +190,43 @@ void TunnelGatewayBuffer::CreateCurrentTunnelDataMessage() {
 }
 
 void TunnelGatewayBuffer::CompleteCurrentTunnelDataMessage() {
-  if (!m_CurrentTunnelDataMsg)
-    return;
-  std::uint8_t* payload = m_CurrentTunnelDataMsg->GetBuffer();
-  std::size_t size = m_CurrentTunnelDataMsg->len - m_CurrentTunnelDataMsg->offset;
-  m_CurrentTunnelDataMsg->offset =
-    m_CurrentTunnelDataMsg->len - TUNNEL_DATA_MSG_SIZE - I2NP_HEADER_SIZE;
-  std::uint8_t* buf = m_CurrentTunnelDataMsg->GetPayload();
-  htobe32buf(buf, m_TunnelID);
-  kovri::core::RandBytes(buf + 4, 16);  // original IV
-  memcpy(payload + size, buf + 4, 16);  // copy IV for checksum
-  std::uint8_t hash[32];
-  kovri::core::SHA256().CalculateDigest(hash, payload, size + 16);
-  memcpy(buf + 20, hash, 4);  // checksum
-  // XXX: WTF?!
-  payload[-1] = 0;  // zero
-  ptrdiff_t padding_size = payload - buf - 25;  // 25  = 24 + 1
-  if (padding_size > 0) {
-    // non-zero padding
-    std::uint32_t random_offset =
-      kovri::core::RandInRange32(
-        0,
-        TUNNEL_DATA_MAX_PAYLOAD_SIZE - padding_size);
-    memcpy(
-        buf + 24,
-        m_NonZeroRandomBuffer + random_offset,
-        padding_size);
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try {
+    if (!m_CurrentTunnelDataMsg)
+      return;
+    std::uint8_t* payload = m_CurrentTunnelDataMsg->GetBuffer();
+    std::size_t size = m_CurrentTunnelDataMsg->len - m_CurrentTunnelDataMsg->offset;
+    m_CurrentTunnelDataMsg->offset =
+      m_CurrentTunnelDataMsg->len - TUNNEL_DATA_MSG_SIZE - I2NP_HEADER_SIZE;
+    std::uint8_t* buf = m_CurrentTunnelDataMsg->GetPayload();
+    htobe32buf(buf, m_TunnelID);
+    kovri::core::RandBytes(buf + 4, 16);  // original IV
+    memcpy(payload + size, buf + 4, 16);  // copy IV for checksum
+    std::uint8_t hash[32];
+    kovri::core::SHA256().CalculateDigest(hash, payload, size + 16);
+    memcpy(buf + 20, hash, 4);  // checksum
+    // TODO(unassigned): review, refactor
+    payload[-1] = 0;  // zero
+    ptrdiff_t padding_size = payload - buf - 25;  // 25  = 24 + 1
+    if (padding_size > 0) {
+      // non-zero padding
+      std::uint32_t random_offset =
+        kovri::core::RandInRange32(
+          0,
+          TUNNEL_DATA_MAX_PAYLOAD_SIZE - padding_size);
+      memcpy(
+          buf + 24,
+          m_NonZeroRandomBuffer + random_offset,
+          padding_size);
+    }
+    // we can't fill message header yet because encryption is required
+    m_TunnelDataMsgs.push_back(m_CurrentTunnelDataMsg);
+    m_CurrentTunnelDataMsg = nullptr;
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
   }
-  // we can't fill message header yet because encryption is required
-  m_TunnelDataMsgs.push_back(m_CurrentTunnelDataMsg);
-  m_CurrentTunnelDataMsg = nullptr;
 }
 
 void TunnelGateway::SendTunnelDataMsg(

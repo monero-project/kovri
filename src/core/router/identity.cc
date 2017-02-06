@@ -46,6 +46,7 @@
 #include "core/router/context.h"
 
 #include "core/util/base64.h"
+#include "core/util/exception.h"
 #include "core/util/i2p_endian.h"
 #include "core/util/log.h"
 
@@ -75,10 +76,18 @@ Identity& Identity::operator=(const Keys& keys) {
 
 IdentHash Identity::Hash() const {
   IdentHash hash;
-  kovri::core::SHA256().CalculateDigest(
-      hash,
-      public_key,
-      DEFAULT_IDENTITY_SIZE);
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try {
+    kovri::core::SHA256().CalculateDigest(
+        hash,
+        public_key,
+        DEFAULT_IDENTITY_SIZE);
+  } catch (...) {
+    core::Exception ex;
+    ex.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
+  }
   return hash;
 }
 
@@ -87,118 +96,125 @@ IdentityEx::IdentityEx()
       m_IdentHash {},
       m_Verifier(nullptr),
       m_ExtendedLen(0),
-      m_ExtendedBuffer(nullptr) {}
+      m_ExtendedBuffer(nullptr),
+      m_Exception(__func__) {}
 
 IdentityEx::IdentityEx(
     const std::uint8_t* public_key,
     const std::uint8_t* signing_key,
     SigningKeyType type) {
-  memcpy(
-      m_StandardIdentity.public_key,
-      public_key,
-      sizeof(m_StandardIdentity.public_key));
-  if (type != SIGNING_KEY_TYPE_DSA_SHA1) {
-    std::size_t excess_len = 0;
-    std::unique_ptr<std::uint8_t[]> excess_buf;
-    switch (type) {
-      case SIGNING_KEY_TYPE_ECDSA_SHA256_P256: {
-        std::size_t padding =
-          128 - kovri::core::ECDSAP256_KEY_LENGTH;  // 64 = 128 - 64
-        kovri::core::RandBytes(
-            m_StandardIdentity.signing_key,
-            padding);
-        memcpy(
-            m_StandardIdentity.signing_key + padding,
-            signing_key,
-            kovri::core::ECDSAP256_KEY_LENGTH);
-        break;
-      }
-      case SIGNING_KEY_TYPE_ECDSA_SHA384_P384: {
-        std::size_t padding =
-          128 - kovri::core::ECDSAP384_KEY_LENGTH;  // 32 = 128 - 96
-        kovri::core::RandBytes(
-            m_StandardIdentity.signing_key,
-            padding);
-        memcpy(
-            m_StandardIdentity.signing_key + padding,
-            signing_key,
-            kovri::core::ECDSAP384_KEY_LENGTH);
-        break;
-      }
-      case SIGNING_KEY_TYPE_ECDSA_SHA512_P521: {
-        memcpy(m_StandardIdentity.signing_key, signing_key, 128);
-        excess_len = kovri::core::ECDSAP521_KEY_LENGTH - 128;  // 4 = 132 - 128
-        excess_buf = std::make_unique<std::uint8_t[]>(excess_len);
-        memcpy(excess_buf.get(), signing_key + 128, excess_len);
-        break;
-      }
-      case SIGNING_KEY_TYPE_RSA_SHA256_2048: {
-        memcpy(m_StandardIdentity.signing_key, signing_key, 128);
-        excess_len = kovri::core::RSASHA2562048_KEY_LENGTH - 128;  // 128 = 256 - 128
-        excess_buf = std::make_unique<std::uint8_t[]>(excess_len);
-        memcpy(excess_buf.get(), signing_key + 128, excess_len);
-        break;
-      }
-      case SIGNING_KEY_TYPE_RSA_SHA384_3072: {
-        memcpy(m_StandardIdentity.signing_key, signing_key, 128);
-        excess_len = kovri::core::RSASHA3843072_KEY_LENGTH - 128;  // 256 = 384 - 128
-        excess_buf = std::make_unique<std::uint8_t[]>(excess_len);
-        memcpy(excess_buf.get(), signing_key + 128, excess_len);
-        break;
-      }
-      case SIGNING_KEY_TYPE_RSA_SHA512_4096: {
-        memcpy(m_StandardIdentity.signing_key, signing_key, 128);
-        excess_len = kovri::core::RSASHA5124096_KEY_LENGTH - 128;  // 384 = 512 - 128
-        excess_buf = std::make_unique<std::uint8_t[]>(excess_len);
-        memcpy(excess_buf.get(), signing_key + 128, excess_len);
-        break;
-      }
-      case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519: {
-        std::size_t padding =
-          128 - kovri::core::EDDSA25519_PUBLIC_KEY_LENGTH;  // 96 = 128 - 32
-        kovri::core::RandBytes(
-            m_StandardIdentity.signing_key,
-            padding);
-        memcpy(
-            m_StandardIdentity.signing_key + padding,
-            signing_key,
-            kovri::core::EDDSA25519_PUBLIC_KEY_LENGTH);
-        break;
-      }
-      default:
-        LOG(warning)
-          << "IdentityEx: signing key type "
-          << static_cast<int>(type) << " is not supported";
-    }
-    m_ExtendedLen = 4 + excess_len;  // 4 bytes extra + excess length
-    // fill certificate
-    m_StandardIdentity.certificate.type = CERTIFICATE_TYPE_KEY;
-    m_StandardIdentity.certificate.length = htobe16(m_ExtendedLen);
-    // fill extended buffer
-    m_ExtendedBuffer = std::make_unique<std::uint8_t[]>(m_ExtendedLen);
-    htobe16buf(m_ExtendedBuffer.get(), type);
-    htobe16buf(m_ExtendedBuffer.get() + 2, CRYPTO_KEY_TYPE_ELGAMAL);
-    if (excess_len && excess_buf) {
-      memcpy(m_ExtendedBuffer.get() + 4, excess_buf.get(), excess_len);
-    }
-    // calculate ident hash
-    auto buf = std::make_unique<std::uint8_t[]>(GetFullLen());
-    ToBuffer(buf.get(), GetFullLen());
-    kovri::core::SHA256().CalculateDigest(m_IdentHash, buf.get(), GetFullLen());
-  } else {  // DSA-SHA1
+  try {
     memcpy(
-        m_StandardIdentity.signing_key,
-        signing_key,
-        sizeof(m_StandardIdentity.signing_key));
-    memset(
-        &m_StandardIdentity.certificate,
-        0,
-        sizeof(m_StandardIdentity.certificate));
-    m_IdentHash = m_StandardIdentity.Hash();
-    m_ExtendedLen = 0;
-    m_ExtendedBuffer.reset(nullptr);
+        m_StandardIdentity.public_key,
+        public_key,
+        sizeof(m_StandardIdentity.public_key));
+    if (type != SIGNING_KEY_TYPE_DSA_SHA1) {
+      std::size_t excess_len = 0;
+      std::unique_ptr<std::uint8_t[]> excess_buf;
+      switch (type) {
+        case SIGNING_KEY_TYPE_ECDSA_SHA256_P256: {
+          std::size_t padding =
+            128 - kovri::core::ECDSAP256_KEY_LENGTH;  // 64 = 128 - 64
+          kovri::core::RandBytes(
+              m_StandardIdentity.signing_key,
+              padding);
+          memcpy(
+              m_StandardIdentity.signing_key + padding,
+              signing_key,
+              kovri::core::ECDSAP256_KEY_LENGTH);
+          break;
+        }
+        case SIGNING_KEY_TYPE_ECDSA_SHA384_P384: {
+          std::size_t padding =
+            128 - kovri::core::ECDSAP384_KEY_LENGTH;  // 32 = 128 - 96
+          kovri::core::RandBytes(
+              m_StandardIdentity.signing_key,
+              padding);
+          memcpy(
+              m_StandardIdentity.signing_key + padding,
+              signing_key,
+              kovri::core::ECDSAP384_KEY_LENGTH);
+          break;
+        }
+        case SIGNING_KEY_TYPE_ECDSA_SHA512_P521: {
+          memcpy(m_StandardIdentity.signing_key, signing_key, 128);
+          excess_len = kovri::core::ECDSAP521_KEY_LENGTH - 128;  // 4 = 132 - 128
+          excess_buf = std::make_unique<std::uint8_t[]>(excess_len);
+          memcpy(excess_buf.get(), signing_key + 128, excess_len);
+          break;
+        }
+        case SIGNING_KEY_TYPE_RSA_SHA256_2048: {
+          memcpy(m_StandardIdentity.signing_key, signing_key, 128);
+          excess_len = kovri::core::RSASHA2562048_KEY_LENGTH - 128;  // 128 = 256 - 128
+          excess_buf = std::make_unique<std::uint8_t[]>(excess_len);
+          memcpy(excess_buf.get(), signing_key + 128, excess_len);
+          break;
+        }
+        case SIGNING_KEY_TYPE_RSA_SHA384_3072: {
+          memcpy(m_StandardIdentity.signing_key, signing_key, 128);
+          excess_len = kovri::core::RSASHA3843072_KEY_LENGTH - 128;  // 256 = 384 - 128
+          excess_buf = std::make_unique<std::uint8_t[]>(excess_len);
+          memcpy(excess_buf.get(), signing_key + 128, excess_len);
+          break;
+        }
+        case SIGNING_KEY_TYPE_RSA_SHA512_4096: {
+          memcpy(m_StandardIdentity.signing_key, signing_key, 128);
+          excess_len = kovri::core::RSASHA5124096_KEY_LENGTH - 128;  // 384 = 512 - 128
+          excess_buf = std::make_unique<std::uint8_t[]>(excess_len);
+          memcpy(excess_buf.get(), signing_key + 128, excess_len);
+          break;
+        }
+        case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519: {
+          std::size_t padding =
+            128 - kovri::core::EDDSA25519_PUBLIC_KEY_LENGTH;  // 96 = 128 - 32
+          kovri::core::RandBytes(
+              m_StandardIdentity.signing_key,
+              padding);
+          memcpy(
+              m_StandardIdentity.signing_key + padding,
+              signing_key,
+              kovri::core::EDDSA25519_PUBLIC_KEY_LENGTH);
+          break;
+        }
+        default:
+          LOG(warning)
+            << "IdentityEx: signing key type "
+            << static_cast<int>(type) << " is not supported";
+      }
+      m_ExtendedLen = 4 + excess_len;  // 4 bytes extra + excess length
+      // fill certificate
+      m_StandardIdentity.certificate.type = CERTIFICATE_TYPE_KEY;
+      m_StandardIdentity.certificate.length = htobe16(m_ExtendedLen);
+      // fill extended buffer
+      m_ExtendedBuffer = std::make_unique<std::uint8_t[]>(m_ExtendedLen);
+      htobe16buf(m_ExtendedBuffer.get(), type);
+      htobe16buf(m_ExtendedBuffer.get() + 2, CRYPTO_KEY_TYPE_ELGAMAL);
+      if (excess_len && excess_buf) {
+        memcpy(m_ExtendedBuffer.get() + 4, excess_buf.get(), excess_len);
+      }
+      // calculate ident hash
+      auto buf = std::make_unique<std::uint8_t[]>(GetFullLen());
+      ToBuffer(buf.get(), GetFullLen());
+      kovri::core::SHA256().CalculateDigest(m_IdentHash, buf.get(), GetFullLen());
+    } else {  // DSA-SHA1
+      memcpy(
+          m_StandardIdentity.signing_key,
+          signing_key,
+          sizeof(m_StandardIdentity.signing_key));
+      memset(
+          &m_StandardIdentity.certificate,
+          0,
+          sizeof(m_StandardIdentity.certificate));
+      m_IdentHash = m_StandardIdentity.Hash();
+      m_ExtendedLen = 0;
+      m_ExtendedBuffer.reset(nullptr);
+    }
+    CreateVerifier();
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
   }
-  CreateVerifier();
 }
 
 IdentityEx::IdentityEx(
@@ -268,7 +284,14 @@ std::size_t IdentityEx::FromBuffer(
       return 0;
     }
   }
-  kovri::core::SHA256().CalculateDigest(m_IdentHash, buf, GetFullLen());
+  // TODO(anonimal): this try block should be larger or handled entirely by caller
+  try {
+    kovri::core::SHA256().CalculateDigest(m_IdentHash, buf, GetFullLen());
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
+  }
   m_Verifier.reset(nullptr);
   return GetFullLen();
 }
@@ -321,14 +344,24 @@ std::size_t IdentityEx::GetSignatureLen() const {
     return m_Verifier->GetSignatureLen();
   return kovri::core::DSA_SIGNATURE_LENGTH;
 }
+
 bool IdentityEx::Verify(
     const std::uint8_t* buf,
     std::size_t len,
     const std::uint8_t* signature) const {
   if (!m_Verifier)
     CreateVerifier();
-  if (m_Verifier)
-    return m_Verifier->Verify(buf, len, signature);
+  if (m_Verifier) {
+    // TODO(anonimal): this try block should be handled entirely by caller
+    try {
+      return m_Verifier->Verify(buf, len, signature);
+    } catch (...) {
+      core::Exception ex;
+      ex.Dispatch(__func__);
+      // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+      throw;
+    }
+  }
   return false;
 }
 
@@ -501,8 +534,16 @@ void PrivateKeys::Sign(
     const std::uint8_t* buf,
     int len,
     std::uint8_t* signature) const {
-  if (m_Signer)
-    m_Signer->Sign(buf, len, signature);
+  if (m_Signer) {
+    try {
+      m_Signer->Sign(buf, len, signature);
+    } catch (...) {
+      core::Exception ex;
+      ex.Dispatch(__func__);
+      // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+      throw;
+    }
+  }
 }
 
 void PrivateKeys::CreateSigner() {
@@ -541,73 +582,89 @@ void PrivateKeys::CreateSigner() {
 
 PrivateKeys PrivateKeys::CreateRandomKeys(SigningKeyType type) {
   PrivateKeys keys;
-  // signature
-  std::uint8_t signing_public_key[512];  // signing public key is 512 bytes max
-  switch (type) {
-    case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
-      kovri::core::CreateECDSAP256RandomKeys(
-          keys.m_SigningPrivateKey,
-          signing_public_key);
-    break;
-    case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
-      kovri::core::CreateECDSAP384RandomKeys(
-          keys.m_SigningPrivateKey,
-          signing_public_key);
-    break;
-    case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
-      kovri::core::CreateECDSAP521RandomKeys(
-          keys.m_SigningPrivateKey,
-          signing_public_key);
-    break;
-    case SIGNING_KEY_TYPE_RSA_SHA256_2048:
-      kovri::core::CreateRSARandomKeys(
-          kovri::core::RSASHA2562048_KEY_LENGTH,
-          keys.m_SigningPrivateKey,
-          signing_public_key);
-    break;
-    case SIGNING_KEY_TYPE_RSA_SHA384_3072:
-      kovri::core::CreateRSARandomKeys(
-          kovri::core::RSASHA3843072_KEY_LENGTH,
-          keys.m_SigningPrivateKey,
-          signing_public_key);
-    break;
-    case SIGNING_KEY_TYPE_RSA_SHA512_4096:
-      kovri::core::CreateRSARandomKeys(
-          kovri::core::RSASHA5124096_KEY_LENGTH,
-          keys.m_SigningPrivateKey,
-          signing_public_key);
-    break;
-    case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
-      kovri::core::CreateEDDSARandomKeys(
-          keys.m_SigningPrivateKey,
-          signing_public_key);
-    break;
-    default:
-      LOG(warning)
-        << "IdentityEx: Signing key type "
-        << static_cast<int>(type) << " is not supported, creating DSA-SHA1";
-    case SIGNING_KEY_TYPE_DSA_SHA1:
-      return PrivateKeys(kovri::core::CreateRandomKeys());  // DSA-SHA1
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try {
+    // signature
+    std::uint8_t signing_public_key[512];  // signing public key is 512 bytes max
+    switch (type) {
+      case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
+        kovri::core::CreateECDSAP256RandomKeys(
+            keys.m_SigningPrivateKey,
+            signing_public_key);
+      break;
+      case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
+        kovri::core::CreateECDSAP384RandomKeys(
+            keys.m_SigningPrivateKey,
+            signing_public_key);
+      break;
+      case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
+        kovri::core::CreateECDSAP521RandomKeys(
+            keys.m_SigningPrivateKey,
+            signing_public_key);
+      break;
+      case SIGNING_KEY_TYPE_RSA_SHA256_2048:
+        kovri::core::CreateRSARandomKeys(
+            kovri::core::RSASHA2562048_KEY_LENGTH,
+            keys.m_SigningPrivateKey,
+            signing_public_key);
+      break;
+      case SIGNING_KEY_TYPE_RSA_SHA384_3072:
+        kovri::core::CreateRSARandomKeys(
+            kovri::core::RSASHA3843072_KEY_LENGTH,
+            keys.m_SigningPrivateKey,
+            signing_public_key);
+      break;
+      case SIGNING_KEY_TYPE_RSA_SHA512_4096:
+        kovri::core::CreateRSARandomKeys(
+            kovri::core::RSASHA5124096_KEY_LENGTH,
+            keys.m_SigningPrivateKey,
+            signing_public_key);
+      break;
+      case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
+        kovri::core::CreateEDDSARandomKeys(
+            keys.m_SigningPrivateKey,
+            signing_public_key);
+      break;
+      default:
+        LOG(warning)
+          << "IdentityEx: Signing key type "
+          << static_cast<int>(type) << " is not supported, creating DSA-SHA1";
+      case SIGNING_KEY_TYPE_DSA_SHA1:
+        return PrivateKeys(kovri::core::CreateRandomKeys());  // DSA-SHA1
+    }
+    // encryption
+    std::uint8_t public_key[256];
+    kovri::core::GenerateElGamalKeyPair(keys.m_PrivateKey, public_key);
+    // identity
+    keys.m_Public = IdentityEx(public_key, signing_public_key, type);
+    keys.CreateSigner();
+  } catch (...) {
+    core::Exception ex;
+    ex.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
   }
-  // encryption
-  std::uint8_t public_key[256];
-  kovri::core::GenerateElGamalKeyPair(keys.m_PrivateKey, public_key);
-  // identity
-  keys.m_Public = IdentityEx(public_key, signing_public_key, type);
-  keys.CreateSigner();
   return keys;
 }
 
 Keys CreateRandomKeys() {
   Keys keys;
-  // encryption
-  kovri::core::GenerateElGamalKeyPair(
-      keys.private_key,
-      keys.public_key);
-  // signing
-  kovri::core::CreateDSARandomKeys(
-      keys.signing_private_key,
-      keys.signing_key);
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try {
+    // encryption
+    kovri::core::GenerateElGamalKeyPair(
+        keys.private_key,
+        keys.public_key);
+    // signing
+    kovri::core::CreateDSARandomKeys(
+        keys.signing_private_key,
+        keys.signing_key);
+  } catch (...) {
+    core::Exception ex;
+    ex.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
+  }
   return keys;
 }
 
@@ -637,7 +694,15 @@ IdentHash CreateRoutingKey(
       tm.tm_mday);
 #endif
   IdentHash key;
-  kovri::core::SHA256().CalculateDigest((std::uint8_t *)key, buf, 40);
+  // TODO(anonimal): this try block should be larger or handled entirely by caller
+  try {
+    kovri::core::SHA256().CalculateDigest((std::uint8_t *)key, buf, 40);
+  } catch (...) {
+    core::Exception ex;
+    ex.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
+  }
   return key;
 }
 

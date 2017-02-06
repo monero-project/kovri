@@ -49,6 +49,7 @@
 #include "core/router/transports/impl.h"
 #include "core/router/tunnel/impl.h"
 
+#include "core/util/exception.h"
 #include "core/util/i2p_endian.h"
 #include "core/util/log.h"
 #include "core/util/timestamp.h"
@@ -260,35 +261,41 @@ std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg(
   if (!router)  // we send own RouterInfo
     router = context.GetSharedRouterInfo();
   auto m = ToSharedI2NPMessage(NewI2NPShortMessage());
-  std::uint8_t* payload = m->GetPayload();
-  memcpy(payload + DATABASE_STORE_KEY_OFFSET, router->GetIdentHash(), 32);
-  payload[DATABASE_STORE_TYPE_OFFSET] = 0;  // RouterInfo
-  htobe32buf(payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, reply_token);
-  std::uint8_t* buf = payload + DATABASE_STORE_HEADER_SIZE;
-  if (reply_token) {
-    memset(buf, 0, 4);  // zero tunnel_ID means direct reply
-    buf += 4;
-    memcpy(buf, router->GetIdentHash(), 32);
-    buf += 32;
+  try {
+    std::uint8_t* payload = m->GetPayload();
+    memcpy(payload + DATABASE_STORE_KEY_OFFSET, router->GetIdentHash(), 32);
+    payload[DATABASE_STORE_TYPE_OFFSET] = 0;  // RouterInfo
+    htobe32buf(payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, reply_token);
+    std::uint8_t* buf = payload + DATABASE_STORE_HEADER_SIZE;
+    if (reply_token) {
+      memset(buf, 0, 4);  // zero tunnel_ID means direct reply
+      buf += 4;
+      memcpy(buf, router->GetIdentHash(), 32);
+      buf += 32;
+    }
+    kovri::core::Gzip compressor;
+    compressor.Put(router->GetBuffer(), router->GetBufferLen());
+    auto size = compressor.MaxRetrievable();
+    htobe16buf(buf, size);  // size
+    buf += 2;
+    m->len += (buf - payload);  // payload size
+    if (m->len + size > m->max_len) {
+      LOG(debug)
+        << "I2NPMessage: DatabaseStore message size is not enough for "
+        << m->len + size;
+      auto new_msg =  ToSharedI2NPMessage(NewI2NPMessage());
+      *new_msg = *m;
+      m = new_msg;
+      buf = m->buf + m->len;
+    }
+    compressor.Get(buf, size);
+    m->len += size;
+    m->FillI2NPMessageHeader(I2NPDatabaseStore);
+  } catch (...) {
+    kovri::core::Exception ex;
+    ex.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
   }
-  kovri::core::Gzip compressor;
-  compressor.Put(router->GetBuffer(), router->GetBufferLen());
-  auto size = compressor.MaxRetrievable();
-  htobe16buf(buf, size);  // size
-  buf += 2;
-  m->len += (buf - payload);  // payload size
-  if (m->len + size > m->max_len) {
-    LOG(debug)
-      << "I2NPMessage: DatabaseStore message size is not enough for "
-      << m->len + size;
-    auto new_msg =  ToSharedI2NPMessage(NewI2NPMessage());
-    *new_msg = *m;
-    m = new_msg;
-    buf = m->buf + m->len;
-  }
-  compressor.Get(buf, size);
-  m->len += size;
-  m->FillI2NPMessageHeader(I2NPDatabaseStore);
   return m;
 }
 
@@ -325,112 +332,120 @@ bool HandleBuildRequestRecords(
     int num,
     std::uint8_t* records,
     std::uint8_t* clear_text) {
-  /**
-   * When a hop receives a tunnel build message, it looks through the records
-   * contained within it for one starting with their own identity hash
-   * (trimmed to 16 bytes). It then decrypts the ElGamal block from that record
-   * and retrieves the protected cleartext.
-   *
-   *   bytes   0-15 : First 16 bytes of the SHA-256 of
-   *                  the current hop's router identity
-   *   bytes 16-527 : ElGamal-2048 encrypted request record
-   *
-   *   Total: 528 byte record
-   *
-   * TODO(unassigned): implement bloom filter, see #58 + #77
-   */
-  for (int i = 0; i < num; i++) {
-    std::uint8_t* record = records + i * TUNNEL_BUILD_RECORD_SIZE;
-    // Test if current hop's router identity is ours
-    if (!memcmp(
-            record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET,
-            (const std::uint8_t *)kovri::context.GetRouterInfo().GetIdentHash(),
-            16)) {
-      LOG(debug) << "I2NPMessage: record " << i << " is ours";
-      // Get session key from encrypted block
-      kovri::core::ElGamalDecrypt(
-          kovri::context.GetEncryptionPrivateKey(),
-          record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET,
-          clear_text);
-      /**
-       * After the current hop reads their record, we replace it with
-       * a reply record stating whether or not they agree to participate
-       * in the tunnel, and if we do not, we classify a reason for rejection
-       * This is simply a 1 byte value, with 0x0 meaning that we agree to
-       * participate in the tunnel, and higher values meaning
-       * higher levels of rejection.
-       */
-      if (kovri::context.AcceptsTunnels() &&
-          kovri::core::tunnels.GetTransitTunnels().size() <=
-          MAX_NUM_TRANSIT_TUNNELS &&
-          !kovri::core::transports.IsBandwidthExceeded()) {
-        kovri::core::TransitTunnel* transit_tunnel =
-          kovri::core::CreateTransitTunnel(
-              bufbe32toh(clear_text + BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
-              clear_text + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
-              bufbe32toh(clear_text + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
-              clear_text + BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET,
-              clear_text + BUILD_REQUEST_RECORD_IV_KEY_OFFSET,
-              clear_text[BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x80,
-              clear_text[BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x40);
-        kovri::core::tunnels.AddTransitTunnel(transit_tunnel);
-        record[BUILD_RESPONSE_RECORD_RET_OFFSET] = 0;
-      } else {
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try {
+    /**
+     * When a hop receives a tunnel build message, it looks through the records
+     * contained within it for one starting with their own identity hash
+     * (trimmed to 16 bytes). It then decrypts the ElGamal block from that record
+     * and retrieves the protected cleartext.
+     *
+     *   bytes   0-15 : First 16 bytes of the SHA-256 of
+     *                  the current hop's router identity
+     *   bytes 16-527 : ElGamal-2048 encrypted request record
+     *
+     *   Total: 528 byte record
+     *
+     * TODO(unassigned): implement bloom filter, see #58 + #77
+     */
+    for (int i = 0; i < num; i++) {
+      std::uint8_t* record = records + i * TUNNEL_BUILD_RECORD_SIZE;
+      // Test if current hop's router identity is ours
+      if (!memcmp(
+              record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET,
+              (const std::uint8_t *)kovri::context.GetRouterInfo().GetIdentHash(),
+              16)) {
+        LOG(debug) << "I2NPMessage: record " << i << " is ours";
+        // Get session key from encrypted block
+        kovri::core::ElGamalDecrypt(
+            kovri::context.GetEncryptionPrivateKey(),
+            record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET,
+            clear_text);
         /**
-         * The following rejection codes are defined:
-         *
-         * TUNNEL_REJECT_PROBABALISTIC_REJECT = 10
-         * TUNNEL_REJECT_TRANSIENT_OVERLOAD = 20
-         * TUNNEL_REJECT_BANDWIDTH = 30
-         * TUNNEL_REJECT_CRIT = 50
-         *
-         * To hide other causes from peers (such as router shutdown),
-         * the current implementation uses TUNNEL_REJECT_BANDWIDTH
-         * for *all* rejections.
-         *
-         * TODO(unassigned): review use-case for implementing other rejections
+         * After the current hop reads their record, we replace it with
+         * a reply record stating whether or not they agree to participate
+         * in the tunnel, and if we do not, we classify a reason for rejection
+         * This is simply a 1 byte value, with 0x0 meaning that we agree to
+         * participate in the tunnel, and higher values meaning
+         * higher levels of rejection.
          */
-        record[BUILD_RESPONSE_RECORD_RET_OFFSET] = 30;
+        if (kovri::context.AcceptsTunnels() &&
+            kovri::core::tunnels.GetTransitTunnels().size() <=
+            MAX_NUM_TRANSIT_TUNNELS &&
+            !kovri::core::transports.IsBandwidthExceeded()) {
+          kovri::core::TransitTunnel* transit_tunnel =
+            kovri::core::CreateTransitTunnel(
+                bufbe32toh(clear_text + BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
+                clear_text + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
+                bufbe32toh(clear_text + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
+                clear_text + BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET,
+                clear_text + BUILD_REQUEST_RECORD_IV_KEY_OFFSET,
+                clear_text[BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x80,
+                clear_text[BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x40);
+          kovri::core::tunnels.AddTransitTunnel(transit_tunnel);
+          record[BUILD_RESPONSE_RECORD_RET_OFFSET] = 0;
+        } else {
+          /**
+           * The following rejection codes are defined:
+           *
+           * TUNNEL_REJECT_PROBABALISTIC_REJECT = 10
+           * TUNNEL_REJECT_TRANSIENT_OVERLOAD = 20
+           * TUNNEL_REJECT_BANDWIDTH = 30
+           * TUNNEL_REJECT_CRIT = 50
+           *
+           * To hide other causes from peers (such as router shutdown),
+           * the current implementation uses TUNNEL_REJECT_BANDWIDTH
+           * for *all* rejections.
+           *
+           * TODO(unassigned): review use-case for implementing other rejections
+           */
+          record[BUILD_RESPONSE_RECORD_RET_OFFSET] = 30;
+        }
+        /**
+         * The reply is encrypted using the AES session key delivered to it in
+         * the encrypted block, padded with 495 bytes of random data to reach
+         * the full record size. The padding is placed before the status byte:
+         *
+         *  AES-256-CBC(SHA-256(padding + status) + padding + status, key, IV)
+         *
+         *   bytes   0-31 : SHA-256 of bytes 32-527
+         *   bytes 32-526 : Padding (random generated)
+         *   byte 527     : Status byte / reply value
+         *
+         *   Total: 528 byte record
+         */
+        // Fill random padding
+        kovri::core::RandBytes(
+            record + BUILD_RESPONSE_RECORD_RANDPAD_OFFSET,
+            BUILD_RESPONSE_RECORD_RANDPAD_SIZE);
+        // Get SHA256 of complete record
+        kovri::core::SHA256().CalculateDigest(
+            record + BUILD_RESPONSE_RECORD_SHA256HASH_OFFSET,
+            record + BUILD_RESPONSE_RECORD_RANDPAD_OFFSET,
+            BUILD_RESPONSE_RECORD_RANDPAD_SIZE + 1);  // + 1 byte for status/reply
+        /**
+         * After deciding whether they will agree to participate
+         * in the tunnel or not, they replace the record that had contained
+         * the request with an encrypted reply block. All other records are
+         * AES-256 encrypted with the included reply key and IV.
+         * Each is AES/CBC encrypted separately with the same reply key
+         * and reply IV. The CBC mode is not continued (chained) across records.
+         */
+        kovri::core::CBCEncryption encryption;
+        for (int j = 0; j < num; j++) {
+          encryption.SetKey(clear_text + BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET);
+          encryption.SetIV(clear_text + BUILD_REQUEST_RECORD_REPLY_IV_OFFSET);
+          std::uint8_t* reply = records + j * TUNNEL_BUILD_RECORD_SIZE;
+          encryption.Encrypt(reply, TUNNEL_BUILD_RECORD_SIZE, reply);
+        }
+        return true;
       }
-      /**
-       * The reply is encrypted using the AES session key delivered to it in
-       * the encrypted block, padded with 495 bytes of random data to reach
-       * the full record size. The padding is placed before the status byte:
-       *
-       *  AES-256-CBC(SHA-256(padding + status) + padding + status, key, IV)
-       *
-       *   bytes   0-31 : SHA-256 of bytes 32-527
-       *   bytes 32-526 : Padding (random generated)
-       *   byte 527     : Status byte / reply value
-       *
-       *   Total: 528 byte record
-       */
-      // Fill random padding
-      kovri::core::RandBytes(
-          record + BUILD_RESPONSE_RECORD_RANDPAD_OFFSET,
-          BUILD_RESPONSE_RECORD_RANDPAD_SIZE);
-      // Get SHA256 of complete record
-      kovri::core::SHA256().CalculateDigest(
-          record + BUILD_RESPONSE_RECORD_SHA256HASH_OFFSET,
-          record + BUILD_RESPONSE_RECORD_RANDPAD_OFFSET,
-          BUILD_RESPONSE_RECORD_RANDPAD_SIZE + 1);  // + 1 byte for status/reply
-      /**
-       * After deciding whether they will agree to participate
-       * in the tunnel or not, they replace the record that had contained
-       * the request with an encrypted reply block. All other records are
-       * AES-256 encrypted with the included reply key and IV.
-       * Each is AES/CBC encrypted separately with the same reply key
-       * and reply IV. The CBC mode is not continued (chained) across records.
-       */
-      kovri::core::CBCEncryption encryption;
-      for (int j = 0; j < num; j++) {
-        encryption.SetKey(clear_text + BUILD_REQUEST_RECORD_REPLY_KEY_OFFSET);
-        encryption.SetIV(clear_text + BUILD_REQUEST_RECORD_REPLY_IV_OFFSET);
-        std::uint8_t* reply = records + j * TUNNEL_BUILD_RECORD_SIZE;
-        encryption.Encrypt(reply, TUNNEL_BUILD_RECORD_SIZE, reply);
-      }
-      return true;
     }
+  } catch (...) {
+    core::Exception ex;
+    ex.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
   }
   return false;
 }

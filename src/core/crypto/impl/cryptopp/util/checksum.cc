@@ -50,24 +50,14 @@ class Adler32::Adler32Impl {
       std::uint8_t* digest,
       const std::uint8_t* input,
       std::size_t length) {
-    try {
-      m_Adler32.CalculateDigest(
-          digest,
-          input,
-          length);
-    } catch (CryptoPP::Exception e) {
-      LOG(error) << "Adler32: " << __func__ << " caught exception '" << e.what() << "'";
-    }
+    m_Adler32.CalculateDigest(digest, input, length);
   }
 
   std::size_t VerifyDigest(
       std::uint8_t* digest,
       const std::uint8_t* input,
       std::size_t length) {
-    return m_Adler32.VerifyDigest(
-          digest,
-          input,
-          length);
+    return m_Adler32.VerifyDigest(digest, input, length);
   }
 
  private:

@@ -51,6 +51,8 @@
 #include "core/router/info.h"
 #include "core/router/transports/session.h"
 
+#include "core/util/exception.h"
+
 namespace kovri {
 namespace core {
 
@@ -326,6 +328,8 @@ class NTCPSession
 
   bool m_IsSending;
   std::vector<std::shared_ptr<I2NPMessage>> m_SendQueue;
+
+  kovri::core::Exception m_Exception;
 };
 
 }  // namespace core

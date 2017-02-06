@@ -49,59 +49,27 @@ class DeflateDecompressor::DeflateDecompressorImpl {
       std::uint8_t* buffer,
       std::size_t length) {
     std::size_t unprocessed_bytes;
-    try {
-      unprocessed_bytes = m_Inflator.Put(buffer, length);
-      // Signal the end of messages to the object
-      m_Inflator.MessageEnd();
-    } catch (CryptoPP::Exception& e) {
-      LOG(error)
-        << "DeflateDecompressorImpl: " << __func__
-        << " caught exception '" << e.what() << "'";
-    }
+    unprocessed_bytes = m_Inflator.Put(buffer, length);
+    // Signal the end of messages to the object
+    m_Inflator.MessageEnd();
     return unprocessed_bytes;
   }
 
   std::size_t Get(
        std::uint8_t* buffer,
        std::size_t length) {
-     std::size_t bytes_consumed;
-    try {
-      bytes_consumed = m_Inflator.Get(buffer, length);
-    } catch (CryptoPP::Exception& e) {
-      LOG(error)
-        << "DeflateDecompressorImpl: " << __func__
-        << " caught exception '" << e.what() << "'";
-    }
-    return bytes_consumed;
+    return m_Inflator.Get(buffer, length);
   }
 
   std::size_t MaxRetrievable() {
-    std::size_t max;
-    try {
-      max = m_Inflator.MaxRetrievable();
-    } catch (CryptoPP::Exception& e) {
-      LOG(error)
-        << "DeflateDecompressorImpl: " << __func__
-        << " caught exception '" << e.what() << "'";
-      max = 0;
-    }
-    return max;
+    return m_Inflator.MaxRetrievable();
   }
 
   bool Verify(
       std::uint8_t* hash,
       std::uint8_t* data,
       std::size_t length) {
-    bool verify;
-    try {
-      verify = CryptoPP::CRC32().VerifyDigest(hash, data, length);
-    } catch (CryptoPP::Exception& e) {
-      LOG(error)
-        << "DeflateDecompressorImpl: " << __func__
-        << " caught exception '" << e.what() << "'";
-      return false;
-    }
-    return verify;
+    return CryptoPP::CRC32().VerifyDigest(hash, data, length);
   }
 
  private:
@@ -154,51 +122,26 @@ class Gzip::GzipImpl {
 
   void SetDeflateLevel(
       unsigned int deflate_level) {
-    try {
-      m_Gzip.SetDeflateLevel(deflate_level);
-    } catch (CryptoPP::Exception& e) {
-      LOG(error)
-        << "GzipImpl: " << __func__ << " caught exception '" << e.what() << "'";
-    }
+    m_Gzip.SetDeflateLevel(deflate_level);
   }
 
   std::size_t Put(
       const std::uint8_t* buffer,
       std::size_t length) {
     std::size_t unprocessed_bytes;
-    try {
-      unprocessed_bytes = m_Gzip.Put(buffer, length);
-      m_Gzip.MessageEnd();
-    } catch (CryptoPP::Exception& e) {
-      LOG(error)
-        << "GzipImpl: " << __func__ << " caught exception '" << e.what() << "'";
-    }
+    unprocessed_bytes = m_Gzip.Put(buffer, length);
+    m_Gzip.MessageEnd();
     return unprocessed_bytes;
   }
 
   std::size_t Get(
        std::uint8_t* buffer,
        std::size_t length) {
-     std::size_t bytes_consumed;
-    try {
-      bytes_consumed = m_Gzip.Get(buffer, length);
-    } catch (CryptoPP::Exception& e) {
-      LOG(error)
-        << "GzipImpl: " << __func__ << " caught exception '" << e.what() << "'";
-    }
-    return bytes_consumed;
+    return m_Gzip.Get(buffer, length);
   }
 
   std::size_t MaxRetrievable() {
-    std::size_t max;
-    try {
-      max = m_Gzip.MaxRetrievable();
-    } catch (CryptoPP::Exception& e) {
-      LOG(error)
-        << "GzipImpl: " << __func__ << " caught exception '" << e.what() << "'";
-      max = 0;
-    }
-    return max;
+    return m_Gzip.MaxRetrievable();
   }
 
  private:
@@ -252,39 +195,19 @@ class Gunzip::GunzipImpl {
       const std::uint8_t* buffer,
       std::size_t length) {
     std::size_t unprocessed_bytes;
-    try {
-      unprocessed_bytes = m_Gunzip.Put(buffer, length);
-      m_Gunzip.MessageEnd();
-    } catch (CryptoPP::Exception& e) {
-      // TODO(anonimal): this is a trivial hotfix patch for #538. What we really need is an exception dispatcher for the crypto impl (if not globally)
-      throw std::runtime_error("GunzipImpl: " + std::string(__func__) + " caught exception '" + e.what() + "'");
-    }
+    unprocessed_bytes = m_Gunzip.Put(buffer, length);
+    m_Gunzip.MessageEnd();
     return unprocessed_bytes;
   }
 
   std::size_t Get(
        std::uint8_t* buffer,
        std::size_t length) {
-     std::size_t bytes_consumed;
-    try {
-      bytes_consumed = m_Gunzip.Get(buffer, length);
-    } catch (CryptoPP::Exception& e) {
-      LOG(error)
-        << "GunzipImpl: " << __func__ << " caught exception '" << e.what() << "'";
-    }
-    return bytes_consumed;
+    return m_Gunzip.Get(buffer, length);
   }
 
   std::size_t MaxRetrievable() {
-    std::size_t max;
-    try {
-      max = m_Gunzip.MaxRetrievable();
-    } catch (CryptoPP::Exception& e) {
-      LOG(error)
-        << "GunzipImpl: " << __func__ << " caught exception '" << e.what() << "'";
-      max = 0;
-    }
-    return max;
+    return m_Gunzip.MaxRetrievable();
   }
 
  private:

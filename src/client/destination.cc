@@ -69,80 +69,89 @@ ClientDestination::ClientDestination(
       m_PublishReplyToken(0),
       m_DatagramDestination(nullptr),
       m_PublishConfirmationTimer(m_Service),
-      m_CleanupTimer(m_Service) {
-  kovri::core::GenerateElGamalKeyPair(
-      m_EncryptionPrivateKey,
-      m_EncryptionPublicKey);
-  int inbound_tunnel_len = DEFAULT_INBOUND_TUNNEL_LENGTH,
-      outbound_tunnel_len = DEFAULT_OUTBOUND_TUNNEL_LENGTH,
-      inbound_tunnels_quantity = DEFAULT_INBOUND_TUNNELS_QUANTITY,
-      outbound_tunnels_quantity = DEFAULT_OUTBOUND_TUNNELS_QUANTITY;
-  std::shared_ptr<std::vector<kovri::core::IdentHash> > explicit_peers;
-  if (params) {
-    auto it = params->find(I2CP_PARAM_INBOUND_TUNNEL_LENGTH);
-    if (it != params->end()) {
-      int len = boost::lexical_cast<int>(it->second);
-      if (len > 0) {
-        inbound_tunnel_len = len;
-        LOG(debug) << "ClientDestination: inbound tunnel length set to " << len;
+      m_CleanupTimer(m_Service),
+      m_Exception(__func__) {
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try {
+    kovri::core::GenerateElGamalKeyPair(
+        m_EncryptionPrivateKey,
+        m_EncryptionPublicKey);
+    int inbound_tunnel_len = DEFAULT_INBOUND_TUNNEL_LENGTH,
+        outbound_tunnel_len = DEFAULT_OUTBOUND_TUNNEL_LENGTH,
+        inbound_tunnels_quantity = DEFAULT_INBOUND_TUNNELS_QUANTITY,
+        outbound_tunnels_quantity = DEFAULT_OUTBOUND_TUNNELS_QUANTITY;
+    std::shared_ptr<std::vector<kovri::core::IdentHash> > explicit_peers;
+    if (params) {
+      auto it = params->find(I2CP_PARAM_INBOUND_TUNNEL_LENGTH);
+      if (it != params->end()) {
+        int len = boost::lexical_cast<int>(it->second);
+        if (len > 0) {
+          inbound_tunnel_len = len;
+          LOG(debug) << "ClientDestination: inbound tunnel length set to " << len;
+        }
+      }
+      it = params->find(I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH);
+      if (it != params->end()) {
+        int len = boost::lexical_cast<int>(it->second);
+        if (len > 0) {
+          outbound_tunnel_len = len;
+          LOG(debug)
+            << "ClientDestination: outbound tunnel length set to " << len;
+        }
+      }
+      it = params->find(I2CP_PARAM_INBOUND_TUNNELS_QUANTITY);
+      if (it != params->end()) {
+        int quantity = boost::lexical_cast<int>(it->second);
+        if (quantity > 0) {
+          inbound_tunnels_quantity = quantity;
+          LOG(debug)
+            << "ClientDestination: inbound tunnels quantity set to " << quantity;
+        }
+      }
+      it = params->find(I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY);
+      if (it != params->end()) {
+        int quantity = boost::lexical_cast<int>(it->second);
+        if (quantity > 0) {
+          outbound_tunnels_quantity = quantity;
+          LOG(debug)
+            << "ClientDestination: outbound tunnels quantity set to " << quantity;
+        }
+      }
+      it = params->find(I2CP_PARAM_EXPLICIT_PEERS);
+      if (it != params->end()) {
+        explicit_peers = std::make_shared<std::vector<kovri::core::IdentHash> >();
+        std::stringstream ss(it->second);
+        std::string b64;
+        while (std::getline(ss, b64, ',')) {
+          kovri::core::IdentHash ident;
+          ident.FromBase64(b64);
+          explicit_peers->push_back(ident);
+        }
+        LOG(debug) << "ClientDestination: explicit peers set to " << it->second;
       }
     }
-    it = params->find(I2CP_PARAM_OUTBOUND_TUNNEL_LENGTH);
-    if (it != params->end()) {
-      int len = boost::lexical_cast<int>(it->second);
-      if (len > 0) {
-        outbound_tunnel_len = len;
-        LOG(debug)
-          << "ClientDestination: outbound tunnel length set to " << len;
-      }
-    }
-    it = params->find(I2CP_PARAM_INBOUND_TUNNELS_QUANTITY);
-    if (it != params->end()) {
-      int quantity = boost::lexical_cast<int>(it->second);
-      if (quantity > 0) {
-        inbound_tunnels_quantity = quantity;
-        LOG(debug)
-          << "ClientDestination: inbound tunnels quantity set to " << quantity;
-      }
-    }
-    it = params->find(I2CP_PARAM_OUTBOUND_TUNNELS_QUANTITY);
-    if (it != params->end()) {
-      int quantity = boost::lexical_cast<int>(it->second);
-      if (quantity > 0) {
-        outbound_tunnels_quantity = quantity;
-        LOG(debug)
-          << "ClientDestination: outbound tunnels quantity set to " << quantity;
-      }
-    }
-    it = params->find(I2CP_PARAM_EXPLICIT_PEERS);
-    if (it != params->end()) {
-      explicit_peers = std::make_shared<std::vector<kovri::core::IdentHash> >();
-      std::stringstream ss(it->second);
-      std::string b64;
-      while (std::getline(ss, b64, ',')) {
-        kovri::core::IdentHash ident;
-        ident.FromBase64(b64);
-        explicit_peers->push_back(ident);
-      }
-      LOG(debug) << "ClientDestination: explicit peers set to " << it->second;
-    }
+    m_Pool =
+      kovri::core::tunnels.CreateTunnelPool(
+          this,
+          inbound_tunnel_len,
+          outbound_tunnel_len,
+          inbound_tunnels_quantity,
+          outbound_tunnels_quantity);
+    if (explicit_peers)
+      m_Pool->SetExplicitPeers(explicit_peers);
+    if (m_IsPublic)
+      LOG(debug)
+        << "ClientDestination: created local address "
+        << kovri::core::GetB32Address(GetIdentHash());
+    // TODO(unassigned): ???
+    m_StreamingDestination =
+      std::make_shared<kovri::client::StreamingDestination> (*this);
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
   }
-  m_Pool =
-    kovri::core::tunnels.CreateTunnelPool(
-        this,
-        inbound_tunnel_len,
-        outbound_tunnel_len,
-        inbound_tunnels_quantity,
-        outbound_tunnels_quantity);
-  if (explicit_peers)
-    m_Pool->SetExplicitPeers(explicit_peers);
-  if (m_IsPublic)
-    LOG(debug)
-      << "ClientDestination: created local address "
-      << kovri::core::GetB32Address(GetIdentHash());
-  // TODO(unassigned): ???
-  m_StreamingDestination =
-    std::make_shared<kovri::client::StreamingDestination> (*this);
+
 }
 
 ClientDestination::~ClientDestination() {

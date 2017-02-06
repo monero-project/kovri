@@ -49,6 +49,7 @@
 #include "core/router/identity.h"
 #include "core/router/lease_set.h"
 
+#include "core/util/exception.h"
 #include "core/util/queue.h"
 
 namespace kovri {
@@ -190,13 +191,16 @@ class GarlicRoutingSession
   std::uint64_t m_LeaseSetSubmissionTime;  // in milliseconds
 
   kovri::core::CBCEncryption m_Encryption;
+
+  core::Exception m_Exception;
 };
 
 class GarlicDestination
     : public kovri::core::LocalDestination {
  public:
   GarlicDestination()
-      : m_LastTagsCleanupTime(0) {}
+      : m_LastTagsCleanupTime(0),
+        m_Exception(__func__) {}
 
   ~GarlicDestination();
 
@@ -267,6 +271,8 @@ class GarlicDestination
   // DeliveryStatus  (msg_ID -> session)
   std::map<std::uint32_t,
            std::shared_ptr<GarlicRoutingSession>> m_CreatedSessions;
+
+  core::Exception m_Exception;
 };
 
 }  // namespace core

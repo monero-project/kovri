@@ -46,6 +46,7 @@
 #include "core/router/info.h"
 #include "core/router/lease_set.h"
 
+#include "core/util/exception.h"
 #include "core/util/i2p_endian.h"
 
 namespace kovri {
@@ -153,13 +154,15 @@ struct I2NPMessage {
   std::uint8_t* buf;
   std::size_t len, offset, max_len;
   std::shared_ptr<kovri::core::InboundTunnel> from;
+  core::Exception exception;
 
   I2NPMessage()
       : buf(nullptr),
-        len(I2NP_HEADER_SIZE + 2),
+        len(I2NP_HEADER_SIZE + 2),  // reserve 2 bytes for NTCP header
         offset(2),
         max_len(0),
-        from(nullptr) {}  // reserve 2 bytes for NTCP header
+        from(nullptr),
+        exception(__func__) {}
 
   // header accessors
   std::uint8_t* GetHeader() {
@@ -210,9 +213,16 @@ struct I2NPMessage {
   }
 
   void UpdateChks() {
-    std::uint8_t hash[32];
-    kovri::core::SHA256().CalculateDigest(hash, GetPayload(), GetPayloadLength());
-    GetHeader()[I2NP_HEADER_CHKS_OFFSET] = hash[0];
+    // TODO(anonimal): this try block should be handled entirely by caller
+    try {
+      std::uint8_t hash[32];
+      kovri::core::SHA256().CalculateDigest(hash, GetPayload(), GetPayloadLength());
+      GetHeader()[I2NP_HEADER_CHKS_OFFSET] = hash[0];
+    } catch (...) {
+      exception.Dispatch(__func__);
+      // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+      throw;
+    }
   }
 
   // payload

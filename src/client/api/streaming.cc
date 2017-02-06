@@ -72,7 +72,8 @@ Stream::Stream(
       m_RTT(INITIAL_RTT),
       m_RTO(INITIAL_RTO),
       m_LastWindowSizeIncreaseTime(0),
-      m_NumResendAttempts(0) {
+      m_NumResendAttempts(0),
+      m_Exception(__func__) {
         m_RecvStreamID = kovri::core::Rand<std::uint32_t>();
         m_RemoteIdentity = remote->GetIdentity();
         // TODO(unassigned):
@@ -116,7 +117,8 @@ Stream::Stream(
       m_RTT(INITIAL_RTT),
       m_RTO(INITIAL_RTO),
       m_LastWindowSizeIncreaseTime(0),
-      m_NumResendAttempts(0) {
+      m_NumResendAttempts(0),
+      m_Exception(__func__) {
         m_RecvStreamID = kovri::core::Rand<std::uint32_t>();
       }
 
@@ -847,30 +849,35 @@ std::shared_ptr<kovri::core::I2NPMessage> Stream::CreateDataMessage(
     const std::uint8_t* payload,
     std::size_t len) {
   auto msg = kovri::core::ToSharedI2NPMessage(kovri::core::NewI2NPShortMessage());
-  kovri::core::Gzip compressor;
-  if (len <= kovri::client::COMPRESSION_THRESHOLD_SIZE)
-    compressor.SetDeflateLevel(
-        compressor.GetMinDeflateLevel());
-  else
-    compressor.SetDeflateLevel(
-        compressor.GetDefaultDeflateLevel());
-  compressor.Put(
-      payload,
-      len);
-  int size = compressor.MaxRetrievable();
-  std::uint8_t* buf = msg->GetPayload();
-  // length
-  htobe32buf(buf, size);
-  buf += 4;
-  compressor.Get(buf, size);
-  // source port
-  htobe16buf(buf + 4, m_LocalDestination.GetLocalPort());
-  // destination port
-  htobe16buf(buf + 6, m_Port);
-  // streaming protocol
-  buf[9] = kovri::client::PROTOCOL_TYPE_STREAMING;
-  msg->len += size + 4;
-  msg->FillI2NPMessageHeader(kovri::core::I2NPData);
+  try {
+    kovri::core::Gzip compressor;
+    if (len <= kovri::client::COMPRESSION_THRESHOLD_SIZE)
+      compressor.SetDeflateLevel(
+          compressor.GetMinDeflateLevel());
+    else
+      compressor.SetDeflateLevel(
+          compressor.GetDefaultDeflateLevel());
+    compressor.Put(
+        payload,
+        len);
+    int size = compressor.MaxRetrievable();
+    std::uint8_t* buf = msg->GetPayload();
+    // length
+    htobe32buf(buf, size);
+    buf += 4;
+    compressor.Get(buf, size);
+    // source port
+    htobe16buf(buf + 4, m_LocalDestination.GetLocalPort());
+    // destination port
+    htobe16buf(buf + 6, m_Port);
+    // streaming protocol
+    buf[9] = kovri::client::PROTOCOL_TYPE_STREAMING;
+    msg->len += size + 4;
+    msg->FillI2NPMessageHeader(kovri::core::I2NPData);
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+  }
   return msg;
 }
 
@@ -953,19 +960,23 @@ void StreamingDestination::DeleteStream(
 void StreamingDestination::HandleDataMessagePayload(
     const std::uint8_t* buf,
     std::size_t len) {
-  // Gunzip it
-  kovri::core::Gunzip decompressor;
-  decompressor.Put(buf, len);
   Packet* uncompressed = new Packet;
-  uncompressed->offset = 0;
-  uncompressed->len = decompressor.MaxRetrievable();
-  if (uncompressed->len <= MAX_PACKET_SIZE) {
+  try {
+    kovri::core::Gunzip decompressor;
+    decompressor.Put(buf, len);
+    uncompressed->offset = 0;
+    uncompressed->len = decompressor.MaxRetrievable();
+    if (uncompressed->len > MAX_PACKET_SIZE) {
+      LOG(debug)
+        << "StreamingDestination: received packet size "
+        << uncompressed->len << " exceeds max packet size, skipped";
+      delete uncompressed;
+      return;
+    }
     decompressor.Get(uncompressed->buf, uncompressed->len);
     HandleNextPacket(uncompressed);
-  } else {
-    LOG(debug)
-      << "StreamingDestination: received packet size "
-      << uncompressed->len << " exceeds max packet size, skipped";
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
     delete uncompressed;
   }
 }

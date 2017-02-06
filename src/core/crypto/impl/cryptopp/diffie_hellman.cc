@@ -56,16 +56,7 @@ class DiffieHellman::DiffieHellmanImpl {
   void GenerateKeyPair(
       std::uint8_t* private_key,
       std::uint8_t* public_key) {
-    try {
-      m_DH.GenerateKeyPair(
-          m_PRNG,
-          private_key,
-          public_key);
-    } catch (CryptoPP::Exception e) {
-      LOG(error)
-        << "DiffieHellman: " << __func__
-        << " caught exception '" << e.what() << "'";
-    }
+    m_DH.GenerateKeyPair(m_PRNG, private_key, public_key);
   }
 
   /// @brief Agreed value from your private key and other party's public key

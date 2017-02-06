@@ -53,16 +53,28 @@ TransitTunnel::TransitTunnel(
     const std::uint8_t* iv_key)
     : m_TunnelID(receive_tunnel_ID),
       m_NextTunnelID(next_tunnel_ID),
-      m_NextIdent(next_ident) {
-  m_Encryption.SetKeys(layer_key, iv_key);
+      m_NextIdent(next_ident),
+      m_Exception(__func__) {
+  try {
+    m_Encryption.SetKeys(layer_key, iv_key);
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
+  }
 }
 
 void TransitTunnel::EncryptTunnelMsg(
     std::shared_ptr<const I2NPMessage> in,
     std::shared_ptr<I2NPMessage> out) {
-  m_Encryption.Encrypt(
-      in->GetPayload() + 4,
-      out->GetPayload() + 4);
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try {
+    m_Encryption.Encrypt(in->GetPayload() + 4, out->GetPayload() + 4);
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
+  }
 }
 
 TransitTunnelParticipant::~TransitTunnelParticipant() {}

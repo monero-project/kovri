@@ -41,6 +41,8 @@
 #include "core/router/i2np.h"
 #include "core/router/tunnel/base.h"
 
+#include "core/util/exception.h"
+
 namespace kovri {
 namespace core {
 
@@ -59,7 +61,9 @@ class TunnelEndpoint {
     TunnelEndpoint(
         bool is_inbound)
         : m_IsInbound(is_inbound),
-          m_NumReceivedBytes(0) {}
+          m_NumReceivedBytes(0),
+          m_Exception(__func__) {}
+
     ~TunnelEndpoint();
 
     std::size_t GetNumReceivedBytes() const {
@@ -93,6 +97,7 @@ class TunnelEndpoint {
     std::map<std::uint32_t, Fragment> m_OutOfSequenceFragments;
     bool m_IsInbound;
     std::size_t m_NumReceivedBytes;
+    core::Exception m_Exception;
 };
 
 }  // namespace core

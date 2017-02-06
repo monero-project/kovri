@@ -53,6 +53,8 @@
 #include "core/router/net_db/impl.h"
 #include "core/router/tunnel/pool.h"
 
+#include "core/util/exception.h"
+
 namespace kovri {
 namespace client {
 
@@ -274,6 +276,8 @@ class ClientDestination : public kovri::core::GarlicDestination {
   DatagramDestination* m_DatagramDestination;
 
   boost::asio::deadline_timer m_PublishConfirmationTimer, m_CleanupTimer;
+
+  kovri::core::Exception m_Exception;
 };
 
 }  // namespace client

@@ -54,55 +54,13 @@
 namespace kovri {
 namespace core {
 
-enum struct NTCPSize : const std::size_t {
-  pub_key     = 256,  // DH (X, Y)
-  hash        = 32,
-  padding     = 12,
-  session_key = 32,
-  iv          = 16,
-  adler32     = 4,
-  // TODO(unassigned):
-  // Through release of java 0.9.15, the router identity was always 387 bytes,
-  // the signature was always a 40 byte DSA signature, and the padding was always 15 bytes.
-  // As of release java 0.9.16, the router identity may be longer than 387 bytes,
-  // and the signature type and length are implied by the type of the Signing Public Key in Alice's Router Identity.
-  // The padding is as necessary to a multiple of 16 bytes for the entire unencrypted contents.
-  phase3_alice_ri  = 2,
-  phase3_alice_ts  = 4,
-  phase3_padding   = 15,
-  phase3_signature = 40,
-  phase3_unencrypted =
-    phase3_alice_ri +
-    kovri::core::DEFAULT_IDENTITY_SIZE +  // 387
-    phase3_alice_ts +
-    phase3_padding +
-    phase3_signature,  // Total = 448
-  max_message = 16384,
-  buffer = 4160,  // fits 4 tunnel messages (4 * 1028)
+/// @enum NTCPTimeoutLength
+/// @brief Timeout lenghts used in NTCP
+/// @notes Time is measured in seconds
+enum struct NTCPTimeoutLength : std::uint16_t {
+  Termination = 120,
+  BanExpiration = 70,
 };
-
-enum struct NTCPTimeoutLength : const std::size_t {
-  termination = 120,  // 2 minutes
-  ban_expiration = 70,  // in seconds
-};
-
-// TODO(unassigned): is packing really necessary?
-// If so, should we not be consistent with other protocols?
-#pragma pack(1)
-struct NTCPPhase1 {
-  std::array<std::uint8_t, static_cast<std::size_t>(NTCPSize::pub_key)> pub_key;
-  std::array<std::uint8_t, static_cast<std::size_t>(NTCPSize::hash)> HXxorHI;
-};
-
-struct NTCPPhase2 {
-  std::array<std::uint8_t, static_cast<std::size_t>(NTCPSize::pub_key)> pub_key;
-  struct {
-    std::array<std::uint8_t, static_cast<std::size_t>(NTCPSize::hash)> hxy;
-    std::uint32_t timestamp;
-    std::array<std::uint8_t, static_cast<std::size_t>(NTCPSize::padding)> padding;
-  } encrypted;
-};
-#pragma pack()
 
 class NTCPServer;
 class NTCPSession
@@ -111,7 +69,7 @@ class NTCPSession
  public:
   NTCPSession(
       NTCPServer& server,
-      std::shared_ptr<const kovri::core::RouterInfo> in_RemoteRouter = nullptr);
+      std::shared_ptr<const kovri::core::RouterInfo> remote_router = nullptr);
 
   ~NTCPSession();
 
@@ -285,6 +243,13 @@ class NTCPSession
   void HandleTerminationTimer(
       const boost::system::error_code& ecode);
 
+  /// @enum Phase
+  /// @brief Phases for NTCP session
+  enum struct Phase : std::uint8_t { One, Two, Three, Four };
+
+  /// @brief Returns phase info
+  const std::string GetFormattedPhaseInfo(const Phase& num);
+
  private:
   std::string m_RemoteIdentHashAbbreviation;
 
@@ -297,6 +262,52 @@ class NTCPSession
   kovri::core::CBCDecryption m_Decryption;
   kovri::core::CBCEncryption m_Encryption;
 
+  /// @enum NTCPSize
+  enum NTCPSize : std::uint16_t {
+    PubKey     = 256,  // DH (X, Y)
+    Hash        = 32,
+    Padding     = 12,
+    SessionKey = 32,
+    IV          = 16,
+    Adler32     = 4,
+    // TODO(unassigned):
+    // Through release of java 0.9.15, the router identity was always 387 bytes,
+    // the signature was always a 40 byte DSA signature, and the padding was always 15 bytes.
+    // As of release java 0.9.16, the router identity may be longer than 387 bytes,
+    // and the signature type and length are implied by the type of the Signing Public Key in Alice's Router Identity.
+    // The padding is as necessary to a multiple of 16 bytes for the entire unencrypted contents.
+    Phase3AliceRI  = 2,
+    Phase3AliceTS  = 4,
+    Phase3Padding   = 15,
+    Phase3Signature = 40,
+    Phase3Unencrypted =
+      Phase3AliceRI +
+      kovri::core::DEFAULT_IDENTITY_SIZE +  // 387
+      Phase3AliceTS +
+      Phase3Padding +
+      Phase3Signature,  // Total = 448
+    MaxMessage = 16384,
+    Buffer = 4160,  // fits 4 tunnel messages (4 * 1028)
+  };
+
+  // TODO(unassigned): is packing necessary?
+  // If so, should we not be consistent with other protocols?
+  #pragma pack(1)
+  struct NTCPPhase1 {
+    std::array<std::uint8_t, NTCPSize::PubKey> pub_key;
+    std::array<std::uint8_t, NTCPSize::Hash> HXxorHI;
+  };
+
+  struct NTCPPhase2 {
+    std::array<std::uint8_t, NTCPSize::PubKey> pub_key;
+    struct {
+      std::array<std::uint8_t, NTCPSize::Hash> hxy;
+      std::uint32_t timestamp;
+      std::array<std::uint8_t, NTCPSize::Padding> padding;
+    } encrypted;
+  };
+  #pragma pack()
+
   struct Establisher {
     NTCPPhase1 phase1;
     NTCPPhase2 phase2;
@@ -304,12 +315,8 @@ class NTCPSession
 
   std::unique_ptr<Establisher> m_Establisher;
 
-  kovri::core::AESAlignedBuffer<
-    static_cast<std::size_t>(NTCPSize::buffer) +
-    static_cast<std::size_t>(NTCPSize::iv)> m_ReceiveBuffer;
-
-  kovri::core::AESAlignedBuffer<
-    static_cast<std::size_t>(NTCPSize::iv)> m_TimeSyncBuffer;
+  kovri::core::AESAlignedBuffer<NTCPSize::Buffer + NTCPSize::IV> m_ReceiveBuffer;
+  kovri::core::AESAlignedBuffer<NTCPSize::IV> m_TimeSyncBuffer;
 
   std::size_t m_ReceiveBufferOffset;
 

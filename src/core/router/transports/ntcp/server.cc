@@ -259,10 +259,10 @@ void NTCPServer::Ban(
     const std::shared_ptr<NTCPSession>& session) {
   std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
   m_BanList[session->GetRemoteEndpoint().address()] =
-    ts + static_cast<std::size_t>(NTCPTimeoutLength::ban_expiration);
+    ts + GetType(NTCPTimeoutLength::BanExpiration);
   LOG(warning)
     << "NTCPServer:" << session->GetFormattedSessionInfo() << "has been banned for "
-    << static_cast<std::size_t>(NTCPTimeoutLength::ban_expiration) << " seconds";
+    << GetType(NTCPTimeoutLength::BanExpiration) << " seconds";
 }
 
 void NTCPServer::Stop() {

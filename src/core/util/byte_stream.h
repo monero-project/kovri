@@ -34,6 +34,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <type_traits>
+#include <ios>
 
 namespace kovri {
 namespace core {
@@ -166,6 +167,11 @@ class OutputByteStream {
   std::size_t m_Counter;  ///< Counter for amount of incremented data
   std::size_t m_Size;  ///< Total size of stream given at initialization
 };
+
+/// @brief Returns hex encoding of given data
+/// @param data Pointer to data
+/// @param size Total size of data
+const std::string GetFormattedHex(const std::uint8_t* data, std::size_t size);
 
 } // namespace core
 } // namespace kovri

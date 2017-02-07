@@ -34,11 +34,15 @@
 
 #include <cstring>
 #include <stdexcept>
+#include <sstream>
+#include <iomanip>
 
 #include "core/util/i2p_endian.h"
 
 namespace kovri {
 namespace core {
+
+/// Input
 
 InputByteStream::InputByteStream(
     std::uint8_t* data,
@@ -76,6 +80,8 @@ std::uint16_t InputByteStream::ReadUInt16() {
 std::uint8_t InputByteStream::ReadUInt8() {
   return *ReadBytes(sizeof(std::uint8_t));
 }
+
+/// Output
 
 OutputByteStream::OutputByteStream(
   std::uint8_t* data,
@@ -133,6 +139,23 @@ std::uint8_t* OutputByteStream::GetData() const {
 
 std::size_t OutputByteStream::GetSize() const {
   return m_Size;
+}
+
+// Hex
+
+const std::string GetFormattedHex(const std::uint8_t* data, std::size_t size) {
+  std::ostringstream hex;
+  std::size_t count = 0;
+  for (std::size_t i = 0; i < size; i++) {
+    hex << std::hex << std::setfill('0') << std::setw(2) << static_cast<std::uint16_t>(data[i]) << " ";
+    count++;
+    if (count == 8) {
+      hex.put('|');
+      hex.put(' ');
+      count = 0;
+    }
+  }
+  return hex.str();
 }
 
 } // namespace core

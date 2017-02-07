@@ -149,7 +149,7 @@ kovri::core::PrivateKeys ClientContext::CreatePrivateKeys(
   CreateB32AddressTextFile(keys, filename);
   LOG(info)
     << "ClientContext: created new private keys " << file_path << " for "
-    << m_AddressBook.GetB32AddressFromIdentHash(keys.GetPublic().GetIdentHash());
+    << kovri::core::GetB32Address(keys.GetPublic().GetIdentHash());
   return keys;
 }
 
@@ -174,7 +174,7 @@ kovri::core::PrivateKeys ClientContext::LoadPrivateKeys(
   CreateB32AddressTextFile(keys, filename);
   LOG(info)
     << "ClientContext: " << file_path << " loaded: uses local address "
-    << m_AddressBook.GetB32AddressFromIdentHash(keys.GetPublic().GetIdentHash());
+    << kovri::core::GetB32Address(keys.GetPublic().GetIdentHash());
   return keys;
 }
 
@@ -201,7 +201,7 @@ std::shared_ptr<ClientDestination> ClientContext::LoadLocalDestination(
   if (it != m_Destinations.end()) {
     LOG(warning)
       << "ClientContext: local destination "
-      << m_AddressBook.GetB32AddressFromIdentHash(keys.GetPublic().GetIdentHash())
+      << kovri::core::GetB32Address(keys.GetPublic().GetIdentHash())
       << " already exists";
     local_destination = it->second;
   } else {
@@ -249,7 +249,7 @@ std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination(
   if (it != m_Destinations.end()) {
     LOG(debug)
       << "ClientContext: local destination "
-      << m_AddressBook.GetB32AddressFromIdentHash(keys.GetPublic().GetIdentHash())
+      << kovri::core::GetB32Address(keys.GetPublic().GetIdentHash())
       << " already exists";
     if (!it->second->IsRunning()) {
       it->second->Start();

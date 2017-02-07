@@ -56,6 +56,8 @@
 #include "core/router/transports/session.h"
 #include "core/router/transports/ssu/server.h"
 
+#include "core/util/exception.h"
+
 #ifdef USE_UPNP
 #include "core/router/transports/upnp.h"
 #endif
@@ -95,6 +97,7 @@ class DHKeysPairSupplier {
   std::unique_ptr<std::thread> m_Thread;
   std::condition_variable m_Acquired;
   std::mutex m_AcquiredMutex;
+  core::Exception m_Exception;
 };
 
 /// @class Peer

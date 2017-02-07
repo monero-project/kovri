@@ -70,11 +70,18 @@ void TunnelEndpoint::HandleDecryptedTunnelDataMsg(
         msg->GetPayload() + 4,
         16);
     std::uint8_t hash[32];
-    kovri::core::SHA256().CalculateDigest(
-        hash,
-        fragment,
-        // payload + iv
-        TUNNEL_DATA_MSG_SIZE - (fragment - msg->GetPayload()) + 16);
+    // TODO(anonimal): this try block should be larger or handled entirely by caller
+    try {
+      kovri::core::SHA256().CalculateDigest(
+          hash,
+          fragment,
+          // payload + iv
+          TUNNEL_DATA_MSG_SIZE - (fragment - msg->GetPayload()) + 16);
+    } catch (...) {
+      m_Exception.Dispatch(__func__);
+      // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+      throw;
+    }
     if (memcmp(hash, decrypted, 4)) {
       LOG(error)
         << "TunnelEndpoint: " << __func__ << ": checksum verification failed";

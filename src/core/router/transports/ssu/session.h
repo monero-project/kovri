@@ -47,6 +47,8 @@
 #include "core/router/transports/session.h"
 #include "core/router/transports/ssu/data.h"
 
+#include "core/util/exception.h"
+
 namespace kovri {
 namespace core {
 
@@ -386,6 +388,7 @@ class SSUSession
   std::uint32_t m_CreationTime;  // seconds since epoch
   std::unique_ptr<SignedData> m_SessionConfirmData;
   bool m_IsDataReceived;
+  kovri::core::Exception m_Exception;
 };
 
 }  // namespace core

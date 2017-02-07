@@ -26,6 +26,7 @@ set(CORE_SRC
   "router/tunnel/transit.cc"
   "util/base64.cc"
   "util/byte_stream.cc"
+  "util/exception.cc"
   "util/filesystem.cc"
   "util/log.cc"
   "util/mtu.cc")

@@ -67,41 +67,35 @@ class ElGamalEncryption::ElGamalEncryptionImpl {
       std::size_t len,
       std::uint8_t* encrypted,
       bool zeroPadding) const {
-    try {
-      if (len > 222) {
-        // Bad size, will overflow
-        throw std::logic_error(
-            "ElGamalEncryptionImpl: bad size for encryption: " +
-            std::to_string(len));
-      }
-      std::array<std::uint8_t, 255> memory;
-      // Don't pad with uninitialized memory
-      RandBytes(memory.data(), 255);
-      memory.at(0) = 0xFF;
-      memcpy(memory.data() + 33, data, len);
-      CryptoPP::SHA256().CalculateDigest(
-          memory.data() + 1,
-          memory.data() + 33,
-          222);
-      CryptoPP::Integer b(
-          a_times_b_mod_c(
-              b1,
-              CryptoPP::Integer(memory.data(), 255),
-              elgp));
-      // Copy a and b
-      if (zeroPadding) {
-        encrypted[0] = 0;
-        a.Encode(encrypted + 1, 256);
-        encrypted[257] = 0;
-        b.Encode(encrypted + 258, 256);
-      } else {
-        a.Encode(encrypted, 256);
-        b.Encode(encrypted + 256, 256);
-      }
-    } catch (CryptoPP::Exception e) {
-      LOG(error)
-        << "ElGamalEncryptionImpl: " << __func__
-        << " caught exception '" << e.what() << "'";
+    if (len > 222) {
+      // Bad size, will overflow
+      throw std::logic_error(
+          "ElGamalEncryptionImpl: bad size for encryption: " +
+          std::to_string(len));
+    }
+    std::array<std::uint8_t, 255> memory;
+    // Don't pad with uninitialized memory
+    RandBytes(memory.data(), 255);
+    memory.at(0) = 0xFF;
+    memcpy(memory.data() + 33, data, len);
+    CryptoPP::SHA256().CalculateDigest(
+        memory.data() + 1,
+        memory.data() + 33,
+        222);
+    CryptoPP::Integer b(
+        a_times_b_mod_c(
+            b1,
+            CryptoPP::Integer(memory.data(), 255),
+            elgp));
+    // Copy a and b
+    if (zeroPadding) {
+      encrypted[0] = 0;
+      a.Encode(encrypted + 1, 256);
+      encrypted[257] = 0;
+      b.Encode(encrypted + 258, 256);
+    } else {
+      a.Encode(encrypted, 256);
+      b.Encode(encrypted + 256, 256);
     }
   }
 
@@ -158,7 +152,6 @@ bool ElGamalDecrypt(
 void GenerateElGamalKeyPair(
     std::uint8_t* priv,
     std::uint8_t* pub) {
-  try {
 #if defined(__x86_64__) || defined(__i386__) || defined(_MSC_VER)
   RandBytes(priv, 256);
   a_exp_b_mod_c(
@@ -168,9 +161,6 @@ void GenerateElGamalKeyPair(
 #else
     DiffieHellman().GenerateKeyPair(priv, pub);
 #endif
-  } catch (CryptoPP::Exception e) {
-    LOG(error) << __func__ << ": caught exception '" << e.what() << "'";
-  }
 }
 
 }  //  namespace core

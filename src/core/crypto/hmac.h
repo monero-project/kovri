@@ -42,6 +42,8 @@
 
 #include "core/router/identity.h"
 
+#include "core/util/exception.h"
+
 namespace kovri {
 namespace core {
 
@@ -55,45 +57,53 @@ inline void HMACMD5Digest(
     std::size_t len,
     const MACKey& key,
     std::uint8_t* digest) {
-  // key is 32 bytes
-  // digest is 16 bytes
-  // block size is 64 bytes
-  std::uint64_t buf[256];
-  // ikeypad
-  buf[0] = key.GetLL()[0] ^ IPAD;
-  buf[1] = key.GetLL()[1] ^ IPAD;
-  buf[2] = key.GetLL()[2] ^ IPAD;
-  buf[3] = key.GetLL()[3] ^ IPAD;
-  buf[4] = IPAD;
-  buf[5] = IPAD;
-  buf[6] = IPAD;
-  buf[7] = IPAD;
-  // concatenate with msg
-  memcpy(buf + 8, msg, len);
-  // calculate first hash
-  std::uint8_t hash[16];  // MD5
-  kovri::core::MD5().CalculateDigest(
-      hash,
-      reinterpret_cast<std::uint8_t *>(buf),
-      len + 64);
-  // okeypad
-  buf[0] = key.GetLL()[0] ^ OPAD;
-  buf[1] = key.GetLL()[1] ^ OPAD;
-  buf[2] = key.GetLL()[2] ^ OPAD;
-  buf[3] = key.GetLL()[3] ^ OPAD;
-  buf[4] = OPAD;
-  buf[5] = OPAD;
-  buf[6] = OPAD;
-  buf[7] = OPAD;
-  // copy first hash after okeypad
-  memcpy(buf + 8, hash, 16);
-  // fill next 16 bytes with zeros (first hash size assumed 32 bytes in I2P)
-  memset(buf + 10, 0, 16);
-  // calculate digest
-  kovri::core::MD5().CalculateDigest(
-      digest,
-      reinterpret_cast<std::uint8_t *>(buf),
-      96);
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try {
+    // key is 32 bytes
+    // digest is 16 bytes
+    // block size is 64 bytes
+    std::uint64_t buf[256];
+    // ikeypad
+    buf[0] = key.GetLL()[0] ^ IPAD;
+    buf[1] = key.GetLL()[1] ^ IPAD;
+    buf[2] = key.GetLL()[2] ^ IPAD;
+    buf[3] = key.GetLL()[3] ^ IPAD;
+    buf[4] = IPAD;
+    buf[5] = IPAD;
+    buf[6] = IPAD;
+    buf[7] = IPAD;
+    // concatenate with msg
+    memcpy(buf + 8, msg, len);
+    // calculate first hash
+    std::uint8_t hash[16];  // MD5
+    kovri::core::MD5().CalculateDigest(
+        hash,
+        reinterpret_cast<std::uint8_t *>(buf),
+        len + 64);
+    // okeypad
+    buf[0] = key.GetLL()[0] ^ OPAD;
+    buf[1] = key.GetLL()[1] ^ OPAD;
+    buf[2] = key.GetLL()[2] ^ OPAD;
+    buf[3] = key.GetLL()[3] ^ OPAD;
+    buf[4] = OPAD;
+    buf[5] = OPAD;
+    buf[6] = OPAD;
+    buf[7] = OPAD;
+    // copy first hash after okeypad
+    memcpy(buf + 8, hash, 16);
+    // fill next 16 bytes with zeros (first hash size assumed 32 bytes in I2P)
+    memset(buf + 10, 0, 16);
+    // calculate digest
+    kovri::core::MD5().CalculateDigest(
+        digest,
+        reinterpret_cast<std::uint8_t *>(buf),
+        96);
+  } catch (...) {
+    core::Exception ex;
+    ex.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
+  }
 }
 
 }  // namespace core

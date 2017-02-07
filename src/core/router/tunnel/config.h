@@ -43,6 +43,8 @@
 #include "core/crypto/tunnel.h"
 #include "core/router/info.h"
 
+#include "core/util/exception.h"
+
 namespace kovri {
 namespace core {
 
@@ -134,6 +136,8 @@ class TunnelHopConfig {
 
   /// @brief Decryption implementation
   TunnelDecryption m_Decryption;
+
+  core::Exception m_Exception;
 };
 
 class TunnelConfig : public std::enable_shared_from_this<TunnelConfig> {

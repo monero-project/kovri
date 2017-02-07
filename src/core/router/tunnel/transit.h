@@ -46,6 +46,8 @@
 #include "core/router/tunnel/endpoint.h"
 #include "core/router/tunnel/gateway.h"
 
+#include "core/util/exception.h"
+
 namespace kovri {
 namespace core {
 
@@ -90,6 +92,7 @@ class TransitTunnel : public TunnelBase {
            m_NextTunnelID;
   kovri::core::IdentHash m_NextIdent;
   kovri::core::TunnelEncryption m_Encryption;
+  core::Exception m_Exception;
 };
 
 class TransitTunnelParticipant : public TransitTunnel {

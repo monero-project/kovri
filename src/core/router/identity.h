@@ -44,6 +44,7 @@
 #include "core/crypto/signature_base.h"
 
 #include "core/util/base64.h"
+#include "core/util/exception.h"
 
 namespace kovri {
 namespace core {
@@ -275,6 +276,7 @@ class IdentityEx {
   mutable std::unique_ptr<kovri::core::Verifier> m_Verifier;
   std::size_t m_ExtendedLen;
   std::unique_ptr<std::uint8_t[]> m_ExtendedBuffer;
+  core::Exception m_Exception;
 };
 
 class PrivateKeys {  // for eepsites

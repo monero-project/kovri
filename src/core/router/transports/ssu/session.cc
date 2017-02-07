@@ -89,7 +89,8 @@ SSUSession::SSUSession(
       m_IsSessionKey(false),
       m_RelayTag(0),
       m_Data(*this),
-      m_IsDataReceived(false) {
+      m_IsDataReceived(false),
+      m_Exception(__func__) {
   m_CreationTime = kovri::core::GetSecondsSinceEpoch();
 }
 
@@ -101,43 +102,50 @@ boost::asio::io_service& SSUSession::GetService() {
 
 bool SSUSession::CreateAESandMACKey(
     const std::uint8_t* pub_key) {
-  kovri::core::DiffieHellman dh;
-  std::array<std::uint8_t, 256> shared_key;
-  if (!dh.Agree(shared_key.data(), m_DHKeysPair->private_key.data(), pub_key)) {
-    LOG(error)
-      << "SSUSession:" << GetFormattedSessionInfo()
-      << "couldn't create shared key";
-    return false;
-  }
-  std::uint8_t* session_key = m_SessionKey();
-  std::uint8_t* mac_key = m_MACKey();
-  if (shared_key.at(0) & 0x80) {
-    session_key[0] = 0;
-    memcpy(session_key + 1, shared_key.data(), 31);
-    memcpy(mac_key, shared_key.data() + 31, 32);
-  } else if (shared_key.at(0)) {
-    memcpy(session_key, shared_key.data(), 32);
-    memcpy(mac_key, shared_key.data() + 32, 32);
-  } else {
-    // find first non-zero byte
-    auto non_zero = shared_key.data() + 1;
-    while (!*non_zero) {
-      non_zero++;
-      if (non_zero - shared_key.data() > 32) {
-        LOG(warning)
-          << "SSUSession:" << GetFormattedSessionInfo()
-          << "first 32 bytes of shared key is all zeros. Ignored";
-        return false;
-      }
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try {
+    kovri::core::DiffieHellman dh;
+    std::array<std::uint8_t, 256> shared_key;
+    if (!dh.Agree(shared_key.data(), m_DHKeysPair->private_key.data(), pub_key)) {
+      LOG(error)
+        << "SSUSession:" << GetFormattedSessionInfo()
+        << "couldn't create shared key";
+      return false;
     }
-    memcpy(session_key, non_zero, 32);
-    kovri::core::SHA256().CalculateDigest(
-        mac_key,
-        non_zero,
-        64 - (non_zero - shared_key.data()));
+    std::uint8_t* session_key = m_SessionKey();
+    std::uint8_t* mac_key = m_MACKey();
+    if (shared_key.at(0) & 0x80) {
+      session_key[0] = 0;
+      memcpy(session_key + 1, shared_key.data(), 31);
+      memcpy(mac_key, shared_key.data() + 31, 32);
+    } else if (shared_key.at(0)) {
+      memcpy(session_key, shared_key.data(), 32);
+      memcpy(mac_key, shared_key.data() + 32, 32);
+    } else {
+      // find first non-zero byte
+      auto non_zero = shared_key.data() + 1;
+      while (!*non_zero) {
+        non_zero++;
+        if (non_zero - shared_key.data() > 32) {
+          LOG(warning)
+            << "SSUSession:" << GetFormattedSessionInfo()
+            << "first 32 bytes of shared key is all zeros. Ignored";
+          return false;
+        }
+      }
+      memcpy(session_key, non_zero, 32);
+      kovri::core::SHA256().CalculateDigest(
+          mac_key,
+          non_zero,
+          64 - (non_zero - shared_key.data()));
+    }
+    m_SessionKeyEncryption.SetKey(m_SessionKey);
+    m_SessionKeyDecryption.SetKey(m_SessionKey);
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
   }
-  m_SessionKeyEncryption.SetKey(m_SessionKey);
-  m_SessionKeyDecryption.SetKey(m_SessionKey);
   return m_IsSessionKey = true;
 }
 
@@ -404,11 +412,18 @@ void SSUSession::ProcessSessionCreated(
   auto padding_size = signature_len & 0x0F;  // %16
   if (padding_size > 0)
     signature_len += (16 - padding_size);
-  m_SessionKeyDecryption.SetIV(packet->GetHeader()->GetIV());
-  m_SessionKeyDecryption.Decrypt(
-      packet->GetSignature(),
-      signature_len,
-      packet->GetSignature());
+  // TODO(anonimal): this try block should be larger or handled entirely by caller
+  try {
+    m_SessionKeyDecryption.SetIV(packet->GetHeader()->GetIV());
+    m_SessionKeyDecryption.Decrypt(
+        packet->GetSignature(),
+        signature_len,
+        packet->GetSignature());
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
+  }
   // verify
   if (s.Verify(m_RemoteIdentity, packet->GetSignature())) {
     SendSessionConfirmed(
@@ -492,12 +507,18 @@ void SSUSession::SendSessionCreated(
   packet.SetSignature(signature_buf.get(), signature_size + sig_padding);
 
   // Encrypt signature and padding with newly created session key
-  m_SessionKeyEncryption.SetIV(packet.GetHeader()->GetIV());
-  m_SessionKeyEncryption.Encrypt(
-      packet.GetSignature(),
-      packet.GetSignatureSize(),
-      packet.GetSignature());
-
+  // TODO(anonimal): this try block should be larger or handled entirely by caller
+  try {
+    m_SessionKeyEncryption.SetIV(packet.GetHeader()->GetIV());
+    m_SessionKeyEncryption.Encrypt(
+        packet.GetSignature(),
+        packet.GetSignatureSize(),
+        packet.GetSignature());
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
+  }
   const std::size_t packet_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
   const std::size_t buffer_size = packet_size + GetType(SSUSize::BufferMargin);
   // TODO(EinMByte): Deal with large messages in a better way
@@ -1094,31 +1115,38 @@ void SSUSession::FillHeaderAndEncrypt(
     const std::uint8_t* iv,
     const std::uint8_t* mac_key,
     std::uint8_t flag) {
-  if (len < GetType(SSUSize::HeaderMin)) {
-    LOG(error)
-      << "SSUSession:" << GetFormattedSessionInfo()
-      << "unexpected SSU packet length " << len;
-    return;
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try {
+    if (len < GetType(SSUSize::HeaderMin)) {
+      LOG(error)
+        << "SSUSession:" << GetFormattedSessionInfo()
+        << "unexpected SSU packet length " << len;
+      return;
+    }
+    SSUSessionPacket pkt(buf, len);
+    memcpy(pkt.IV(), iv, 16);
+    pkt.PutFlag(flag | (payload_type << 4));  // MSB is 0
+    pkt.PutTime(kovri::core::GetSecondsSinceEpoch());
+    auto encrypted = pkt.Encrypted();
+    auto encrypted_len = len - (encrypted - buf);
+    kovri::core::CBCEncryption encryption(aes_key, iv);
+    encryption.Encrypt(
+        encrypted,
+        encrypted_len,
+        encrypted);
+    // assume actual buffer size is 18 (16 + 2) bytes more
+    memcpy(buf + len, iv, 16);
+    htobe16buf(buf + len + 16, encrypted_len);
+    kovri::core::HMACMD5Digest(
+        encrypted,
+        encrypted_len + 18,
+        mac_key,
+        pkt.MAC());
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
   }
-  SSUSessionPacket pkt(buf, len);
-  memcpy(pkt.IV(), iv, 16);
-  pkt.PutFlag(flag | (payload_type << 4));  // MSB is 0
-  pkt.PutTime(kovri::core::GetSecondsSinceEpoch());
-  auto encrypted = pkt.Encrypted();
-  auto encrypted_len = len - (encrypted - buf);
-  kovri::core::CBCEncryption encryption(aes_key, iv);
-  encryption.Encrypt(
-      encrypted,
-      encrypted_len,
-      encrypted);
-  // assume actual buffer size is 18 (16 + 2) bytes more
-  memcpy(buf + len, iv, 16);
-  htobe16buf(buf + len + 16, encrypted_len);
-  kovri::core::HMACMD5Digest(
-      encrypted,
-      encrypted_len + 18,
-      mac_key,
-      pkt.MAC());
 }
 
 void SSUSession::WriteAndEncrypt(
@@ -1127,91 +1155,111 @@ void SSUSession::WriteAndEncrypt(
     std::size_t buffer_size,
     const std::uint8_t* aes_key,
     const std::uint8_t* mac_key) {
-  packet->GetHeader()->SetTime(kovri::core::GetSecondsSinceEpoch());
-
-  SSUPacketBuilder builder(buffer, buffer_size);
-  // Write header (excluding MAC)
-  builder.WriteHeader(packet->GetHeader());
-  // Write packet body
-  builder.WritePacket(packet);
-  // Encrypt everything after the MAC and IV
-  std::uint8_t* encrypted =
-    buffer
-    + GetType(SSUSize::IV)
-    + GetType(SSUSize::MAC);
-  auto encrypted_len = builder.GetPosition() - encrypted;
-  // Add padding
-  const std::size_t padding_size = SSUPacketBuilder::GetPaddingSize(encrypted_len);
-  kovri::core::RandBytes(builder.GetPosition(), padding_size);
-  encrypted_len += padding_size;
-  kovri::core::CBCEncryption encryption(aes_key, packet->GetHeader()->GetIV());
-  encryption.Encrypt(encrypted, encrypted_len, encrypted);
-  // Compute HMAC of encryptedPayload + IV + (payloadLength ^ protocolVersion)
-  // Currently, protocolVersion == 0
-  kovri::core::OutputByteStream stream(
-      encrypted + encrypted_len, buffer_size - (encrypted - buffer));
-  stream.WriteData(
-      packet->GetHeader()->GetIV(),
-      GetType(SSUSize::IV));
-  stream.WriteUInt16(encrypted_len);
-  kovri::core::HMACMD5Digest(
-      encrypted,
-      encrypted_len + GetType(SSUSize::BufferMargin),
-      mac_key,
-      buffer);
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try {
+    packet->GetHeader()->SetTime(kovri::core::GetSecondsSinceEpoch());
+    SSUPacketBuilder builder(buffer, buffer_size);
+    // Write header (excluding MAC)
+    builder.WriteHeader(packet->GetHeader());
+    // Write packet body
+    builder.WritePacket(packet);
+    // Encrypt everything after the MAC and IV
+    std::uint8_t* encrypted =
+      buffer
+      + GetType(SSUSize::IV)
+      + GetType(SSUSize::MAC);
+    auto encrypted_len = builder.GetPosition() - encrypted;
+    // Add padding
+    const std::size_t padding_size = SSUPacketBuilder::GetPaddingSize(encrypted_len);
+    kovri::core::RandBytes(builder.GetPosition(), padding_size);
+    encrypted_len += padding_size;
+    kovri::core::CBCEncryption encryption(aes_key, packet->GetHeader()->GetIV());
+    encryption.Encrypt(encrypted, encrypted_len, encrypted);
+    // Compute HMAC of encryptedPayload + IV + (payloadLength ^ protocolVersion)
+    // Currently, protocolVersion == 0
+    kovri::core::OutputByteStream stream(
+        encrypted + encrypted_len, buffer_size - (encrypted - buffer));
+    stream.WriteData(
+        packet->GetHeader()->GetIV(),
+        GetType(SSUSize::IV));
+    stream.WriteUInt16(encrypted_len);
+    kovri::core::HMACMD5Digest(
+        encrypted,
+        encrypted_len + GetType(SSUSize::BufferMargin),
+        mac_key,
+        buffer);
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
+  }
 }
 
 void SSUSession::FillHeaderAndEncrypt(
     std::uint8_t payload_type,
     std::uint8_t* buf,
     std::size_t len) {
-  if (len < GetType(SSUSize::HeaderMin)) {
-    LOG(error)
-      << "SSUSession:" << GetFormattedSessionInfo()
-      << "unexpected SSU packet length " << len;
-    return;
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try {
+    if (len < GetType(SSUSize::HeaderMin)) {
+      LOG(error)
+        << "SSUSession:" << GetFormattedSessionInfo()
+        << "unexpected SSU packet length " << len;
+      return;
+    }
+    SSUSessionPacket pkt(buf, len);
+    kovri::core::RandBytes(pkt.IV(), 16);  // random iv
+    m_SessionKeyEncryption.SetIV(pkt.IV());
+    pkt.PutFlag(payload_type << 4);  // MSB is 0
+    pkt.PutTime(kovri::core::GetSecondsSinceEpoch());
+    auto encrypted = pkt.Encrypted();
+    auto encrypted_len = len - (encrypted - buf);
+    m_SessionKeyEncryption.Encrypt(
+        encrypted,
+        encrypted_len,
+        encrypted);
+    // assume actual buffer size is 18 (16 + 2) bytes more
+    memcpy(buf + len, pkt.IV(), 16);
+    htobe16buf(buf + len + 16, encrypted_len);
+    kovri::core::HMACMD5Digest(
+        encrypted,
+        encrypted_len + 18,
+        m_MACKey,
+        pkt.MAC());
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
   }
-  SSUSessionPacket pkt(buf, len);
-  kovri::core::RandBytes(pkt.IV(), 16);  // random iv
-  m_SessionKeyEncryption.SetIV(pkt.IV());
-  pkt.PutFlag(payload_type << 4);  // MSB is 0
-  pkt.PutTime(kovri::core::GetSecondsSinceEpoch());
-  auto encrypted = pkt.Encrypted();
-  auto encrypted_len = len - (encrypted - buf);
-  m_SessionKeyEncryption.Encrypt(
-      encrypted,
-      encrypted_len,
-      encrypted);
-  // assume actual buffer size is 18 (16 + 2) bytes more
-  memcpy(buf + len, pkt.IV(), 16);
-  htobe16buf(buf + len + 16, encrypted_len);
-  kovri::core::HMACMD5Digest(
-      encrypted,
-      encrypted_len + 18,
-      m_MACKey,
-      pkt.MAC());
 }
 
 void SSUSession::Decrypt(
     std::uint8_t* buf,
     std::size_t len,
     const std::uint8_t* aes_key) {
-  if (len < GetType(SSUSize::HeaderMin)) {
-    LOG(error)
-      << "SSUSession:" << GetFormattedSessionInfo()
-      << __func__ << ": unexpected SSU packet length " << len;
-    return;
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try {
+    if (len < GetType(SSUSize::HeaderMin)) {
+      LOG(error)
+        << "SSUSession:" << GetFormattedSessionInfo()
+        << __func__ << ": unexpected SSU packet length " << len;
+      return;
+    }
+    SSUSessionPacket pkt(buf, len);
+    auto encrypted = pkt.Encrypted();
+    auto encrypted_len = len - (encrypted - buf);
+    kovri::core::CBCDecryption decryption;
+    decryption.SetKey(aes_key);
+    decryption.SetIV(pkt.IV());
+    decryption.Decrypt(
+        encrypted,
+        encrypted_len,
+        encrypted);
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
   }
-  SSUSessionPacket pkt(buf, len);
-  auto encrypted = pkt.Encrypted();
-  auto encrypted_len = len - (encrypted - buf);
-  kovri::core::CBCDecryption decryption;
-  decryption.SetKey(aes_key);
-  decryption.SetIV(pkt.IV());
-  decryption.Decrypt(
-      encrypted,
-      encrypted_len,
-      encrypted);
 }
 
 void SSUSession::DecryptSessionKey(
@@ -1227,11 +1275,15 @@ void SSUSession::DecryptSessionKey(
   auto encrypted = pkt.Encrypted();
   auto encrypted_len = len - (encrypted - buf);
   if (encrypted_len > 0) {
-    m_SessionKeyDecryption.SetIV(pkt.IV());
-    m_SessionKeyDecryption.Decrypt(
-        encrypted,
-        encrypted_len,
-        encrypted);
+    // TODO(anonimal): this try block should be larger or handled entirely by caller
+    try {
+      m_SessionKeyDecryption.SetIV(pkt.IV());
+      m_SessionKeyDecryption.Decrypt(encrypted, encrypted_len, encrypted);
+    } catch (...) {
+      m_Exception.Dispatch(__func__);
+      // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+      throw;
+    }
   }
 }
 

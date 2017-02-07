@@ -57,15 +57,7 @@ class MD5::MD5Impl {
       std::uint8_t* digest,
       const std::uint8_t* input,
       std::size_t length) {
-    try {
-      m_MD5.CalculateDigest(
-          digest,
-          input,
-          length);
-    } catch (CryptoPP::Exception e) {
-      LOG(error)
-        << "MD5Impl: " << __func__ << " caught exception '" << e.what() << "'";
-    }
+    m_MD5.CalculateDigest(digest, input, length);
   }
 
  private:
@@ -102,15 +94,7 @@ class SHA256::SHA256Impl {
       std::uint8_t* digest,
       const std::uint8_t* input,
       std::size_t length) {
-    try {
-      m_SHA256.CalculateDigest(
-          digest,
-          input,
-          length);
-    } catch (CryptoPP::Exception e) {
-      LOG(error)
-        << "SHA256Impl: " << __func__ << " caught exception '" << e.what() << "'";
-    }
+    m_SHA256.CalculateDigest(digest, input, length);
   }
 
   std::size_t VerifyDigest(
@@ -164,36 +148,18 @@ class SHA512::SHA512Impl {
       std::uint8_t* digest,
       const std::uint8_t* input,
       std::size_t length) {
-    try {
-      m_SHA512.CalculateDigest(
-          digest,
-          input,
-          length);
-    } catch (CryptoPP::Exception e) {
-      LOG(error)
-        << "SHA512Impl: " << __func__ << " caught exception '" << e.what() << "'";
-    }
+    m_SHA512.CalculateDigest(digest, input, length);
   }
 
   void Update(
       const std::uint8_t* input,
       std::size_t length) {
-    try {
-      m_SHA512.Update(input, length);
-    } catch (CryptoPP::Exception e) {
-      LOG(error)
-        << "SHA512Impl: " << __func__ << " caught exception '" << e.what() << "'";
-    }
+    m_SHA512.Update(input, length);
   }
 
   void Final(
       std::uint8_t* digest) {
-    try {
-      m_SHA512.Final(digest);
-    } catch (CryptoPP::Exception e) {
-      LOG(error)
-        << "SHA512Impl: " << __func__ << " caught exception '" << e.what() << "'";
-    }
+    m_SHA512.Final(digest);
   }
 
  private:

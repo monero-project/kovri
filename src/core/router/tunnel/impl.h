@@ -51,6 +51,7 @@
 #include "core/router/tunnel/pool.h"
 #include "core/router/tunnel/transit.h"
 
+#include "core/util/exception.h"
 #include "core/util/queue.h"
 
 namespace kovri {
@@ -147,6 +148,7 @@ class Tunnel : public TunnelBase {
   std::shared_ptr<TunnelPool> m_Pool;  // pool, tunnel belongs to, or null
   TunnelState m_State;
   bool m_IsRecreated;
+  core::Exception m_Exception;
 };
 
 class OutboundTunnel

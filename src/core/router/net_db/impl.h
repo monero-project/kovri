@@ -51,6 +51,7 @@
 #include "core/router/tunnel/pool.h"
 #include "core/router/tunnel/impl.h"
 
+#include "core/util/exception.h"
 #include "core/util/queue.h"
 
 namespace kovri {
@@ -281,6 +282,8 @@ class NetDb {
 
   friend class NetDbRequests;
   NetDbRequests m_Requests;
+
+  kovri::core::Exception m_Exception;
 };
 
 extern NetDb netdb;

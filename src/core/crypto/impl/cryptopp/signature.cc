@@ -123,13 +123,7 @@ class DSASigner::DSASignerImpl {
       std::uint8_t* signature) const {
     CryptoPP::DSA::Signer signer(m_PrivateKey);
     CryptoPP::AutoSeededRandomPool prng;
-    try {
-      signer.SignMessage(prng, buf, len, signature);
-    } catch (CryptoPP::Exception& e) {
-      LOG(error)
-        << "DSASignerImpl: " << __func__
-        << " caught exception '" << e.what() << "'";
-    }
+    signer.SignMessage(prng, buf, len, signature);
   }
 
  private:
@@ -156,24 +150,20 @@ void CreateDSARandomKeys(
     std::uint8_t* public_signing_key) {
   std::array<std::uint8_t, DSA_PRIVATE_KEY_LENGTH> key_buf;
   CryptoPP::Integer dsax;
-  try {
-    do {
-      kovri::core::RandBytes(key_buf.data(), DSA_PRIVATE_KEY_LENGTH);
-      dsax = CryptoPP::Integer(key_buf.data(), DSA_PRIVATE_KEY_LENGTH);
-    } while (dsax.IsZero() || dsax >= dsaq);
-    CryptoPP::DSA::PrivateKey private_key;
-    CryptoPP::DSA::PublicKey public_key;
-    private_key.Initialize(dsap, dsaq, dsag, dsax);
-    private_key.MakePublicKey(public_key);
-    private_key.GetPrivateExponent().Encode(
-        private_signing_key,
-        DSA_PRIVATE_KEY_LENGTH);
-    public_key.GetPublicElement().Encode(
-        public_signing_key,
-        DSA_PUBLIC_KEY_LENGTH);
-  } catch (CryptoPP::Exception& e) {
-    LOG(error) << __func__ << ": caught exception '" << e.what() << "'";
-  }
+  do {
+    kovri::core::RandBytes(key_buf.data(), DSA_PRIVATE_KEY_LENGTH);
+    dsax = CryptoPP::Integer(key_buf.data(), DSA_PRIVATE_KEY_LENGTH);
+  } while (dsax.IsZero() || dsax >= dsaq);
+  CryptoPP::DSA::PrivateKey private_key;
+  CryptoPP::DSA::PublicKey public_key;
+  private_key.Initialize(dsap, dsaq, dsag, dsax);
+  private_key.MakePublicKey(public_key);
+  private_key.GetPrivateExponent().Encode(
+      private_signing_key,
+      DSA_PRIVATE_KEY_LENGTH);
+  public_key.GetPublicElement().Encode(
+      public_signing_key,
+      DSA_PUBLIC_KEY_LENGTH);
 }
 
 /**
@@ -244,11 +234,7 @@ class ECDSASigner : public Signer {
     typename CryptoPP::ECDSA<CryptoPP::ECP, Hash>::Signer
       signer(m_PrivateKey);
     CryptoPP::AutoSeededRandomPool prng;
-    try {
-      signer.SignMessage(prng, buf, len, signature);
-    } catch (CryptoPP::Exception& e) {
-      LOG(error) << __func__ << ": caught exception '" << e.what() << "'";
-    }
+    signer.SignMessage(prng, buf, len, signature);
   }
 
  private:
@@ -269,16 +255,12 @@ inline void CreateECDSARandomKeys(
   typename CryptoPP::ECDSA<CryptoPP::ECP, Hash>::PublicKey
     public_key;
   CryptoPP::AutoSeededRandomPool prng;
-  try {
-    private_key.Initialize(prng, curve);
-    private_key.MakePublicKey(public_key);
-    private_key.GetPrivateExponent().Encode(private_signing_key, key_length / 2);
-    auto q = public_key.GetPublicElement();
-    q.x.Encode(public_signing_key, key_length / 2);
-    q.y.Encode(public_signing_key + key_length / 2, key_length / 2);
-  } catch (CryptoPP::Exception& e) {
-    LOG(error) << __func__ << ": caught exception '" << e.what() << "'";
-  }
+  private_key.Initialize(prng, curve);
+  private_key.MakePublicKey(public_key);
+  private_key.GetPrivateExponent().Encode(private_signing_key, key_length / 2);
+  auto q = public_key.GetPublicElement();
+  q.x.Encode(public_signing_key, key_length / 2);
+  q.y.Encode(public_signing_key + key_length / 2, key_length / 2);
 }
 
 /**
@@ -551,13 +533,8 @@ class RSASigner {
       std::uint8_t* signature) const {
     CryptoPP::AutoSeededRandomPool prng;
     typename CryptoPP::RSASS<CryptoPP::PKCS1v15, Hash>::Signer
-      signer(m_PrivateKey);
-    try {
-      signer.SignMessage(prng, buf, len, signature);
-    } catch (CryptoPP::Exception& e) {
-      LOG(error)
-        << "RSASigner: " << __func__ << " caught exception '" << e.what() << "'";
-    }
+    signer(m_PrivateKey);
+    signer.SignMessage(prng, buf, len, signature);
   }
 
  private:
@@ -571,23 +548,19 @@ void CreateRSARandomKeys(
     std::uint8_t* public_signing_key) {
   CryptoPP::RSA::PrivateKey private_key;
   CryptoPP::AutoSeededRandomPool prng;
-  try {
-    private_key.Initialize(
-        prng,
-        public_key_length * 8,
-        rsae);
-    private_key.GetModulus().Encode(
-        private_signing_key,
-        public_key_length);
-    private_key.GetPrivateExponent().Encode(
-        private_signing_key + public_key_length,
-        public_key_length);
-    private_key.GetModulus().Encode(
-        public_signing_key,
-        public_key_length);
-  } catch (CryptoPP::Exception& e) {
-    LOG(error) << __func__ << " caught exception '" << e.what() << "'";
-  }
+  private_key.Initialize(
+      prng,
+      public_key_length * 8,
+      rsae);
+  private_key.GetModulus().Encode(
+      private_signing_key,
+      public_key_length);
+  private_key.GetPrivateExponent().Encode(
+      private_signing_key + public_key_length,
+      public_key_length);
+  private_key.GetModulus().Encode(
+      public_signing_key,
+      public_key_length);
 }
 
 /**

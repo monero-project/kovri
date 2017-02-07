@@ -28,80 +28,34 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#include "core/crypto/diffie_hellman.h"
+#ifndef SRC_CORE_UTIL_EXCEPTION_H_
+#define SRC_CORE_UTIL_EXCEPTION_H_
 
-#include <cryptopp/dh.h>
-#include <cryptopp/osrng.h>
-
-#include <cstdint>
-
-#include "crypto_const.h"
-
-#include "core/util/log.h"
+#include <string>
 
 namespace kovri {
 namespace core {
 
-/// @class DiffieHellmanImpl
-/// @brief Diffie-Hellman implementation
-class DiffieHellman::DiffieHellmanImpl {
+/// TODO(anonimal): not yet a true exception class; could be more useful as a polymorphic class
+/// @class Exception
+/// @brief Exception dispatcher class
+/// @notes A global exception class, kept in core namespace (for now)
+class Exception final {
  public:
-  /// @brief Initializes with ElGamal constants on construction
-  DiffieHellmanImpl()
-      : m_DH(kovri::core::elgp, kovri::core::elgg) {}
+  /// @brief Constructs exception message
+  /// TODO(anonimal): this is a semi-useful hack to get caller's class name until class-name logging attribute is implemented
+  explicit Exception(const char* message = "");
 
-  /// @brief Generate private/public key pair
-  /// @param private_key Private key
-  /// @param public_key Public key
-  void GenerateKeyPair(
-      std::uint8_t* private_key,
-      std::uint8_t* public_key) {
-    m_DH.GenerateKeyPair(m_PRNG, private_key, public_key);
-  }
-
-  /// @brief Agreed value from your private key and other party's public key
-  /// @param agreed_value Agreed upon value
-  /// @param private_key Your private key
-  /// @param other_public_key Other party's public key
-  /// @return False on failure
-  bool Agree(
-      std::uint8_t* agreed_value,
-      const std::uint8_t* private_key,
-      const std::uint8_t* other_public_key) {
-    return m_DH.Agree(
-        agreed_value,
-        private_key,
-        other_public_key);
-  }
+  /// @brief Exception class dispatcher
+  /// @details Set optional exception message, concats messages, adds trivial formatting
+  /// @param message String message to log for exception
+  void Dispatch(const char* message = "");
 
  private:
-  CryptoPP::DH m_DH;
-  CryptoPP::AutoSeededRandomPool m_PRNG;
+  std::string m_CtorMessage, m_Message;
 };
-
-DiffieHellman::DiffieHellman()
-    : m_DiffieHellmanPimpl(
-          std::make_unique<DiffieHellmanImpl>()) {}
-
-DiffieHellman::~DiffieHellman() {}
-
-void DiffieHellman::GenerateKeyPair(
-    std::uint8_t* private_key,
-    std::uint8_t* public_key) {
-  m_DiffieHellmanPimpl->GenerateKeyPair(
-      private_key,
-      public_key);
-}
-
-bool DiffieHellman::Agree(
-    std::uint8_t* agreed_value,
-    const std::uint8_t* private_key,
-    const std::uint8_t* other_public_key) {
-  return m_DiffieHellmanPimpl->Agree(
-      agreed_value,
-      private_key,
-      other_public_key);
-}
 
 }  // namespace core
 }  // namespace kovri
+
+#endif  // SRC_CORE_UTIL_EXCEPTION_H_

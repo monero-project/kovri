@@ -66,7 +66,8 @@ NetDb netdb;
 
 NetDb::NetDb()
     : m_IsRunning(false),
-      m_Thread(nullptr) {}
+      m_Thread(nullptr),
+      m_Exception(__func__) {}
 
 NetDb::~NetDb() {
   Stop();
@@ -546,10 +547,8 @@ void NetDb::HandleDatabaseStoreMsg(
       }
       decompressor.Get(uncompressed.data(), uncompressed_size);
       AddRouterInfo(ident, uncompressed.data(), uncompressed_size);
-    } catch (const std::exception& ex) {
-      LOG(error) << "NetDb: " << __func__ << ": '" << ex.what() << "'";
     } catch (...) {
-      LOG(error) << "NetDb: " << __func__ << " caught unknown exception";
+      m_Exception.Dispatch(__func__);
     }
   }
 }

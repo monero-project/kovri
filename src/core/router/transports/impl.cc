@@ -55,7 +55,8 @@ DHKeysPairSupplier::DHKeysPairSupplier(
     std::size_t size)
     : m_QueueSize(size),
       m_IsRunning(false),
-      m_Thread(nullptr) {}
+      m_Thread(nullptr),
+      m_Exception(__func__) {}
 
 DHKeysPairSupplier::~DHKeysPairSupplier() {
   Stop();
@@ -93,13 +94,20 @@ void DHKeysPairSupplier::Run() {
 void DHKeysPairSupplier::CreateDHKeysPairs(
     std::size_t num) {
   LOG(debug) << "DHKeysPairSupplier: creating";
-  for (std::size_t i = 0; i < num; i++) {
-    auto pair = std::make_unique<kovri::core::DHKeysPair>();
-    kovri::core::DiffieHellman().GenerateKeyPair(
-        pair->private_key.data(),
-        pair->public_key.data());
-    std::unique_lock<std::mutex>  l(m_AcquiredMutex);
-    m_Queue.push(std::move(pair));
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try {
+    for (std::size_t i = 0; i < num; i++) {
+      auto pair = std::make_unique<kovri::core::DHKeysPair>();
+      kovri::core::DiffieHellman().GenerateKeyPair(
+          pair->private_key.data(),
+          pair->public_key.data());
+      std::unique_lock<std::mutex>  l(m_AcquiredMutex);
+      m_Queue.push(std::move(pair));
+    }
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
   }
 }
 
@@ -115,9 +123,16 @@ std::unique_ptr<DHKeysPair> DHKeysPairSupplier::Acquire() {
   l.unlock();
   // queue is empty, create new key pair
   auto pair = std::make_unique<DHKeysPair>();
-  kovri::core::DiffieHellman().GenerateKeyPair(
-      pair->private_key.data(),
-      pair->public_key.data());
+  // TODO(anonimal): this try block should be larger or handled entirely by caller
+  try {
+    kovri::core::DiffieHellman().GenerateKeyPair(
+        pair->private_key.data(),
+        pair->public_key.data());
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
+  }
   return pair;
 }
 

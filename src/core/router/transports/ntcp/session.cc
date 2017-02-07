@@ -71,7 +71,8 @@ NTCPSession::NTCPSession(
       m_ReceiveBufferOffset(0),
       m_NextMessage(nullptr),
       m_NextMessageOffset(0),
-      m_IsSending(false) {
+      m_IsSending(false),
+      m_Exception(__func__) {
   m_DHKeysPair = transports.GetNextDHKeysPair();
   m_Establisher = std::make_unique<Establisher>();
   if (remote_router) {
@@ -117,10 +118,17 @@ void NTCPSession::ClientLogin() {
       x,
       NTCPSize::PubKey);
   // HXxorHI: SHA256 Hash(X) xored with SHA256 Hash(Bob's RouterIdentity)
-  kovri::core::SHA256().CalculateDigest(
-      m_Establisher->phase1.HXxorHI.data(),
-      x,
-      NTCPSize::PubKey);
+  // TODO(anonimal): this try block should be larger or handled entirely by caller
+  try {
+    kovri::core::SHA256().CalculateDigest(
+        m_Establisher->phase1.HXxorHI.data(),
+        x,
+        NTCPSize::PubKey);
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
+  }
   // HXxorHI: get ident hash, then XOR
   const std::uint8_t* ident = m_RemoteIdentity.GetIdentHash();
   for (std::size_t i = 0; i < NTCPSize::Hash; i++)
@@ -203,41 +211,48 @@ void NTCPSession::HandlePhase2Received(
   LOG(debug)
     << "NTCPSession:" << GetFormattedSessionInfo()
     << GetFormattedPhaseInfo(Phase::Two);
-  kovri::core::AESKey aes_key;
-  CreateAESKey(m_Establisher->phase2.pub_key.data(), aes_key);
-  m_Decryption.SetKey(aes_key);
-  // TODO(unassigned): document 240
-  m_Decryption.SetIV(m_Establisher->phase2.pub_key.data() + 240);
-  m_Encryption.SetKey(aes_key);
-  m_Encryption.SetIV(m_Establisher->phase1.HXxorHI.data() + NTCPSize::IV);
-  m_Decryption.Decrypt(
-      reinterpret_cast<std::uint8_t *>(&m_Establisher->phase2.encrypted),
-      sizeof(m_Establisher->phase2.encrypted),
-      reinterpret_cast<std::uint8_t *>(&m_Establisher->phase2.encrypted));
-  // Verify
-  std::array<std::uint8_t, NTCPSize::PubKey * 2> xy;
-  memcpy(
-      xy.data(),
-      m_DHKeysPair->public_key.data(),
-      NTCPSize::PubKey);
-  memcpy(
-      xy.data() + NTCPSize::PubKey,
-      m_Establisher->phase2.pub_key.data(),
-      NTCPSize::PubKey);
-  if (!kovri::core::SHA256().VerifyDigest(
-        m_Establisher->phase2.encrypted.hxy.data(),
+  // TODO(anonimal): this try block should be larger or handled entirely by caller
+  try {
+    kovri::core::AESKey aes_key;
+    CreateAESKey(m_Establisher->phase2.pub_key.data(), aes_key);
+    m_Decryption.SetKey(aes_key);
+    // TODO(unassigned): document 240
+    m_Decryption.SetIV(m_Establisher->phase2.pub_key.data() + 240);
+    m_Encryption.SetKey(aes_key);
+    m_Encryption.SetIV(m_Establisher->phase1.HXxorHI.data() + NTCPSize::IV);
+    m_Decryption.Decrypt(
+        reinterpret_cast<std::uint8_t *>(&m_Establisher->phase2.encrypted),
+        sizeof(m_Establisher->phase2.encrypted),
+        reinterpret_cast<std::uint8_t *>(&m_Establisher->phase2.encrypted));
+    // Verify
+    std::array<std::uint8_t, NTCPSize::PubKey * 2> xy;
+    memcpy(
         xy.data(),
-        NTCPSize::PubKey * 2)) {
-    LOG(error)
-      << "NTCPSession:" << GetFormattedSessionInfo()
-      << "!!! Phase2 << incorrect hash";
-    LOG(debug)
-      << "NTCPSession:" << GetFormattedSessionInfo()
-      << GetFormattedPhaseInfo(Phase::Two);
-    transports.ReuseDHKeysPair(std::move(m_DHKeysPair));
-    m_DHKeysPair.reset(nullptr);
-    Terminate();
-    return;
+        m_DHKeysPair->public_key.data(),
+        NTCPSize::PubKey);
+    memcpy(
+        xy.data() + NTCPSize::PubKey,
+        m_Establisher->phase2.pub_key.data(),
+        NTCPSize::PubKey);
+    if (!kovri::core::SHA256().VerifyDigest(
+          m_Establisher->phase2.encrypted.hxy.data(),
+          xy.data(),
+          NTCPSize::PubKey * 2)) {
+      LOG(error)
+        << "NTCPSession:" << GetFormattedSessionInfo()
+        << "!!! Phase2 << incorrect hash";
+      LOG(debug)
+        << "NTCPSession:" << GetFormattedSessionInfo()
+        << GetFormattedPhaseInfo(Phase::Two);
+      transports.ReuseDHKeysPair(std::move(m_DHKeysPair));
+      m_DHKeysPair.reset(nullptr);
+      Terminate();
+      return;
+    }
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
   }
   LOG(debug)
     << "NTCPSession:" << GetFormattedSessionInfo()
@@ -253,40 +268,47 @@ void NTCPSession::CreateAESKey(
     kovri::core::AESKey& key) {
   LOG(debug)
     << "NTCPSession:" << GetFormattedSessionInfo() << "*** creating shared key";
-  kovri::core::DiffieHellman dh;
-  std::array<std::uint8_t, NTCPSize::PubKey> shared_key;
-  if (!dh.Agree(shared_key.data(), m_DHKeysPair->private_key.data(), pub_key)) {
-    LOG(error)
-      << "NTCPSession:" << GetFormattedSessionInfo()
-      << "!!! couldn't create shared key";
-    Terminate();
-    return;
-  }
-  std::uint8_t* aes_key = key;
-  if (shared_key.at(0) & 0x80) {
-    aes_key[0] = 0;
-    memcpy(
-        aes_key + 1,
-        shared_key.data(),
-        NTCPSize::SessionKey - 1);
-  } else if (shared_key.at(0)) {
-    memcpy(
-        aes_key,
-        shared_key.data(),
-        NTCPSize::SessionKey);
-  } else {
-    // Find first non-zero byte
-    std::uint8_t* non_zero = shared_key.data() + 1;
-    while (!*non_zero) {
-      non_zero++;
-      if (non_zero - shared_key.data() > NTCPSize::PubKey) {
-        LOG(warning) <<
-            "NTCPSession:" << GetFormattedSessionInfo()
-            << "*** first 32 bytes of shared key is all zeros. Ignored";
-        return;
-      }
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try {
+    kovri::core::DiffieHellman dh;
+    std::array<std::uint8_t, NTCPSize::PubKey> shared_key;
+    if (!dh.Agree(shared_key.data(), m_DHKeysPair->private_key.data(), pub_key)) {
+      LOG(error)
+        << "NTCPSession:" << GetFormattedSessionInfo()
+        << "!!! couldn't create shared key";
+      Terminate();
+      return;
     }
-    memcpy(aes_key, non_zero, NTCPSize::SessionKey);
+    std::uint8_t* aes_key = key;
+    if (shared_key.at(0) & 0x80) {
+      aes_key[0] = 0;
+      memcpy(
+          aes_key + 1,
+          shared_key.data(),
+          NTCPSize::SessionKey - 1);
+    } else if (shared_key.at(0)) {
+      memcpy(
+          aes_key,
+          shared_key.data(),
+          NTCPSize::SessionKey);
+    } else {
+      // Find first non-zero byte
+      std::uint8_t* non_zero = shared_key.data() + 1;
+      while (!*non_zero) {
+        non_zero++;
+        if (non_zero - shared_key.data() > NTCPSize::PubKey) {
+          LOG(warning) <<
+              "NTCPSession:" << GetFormattedSessionInfo()
+              << "*** first 32 bytes of shared key is all zeros. Ignored";
+          return;
+        }
+      }
+      memcpy(aes_key, non_zero, NTCPSize::SessionKey);
+    }
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
   }
 }
 
@@ -319,7 +341,14 @@ void NTCPSession::SendPhase3() {
   s.Insert(ts_A);  // timestamp Alice
   s.Insert(m_Establisher->phase2.encrypted.timestamp);  // timestamp Bob
   s.Sign(keys, buf);
-  m_Encryption.Encrypt(m_ReceiveBuffer, len, m_ReceiveBuffer);
+  // TODO(anonimal): this try block should be larger or handled entirely by caller
+  try {
+    m_Encryption.Encrypt(m_ReceiveBuffer, len, m_ReceiveBuffer);
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
+  }
   LOG(debug)
     << "NTCPSession:" << GetFormattedSessionInfo() << "<-- Phase3, sending";
   boost::asio::async_write(
@@ -391,7 +420,14 @@ void NTCPSession::HandlePhase4Received(
   LOG(debug)
     << "NTCPSession:" << GetFormattedSessionInfo()
     << "*** Phase4 received << processing " << bytes_transferred << " bytes";
-  m_Decryption.Decrypt(m_ReceiveBuffer, bytes_transferred, m_ReceiveBuffer);
+  // TODO(anonimal): this try block should be larger or handled entirely by caller
+  try {
+    m_Decryption.Decrypt(m_ReceiveBuffer, bytes_transferred, m_ReceiveBuffer);
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
+  }
   // Verify signature
   SignedData s;
   s.Insert(m_Establisher->phase1.pub_key.data(), NTCPSize::PubKey);  // x
@@ -471,10 +507,17 @@ void NTCPSession::HandlePhase1Received(
     << "NTCPSession:" << GetFormattedSessionInfo()
     << "*** Phase1 received, verifying ident";
   std::array<std::uint8_t, NTCPSize::Hash> digest;
-  kovri::core::SHA256().CalculateDigest(
-      digest.data(),
-      m_Establisher->phase1.pub_key.data(),
-      NTCPSize::PubKey);
+  // TODO(anonimal): this try block should be larger or handled entirely by caller
+  try {
+    kovri::core::SHA256().CalculateDigest(
+        digest.data(),
+        m_Establisher->phase1.pub_key.data(),
+        NTCPSize::PubKey);
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
+  }
   const std::uint8_t* ident = kovri::context.GetRouterInfo().GetIdentHash();
   for (std::size_t i = 0; i < NTCPSize::Hash; i++) {
     if ((m_Establisher->phase1.HXxorHI.at(i) ^ ident[i]) != digest.at(i)) {
@@ -521,29 +564,38 @@ void NTCPSession::SendPhase2() {
       xy.data() + NTCPSize::PubKey,
       y,
       NTCPSize::PubKey);
-  // Hash of XY
-  kovri::core::SHA256().CalculateDigest(
-      m_Establisher->phase2.encrypted.hxy.data(),
-      xy.data(),
-      NTCPSize::PubKey * 2);
   // Timestamp B
-  std::uint32_t ts_B = htobe32(kovri::core::GetSecondsSinceEpoch());
-  m_Establisher->phase2.encrypted.timestamp = ts_B;
-  // Random padding
-  kovri::core::RandBytes(
-      m_Establisher->phase2.encrypted.padding.data(),
-      NTCPSize::Padding);
-  // AES key
-  kovri::core::AESKey aes_key;
-  CreateAESKey(m_Establisher->phase1.pub_key.data(), aes_key);
-  m_Encryption.SetKey(aes_key);
-  m_Encryption.SetIV(y + 240);
-  m_Decryption.SetKey(aes_key);
-  m_Decryption.SetIV(m_Establisher->phase1.HXxorHI.data() + NTCPSize::IV);
-  m_Encryption.Encrypt(
-      reinterpret_cast<std::uint8_t *>(&m_Establisher->phase2.encrypted),
-      sizeof(m_Establisher->phase2.encrypted),
-      reinterpret_cast<std::uint8_t *>(&m_Establisher->phase2.encrypted));
+  std::uint32_t ts_B{};
+  // TODO(anonimal): this try block should be larger or handled entirely by caller
+  try {
+    // Hash of XY
+    kovri::core::SHA256().CalculateDigest(
+        m_Establisher->phase2.encrypted.hxy.data(),
+        xy.data(),
+        NTCPSize::PubKey * 2);
+    // Set timestamp B
+    ts_B = htobe32(kovri::core::GetSecondsSinceEpoch());
+    m_Establisher->phase2.encrypted.timestamp = ts_B;
+    // Random padding
+    kovri::core::RandBytes(
+        m_Establisher->phase2.encrypted.padding.data(),
+        NTCPSize::Padding);
+    // AES key
+    kovri::core::AESKey aes_key;
+    CreateAESKey(m_Establisher->phase1.pub_key.data(), aes_key);
+    m_Encryption.SetKey(aes_key);
+    m_Encryption.SetIV(y + 240);
+    m_Decryption.SetKey(aes_key);
+    m_Decryption.SetIV(m_Establisher->phase1.HXxorHI.data() + NTCPSize::IV);
+    m_Encryption.Encrypt(
+        reinterpret_cast<std::uint8_t *>(&m_Establisher->phase2.encrypted),
+        sizeof(m_Establisher->phase2.encrypted),
+        reinterpret_cast<std::uint8_t *>(&m_Establisher->phase2.encrypted));
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
+  }
   LOG(debug)
     << "NTCPSession:" << GetFormattedSessionInfo() << "<-- Phase2, sending";
   boost::asio::async_write(
@@ -606,10 +658,14 @@ void NTCPSession::HandlePhase3Received(
   LOG(debug)
     << "NTCPSession:" << GetFormattedSessionInfo()
     << "*** Phase3 received, processing";
-  m_Decryption.Decrypt(
-      m_ReceiveBuffer,
-      bytes_transferred,
-      m_ReceiveBuffer);
+  // TODO(anonimal): this try block should be larger or handled entirely by caller
+  try {
+    m_Decryption.Decrypt(m_ReceiveBuffer, bytes_transferred, m_ReceiveBuffer);
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
+  }
   std::uint8_t* buf = m_ReceiveBuffer;
   std::uint16_t size = bufbe16toh(buf);
   m_RemoteIdentity.FromBuffer(buf + NTCPSize::Phase3AliceRI, size);
@@ -663,10 +719,17 @@ void NTCPSession::HandlePhase3ExtraReceived(
       Terminate();
     return;
   }
-  m_Decryption.Decrypt(
-      m_ReceiveBuffer + NTCPSize::Phase3Unencrypted,
-      bytes_transferred,
-      m_ReceiveBuffer + NTCPSize::Phase3Unencrypted);
+  // TODO(anonimal): this try block should be larger or handled entirely by caller
+  try {
+    m_Decryption.Decrypt(
+        m_ReceiveBuffer + NTCPSize::Phase3Unencrypted,
+        bytes_transferred,
+        m_ReceiveBuffer + NTCPSize::Phase3Unencrypted);
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
+  }
   HandlePhase3(ts_B, padding_len);
 }
 
@@ -720,7 +783,14 @@ void NTCPSession::SendPhase4(
   std::size_t padding_size = signature_len & 0x0F;  // %16
   if (padding_size)
     signature_len += (NTCPSize::IV - padding_size);
-  m_Encryption.Encrypt(m_ReceiveBuffer, signature_len, m_ReceiveBuffer);
+  // TODO(anonimal): this try block should be larger or handled entirely by caller
+  try {
+    m_Encryption.Encrypt(m_ReceiveBuffer, signature_len, m_ReceiveBuffer);
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
+  }
   LOG(debug)
     << "NTCPSession:" << GetFormattedSessionInfo() << "<-- Phase4, sending";
   boost::asio::async_write(
@@ -854,39 +924,47 @@ void NTCPSession::SendPayload(
 boost::asio::const_buffers_1 NTCPSession::CreateMsgBuffer(
     std::shared_ptr<I2NPMessage> msg) {
   std::uint8_t* send_buffer;
-  int len;
-  if (msg) {
-    // Regular I2NP
-    if (msg->offset < NTCPSize::Phase3AliceRI) {
-      LOG(error)
-        << "NTCPSession:" << GetFormattedSessionInfo()
-        << "!!! malformed I2NP message";  // TODO(unassigned): Error handling
+  // TODO(anonimal): no signed integers
+  int len{}, encrypted_len{};
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try {
+    if (msg) {
+      // Regular I2NP
+      if (msg->offset < NTCPSize::Phase3AliceRI) {
+        LOG(error)
+          << "NTCPSession:" << GetFormattedSessionInfo()
+          << "!!! malformed I2NP message";  // TODO(unassigned): Error handling
+      }
+      send_buffer = msg->GetBuffer() - NTCPSize::Phase3AliceRI;
+      len = msg->GetLength();
+      htobe16buf(send_buffer, len);
+    } else {
+      // Prepare timestamp
+      send_buffer = m_TimeSyncBuffer;
+      len = NTCPSize::Phase3AliceTS;
+      htobuf16(send_buffer, 0);
+      htobe32buf(send_buffer + NTCPSize::Phase3AliceTS, time(0));
     }
-    send_buffer = msg->GetBuffer() - NTCPSize::Phase3AliceRI;
-    len = msg->GetLength();
-    htobe16buf(send_buffer, len);
-  } else {
-    // Prepare timestamp
-    send_buffer = m_TimeSyncBuffer;
-    len = NTCPSize::Phase3AliceTS;
-    htobuf16(send_buffer, 0);
-    htobe32buf(send_buffer + NTCPSize::Phase3AliceTS, time(0));
+    int rem = (len + 6) & 0x0F;  // %16
+    int padding = 0;
+    if (rem) {
+      padding = NTCPSize::IV - rem;
+      kovri::core::RandBytes(
+          send_buffer + len + NTCPSize::Phase3AliceTS,
+          padding);
+    }
+    kovri::core::Adler32().CalculateDigest(
+        send_buffer + len + NTCPSize::Phase3AliceRI + padding,
+        send_buffer,
+        len + NTCPSize::Phase3AliceRI + padding);
+    encrypted_len = len + padding + 6;
+    m_Encryption.Encrypt(send_buffer, encrypted_len, send_buffer);
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
   }
-  int rem = (len + 6) & 0x0F;  // %16
-  int padding = 0;
-  if (rem) {
-    padding = NTCPSize::IV - rem;
-    kovri::core::RandBytes(
-        send_buffer + len + NTCPSize::Phase3AliceTS,
-        padding);
-  }
-  kovri::core::Adler32().CalculateDigest(
-      send_buffer + len + NTCPSize::Phase3AliceRI + padding,
-      send_buffer,
-      len + NTCPSize::Phase3AliceRI + padding);
-  int l = len + padding + 6;
-  m_Encryption.Encrypt(send_buffer, l, send_buffer);
-  return boost::asio::buffer(static_cast<const std::uint8_t *>(send_buffer), l);
+  return boost::asio::buffer(static_cast<const std::uint8_t *>(send_buffer), encrypted_len);
 }
 
 // Receive
@@ -966,54 +1044,61 @@ void NTCPSession::HandleReceivedPayload(
 
 bool NTCPSession::DecryptNextBlock(
     const std::uint8_t* encrypted) {  // 16 bytes
-  // New message, header expected
-  if (!m_NextMessage) {
-    // Decrypt header and extract length
-    std::array<std::uint8_t, NTCPSize::IV> buf;
-    m_Decryption.Decrypt(encrypted, buf.data());
-    std::uint16_t data_size = bufbe16toh(buf.data());
-    if (data_size) {
-      // New message
-      if (data_size > NTCPSize::MaxMessage) {
-        LOG(error)
-          << "NTCPSession:" << GetFormattedSessionInfo()
-          << "!!! data block size '" << data_size << "' exceeds max size";
-        return false;
+  // TODO(anonimal): this try block should be larger or handled entirely by caller
+  try {
+    // New message, header expected
+    if (!m_NextMessage) {
+      // Decrypt header and extract length
+      std::array<std::uint8_t, NTCPSize::IV> buf;
+      m_Decryption.Decrypt(encrypted, buf.data());
+      std::uint16_t data_size = bufbe16toh(buf.data());
+      if (data_size) {
+        // New message
+        if (data_size > NTCPSize::MaxMessage) {
+          LOG(error)
+            << "NTCPSession:" << GetFormattedSessionInfo()
+            << "!!! data block size '" << data_size << "' exceeds max size";
+          return false;
+        }
+        auto msg =
+          data_size <=
+            I2NP_MAX_SHORT_MESSAGE_SIZE -
+            NTCPSize::Phase3AliceRI
+              ? NewI2NPShortMessage()
+              : NewI2NPMessage();
+        m_NextMessage = ToSharedI2NPMessage(std::move(msg));
+        memcpy(m_NextMessage->buf, buf.data(), NTCPSize::IV);
+        m_NextMessageOffset = NTCPSize::IV;
+        m_NextMessage->offset = NTCPSize::Phase3AliceRI;  // size field
+        m_NextMessage->len = data_size + NTCPSize::Phase3AliceRI;
+      } else {
+        // Timestamp
+        LOG(debug)
+          << "NTCPSession:" << GetFormattedSessionInfo() << "*** timestamp";
+        return true;
       }
-      auto msg =
-        data_size <=
-          I2NP_MAX_SHORT_MESSAGE_SIZE -
-          NTCPSize::Phase3AliceRI
-            ? NewI2NPShortMessage()
-            : NewI2NPMessage();
-      m_NextMessage = ToSharedI2NPMessage(std::move(msg));
-      memcpy(m_NextMessage->buf, buf.data(), NTCPSize::IV);
-      m_NextMessageOffset = NTCPSize::IV;
-      m_NextMessage->offset = NTCPSize::Phase3AliceRI;  // size field
-      m_NextMessage->len = data_size + NTCPSize::Phase3AliceRI;
-    } else {
-      // Timestamp
-      LOG(debug)
-        << "NTCPSession:" << GetFormattedSessionInfo() << "*** timestamp";
-      return true;
+    } else {  // Message continues
+      m_Decryption.Decrypt(encrypted, m_NextMessage->buf + m_NextMessageOffset);
+      m_NextMessageOffset += NTCPSize::IV;
     }
-  } else {  // Message continues
-    m_Decryption.Decrypt(encrypted, m_NextMessage->buf + m_NextMessageOffset);
-    m_NextMessageOffset += NTCPSize::IV;
-  }
-  if (m_NextMessageOffset >=
-      m_NextMessage->len + NTCPSize::Adler32) {
-    // We have a complete I2NP message
-    if (kovri::core::Adler32().VerifyDigest(
-          m_NextMessage->buf + m_NextMessageOffset - NTCPSize::Adler32,
-          m_NextMessage->buf,
-          m_NextMessageOffset - NTCPSize::Adler32))
-      m_Handler.PutNextMessage(m_NextMessage);
-    else
-      LOG(warning)
-        << "NTCPSession:" << GetFormattedSessionInfo()
-        << "!!! incorrect Adler checksum of NTCP message, dropped";
-    m_NextMessage = nullptr;
+    if (m_NextMessageOffset >=
+        m_NextMessage->len + NTCPSize::Adler32) {
+      // We have a complete I2NP message
+      if (kovri::core::Adler32().VerifyDigest(
+            m_NextMessage->buf + m_NextMessageOffset - NTCPSize::Adler32,
+            m_NextMessage->buf,
+            m_NextMessageOffset - NTCPSize::Adler32))
+        m_Handler.PutNextMessage(m_NextMessage);
+      else
+        LOG(warning)
+          << "NTCPSession:" << GetFormattedSessionInfo()
+          << "!!! incorrect Adler checksum of NTCP message, dropped";
+      m_NextMessage = nullptr;
+    }
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
   }
   return true;
 }

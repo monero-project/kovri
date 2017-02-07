@@ -28,79 +28,45 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#include "core/crypto/diffie_hellman.h"
+#include "core/util/exception.h"
 
-#include <cryptopp/dh.h>
-#include <cryptopp/osrng.h>
+#ifdef WITH_CRYPTOPP
+#include <cryptopp/cryptlib.h>
+#endif
 
-#include <cstdint>
-
-#include "crypto_const.h"
+#include <exception>
+#include <string>
 
 #include "core/util/log.h"
 
 namespace kovri {
 namespace core {
 
-/// @class DiffieHellmanImpl
-/// @brief Diffie-Hellman implementation
-class DiffieHellman::DiffieHellmanImpl {
- public:
-  /// @brief Initializes with ElGamal constants on construction
-  DiffieHellmanImpl()
-      : m_DH(kovri::core::elgp, kovri::core::elgg) {}
+Exception::Exception(const char* message) : m_CtorMessage(message) {}
 
-  /// @brief Generate private/public key pair
-  /// @param private_key Private key
-  /// @param public_key Public key
-  void GenerateKeyPair(
-      std::uint8_t* private_key,
-      std::uint8_t* public_key) {
-    m_DH.GenerateKeyPair(m_PRNG, private_key, public_key);
+// TODO(anonimal): exception error codes to replace strings?
+void Exception::Dispatch(const char* message) {
+  // Reset previous Message
+  m_Message.clear();
+  // Set new message with formatting
+  if (!m_CtorMessage.empty())
+    m_Message += m_CtorMessage + ": ";
+  m_Message += message;
+  m_Message += ": ";
+  // Throw original exception
+  try {
+    throw;
+#ifdef WITH_CRYPTOPP
+  // Note: CryptoPP::Exception inherits std::exception
+  } catch (const CryptoPP::Exception& ex) {
+    LOG(error) << m_Message << "cryptopp exception" << ": '" << ex.what() << "'";
+#endif
+  // TODO(anonimal): boost exception/exception_ptr
+  } catch (const std::exception& ex) {
+    LOG(error) << m_Message << "standard exception" << ": '" << ex.what() << "'";
+  } catch (...) {
+    LOG(error) << m_Message << "unknown exception";
   }
-
-  /// @brief Agreed value from your private key and other party's public key
-  /// @param agreed_value Agreed upon value
-  /// @param private_key Your private key
-  /// @param other_public_key Other party's public key
-  /// @return False on failure
-  bool Agree(
-      std::uint8_t* agreed_value,
-      const std::uint8_t* private_key,
-      const std::uint8_t* other_public_key) {
-    return m_DH.Agree(
-        agreed_value,
-        private_key,
-        other_public_key);
-  }
-
- private:
-  CryptoPP::DH m_DH;
-  CryptoPP::AutoSeededRandomPool m_PRNG;
-};
-
-DiffieHellman::DiffieHellman()
-    : m_DiffieHellmanPimpl(
-          std::make_unique<DiffieHellmanImpl>()) {}
-
-DiffieHellman::~DiffieHellman() {}
-
-void DiffieHellman::GenerateKeyPair(
-    std::uint8_t* private_key,
-    std::uint8_t* public_key) {
-  m_DiffieHellmanPimpl->GenerateKeyPair(
-      private_key,
-      public_key);
-}
-
-bool DiffieHellman::Agree(
-    std::uint8_t* agreed_value,
-    const std::uint8_t* private_key,
-    const std::uint8_t* other_public_key) {
-  return m_DiffieHellmanPimpl->Agree(
-      agreed_value,
-      private_key,
-      other_public_key);
 }
 
 }  // namespace core

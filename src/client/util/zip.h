@@ -40,6 +40,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "core/util/exception.h"
 #include "core/util/filesystem.h"
 
 namespace kovri {
@@ -65,7 +66,8 @@ class ZIP {
       std::size_t pos = 0)
       : Descriptor(),
         m_Stream(zip),
-        m_Data(std::make_unique<Data>()) {
+        m_Data(std::make_unique<Data>()),
+        m_Exception(__func__) {
           m_Data->content_length = len;
           m_Data->content_position = pos;
           m_Data->local_file_count = 0;
@@ -153,6 +155,8 @@ class ZIP {
 
   // ZIP spec-defined data
   std::unique_ptr<Data> m_Data;
+
+  kovri::core::Exception m_Exception;
 };
 
 }  // namespace client

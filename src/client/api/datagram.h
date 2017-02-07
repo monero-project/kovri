@@ -43,6 +43,8 @@
 #include "core/router/identity.h"
 #include "core/router/lease_set.h"
 
+#include "core/util/exception.h"
+
 namespace kovri {
 namespace client {
 
@@ -122,6 +124,7 @@ class DatagramDestination {
   kovri::client::ClientDestination& m_Owner;
   Receiver m_Receiver;  // default
   std::map<std::uint16_t, Receiver> m_ReceiversByPorts;
+  kovri::core::Exception m_Exception;
 };
 
 }  // namespace client

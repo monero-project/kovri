@@ -64,10 +64,17 @@ GarlicRoutingSession::GarlicRoutingSession(
       m_LeaseSetUpdateStatus(
           attach_leaseset ? eLeaseSetUpdated : eLeaseSetDoNotSend),
       m_LeaseSetUpdateMsgID(0),
-      m_LeaseSetSubmissionTime(0) {
-  // create new session tags and session key
-  kovri::core::RandBytes(m_SessionKey, 32);
-  m_Encryption.SetKey(m_SessionKey);
+      m_LeaseSetSubmissionTime(0),
+      m_Exception(__func__) {
+  try {
+    // create new session tags and session key
+    kovri::core::RandBytes(m_SessionKey, 32);
+    m_Encryption.SetKey(m_SessionKey);
+  } catch (...) {
+    m_Exception.Dispatch();
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
+  }
 }
 
 GarlicRoutingSession::GarlicRoutingSession(
@@ -78,11 +85,18 @@ GarlicRoutingSession::GarlicRoutingSession(
       m_NumTags(1),
       m_LeaseSetUpdateStatus(eLeaseSetDoNotSend),
       m_LeaseSetUpdateMsgID(0),
-      m_LeaseSetSubmissionTime(0) {
-  memcpy(m_SessionKey, session_key, 32);
-  m_Encryption.SetKey(m_SessionKey);
-  m_SessionTags.push_back(session_tag);
-  m_SessionTags.back().creation_time = kovri::core::GetSecondsSinceEpoch();
+      m_LeaseSetSubmissionTime(0),
+      m_Exception(__func__) {
+  try {
+    memcpy(m_SessionKey, session_key, 32);
+    m_Encryption.SetKey(m_SessionKey);
+    m_SessionTags.push_back(session_tag);
+    m_SessionTags.back().creation_time = kovri::core::GetSecondsSinceEpoch();
+  } catch (...) {
+    m_Exception.Dispatch();
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
+  }
 }
 
 GarlicRoutingSession::~GarlicRoutingSession() {
@@ -156,67 +170,74 @@ bool GarlicRoutingSession::CleanupExpiredTags() {
 std::shared_ptr<I2NPMessage> GarlicRoutingSession::WrapSingleMessage(
     std::shared_ptr<const I2NPMessage> msg) {
   auto m = ToSharedI2NPMessage(NewI2NPMessage());
-  m->Align(12);  // in order to get buf aligned to 16 (12 + 4)
-  std::size_t len = 0;
-  std::uint8_t* buf = m->GetPayload() + 4;  // 4 bytes for length
-  // find non-expired tag
-  bool tag_found = false;
-  SessionTag tag;
-  if (m_NumTags > 0) {
-    std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
-    while (!m_SessionTags.empty()) {
-      if (ts < m_SessionTags.front().creation_time +
-          OUTGOING_TAGS_EXPIRATION_TIMEOUT) {
-        tag = m_SessionTags.front();
-        m_SessionTags.pop_front();  // use same tag only once
-        tag_found = true;
-        break;
-      } else {
-        m_SessionTags.pop_front();  // remove expired tag
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try {
+    m->Align(12);  // in order to get buf aligned to 16 (12 + 4)
+    std::size_t len = 0;
+    std::uint8_t* buf = m->GetPayload() + 4;  // 4 bytes for length
+    // find non-expired tag
+    bool tag_found = false;
+    SessionTag tag;
+    if (m_NumTags > 0) {
+      std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
+      while (!m_SessionTags.empty()) {
+        if (ts < m_SessionTags.front().creation_time +
+            OUTGOING_TAGS_EXPIRATION_TIMEOUT) {
+          tag = m_SessionTags.front();
+          m_SessionTags.pop_front();  // use same tag only once
+          tag_found = true;
+          break;
+        } else {
+          m_SessionTags.pop_front();  // remove expired tag
+        }
       }
     }
-  }
-  // create message
-  if (!tag_found) {
-    LOG(debug) << "GarlicRoutingSession: no garlic tag available, using ElGamal";
-    if (!m_Destination) {
-      LOG(warning)
-        << "GarlicRoutingSession: can't use ElGamal for unknown destination";
-      return nullptr;
+    // create message
+    if (!tag_found) {
+      LOG(debug) << "GarlicRoutingSession: no garlic tag available, using ElGamal";
+      if (!m_Destination) {
+        LOG(warning)
+          << "GarlicRoutingSession: can't use ElGamal for unknown destination";
+        return nullptr;
+      }
+      // create ElGamal block
+      ElGamalBlock eg_block;
+      memcpy(eg_block.session_key.data(), m_SessionKey, 32);
+      kovri::core::RandBytes(eg_block.pre_IV.data(), 32);  // Pre-IV
+      std::array<std::uint8_t, 32> iv;  // IV is first 16 bytes
+      kovri::core::SHA256().CalculateDigest(
+          iv.data(),
+          eg_block.pre_IV.data(),
+          iv.size());
+      m_Destination->GetElGamalEncryption()->Encrypt(
+          reinterpret_cast<std::uint8_t *>(&eg_block),
+          sizeof(eg_block),
+          buf,
+          true);
+      m_Encryption.SetIV(iv.data());
+      buf += 514;
+      len += 514;
+    } else {
+      LOG(debug)
+        << "GarlicRoutingSession: garlic tag available, using existing session";
+      // session tag
+      memcpy(buf, tag, 32);
+      std::array<std::uint8_t, 32> iv;  // IV is first 16 bytes
+      kovri::core::SHA256().CalculateDigest(iv.data(), tag, iv.size());
+      m_Encryption.SetIV(iv.data());
+      buf += iv.size();
+      len += iv.size();
     }
-    // create ElGamal block
-    ElGamalBlock eg_block;
-    memcpy(eg_block.session_key.data(), m_SessionKey, 32);
-    kovri::core::RandBytes(eg_block.pre_IV.data(), 32);  // Pre-IV
-    std::array<std::uint8_t, 32> iv;  // IV is first 16 bytes
-    kovri::core::SHA256().CalculateDigest(
-        iv.data(),
-        eg_block.pre_IV.data(),
-        iv.size());
-    m_Destination->GetElGamalEncryption()->Encrypt(
-        reinterpret_cast<std::uint8_t *>(&eg_block),
-        sizeof(eg_block),
-        buf,
-        true);
-    m_Encryption.SetIV(iv.data());
-    buf += 514;
-    len += 514;
-  } else {
-    LOG(debug)
-      << "GarlicRoutingSession: garlic tag available, using existing session";
-    // session tag
-    memcpy(buf, tag, 32);
-    std::array<std::uint8_t, 32> iv;  // IV is first 16 bytes
-    kovri::core::SHA256().CalculateDigest(iv.data(), tag, iv.size());
-    m_Encryption.SetIV(iv.data());
-    buf += iv.size();
-    len += iv.size();
+    // AES block
+    len += CreateAESBlock(buf, msg);
+    htobe32buf(m->GetPayload(), len);
+    m->len += len + 4;
+    m->FillI2NPMessageHeader(I2NPGarlic);
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
   }
-  // AES block
-  len += CreateAESBlock(buf, msg);
-  htobe32buf(m->GetPayload(), len);
-  m->len += len + 4;
-  m->FillI2NPMessageHeader(I2NPGarlic);
   return m;
 }
 
@@ -250,7 +271,14 @@ std::size_t GarlicRoutingSession::CreateAESBlock(
   std::size_t rem = block_size % 16;
   if (rem)
     block_size += (16-rem);  // padding
-  m_Encryption.Encrypt(buf, block_size, buf);
+  // TODO(anonimal): this try block should be larger or handled entirely by caller
+  try {
+    m_Encryption.Encrypt(buf, block_size, buf);
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
+  }
   return block_size;
 }
 
@@ -393,11 +421,18 @@ GarlicDestination::~GarlicDestination() {}
 void GarlicDestination::AddSessionKey(
     const std::uint8_t* key,
     const std::uint8_t* tag) {
-  if (key) {
-    std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
-    auto decryption = std::make_shared<kovri::core::CBCDecryption>();
-    decryption->SetKey(key);
-    m_Tags[SessionTag(tag, ts)] = decryption;
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try {
+    if (key) {
+      std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
+      auto decryption = std::make_shared<kovri::core::CBCDecryption>();
+      decryption->SetKey(key);
+      m_Tags[SessionTag(tag, ts)] = decryption;
+    }
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
   }
 }
 
@@ -410,80 +445,87 @@ bool GarlicDestination::SubmitSessionKey(
 
 void GarlicDestination::HandleGarlicMessage(
     std::shared_ptr<I2NPMessage> msg) {
-  std::uint8_t* buf = msg->GetPayload();
-  std::uint32_t length = bufbe32toh(buf);
-  if (length > msg->GetLength()) {
-    LOG(error)
-      << "GarlicDestination: message length " << length
-      << " exceeds I2NP message length " << msg->GetLength();
-    return;
-  }
-  buf += 4;  // length
-  auto it = m_Tags.find(SessionTag(buf));
-  if (it != m_Tags.end()) {
-    // tag found. Use AES
-    if (length >= 32) {
-      std::array<std::uint8_t, 32> iv;  // IV is first 16 bytes
-      kovri::core::SHA256().CalculateDigest(
-          iv.data(),
-          buf,
-          iv.size());
-      it->second->SetIV(iv.data());
-      it->second->Decrypt(
-          buf + iv.size(),
-          length - iv.size(),
-          buf + iv.size());
-      HandleAESBlock(
-          buf + iv.size(),
-          length - iv.size(),
-          it->second, msg->from);
-    } else {
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try {
+    std::uint8_t* buf = msg->GetPayload();
+    std::uint32_t length = bufbe32toh(buf);
+    if (length > msg->GetLength()) {
       LOG(error)
-        << "GarlicDestination: message length "
-        << length << " is less than 32 bytes";
+        << "GarlicDestination: message length " << length
+        << " exceeds I2NP message length " << msg->GetLength();
+      return;
     }
-    m_Tags.erase(it);  // tag might be used only once
-  } else {
-    // tag not found. Use ElGamal
-    ElGamalBlock eg_block;
-    if (length >= 514 &&
-        kovri::core::ElGamalDecrypt(
-            GetEncryptionPrivateKey(),
+    buf += 4;  // length
+    auto it = m_Tags.find(SessionTag(buf));
+    if (it != m_Tags.end()) {
+      // tag found. Use AES
+      if (length >= 32) {
+        std::array<std::uint8_t, 32> iv;  // IV is first 16 bytes
+        kovri::core::SHA256().CalculateDigest(
+            iv.data(),
             buf,
-            reinterpret_cast<std::uint8_t *>(&eg_block),
-            true)) {
-      auto decryption = std::make_shared<kovri::core::CBCDecryption>();
-      decryption->SetKey(eg_block.session_key.data());
-      std::array<std::uint8_t, 32> iv;  // IV is first 16 bytes
-      kovri::core::SHA256().CalculateDigest(
-          iv.data(),
-          eg_block.pre_IV.data(),
-          iv.size());
-      decryption->SetIV(iv.data());
-      decryption->Decrypt(buf + 514, length - 514, buf + 514);
-      HandleAESBlock(buf + 514, length - 514, decryption, msg->from);
-    } else {
-      LOG(error) << "GarlicDestination: failed to decrypt garlic";
-    }
-  }
-  // cleanup expired tags
-  std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
-  if (ts > m_LastTagsCleanupTime + INCOMING_TAGS_EXPIRATION_TIMEOUT) {
-    if (m_LastTagsCleanupTime) {
-      int num_expired_tags = 0;
-      for (auto it = m_Tags.begin(); it != m_Tags.end();) {
-        if (ts > it->first.creation_time + INCOMING_TAGS_EXPIRATION_TIMEOUT) {
-          num_expired_tags++;
-          it = m_Tags.erase(it);
-        } else {
-          it++;
-        }
+            iv.size());
+        it->second->SetIV(iv.data());
+        it->second->Decrypt(
+            buf + iv.size(),
+            length - iv.size(),
+            buf + iv.size());
+        HandleAESBlock(
+            buf + iv.size(),
+            length - iv.size(),
+            it->second, msg->from);
+      } else {
+        LOG(error)
+          << "GarlicDestination: message length "
+          << length << " is less than 32 bytes";
       }
-      LOG(debug)
-        << "GarlicDestination: " << num_expired_tags
-        << " tags expired for " << GetIdentHash().ToBase64();
+      m_Tags.erase(it);  // tag might be used only once
+    } else {
+      // tag not found. Use ElGamal
+      ElGamalBlock eg_block;
+      if (length >= 514 &&
+          kovri::core::ElGamalDecrypt(
+              GetEncryptionPrivateKey(),
+              buf,
+              reinterpret_cast<std::uint8_t *>(&eg_block),
+              true)) {
+        auto decryption = std::make_shared<kovri::core::CBCDecryption>();
+        decryption->SetKey(eg_block.session_key.data());
+        std::array<std::uint8_t, 32> iv;  // IV is first 16 bytes
+        kovri::core::SHA256().CalculateDigest(
+            iv.data(),
+            eg_block.pre_IV.data(),
+            iv.size());
+        decryption->SetIV(iv.data());
+        decryption->Decrypt(buf + 514, length - 514, buf + 514);
+        HandleAESBlock(buf + 514, length - 514, decryption, msg->from);
+      } else {
+        LOG(error) << "GarlicDestination: failed to decrypt garlic";
+      }
     }
-    m_LastTagsCleanupTime = ts;
+    // cleanup expired tags
+    std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
+    if (ts > m_LastTagsCleanupTime + INCOMING_TAGS_EXPIRATION_TIMEOUT) {
+      if (m_LastTagsCleanupTime) {
+        int num_expired_tags = 0;
+        for (auto it = m_Tags.begin(); it != m_Tags.end();) {
+          if (ts > it->first.creation_time + INCOMING_TAGS_EXPIRATION_TIMEOUT) {
+            num_expired_tags++;
+            it = m_Tags.erase(it);
+          } else {
+            it++;
+          }
+        }
+        LOG(debug)
+          << "GarlicDestination: " << num_expired_tags
+          << " tags expired for " << GetIdentHash().ToBase64();
+      }
+      m_LastTagsCleanupTime = ts;
+    }
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
   }
 }
 
@@ -492,40 +534,47 @@ void GarlicDestination::HandleAESBlock(
     std::size_t len,
     std::shared_ptr<kovri::core::CBCDecryption> decryption,
     std::shared_ptr<kovri::core::InboundTunnel> from) {
-  std::uint16_t tag_count = bufbe16toh(buf);
-  buf += 2;
-  len -= 2;
-  if (tag_count > 0) {
-    if (tag_count * 32 > len) {
-      LOG(error)
-        << "GarlicDestination: tag count " << tag_count
-        << " exceeds length " << len;
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try {
+    std::uint16_t tag_count = bufbe16toh(buf);
+    buf += 2;
+    len -= 2;
+    if (tag_count > 0) {
+      if (tag_count * 32 > len) {
+        LOG(error)
+          << "GarlicDestination: tag count " << tag_count
+          << " exceeds length " << len;
+        return;
+      }
+      std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
+      for (int i = 0; i < tag_count; i++)
+        m_Tags[SessionTag(buf + i * 32, ts)] = decryption;
+    }
+    buf += tag_count * 32;
+    len -= tag_count * 32;
+    std::uint32_t payload_size = bufbe32toh(buf);
+    if (payload_size > len) {
+      LOG(error) << "GarlicDestination: unexpected payload size " << payload_size;
       return;
     }
-    std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
-    for (int i = 0; i < tag_count; i++)
-      m_Tags[SessionTag(buf + i * 32, ts)] = decryption;
+    buf += 4;
+    std::uint8_t* payload_hash = buf;
+    buf += 32;  // payload hash.
+    if (*buf)  // session key?
+      buf += 32;  // new session key
+    buf++;  // flag
+    // payload
+    if (!kovri::core::SHA256().VerifyDigest(payload_hash, buf, payload_size)) {
+      // payload hash doesn't match
+      LOG(error) << "GarlicDestination: wrong payload hash";
+      return;
+    }
+    HandleGarlicPayload(buf, payload_size, from);
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
+    throw;
   }
-  buf += tag_count * 32;
-  len -= tag_count * 32;
-  std::uint32_t payload_size = bufbe32toh(buf);
-  if (payload_size > len) {
-    LOG(error) << "GarlicDestination: unexpected payload size " << payload_size;
-    return;
-  }
-  buf += 4;
-  std::uint8_t* payload_hash = buf;
-  buf += 32;  // payload hash.
-  if (*buf)  // session key?
-    buf += 32;  // new session key
-  buf++;  // flag
-  // payload
-  if (!kovri::core::SHA256().VerifyDigest(payload_hash, buf, payload_size)) {
-    // payload hash doesn't match
-    LOG(error) << "GarlicDestination: wrong payload hash";
-    return;
-  }
-  HandleGarlicPayload(buf, payload_size, from);
 }
 
 void GarlicDestination::HandleGarlicPayload(

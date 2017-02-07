@@ -41,6 +41,8 @@
 #include "core/router/i2np.h"
 #include "core/router/tunnel/base.h"
 
+#include "core/util/exception.h"
+
 namespace kovri {
 namespace core {
 
@@ -70,6 +72,7 @@ class TunnelGatewayBuffer {
   std::shared_ptr<I2NPMessage> m_CurrentTunnelDataMsg;
   std::size_t m_RemainingSize;
   std::uint8_t m_NonZeroRandomBuffer[TUNNEL_DATA_MAX_PAYLOAD_SIZE];
+  core::Exception m_Exception;
 };
 
 class TunnelGateway {

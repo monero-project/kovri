@@ -240,7 +240,7 @@ bool ZIP::DecompressLocalFile() {
         return false;
     }
   } catch (...) {
-    LOG(error) << "ZIP: caught exception during decompression";
+    m_Exception.Dispatch(__func__);
     return false;
   }
   LOG(debug) << "ZIP: successfully processed file";

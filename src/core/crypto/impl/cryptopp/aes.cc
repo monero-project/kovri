@@ -153,13 +153,7 @@ class ECBEncryption::ECBEncryptionImpl : public ECBCryptoAESNI {
       ExpandKey(key);
 #endif
     } else {
-      try {
-        m_Encryption.SetKey(key, 32);
-      } catch (CryptoPP::Exception e) {
-        LOG(error)
-          << "ECBEncryptionImpl: " << __func__
-          << " caught exception '" << e.what() << "'";
-      }
+      m_Encryption.SetKey(key, 32);
     }
   }
 
@@ -177,13 +171,7 @@ class ECBEncryption::ECBEncryptionImpl : public ECBCryptoAESNI {
           : "%xmm0", "memory");
 #endif
     } else {
-      try {
-        m_Encryption.ProcessData(out->buf, in->buf, 16);
-      } catch (CryptoPP::Exception e) {
-        LOG(error)
-          << "ECBEncryptionImpl: " << __func__
-          << " caught exception '" << e.what() << "'";
-      }
+      m_Encryption.ProcessData(out->buf, in->buf, 16);
     }
   }
 
@@ -254,13 +242,7 @@ class ECBDecryption::ECBDecryptionImpl : public ECBCryptoAESNI {
           : "%xmm0", "memory");
 #endif
     } else {
-      try {
-        m_Decryption.SetKey(key, 32);
-      } catch (CryptoPP::Exception e) {
-        LOG(error)
-          << "ECBDecryptionImpl: " << __func__
-          << " caught exception '" << e.what() << "'";
-      }
+      m_Decryption.SetKey(key, 32);
     }
   }
 
@@ -278,13 +260,7 @@ class ECBDecryption::ECBDecryptionImpl : public ECBCryptoAESNI {
           : "%xmm0", "memory");
 #endif
     } else {
-      try {
-        m_Decryption.ProcessData(out->buf, in->buf, 16);
-      } catch (CryptoPP::Exception e) {
-        LOG(error)
-          << "ECBDecryptionImpl: " << __func__
-          << " caught exception '" << e.what() << "'";
-      }
+      m_Decryption.ProcessData(out->buf, in->buf, 16);
     }
   }
 

@@ -136,6 +136,7 @@ kovri::core::PrivateKeys ClientContext::CreatePrivateKeys(
     const std::string& filename) {
   auto path = kovri::core::EnsurePath(kovri::core::GetClientKeysPath());
   auto file_path = (path / filename).string();
+  // Create binary keys file
   std::ofstream file(file_path, std::ofstream::binary);
   if (!file)
     throw std::runtime_error("ClientContext: could not open private keys for writing");
@@ -144,6 +145,8 @@ kovri::core::PrivateKeys ClientContext::CreatePrivateKeys(
   std::unique_ptr<std::uint8_t[]> buf(std::make_unique<std::uint8_t[]>(len));
   len = keys.ToBuffer(buf.get(), len);
   file.write(reinterpret_cast<char *>(buf.get()), len);
+  // Create associated address text file
+  CreateB32AddressTextFile(keys, filename);
   LOG(info)
     << "ClientContext: created new private keys " << file_path << " for "
     << m_AddressBook.GetB32AddressFromIdentHash(keys.GetPublic().GetIdentHash());
@@ -166,10 +169,26 @@ kovri::core::PrivateKeys ClientContext::LoadPrivateKeys(
   std::unique_ptr<std::uint8_t[]> buf(std::make_unique<std::uint8_t[]>(len));
   file.read(reinterpret_cast<char *>(buf.get()), len);
   keys.FromBuffer(buf.get(), len);
+  // Contingency: create associated address text file if the private keys
+  // filename is swapped out with another set of keys with the same filename
+  CreateB32AddressTextFile(keys, filename);
   LOG(info)
     << "ClientContext: " << file_path << " loaded: uses local address "
     << m_AddressBook.GetB32AddressFromIdentHash(keys.GetPublic().GetIdentHash());
   return keys;
+}
+
+void ClientContext::CreateB32AddressTextFile(
+    const kovri::core::PrivateKeys& keys,
+    const std::string& filename) {
+  auto path = kovri::core::EnsurePath(kovri::core::GetClientKeysPath());
+  auto file_path = (path / filename).string() + ".txt";
+  // Create binary keys file
+  std::ofstream file(file_path);
+  if (!file)
+    throw std::runtime_error("ClientContext: could not open b32 address text file for writing");
+  file << kovri::core::GetB32Address(keys.GetPublic().GetIdentHash());
+  LOG(info) << "ClientContext: created b32 address file " << file_path;
 }
 
 std::shared_ptr<ClientDestination> ClientContext::LoadLocalDestination(

@@ -94,6 +94,13 @@ class ClientContext {
   kovri::core::PrivateKeys CreatePrivateKeys(
       const std::string& filename);
 
+  /// @brief Creates text file containing private key's public b32 address
+  /// @param keys Private keys to derive b32 address from
+  /// @param filename The relative name of the text address file
+  void CreateB32AddressTextFile(
+      const kovri::core::PrivateKeys& keys,
+      const std::string& filename);
+
   /// @brief Loads private keys from given filename
   /// @param filename Relative name of the private key file
   /// @return Loaded private keys

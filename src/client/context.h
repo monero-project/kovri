@@ -46,6 +46,8 @@
 #include "client/proxy/socks.h"
 #include "client/tunnel.h"
 
+#include "core/util/exception.h"
+
 namespace kovri {
 namespace client {
 
@@ -215,6 +217,8 @@ class ClientContext {
   std::unique_ptr<I2PControlService> m_I2PControlService;
 
   std::function<void(void)> m_ShutdownHandler;
+
+  kovri::core::Exception m_Exception;
 };
 
 extern ClientContext context;

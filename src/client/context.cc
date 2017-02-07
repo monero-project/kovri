@@ -55,7 +55,8 @@ ClientContext::ClientContext()
     : m_SharedLocalDestination(nullptr),
       m_HttpProxy(nullptr),
       m_SocksProxy(nullptr),
-      m_I2PControlService(nullptr) {}
+      m_I2PControlService(nullptr),
+      m_Exception(__func__) {}
 
 ClientContext::~ClientContext() {
   m_Service.stop();
@@ -134,26 +135,31 @@ void ClientContext::RequestShutdown() {
 
 kovri::core::PrivateKeys ClientContext::LoadPrivateKeys(
     const std::string& filename) {
-  auto file_path = (kovri::core::GetClientKeysPath() / filename).string();
-  std::ifstream file(file_path, std::ifstream::binary);
-  if (!file) {
-    LOG(warning)
-      << "ClientContext: " << file_path << " does not exist, creating";
-    return CreatePrivateKeys(filename);
-  }
   kovri::core::PrivateKeys keys;
-  file.seekg(0, std::ios::end);
-  const std::size_t len = file.tellg();
-  file.seekg(0, std::ios::beg);
-  std::unique_ptr<std::uint8_t[]> buf(std::make_unique<std::uint8_t[]>(len));
-  file.read(reinterpret_cast<char *>(buf.get()), len);
-  keys.FromBuffer(buf.get(), len);
-  // Contingency: create associated address text file if the private keys
-  // filename is swapped out with another set of keys with the same filename
-  CreateB32AddressTextFile(keys, filename);
-  LOG(info)
-    << "ClientContext: " << file_path << " loaded: uses local address "
-    << kovri::core::GetB32Address(keys.GetPublic().GetIdentHash());
+  try {
+    auto file_path = (kovri::core::GetClientKeysPath() / filename).string();
+    std::ifstream file(file_path, std::ifstream::binary);
+    if (!file) {
+      LOG(debug)
+        << "ClientContext: " << file_path << " does not exist, creating";
+      return CreatePrivateKeys(filename);
+    }
+    file.seekg(0, std::ios::end);
+    const std::size_t len = file.tellg();
+    file.seekg(0, std::ios::beg);
+    std::unique_ptr<std::uint8_t[]> buf(std::make_unique<std::uint8_t[]>(len));
+    file.read(reinterpret_cast<char *>(buf.get()), len);
+    keys.FromBuffer(buf.get(), len);
+    // Contingency: create associated address text file if the private keys
+    // filename is swapped out with another set of keys with the same filename
+    CreateB32AddressTextFile(keys, filename);
+    LOG(info)
+      << "ClientContext: " << file_path << " loaded: uses local address "
+      << kovri::core::GetB32Address(keys.GetPublic().GetIdentHash());
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    throw;
+  }
   return keys;
 }
 

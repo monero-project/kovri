@@ -55,7 +55,8 @@ ClientContext::ClientContext()
     : m_SharedLocalDestination(nullptr),
       m_HttpProxy(nullptr),
       m_SocksProxy(nullptr),
-      m_I2PControlService(nullptr) {}
+      m_I2PControlService(nullptr),
+      m_Exception(__func__) {}
 
 ClientContext::~ClientContext() {
   m_Service.stop();
@@ -132,10 +133,41 @@ void ClientContext::RequestShutdown() {
     m_ShutdownHandler();
 }
 
+kovri::core::PrivateKeys ClientContext::LoadPrivateKeys(
+    const std::string& filename) {
+  kovri::core::PrivateKeys keys;
+  try {
+    auto file_path = (kovri::core::GetClientKeysPath() / filename).string();
+    std::ifstream file(file_path, std::ifstream::binary);
+    if (!file) {
+      LOG(debug)
+        << "ClientContext: " << file_path << " does not exist, creating";
+      return CreatePrivateKeys(filename);
+    }
+    file.seekg(0, std::ios::end);
+    const std::size_t len = file.tellg();
+    file.seekg(0, std::ios::beg);
+    std::unique_ptr<std::uint8_t[]> buf(std::make_unique<std::uint8_t[]>(len));
+    file.read(reinterpret_cast<char *>(buf.get()), len);
+    keys.FromBuffer(buf.get(), len);
+    // Contingency: create associated address text file if the private keys
+    // filename is swapped out with another set of keys with the same filename
+    CreateB32AddressTextFile(keys, filename);
+    LOG(info)
+      << "ClientContext: " << file_path << " loaded: uses local address "
+      << kovri::core::GetB32Address(keys.GetPublic().GetIdentHash());
+  } catch (...) {
+    m_Exception.Dispatch(__func__);
+    throw;
+  }
+  return keys;
+}
+
 kovri::core::PrivateKeys ClientContext::CreatePrivateKeys(
     const std::string& filename) {
   auto path = kovri::core::EnsurePath(kovri::core::GetClientKeysPath());
   auto file_path = (path / filename).string();
+  // Create binary keys file
   std::ofstream file(file_path, std::ofstream::binary);
   if (!file)
     throw std::runtime_error("ClientContext: could not open private keys for writing");
@@ -144,32 +176,25 @@ kovri::core::PrivateKeys ClientContext::CreatePrivateKeys(
   std::unique_ptr<std::uint8_t[]> buf(std::make_unique<std::uint8_t[]>(len));
   len = keys.ToBuffer(buf.get(), len);
   file.write(reinterpret_cast<char *>(buf.get()), len);
+  // Create associated address text file
+  CreateB32AddressTextFile(keys, filename);
   LOG(info)
     << "ClientContext: created new private keys " << file_path << " for "
-    << m_AddressBook.GetB32AddressFromIdentHash(keys.GetPublic().GetIdentHash());
+    << kovri::core::GetB32Address(keys.GetPublic().GetIdentHash());
   return keys;
 }
 
-kovri::core::PrivateKeys ClientContext::LoadPrivateKeys(
+void ClientContext::CreateB32AddressTextFile(
+    const kovri::core::PrivateKeys& keys,
     const std::string& filename) {
-  auto file_path = (kovri::core::GetClientKeysPath() / filename).string();
-  std::ifstream file(file_path, std::ifstream::binary);
-  if (!file) {
-    LOG(warning)
-      << "ClientContext: " << file_path << " does not exist << creating";
-    return CreatePrivateKeys(filename);
-  }
-  kovri::core::PrivateKeys keys;
-  file.seekg(0, std::ios::end);
-  const std::size_t len = file.tellg();
-  file.seekg(0, std::ios::beg);
-  std::unique_ptr<std::uint8_t[]> buf(std::make_unique<std::uint8_t[]>(len));
-  file.read(reinterpret_cast<char *>(buf.get()), len);
-  keys.FromBuffer(buf.get(), len);
-  LOG(info)
-    << "ClientContext: " << file_path << " loaded: uses local address "
-    << m_AddressBook.GetB32AddressFromIdentHash(keys.GetPublic().GetIdentHash());
-  return keys;
+  auto path = kovri::core::EnsurePath(kovri::core::GetClientKeysPath());
+  auto file_path = (path / filename).string() + ".txt";
+  // Create binary keys file
+  std::ofstream file(file_path);
+  if (!file)
+    throw std::runtime_error("ClientContext: could not open b32 address text file for writing");
+  file << kovri::core::GetB32Address(keys.GetPublic().GetIdentHash());
+  LOG(info) << "ClientContext: created b32 address file " << file_path;
 }
 
 std::shared_ptr<ClientDestination> ClientContext::LoadLocalDestination(
@@ -182,7 +207,7 @@ std::shared_ptr<ClientDestination> ClientContext::LoadLocalDestination(
   if (it != m_Destinations.end()) {
     LOG(warning)
       << "ClientContext: local destination "
-      << m_AddressBook.GetB32AddressFromIdentHash(keys.GetPublic().GetIdentHash())
+      << kovri::core::GetB32Address(keys.GetPublic().GetIdentHash())
       << " already exists";
     local_destination = it->second;
   } else {
@@ -230,7 +255,7 @@ std::shared_ptr<ClientDestination> ClientContext::CreateNewLocalDestination(
   if (it != m_Destinations.end()) {
     LOG(debug)
       << "ClientContext: local destination "
-      << m_AddressBook.GetB32AddressFromIdentHash(keys.GetPublic().GetIdentHash())
+      << kovri::core::GetB32Address(keys.GetPublic().GetIdentHash())
       << " already exists";
     if (!it->second->IsRunning()) {
       it->second->Start();

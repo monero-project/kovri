@@ -46,6 +46,8 @@
 #include "client/proxy/socks.h"
 #include "client/tunnel.h"
 
+#include "core/util/exception.h"
+
 namespace kovri {
 namespace client {
 
@@ -92,6 +94,13 @@ class ClientContext {
   /// @param filename the relative name of the private key file
   /// @return Created private keys
   kovri::core::PrivateKeys CreatePrivateKeys(
+      const std::string& filename);
+
+  /// @brief Creates text file containing private key's public b32 address
+  /// @param keys Private keys to derive b32 address from
+  /// @param filename The relative name of the text address file
+  void CreateB32AddressTextFile(
+      const kovri::core::PrivateKeys& keys,
       const std::string& filename);
 
   /// @brief Loads private keys from given filename
@@ -208,6 +217,8 @@ class ClientContext {
   std::unique_ptr<I2PControlService> m_I2PControlService;
 
   std::function<void(void)> m_ShutdownHandler;
+
+  kovri::core::Exception m_Exception;
 };
 
 extern ClientContext context;

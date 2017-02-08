@@ -1,0 +1,28 @@
+name: kovri
+version: master
+summary: The Kovri I2P Router Project
+description: |
+  Kovri is a security-focused, community-driven C++ implementation of I2P
+
+grade: devel # must be 'stable' to release into candidate/stable channels
+confinement: strict
+
+apps:
+  kovri:
+    command: kovri
+    plugs: [network, network-bind]
+
+parts:
+  kovri:
+    source: .
+    plugin: make
+    build-packages:
+      - g++
+      - libboost-all-dev
+      - libssl-dev
+      - libssl1.0.0
+    artifacts:
+      - build/kovri
+      - pkg
+    organize:
+      build/kovri: bin/

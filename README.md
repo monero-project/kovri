@@ -6,20 +6,18 @@
 ## Disclaimer
 - Currently **pre-alpha** software; under heavy development (and not yet integrated with monero)
 
-## Build
+## [Builds](https://build.getmonero.org/waterfall)
 
 | Operating System      | Processor | Status |
 | --------------------- | -------- |--------|
-| Ubuntu 16.04          |  i686    | [![Ubuntu i686](https://build.getmonero.org/png?builder=kovri-all-ubuntu-i686)](https://build.getmonero.org/builders/kovri-all-ubuntu-i686)
-| Ubuntu 16.04          |  amd64   | [![Ubuntu amd64](https://build.getmonero.org/png?builder=kovri-all-ubuntu-amd64)](https://build.getmonero.org/builders/kovri-all-ubuntu-amd64)
-| Ubuntu 16.04          |  armv7   | [![Ubuntu armv7](https://build.getmonero.org/png?builder=kovri-all-ubuntu-arm7)](https://build.getmonero.org/builders/kovri-all-ubuntu-arm7)
-| Debian Stable         |  armv8   | [![Debian armv8](https://build.getmonero.org/png?builder=kovri-all-debian-arm8)](https://build.getmonero.org/builders/kovri-all-debian-arm8)
-| OSX 10.10             |  amd64   | [![OSX 10.10 amd64](https://build.getmonero.org/png?builder=kovri-all-osx-10.10)](https://build.getmonero.org/builders/kovri-all-osx-10.10)
-| OSX 10.11             |  amd64   | [![OSX 10.11 amd64](https://build.getmonero.org/png?builder=kovri-all-osx-10.11)](https://build.getmonero.org/builders/kovri-all-osx-10.11)
-| OSX 10.12             |  amd64   | [![OSX 10.12 amd64](https://build.getmonero.org/png?builder=kovri-all-osx-10.12)](https://build.getmonero.org/builders/kovri-all-osx-10.12)
-| FreeBSD 10.3          |  amd64   | [![FreeBSD amd64](https://build.getmonero.org/png?builder=kovri-all-freebsd64)](https://build.getmonero.org/builders/kovri-all-freebsd64)
-| Windows (MSYS2/MinGW) |  i686    | [![Windows (MSYS2/MinGW) i686](https://build.getmonero.org/png?builder=kovri-all-win32)](https://build.getmonero.org/builders/kovri-all-win32)
-| Windows (MSYS2/MinGW) |  amd64   | [![Windows (MSYS2/MinGW) amd64](https://build.getmonero.org/png?builder=kovri-all-win64)](https://build.getmonero.org/builders/kovri-all-win64)
+| Ubuntu 16.04          |  i686    | [![Ubuntu i686](https://build.getmonero.org/png?builder=kovri-static-ubuntu-i686)](https://build.getmonero.org/builders/kovri-static-ubuntu-i686)
+| Ubuntu 16.04          |  amd64   | [![Ubuntu amd64](https://build.getmonero.org/png?builder=kovri-static-ubuntu-amd64)](https://build.getmonero.org/builders/kovri-static-ubuntu-amd64)
+| Ubuntu 16.04          |  armv7   | [![Ubuntu armv7](https://build.getmonero.org/png?builder=kovri-static-ubuntu-arm7)](https://build.getmonero.org/builders/kovri-static-ubuntu-arm7)
+| Debian Stable         |  armv8   | [![Debian armv8](https://build.getmonero.org/png?builder=kovri-static-debian-arm8)](https://build.getmonero.org/builders/kovri-static-debian-arm8)
+| OSX 10.10/11/12       |  amd64   | [![OSX amd64](https://build.getmonero.org/png?builder=kovri-static-osx)](https://build.getmonero.org/builders/kovri-static-osx)
+| FreeBSD 10.3          |  amd64   | [![FreeBSD amd64](https://build.getmonero.org/png?builder=kovri-static-freebsd64)](https://build.getmonero.org/builders/kovri-static-freebsd64)
+| Windows (MSYS2/MinGW) |  i686    | [![Windows (MSYS2/MinGW) i686](https://build.getmonero.org/png?builder=kovri-static-win32)](https://build.getmonero.org/builders/kovri-static-win32)
+| Windows (MSYS2/MinGW) |  amd64   | [![Windows (MSYS2/MinGW) amd64](https://build.getmonero.org/png?builder=kovri-static-win64)](https://build.getmonero.org/builders/kovri-static-win64)
 
 ## Coverage
 

@@ -26,9 +26,7 @@
 # STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#TODO(unassigned): improve this Makefile
-
-# Get custom data path
+# Get custom Kovri data path + set appropriate CMake generator.
 # If no path is given, set default path
 system := $(shell uname)
 ifeq ($(KOVRI_DATA_PATH),)
@@ -49,23 +47,15 @@ else
   data-path = $(KOVRI_DATA_PATH)
 endif
 
-# Set custom data path
-cmake-data-path = -D KOVRI_DATA_PATH=$(data-path)
-
-# Release types
-cmake-debug = -D CMAKE_BUILD_TYPE=Debug
-cmake-release = -D CMAKE_BUILD_TYPE=Release
-
 # Our base cmake command
 cmake = cmake $(cmake-gen)
 
-# Dependencies options
+# Release types
+cmake-debug = $(cmake) -D CMAKE_BUILD_TYPE=Debug
+cmake-release = $(cmake) -D CMAKE_BUILD_TYPE=Release
 
-# TODO(unassigned): currently, our dependencies are static but cpp-netlib's dependencies are not by default
-cmake-cpp-netlib = $(cmake-release) -D CPP-NETLIB_BUILD_TESTS=OFF -D CPP-NETLIB_BUILD_EXAMPLES=OFF
-cmake-cpp-netlib-static = $(cmake-cpp-netlib) -D CPP-NETLIB_STATIC_OPENSSL=ON -D CPP-NETLIB_STATIC_BOOST=ON
-
-cmake-cryptopp = $(cmake-release) -D BUILD_TESTING=OFF -D BUILD_SHARED=OFF
+# TODO(unassigned): cmake-release when we're out of alpha
+cmake-kovri = $(cmake-debug)
 
 # Current off-by-default Kovri build options
 cmake-upnp       = -D WITH_UPNP=ON
@@ -79,90 +69,133 @@ cmake-coverage   = -D WITH_COVERAGE=ON
 
 # Disable build options that will fail CMake if not built
 # (used for help and doxygen build options)
-disable-options = -D WITH_CPPNETLIB=OFF
+cmake-disable-options = -D WITH_CPPNETLIB=OFF
+
+# Currently, our dependencies are static but cpp-netlib's dependencies are not (by default)
+cmake-cpp-netlib-static = -D CPP-NETLIB_STATIC_OPENSSL=ON -D CPP-NETLIB_STATIC_BOOST=ON
+
+# Refrain from native CPU optimizations for crypto
+cmake-cryptopp-no-opt = -D DISABLE_CXXFLAGS_OPTIMIZATIONS=ON
+
+# Android-specific
+cmake-android = -D ANDROID=1 -D KOVRI_DATA_PATH="/data/local/tmp/.kovri"
 
 # Filesystem
 build = build/
-cpp-netlib-build = deps/cpp-netlib/$(build)
-cryptopp-build = deps/cryptopp/$(build)
-doxygen-output = doc/Doxygen
-remove-build = rm -fR $(build) $(cpp-netlib-build) $(cryptopp-build) $(doxygen-output)
-copy-resources = mkdir -p $(data-path) && cp -fR pkg/* $(data-path)
-run-tests = ./kovri-tests && ./kovri-benchmarks
+build-cpp-netlib = deps/cpp-netlib/$(build)
+build-cryptopp = deps/cryptopp/$(build)
+build-doxygen = doc/Doxygen
 
-# TODO(unassigned): cmake release by default?
+# CMake builder macros
+define CMAKE
+  mkdir -p $1
+  cd $1 && $2 ../
+endef
+
+define CMAKE_CPP-NETLIB
+  @echo "=== Building cpp-netlib ==="
+  $(eval cmake-cpp-netlib = $(cmake-release) -D CPP-NETLIB_BUILD_TESTS=OFF -D CPP-NETLIB_BUILD_EXAMPLES=OFF $1)
+  $(call CMAKE,$(build-cpp-netlib),$(cmake-cpp-netlib))
+endef
+
+define CMAKE_CRYPTOPP
+  @echo "=== Building cryptopp ==="
+  $(eval cmake-cryptopp = $(cmake-release) -D BUILD_TESTING=OFF -D BUILD_SHARED=OFF $1)
+  $(call CMAKE,$(build-cryptopp),$(cmake-cryptopp))
+endef
+
+# Targets
 all: dynamic
 
-dependencies:
-	mkdir -p $(cpp-netlib-build)
-	cd $(cpp-netlib-build) && $(cmake) $(cmake-cpp-netlib) ../ && $(MAKE)
-	mkdir -p $(cryptopp-build)
-	cd $(cryptopp-build) && $(cmake) $(cmake-cryptopp) ../ && $(MAKE)
+#--------------------------------#
+# Dependency build types/options #
+#--------------------------------#
 
-dynamic: dependencies
-	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-debug) ../ && $(MAKE)
+deps:
+	$(call CMAKE_CPP-NETLIB) && $(MAKE)
+	$(call CMAKE_CRYPTOPP) && $(MAKE)
 
-release: dynamic
+release-deps:
+	$(call CMAKE_CPP-NETLIB) && $(MAKE)
+	$(call CMAKE_CRYPTOPP,$(cmake-cryptopp-no-opt)) && $(MAKE)
+
+release-static-deps:
+	$(call CMAKE_CPP-NETLIB,$(cmake-cpp-netlib-static)) && $(MAKE)
+	$(call CMAKE_CRYPTOPP,$(cmake-cryptopp-no-opt)) && $(MAKE)
+
+#-----------------------------------#
+# For local, end-user cloned builds #
+#-----------------------------------#
+
+dynamic: deps
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
+
+static: release-deps  # Keep crypto CPU optimizations (don't use "release" static deps)
+	$(eval cmake-kovri += $(cmake-static))
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
+
+#-----------------------------------#
+# For  dynamic distribution release #
+#-----------------------------------#
+
+release: release-deps
+	# TODO(unassigned): cmake release flags + optimizations/hardening when we're out of alpha
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
+
+#--------------------------------------------------------------#
+# For static distribution release (website and nightly builds) #
+#--------------------------------------------------------------#
+
+release-static: release-static-deps
         # TODO(unassigned): cmake release flags + optimizations/hardening when we're out of alpha
+	$(eval cmake-kovri += $(cmake-static))
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
-# TODO(unassigned): currently, our dependencies are static but cpp-netlib's dependencies are not by default
-static-dependencies:
-	mkdir -p $(cpp-netlib-build)
-	cd $(cpp-netlib-build) && $(cmake) $(cmake-cpp-netlib-static) ../ && $(MAKE)
-	mkdir -p $(cryptopp-build)
-	cd $(cryptopp-build) && $(cmake) $(cmake-cryptopp) ../ && $(MAKE)
+release-static-android: release-static-deps
+	$(eval cmake-kovri += $(cmake-static) $(cmake-android)
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
-static: static-dependencies
-	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-debug) $(cmake-static) ../ && $(MAKE)
+#-----------------#
+# Optional builds #
+#-----------------#
 
-release-static: static
-        # TODO(unassigned): cmake release flags + optimizations/hardening when we're out of alpha
-
-release-static-android: static-dependencies
-	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-debug) $(cmake-static) -D ANDROID=1 -D KOVRI_DATA_PATH="/data/local/tmp/.kovri" ../ && $(MAKE)
+# Optimized + hardening + UPnP
+all-options: deps
+	$(eval cmake-kovri += $(cmake-optimize) $(cmake-hardening) $(cmake-upnp))
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
 # We need (or very much should have) optimizations with hardening
-optimized-hardening: dependencies
-	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-debug) $(cmake-optimize) $(cmake-hardening) ../ && $(MAKE)
+optimized-hardened: deps
+	$(eval cmake-kovri += $(cmake-optimize) $(cmake-hardening))
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
-upnp: dependencies
-	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-debug) $(cmake-upnp) ../ && $(MAKE)
-
-all-options: dependencies
-	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-debug) $(cmake-optimize) $(cmake-hardening) $(cmake-upnp) ../ && $(MAKE)
-
-tests: dependencies
-	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-debug) $(cmake-tests) $(cmake-benchmarks) ../ && $(MAKE)
-
-tests-optimized-hardening: dependencies
-	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-debug) $(cmake-optimize) $(cmake-hardening) $(cmake-tests) $(cmake-benchmarks) ../ && $(MAKE)
+optimized-hardened-tests: deps
+	$(eval cmake-kovri += $(cmake-optimize) $(cmake-hardening) $(cmake-tests) $(cmake-benchmarks))
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
 # Note: leaving out hardening because of need for optimizations
-coverage: dependencies
-	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-debug) $(cmake-coverage) $(cmake-upnp) ../ && $(MAKE)
+coverage: deps
+	$(eval cmake-kovri += $(cmake-coverage) $(cmake-upnp))
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
-coverage-tests: dependencies
-	mkdir -p $(build)
-	cd $(build) && $(cmake) $(cmake-debug) $(cmake-coverage) $(cmake-tests) $(cmake-benchmarks) ../ && $(MAKE)
+coverage-tests: deps
+	$(eval cmake-kovri += $(cmake-coverage) $(cmake-tests) $(cmake-benchmarks))
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
+
+tests: deps
+	$(eval cmake-kovri += $(cmake-tests) $(cmake-benchmarks))
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
 doxygen:
-	mkdir -p $(build)
-	cd $(build) && $(cmake) $(disable-options) $(cmake-doxygen) ../ && $(MAKE) doc
+	$(eval cmake-kovri += $(cmake-disable-options) $(cmake-doxygen))
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
 help:
-	mkdir -p $(build)
-	cd $(build) && $(cmake) $(disable-options) -LH ../
+	$(eval cmake-kovri += $(cmake-disable-options) -LH)
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
 clean:
+	$(eval remove-build = rm -fR $(build) $(build-cpp-netlib) $(build-cryptopp) $(build-doxygen))
 	@if [ "$$FORCE_CLEAN" = "yes" ]; then $(remove-build); \
 	else echo "CAUTION: This will remove the build directories for Kovri and all submodule dependencies, and remove all Doxygen output"; \
 	read -r -p "Is this what you wish to do? (y/N)?: " CONFIRM; \
@@ -174,6 +207,7 @@ clean:
 # TODO(unassigned): we need to consider using a proper CMake generated make install.
 # For now, we'll simply (optionally) copy resources. Binaries will remain in build directory.
 install-resources:
+	$(eval copy-resources = mkdir -p $(data-path) && cp -fR pkg/* $(data-path))
 	@if [ "$$FORCE_INSTALL" = "yes" ]; then $(copy-resources); \
 	else echo "WARNING: This will overwrite all resources and configuration files"; \
 	read -r -p "Is this what you wish to do? (y/N)?: " CONFIRM; \
@@ -182,4 +216,4 @@ install-resources:
 	  fi; \
 	fi
 
-.PHONY: all dependencies static-dependencies dynamic release static release-static optimized-hardening upnp all-options tests tests-optimized-hardening coverage coverage-tests doxygen help clean install-resources
+.PHONY: all deps release-deps release-static-deps dynamic static release release-static release-static-android all-options optimized-hardened optimized-hardened-tests coverage coverage-tests tests doxygen help clean install-resources

@@ -66,7 +66,7 @@ void Instance::Configure() {
   GetConfig().SetupLogging();
   // Log the banner
   LOG(info) << "The Kovri I2P Router Project";
-  LOG(info) << "Version " << KOVRI_VERSION;
+  LOG(info) << KOVRI_VERSION << "-" << KOVRI_GIT_REVISION << " \"" << KOVRI_CODENAME << "\"";
   // Continue with configuration/setup
   GetConfig().SetupAESNI();
   GetConfig().ParseTunnelsConfig();

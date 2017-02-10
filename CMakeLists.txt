@@ -7,8 +7,24 @@ set(KOVRI_PROJECT "The Kovri I2P Router Project")
 set(KOVRI_VERSION "0.1.0-pre-alpha")
 set(KOVRI_CODENAME "In the beginning")
 
+# Get git revision
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git)
+  find_package(Git)
+  if(GIT_FOUND)
+    execute_process(
+      COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD  # use short hash for now
+      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+      OUTPUT_VARIABLE "KOVRI_GIT_REVISION"
+      ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+  else()
+    set(KOVRI_GIT_REVISION "")
+  endif()
+endif()
+
+message(STATUS "")
 message(STATUS "${KOVRI_PROJECT}")
-message(STATUS "${KOVRI_VERSION} \"${KOVRI_CODENAME}\"")
+message(STATUS "${KOVRI_VERSION}-${KOVRI_GIT_REVISION} \"${KOVRI_CODENAME}\"")
+message(STATUS "")
 
 # I2NP/NetDb RI properties (used internally)
 set(I2P_VERSION "0.9.26")

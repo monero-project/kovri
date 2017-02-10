@@ -32,16 +32,22 @@
 
 #include "client/proxy/http.h"
 
+#include <atomic>
+#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/regex.hpp>
+
 #include <boost/lexical_cast.hpp>
 #include <boost/regex.hpp>
-
-#include <atomic>
+#include <boost/tokenizer.hpp>
 #include <cassert>
 #include <cstdint>
 #include <cstring>
+#include <map>
 #include <memory>
 #include <string>
+#include <utility>
 
+#include <boost/foreach.hpp>
 #include "client/api/streaming.h"
 #include "client/context.h"
 #include "client/destination.h"
@@ -51,13 +57,8 @@
 #include "core/router/identity.h"
 
 #include "core/util/i2p_endian.h"
-
 namespace kovri {
 namespace client {
-
-//
-// Server
-//
 
 HTTPProxyServer::HTTPProxyServer(
     const std::string& name,
@@ -67,143 +68,222 @@ HTTPProxyServer::HTTPProxyServer(
     : TCPIPAcceptor(
           address,
           port,
-          local_destination ?
-            local_destination :
-            kovri::client::context.GetSharedLocalDestination()),
-      m_Name(name) {}
+          local_destination
+              ? local_destination
+              : kovri::client::context.GetSharedLocalDestination()),
+      m_Name(name) {
+}
 
 std::shared_ptr<kovri::client::I2PServiceHandler>
-  HTTPProxyServer::CreateHandler(
+HTTPProxyServer::CreateHandler(
     std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
   return std::make_shared<HTTPProxyHandler>(this, socket);
 }
 
-//
-// Handler
-//
-
-void HTTPProxyHandler::AsyncSockRead() {
+void HTTPProxyHandler::Handle() {
   LOG(debug) << "HTTPProxyHandler: async sock read";
-  if (m_Socket) {
-    m_Socket->async_receive(
-        boost::asio::buffer(
-            m_Buffer.data(),
-            m_Buffer.size()),
-        std::bind(
-            &HTTPProxyHandler::HandleSockRecv,
-            shared_from_this(),
-            std::placeholders::_1,
-            std::placeholders::_2));
-  } else {
+  if (!m_Socket) {
     LOG(error) << "HTTPProxyHandler: no socket for read";
+    return;
   }
+
+  AsyncSockRead(m_Socket);
 }
 
-void HTTPProxyHandler::HandleSockRecv(
-    const boost::system::error_code& ecode,
-    std::size_t len) {
-  LOG(debug) << "HTTPProxyHandler: sock recv: " << len;
-  if (ecode) {
-    LOG(warning) << "HTTPProxyHandler: sock recv got error: " << ecode;
+void HTTPProxyHandler::AsyncSockRead(
+    std::shared_ptr<boost::asio::ip::tcp::socket> socket) {
+  // TODO(guzzi) but there's also use cases where you are providing an inproxy
+  // service for
+  // others
+  // 00:27 < zzz2> for a full threat model including "slowloris" attacks,
+  // you need to
+  // enforce max header lines, max header line length
+  // and a total header timeout
+  // 00:27 < zzz2> (in addition to the typical read timeout)
+  // read in header until \r\n\r\n, then read in small portions of body
+  // and forward along
+  // Read the request headers, which are terminated by a blank line.
+  // TODO(guzzi)
+  // per anonimal: unit test, One example is the addressbook unit-test
+  // I merged earlier.
+  // You can see how it works purely on stream data and not any actual file/disk
+  // i/o"
+
+  boost::asio::async_read_until(
+      *socket,
+      m_Protocol.m_Buffer,
+      "\r\n\r\n",
+      boost::bind(
+          &HTTPProxyHandler::AsyncHandleReadHeaders,
+          shared_from_this(),
+          boost::asio::placeholders::error,
+          boost::asio::placeholders::bytes_transferred));
+}
+void HTTPProxyHandler::AsyncHandleReadHeaders(
+    const boost::system::error_code& error,
+    std::size_t bytes_transfered) {
+  if (error) {
+    LOG(debug) << "HTTPProxy: error sock read: " << bytes_transfered;
     Terminate();
     return;
   }
-  if (HandleData(m_Buffer.data(), len)) {
-    if (m_State == static_cast<std::size_t>(State::done)) {
-      LOG(info) << "HTTPProxyHandler: proxy requested: " << m_URL;
-      GetOwner()->CreateStream(
-          std::bind(
-              &HTTPProxyHandler::HandleStreamRequestComplete,
-              shared_from_this(),
-              std::placeholders::_1),
-          m_Address,
-          m_Port);
-    } else {
-      AsyncSockRead();
+  boost::asio::streambuf::const_buffers_type bufs = m_Protocol.m_Buffer.data();
+  std::string tbuffer(
+      boost::asio::buffers_begin(bufs),
+      boost::asio::buffers_begin(bufs) + m_Protocol.m_Buffer.size());
+
+  if (!m_Protocol.HandleData(tbuffer)) {
+    LOG(debug) << "HTTPProxy: error HandleData() " <<  "check http proxy";
+    HTTPRequestFailed();  // calls Terminate
+    return;
+  }
+  if (m_Protocol.m_Buffer.size() < bytes_transfered) {
+    // overflowed buffer
+    LOG(debug) << "HTTPProxy:: error buffer overflow sock read: "
+      << bytes_transfered;
+    Terminate();
+    return;
+  }
+  // There could be additional bytes on the buffer than what is
+  // stated in bytes_transfered.
+  // Actually most of the time this is the case.
+  // these bytes are part of the body
+  // TODO(guzzi) ; find a better way; possibility is read each char
+  // until \r\n\r\n;
+  std::size_t num_additional_bytes = m_Protocol.m_Buffer.size()
+    - bytes_transfered;
+
+  if (num_additional_bytes) {
+    // make m_Buffer into string
+    boost::asio::streambuf::const_buffers_type buf
+        = m_Protocol.m_Buffer.data();
+    std::string str(
+        boost::asio::buffers_end(buf) - num_additional_bytes,
+        boost::asio::buffers_end(buf));
+    // add the additional bytes the m_body
+    m_Protocol.m_Body = str;
+  }
+  // look for body
+  auto it = std::find_if(
+      m_Protocol.m_HeaderMap.begin(),
+      m_Protocol.m_HeaderMap.end(),
+      [](std::pair<std::string, std::string> arg) {
+        boost::trim_left(arg.first);
+        boost::trim_right(arg.first);
+        return arg.first == "Content-Length";
+      });
+  if (it != m_Protocol.m_HeaderMap.end()) {
+    // body found
+    std::size_t clen = boost::lexical_cast<std::size_t>(
+        boost::trim_left_copy(it->second));
+    // buffer overflow should throw exception.
+    if (clen < num_additional_bytes) {
+      // num_additinal bytes too long for content length
+      LOG(debug) << "HTTPProxy:: additional bytes longer than content length "
+        << bytes_transfered;
+      Terminate();
+      return;
     }
+    clen = clen - num_additional_bytes;
+    if (clen) {
+      // read additional body
+      boost::asio::async_read(
+          *m_Socket,
+          m_Protocol.m_BodyBuffer,
+          boost::asio::transfer_at_least(clen),
+          boost::bind(
+              &HTTPProxyHandler::HandleSockRecv,
+              shared_from_this(),
+              boost::asio::placeholders::error,
+              boost::asio::placeholders::bytes_transferred));
+    } else {
+      // body already read fully
+      CreateStream();
+    }
+  } else {
+    // no body
+    CreateStream();
   }
 }
-
-bool HTTPProxyHandler::HandleData(
-    std::uint8_t* buf,
-    std::size_t len) {
-  // This should always be called with at least a byte left to parse
-  assert(len);
-  while (len > 0) {
-    switch (m_State) {
-      case static_cast<std::size_t>(State::get_method):
-        switch (*buf) {
-          case ' ':
-            SetState(State::get_url);
-            break;
-          default:
-            m_Method.push_back(*buf);
-            break;
-        }
-      break;
-      case static_cast<std::size_t>(State::get_url):
-        switch (*buf) {
-          case ' ':
-            SetState(State::get_http_version);
-            break;
-          default:
-            m_URL.push_back(*buf);
-            break;
-        }
-      break;
-      case static_cast<std::size_t>(State::get_http_version):
-        switch (*buf) {
-          case '\r':
-            SetState(State::host);
-            break;
-          default:
-            m_Version.push_back(*buf);
-            break;
-        }
-      break;
-      case static_cast<std::size_t>(State::host):
-        switch (*buf) {
-          case '\r':
-            SetState(State::useragent);
-            break;
-          default:
-            m_Host.push_back(*buf);
-            break;
-        }
-      break;
-      case static_cast<std::size_t>(State::useragent):
-        switch (*buf) {
-          case '\r':
-            SetState(State::newline);
-            break;
-          default:
-            m_UserAgent.push_back(*buf);
-            break;
-        }
-      break;
-      case static_cast<std::size_t>(State::newline):
-        switch (*buf) {
-          case '\n':
-            SetState(State::done);
-            break;
-          default:
-            LOG(error)
-              << "HTTPProxyHandler: rejected invalid request ending with: "
-              << static_cast<std::size_t>(*buf);
-            HTTPRequestFailed(status_t::bad_request);
-            return false;
-        }
-      break;
-      default:
-        LOG(error) << "HTTPProxyHandler: invalid state: " << m_State;
-        HTTPRequestFailed(status_t::internal_server_error);
-        return false;
-    }
-    buf++;
-    len--;
-    if (m_State == static_cast<std::size_t>(State::done))
-      return CreateHTTPRequest(buf, len);
+void HTTPProxyHandler::CreateStream() {
+  LOG(debug) <<  "HTTPProxyHandler: sock recv: " << m_Protocol.m_Buffer.size();
+  if (m_Protocol.CreateHTTPRequest()) {
+    LOG(info)<< "HTTPProxyHandler: proxy requested: "<< m_Protocol.m_URL;
+    GetOwner()->CreateStream(
+        std::bind(
+            &HTTPProxyHandler::HandleStreamRequestComplete,
+            shared_from_this(),
+            std::placeholders::_1),
+        m_Protocol.m_Address,
+        m_Protocol.m_Port);
   }
+}
+void HTTPProxyHandler::HandleSockRecv(
+    const boost::system::error_code& error,
+    std::size_t bytes_transferred) {
+  if (error) {
+    LOG(debug) << "HTTPProxy: error sock read body: " << bytes_transferred;
+    Terminate();
+    return;
+  }
+  // TODO(guzzi) should not read entire body into memory
+  // instead read a buffer full ie 512 bytes and I2pconnect and send.
+  // if we read some buffer into the body buffer variable then save it to m_body
+  // will need another function handler call that loops itself until all is read
+  // and then finishes up below. if 0 is read it instead closes the connection
+  boost::asio::streambuf::const_buffers_type buf
+      = m_Protocol.m_BodyBuffer.data();
+  std::string str(
+      boost::asio::buffers_begin(buf),
+      boost::asio::buffers_begin(buf) + m_Protocol.m_BodyBuffer.size());
+  m_Protocol.m_Body += str;
+  CreateStream();
+}
+
+bool HTTPMessage::HandleData(const std::string& protocol_string) {
+  std::vector<std::string> header_body;
+  std::vector<std::string> tokens_header_body;
+  // get header info
+  // initially set error response to bad_request
+  m_ErrorResponse = HTTPResponse(HTTPResponseCodes::status_t::bad_request);
+  if (boost::algorithm::split_regex(
+          header_body, protocol_string, boost::regex("\r\n\r\n")).size()
+      != HEADERBODY_LEN)
+    return false;
+  if (boost::algorithm::split_regex(tokens_header_body, header_body[0],
+        boost::regex("\r\n"))
+          .size()
+      < REQUESTLINE_HEADERS_MIN)
+    return false;
+  m_RequestLine = tokens_header_body[0];
+  // requestline
+  std::vector<std::string> tokens_request;
+  boost::split(tokens_request, m_RequestLine, boost::is_any_of(" \t"));
+  if (tokens_request.size() == 3) {
+    m_Method = tokens_request[0];
+    m_URL = tokens_request[1];
+    m_Version = tokens_request[2];
+  } else {
+    return false;
+  }
+  // headersline
+  m_Headers = tokens_header_body;
+  // remove start line
+  m_Headers.erase(m_Headers.begin());
+  std::vector<std::pair<std::string, std::string>> headers;
+  for (auto it = m_Headers.begin(); it != m_Headers.end(); it++) {
+    std::vector<std::string> keyElement;
+    boost::split(keyElement, *it, boost::is_any_of(":"));
+    std::string key = keyElement[0];
+    keyElement.erase(keyElement.begin());
+    std::string value = boost::algorithm::join(keyElement, ":");
+    // concatenate remaining : values ie times
+    headers.push_back(std::pair<std::string, std::string>(key, value));
+  }
+
+  m_HeaderMap = headers;
+  // reset error response to ok
+  m_ErrorResponse = HTTPResponse(HTTPResponseCodes::status_t::ok);
   return true;
 }
 
@@ -220,25 +300,23 @@ void HTTPProxyHandler::HandleStreamRequestComplete(
           stream);
     GetOwner()->AddHandler(connection);
     connection->I2PConnect(
-        reinterpret_cast<const std::uint8_t*>(m_Request.data()),
-        m_Request.size());
+        reinterpret_cast<const std::uint8_t*>(m_Protocol.m_Request.c_str()),
+        m_Protocol.m_Request.size());
     Done(shared_from_this());
   } else {
     LOG(error) << "HTTPProxyHandler: stream is unavailable, try again soon";
-    HTTPRequestFailed(status_t::service_unavailable);
+    m_Protocol.m_ErrorResponse
+        = HTTPResponse(HTTPResponseCodes::status_t::service_unavailable);
+    HTTPRequestFailed();
   }
 }
-
-void HTTPProxyHandler::SetState(
-    const HTTPProxyHandler::State& state) {
-  m_State = state;
-}
-
-bool HTTPProxyHandler::CreateHTTPRequest(
-    std::uint8_t* buf,
-    std::size_t len) {
-  if (!ExtractIncomingRequest())
+/// @brief all this to change the useragent
+/// @param len length of string
+bool HTTPMessage::CreateHTTPRequest() {
+  if (!ExtractIncomingRequest()) {
+    // m_ErrorResponse is set in ExtractIncomingRequest
     return false;
+  }
   HandleJumpService();
   // Set method, path, and version
   m_Request = m_Method;
@@ -246,21 +324,46 @@ bool HTTPProxyHandler::CreateHTTPRequest(
   m_Request += m_Path;
   m_Request.push_back(' ');
   m_Request += m_Version + "\r\n";
-  // Set Host:
-  m_Request += m_Host + "\r\n";
-  // Reset/scrub User-Agent:
-  m_UserAgent = "MYOB/6.66 (AN/ON)";
-  m_Request += "User-Agent: " + m_UserAgent + "\r\n";
-  // Append remaining original request
-  m_Request.append(reinterpret_cast<const char *>(buf), len);
+
+  // find and remove/adjust headers
+  auto it_user_agent = std::find_if(
+      m_HeaderMap.begin(),
+      m_HeaderMap.end(),
+      [](std::pair<std::string, std::string> arg) {
+        boost::trim_left(arg.first);
+        boost::trim_right(arg.first);
+        return arg.first == "User-Agent";
+      });
+  if (it_user_agent != m_HeaderMap.end())  //  found
+    it_user_agent->second = " MYOB/6.66 (AN/ON)";
+  auto it_referer = std::find_if(
+      m_HeaderMap.begin(),
+      m_HeaderMap.end(),
+      [](std::pair<std::string, std::string> arg) {
+        boost::trim_left(arg.first);
+        boost::trim_right(arg.first);
+        return arg.first == "Referer";
+      });
+  if (it_referer != m_HeaderMap.end())  //  found
+    m_HeaderMap.erase(it_referer);
+  for (std::vector<std::pair<std::string, std::string>>::iterator ii
+       = m_HeaderMap.begin();
+       ii != m_HeaderMap.end();
+       ++ii) {
+    m_Request = m_Request + ii->first + ":" + ii->second + "\r\n";
+  }
+  m_Request = m_Request + "\r\n";
+  // concat body
+  m_Request += m_Body;
   return true;
 }
 
-bool HTTPProxyHandler::ExtractIncomingRequest() {
+bool HTTPMessage::ExtractIncomingRequest() {
+  m_ErrorResponse = HTTPResponse(HTTPResponseCodes::status_t::bad_request);
   LOG(debug)
     << "HTTPProxyHandler: method is: " << m_Method
     << " request is: " << m_URL;
-  // Set defaults and regexp
+  //  Set defaults and regexp
   std::string server = "", port = "80";
   boost::regex regex("http://(.*?)(:(\\d+))?(/.*)");
   boost::smatch smatch;
@@ -283,14 +386,19 @@ bool HTTPProxyHandler::ExtractIncomingRequest() {
   // Check for HTTP version
   if (m_Version != "HTTP/1.0" && m_Version != "HTTP/1.1") {
     LOG(error) << "HTTPProxyHandler: unsupported version: " << m_Version;
-    HTTPRequestFailed(status_t::http_not_supported);
+    m_ErrorResponse
+        = HTTPResponse(HTTPResponseCodes::status_t::http_not_supported);
     return false;
   }
+  m_ErrorResponse = HTTPResponse(HTTPResponseCodes::status_t::ok);
   return true;
 }
 
-void HTTPProxyHandler::HandleJumpService() {
-  // TODO(anonimal): add support for remaining services / rewrite this function
+void HTTPMessage::HandleJumpService() {
+  // TODO(GUZZI) should have boolean return value; error
+  // response?; research this
+  // TODO(anonimal): add support for remaining services /
+  // rewrite this function
   std::size_t pos1 = m_Path.rfind(m_JumpService.at(0));
   std::size_t pos2 = m_Path.rfind(m_JumpService.at(1));
   std::size_t pos;
@@ -319,48 +427,25 @@ void HTTPProxyHandler::HandleJumpService() {
   // We should ask the user for confirmation before proceeding.
   // Previous reference: http://pastethis.i2p/raw/pn5fL4YNJL7OSWj3Sc6N/
   // We *could* redirect the user again to avoid dirtiness in the browser
-  kovri::client::context.GetAddressBook().InsertAddressIntoStorage(m_Address, base64);
+  kovri::client::context.GetAddressBook().InsertAddressIntoStorage(
+      m_Address, base64);
   m_Path.erase(pos);
 }
 
 /* All hope is lost beyond this point */
-// TODO(unassigned): handle this appropriately
-void HTTPProxyHandler::HTTPRequestFailed(
-    status_t statusCode) {
-
-    std::string htmlbody = "<html>";
-    htmlbody+="<head>";
-    htmlbody+="<title>HTTP Error</title>";
-    htmlbody+="</head>";
-    htmlbody+="<body>";
-    htmlbody+="HTTP Error " + std::to_string(statusCode) + " ";
-    htmlbody+=status_message(statusCode);
-    if (statusCode == status_t::service_unavailable) {
-      htmlbody+=" Please wait for the router to integrate";
-    }
-    htmlbody+="</body>";
-    htmlbody+="</html>";
-
-    std::string response =
-    "HTTP/1.0 " + std::to_string(statusCode) + " " +
-    status_message(statusCode)+"\r\n" +
-    "Content-type: text/html;charset=UTF-8\r\n" +
-    "Content-Encoding: UTF-8\r\n" +
-    "Content-length:" + std::to_string(htmlbody.size()) + "\r\n\r\n" + htmlbody;
-
+void HTTPProxyHandler::HTTPRequestFailed() {
   boost::asio::async_write(
       *m_Socket,
       boost::asio::buffer(
-          response,
-          response.size()),
+          m_Protocol.m_ErrorResponse.m_Response,
+          m_Protocol.m_ErrorResponse.m_Response.size()),
       std::bind(
           &HTTPProxyHandler::SentHTTPFailed,
           shared_from_this(),
           std::placeholders::_1));
 }
 
-void HTTPProxyHandler::SentHTTPFailed(
-    const boost::system::error_code& ecode) {
+void HTTPProxyHandler::SentHTTPFailed(const boost::system::error_code& ecode) {
   if (!ecode) {
     Terminate();
   } else {

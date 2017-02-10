@@ -45,7 +45,8 @@
 #include "core/crypto/aes.h"  // For AES-NI detection/initialization
 #include "core/router/context.h"
 #include "core/util/log.h"
-#include "core/version.h"
+
+#include "version.h"
 
 namespace kovri {
 namespace app {
@@ -65,7 +66,7 @@ void Instance::Configure() {
   GetConfig().SetupLogging();
   // Log the banner
   LOG(info) << "The Kovri I2P Router Project";
-  LOG(info) << "Version " << KOVRI_VERSION;
+  LOG(info) << KOVRI_VERSION << "-" << KOVRI_GIT_REVISION << " \"" << KOVRI_CODENAME << "\"";
   // Continue with configuration/setup
   GetConfig().SetupAESNI();
   GetConfig().ParseTunnelsConfig();

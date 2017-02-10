@@ -51,7 +51,7 @@
 #include "core/util/log.h"
 #include "core/util/timestamp.h"
 
-#include "core/version.h"
+#include "version.h"
 
 namespace kovri {
 namespace client {

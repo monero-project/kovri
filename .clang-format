@@ -14,3 +14,4 @@ ColumnLimit: 80
 DerivePointerAlignment: false
 PointerAlignment: Left
 SpacesBeforeTrailingComments: 2
+CommentPragmas: '.*'

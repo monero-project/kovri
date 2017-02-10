@@ -54,8 +54,8 @@
 #include "core/util/log.h"
 #include "core/util/timestamp.h"
 
-#ifndef NETWORK_ID
-#define NETWORK_ID 2
+#ifndef I2P_NETWORK_ID
+#define I2P_NETWORK_ID 2
 #endif
 
 namespace kovri {
@@ -148,7 +148,7 @@ std::shared_ptr<I2NPMessage> CreateDeliveryStatusMsg(
         kovri::core::Rand<std::uint32_t>());
     htobe64buf(
         buf + DELIVERY_STATUS_TIMESTAMP_OFFSET,
-        NETWORK_ID);
+        I2P_NETWORK_ID);
   }
   m->len += DELIVERY_STATUS_SIZE;
   m->FillI2NPMessageHeader(I2NPDeliveryStatus);

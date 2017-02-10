@@ -1,6 +1,25 @@
 cmake_minimum_required(VERSION 2.8.12)
 project("kovri" C CXX)
 
+set(KOVRI_PROJECT "The Kovri I2P Router Project")
+
+# Versioning
+set(KOVRI_VERSION "0.1.0-pre-alpha")
+set(KOVRI_CODENAME "In the beginning")
+
+message(STATUS "${KOVRI_PROJECT}")
+message(STATUS "${KOVRI_VERSION} \"${KOVRI_CODENAME}\"")
+
+# I2NP/NetDb RI properties (used internally)
+set(I2P_VERSION "0.9.26")
+set(I2P_NETWORK_ID "2")  # "1" is reserved for I2P version less than 0.6.1.10
+
+# Produce version definitions, output to build directory
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.h.in" "${CMAKE_BINARY_DIR}/version.h" @ONLY)
+
+# Include build directory so we need to git-ignore version file output
+include_directories("${CMAKE_BINARY_DIR}")
+
 # Configurable options
 option(KOVRI_DATA_PATH "The path to the kovri data folder")
 option(WITH_BENCHMARKS "Build with benchmarks" OFF)

@@ -30,15 +30,13 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CORE_VERSION_H_
-#define SRC_CORE_VERSION_H_
+#ifndef BUILD_VERSION_H_
+#define BUILD_VERSION_H_
 
-// Used purely for aesthetics
-#define KOVRI_VERSION "0.1.0-pre-alpha"
-#define CODENAME ""  // If we ever use codenames for releases
+#cmakedefine KOVRI_VERSION "@KOVRI_VERSION@"
+#cmakedefine KOVRI_CODENAME "@KOVRI_CODENAME@"
 
-// I2NP/NetDb RI properties
-#define I2P_VERSION "0.9.26"
-#define NETWORK_ID "2"  // I2P version < 0.6.1.10 used "1"
+#cmakedefine I2P_VERSION "@I2P_VERSION@"
+#cmakedefine I2P_NETWORK_ID "@I2P_NETWORK_ID@"
 
-#endif  // SRC_CORE_VERSION_H_
+#endif  // BUILD_VERSION_H_

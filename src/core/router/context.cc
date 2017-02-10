@@ -44,7 +44,7 @@
 #include "core/util/mtu.h"
 #include "core/util/timestamp.h"
 
-#include "core/version.h"
+#include "version.h"
 
 namespace kovri {
 // TODO(anonimal): this belongs in core namespace
@@ -92,7 +92,7 @@ void RouterContext::NewRouterInfo() {
     kovri::core::RouterInfo::eReachable |
     kovri::core::RouterInfo::eSSUTesting |
     kovri::core::RouterInfo::eSSUIntroducer);
-  routerInfo.SetProperty("netId", NETWORK_ID);
+  routerInfo.SetProperty("netId", I2P_NETWORK_ID);
   routerInfo.SetProperty("router.version", I2P_VERSION);
   routerInfo.CreateBuffer(m_Keys);
   m_RouterInfo.Update(

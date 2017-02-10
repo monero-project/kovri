@@ -45,7 +45,8 @@
 #include "core/crypto/aes.h"  // For AES-NI detection/initialization
 #include "core/router/context.h"
 #include "core/util/log.h"
-#include "core/version.h"
+
+#include "version.h"
 
 namespace kovri {
 namespace app {

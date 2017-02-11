@@ -9,7 +9,7 @@ confinement: strict
 
 apps:
   kovri:
-    command: kovri
+    command: kovri-wrapper
     plugs: [network, network-bind]
 
 parts:
@@ -23,6 +23,12 @@ parts:
       - libssl1.0.0
     artifacts:
       - build/kovri
-      - pkg
+      - pkg/config
+      - pkg/client
     organize:
       build/kovri: bin/
+      pkg/*: .
+  wrapper:
+    plugin: dump
+    source: snap/
+    stage: [kovri-wrapper]

@@ -11,37 +11,6 @@ $ cd kovri/ && clang-format -i -style=file src/path/to/my/file
 
 ## Here's what's currently not caught by clang-format and differs from Google's proposed C++ style
 
-- Keep with codebase's present (vertical) style for consistency
-- Newline break all function parameters for consisentcy across codebase
-- When function args newline break, ensure that *every* arg indent is 4 spaces
-
-```cpp
-  /// @brief Constructs SSU header with pre-determined payload type
-  explicit SSUHeader(
-      SSUPayloadType type);
-
-  /// @brief Constructs SSU header with pre-determined payload type and content
-  /// @note Assumes content is valid
-  /// @param SSUPayloadType SSU payload type
-  /// @param mac Pointer to header's MAC material
-  /// @param iv Pointer to header's IV material
-  /// @param time Header's timestamp
-  SSUHeader(
-      SSUPayloadType type,
-      std::uint8_t* mac,
-      std::uint8_t* iv,
-      std::uint32_t time);
-
-  /// @brief Sets MAC from appointed position within header
-  /// @note Assumes content is valid (based on position)
-  void SetMAC(
-      std::uint8_t* mac);
-
-  /// @brief Gets acquired MAC after it has been set when parsed
-  /// @return Pointer to MAC material
-  std::uint8_t* GetMAC() const;
-```
-
 - Expressions can be broken before operators if:
   - The line is greater that 80 columns
   - Doing so aids in better documentation
@@ -61,9 +30,7 @@ return SSUPacket::GetSize()
        + m_SignatureSize;   // Signature size
 ```
 
-- Class member variables should be prepended with ```m_```
-- Don't use "cheap function" names; always use MixedCaseFunctions()
 - Avoid prepended mixed-case ```k``` and MACRO_TYPE for all constants
 - Use Doxygen three-slash ```/// C++ comments``` when documenting for Doxygen
-- Document all your work for Doxygen as you progress
+- Try to document all your work for Doxygen as you progress
 - If anonymity is a concern, try to blend in with a present contributor's style

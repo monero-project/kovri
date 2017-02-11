@@ -2,16 +2,18 @@ Language: Cpp
 BasedOnStyle: Google
 
 AlignAfterOpenBracket: AlwaysBreak
-AlignTrailingComments: true
+AlignTrailingComments: false
 AllowAllParametersOfDeclarationOnNextLine: false
-AllowShortFunctionsOnASingleLine: false
+AllowShortBlocksOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Empty
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 BinPackArguments: false
 BinPackParameters: false
-BreakBeforeBinaryOperators: true
+BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeBraces: GNU
 ColumnLimit: 80
+CommentPragmas: '.*'
 DerivePointerAlignment: false
 PointerAlignment: Left
 SpacesBeforeTrailingComments: 2
-CommentPragmas: '.*'

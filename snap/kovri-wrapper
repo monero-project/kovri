@@ -1,0 +1,9 @@
+#!/bin/sh
+
+if [ ! -d "$SNAP_USER_DATA/.kovri" ]; then
+  mkdir $SNAP_USER_DATA/.kovri/
+  cp -R $SNAP/config $SNAP_USER_DATA/.kovri/
+  cp -R $SNAP/client $SNAP_USER_DATA/.kovri/
+fi
+
+exec "$SNAP/bin/kovri" "$@"

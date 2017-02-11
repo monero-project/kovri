@@ -1,13 +1,22 @@
 # Style
-1. Read [Google's C++ Style Guide](https://google.github.io/styleguide/cppguide.html)
-2. Run [cpplint](https://pypi.python.org/pypi/cpplint/)
-```bash
-$ cpplint src/path/to/my/file
-```
-3. Run [clang-format](http://llvm.org/releases/3.8.0/tools/clang/docs/ClangFormat.html) with ```-style=file``` using provided [.clang-format](https://github.com/monero-project/kovri/blob/master/.clang-format)
+1. Read [Google's C++ Style Guide](https://google.github.io/styleguide/cppguide.html) (particularly for non-formatting style reference)
+2. Run [clang-format](http://clang.llvm.org/docs/ClangFormat.html) with ```-style=file``` (which uses our provided [.clang-format](https://github.com/monero-project/kovri/blob/master/.clang-format))
 ```bash
 $ cd kovri/ && clang-format -i -style=file src/path/to/my/file
 ```
+3. Run [cpplint](https://pypi.python.org/pypi/cpplint/) (which uses our provided [CPPLINT.cfg](https://github.com/monero-project/kovri/blob/master/CPPLINT.cfg)) to catch any issues that were missed by clang-format
+```bash
+$ cd kovri/ && cpplint src/path/to/my/file && [edit file manually to apply fixes]
+```
+
+### Plugins
+
+- Vim integration
+  - [clang-format](http://clang.llvm.org/docs/ClangFormat.html#vim-integration)
+  - [cpplint.vim](https://github.com/vim-syntastic/syntastic/blob/master/syntax_checkers/cpp/cpplint.vim)
+- Emacs integration
+  - [clang-format](http://clang.llvm.org/docs/ClangFormat.html#emacs-integration) + [clang-format.el](https://llvm.org/svn/llvm-project/cfe/trunk/tools/clang-format/clang-format.el)
+  - [flycheck-google-cpplint.el](https://github.com/flycheck/flycheck-google-cpplint)
 
 ## Here's what's currently not caught by clang-format and differs from Google's proposed C++ style
 

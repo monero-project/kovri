@@ -9,7 +9,7 @@ Notes:
 
 - **Don't share your port number with anyone as it will effect your anonymity!**
 - If you don't save the port, kovri will randomly generate a new one on each startup (you also have the choice to pass the port with the `--port` flag on each startup).
-- If you do not have access to your NAT, see instructions in [BUILDING](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md) for your OS. 
+- If you do not have access to your NAT, see instructions in [BUILDING](https://github.com/monero-project/kovri/blob/master/doc/BUILDING.md) for your OS.
 
 ## Step 2. Configure Kovri
 
@@ -57,25 +57,59 @@ Notes:
 - Open your feature requests or report bugs on our [issues tracker](https://github.com/monero-project/kovri/issues)
 - Learn more about the I2P network on the [java I2P website](https://geti2p.net/en/docs)
 
-# Alternatively, Docker
+# Container Options
 
-## Step 1. Install Docker
+## Snapcraft
+
+On Linux systems, use snapcraft for easy deployment.
+
+### Step 1. Get the Kovri source repo
+
+```bash
+$ git clone --recursive https://github.com/monero-project/kovri
+```
+
+### Step 2. Install snapcraft
+
+- Refer to your distribution's package manager for snapcraft and [snapd](https://snapcraft.io/docs/core/install)
+
+On Ubuntu, simple run:
+```bash
+$ sudo apt-get install snapcraft
+```
+
+### Step 3. Create the snap
+
+```bash
+$ cd kovri/ && snapcraft && sudo snap install *.snap --dangerous
+```
+Note: the --dangerous flag is needed only because the snap has not been signed (you built it yourself though, so this shouldn't be an issue)
+
+### Step 4. Run Kovri with snapcraft
+
+```bash
+$ snap run kovri
+```
+
+## Docker
+
+### Step 1. Install Docker
 Installing Docker is outside the scope of this document, please see the [docker documentation](https://docs.docker.com/engine/installation/)
 
-## Step 2. Configuring / Open Firewall
+### Step 2. Configuring / Open Firewall
 
 The docker image comes with the defaults of kovri, but can be configured as explained in earlier sections.
 
 You should choose a random port and open that port (see earlier sections).
 
-## Step 3. Running
+### Step 3. Running
 
-### Default Settings
+#### Default Settings
 ```bash
 KOVRI_PORT=42085 && sudo docker run -p 127.0.0.1:4446:4446 -p 127.0.0.1:6669:6669 -p $KOVRI_PORT --env KOVRI_PORT=$KOVRI_PORT geti2p/kovri
 ```
 
-### Custom Settings 
+#### Custom Settings
 Where `./kovri-settings/` contains `kovri.conf` and `tunnels.conf`.
 ```bash
 KOVRI_PORT=42085 && sudo docker run -p 127.0.0.1:4446:4446 -p 127.0.0.1:6669:6669 -p $KOVRI_PORT --env KOVRI_PORT=$KOVRI_PORT -v kovri-settings:/home/kovri/.kovri/config:ro geti2p/kovri

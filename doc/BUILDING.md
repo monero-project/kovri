@@ -1,7 +1,5 @@
 ## Step 1. Minimum requirements
 
-####Note: Due to [#403](https://github.com/monero-project/kovri/issues/403), a minimum of 1 GiB of RAM is suggested for build environments.    
-
 ### Linux / MacOSX / FreeBSD 10
 - [Git](https://git-scm.com/download) 1.9.1
 - [GCC](https://gcc.gnu.org/) 4.9.2
@@ -23,7 +21,11 @@ Optional:
 ### MacOSX
 - [Homebrew](http://brew.sh/)
 
+#### Note: a minimum of 1 GiB of RAM is suggested for build environments (see [#403](https://github.com/monero-project/kovri/issues/403) for details)
+
 ## Step 2. Install dependencies
+
+#### Note: for container options (like Docker and snapcraft), see the [User Guide](https://github.com/monero-project/kovri/blob/master/doc/USER_GUIDE.md)
 
 ### Ubuntu Xenial (16.04)
 Required dependencies:

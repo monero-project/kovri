@@ -34,7 +34,7 @@
 - [FAQ's](https://github.com/monero-project/kovri/blob/master/doc/FAQ.md) and other documentation available in the [doc directory](https://github.com/monero-project/kovri/tree/master/doc)
 
 ## Developers
-- [Contributing Guide](https://github.com/monero-project/kovri/blob/master/doc/CONTRIBUTING.md) before sending a pull-request
+- [Contributing Guide](https://github.com/monero-project/kovri/blob/master/doc/CONTRIBUTING.md) and [Style Guide](https://github.com/monero-project/kovri/blob/master/doc/STYLE.md) before sending a pull-request
 - [Forum Funding System](https://forum.getmonero.org/8/funding-required) to get funded for your work, [submit a proposal](https://forum.getmonero.org/7/open-tasks/2379/forum-funding-system-ffs-sticky)
 - [build.getmonero.org](https://build.getmonero.org/) or monero-build.i2p for detailed build information
 - [repo.getmonero.org](https://repo.getmonero.org/monero-project/kovri) or monero-repo.i2p are alternatives to GitHub for non-push repository access

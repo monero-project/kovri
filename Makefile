@@ -51,7 +51,7 @@ endif
 cmake = cmake $(cmake-gen)
 
 # Release types
-cmake-debug = $(cmake) -D CMAKE_BUILD_TYPE=Debug
+cmake-debug = $(cmake) -D CMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 cmake-release = $(cmake) -D CMAKE_BUILD_TYPE=Release
 
 # TODO(unassigned): cmake-release when we're out of alpha

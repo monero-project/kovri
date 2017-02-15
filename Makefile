@@ -152,7 +152,7 @@ release-static: release-static-deps
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
 release-static-android: release-static-deps
-	$(eval cmake-kovri += $(cmake-static) $(cmake-android)
+	$(eval cmake-kovri += $(cmake-static) $(cmake-android))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
 #-----------------#

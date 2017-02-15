@@ -1,6 +1,6 @@
 ## Step 1. Minimum requirements
 
-### Linux / MacOSX / FreeBSD 10
+### Linux / MacOSX / FreeBSD 11
 - [Git](https://git-scm.com/download) 1.9.1
 - [GCC](https://gcc.gnu.org/) 4.9.2
 - [CMake](https://cmake.org/) 2.8.12
@@ -118,15 +118,10 @@ $ brew install doxygen graphviz
 $ brew install miniupnpc #For users behind a restrictive NAT 
 ```
 
-### FreeBSD 10
+### FreeBSD 11
 Required dependencies:
 ```bash
-$ sudo pkg install git cmake gmake clang36 openssl
-# Build latest boost (1.58 minimum)
-$ wget [latest boost] -O latest_boost.tar.bz2
-$ tar xvjf latest_boost.tar.bz2 && cd latest_boost
-$ ./bootstrap.sh --with-toolset=clang  # OK to build with clang 3.5
-$ sudo ./b2 --toolset=clang install
+$ sudo pkg install git cmake gmake clang36 boost-libs openssl
 ```
 Optional dependencies:
 ```bash

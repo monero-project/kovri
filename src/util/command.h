@@ -28,50 +28,36 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#include "core/util/exception.h"
-
-#ifdef WITH_CRYPTOPP
-#include <cryptopp/cryptlib.h>
-#endif
-
-#include <exception>
-#include <string>
+#ifndef SRC_UTIL_COMMAND_H_
+#define SRC_UTIL_COMMAND_H_
 
 #include <boost/program_options.hpp>
-#include "core/util/log.h"
+#include <iostream>
+#include <string>
+#include <vector>
 
-namespace kovri {
-namespace core {
+/**
+ * @class Command
+ * @brief Base class for all sub commands
+ * @details All kovri-util sub commands must inherit this class
+ */
 
-Exception::Exception(const char* message) : m_CtorMessage(message) {}
+class Command
+{
+ public:
+  /// @brief Implementation of the sub command
+  /// @param path : command name as entered by the OP
+  /// @param argc : Number of arguments
+  /// @param argv : array of arguments
+  /// @return false on failure, true otherwise
+  virtual bool Impl(const std::string& path, int argc, const char* argv[]) = 0;
 
-// TODO(anonimal): exception error codes to replace strings?
-void Exception::Dispatch(const char* message) {
-  // Reset previous Message
-  m_Message.clear();
-  // Set new message with formatting
-  if (!m_CtorMessage.empty())
-    m_Message += m_CtorMessage + ": ";
-  m_Message += message;
-  m_Message += ": ";
-  // Throw original exception
-  try {
-    throw;
-#ifdef WITH_CRYPTOPP
-  // Note: CryptoPP::Exception inherits std::exception
-  } catch (const CryptoPP::Exception& ex) {
-    LOG(error) << m_Message << "cryptopp exception" << ": '" << ex.what() << "'";
-#endif
-  // TODO(anonimal): boost exception/exception_ptr
-  } catch (const boost::program_options::error& ex) {
-    LOG(error) << m_Message << "program option exception"
-               << ": '" << ex.what() << "'";
-  } catch (const std::exception& ex) {
-    LOG(error) << m_Message << "standard exception" << ": '" << ex.what() << "'";
-  } catch (...) {
-    LOG(error) << m_Message << "unknown exception";
-  }
-}
+  /// @brief Name of the sub command
+  /// @return name of the sub command
+  virtual std::string GetName(void) const = 0;
 
-}  // namespace core
-}  // namespace kovri
+  /// @brief Print the help message of the sub command
+  virtual void PrintUsage(const std::string& cmd_name) const = 0;
+};
+
+#endif  // SRC_UTIL_COMMAND_H_

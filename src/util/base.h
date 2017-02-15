@@ -28,50 +28,87 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#include "core/util/exception.h"
+#ifndef SRC_UTIL_BASE_H_
+#define SRC_UTIL_BASE_H_
 
-#ifdef WITH_CRYPTOPP
-#include <cryptopp/cryptlib.h>
-#endif
-
-#include <exception>
+#include <fstream>
+#include <iostream>
 #include <string>
+#include <vector>
+#include "core/util/filesystem.h"
+#include "util/command.h"
 
-#include <boost/program_options.hpp>
-#include "core/util/log.h"
+/**
+ * @class BaseCommand
+ * @brief base class for base32 and base64
+ */
 
-namespace kovri {
-namespace core {
+class BaseCommand : public Command
+{
+ public:
+  BaseCommand();
+  void PrintUsage(const std::string& cmd_name) const;
+  bool Impl(const std::string&, int argc, const char* argv[]);
 
-Exception::Exception(const char* message) : m_CtorMessage(message) {}
+ protected:
+  virtual bool do_process(
+      bool encode,
+      kovri::core::InputFileStream* input,
+      kovri::core::OutputFileStream* output) = 0;
+  boost::program_options::options_description m_Desc;
+  std::string m_OptType;
+  std::string m_OptInfile;
+  std::string m_OptOutfile;
+};
 
-// TODO(anonimal): exception error codes to replace strings?
-void Exception::Dispatch(const char* message) {
-  // Reset previous Message
-  m_Message.clear();
-  // Set new message with formatting
-  if (!m_CtorMessage.empty())
-    m_Message += m_CtorMessage + ": ";
-  m_Message += message;
-  m_Message += ": ";
-  // Throw original exception
-  try {
-    throw;
-#ifdef WITH_CRYPTOPP
-  // Note: CryptoPP::Exception inherits std::exception
-  } catch (const CryptoPP::Exception& ex) {
-    LOG(error) << m_Message << "cryptopp exception" << ": '" << ex.what() << "'";
-#endif
-  // TODO(anonimal): boost exception/exception_ptr
-  } catch (const boost::program_options::error& ex) {
-    LOG(error) << m_Message << "program option exception"
-               << ": '" << ex.what() << "'";
-  } catch (const std::exception& ex) {
-    LOG(error) << m_Message << "standard exception" << ": '" << ex.what() << "'";
-  } catch (...) {
-    LOG(error) << m_Message << "unknown exception";
+/**
+ * @class Base32Command
+ * @brief command base32
+ */
+
+class Base32Command : public BaseCommand
+{
+ public:
+  Base32Command() : BaseCommand()
+  {
   }
-}
+  std::string GetName(void) const
+  {
+    return "base32";
+  }
 
-}  // namespace core
-}  // namespace kovri
+  static constexpr std::size_t m_BufferSize = 400;
+
+ protected:
+  bool do_process(
+      bool encode,
+      kovri::core::InputFileStream* input,
+      kovri::core::OutputFileStream* output);
+};
+
+/**
+ * @class Base64Command
+ * @brief command base64
+ */
+
+class Base64Command : public BaseCommand
+{
+ public:
+  Base64Command() : BaseCommand()
+  {
+  }
+  std::string GetName(void) const
+  {
+    return "base64";
+  }
+
+  static constexpr std::size_t m_BufferSize = 120;
+
+ protected:
+  bool do_process(
+      bool encode,
+      kovri::core::InputFileStream* input,
+      kovri::core::OutputFileStream* output);
+};
+
+#endif  // SRC_UTIL_BASE_H_

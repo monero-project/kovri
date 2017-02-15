@@ -46,7 +46,7 @@ Once setup, your [Base32 address](https://getmonero.org/knowledge-base/moneroped
 Example:
 
 - Private keys file: `client/keys/your-keys.dat`
-- Public Base32 address: `client/keys/your-keys.dat.txt`
+- Public [Base32](https://getmonero.org/knowledge-base/moneropedia/base32-address)/[Base64](https://getmonero.org/knowledge-base/moneropedia/base64-address) address: `client/keys/your-keys.dat.txt`
 
 **Note: see kovri.conf to find your data path for Linux/OSX/Windows**
 

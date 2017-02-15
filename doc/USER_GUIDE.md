@@ -50,18 +50,27 @@ Example:
 
 **Note: see kovri.conf to find your data path for Linux/OSX/Windows**
 
-## Step 5. Run Kovri
+## Step 5. (Optional) Register your new [eepsite](https://getmonero.org/knowledge-base/moneropedia/eepsite)
+
+**Stop! Until [#498](https://github.com/monero-project/kovri/issues/498) is resolved, consider only registering your service with Kovri and *not* stats.i2p!**
+
+- Open a request with `[Subscription Request] your-host.i2p` (replace your-host.i2p with your desired hostname) on the [Kovri issue tracker](https://github.com/monero-project/kovri/issues)
+- In the request body, paste the contents of your public `.txt` file that was mentioned in the previous step
+- After review, we will add your host and sign the subscription
+- Done!
+
+## Step 6. Run Kovri
 ```bash
 $ cd build/ && ./kovri
 ```
 - Wait 5 minutes or so to get bootstrapped into the network before attempting to use services
 
-## Step 6. Join us on IRC
+## Step 7. Join us on IRC
 1. Startup your [IRC client](https://en.wikipedia.org/wiki/List_of_IRC_clients)
 2. Setup your client to connect to kovri's IRC port (default 6669). This will connect you to the Irc2P network (I2P's IRC network)
 3. Join `#kovri` and `#kovri-dev`
 
-## Step 7. Browse an I2P website (garlic-site/eepsite)
+## Step 8. Browse an I2P website (garlic-site/eepsite)
 1. Startup a browser of your choosing (preferably a browser devoted to kovri usage)
 2. Configure your browser by reading [these instructions](https://geti2p.net/en/about/browser-config) **but instead of port 4444 and 4445** change HTTP proxy port to **4446** and SSL proxy port *also* to **4446**
 3. Visit http://check.kovri.i2p
@@ -74,7 +83,7 @@ Notes:
 - Look through hosts.txt in your data directory to view a list of default sites you can easily visit
 - Overall, HTTP Proxy and address book implementation are in development and not yet feature-complete
 
-## Step 8. Enjoy!
+## Step 9. Enjoy!
 - Read more about Kovri in the [Moneropedia](https://getmonero.org/knowledge-base/moneropedia/kovri).
 - Open your feature requests or report bugs on our [issues tracker](https://github.com/monero-project/kovri/issues)
 - Learn more about the I2P network on the [java I2P website](https://geti2p.net/en/docs)

@@ -4,7 +4,7 @@
 ```bash
 $ cd kovri/ && clang-format -i -style=file src/path/to/my/file
 ```
-3. Run [cpplint](https://pypi.python.org/pypi/cpplint/) (which uses our provided [CPPLINT.cfg](https://github.com/monero-project/kovri/blob/master/CPPLINT.cfg)) to catch any issues that were missed by clang-format
+3. Run [cpplint](https://github.com/google/styleguide/tree/gh-pages/cpplint) (which uses our provided [CPPLINT.cfg](https://github.com/monero-project/kovri/blob/master/CPPLINT.cfg)) to catch any issues that were missed by clang-format
 ```bash
 $ cd kovri/ && cpplint src/path/to/my/file && [edit file manually to apply fixes]
 ```

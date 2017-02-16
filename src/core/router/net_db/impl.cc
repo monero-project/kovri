@@ -286,42 +286,47 @@ void NetDb::SetUnreachable(
 
 // TODO(unassigned): Move to reseed and/or scheduled tasks.
 // (In java version, scheduler fixes this as well as sort RIs.)
-bool NetDb::CreateNetDb(
-    boost::filesystem::path directory) {
-  try {
-    LOG(debug) << "NetDb: ensuring " << directory.string();
-    core::EnsurePath(directory);
-    // TODO(unassigned): this is a patch for #520 until we implement a database in #385
+bool NetDb::CreateNetDb(boost::filesystem::path directory)
+{
+  try
+    {
+      LOG(debug) << "NetDb: ensuring " << directory.string();
+      core::EnsurePath(directory);
+// TODO(unassigned): this is a patch for #520 until we implement a database in #385
 #if defined(_WIN32) || defined(__APPLE__)
-    core::EnsurePath(directory / "uppercase");
-    core::EnsurePath(directory / "lowercase");
+      core::EnsurePath(directory / "uppercase");
+      core::EnsurePath(directory / "lowercase");
 #endif
     // list of chars might appear in base64 string
     const char* chars = kovri::core::GetBase64SubstitutionTable();  // 64 bytes
     boost::filesystem::path suffix;
-    for (int i = 0; i < 64; i++) {
+    for (int i = 0; i < 64; i++)
+      {
 #ifdef _WIN32
-      suffix = std::string("\\r") + chars[i];
+        suffix = std::string("\\r") + chars[i];
 #else
-      suffix = std::string("/r") + chars[i];
+        suffix = std::string("/r") + chars[i];
 #endif
-      // TODO(unassigned): this is a patch for #520 until we implement a database in #385
-      std::string sub_dir;
+        // TODO(unassigned): this is a patch for #520 until we implement a database in #385
+        std::string sub_dir;
 #if defined(_WIN32) || defined(__APPLE__)
-      sub_dir = std::isupper(chars[i]) ? "uppercase" : "lowercase";
+        sub_dir = std::isupper(chars[i]) ? "uppercase" : "lowercase";
 #endif
-      const auto& path = directory / sub_dir / suffix;
-      LOG(debug) << "NetDb: ensuring " << path;
-      core::EnsurePath(path);
+        const auto& path = directory / sub_dir / suffix;
+        LOG(debug) << "NetDb: ensuring " << path;
+        core::EnsurePath(path);
+      }
     }
-  } catch (...) {
-    m_Exception.Dispatch(__func__);
-    return false;
-  } 
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      return false;
+    }
   return true;
 }
 
-bool NetDb::Load() {
+bool NetDb::Load()
+{
   // Create NetDb if it does not exist
   const auto& path = core::GetNetDbPath();
   if (!CreateNetDb(path))
@@ -331,36 +336,43 @@ bool NetDb::Load() {
   m_Floodfills.clear();
   // Load RI's from given path
   std::size_t num_routers = 0;
-  auto LoadRouterInfos = [&](const boost::filesystem::path& path)
-  {
-    std::uint64_t ts = kovri::core::GetMillisecondsSinceEpoch();
+  auto LoadRouterInfos = [&](const boost::filesystem::path& path) {
+    std::uint64_t timestamp = kovri::core::GetMillisecondsSinceEpoch();
     boost::filesystem::directory_iterator end;
-    for (boost::filesystem::directory_iterator it(path); it != end; ++it) {
-      if (boost::filesystem::is_directory(it->status())) {
-        for (boost::filesystem::directory_iterator it1(it->path());
-            it1 != end;
-            ++it1) {
-          const std::string& full_path = it1->path().string();
-          auto r = std::make_shared<RouterInfo>(full_path);
-          if (!r->IsUnreachable() &&
-              (!r->UsesIntroducer() || ts < r->GetTimestamp() +
-               GetType(NetDbTime::RouterExpiration))) {
-            r->DeleteBuffer();
-            r->ClearProperties();  // properties are not used for regular routers
-            m_RouterInfos.insert(std::make_pair(r->GetIdentHash(), r));
-            if (r->IsFloodfill())
-              m_Floodfills.push_back(r);
-            num_routers++;
-          } else {
-	    // Remove unreachable routers
-            if (boost::filesystem::remove(full_path))
-              LOG(debug) << "NetDb: " << full_path << " unreachable router removed";
+    for (boost::filesystem::directory_iterator dir(path); dir != end; ++dir)
+      {
+        if (boost::filesystem::is_directory(dir->status()))
+          {
+            for (boost::filesystem::directory_iterator it(dir->path());
+                 it != end;
+                 ++it)
+              {
+                const std::string& full_path = it->path().string();
+                auto router = std::make_shared<RouterInfo>(full_path);
+                if (!router->IsUnreachable()
+                    && (!router->UsesIntroducer()
+                        || timestamp < router->GetTimestamp()
+                                    + GetType(NetDbTime::RouterExpiration)))
+                  {
+                    router->DeleteBuffer();
+                    router->ClearProperties();  // properties are not used for regular routers
+                    m_RouterInfos.insert(std::make_pair(router->GetIdentHash(), router));
+                    if (router->IsFloodfill())
+                      m_Floodfills.push_back(router);
+                    num_routers++;
+                  }
+                else
+                  {
+                    // Remove unreachable routers
+                    if (boost::filesystem::remove(full_path))
+                      LOG(debug) << "NetDb: " << full_path
+                                 << " unreachable router removed";
+                  }
+              }
           }
-        }
       }
-    }
   };
-  // TODO(unassigned): this is a patch for #520 until we implement a database in #385
+// TODO(unassigned): this is a patch for #520 until we implement a database in #385
 #if defined(_WIN32) || defined(__APPLE__)
   LoadRouterInfos(path / "uppercase");
   LoadRouterInfos(path / "lowercase");

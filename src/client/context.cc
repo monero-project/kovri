@@ -152,7 +152,7 @@ kovri::core::PrivateKeys ClientContext::LoadPrivateKeys(
     keys.FromBuffer(buf.get(), len);
     // Contingency: create associated address text file if the private keys
     // filename is swapped out with another set of keys with the same filename
-    CreateB32AddressTextFile(keys, filename);
+    CreateBaseAddressTextFile(keys, filename);
     LOG(info)
       << "ClientContext: " << file_path << " loaded: uses local address "
       << kovri::core::GetB32Address(keys.GetPublic().GetIdentHash());
@@ -177,14 +177,14 @@ kovri::core::PrivateKeys ClientContext::CreatePrivateKeys(
   len = keys.ToBuffer(buf.get(), len);
   file.write(reinterpret_cast<char *>(buf.get()), len);
   // Create associated address text file
-  CreateB32AddressTextFile(keys, filename);
+  CreateBaseAddressTextFile(keys, filename);
   LOG(info)
     << "ClientContext: created new private keys " << file_path << " for "
     << kovri::core::GetB32Address(keys.GetPublic().GetIdentHash());
   return keys;
 }
 
-void ClientContext::CreateB32AddressTextFile(
+void ClientContext::CreateBaseAddressTextFile(
     const kovri::core::PrivateKeys& keys,
     const std::string& filename) {
   auto path = kovri::core::EnsurePath(kovri::core::GetClientKeysPath());
@@ -192,9 +192,13 @@ void ClientContext::CreateB32AddressTextFile(
   // Create binary keys file
   std::ofstream file(file_path);
   if (!file)
-    throw std::runtime_error("ClientContext: could not open b32 address text file for writing");
-  file << kovri::core::GetB32Address(keys.GetPublic().GetIdentHash());
-  LOG(info) << "ClientContext: created b32 address file " << file_path;
+    throw std::runtime_error("ClientContext: could not open base address text file for writing");
+  // Re: identity, see #366
+  // Base32
+  file << kovri::core::GetB32Address(keys.GetPublic().GetIdentHash()) << "\n";
+  // Base64
+  file << keys.GetPublic().ToBase64();
+  LOG(info) << "ClientContext: created base address text file " << file_path;
 }
 
 std::shared_ptr<ClientDestination> ClientContext::LoadLocalDestination(

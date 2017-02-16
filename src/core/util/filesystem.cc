@@ -54,6 +54,7 @@ std::string g_AppName("kovri");
 const boost::filesystem::path EnsurePath(
     const boost::filesystem::path& path) {
   if (!boost::filesystem::exists(path)) {
+    // TODO(anonimal): add error code
     if (!boost::filesystem::create_directory(path)) {
       throw std::runtime_error(
           "Filesystem: failed to create " + std::string(path.string()));

@@ -340,27 +340,20 @@ bool NetDb::Load() {
         for (boost::filesystem::directory_iterator it1(it->path());
             it1 != end;
             ++it1) {
-// TODO(anonimal): remove this boost deprecation
-#if BOOST_VERSION > 10500
           const std::string& full_path = it1->path().string();
-#else
-          const std::string& full_path = it1->path();
-#endif
           auto r = std::make_shared<RouterInfo>(full_path);
           if (!r->IsUnreachable() &&
               (!r->UsesIntroducer() || ts < r->GetTimestamp() +
-               static_cast<std::uint32_t>(NetDbTime::RouterExpiration))) {  // TODO(anonimal): GetType()
+               GetType(NetDbTime::RouterExpiration))) {
             r->DeleteBuffer();
             r->ClearProperties();  // properties are not used for regular routers
-            // TODO(anonimal): insert
-            m_RouterInfos[r->GetIdentHash()] = r;
+            m_RouterInfos.insert(std::make_pair(r->GetIdentHash(), r));
             if (r->IsFloodfill())
               m_Floodfills.push_back(r);
             num_routers++;
           } else {
-            // TODO(anonimal): refactor
-            bool is_removed = boost::filesystem::remove(full_path);
-            if (is_removed)
+	    // Remove unreachable routers
+            if (boost::filesystem::remove(full_path))
               LOG(debug) << "NetDb: " << full_path << " unreachable router removed";
           }
         }

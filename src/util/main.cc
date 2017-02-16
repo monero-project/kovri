@@ -29,49 +29,94 @@
  */
 
 #include "core/util/exception.h"
-
-#ifdef WITH_CRYPTOPP
-#include <cryptopp/cryptlib.h>
-#endif
-
-#include <exception>
-#include <string>
-
-#include <boost/program_options.hpp>
 #include "core/util/log.h"
+#include "util/base.h"
 
-namespace kovri {
-namespace core {
+namespace bpo = boost::program_options;
+typedef std::map<std::string, BaseCommand*> ListCommands;
 
-Exception::Exception(const char* message) : m_CtorMessage(message) {}
-
-// TODO(anonimal): exception error codes to replace strings?
-void Exception::Dispatch(const char* message) {
-  // Reset previous Message
-  m_Message.clear();
-  // Set new message with formatting
-  if (!m_CtorMessage.empty())
-    m_Message += m_CtorMessage + ": ";
-  m_Message += message;
-  m_Message += ": ";
-  // Throw original exception
-  try {
-    throw;
-#ifdef WITH_CRYPTOPP
-  // Note: CryptoPP::Exception inherits std::exception
-  } catch (const CryptoPP::Exception& ex) {
-    LOG(error) << m_Message << "cryptopp exception" << ": '" << ex.what() << "'";
-#endif
-  // TODO(anonimal): boost exception/exception_ptr
-  } catch (const boost::program_options::error& ex) {
-    LOG(error) << m_Message << "program option exception"
-               << ": '" << ex.what() << "'";
-  } catch (const std::exception& ex) {
-    LOG(error) << m_Message << "standard exception" << ": '" << ex.what() << "'";
-  } catch (...) {
-    LOG(error) << m_Message << "unknown exception";
-  }
+void PrintUsage(
+    const std::string& name,
+    const bpo::options_description& desc,
+    const ListCommands& list_cmd)
+{
+  LOG(info) << "Syntax: " << name << " <options> command";
+  LOG(info) << desc;
+  LOG(info) << "Available commands : ";
+  for (const auto& c : list_cmd)
+    LOG(info) << "\t" << c.first;
 }
 
-}  // namespace core
-}  // namespace kovri
+int main(int argc, const char* argv[])
+{
+  ListCommands list_cmd;
+  Base32Command base32_cmd;
+  Base64Command base64_cmd;
+  list_cmd[base32_cmd.GetName()] = &base32_cmd;
+  list_cmd[base64_cmd.GetName()] = &base64_cmd;
+
+  bpo::options_description general_desc("General options");
+  std::string opt_type, opt_infile, opt_outfile;
+  general_desc.add_options()("help,h", "produce this help message")(
+      "all,a", "print all options");
+
+  bpo::variables_map vm;
+  try
+    {
+      bpo::parsed_options parsed = bpo::command_line_parser(argc, argv)
+                                       .options(general_desc)
+                                       .allow_unregistered()
+                                       .run();
+      bpo::store(parsed, vm);
+      bpo::notify(vm);
+    }
+  catch (...)
+    {
+      kovri::core::Exception ex;
+      ex.Dispatch(__func__);
+      return EXIT_FAILURE;
+    }
+
+  if (argc < 2)
+    {
+      LOG(error) << "Error : Not enough arguments !";
+      PrintUsage(argv[0], general_desc, list_cmd);
+      return EXIT_FAILURE;
+    }
+
+  // If the first argument is not a command
+  if (list_cmd.find(std::string(argv[1])) == list_cmd.end())
+    {
+      if (vm.count("all"))
+        {
+          for (const auto& cmd : list_cmd)
+            cmd.second->PrintUsage(std::string(argv[0]) + " " + cmd.first);
+          return EXIT_SUCCESS;
+        }
+      if (vm.count("help"))
+        {
+          if (argc > 2)
+            {
+              const auto& c = list_cmd.find(std::string(argv[2]));
+              if (c != list_cmd.end())
+                {  // print only sub command help
+                  list_cmd[c->first]->PrintUsage(
+                      std::string(argv[0]) + " " + c->first);
+                  return EXIT_SUCCESS;
+                }
+            }
+          PrintUsage(argv[0], general_desc, list_cmd);
+          return EXIT_SUCCESS;
+        }
+      LOG(error) << "Error : Invalid command or option \"" << argv[1] << "\"";
+      PrintUsage(argv[0], general_desc, list_cmd);
+      return EXIT_FAILURE;
+    }
+  // Process
+  if (list_cmd[argv[1]]->Impl(
+          std::string(argv[0]) + " " + std::string(argv[1]),
+          argc - 1,
+          argv + 1))
+    return EXIT_SUCCESS;
+  return EXIT_FAILURE;
+}

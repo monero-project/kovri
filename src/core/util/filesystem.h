@@ -36,8 +36,13 @@
 #include <boost/filesystem.hpp>
 
 #include <cstdint>
+#include <fstream>
+#include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
+#include <utility>
+#include "core/util/log.h"
 
 namespace kovri {
 namespace core {
@@ -79,6 +84,105 @@ class StringStream {
 
  private:
   std::stringstream m_Stream;
+};
+
+/// @class FileStream
+/// @details A wrapper for iostream management
+/// @param path : empty or "-" to use cin/cout, otherwise filename
+template <typename StreamType, typename FileStreamType>
+class FileStream {
+ public:
+  /// @brief Read from stream
+  /// @param buf : buffer to read from
+  /// @param size : number of byte to read
+  /// @return false on failure, true otherwise
+  template <typename SizeCast = std::size_t, typename Buffer, typename Size>
+  bool Read(Buffer* buf, Size&& size) {
+    m_Stream->read(
+        reinterpret_cast<char*>(buf),
+        static_cast<SizeCast>(std::forward<Size>(size)));
+    if (m_Stream->bad())
+      {
+        LOG(error) << "Error while reading input ! " << strerror(errno);
+        return false;
+      }
+    return true;
+  }
+
+  /// @brief Write to stream
+  /// @param buf : buffer to write to
+  /// @param size : number of byte to write
+  /// @return false on failure, true otherwise
+  template <typename SizeCast = std::size_t, typename Buffer, typename Size>
+  bool Write(Buffer* buf, Size&& size) {
+    m_Stream->write(
+        reinterpret_cast<char*>(buf),
+        static_cast<SizeCast>(std::forward<Size>(size)));
+    if (m_Stream->bad())
+      {
+        LOG(error) << "Error : Output to stream failed ! " << strerror(errno);
+        return false;
+      }
+
+    m_Stream->flush();
+    return true;
+  }
+
+  bool EndOfFile() {
+    return m_Stream->eof() ? true : false;
+  }
+
+  bool Fail() {
+    return m_Stream->fail() ? true : false;
+  }
+
+  bool Good() {
+    return m_Stream->good() ? true : false;
+  }
+
+  bool Bad() {
+    return m_Stream->bad() ? true : false;
+  }
+
+  std::streamsize Count() {
+    return m_Stream->gcount();
+  }
+
+ protected:
+  explicit FileStream(
+      const std::string& path,
+      std::ios_base::openmode mode,
+      StreamType *def) {
+    if (path.empty() || path == "-")  // from default stream
+      m_Stream.reset(def, [](...) {});  // noop : don't delete
+    else  // from file
+      m_Stream.reset(new FileStreamType(path.c_str(), mode));
+  }
+
+ private:
+  std::shared_ptr<StreamType> m_Stream;
+};
+
+/// @class InputFileStream
+/// @details Specialization of FileStream for inputs
+class InputFileStream : public FileStream<std::istream, std::ifstream> {
+ public:
+  explicit InputFileStream(
+      const std::string& path,
+      std::ios_base::openmode mode)
+      : FileStream<std::istream, std::ifstream>(path, mode, &std::cin) {
+  }
+};
+
+/// @class OutputFileStream
+/// @details Specialization of FileStream for outputs
+class OutputFileStream : public FileStream<std::ostream, std::ofstream> {
+ public:
+  explicit OutputFileStream(
+      const std::string& path,
+      std::ios_base::openmode mode)
+      : FileStream<std::ostream, std::ofstream>(path, mode, &std::cout) {
+  }
 };
 
 /// @brief Tests existence of path / creates if it does not exist

@@ -249,30 +249,35 @@ std::shared_ptr<RouterProfile> GetRouterProfile(
   return profile;
 }
 
-void DeleteObsoleteProfiles() {
+void DeleteObsoleteProfiles()
+{
   boost::filesystem::path path(kovri::core::GetProfilesPath());
   std::size_t num_profiles = 0;
   auto RemoveProfiles = [&](const boost::filesystem::path& path) {
-    auto ts = boost::posix_time::second_clock::local_time();
-    if (boost::filesystem::exists(path)) {
-      boost::filesystem::directory_iterator end;
-      for (boost::filesystem::directory_iterator it(path); it != end; ++it) {
-        if (boost::filesystem::is_directory(it->status())) {
-          for (boost::filesystem::directory_iterator it1(it->path());
-              it1 != end;
-              ++it1) {
-            auto last_modified =
-              boost::posix_time::from_time_t(
-                  boost::filesystem::last_write_time(
-                    it1->path()));
-            if ((ts - last_modified).hours() >= PEER_PROFILE_EXPIRATION_TIMEOUT) {
-              boost::filesystem::remove(it1->path());
-              num_profiles++;
-            }
+    auto timestamp = boost::posix_time::second_clock::local_time();
+    if (boost::filesystem::exists(path))
+      {
+        boost::filesystem::directory_iterator end;
+        for (boost::filesystem::directory_iterator dir(path); dir != end; ++dir)
+          {
+            if (boost::filesystem::is_directory(dir->status()))
+              {
+                for (boost::filesystem::directory_iterator it(dir->path());
+                     it != end;
+                     ++it)
+                  {
+                    auto last_modified = boost::posix_time::from_time_t(
+                        boost::filesystem::last_write_time(it->path()));
+                    if ((timestamp - last_modified).hours()
+                        >= PEER_PROFILE_EXPIRATION_TIMEOUT)
+                      {
+                        boost::filesystem::remove(it->path());
+                        num_profiles++;
+                      }
+                  }
+              }
           }
-        }
       }
-    }
   };
 // TODO(unassigned): this is a patch for #519 until we implement a database in #385
 #if defined(_WIN32) || defined(__APPLE__)

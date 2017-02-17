@@ -49,13 +49,7 @@
 - [Meta repo for non-code issues](https://github.com/monero-project/meta)
 
 ## Vulnerability Response
-- Submit a report via [HackerOne](https://hackerone.com/kovri)
-- If you're having trouble using HackerOne, email us *(please, use PGP)*:
-```
-anonimal [anonimal @ mail.i2p] or [anonimal @ i2pmail.org]
-Key fingerprint = 1218 6272 CD48 E253 9E2D  D29B 66A7 6ECF 9144 09F1
-```
-Note: our future VRP will be inline with [I2P's VRP](https://trac.i2p2.de/ticket/1119)
+- Please see our [Vulnerability Response Process](https://github.com/monero-project/kovri/blob/master/doc/VULNERABILITY_RESPONSE_PROCESS.md) for responsible disclosure
 
 ## Donations
 - Visit our [Donations Page](https://getmonero.org/getting-started/donate/) to help Kovri with your donations

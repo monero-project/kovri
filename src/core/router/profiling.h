@@ -39,6 +39,8 @@
 
 #include "core/router/identity.h"
 
+#include "core/util/exception.h"
+
 namespace kovri {
 namespace core {
 
@@ -90,6 +92,7 @@ class RouterProfile {
   // usage
   std::uint32_t m_NumTimesTaken;
   std::uint32_t m_NumTimesRejected;
+  core::Exception m_Exception;
 };
 
 std::shared_ptr<RouterProfile> GetRouterProfile(

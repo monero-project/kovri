@@ -36,6 +36,7 @@
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
+#include <cctype>
 #include <string>
 
 #include "core/util/base64.h"
@@ -53,7 +54,8 @@ RouterProfile::RouterProfile(
       m_NumTunnelsDeclined(0),
       m_NumTunnelsNonReplied(0),
       m_NumTimesTaken(0),
-      m_NumTimesRejected(0) {}
+      m_NumTimesRejected(0),
+      m_Exception(__func__) {}
 
 boost::posix_time::ptime RouterProfile::GetTime() const {
   return boost::posix_time::second_clock::local_time();
@@ -94,38 +96,61 @@ void RouterProfile::Save() {
   pt.put_child(
       PEER_PROFILE_SECTION_USAGE,
       usage);
-  // save to file
-  auto path = kovri::core::GetProfilesPath();
-  if (!boost::filesystem::exists(path)) {
-    // Create directory is necessary
-    if (!boost::filesystem::create_directory(path)) {
-      LOG(error) << "RouterProfile: failed to create directory " << path;
+  // Save to file
+  // TODO(unassigned): this entire block is a patch for #519 until we implement a database in #385
+  try
+    {
+      auto directory = kovri::core::GetProfilesPath();
+      std::string sub_dir;
+      if (!boost::filesystem::exists(directory))
+        {
+          LOG(debug) << "RouterProfile: ensuring " << directory;
+          core::EnsurePath(directory);
+#if defined(_WIN32) || defined(__APPLE__)
+          core::EnsurePath(directory / "uppercase");
+          core::EnsurePath(directory / "lowercase");
+#endif
+          // 64 bytes
+          const char* chars = kovri::core::GetBase64SubstitutionTable();
+          for (int i = 0; i < 64; i++)
+            {
+#if defined(_WIN32) || defined(__APPLE__)
+              sub_dir = std::isupper(chars[i]) ? "uppercase" : "lowercase";
+#endif
+              const auto& path =
+                  directory / sub_dir / (std::string("p") + chars[i]);
+              LOG(debug) << "RouterProfile: ensuring " << path;
+              core::EnsurePath(path);
+            }
+        }
+      std::string base64 = m_IdentHash.ToBase64();
+#if defined(_WIN32) || defined(__APPLE__)
+      sub_dir = std::isupper(base64[0]) ? "uppercase" : "lowercase";
+#endif
+      directory = directory / sub_dir / (std::string("p") + base64[0]);
+      const auto& filename =
+          directory / (std::string(PEER_PROFILE_PREFIX) + base64 + ".txt");
+      LOG(debug) << "RouterProfile: saving " << filename;
+      boost::property_tree::write_ini(filename.string(), pt);
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      // TODO(unassigned): surely we don't want to simply return
       return;
     }
-    const char* chars = kovri::core::GetBase64SubstitutionTable();  // 64 bytes
-    for (int i = 0; i < 64; i++) {
-      auto path1 = path / (std::string("p") + chars[i]);
-      if (!boost::filesystem::create_directory(path1)) {
-        LOG(error) << "RouterProfile: failed to create directory " << path1;
-        return;
-      }
-    }
-  }
-  std::string base64 = m_IdentHash.ToBase64();
-  path = path / (std::string("p") + base64[0]);
-  auto filename = path / (std::string(PEER_PROFILE_PREFIX) + base64 + ".txt");
-  try {
-    boost::property_tree::write_ini(filename.string(), pt);
-  } catch (std::exception& ex) {
-    LOG(error) << "RouterProfile: can't write " << filename << ": " << ex.what();
-  }
 }
 
 void RouterProfile::Load() {
   std::string base64 = m_IdentHash.ToBase64();
-  auto path = kovri::core::GetProfilesPath();
-  path /= std::string("p") + base64[0];
-  auto filename = path / (std::string(PEER_PROFILE_PREFIX) + base64 + ".txt");
+  auto directory = kovri::core::GetProfilesPath();
+  // TODO(unassigned): this is a patch for #519 until we implement a database in #385
+  std::string sub_dir;
+#if defined(_WIN32) || defined(__APPLE__)
+  sub_dir = std::isupper(base64[0]) ? "uppercase" : "lowercase";
+#endif
+  directory = directory / sub_dir / (std::string("p") + base64[0]);
+  auto filename = directory / sub_dir / (std::string(PEER_PROFILE_PREFIX) + base64 + ".txt");
   if (boost::filesystem::exists(filename)) {
     boost::property_tree::ptree pt;
     try {
@@ -224,30 +249,44 @@ std::shared_ptr<RouterProfile> GetRouterProfile(
   return profile;
 }
 
-void DeleteObsoleteProfiles() {
-  int num = 0;
-  auto ts = boost::posix_time::second_clock::local_time();
-  boost::filesystem::path p(kovri::core::GetProfilesPath());
-  if (boost::filesystem::exists(p)) {
-    boost::filesystem::directory_iterator end;
-    for (boost::filesystem::directory_iterator it(p); it != end; ++it) {
-      if (boost::filesystem::is_directory(it->status())) {
-        for (boost::filesystem::directory_iterator it1(it->path());
-            it1 != end;
-            ++it1) {
-          auto last_modified =
-            boost::posix_time::from_time_t(
-                boost::filesystem::last_write_time(
-                  it1->path()));
-          if ((ts - last_modified).hours() >= PEER_PROFILE_EXPIRATION_TIMEOUT) {
-            boost::filesystem::remove(it1->path());
-            num++;
+void DeleteObsoleteProfiles()
+{
+  boost::filesystem::path path(kovri::core::GetProfilesPath());
+  std::size_t num_profiles = 0;
+  auto RemoveProfiles = [&](const boost::filesystem::path& path) {
+    auto timestamp = boost::posix_time::second_clock::local_time();
+    if (boost::filesystem::exists(path))
+      {
+        boost::filesystem::directory_iterator end;
+        for (boost::filesystem::directory_iterator dir(path); dir != end; ++dir)
+          {
+            if (boost::filesystem::is_directory(dir->status()))
+              {
+                for (boost::filesystem::directory_iterator it(dir->path());
+                     it != end;
+                     ++it)
+                  {
+                    auto last_modified = boost::posix_time::from_time_t(
+                        boost::filesystem::last_write_time(it->path()));
+                    if ((timestamp - last_modified).hours()
+                        >= PEER_PROFILE_EXPIRATION_TIMEOUT)
+                      {
+                        boost::filesystem::remove(it->path());
+                        num_profiles++;
+                      }
+                  }
+              }
           }
-        }
       }
-    }
-  }
-  LOG(debug) << "Profiling: " << num << " obsolete profiles deleted";
+  };
+// TODO(unassigned): this is a patch for #519 until we implement a database in #385
+#if defined(_WIN32) || defined(__APPLE__)
+  RemoveProfiles(path / "uppercase");
+  RemoveProfiles(path / "lowercase");
+#else
+  RemoveProfiles(path);
+#endif
+  LOG(debug) << "Profiling: " << num_profiles << " obsolete profiles deleted";
 }
 
 }  // namespace core

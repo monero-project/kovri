@@ -202,7 +202,6 @@ I2PControlSession::I2PControlSession(
     : m_Password(pass),
       m_Tokens(),
       m_TokensMutex(),
-      m_Service(ios),
       m_ShutdownTimer(ios),
       m_ExpireTokensTimer(ios) {
 

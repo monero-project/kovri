@@ -49,7 +49,7 @@ struct SubscriptionFixture {
   /// @brief Validates given lines as proven addressbook host/address pairs
   /// @param lines Lines to validate
   /// @return Only valid data that was parsed
-  const auto Validate(const std::vector<std::string>& lines) {
+  auto Validate(const std::vector<std::string>& lines) {
     std::stringstream stream;
     for (auto const& l : lines)
       stream << l << "\n";

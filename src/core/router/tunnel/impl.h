@@ -164,6 +164,9 @@ class OutboundTunnel
       std::uint32_t gw_tunnel,
       std::shared_ptr<kovri::core::I2NPMessage> msg);
 
+  // Exposes hidden overloaded virtual function until we do a tunnel refactor
+  using Tunnel::SendTunnelDataMsg;
+
   // multiple messages
   void SendTunnelDataMsg(
       const std::vector<TunnelMessageBlock>& msgs);

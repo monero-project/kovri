@@ -6,16 +6,10 @@ set(APP_SRC
   "daemon.cc"
   "instance.cc")
 
-# TODO(anonimal): refactor
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+# Linux/OSX/BSD/DragonFly
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "Windows")
   list(APPEND APP_SRC "daemon_linux.cc")
-elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
-  list(APPEND APP_SRC "daemon_linux.cc")
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  list(APPEND APP_SRC "daemon_linux.cc")
-elseif(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
-  list(APPEND APP_SRC "daemon_linux.cc")
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+else()
   list(APPEND APP_SRC "daemon_win32.cc")
   list(APPEND APP_SRC "win32_service.cc")
 endif()

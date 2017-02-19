@@ -39,6 +39,9 @@ ifeq ($(KOVRI_DATA_PATH),)
   ifneq (, $(findstring BSD, $(system))) # We should support other BSD's
     data-path = $(HOME)/.kovri
   endif
+  ifeq ($(system), DragonFly)
+    data-path = $(HOME)/.kovri
+  endif
   ifneq (, $(findstring MINGW, $(system)))
     data-path = "$(APPDATA)"\\Kovri
     cmake-gen = -G 'MSYS Makefiles'

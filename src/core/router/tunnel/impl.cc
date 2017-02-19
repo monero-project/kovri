@@ -765,15 +765,18 @@ void Tunnels::CreateZeroHopsInboundTunnel() {
       }));
 }
 
-std::uint64_t Tunnels::GetTransitTunnelsExpirationTimeout() {
+std::uint64_t Tunnels::GetTransitTunnelsExpirationTimeout()
+{
   std::uint64_t timeout = 0;
-  std::uint64_t ts = kovri::core::GetSecondsSinceEpoch();
+  std::uint64_t timestamp = kovri::core::GetSecondsSinceEpoch();
   std::unique_lock<std::mutex> l(m_TransitTunnelsMutex);
-  for (auto it : m_TransitTunnels) {
-    std::uint64_t t = it.second->GetCreationTime() + TUNNEL_EXPIRATION_TIMEOUT - ts;
-    if (t > timeout)
-      timeout = t;
-  }
+  for (auto tunnel : m_TransitTunnels)
+    {
+      std::uint64_t time = tunnel.second->GetCreationTime()
+                           + TUNNEL_EXPIRATION_TIMEOUT - timestamp;
+      if (time > timeout)
+        timeout = time;
+    }
   return timeout;
 }
 

@@ -66,8 +66,7 @@ class TunnelBase {
  public:
   TunnelBase()
       : m_CreationTime(kovri::core::GetSecondsSinceEpoch()) {}
-      // WARNING!!! GetSecondsSinceEpoch() returns uint64_t
-      // TODO(unassigned): ^
+
   virtual ~TunnelBase() {}
 
   virtual void HandleTunnelDataMsg(
@@ -88,17 +87,12 @@ class TunnelBase {
 
   virtual std::uint32_t GetTunnelID() const = 0;  // as known at our side
 
-  std::uint32_t GetCreationTime() const {
+  std::uint64_t GetCreationTime() const {
     return m_CreationTime;
   }
 
-  void SetCreationTime(
-      std::uint32_t t) {
-    m_CreationTime = t;
-  }
-
  private:
-  std::uint32_t m_CreationTime;  // seconds since epoch
+  std::uint64_t m_CreationTime;  // seconds since epoch
 };
 
 struct TunnelCreationTimeCmp {

@@ -1,0 +1,19 @@
+The Kovri I2P Router Project (c) 2015-2017
+==========================================
+
+Linux/OSX/BSD/MSYS2
+-------------------
+
+1. Run kovri-install.sh
+2. Location of configuration files + data and binary will be reported to you after successful installation
+3. Run kovri!
+
+Windows
+-------
+
+1. Double-click kovri-install.bat (you can optionally open a shell to run kovri-install.bat)
+2. Location of configuration files + data will be installed to [drive letter]:\Users\[your user]\AppData\Roaming\Kovri
+3. kovri.exe will be on your Desktop; double-click to use!
+
+See the user-guide on the website or GitHub repo for details
+https://github.com/monero-project/kovri

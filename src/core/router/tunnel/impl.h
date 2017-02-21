@@ -245,7 +245,7 @@ class Tunnels {
   TransitTunnel* GetTransitTunnel(
       std::uint32_t tunnel_ID);
 
-  int GetTransitTunnelsExpirationTimeout();
+  std::uint64_t GetTransitTunnelsExpirationTimeout();
 
   void AddTransitTunnel(
       TransitTunnel* tunnel);

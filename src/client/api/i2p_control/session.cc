@@ -584,7 +584,7 @@ void I2PControlSession::HandleShutdownGraceful(
   // Stop accepting tunnels
   kovri::context.SetAcceptsTunnels(false);
   // Get tunnel expiry time
-  int timeout = kovri::core::tunnels.GetTransitTunnelsExpirationTimeout();
+  std::uint64_t timeout = kovri::core::tunnels.GetTransitTunnelsExpirationTimeout();
   LOG(info)
     << "I2PControlSession: graceful shutdown requested."
     << "Will shutdown after " << timeout << " seconds";

@@ -102,10 +102,9 @@ class DaemonWin32 : public DaemonSingleton {
 #else
 class DaemonLinux : public DaemonSingleton {
  public:
-  DaemonLinux()
-    : m_PIDPath(kovri::core::GetDataPath().string()),
-      m_PIDFile((kovri::core::GetDataPath() / "kovri.pid").string()),
-      m_PIDFileHandle() {}
+  DaemonLinux() : m_PIDFileHandle()
+  {
+  }
   static DaemonLinux& Instance() {
     static DaemonLinux instance;
     return instance;

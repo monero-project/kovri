@@ -285,6 +285,18 @@ class RouterContext : public kovri::core::GarlicDestination {
     return m_ReseedSkipSSLCheck;
   }
 
+  /// @return root directory path
+  const std::string& GetCustomDataDir() const
+  {
+    return m_CustomDataDir;
+  }
+
+  /// @brief Sets root directory path : Should not be called after Init
+  void SetCustomDataDir(const std::string& dir)
+  {
+    m_CustomDataDir = dir;
+  }
+
  private:
   void CreateNewRouter();
   void NewRouterInfo();
@@ -306,6 +318,7 @@ class RouterContext : public kovri::core::GarlicDestination {
   std::string m_ReseedFrom;
   bool m_ReseedSkipSSLCheck;
   bool m_SupportsNTCP, m_SupportsSSU;
+  std::string m_CustomDataDir;
 };
 
 extern RouterContext context;

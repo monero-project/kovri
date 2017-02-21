@@ -114,7 +114,10 @@ const boost::filesystem::path GetClientPath() {
 /// Root data directory
 
 const boost::filesystem::path& GetDataPath() {
-  static boost::filesystem::path path = GetDefaultDataPath();
+  static boost::filesystem::path path =
+      context.GetCustomDataDir().empty()
+          ? GetDefaultDataPath()
+          : boost::filesystem::path(context.GetCustomDataDir());
   if (!boost::filesystem::exists(path)) {
     // Create data directory
     if (!boost::filesystem::create_directory(path)) {
@@ -124,7 +127,9 @@ const boost::filesystem::path& GetDataPath() {
     }
   }
   if (!boost::filesystem::is_directory(path))
-    path = GetDefaultDataPath();
+    path = context.GetCustomDataDir().empty()
+               ? GetDefaultDataPath()
+               : boost::filesystem::path(context.GetCustomDataDir());
   return path;
 }
 

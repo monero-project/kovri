@@ -105,6 +105,10 @@ class Configuration {
   /// @brief Parse command line arguments
   void ParseKovriConfig();
 
+  /// @details This configures/sets up the global path.
+  /// @warning Kovri config must first be parsed and this must be called before anything else
+  void SetupGlobalPath();
+
   /// @details This configures/sets up the global logger. It's isn't needed in class or namespace scope except to ease in configuration after the logger has been initialized globally
   /// @warning Kovri config must first be parsed
   void SetupLogging();
@@ -151,8 +155,11 @@ class Configuration {
   /// @return Boost filesystem path of file
   /// @warning Config file must first be parsed
   boost::filesystem::path GetConfigFile() {
-    boost::filesystem::path file(
-        GetParsedKovriConfig().at("kovriconfig").as<std::string>());
+    std::string kovri_config =
+        m_KovriConfig["kovriconf"].defaulted()
+            ? "kovri.conf"
+            : m_KovriConfig["kovriconf"].as<std::string>();
+    boost::filesystem::path file(kovri_config);
     if (!file.is_complete())
       file = kovri::core::GetConfigPath() / file;
     return file;
@@ -162,8 +169,11 @@ class Configuration {
   /// @return Boost filesystem path of file
   /// @warning Config file must first be parsed
   boost::filesystem::path GetTunnelsConfigFile() {
-    boost::filesystem::path file(
-        GetParsedKovriConfig().at("tunnelsconf").as<std::string>());
+    std::string tunnels_config =
+        m_KovriConfig["tunnelsconf"].defaulted()
+            ? "tunnels.conf"
+            : m_KovriConfig["tunnelsconf"].as<std::string>();
+    boost::filesystem::path file(tunnels_config);
     if (!file.is_complete())
       file = kovri::core::GetConfigPath() / file;
     return file;

@@ -74,34 +74,34 @@ void Configuration::ParseKovriConfig() {
   // See: i2p.i2p/router/java/src/net/i2p/router/transport/udp/UDPEndpoint.java
   // TODO(unassigned): move this elsewhere (outside of ParseArgs()) when possible
   std::uint16_t port = kovri::core::RandInRange32(9111, 30777);
-  // Configuration files
-  std::string kovri_config, tunnels_config;
   // Default visible option
   bpo::options_description help("\nhelp");
   help.add_options()("help,h", "");  // Blank so we can use custom message above
   // Map options values from command-line and config
   bpo::options_description system("\nsystem");
-  system.add_options()
-    ("host", bpo::value<std::string>()->default_value("127.0.0.1"))
-    ("port,p", bpo::value<int>()->default_value(port))
-    ("daemon,d", bpo::value<bool>()->default_value(false))
-    ("service,s", bpo::value<std::string>()->default_value(""))
-    ("log-to-console", bpo::value<bool>()->default_value(true))
-    ("log-to-file", bpo::value<bool>()->default_value(true))
-    ("log-file-name", bpo::value<std::string>()->default_value(
-        (kovri::core::GetLogsPath() / "kovri_%Y-%m-%d.log").string()))  // TODO(anonimal): use only 1 log file?
-    // Log levels
-    // 0 = fatal
-    // 1 = error fatal
-    // 2 = warn error fatal
-    // 3 = info warn error fatal
-    // 4 = debug info warn error fatal
-    // 5 = trace debug info warn error fatal
-    ("log-level", bpo::value<std::uint16_t>()->default_value(3))
-    ("kovriconf,c", bpo::value<std::string>(&kovri_config)->default_value(
-        (kovri::core::GetConfigPath() / "kovri.conf").string()))
-    ("tunnelsconf,t", bpo::value<std::string>(&tunnels_config)->default_value(
-        (kovri::core::GetConfigPath() / "tunnels.conf").string()));
+  system.add_options()(
+      "host", bpo::value<std::string>()->default_value("127.0.0.1"))(
+      "port,p", bpo::value<int>()->default_value(port))(
+      "data-dir",
+      bpo::value<std::string>()->default_value(
+          kovri::core::GetDefaultDataPath().string()))(
+      "daemon,d", bpo::value<bool>()->default_value(false))(
+      "service,s", bpo::value<std::string>()->default_value(""))(
+      "log-to-console", bpo::value<bool>()->default_value(true))(
+      "log-to-file", bpo::value<bool>()->default_value(true))(
+      "log-file-name", bpo::value<std::string>()->default_value(""))(
+      // TODO(anonimal): use only 1 log file?
+      // Log levels
+      // 0 = fatal
+      // 1 = error fatal
+      // 2 = warn error fatal
+      // 3 = info warn error fatal
+      // 4 = debug info warn error fatal
+      // 5 = trace debug info warn error fatal
+      "log-level", bpo::value<std::uint16_t>()->default_value(3))(
+      "kovriconf,c", bpo::value<std::string>()->default_value(""))(
+      "tunnelsconf,t", bpo::value<std::string>()->default_value(""));
+  // This is NOT our default values for log-file-name, kovriconf and tunnelsconf
 
   bpo::options_description network("\nnetwork");
   network.add_options()
@@ -152,6 +152,8 @@ void Configuration::ParseKovriConfig() {
   // Parse config file after mapping command-line
   // TODO(anonimal): we want to be able to reload config file without original
   // cli args overwriting any *new* config file options
+  SetupGlobalPath();
+  std::string kovri_config = GetConfigFile().string();
   ParseKovriConfigFile(kovri_config, config_options, m_KovriConfig);
 }
 
@@ -165,6 +167,14 @@ void Configuration::ParseKovriConfigFile(
     throw std::runtime_error("Could not open " + file + "!\n");
   bpo::store(bpo::parse_config_file(filename, options), var_map);
   bpo::notify(var_map);
+}
+
+void Configuration::SetupGlobalPath()
+{
+  context.SetCustomDataDir(
+      m_KovriConfig["data-dir"].defaulted()
+          ? kovri::core::GetDefaultDataPath().string()
+          : m_KovriConfig["data-dir"].as<std::string>());
 }
 
 void Configuration::SetupLogging() {
@@ -213,10 +223,13 @@ void Configuration::SetupLogging() {
       boost::shared_ptr<std::ostream>(&std::clog, boost::null_deleter()));
   // Create file backend
   typedef sinks::asynchronous_sink<sinks::text_file_backend> text_file_sink;
-  auto file_backend =
-    boost::make_shared<sinks::text_file_backend>(
-        keywords::file_name = m_KovriConfig["log-file-name"].as<std::string>(),
-        keywords::time_based_rotation = sinks::file::rotation_at_time_point(0, 0, 0));  // Rotate at midnight
+  auto file_backend = boost::make_shared<sinks::text_file_backend>(
+      keywords::file_name =
+          m_KovriConfig["log-file-name"].defaulted()
+              ? ((kovri::core::GetLogsPath() / "kovri_%Y-%m-%d.log").string())
+              : m_KovriConfig["log-file-name"].as<std::string>(),
+      keywords::time_based_rotation =
+          sinks::file::rotation_at_time_point(0, 0, 0));  // Rotate at midnight
   // If debug/trace, enable auto flush to (try to) catch records right before segfault
   if (severity <= logging::trivial::debug)  // Our severity levels are processed in reverse
     file_backend->auto_flush();

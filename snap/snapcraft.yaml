@@ -18,6 +18,7 @@ parts:
     plugin: make
     build-packages:
       - g++
+      - cmake
       - libboost-all-dev
       - libssl-dev
       - libssl1.0.0

@@ -187,7 +187,7 @@ void NetDb::Run() {
         Explore(exploratory_count);
         last_exploratory = ts;
       }
-    } catch(std::exception& ex) {
+    } catch(const std::exception& ex) {
       LOG(error) << "NetDb: " << __func__ << " exception: " << ex.what();
     }
   }

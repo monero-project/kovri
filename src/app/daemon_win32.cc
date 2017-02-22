@@ -46,7 +46,7 @@ namespace kovri {
 namespace app {
 
 bool DaemonWin32::Config(
-    std::vector<std::string>& args) {
+    const std::vector<std::string>& args) {
   return DaemonSingleton::Config(args);
 }
 

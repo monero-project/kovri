@@ -354,7 +354,7 @@ class Tunnels {
     return m_TransitTunnels;
   }
 
-  int GetQueueSize() {
+  int GetQueueSize() const {
     return m_Queue.GetSize();
   }
 

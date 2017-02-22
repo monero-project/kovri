@@ -1078,7 +1078,7 @@ void SSUSession::SendSesionDestroyed() {
         48);
     try {
       Send(buf.data(), 48);
-    } catch(std::exception& ex) {
+    } catch(const std::exception& ex) {
       LOG(error)
         << "SSUSession:" << GetFormattedSessionInfo()
         << __func__ << ": '" << ex.what() << "'";

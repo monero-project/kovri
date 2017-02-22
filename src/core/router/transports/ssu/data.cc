@@ -434,7 +434,7 @@ void SSUData::Send(
     m_Session.FillHeaderAndEncrypt(GetType(SSUPayloadType::Data), buf, size);
     try {
       m_Session.Send(buf, size);
-    } catch (boost::system::system_error& ec) {
+    } catch (const boost::system::system_error& ec) {
       LOG(error)
         << "SSUData:" << m_Session.GetFormattedSessionInfo()
         << "can't send SSU fragment: '" << ec.what() << "'";
@@ -531,7 +531,7 @@ void SSUData::HandleResendTimer(
             if (fragment) {
               try {
                 m_Session.Send(fragment->buffer.data(), fragment->len);  // resend
-              } catch (boost::system::system_error& ec) {
+              } catch (const boost::system::system_error& ec) {
                 LOG(error)
                   << "SSUData:" << m_Session.GetFormattedSessionInfo()
                   << "can't resend SSU fragment: '" << ec.what() << "'";

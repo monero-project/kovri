@@ -117,6 +117,10 @@ class ClientContext {
     return m_AddressBook;
   }
 
+  const AddressBook& GetAddressBook() const {
+    return m_AddressBook;
+  }
+
   /// @brief Removes all server unnels satisfying the given predicate
   /// @param predicate a unary predicate used to filter server tunnels
   void RemoveServerTunnels(

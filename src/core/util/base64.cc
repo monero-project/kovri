@@ -43,7 +43,7 @@ static void iT64Build(void);
 // -------------------------
 
 // Direct Substitution Table
-static char T64[64] = {
+static const char T64[64] = {
   'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
   'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
   'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
@@ -64,7 +64,7 @@ static int is_first_time = 1;
 
 
 // Padding
-static char P64 = '=';
+static const char P64 = '=';
 
 
 std::size_t ByteStreamToBase64(

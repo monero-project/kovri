@@ -31,9 +31,10 @@
 #include "core/util/exception.h"
 #include "core/util/log.h"
 #include "util/base.h"
+#include "util/command.h"
 
 namespace bpo = boost::program_options;
-typedef std::map<std::string, BaseCommand*> ListCommands;
+typedef std::map<std::string, Command*> ListCommands;
 
 void PrintUsage(
     const std::string& name,

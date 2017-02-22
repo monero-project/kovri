@@ -41,12 +41,20 @@
 - [repo.getmonero.org](https://repo.getmonero.org/monero-project/kovri) or monero-repo.i2p are alternatives to GitHub for non-push repository access
 
 ## Contact
-- IRC: [Freenode](https://webchat.freenode.net/) | [OFTC](https://webchat.oftc.net/) | Irc2P
+- IRC: [Freenode](https://webchat.freenode.net/) | [OFTC](https://webchat.oftc.net/) | Irc2P with Kovri (see [User Guide](https://github.com/monero-project/kovri/blob/master/doc/USER_GUIDE.md))
   - ```#kovri``` | Community & Support Channel
   - ```#kovri-dev``` | Development Channel
-- [monero.slack.com](https://monero.slack.com/)
-- [forum.getmonero.org](https://forum.getmonero.org/)
-- [Meta repo for non-code issues](https://github.com/monero-project/meta)
+- [Monero Slack](https://monero.slack.com/)
+- [Monero StackExchange](https://monero.stackexchange.com/)
+- [Monero Forum](https://forum.getmonero.org/)
+- [Monero Meta Repository](https://github.com/monero-project/meta)
+- [@monerocurrency](https://twitter.com/monerocurrency)
+- Email:
+  - General Purpose / Media Contact
+    - dev [at] getmonero.org
+  - All other contact
+    - anonimal [at] i2pmail.org
+    - PGP Key fingerprint: 1218 6272 CD48 E253 9E2D  D29B 66A7 6ECF 9144 09F1
 
 ## Vulnerability Response
 - Please see our [Vulnerability Response Process](https://github.com/monero-project/kovri/blob/master/doc/VULNERABILITY_RESPONSE_PROCESS.md) for responsible disclosure

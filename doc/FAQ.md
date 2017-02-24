@@ -5,6 +5,16 @@ Kovri is a secure, private, untraceable C++ router implementation of the [I2P](h
 
 Read more about Kovri in the [Moneropedia](https://getmonero.org/knowledge-base/moneropedia/kovri).
 
+## What does Kovri do/not do for you?
+|                        YES                       |                  WORK IN PROGRESS                |                       NO                         |
+|:------------------------------------------------:|:------------------------------------------------:|:------------------------------------------------:|
+| Allows you to become a node on the I2P network   | Commits Monero transactions over I2P             | Sacrifices your security for ulterior motives    |
+| Hides your physical location from sites you visit| GUI for improved configuration and usability     | Provides a convoluted, painful web user interface|
+| Anonymizes you on IRC and allows anonymous Email | Library API and bindings for external apps/libs  | Requires authorities for network consensus       |
+| Allows you to host anonymous websites or services| Firefox extension to easily access eepsites      | Access to internet websites via an "outproxy"    |
+| Provides funding to developers via the FFS       | Provides funding/bounty to hackers/researchers   | Requires a performance-killing Java VM           |
+| Aims for rigorous code-quality and dev standards | Extensive documentation from ELI5 to developer   | Walks your dog or favorite pet, pays your taxes  |
+
 ## What is the current state of Kovri?
 Kovri is in active development and currently pre-alpha. Kovri is *not* yet integrated with monero but, in addition to several core features, we are developing a [client](https://github.com/monero-project/kovri/issues/351) and [core](https://github.com/monero-project/kovri/issues/350) API for monero and other applications to use.
 

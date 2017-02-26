@@ -67,17 +67,27 @@ bool HTTP::Download() {
   }
   // TODO(anonimal): ideally, we simply swapout the request/response handler
   // with cpp-netlib so we don't need two separate functions
-  if (!HostIsI2P())
-    return DownloadViaClearnet();
-  return DownloadViaI2P();
+  if (HostIsI2P())
+    {
+      AmendURI();
+      return DownloadViaI2P();
+    }
+  return DownloadViaClearnet();
 }
 
-bool HTTP::HostIsI2P() {
+bool HTTP::HostIsI2P() const
+{
   auto uri = GetURI();
   if (!(uri.host().substr(uri.host().size() - 4) == ".i2p"))
     return false;
+  return true;
+}
+
+void HTTP::AmendURI()
+{
+  auto uri = GetURI();
   if (!uri.port().empty())
-    return true;
+    return;
   // We must assign a port if none was assigned (for internal reasons)
   std::string port;
   if (uri.scheme() == "https")
@@ -94,7 +104,6 @@ bool HTTP::HostIsI2P() {
       + uri.host() + ":" + port
       + uri.path() + uri.query() + uri.fragment());
   SetURI(new_uri);
-  return true;
 }
 
 bool HTTP::DownloadViaClearnet() {

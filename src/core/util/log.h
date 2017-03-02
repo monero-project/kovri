@@ -35,6 +35,7 @@
 #include <boost/log/sources/severity_logger.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/network/include/http/client.hpp>
+#include <boost/program_options.hpp>
 #include <sstream>
 #include <string>
 #include "core/util/byte_stream.h"
@@ -53,6 +54,12 @@ namespace kovri
 {
 namespace core
 {
+/// @details This configures/sets up the global logger.
+/// @param Parsed kovri variable map
+/// @warning Kovri config must first be parsed
+void SetupLogging(
+    const boost::program_options::variables_map& parsed_kovri_config);
+
 /// @brief Log source and destination of a network request or response
 /// @param boost::network::http::client:: request or response
 /// @return human readable string

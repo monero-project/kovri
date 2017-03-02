@@ -63,7 +63,7 @@ void Instance::Configure() {
   GetConfig().ParseKovriConfig();
   // TODO(anonimal): Initializing of sources/streams/sinks must come after we've properly configured the logger.
   //   we do this here so we can catch debug logging before instance "initialization". This is not ideal
-  GetConfig().SetupLogging();
+  kovri::core::SetupLogging(GetConfig().GetParsedKovriConfig());
   // Log the banner
   LOG(info) << "The Kovri I2P Router Project";
   LOG(info) << KOVRI_VERSION << "-" << KOVRI_GIT_REVISION << " \"" << KOVRI_CODENAME << "\"";

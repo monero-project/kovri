@@ -109,10 +109,6 @@ class Configuration {
   /// @warning Kovri config must first be parsed and this must be called before anything else
   void SetupGlobalPath();
 
-  /// @details This configures/sets up the global logger. It's isn't needed in class or namespace scope except to ease in configuration after the logger has been initialized globally
-  /// @warning Kovri config must first be parsed
-  void SetupLogging();
-
   /// @brief Tests/Configures AES-NI if available
   /// @warning Kovri config must first be parsed
   void SetupAESNI();

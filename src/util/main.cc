@@ -32,6 +32,7 @@
 #include "core/util/log.h"
 #include "util/base.h"
 #include "util/command.h"
+#include "core/router/context.h"
 
 namespace bpo = boost::program_options;
 typedef std::map<std::string, Command*> ListCommands;
@@ -57,17 +58,37 @@ int main(int argc, const char* argv[])
   list_cmd[base64_cmd.GetName()] = &base64_cmd;
 
   bpo::options_description general_desc("General options");
-  std::string opt_type, opt_infile, opt_outfile;
+  // See src/app/config.cc for log options
   general_desc.add_options()("help,h", "produce this help message")(
-      "all,a", "print all options");
+      "all,a", "print all options")(
+      "data-dir",
+      bpo::value<std::string>()->default_value(
+          kovri::core::GetDefaultDataPath().string()))(
+      "log-to-console", bpo::value<bool>()->default_value(true))(
+      "log-to-file", bpo::value<bool>()->default_value(false))(
+      "log-file-name", bpo::value<std::string>()->default_value(""))(
+      "log-level", bpo::value<std::uint16_t>()->default_value(1));
+
+  bpo::options_description spec("Specific options");
+  spec.add_options()(
+      "args", bpo::value<std::vector<std::string> >()->multitoken());
+  bpo::options_description config_options;
+  config_options.add(general_desc).add(spec);
+
+  bpo::positional_options_description pos;
+  pos.add("args", -1);
 
   bpo::variables_map vm;
+  std::vector<std::string> args, opts;
   try
     {
       bpo::parsed_options parsed = bpo::command_line_parser(argc, argv)
-                                       .options(general_desc)
+                                       .options(config_options)
                                        .allow_unregistered()
+                                       .positional(pos)
                                        .run();
+      opts = bpo::collect_unrecognized(parsed.options, bpo::include_positional);
+
       bpo::store(parsed, vm);
       bpo::notify(vm);
     }
@@ -78,46 +99,62 @@ int main(int argc, const char* argv[])
       return EXIT_FAILURE;
     }
 
-  if (argc < 2)
+  // Setup data-dir
+  kovri::context.SetCustomDataDir(
+      vm["data-dir"].defaulted() ? kovri::core::GetDefaultDataPath().string()
+                                 : vm["data-dir"].as<std::string>());
+
+  // Setup logging options
+  kovri::core::SetupLogging(vm);
+
+  if (vm.count("args"))
+    args = vm["args"].as<std::vector<std::string> >();
+
+  if (vm.count("help"))
+    {
+      if (vm.count("all"))
+        {
+          PrintUsage(argv[0], general_desc, list_cmd);
+          for (const auto& cmd : list_cmd)
+            cmd.second->PrintUsage(std::string(argv[0]) + " " + cmd.first);
+          return EXIT_SUCCESS;
+        }
+
+      if (args.size() > 0)
+        {
+          const auto& c = list_cmd.find(args.front());
+          if (c != list_cmd.end())
+            {  // print only sub command help
+              list_cmd[c->first]->PrintUsage(
+                  std::string(argv[0]) + " " + c->first);
+              return EXIT_SUCCESS;
+            }
+        }
+      PrintUsage(argv[0], general_desc, list_cmd);
+      return EXIT_SUCCESS;
+    }
+
+  if (opts.size() < 1)
     {
       LOG(error) << "Error : Not enough arguments !";
       PrintUsage(argv[0], general_desc, list_cmd);
       return EXIT_FAILURE;
     }
 
+  std::string sub_cmd = opts.front();
   // If the first argument is not a command
-  if (list_cmd.find(std::string(argv[1])) == list_cmd.end())
+  if (list_cmd.find(sub_cmd) == list_cmd.end())
     {
-      if (vm.count("all"))
-        {
-          for (const auto& cmd : list_cmd)
-            cmd.second->PrintUsage(std::string(argv[0]) + " " + cmd.first);
-          return EXIT_SUCCESS;
-        }
-      if (vm.count("help"))
-        {
-          if (argc > 2)
-            {
-              const auto& c = list_cmd.find(std::string(argv[2]));
-              if (c != list_cmd.end())
-                {  // print only sub command help
-                  list_cmd[c->first]->PrintUsage(
-                      std::string(argv[0]) + " " + c->first);
-                  return EXIT_SUCCESS;
-                }
-            }
-          PrintUsage(argv[0], general_desc, list_cmd);
-          return EXIT_SUCCESS;
-        }
-      LOG(error) << "Error : Invalid command or option \"" << argv[1] << "\"";
+      LOG(error) << "Error : Invalid command or option \"" << sub_cmd << "\"";
       PrintUsage(argv[0], general_desc, list_cmd);
       return EXIT_FAILURE;
     }
+
+  for (const auto& a : opts)
+    LOG(trace) << "-- OPTS : " << a;
+  opts.erase(opts.begin());  // Remove sub command
   // Process
-  if (list_cmd[argv[1]]->Impl(
-          std::string(argv[0]) + " " + std::string(argv[1]),
-          argc - 1,
-          argv + 1))
+  if (list_cmd[sub_cmd]->Impl(std::string(argv[0]) + " " + sub_cmd, opts))
     return EXIT_SUCCESS;
   return EXIT_FAILURE;
 }

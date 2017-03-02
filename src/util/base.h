@@ -48,7 +48,7 @@ class BaseCommand : public Command
  public:
   BaseCommand();
   void PrintUsage(const std::string& cmd_name) const;
-  bool Impl(const std::string&, int argc, const char* argv[]);
+  bool Impl(const std::string&, const std::vector<std::string>& args);
 
  protected:
   virtual bool do_process(

@@ -79,8 +79,8 @@ CALL :catch could not remove existing install
 REM
 REM Create new install
 REM
-REM TODO(anonimal): Install to Program Files?
 
+REM TODO(anonimal): Install to Program Files or leave in unzipped directory?
 SET _path=%USERPROFILE%\Desktop
 
 IF NOT EXIST "%_data%%" (

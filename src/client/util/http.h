@@ -47,6 +47,7 @@
 #include <string>
 
 #include "client/reseed.h"
+#include "core/util/log.h"
 
 namespace kovri {
 namespace client {
@@ -158,13 +159,16 @@ class HTTP : public HTTPStorage {
   HTTP() {}  // for HTTPProxy and tests
   ~HTTP() {}
 
-  HTTP(const std::string& uri)
-      : m_URI(uri) {}
+  HTTP(const std::string& uri) : m_URI(uri)
+  {
+    LOG(debug) << "HTTP: constructor URI " << uri;
+  }
 
   /// @brief Set cpp-netlib URI object if not set with ctor
   /// @param uri String URI (complete)
-  void SetURI(
-      const std::string& uri) {
+  void SetURI(const std::string& uri)
+  {
+    LOG(debug) << "HTTP: Set URI " << uri;
     // Remove existing URI if set
     if (!m_URI.string().empty()) {
       boost::network::uri::uri new_uri;

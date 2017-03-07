@@ -718,5 +718,31 @@ XORMetric operator^(
   return m;
 }
 
+const std::string GetSigningKeyTypeName(const std::uint16_t key)
+{
+  switch (key)
+    {
+      case SIGNING_KEY_TYPE_DSA_SHA1:
+        return "DSA_SHA1";
+      case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
+        return "ECDSA_SHA256_P256";
+      case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
+        return "ECDSA_SHA384_P384";
+      case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
+        return "ECDSA_SHA512_P521";
+      case SIGNING_KEY_TYPE_RSA_SHA256_2048:
+        return "RSA_SHA256_2048";
+      case SIGNING_KEY_TYPE_RSA_SHA384_3072:
+        return "RSA_SHA384_3072";
+      case SIGNING_KEY_TYPE_RSA_SHA512_4096:
+        return "RSA_SHA512_4096";
+      case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
+        return "EDDSA_SHA512_ED25519";
+      default:
+        LOG(error) << "Unknown signing key type " << key;
+        return "";
+    }
+}
+
 }  // namespace core
 }  // namespace kovri

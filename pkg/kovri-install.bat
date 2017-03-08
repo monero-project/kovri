@@ -95,18 +95,10 @@ IF NOT EXIST "%_path%%" (
   CALL :catch could not create "%_path%"
 )
 
-SET _resources[0]=client
-SET _resources[1]=config
-SET _resources[2]=kovri.exe
-SET _resources[3]=kovri-util.exe
+ECHO Installing...
+CD pkg && XCOPY /F /S /E /Y * "%_data%"\*
+CD ..\build && COPY /Y * "%_path%"
 
-FOR /F "tokens=2 delims==" %%s IN ('set _resources[') DO (
-  IF EXIST %%s\* (
-    XCOPY /F /S /E /Y %%s\* "%_data%"\%%s\*
-  ) ELSE (
-    COPY /Y %%s "%_path%"
-  )
-)
 CALL :catch could not install resources
 
 ECHO Data directory is "%_data%"

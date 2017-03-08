@@ -80,7 +80,14 @@ PrepareOptions() {
       ;;
   esac
   # Ensure we're top-level if packaging from git repo
-  hash git 2>/dev/null && cd $(git rev-parse --show-toplevel) && local _has_git=true &&
+  _git="git rev-parse --show-toplevel"
+  $_git &>/dev/null
+  if [[ $? -eq 0 ]]; then
+    cd $($_git)
+    local _is_git=true
+  else
+    cd $(dirname "$0")
+  fi
   # Set default resources if needed
   if [[ -z $_resources ]]; then
     _resources="pkg/client pkg/config build/kovri build/kovri-util"
@@ -101,19 +108,12 @@ PrepareOptions() {
       else
         local _ext=".tar.bz2"
       fi
-      if [[ $_has_git == true ]]; then
+      if [[ $_is_git == true ]]; then
         local _rev="-"$(git rev-parse --short HEAD 2>/dev/null)
       fi
-      _package_file="build/kovri-$(date +%Y-%m-%d)_$(uname -s)-$(uname -m)${_rev}${_ext}"
+      _package_path="kovri-$(date +%Y-%m-%d)_$(uname -s)-$(uname -m)${_rev}"
+      _package_file="build/${_package_path}${_ext}"
     fi
-    # Add ourself to the package
-    if [[ $_is_windows == true ]]; then
-      _resources="${_resources} pkg/kovri-install.bat"
-    else
-      _resources="${_resources} pkg/kovri-install.sh"
-    fi
-    # And the install guide
-    _resources="${_resources} pkg/INSTALL.txt"
   else
     # Ensure proper command line
     if [[ ! -z $_package_file || $_create_checksum_file == false ]]; then
@@ -181,21 +181,32 @@ CreatePackage() {
     echo -n "Testing write access"
     catch "we can't write to $_package_file"
   fi
+  echo -n "Creating staging path"
+  mkdir $_package_path
+  catch "could not create staging directory"
   # Compress package
   echo -n "Compressing package $_package_file (please wait)..."
+  cp -R --parents $_resources $_package_path
+  # Add ourself to the package
+  if [[ $_is_windows == true ]]; then
+    cp pkg/kovri-install.bat $_package_path
+  else
+    cp pkg/kovri-install.sh $_package_path
+  fi
+  # And the install guide
+  cp pkg/INSTALL.txt $_package_path
   if [[ $_is_windows == true ]]; then
     hash zip 2>/dev/null
     if [[ $? -ne 0 ]]; then
       false
       catch "zip not installed. Install zip for MSYS2"
     fi
-    # TODO(anonimal): implement
-    #_compress=""
+    zip $_package_file -r $_package_path
   else
-    _compress="tar cjf"
+    tar cjf $_package_file $_package_path
   fi
-  $_compress $_package_file $_resources
   catch "could not create package file"
+  echo -n "Cleaning staging path" && rm -fr $_package_path
   if [[ $_create_checksum_file == true ]]; then
     local _output_size=256
     local _shasum_file=${_package_file}.sha${_output_size}sum.txt

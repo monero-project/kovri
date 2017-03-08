@@ -111,7 +111,7 @@ PrepareOptions() {
       if [[ $_is_git == true ]]; then
         local _rev="-"$(git rev-parse --short HEAD 2>/dev/null)
       fi
-      _package_path="kovri-$(date +%Y-%m-%d)_$(uname -s)-$(uname -m)${_rev}"
+      _package_path="kovri${_rev}-$(uname -m)-$(uname -s)-$(date +%Y.%m.%d)"
       _package_file="build/${_package_path}${_ext}"
     fi
   else
@@ -206,7 +206,9 @@ CreatePackage() {
     tar cjf $_package_file $_package_path
   fi
   catch "could not create package file"
-  echo -n "Cleaning staging path" && rm -fr $_package_path
+  echo -n "Cleaning staging path"
+  rm -fr $_package_path
+  catch "could not clean staging path"
   if [[ $_create_checksum_file == true ]]; then
     local _output_size=256
     local _shasum_file=${_package_file}.sha${_output_size}sum.txt

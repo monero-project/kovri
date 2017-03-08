@@ -65,7 +65,6 @@ cmake-upnp       = -D WITH_UPNP=ON
 cmake-optimize   = -D WITH_OPTIMIZE=ON
 cmake-hardening  = -D WITH_HARDENING=ON
 cmake-tests      = -D WITH_TESTS=ON
-cmake-benchmarks = -D WITH_BENCHMARKS=ON
 cmake-static     = -D WITH_STATIC=ON
 cmake-doxygen    = -D WITH_DOXYGEN=ON
 cmake-coverage   = -D WITH_COVERAGE=ON

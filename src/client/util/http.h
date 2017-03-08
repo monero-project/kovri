@@ -47,6 +47,7 @@
 #include <string>
 
 #include "client/reseed.h"
+#include "core/util/log.h"
 
 namespace kovri {
 namespace client {
@@ -80,7 +81,8 @@ class HTTPStorage {
 
   /// @brief Get previously set URI path
   /// @notes Needed in conjunction with ETag
-  const std::string GetPreviousPath() {
+  const std::string& GetPreviousPath() const
+  {
     return m_Path;
   }
 
@@ -92,7 +94,8 @@ class HTTPStorage {
 
   /// @brief Get previously set ETag member from response header
   /// @return ETag value
-  const std::string& GetPreviousETag() {
+  const std::string& GetPreviousETag() const
+  {
     return m_ETag;
   }
 
@@ -104,7 +107,8 @@ class HTTPStorage {
 
   /// @brief Get previously set Last-Modified member from response header
   /// @return Last-Modified value
-  const std::string& GetPreviousLastModified() {
+  const std::string& GetPreviousLastModified() const
+  {
     return m_LastModified;
   }
 
@@ -118,7 +122,8 @@ class HTTPStorage {
   /// @brief Gets downloaded contents after successful download
   /// @return String of downloaded contents
   /// @notes Called after completed download
-  const std::string& GetDownloadedContents() {
+  const std::string& GetDownloadedContents() const
+  {
     return m_Stream;
   }
 
@@ -154,13 +159,16 @@ class HTTP : public HTTPStorage {
   HTTP() {}  // for HTTPProxy and tests
   ~HTTP() {}
 
-  HTTP(const std::string& uri)
-      : m_URI(uri) {}
+  HTTP(const std::string& uri) : m_URI(uri)
+  {
+    LOG(debug) << "HTTP: constructor URI " << uri;
+  }
 
   /// @brief Set cpp-netlib URI object if not set with ctor
   /// @param uri String URI (complete)
-  void SetURI(
-      const std::string& uri) {
+  void SetURI(const std::string& uri)
+  {
+    LOG(debug) << "HTTP: Set URI " << uri;
     // Remove existing URI if set
     if (!m_URI.string().empty()) {
       boost::network::uri::uri new_uri;
@@ -172,15 +180,14 @@ class HTTP : public HTTPStorage {
 
   /// @brief Get initialized URI
   /// @return cpp-netlib URI object
-  boost::network::uri::uri GetURI() {
+  boost::network::uri::uri GetURI() const
+  {
     return m_URI;
   }
 
-  /// @brief Tests if TLD is I2P and set default ports for in-net downloading
+  /// @brief Tests if TLD is I2P
   /// @return True if TLD is .i2p
-  /// @notes The default port is 80, for HTTPS it is 443
-  /// @notes Removing this will require refactoring stream implementation
-  bool HostIsI2P();
+  bool HostIsI2P() const;
 
   /// @brief Downloads parameter URI
   /// @param uri String URI
@@ -200,6 +207,11 @@ class HTTP : public HTTPStorage {
       const std::string& data);
 
  private:
+  /// @brief Set default ports for in-net downloading
+  /// @notes The default port is 80, for HTTPS it is 443
+  /// @notes Removing this will require refactoring stream implementation
+  void AmendURI();
+
   /// @brief Downloads over clearnet
   /// @return False on failure
   bool DownloadViaClearnet();

@@ -31,8 +31,13 @@
 #ifndef SRC_CORE_UTIL_LOG_H_
 #define SRC_CORE_UTIL_LOG_H_
 
-#include <boost/log/trivial.hpp>
 #include <boost/log/sources/global_logger_storage.hpp>
+#include <boost/log/sources/severity_logger.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/network/include/http/client.hpp>
+#include <sstream>
+#include <string>
+#include "core/util/byte_stream.h"
 
 // TODO(anonimal):
 // Boost.Log uses an "application-wide singleton" (note: our logger/sink setup applies globally from instance configuration)
@@ -44,8 +49,64 @@
 BOOST_LOG_GLOBAL_LOGGER(g_Logger, boost::log::sources::severity_logger_mt<boost::log::trivial::severity_level>)
 #define LOG(severity) BOOST_LOG_SEV(g_Logger::get(), boost::log::trivial::severity)
 
-namespace kovri {
-namespace core {
+namespace kovri
+{
+namespace core
+{
+/// @brief Log source and destination of a network request or response
+/// @param boost::network::http::client:: request or response
+/// @return human readable string
+template <typename Type>
+std::string LogNetEndpointsToString(const Type& req)
+{
+  std::stringstream ss;
+  ss << "Source : \""
+     << static_cast<std::string>(boost::network::http::source(req))
+     << "\" Dest : \""
+     << static_cast<std::string>(boost::network::http::destination(req))
+     << "\"";
+  return ss.str();
+}
+
+/// @brief Log headers of a network request or response
+/// @param boost::network::http::client:: request or response
+/// @return human readable string
+template <typename Type>
+std::string LogNetHeaderToString(const Type& req)
+{
+  std::stringstream ss;
+  ss << "Headers : ";
+  for (auto const& header : req.headers())
+    ss << "\"" << header.first << "\"  : \"" << header.second << "\" | ";
+  return ss.str();
+}
+
+/// @brief Log body of a network request or response
+/// @param boost::network::http::client:: request or response
+/// @return human readable string
+template <typename Type>
+std::string LogNetBodyToString(const Type& req)
+{
+  std::stringstream ss;
+  std::string body(static_cast<std::string>(boost::network::http::body(req)));
+  ss << "Body : "
+     << kovri::core::GetFormattedHex(
+            reinterpret_cast<const uint8_t*>(body.data()), body.length());
+  return ss.str();
+}
+
+/// @brief Log entire message (endpoints + headers + body)
+/// @param boost::network::http::client:: request or response
+/// @return human readable string
+template <typename Type>
+std::string LogNetMessageToString(const Type& req)
+{
+  std::stringstream ss;
+  ss << LogNetEndpointsToString(req) << std::endl
+     << LogNetHeaderToString(req) << std::endl
+     << LogNetBodyToString(req);
+  return ss.str();
+}
 
 }  // namespace core
 }  // namespace kovri

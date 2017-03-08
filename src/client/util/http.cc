@@ -46,6 +46,7 @@
 
 #include "core/router/context.h"
 
+#include "core/util/byte_stream.h"
 #include "core/util/filesystem.h"
 #include "core/util/log.h"
 
@@ -67,18 +68,29 @@ bool HTTP::Download() {
   }
   // TODO(anonimal): ideally, we simply swapout the request/response handler
   // with cpp-netlib so we don't need two separate functions
-  if (!HostIsI2P())
-    return DownloadViaClearnet();
-  return DownloadViaI2P();
+  if (HostIsI2P())
+    {
+      AmendURI();
+      return DownloadViaI2P();
+    }
+  return DownloadViaClearnet();
 }
 
-bool HTTP::HostIsI2P() {
+bool HTTP::HostIsI2P() const
+{
   auto uri = GetURI();
   if (!(uri.host().substr(uri.host().size() - 4) == ".i2p"))
     return false;
+  return true;
+}
+
+void HTTP::AmendURI()
+{
+  auto uri = GetURI();
   if (!uri.port().empty())
-    return true;
+    return;
   // We must assign a port if none was assigned (for internal reasons)
+  LOG(trace) << "HTTP : Amending URI";
   std::string port;
   if (uri.scheme() == "https")
     port.assign("443");
@@ -94,7 +106,6 @@ bool HTTP::HostIsI2P() {
       + uri.host() + ":" + port
       + uri.path() + uri.query() + uri.fragment());
   SetURI(new_uri);
-  return true;
 }
 
 bool HTTP::DownloadViaClearnet() {
@@ -102,6 +113,8 @@ bool HTTP::DownloadViaClearnet() {
   // Create and set options
   Options options;
   options.timeout(static_cast<std::uint8_t>(Timeout::Request));
+  LOG(debug) << "HTTP: Download Clearnet with timeout : "
+             << kovri::core::GetType(Timeout::Request);
   // Ensure that we only download from certified reseed servers
   if (!kovri::context.GetOptionReseedSkipSSLCheck()) {
     const std::string cert = uri.host() + ".crt";
@@ -110,6 +123,7 @@ bool HTTP::DownloadViaClearnet() {
       LOG(error) << "HTTP: certificate unavailable: " << cert_path;
       return false;
     }
+    LOG(trace) << "HTTP: Cert exists : " << cert_path;
     // Set SSL options
     options
       .always_verify_peer(true)
@@ -126,6 +140,11 @@ bool HTTP::DownloadViaClearnet() {
           | SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1
           | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3);
   }
+  else
+    {
+      LOG(debug) << "HTTP: Skipped Reseed SSL checking ";
+    }
+
   // Create client with options
   Client client(options);
   // TODO(unassigned): this top try block is specifically for Windows and ARMv8
@@ -138,17 +157,30 @@ bool HTTP::DownloadViaClearnet() {
       request << boost::network::header("User-Agent", "Wget/1.11.4");
       // Are we requesting the same file?
       if (uri.path() == GetPreviousPath()) {
-        // Add ETag and Last-Modified headers if previously set
-        if (!GetPreviousETag().empty())
-          request << boost::network::header("If-None-Match", GetPreviousETag());
-        if (!GetPreviousLastModified().empty())
-          request << boost::network::header("If-Modified-Since", GetPreviousLastModified());
+          LOG(debug) << "HTTP: Same URI already requested";
+          // Add ETag and Last-Modified headers if previously set
+          if (!GetPreviousETag().empty())
+            {
+              LOG(trace) << "HTTP: Setting 'If-None-Match' to : "
+                         << GetPreviousETag();
+              request << boost::network::header(
+                  "If-None-Match", GetPreviousETag());
+            }
+          if (!GetPreviousLastModified().empty())
+            {
+              LOG(trace) << "HTTP: Setting 'If-Modified-Since' to : "
+                         << GetPreviousLastModified();
+              request << boost::network::header(
+                  "If-Modified-Since", GetPreviousLastModified());
+            }
       } else {
         // Set path to test against for future download (if this is a single instance)
         SetPath(uri.path());
       }
       // Create response object, send request and receive response
+      LOG(trace) << "HTTP: Request " << kovri::core::LogNetMessageToString(request);
       Response response = client.get(request);
+      LOG(trace) << "HTTP: Response " << kovri::core::LogNetMessageToString(response);
       // Test HTTP response status code
       switch (response.status()) {
         // New download or cached version does not match, so re-download
@@ -191,7 +223,9 @@ bool HTTP::DownloadViaClearnet() {
 }
 
 // TODO(anonimal): cpp-netlib refactor: request/response handler
-bool HTTP::DownloadViaI2P() {
+bool HTTP::DownloadViaI2P()
+{
+  LOG(debug) << "HTTP: Download via I2P";
   // Clear buffers (for when we're only using a single instance)
   m_Request.clear();
   m_Response.clear();
@@ -207,26 +241,27 @@ bool HTTP::DownloadViaI2P() {
     std::condition_variable new_data_received;
     std::mutex new_data_received_mutex;
     auto lease_set = address_book.GetSharedLocalDestination()->FindLeaseSet(ident);
-    // Lease-set not available, request
-    if (!lease_set) {
-      std::unique_lock<std::mutex> lock(new_data_received_mutex);
-      address_book.GetSharedLocalDestination()->RequestDestination(
-          ident,
-          [&new_data_received, &lease_set](
-              std::shared_ptr<kovri::core::LeaseSet> ls) {
-            lease_set = ls;
-            new_data_received.notify_all();
-          });
-      // TODO(anonimal): request times need to be more consistent.
-      //   In testing, even after integration, results vary dramatically.
-      //   This could be a router issue or something amiss during the refactor.
-      if (new_data_received.wait_for(
-              lock,
-              std::chrono::seconds(
-                  static_cast<std::uint8_t>(Timeout::Request)))
-          == std::cv_status::timeout)
-        LOG(error) << "HTTP: lease-set request timeout expired";
-    }
+    if (!lease_set)
+      {
+        LOG(debug) << "HTTP: Lease-set not available, request";
+        std::unique_lock<std::mutex> lock(new_data_received_mutex);
+        address_book.GetSharedLocalDestination()->RequestDestination(
+            ident,
+            [&new_data_received,
+             &lease_set](std::shared_ptr<kovri::core::LeaseSet> ls) {
+              lease_set = ls;
+              new_data_received.notify_all();
+            });
+        // TODO(anonimal): request times need to be more consistent.
+        //   In testing, even after integration, results vary dramatically.
+        //   This could be a router issue or something amiss during the refactor.
+        if (new_data_received.wait_for(
+                lock,
+                std::chrono::seconds(
+                    static_cast<std::uint8_t>(Timeout::Request)))
+            == std::cv_status::timeout)
+          LOG(error) << "HTTP: lease-set request timeout expired";
+      }
     // Test against requested lease-set
     if (!lease_set) {
       LOG(error) << "HTTP: lease-set for address " << uri.host() << " not found";

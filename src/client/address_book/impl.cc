@@ -34,6 +34,7 @@
 
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/asio.hpp>
+#include <boost/network/uri.hpp>
 
 #include <array>
 #include <cstdint>
@@ -154,7 +155,7 @@ void AddressBook::LoadPublishers() {
     // Publisher URI
     std::string publisher;
     // Validate publisher URI
-    HTTP http;
+    boost::network::uri::uri uri;
     // Read in publishers, line by line
     while (std::getline(file, publisher)) {
       // If found, clear whitespace before and after publisher (on the line)
@@ -168,12 +169,15 @@ void AddressBook::LoadPublishers() {
       if (!publisher.length())
         continue;
       // Perform URI sanity test
-      http.SetURI(publisher);
-      if (!http.GetURI().is_valid()) {
-        LOG(warning)
-          << "AddressBook: invalid/malformed publisher URI, skipping";
-        continue;
-      }
+      if (!uri.string().empty())
+        uri = boost::network::uri::uri();
+      uri.append(publisher);
+      if (!uri.is_valid())
+        {
+          LOG(warning)
+              << "AddressBook: invalid/malformed publisher URI, skipping";
+          continue;
+        }
       // Save publisher to subscriber
       m_Subscribers.push_back(
           std::make_unique<AddressBookSubscriber>(*this, publisher));

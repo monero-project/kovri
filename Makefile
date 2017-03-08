@@ -207,16 +207,10 @@ clean:
           fi; \
         fi
 
-# TODO(unassigned): we need to consider using a proper CMake generated make install.
-# For now, we'll simply (optionally) copy resources. Binaries will remain in build directory.
-install-resources:
-	$(eval copy-resources = mkdir -p $(data-path) && cp -fR pkg/* $(data-path))
-	@if [ "$$FORCE_INSTALL" = "yes" ]; then $(copy-resources); \
-	else echo "WARNING: This will overwrite all resources and configuration files"; \
-	read -r -p "Is this what you wish to do? (y/N)?: " CONFIRM; \
-	  if [ $$CONFIRM = "y" ] || [ $$CONFIRM = "Y" ]; then $(copy-resources); \
-          else echo "Exiting."; exit 1; \
-	  fi; \
-	fi
+install:
+	@_install="./pkg/kovri-install.sh"; \
+	if [ -e $$_install ]; then $$_install; else echo "Unable to find $$_install"; exit 1; fi
 
-.PHONY: all deps release-deps release-static-deps dynamic static release release-static release-static-android all-options optimized-hardened optimized-hardened-tests coverage coverage-tests tests doxygen help clean install-resources
+# TODO(anonimal): uninstall
+
+.PHONY: all deps release-deps release-static-deps dynamic static release release-static release-static-android all-options optimized-hardened optimized-hardened-tests coverage coverage-tests tests doxygen help clean install

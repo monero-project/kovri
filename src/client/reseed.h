@@ -40,6 +40,7 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "client/util/zip.h"
@@ -76,11 +77,11 @@ class Reseed {
   /// @return false on failure
   bool Start();
 
- private:
   /// @brief Processes SU3 certificates for SU3 verification
   /// @return False on failure
-  bool ProcessCerts();
+  static bool ProcessCerts(std::map<std::string, kovri::core::PublicKey>*);
 
+ private:
   /// @brief Fetches the stream to reseed from
   /// @return false on failure
   bool FetchStream();

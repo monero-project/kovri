@@ -71,10 +71,11 @@ namespace client {
 bool Reseed::Start() {
   // Load SU3 (not SSL) certificates
   LOG(debug) << "Reseed: processing certificates...";
-  if (!ProcessCerts()) {
-    LOG(error) << "Reseed: failed to load certificates";
-    return false;
-  }
+  if (!ProcessCerts(&m_SigningKeys))
+    {
+      LOG(error) << "Reseed: failed to load certificates";
+      return false;
+    }
   // Fetch SU3 stream for reseed
   std::size_t attempts = 0;
   const std::size_t max_attempts = 6;
@@ -109,7 +110,8 @@ bool Reseed::Start() {
   return true;
 }
 
-bool Reseed::ProcessCerts() {
+bool Reseed::ProcessCerts(std::map<std::string, kovri::core::PublicKey>* keys)
+{
   // Test if directory exists
   boost::filesystem::path path = kovri::core::GetSU3CertsPath();
   boost::filesystem::directory_iterator it(path), end;
@@ -131,7 +133,7 @@ bool Reseed::ProcessCerts() {
           std::stringstream ss;
           ss << ifs.rdbuf();
           // Get signing key
-          m_SigningKeys = x509.GetSigningKey(ss);
+          *keys = x509.GetSigningKey(ss);
           // Close stream
           ifs.close();
         } catch (const std::exception& e) {
@@ -144,10 +146,11 @@ bool Reseed::ProcessCerts() {
         LOG(error) << "Reseed: " << cert << " does not exist";
         return false;
       }
-      if (m_SigningKeys.empty()) {
-        LOG(error) << "Reseed: failed to get signing key from " << cert;
-        return false;
-      }
+      if (keys->empty())
+        {
+          LOG(error) << "Reseed: failed to get signing key from " << cert;
+          return false;
+        }
       if (num_certs < std::numeric_limits<std::uint8_t>::max()) {
         num_certs++;
       }

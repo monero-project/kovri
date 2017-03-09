@@ -148,6 +148,17 @@ class SU3 {
   /// @return False on failure
   bool SU3Impl();
 
+  /// @brief Get Version
+  /// @return version
+  std::string GetVersion() const
+  {
+    std::stringstream ss;
+    ss << std::dec;
+    for (std::size_t i(0); i < m_Data->version_length; ++i)
+      ss << m_Data->version[i];
+    return ss.str();
+  }
+
  private:
   /// @brief Prepares/parses SU3 stream
   /// @return False on failure
@@ -203,6 +214,7 @@ class SU3 {
     std::uint8_t version_length;  // Seconds since epoch, in ASCII. $(date +%s)
     std::uint8_t signer_id_length;
     std::uint8_t file_type, content_type;
+    std::array<char, std::numeric_limits<std::uint8_t>::max()> version;
     std::array<char, std::numeric_limits<std::uint8_t>::max()> signer_id;
     std::uint64_t content_length;
     std::size_t content_position;  // ZIP/Router Infos/etc.

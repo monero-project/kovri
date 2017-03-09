@@ -358,8 +358,8 @@ bool SU3::PrepareStream() {
     }
     // Unused offset
     m_Stream.Seekg(static_cast<std::size_t>(Offset::unused) * 12, std::ios::cur);
-    // Skip SU3 version (we *could* test against this if we want)
-    m_Stream.Seekg(m_Data->version_length, std::ios::cur);
+    // SU3 version (we *could* test against this if we want)
+    m_Stream.Read(*m_Data->version.data(), m_Data->version_length);
     // Get signer ID
     m_Stream.Read(*m_Data->signer_id.data(), m_Data->signer_id_length);
     // Currently enforces signer ID as an email address (not spec-defined)

@@ -154,13 +154,13 @@ $ git clone --recursive https://github.com/monero-project/kovri
 ```bash
 $ make # to decrease build-time, run make -j [available CPU cores]
 ```
-### 3. Install resources (configuration files + package resources)
+### 3. Install
 ```bash
-$ make install-resources
+$ make install
 ```
 
-- End-users MUST run ```make install-resources``` for new installations
-- Developers SHOULD run ```make install-resources``` after a fresh fetch
+- End-users MUST run ```make install``` for new installations
+- Developers SHOULD run ```make install``` after a fresh fetch
 
 ### Other options you can use in place of step 2:
 
@@ -175,6 +175,7 @@ $ make install-resources
 - ```make doxygen``` produces Doxygen documentation
 - ```make clean``` cleans build directories and Doxygen output
 - ```make help``` shows available CMake build options
+- ```make uninstall``` uninstall Kovri
 
 #### Notes
 - Doxygen output will be in ```doc``` directory
@@ -190,7 +191,7 @@ $ export CC=clang CXX=clang++  # replace ```clang``` with a clang version/path o
 ### FreeBSD
 ```bash
 $ export CC=clang36 CXX=clang++36
-$ gmake && gmake install-resources
+$ gmake && gmake install
 ```
 - Replace ```make``` with ```gmake``` for all other build options
 
@@ -198,7 +199,7 @@ $ gmake && gmake install-resources
 You can customize Kovri's data path to your liking. Simply export ```KOVRI_DATA_PATH```; example:
 
 ```bash
-$ export KOVRI_DATA_PATH=$HOME/.another-kovri-data-path && make && make install-resources
+$ export KOVRI_DATA_PATH=$HOME/.another-kovri-data-path && make && make install
 ```
 
 ## Step 4. Proceed to the user guide

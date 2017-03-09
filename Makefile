@@ -211,6 +211,8 @@ install:
 	@_install="./pkg/kovri-install.sh"; \
 	if [ -e $$_install ]; then $$_install; else echo "Unable to find $$_install"; exit 1; fi
 
-# TODO(anonimal): uninstall
+uninstall:
+	@_install="./pkg/kovri-install.sh"; \
+	if [ -e $$_install ]; then $$_install -u; else echo "Unable to find $$_install"; exit 1; fi
 
-.PHONY: all deps release-deps release-static-deps dynamic static release release-static release-static-android all-options optimized-hardened optimized-hardened-tests coverage coverage-tests tests doxygen help clean install
+.PHONY: all deps release-deps release-static-deps dynamic static release release-static release-static-android all-options optimized-hardened optimized-hardened-tests coverage coverage-tests tests doxygen help clean install uninstall

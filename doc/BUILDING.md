@@ -175,6 +175,7 @@ $ make install
 - ```make doxygen``` produces Doxygen documentation
 - ```make clean``` cleans build directories and Doxygen output
 - ```make help``` shows available CMake build options
+- ```make uninstall``` uninstall Kovri
 
 #### Notes
 - Doxygen output will be in ```doc``` directory

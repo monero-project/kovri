@@ -45,7 +45,7 @@ usage() {
   echo -e "Create package with accompanying checksum file:\n\n$0 [-r \"client config kovri kovri-util\"] -p -c [-f /tmp/kovri-package.tar.bz2]\n\n"
 }
 
-while getopts ":r:f:cp" _opt; do
+while getopts ":r:f:cpu" _opt; do
   case $_opt in
     r) _resources="$OPTARG"
       ;;
@@ -54,6 +54,8 @@ while getopts ":r:f:cp" _opt; do
     c) _create_checksum_file=true
       ;;
     p) _create_package=true
+      ;;
+    u) _uninstall=true
       ;;
     *) usage && exit 1
       ;;
@@ -88,9 +90,12 @@ PrepareOptions() {
   else
     cd $(dirname "$0")
   fi
+  # Path for binaries
+  _path=$HOME/bin
+  _binaries=(kovri kovri-util)
   # Set default resources if needed
   if [[ -z $_resources ]]; then
-    _resources="pkg/client pkg/config build/kovri build/kovri-util"
+    _resources="pkg/client pkg/config build/${_binaries[0]} build/${_binaries[1]} "
   fi
   # Test if resources are available
   for _i in ${_resources[@]}; do
@@ -122,9 +127,7 @@ PrepareOptions() {
   fi
 }
 
-# TODO(anonimal): uninstaller
-
-LocalInstall() {
+LocalUninstall() {
   # Backup existing installation
   _config=${_data}/config
   _kovri_conf=${_config}/kovri.conf
@@ -150,13 +153,28 @@ LocalInstall() {
       catch "could not remove $_i"
     fi
   done
+  # Remove binaries
+  for _i in ${_binaries[@]}; do
+    local _bin=${_path}/${_i}
+    if [[ -e $_bin ]]; then
+      echo -n "Removing $_bin"
+      rm -f $_bin 2>/dev/null
+      catch "could not remove $_bin"
+    fi
+  done
+  # Cleanup bin dir
+  if [[ ! $(ls -A $_path 2>/dev/null) ]]; then
+    rm -fr $_path
+  fi
+}
+
+LocalInstall() {
   # Ensure paths for new install
   if [[ ! -d $_data ]]; then
     echo -n "Creating ${_data}"
     mkdir "$_data" 2>/dev/null
     catch "could not create $_data"
   fi
-  _path=$HOME/bin
   if [[ ! -d $_path ]]; then
     echo -n "Creating ${_path}"
     mkdir "$_path" 2>/dev/null
@@ -241,7 +259,11 @@ PrepareOptions
 if [[ $_create_package == true ]]; then
   CreatePackage
   echo "${_green}Package creation success!${_normal}"
+elif [[ $_uninstall == true ]]; then
+  LocalUninstall
+  echo "${_green}Un-installation success!${_normal}"
 else
+  LocalUninstall
   LocalInstall
   echo "Data directory is $_data"
   echo "Binaries are located in $_path"

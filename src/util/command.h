@@ -47,10 +47,11 @@ class Command
  public:
   /// @brief Implementation of the sub command
   /// @param path : command name as entered by the OP
-  /// @param argc : Number of arguments
-  /// @param argv : array of arguments
+  /// @param args : vector of string arguments
   /// @return false on failure, true otherwise
-  virtual bool Impl(const std::string& path, int argc, const char* argv[]) = 0;
+  virtual bool Impl(
+      const std::string& path,
+      const std::vector<std::string>& args) = 0;
 
   /// @brief Name of the sub command
   /// @return name of the sub command

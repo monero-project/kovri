@@ -21,6 +21,13 @@ if(WITH_BINARY)
         set_target_properties(${UTIL_NAME} PROPERTIES LINK_FLAGS "-lm -lc++")
       endif()
     endif()
+    # Note: On FreeBSD 10.3-RELEASE-p4 and 11, GCC 4.9.4+/Clang 3.6+ apparently started to *silently* drop -static-libgcc -static-libstdc++ during linkage so, we add -static here
+    if(FREEBSD OR MINGW)
+      set_target_properties(${UTIL_NAME} PROPERTIES LINK_FLAGS "-static")
+    endif()
+  endif()
+  if(MINGW)
+    target_link_libraries(${UTIL_NAME} wsock32 iphlpapi ws2_32)
   endif()
   # FindBoost pulls pthread for thread which is broken for static linking
   # (at least on Ubuntu 15.04)

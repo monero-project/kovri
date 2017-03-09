@@ -104,18 +104,15 @@ bool process(
 
 bool BaseCommand::Impl(
     const std::string& cmd_name,
-    int argc,
-    const char* argv[])
+    const std::vector<std::string>& args)
 {
   bpo::variables_map vm;
   bpo::positional_options_description pos;
   pos.add("type", 1).add("infile", 1).add("outfile", 1);
   try
     {
-      bpo::parsed_options parsed = bpo::command_line_parser(argc, argv)
-                                       .options(m_Desc)
-                                       .positional(pos)
-                                       .run();
+      bpo::parsed_options parsed =
+          bpo::command_line_parser(args).options(m_Desc).positional(pos).run();
       bpo::store(parsed, vm);
       bpo::notify(vm);
     }
@@ -126,11 +123,11 @@ bool BaseCommand::Impl(
       return false;
     }
 
-  if (vm.count("help") || (argc < 2) || (argc > 4))
+  if (vm.count("help") || (args.size() < 1) || (args.size() > 3))
     {
-      if (argc < 2)
+      if (args.size() < 2)
         LOG(error) << "Not enough arguments !";
-      else if (argc > 4)
+      else if (args.size() > 4)
         LOG(error) << "Too many arguments !";
       PrintUsage(cmd_name);
       return false;

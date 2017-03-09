@@ -202,17 +202,30 @@ CreatePackage() {
   echo -n "Creating staging path"
   mkdir $_package_path
   catch "could not create staging directory"
-  # Compress package
-  echo -n "Compressing package $_package_file (please wait)..."
-  cp -R --parents $_resources $_package_path
+  echo -n "Copying resources"
+  if [[ $OSTYPE == darwin* ]]; then
+    for _i in ${_resources[@]}; do
+      # TODO(anonimal): using rsync is a hack to preserve parent path
+      rsync -avR $_i $_package_path 1>/dev/null
+    done
+  else
+    cp -R --parents $_resources $_package_path
+  fi
+  catch "could not copy resources for packaging"
   # Add ourself to the package
+  echo -n "Copying installer"
   if [[ $_is_windows == true ]]; then
     cp pkg/kovri-install.bat $_package_path
   else
     cp pkg/kovri-install.sh $_package_path
   fi
-  # And the install guide
+  catch "could not copy installer"
+  # Add the install guide
+  echo -n "Copying guide"
   cp pkg/INSTALL.txt $_package_path
+  catch "could not copy install guide"
+  # Compress package
+  echo -n "Compressing package $_package_file (please wait)..."
   if [[ $_is_windows == true ]]; then
     hash zip 2>/dev/null
     if [[ $? -ne 0 ]]; then

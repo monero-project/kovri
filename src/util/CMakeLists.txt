@@ -1,6 +1,7 @@
 include_directories("../")
 
 set(UTIL_SRC
+  "su3file.cc"
   "base.cc"
   "main.cc")
 

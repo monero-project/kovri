@@ -148,6 +148,11 @@ class SU3 {
   /// @return False on failure
   bool SU3Impl();
 
+  /// @brief Extracts Embedded file from SU3 stream
+  /// @param Output stream
+  /// @return False on failure
+  bool Extract(kovri::core::OutputFileStream* output);
+
   /// @brief Get Version
   /// @return version
   std::string GetVersion() const
@@ -158,6 +163,44 @@ class SU3 {
       ss << m_Data->version[i];
     return ss.str();
   }
+
+  /// @brief Get Signer Id
+  /// @return signer_id
+  std::string GetSignerId() const
+  {
+    return std::string(m_Data->signer_id.data());
+  }
+
+  /// @brief Get Signature type
+  /// @return signature type
+  kovri::core::SigningKeyType GetSignatureType() const
+  {
+    return m_Data->signature_type;
+  }
+
+  /// @brief Get Content type
+  /// @return content type
+  std::uint8_t GetContentType() const
+  {
+    return m_Data->content_type;
+  }
+
+  /// @brief Get Embedded File type
+  /// @return file type
+  std::uint8_t GetFileType() const
+  {
+    return m_Data->file_type;
+  }
+
+  /// @return Get human readable string for FileType
+  /// @param FileType
+  /// @return human readable string
+  static const std::string FileTypeToString(std::uint8_t type);
+
+  /// @brief Get human readable string for ContentType
+  /// @param ContentType
+  /// @return human readable string
+  static const std::string ContentTypeToString(std::uint8_t type);
 
  private:
   /// @brief Prepares/parses SU3 stream

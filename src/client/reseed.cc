@@ -440,5 +440,54 @@ bool SU3::ExtractContent() {
   return true;
 }
 
+bool SU3::Extract(kovri::core::OutputFileStream* output)
+{
+  LOG(debug) << "SU3: extracting payload";
+  std::size_t content_length =
+      m_Data->content_length - m_Data->signature_position;
+  if (!output->Write(
+          m_Data->content.data() + m_Data->content_position, content_length))
+    return false;
+  return true;
+}
+
+const std::string SU3::FileTypeToString(std::uint8_t type)
+{
+  switch (type)
+    {
+      case static_cast<std::uint8_t>(FileType::zip_file):
+        return "ZIP";
+      case static_cast<std::uint8_t>(FileType::xml_file):
+        return "XML";
+      case static_cast<std::uint8_t>(FileType::html_file):
+        return "HTML";
+      case static_cast<std::uint8_t>(FileType::xml_gz_file):
+        return "XML_GZ";
+      default:
+        LOG(error) << "Unknown file type " << type;
+        return "";
+    }
+}
+
+const std::string SU3::ContentTypeToString(std::uint8_t type)
+{
+  switch (type)
+    {
+      case static_cast<std::uint8_t>(ContentType::unknown):
+        return "Unknown";
+      case static_cast<std::uint8_t>(ContentType::router_update):
+        return "Router Update";
+      case static_cast<std::uint8_t>(ContentType::plugin_related):
+        return "Plugin related";
+      case static_cast<std::uint8_t>(ContentType::reseed_data):
+        return "Reseed";
+      case static_cast<std::uint8_t>(ContentType::news_feed):
+        return "News Feed";
+      default:
+        LOG(error) << "Unknown file type " << type;
+        return "";
+    }
+}
+
 }  // namespace client
 }  // namespace kovri

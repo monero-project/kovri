@@ -33,12 +33,13 @@
 #
 
 usage() {
-  echo "Usage: $0 [-r \"<resources to install>\"] [-p (creates package)] [-c (creates package checksum file)] [-f <package output file>]"
+  echo "Usage: $0 [-r \"<resources to install>\"] [-p (creates package)] [-c (creates package checksum file)] [-f <package output file>] [-u (uninstall)]"
   echo ""
   echo "Examples"
   echo "========"
   echo ""
   echo -e "End-users:\n\n$0\n\n"
+  echo -e "Uninstall existing installation:\n\n$0 -u\n\n"
   echo -e "Specify resources:\n\n$0 -r \"client config kovri kovri-util\"\n\n"
   echo -e "Create package with default output file path:\n\n$0 [-r \"client config kovri kovri-util\"] -p\n\n"
   echo -e "Create package with specified file path:\n\n$0 [-r \"client config kovri kovri-util\"] -p -f /tmp/kovri-package.tar.bz2\n\n"
@@ -106,6 +107,11 @@ PrepareOptions() {
   done
   # Package preparation
   if [[ $_create_package == true ]]; then
+    # Set defaults
+    if [[ $_is_git == true ]]; then
+      local _rev="-"$(git rev-parse --short HEAD 2>/dev/null)
+    fi
+    _package_path="kovri${_rev}-$(uname -m)-$(uname -s)-$(date +%Y.%m.%d)"
     # Set package file path if none supplied
     if [[ -z $_package_file ]]; then
       if [[ $_is_windows == true ]]; then
@@ -113,10 +119,6 @@ PrepareOptions() {
       else
         local _ext=".tar.bz2"
       fi
-      if [[ $_is_git == true ]]; then
-        local _rev="-"$(git rev-parse --short HEAD 2>/dev/null)
-      fi
-      _package_path="kovri${_rev}-$(uname -m)-$(uname -s)-$(date +%Y.%m.%d)"
       _package_file="build/${_package_path}${_ext}"
     fi
   else

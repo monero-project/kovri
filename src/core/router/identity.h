@@ -203,6 +203,10 @@ const std::uint16_t DEFAULT_ROUTER_SIGNING_KEY_TYPE = SIGNING_KEY_TYPE_EDDSA_SHA
 typedef std::uint16_t SigningKeyType;
 typedef std::uint16_t CryptoKeyType;
 
+/// @brief SigningKeyType to human readable string
+/// @param type of the signature key
+/// @returns human readable string for the key type, empty string if unknown
+const std::string GetSigningKeyTypeName(const SigningKeyType key);
 
 class IdentityEx {
  public:

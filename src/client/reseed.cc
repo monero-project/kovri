@@ -71,10 +71,11 @@ namespace client {
 bool Reseed::Start() {
   // Load SU3 (not SSL) certificates
   LOG(debug) << "Reseed: processing certificates...";
-  if (!ProcessCerts()) {
-    LOG(error) << "Reseed: failed to load certificates";
-    return false;
-  }
+  if (!ProcessCerts(&m_SigningKeys))
+    {
+      LOG(error) << "Reseed: failed to load certificates";
+      return false;
+    }
   // Fetch SU3 stream for reseed
   std::size_t attempts = 0;
   const std::size_t max_attempts = 6;
@@ -109,7 +110,8 @@ bool Reseed::Start() {
   return true;
 }
 
-bool Reseed::ProcessCerts() {
+bool Reseed::ProcessCerts(std::map<std::string, kovri::core::PublicKey>* keys)
+{
   // Test if directory exists
   boost::filesystem::path path = kovri::core::GetSU3CertsPath();
   boost::filesystem::directory_iterator it(path), end;
@@ -131,7 +133,7 @@ bool Reseed::ProcessCerts() {
           std::stringstream ss;
           ss << ifs.rdbuf();
           // Get signing key
-          m_SigningKeys = x509.GetSigningKey(ss);
+          *keys = x509.GetSigningKey(ss);
           // Close stream
           ifs.close();
         } catch (const std::exception& e) {
@@ -144,10 +146,11 @@ bool Reseed::ProcessCerts() {
         LOG(error) << "Reseed: " << cert << " does not exist";
         return false;
       }
-      if (m_SigningKeys.empty()) {
-        LOG(error) << "Reseed: failed to get signing key from " << cert;
-        return false;
-      }
+      if (keys->empty())
+        {
+          LOG(error) << "Reseed: failed to get signing key from " << cert;
+          return false;
+        }
       if (num_certs < std::numeric_limits<std::uint8_t>::max()) {
         num_certs++;
       }
@@ -355,8 +358,8 @@ bool SU3::PrepareStream() {
     }
     // Unused offset
     m_Stream.Seekg(static_cast<std::size_t>(Offset::unused) * 12, std::ios::cur);
-    // Skip SU3 version (we *could* test against this if we want)
-    m_Stream.Seekg(m_Data->version_length, std::ios::cur);
+    // SU3 version (we *could* test against this if we want)
+    m_Stream.Read(*m_Data->version.data(), m_Data->version_length);
     // Get signer ID
     m_Stream.Read(*m_Data->signer_id.data(), m_Data->signer_id_length);
     // Currently enforces signer ID as an email address (not spec-defined)
@@ -435,6 +438,55 @@ bool SU3::ExtractContent() {
   m_RouterInfos = zip.m_Contents;
   LOG(debug) << "SU3: extraction successful";
   return true;
+}
+
+bool SU3::Extract(kovri::core::OutputFileStream* output)
+{
+  LOG(debug) << "SU3: extracting payload";
+  std::size_t content_length =
+      m_Data->content_length - m_Data->signature_position;
+  if (!output->Write(
+          m_Data->content.data() + m_Data->content_position, content_length))
+    return false;
+  return true;
+}
+
+const std::string SU3::FileTypeToString(std::uint8_t type)
+{
+  switch (type)
+    {
+      case static_cast<std::uint8_t>(FileType::zip_file):
+        return "ZIP";
+      case static_cast<std::uint8_t>(FileType::xml_file):
+        return "XML";
+      case static_cast<std::uint8_t>(FileType::html_file):
+        return "HTML";
+      case static_cast<std::uint8_t>(FileType::xml_gz_file):
+        return "XML_GZ";
+      default:
+        LOG(error) << "Unknown file type " << type;
+        return "";
+    }
+}
+
+const std::string SU3::ContentTypeToString(std::uint8_t type)
+{
+  switch (type)
+    {
+      case static_cast<std::uint8_t>(ContentType::unknown):
+        return "Unknown";
+      case static_cast<std::uint8_t>(ContentType::router_update):
+        return "Router Update";
+      case static_cast<std::uint8_t>(ContentType::plugin_related):
+        return "Plugin related";
+      case static_cast<std::uint8_t>(ContentType::reseed_data):
+        return "Reseed";
+      case static_cast<std::uint8_t>(ContentType::news_feed):
+        return "News Feed";
+      default:
+        LOG(error) << "Unknown file type " << type;
+        return "";
+    }
 }
 
 }  // namespace client

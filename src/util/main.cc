@@ -33,6 +33,7 @@
 #include "util/base.h"
 #include "util/command.h"
 #include "core/router/context.h"
+#include "util/su3file.h"
 
 namespace bpo = boost::program_options;
 typedef std::map<std::string, Command*> ListCommands;
@@ -54,8 +55,10 @@ int main(int argc, const char* argv[])
   ListCommands list_cmd;
   Base32Command base32_cmd;
   Base64Command base64_cmd;
+  SU3FileCommand su3file_cmd;
   list_cmd[base32_cmd.GetName()] = &base32_cmd;
   list_cmd[base64_cmd.GetName()] = &base64_cmd;
+  list_cmd[su3file_cmd.GetName()] = &su3file_cmd;
 
   bpo::options_description general_desc("General options");
   // See src/app/config.cc for log options
@@ -67,7 +70,7 @@ int main(int argc, const char* argv[])
       "log-to-console", bpo::value<bool>()->default_value(true))(
       "log-to-file", bpo::value<bool>()->default_value(false))(
       "log-file-name", bpo::value<std::string>()->default_value(""))(
-      "log-level", bpo::value<std::uint16_t>()->default_value(1));
+      "log-level", bpo::value<std::uint16_t>()->default_value(3));
 
   bpo::options_description spec("Specific options");
   spec.add_options()(

@@ -148,6 +148,17 @@ class FileStream {
     return m_Stream->gcount();
   }
 
+  template <typename SizeCast = std::size_t, typename Offset>
+  void Seekg(Offset&& off, std::ios_base::seekdir way)
+  {
+    m_Stream->seekg(static_cast<SizeCast>(std::forward<Offset>(off)), way);
+  }
+
+  std::size_t Tellg() const
+  {
+    return m_Stream->tellg();
+  }
+
  protected:
   explicit FileStream(
       const std::string& path,

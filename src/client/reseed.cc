@@ -114,11 +114,17 @@ bool Reseed::ProcessCerts(std::map<std::string, kovri::core::PublicKey>* keys)
 {
   // Test if directory exists
   boost::filesystem::path path = kovri::core::GetSU3CertsPath();
+  if (!boost::filesystem::exists(path))
+    {
+      LOG(error) << "Reseed: certificates " << path << " don't exist";
+      return false;
+    }
+  if (!boost::filesystem::is_directory(path))
+    {
+      LOG(error) << "Reseed: certificates " << path << " is not a directory";
+      return false;
+    }
   boost::filesystem::directory_iterator it(path), end;
-  if (!boost::filesystem::exists(path)) {
-    LOG(error) << "Reseed: certificates " << path << " don't exist";
-    return false;
-  }
   // Instantiate X.509 object
   kovri::core::X509 x509;
   // Iterate through directory and get signing key from each certificate

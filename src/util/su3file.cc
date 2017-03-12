@@ -52,9 +52,9 @@ SU3FileCommand::SU3FileCommand()
 void SU3FileCommand::PrintUsage(const std::string& name) const
 {
   LOG(info) << "Syntax: " << name;
-  LOG(info) << "\tshowversion signedFile.su3";
-  LOG(info) << "\tverifysig [-k file.crt] signedFile.su3";
-  LOG(info) << "\textract [-x] [-k file.crt] signedFile.su3 outFile";
+  LOG(info) << "\tshowversion [-k file.crt] [-d cert-dir] signedFile.su3";
+  LOG(info) << "\tverifysig [-k file.crt] [-d cert-dir] signedFile.su3";
+  LOG(info) << "\textract [-k file.crt] [-d cert-dir] signedFile.su3 outFile";
 }
 
 bool SU3FileCommand::Impl(
@@ -65,6 +65,7 @@ bool SU3FileCommand::Impl(
   bpo::options_description desc("General options");
   desc.add_options()("help,h", "produce this help message")(
       ",k", bpo::value<std::string>(), "crlFile.crt")(
+      "cert-dir,d", bpo::value<std::string>(), "certificate directory")(
       "command,c", bpo::value<std::string>(&sub_cmd), "sub command")(
       "input,i", bpo::value<std::string>(&input_name), "file.su3")(
       "output,o", bpo::value<std::string>(&output_name), "outputFile");
@@ -108,7 +109,7 @@ bool SU3FileCommand::Impl(
       PrintUsage(cmd_name);
       return false;
     }
-  // Get trusted certificates (or not)
+  // Get trusted certificates
   std::map<std::string, kovri::core::PublicKey> keys;
   if (vm.count("-k"))
     {
@@ -142,8 +143,12 @@ bool SU3FileCommand::Impl(
     }
   else
     {
-      LOG(debug) << "su3file: Using default certificates ";
-      if (!kovri::client::Reseed::ProcessCerts(&keys))
+      boost::filesystem::path cert_dir_path =
+          vm.count("cert-dir")
+              ? boost::filesystem::path(vm["cert-dir"].as<std::string>())
+              : kovri::core::GetSU3CertsPath();
+      LOG(debug) << "su3file: Using certificates path " << cert_dir_path;
+      if (!kovri::client::Reseed::ProcessCerts(&keys, cert_dir_path))
         {
           LOG(error) << "su3file: Failed to get trusted certificates !";
           return false;

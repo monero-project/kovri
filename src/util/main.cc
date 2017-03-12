@@ -64,9 +64,6 @@ int main(int argc, const char* argv[])
   // See src/app/config.cc for log options
   general_desc.add_options()("help,h", "produce this help message")(
       "all,a", "print all options")(
-      "data-dir",
-      bpo::value<std::string>()->default_value(
-          kovri::core::GetDefaultDataPath().string()))(
       "log-to-console", bpo::value<bool>()->default_value(true))(
       "log-to-file", bpo::value<bool>()->default_value(false))(
       "log-file-name", bpo::value<std::string>()->default_value(""))(
@@ -101,11 +98,6 @@ int main(int argc, const char* argv[])
       ex.Dispatch(__func__);
       return EXIT_FAILURE;
     }
-
-  // Setup data-dir
-  kovri::context.SetCustomDataDir(
-      vm["data-dir"].defaulted() ? kovri::core::GetDefaultDataPath().string()
-                                 : vm["data-dir"].as<std::string>());
 
   // Setup logging options
   kovri::core::SetupLogging(vm);

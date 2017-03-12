@@ -68,7 +68,7 @@ const int MAX_RI_BUFFER_SIZE = 2048;
 
 class RouterInfo : public RoutingDestination {
  public:
-  enum SupportedTranports {
+  enum SupportedTransports {
     eNTCPV4 = 0x01,
     eNTCPV6 = 0x02,
     eSSUV4 = 0x04,

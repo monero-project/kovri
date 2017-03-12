@@ -98,7 +98,7 @@ void Benchmark::PerformTests()
 Benchmark::Benchmark() : m_Desc("Options")
 {
   m_Desc.add_options()("help,h", "produce this help message")
-     ("test,t", bpo::bool_switch()->default_value(false), "all tests");
+     ("test,t", bpo::bool_switch()->default_value(true), "all tests");
 }
 /// @brief parse options and perform action
 bool Benchmark::Impl(const std::string& cmd_name,
@@ -119,11 +119,6 @@ bool Benchmark::Impl(const std::string& cmd_name,
       return false;
     }
 
-  if (args.size() == 0)  // no arguments
-    {
-      PrintUsage(cmd_name);
-      return false;
-    }
   if (vm.count("help"))  // help
     {
       PrintUsage(cmd_name);

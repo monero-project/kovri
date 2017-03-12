@@ -59,6 +59,7 @@ int main(int argc, const char* argv[])
   Base64Command base64_cmd;
   SU3FileCommand su3file_cmd;
   RouterInfoCommand routerinfo_cmd;
+  Benchmark benchmark_cmd;
   list_cmd[base32_cmd.GetName()] = &base32_cmd;
   list_cmd[base64_cmd.GetName()] = &base64_cmd;
   list_cmd[su3file_cmd.GetName()] = &su3file_cmd;

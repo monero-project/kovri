@@ -109,6 +109,39 @@ class FileStream {
     return true;
   }
 
+  /// @brief Read All data from stream
+  /// @param size : number of byte read
+  /// @return Allocated buffer, null ptr on failure
+  template <typename Buffer, typename Size>
+  std::unique_ptr<Buffer> ReadAll(Size* size)
+  {
+    std::unique_ptr<Buffer> buf;
+    // Read input length and allocate buffer
+    Seekg(0, std::ios_base::end);
+    if (Fail())
+      {
+        LOG(error) << "FileStream: input does not support seekg ";
+        return buf;
+      }
+    Size length = Tellg();
+    LOG(trace) << "FileStream: input length " << length;
+    if (length == 0)
+      {
+        LOG(error) << "FileStream: Empty input ";
+        return buf;
+      }
+    *size = length;
+    buf.reset(new Buffer[length + 1]);
+    // Read input
+    Seekg(0, std::ios_base::beg);
+    if (!Read(buf.get(), length))
+      {
+        LOG(error) << "FileStream: Failed to read input";
+        return buf;
+      }
+    return buf;
+  }
+
   /// @brief Write to stream
   /// @param buf : buffer to write to
   /// @param size : number of byte to write

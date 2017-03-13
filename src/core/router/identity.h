@@ -157,6 +157,11 @@ const std::uint8_t CERTIFICATE_TYPE_SIGNED = 3;
 const std::uint8_t CERTIFICATE_TYPE_MULTIPLE = 4;
 const std::uint8_t CERTIFICATE_TYPE_KEY = 5;
 
+/// @brief Human readable description of this struct
+/// @param CERTIFICATE_TYPE
+/// @returns human readable string
+std::string GetCertificateTypeName(std::uint8_t type);
+
 struct Identity {
   std::uint8_t public_key[256];
   std::uint8_t signing_key[128];
@@ -241,6 +246,11 @@ class IdentityEx {
       const std::string& s);
 
   std::string ToBase64() const;
+
+  /// @brief Human readable description of this struct
+  /// @param prefix for tabulations
+  /// @returns human readable string
+  std::string GetDescription(const std::string& = std::string()) const;
 
   const Identity& GetStandardIdentity() const {
     return m_StandardIdentity;

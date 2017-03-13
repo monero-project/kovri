@@ -169,24 +169,11 @@ bool SU3FileCommand::Impl(
       LOG(error) << "su3file: Empty input " << input_name;
       return false;
     }
-  // Read input length and allocate buffer
-  input.Seekg(0, std::ios_base::end);
-  if (input.Fail())
-    {
-      LOG(error) << "su3file: input does not support seekg " << input_name;
-      return false;
-    }
-  std::size_t length = input.Tellg();
-  LOG(trace) << "su3file: input length " << length;
-  if (length == 0)
-    {
-      LOG(error) << "su3file: Empty input ";
-      return false;
-    }
-  std::shared_ptr<std::uint8_t> buffer_ptr(new std::uint8_t[length + 1]);
-  // Read input
-  input.Seekg(0, std::ios_base::beg);
-  if (!input.Read(buffer_ptr.get(), length))
+  // Read all input
+  std::size_t length(0);
+  std::unique_ptr<std::uint8_t> buffer_ptr =
+      input.ReadAll<std::uint8_t, std::size_t>(&length);
+  if (!buffer_ptr)
     {
       LOG(error) << "su3file: Failed to read input " << input_name;
       return false;

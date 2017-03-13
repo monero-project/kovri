@@ -28,11 +28,12 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
+#include "core/router/context.h"
 #include "core/util/exception.h"
 #include "core/util/log.h"
 #include "util/base.h"
 #include "util/command.h"
-#include "core/router/context.h"
+#include "util/routerinfo.h"
 #include "util/su3file.h"
 
 namespace bpo = boost::program_options;
@@ -56,9 +57,11 @@ int main(int argc, const char* argv[])
   Base32Command base32_cmd;
   Base64Command base64_cmd;
   SU3FileCommand su3file_cmd;
+  RouterInfoCommand routerinfo_cmd;
   list_cmd[base32_cmd.GetName()] = &base32_cmd;
   list_cmd[base64_cmd.GetName()] = &base64_cmd;
   list_cmd[su3file_cmd.GetName()] = &su3file_cmd;
+  list_cmd[routerinfo_cmd.GetName()] = &routerinfo_cmd;
 
   bpo::options_description general_desc("General options");
   // See src/app/config.cc for log options

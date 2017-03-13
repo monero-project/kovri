@@ -71,7 +71,7 @@ namespace client {
 bool Reseed::Start() {
   // Load SU3 (not SSL) certificates
   LOG(debug) << "Reseed: processing certificates...";
-  if (!ProcessCerts(&m_SigningKeys))
+  if (!ProcessCerts(&m_SigningKeys, kovri::core::GetSU3CertsPath()))
     {
       LOG(error) << "Reseed: failed to load certificates";
       return false;
@@ -110,15 +110,22 @@ bool Reseed::Start() {
   return true;
 }
 
-bool Reseed::ProcessCerts(std::map<std::string, kovri::core::PublicKey>* keys)
+bool Reseed::ProcessCerts(
+    std::map<std::string, kovri::core::PublicKey>* keys,
+    const boost::filesystem::path& path)
 {
   // Test if directory exists
-  boost::filesystem::path path = kovri::core::GetSU3CertsPath();
+  if (!boost::filesystem::exists(path))
+    {
+      LOG(error) << "Reseed: certificates " << path << " don't exist";
+      return false;
+    }
+  if (!boost::filesystem::is_directory(path))
+    {
+      LOG(error) << "Reseed: certificates " << path << " is not a directory";
+      return false;
+    }
   boost::filesystem::directory_iterator it(path), end;
-  if (!boost::filesystem::exists(path)) {
-    LOG(error) << "Reseed: certificates " << path << " don't exist";
-    return false;
-  }
   // Instantiate X.509 object
   kovri::core::X509 x509;
   // Iterate through directory and get signing key from each certificate

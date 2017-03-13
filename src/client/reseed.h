@@ -78,8 +78,12 @@ class Reseed {
   bool Start();
 
   /// @brief Processes SU3 certificates for SU3 verification
+  /// @param Container to populate
+  /// @param Path for certificate directory
   /// @return False on failure
-  static bool ProcessCerts(std::map<std::string, kovri::core::PublicKey>*);
+  static bool ProcessCerts(
+      std::map<std::string, kovri::core::PublicKey>* map,
+      const boost::filesystem::path& cert_dir);
 
  private:
   /// @brief Fetches the stream to reseed from

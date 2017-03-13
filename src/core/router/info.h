@@ -97,6 +97,11 @@ class RouterInfo : public RoutingDestination {
     int port;
     Tag<32> key;
     std::uint32_t tag;
+
+    /// @brief Human readable description of this struct
+    /// @param prefix for tabulations
+    /// @returns human readable string
+    std::string GetDescription(const std::string& tabs = std::string()) const;
   };
 
   struct Address {
@@ -114,6 +119,11 @@ class RouterInfo : public RoutingDestination {
       return (host.is_v4() && other.is_v4()) ||
         (host.is_v6() && other.is_v6());
     }
+
+    /// @brief Human readable description of this struct
+    /// @param prefix for tabulations
+    /// @returns human readable string
+    std::string GetDescription(const std::string& tabs = std::string()) const;
   };
 
   RouterInfo();
@@ -299,6 +309,11 @@ class RouterInfo : public RoutingDestination {
   bool IsDestination() const {
     return false;
   }
+
+  /// @brief Human readable description of this struct
+  /// @param prefix for tabulations
+  /// @returns human readable string
+  std::string GetDescription(const std::string& tabs = std::string()) const;
 
  private:
   bool LoadFile();

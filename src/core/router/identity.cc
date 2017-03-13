@@ -321,6 +321,78 @@ std::string IdentityEx::ToBase64() const {
   return std::string(str);
 }
 
+std::string GetCertificateTypeName(std::uint8_t type)
+{
+  switch (type)
+    {
+      case CERTIFICATE_TYPE_NULL:
+        return "Null";
+      case CERTIFICATE_TYPE_HASHCASH:
+        return "Hashcash";
+      case CERTIFICATE_TYPE_HIDDEN:
+        return "Hidden";
+      case CERTIFICATE_TYPE_SIGNED:
+        return "Signed";
+      case CERTIFICATE_TYPE_MULTIPLE:
+        return "Multiple";
+      case CERTIFICATE_TYPE_KEY:
+        return "Key";
+      default:
+        LOG(error) << "Unknown type " << type;
+        return "";
+    }
+}
+
+std::string IdentityEx::GetDescription(const std::string& tabs) const
+{
+  std::stringstream ss;
+  ss << tabs << "RouterIdentity: " << std::endl
+     << tabs << "\tHash: " << GetIdentHash().ToBase64() << std::endl
+     << tabs << "\tCertificate:" << std::endl
+     << tabs << "\t\ttype: "
+     << GetCertificateTypeName(m_StandardIdentity.certificate.type)
+     << " certificate " << std::endl
+     << tabs << "\t\tCrypto type: " << GetCryptoKeyType() << std::endl
+     << tabs << "\tPublickey: size: 256" << std::endl
+     << tabs << "\tSigningPublickey: " << std::endl
+     << tabs << "\t\t" << GetSigningKeyTypeName(GetSigningKeyType())
+     << std::endl
+     << tabs << "\t\tsize: " << GetSigningPublicKeyLen() << std::endl
+     << tabs << "\t\t";
+  switch (GetSigningKeyType())
+    {
+      case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:  // 64 = 128 - 64
+        ss << "Padding: " << (128 - kovri::core::ECDSAP256_KEY_LENGTH);
+        break;
+      case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:  // 32 = 128 - 96
+        ss << "Padding: " << (128 - kovri::core::ECDSAP384_KEY_LENGTH);
+        break;
+      case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:  // 4 = 132 - 128
+        ss << "Excess: " << (kovri::core::ECDSAP521_KEY_LENGTH - 128);
+        break;
+      case SIGNING_KEY_TYPE_RSA_SHA256_2048:  // 128 = 256 - 128
+        ss << "Excess: " << (kovri::core::RSASHA2562048_KEY_LENGTH - 128);
+        break;
+      case SIGNING_KEY_TYPE_RSA_SHA384_3072:  // 256 = 384 - 128
+        ss << "Excess: " << (kovri::core::RSASHA3843072_KEY_LENGTH - 128);
+        break;
+      case SIGNING_KEY_TYPE_RSA_SHA512_4096:  // 384 = 512 - 128
+        ss << "Excess: " << (kovri::core::RSASHA5124096_KEY_LENGTH - 128);
+        break;
+      case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:  // 96 = 128 - 32
+        ss << "Padding: " << (128 - kovri::core::EDDSA25519_PUBLIC_KEY_LENGTH);
+        break;
+      default:
+        LOG(warning) << "IdentityEx: signing key type "
+                     << static_cast<int>(GetSigningKeyType())
+                     << " is not supported";
+        break;
+    }
+  ss << std::endl
+     << tabs << "\tSignature: size: " << GetSignatureLen() << std::endl;
+  return ss.str();
+}
+
 std::size_t IdentityEx::GetSigningPublicKeyLen() const {
   if (!m_Verifier)
     CreateVerifier();

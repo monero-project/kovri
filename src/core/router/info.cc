@@ -49,8 +49,49 @@
 #include "core/util/log.h"
 #include "core/util/timestamp.h"
 
-namespace kovri {
-namespace core {
+namespace kovri
+{
+namespace core
+{
+std::string RouterInfo::Introducer::GetDescription(
+    const std::string& tabs) const
+{
+  std::stringstream ss;
+  ss << tabs << "Host: " << host.to_string() << std::endl
+     << tabs << "Port: " << port << std::endl
+     << tabs << "Key: " << key.ToBase64() << std::endl
+     << tabs << "Tag: " << tag;
+  return ss.str();
+}
+
+std::string RouterInfo::Address::GetDescription(const std::string& tabs) const
+{
+  std::stringstream ss;
+  ss << tabs << "Type: ";
+  switch (transport_style)
+    {
+      case eTransportNTCP:
+        ss << "NTCP";
+        break;
+      case eTransportSSU:
+        ss << "SSU";
+        break;
+      case eTransportUnknown:
+        ss << "Unknown";
+        return ss.str();
+    }
+  ss << std::endl
+     << tabs << "\tCost: " << static_cast<int>(cost) << std::endl
+     << tabs << "\tHost: " << host.to_string() << std::endl
+     << tabs << "\tPort: " << port << std::endl;
+  if (transport_style == eTransportSSU)
+    {
+      ss << tabs << "\tIntroducers (" << introducers.size() << ")" << std::endl;
+      for (const Introducer& introducer : introducers)
+        ss << introducer.GetDescription(tabs + "\t\t") << std::endl;
+    }
+  return ss.str();
+}
 
 RouterInfo::RouterInfo()
     : m_Buffer(nullptr),
@@ -705,6 +746,28 @@ std::shared_ptr<RouterProfile> RouterInfo::GetProfile() const {
   if (!m_Profile)
     m_Profile = GetRouterProfile(GetIdentHash());
   return m_Profile;
+}
+
+std::string RouterInfo::GetDescription(const std::string& tabs) const
+{
+  std::stringstream ss;
+  boost::posix_time::ptime time_epoch(boost::gregorian::date(1970, 1, 1));
+  boost::posix_time::ptime timestamp =
+      time_epoch + boost::posix_time::milliseconds(m_Timestamp);
+  ss << "RouterInfo: " << std::endl
+     << m_RouterIdentity.GetDescription(tabs + "\t") << tabs
+     << "\tPublished: " << boost::posix_time::to_simple_string(timestamp)
+     << std::endl
+     << tabs << "\tOptions(" << m_Properties.size() << "): " << std::endl;
+  for (const auto& p : m_Properties)
+    ss << tabs << "\t\t[" << p.first << "] : [" << p.second << "]" << std::endl;
+  ss << tabs << "\tSSU Caps: ["
+     << (IsPeerTesting() ? CAPS_FLAG_SSU_TESTING : ' ')
+     << (IsIntroducer() ? CAPS_FLAG_SSU_INTRODUCER : ' ') << "]" << std::endl;
+  ss << tabs << "\tAddresses(" << m_Addresses.size() << "): " << std::endl;
+  for (const auto& a : m_Addresses)
+    ss << a.GetDescription(tabs + "\t\t");
+  return ss.str();
 }
 
 }  // namespace core

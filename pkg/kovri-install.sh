@@ -205,7 +205,7 @@ CreatePackage() {
   mkdir $_package_path
   catch "could not create staging directory"
   echo -n "Copying resources"
-  if [[ $OSTYPE == darwin* ]]; then
+  if [[ $OSTYPE == darwin* || $OSTYPE == dragonfly* ]]; then
     for _i in ${_resources[@]}; do
       # TODO(anonimal): using rsync is a hack to preserve parent path
       rsync -avR $_i $_package_path 1>/dev/null

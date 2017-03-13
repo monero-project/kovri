@@ -111,7 +111,7 @@ PrepareOptions() {
     if [[ $_is_git == true ]]; then
       local _rev="-"$(git rev-parse --short HEAD 2>/dev/null)
     fi
-    _package_path="kovri${_rev}-$(uname -m)-$(uname -s)-$(date +%Y.%m.%d)"
+    _package_path="kovri${_rev}-$(uname -s)-$(uname -m)-$(date +%Y.%m.%d)"
     # Set package file path if none supplied
     if [[ -z $_package_file ]]; then
       if [[ $_is_windows == true ]]; then
@@ -173,12 +173,12 @@ LocalUninstall() {
 LocalInstall() {
   # Ensure paths for new install
   if [[ ! -d $_data ]]; then
-    echo -n "Creating ${_data}"
+    echo -n "Creating $_data"
     mkdir "$_data" 2>/dev/null
     catch "could not create $_data"
   fi
   if [[ ! -d $_path ]]; then
-    echo -n "Creating ${_path}"
+    echo -n "Creating $_path"
     mkdir "$_path" 2>/dev/null
     catch "could not create $_path"
   fi

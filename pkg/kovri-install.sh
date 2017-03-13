@@ -206,8 +206,13 @@ CreatePackage() {
   catch "could not create staging directory"
   echo -n "Copying resources"
   if [[ $OSTYPE == darwin* || $OSTYPE == dragonfly* ]]; then
+    # TODO(anonimal): using rsync is a hack to preserve parent path
+    hash rsync 2>/dev/null
+    if [[ $? -ne 0 ]]; then
+      false
+      catch "rsync not installed. Install rsync for $OSTYPE"
+    fi
     for _i in ${_resources[@]}; do
-      # TODO(anonimal): using rsync is a hack to preserve parent path
       rsync -avR $_i $_package_path 1>/dev/null
     done
   else

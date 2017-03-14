@@ -69,9 +69,12 @@ PrepareOptions() {
   case $OSTYPE in
     linux* | freebsd* | dragonfly*)
       _data="$HOME/.kovri"
+      _is_linux=true
+      _is_bsd=true
       ;;
     darwin*)
       _data="$HOME/Library/Application Support/Kovri"
+      _is_osx=true
       ;;
     msys)
       _data="$APPDATA/Kovri"
@@ -205,7 +208,7 @@ CreatePackage() {
   mkdir $_package_path
   catch "could not create staging directory"
   echo -n "Copying resources"
-  if [[ $OSTYPE == darwin* || $OSTYPE == dragonfly* ]]; then
+  if [[ $_is_osx == true || $_is_bsd == true ]]; then
     # TODO(anonimal): using rsync is a hack to preserve parent path
     hash rsync 2>/dev/null
     if [[ $? -ne 0 ]]; then

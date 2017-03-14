@@ -6,19 +6,25 @@
 ## Disclaimer
 - Currently **pre-alpha** software; under heavy development (and not yet integrated with monero)
 
-## [Builds](https://build.getmonero.org/waterfall)
+## Downloads
 
-| Operating System      | Processor | Status |
-| --------------------- | -------- |--------|
-| Ubuntu 16.04          |  i686    | [![Ubuntu i686](https://build.getmonero.org/png?builder=kovri-static-ubuntu-i686)](https://build.getmonero.org/builders/kovri-static-ubuntu-i686)
-| Ubuntu 16.04          |  amd64   | [![Ubuntu amd64](https://build.getmonero.org/png?builder=kovri-static-ubuntu-amd64)](https://build.getmonero.org/builders/kovri-static-ubuntu-amd64)
-| Ubuntu 16.04          |  armv7   | [![Ubuntu armv7](https://build.getmonero.org/png?builder=kovri-static-ubuntu-arm7)](https://build.getmonero.org/builders/kovri-static-ubuntu-arm7)
-| Debian Stable         |  armv8   | [![Debian armv8](https://build.getmonero.org/png?builder=kovri-static-debian-arm8)](https://build.getmonero.org/builders/kovri-static-debian-arm8)
-| OSX 10.10/11/12       |  amd64   | [![OSX amd64](https://build.getmonero.org/png?builder=kovri-static-osx)](https://build.getmonero.org/builders/kovri-static-osx)
-| FreeBSD 11            |  amd64   | [![FreeBSD amd64](https://build.getmonero.org/png?builder=kovri-static-freebsd64)](https://build.getmonero.org/builders/kovri-static-freebsd64)
-| DragonFly BSD 4.6     |  amd64   | [![DragonFly BSD amd64](https://build.getmonero.org/png?builder=kovri-static-dragonflybsd-amd64)](https://build.getmonero.org/builders/kovri-static-dragonflybsd-amd64)
-| Windows (MSYS2/MinGW) |  i686    | [![Windows (MSYS2/MinGW) i686](https://build.getmonero.org/png?builder=kovri-static-win32)](https://build.getmonero.org/builders/kovri-static-win32)
-| Windows (MSYS2/MinGW) |  amd64   | [![Windows (MSYS2/MinGW) amd64](https://build.getmonero.org/png?builder=kovri-static-win64)](https://build.getmonero.org/builders/kovri-static-win64)
+### Releases
+
+Alpha release coming soon
+
+### [Nightly Releases (bleeding edge)](https://build.getmonero.org/waterfall)
+
+| Operating System      | Processor | Status | Download | Checksum |
+| --------------------- | --------- |--------| -------- | -------- |
+| Ubuntu 16.04          |   i686    | [![Ubuntu i686](https://build.getmonero.org/png?builder=kovri-static-ubuntu-i686)](https://build.getmonero.org/builders/kovri-static-ubuntu-i686) | [kovri-latest-linux-i686.tar.bz2](https://build.getmonero.org/downloads/kovri-latest-linux-i686.tar.bz2) | [kovri-latest-linux-i686.tar.bz2.sha256sum.txt](https://build.getmonero.org/downloads/kovri-latest-linux-i686.tar.bz2.sha256sum.txt)
+| Ubuntu 16.04          |   amd64   | [![Ubuntu amd64](https://build.getmonero.org/png?builder=kovri-static-ubuntu-amd64)](https://build.getmonero.org/builders/kovri-static-ubuntu-amd64) | [kovri-latest-linux-amd64.tar.bz2](https://build.getmonero.org/downloads/kovri-latest-linux-amd64.tar.bz2) | [kovri-latest-linux-amd64.tar.bz2.sha256sum.txt](https://build.getmonero.org/downloads/kovri-latest-linux-amd64.tar.bz2.sha256sum.txt)
+| Ubuntu 16.04          |   armv7   | [![Ubuntu armv7](https://build.getmonero.org/png?builder=kovri-static-ubuntu-arm7)](https://build.getmonero.org/builders/kovri-static-ubuntu-arm7) | [kovri-latest-linux-armv7.tar.bz2](https://build.getmonero.org/downloads/kovri-latest-linux-armv7.tar.bz2) | [kovri-latest-linux-armv7.tar.bz2.sha256sum.txt](https://build.getmonero.org/downloads/kovri-latest-linux-armv7.tar.bz2.sha256sum.txt)
+| Debian Stable         |   armv8   | [![Debian armv8](https://build.getmonero.org/png?builder=kovri-static-debian-arm8)](https://build.getmonero.org/builders/kovri-static-debian-arm8) | [kovri-latest-linux-armv8.tar.bz2](https://build.getmonero.org/downloads/kovri-latest-linux-armv8.tar.bz2) | [kovri-latest-linux-armv8.tar.bz2.sha256sum.txt](https://build.getmonero.org/downloads/kovri-latest-linux-armv8.tar.bz2.sha256sum.txt)
+| OSX 10.10/11/12       |   amd64   | [![OSX amd64](https://build.getmonero.org/png?builder=kovri-static-osx)](https://build.getmonero.org/builders/kovri-static-osx) | [kovri-latest-osx-10.10.tar.bz2](https://build.getmonero.org/downloads/kovri-latest-osx-10.10.tar.bz2) | [kovri-latest-osx-10.10.tar.bz2.sha256sum.txt](https://build.getmonero.org/downloads/kovri-latest-osx-10.10.tar.bz2.sha256sum.txt)
+| FreeBSD 11            |   amd64   | [![FreeBSD amd64](https://build.getmonero.org/png?builder=kovri-static-freebsd64)](https://build.getmonero.org/builders/kovri-static-freebsd64) | [kovri-latest-freebsd-amd64.tar.bz2](https://build.getmonero.org/downloads/kovri-latest-freebsd-amd64.tar.bz2) | [kovri-latest-freebsd-amd64.tar.bz2.sha256sum.txt](https://build.getmonero.org/downloads/kovri-latest-freebsd-amd64.tar.bz2.sha256sum.txt)
+| DragonFly BSD 4.6     |   amd64   | [![DragonFly BSD amd64](https://build.getmonero.org/png?builder=kovri-static-dragonflybsd-amd64)](https://build.getmonero.org/builders/kovri-static-dragonflybsd-amd64) | [kovri-latest-dragonfly-4.6.tar.bz2](https://build.getmonero.org/downloads/kovri-latest-dragonfly-4.6.tar.bz2) | [kovri-latest-dragonfly-4.6.tar.bz2.sha256sum.txt](https://build.getmonero.org/downloads/kovri-latest-dragonfly-4.6.tar.bz2.sha256sum.txt)
+| Windows (MSYS2/MinGW) |   i686    | [![Windows (MSYS2/MinGW) i686](https://build.getmonero.org/png?builder=kovri-static-win32)](https://build.getmonero.org/builders/kovri-static-win32) | [kovri-latest-win32.zip](https://build.getmonero.org/downloads/kovri-latest-win32.zip) | [kovri-latest-win32.zip.sha256sum.txt](https://build.getmonero.org/downloads/kovri-latest-win32.zip.sha256sum.txt)
+| Windows (MSYS2/MinGW) |   amd64   | [![Windows (MSYS2/MinGW) amd64](https://build.getmonero.org/png?builder=kovri-static-win64)](https://build.getmonero.org/builders/kovri-static-win64) | [kovri-latest-win64.zip](https://build.getmonero.org/downloads/kovri-latest-win64.zip) | [kovri-latest-win64.zip.sha256sum.txt](https://build.getmonero.org/downloads/kovri-latest-win64.zip.sha256sum.txt)
 
 ## Coverage
 

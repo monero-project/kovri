@@ -47,7 +47,7 @@ class Instance {
  public:
    // TODO(unassigned): see note and TODO in main about multiple instances
    explicit Instance(
-       std::vector<std::string>& args);
+       const std::vector<std::string>& args);
 
    ~Instance();
 

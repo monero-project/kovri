@@ -113,7 +113,7 @@ class TransportSession {
     return m_RemoteRouter;
   }
 
-  const kovri::core::IdentityEx& GetRemoteIdentity() {
+  const kovri::core::IdentityEx& GetRemoteIdentity() const {
     return m_RemoteIdentity;
   }
 

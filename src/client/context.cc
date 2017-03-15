@@ -328,7 +328,7 @@ void ClientContext::UpdateServerTunnel(
       // TODO(unassigned): consider alternative name (Apply instead of Start)
       m_ServerTunnels[ident]->Start();
     }
-  } catch (std::ios_base::failure&) {
+  } catch (const std::ios_base::failure&) {
     // Key file does not exist (assuming the tunnel is new)
     create_tunnel = true;
   } catch (const std::exception& ex) {
@@ -379,7 +379,7 @@ void ClientContext::UpdateClientTunnel(
       // The IP address has changed, rebind
       try {
         client_tunnel->Rebind(tunnel.address, tunnel.port);
-      } catch (std::exception& err) {
+      } catch (const std::exception& err) {
         LOG(error)
           << "ClientContext: failed to rebind "
           << tunnel.name << ": " << err.what();

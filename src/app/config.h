@@ -99,7 +99,7 @@ enum struct Key : std::uint8_t {
 class Configuration {
  public:
    Configuration(
-       std::vector<std::string>& args)
+       const std::vector<std::string>& args)
        : m_Args(args) {}
 
   /// @brief Parse command line arguments
@@ -119,7 +119,7 @@ class Configuration {
 
   /// @brief Gets pre-defined tunnel attribute from tunnel config
   /// @param key Key for tunnels config attribute
-  const std::string GetAttribute(Key key);
+  const std::string GetAttribute(Key key) const;
 
  private:
   /// @var m_Args
@@ -183,8 +183,8 @@ class Configuration {
   /// @param var_map Reference to instantiated variables map
   /// @notes command-line opts take precedence over config file opts
   void ParseKovriConfigFile(
-      std::string& config,
-      boost::program_options::options_description& config_options,
+      const std::string& config,
+      const boost::program_options::options_description& config_options,
       boost::program_options::variables_map& var_map);
 };
 

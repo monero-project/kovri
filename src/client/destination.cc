@@ -167,7 +167,7 @@ void ClientDestination::Run() {
   while (m_IsRunning) {
     try {
       m_Service.run();
-    } catch (std::exception& ex) {
+    } catch (const std::exception& ex) {
       LOG(error) << "ClientDestination::Run() exception: " << ex.what();
     }
   }

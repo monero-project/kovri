@@ -159,8 +159,8 @@ void Configuration::ParseKovriConfig() {
 
 // TODO(unassigned): improve this function and use-case
 void Configuration::ParseKovriConfigFile(
-    std::string& file,
-    bpo::options_description& options,
+    const std::string& file,
+    const bpo::options_description& options,
     bpo::variables_map& var_map) {
   std::ifstream filename(file.c_str());
   if (!filename)
@@ -250,7 +250,7 @@ void Configuration::ParseTunnelsConfig() {
   }
 }
 
-const std::string Configuration::GetAttribute(Key key) {
+const std::string Configuration::GetAttribute(Key key) const {
   switch (key) {
     // Section types
     case Key::Type:

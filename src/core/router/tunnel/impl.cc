@@ -488,7 +488,7 @@ void Tunnels::Run() {
         ManageTunnels();
         last_ts = ts;
       }
-    } catch (std::exception& ex) {
+    } catch (const std::exception& ex) {
       LOG(error) << "Tunnels: " << __func__ << " exception: " << ex.what();
     }
   }

@@ -74,11 +74,11 @@ class StringStream {
     return m_Stream.tellg();
   }
 
-  bool EndOfFile() {
+  bool EndOfFile() const {
     return m_Stream.eof() ? true : false;
   }
 
-  std::string Str() {
+  std::string Str() const {
     return m_Stream.str();
   }
 
@@ -161,23 +161,23 @@ class FileStream {
     return true;
   }
 
-  bool EndOfFile() {
+  bool EndOfFile() const {
     return m_Stream->eof() ? true : false;
   }
 
-  bool Fail() {
+  bool Fail() const {
     return m_Stream->fail() ? true : false;
   }
 
-  bool Good() {
+  bool Good() const {
     return m_Stream->good() ? true : false;
   }
 
-  bool Bad() {
+  bool Bad() const {
     return m_Stream->bad() ? true : false;
   }
 
-  std::streamsize Count() {
+  std::streamsize Count() const {
     return m_Stream->gcount();
   }
 

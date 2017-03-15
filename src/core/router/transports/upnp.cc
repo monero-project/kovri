@@ -210,7 +210,7 @@ void UPnP::Start() {
 UPnP::~UPnP() {}
 
 void UPnP::Run() {
-  for (auto& address : context.GetRouterInfo().GetAddresses()) {
+  for (const auto& address : context.GetRouterInfo().GetAddresses()) {
     if (!address.host.is_v6()) {
       Discover();
       if (address.transport_style == kovri::core::RouterInfo::eTransportSSU) {
@@ -285,7 +285,7 @@ void UPnP::TryPortMapping(
       upnp_type = "UDP";
   }
   int r;
-  std::string desc = "Kovri";
+  const std::string desc = "Kovri";
   try {
     for (;;) {
 #ifndef UPNPDISCOVER_SUCCESS
@@ -333,7 +333,7 @@ void UPnP::TryPortMapping(
       // TODO(unassigned): magic number to be addressed along with bigger refactor
       std::this_thread::sleep_for(std::chrono::minutes(20));
     }
-  } catch (boost::thread_interrupted) {
+  } catch (const boost::thread_interrupted&) {
     CloseMapping(type, port);
     Close();
     throw;

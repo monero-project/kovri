@@ -266,7 +266,7 @@ void SSUServer::HandleReceivedPackets(
         }
       }
       session->ProcessNextMessage(pkt->buf, pkt->len, pkt->from);
-    } catch (std::exception& ex) {
+    } catch (const std::exception& ex) {
       LOG(error) << "SSUServer: " << __func__ << ": '" << ex.what() << "'";
       if (session)
         session->FlushData();

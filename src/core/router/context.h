@@ -270,7 +270,7 @@ class RouterContext : public kovri::core::GarlicDestination {
   }
 
   /// @return User-supplied reseed stream
-  std::string GetOptionReseedFrom() {
+  std::string GetOptionReseedFrom() const {
     return m_ReseedFrom;
   }
 
@@ -281,7 +281,7 @@ class RouterContext : public kovri::core::GarlicDestination {
   }
 
   /// @return User-supplied option to skip SSL
-  bool GetOptionReseedSkipSSLCheck() {
+  bool GetOptionReseedSkipSSLCheck() const {
     return m_ReseedSkipSSLCheck;
   }
 

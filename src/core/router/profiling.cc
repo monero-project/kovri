@@ -155,7 +155,7 @@ void RouterProfile::Load() {
     boost::property_tree::ptree pt;
     try {
       boost::property_tree::read_ini(filename.string(), pt);
-    } catch (std::exception& ex) {
+    } catch (const std::exception& ex) {
       LOG(error) << "RouterProfile: can't read " << filename << ": " << ex.what();
       return;
     }
@@ -178,7 +178,7 @@ void RouterProfile::Load() {
           m_NumTunnelsNonReplied = participations.get(
               PEER_PROFILE_PARTICIPATION_NON_REPLIED,
               0);
-        } catch (boost::property_tree::ptree_bad_path&) {
+        } catch (const boost::property_tree::ptree_bad_path&) {
           LOG(warning)
             << "RouterProfile: Missing section "
             << PEER_PROFILE_SECTION_PARTICIPATION;
@@ -188,14 +188,14 @@ void RouterProfile::Load() {
           auto usage = pt.get_child(PEER_PROFILE_SECTION_USAGE);
           m_NumTimesTaken = usage.get(PEER_PROFILE_USAGE_TAKEN, 0);
           m_NumTimesRejected = usage.get(PEER_PROFILE_USAGE_REJECTED, 0);
-        } catch (boost::property_tree::ptree_bad_path&) {
+        } catch (const boost::property_tree::ptree_bad_path&) {
           LOG(warning)
             << "RouterProfile: missing section " << PEER_PROFILE_SECTION_USAGE;
         }
       } else {
         *this = RouterProfile(m_IdentHash);
       }
-    } catch (std::exception& ex) {
+    } catch (const std::exception& ex) {
       LOG(error)
         << "RouterProfile: can't read profile " << base64 << " :" << ex.what();
     }

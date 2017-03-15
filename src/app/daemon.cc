@@ -60,7 +60,7 @@ DaemonSingleton::DaemonSingleton()
 DaemonSingleton::~DaemonSingleton() {}
 
 bool DaemonSingleton::Config(
-    std::vector<std::string>& args) {
+    const std::vector<std::string>& args) {
   // TODO(unassigned): ideally, all instance configuration, etc., happens outside of singleton
   m_Instance = std::make_unique<Instance>(args);
   try {

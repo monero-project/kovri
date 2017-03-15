@@ -246,7 +246,7 @@ void Transports::Run() {
   while (m_IsRunning) {
     try {
       m_Service.run();
-    } catch (std::exception& ex) {
+    } catch (const std::exception& ex) {
       LOG(error) << "Transports: " << __func__ << ": '" << ex.what() << "'";
     }
   }
@@ -319,7 +319,7 @@ void Transports::PostMessages(
           ident,
           Peer{ 0, router, {}, kovri::core::GetSecondsSinceEpoch(), {} })).first;
       connected = ConnectToPeer(ident, it->second);
-    } catch (std::exception& ex) {
+    } catch (const std::exception& ex) {
       LOG(error) << "Transports: " << __func__ << ", '" << ex.what() << "'";
     }
     if (!connected)

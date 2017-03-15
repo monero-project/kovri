@@ -165,6 +165,10 @@ class RouterInfo : public RoutingDestination {
     return m_Addresses;
   }
 
+  const std::vector<Address>& GetAddresses() const {
+    return m_Addresses;
+  }
+
   const Address* GetNTCPAddress(
       bool v4only = true) const;
 

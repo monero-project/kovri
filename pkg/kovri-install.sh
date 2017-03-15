@@ -67,9 +67,12 @@ shift "$(($OPTIND -1))"
 PrepareOptions() {
   # Get platform
   case $OSTYPE in
-    linux* | freebsd* | dragonfly*)
+    linux*)
       _data="$HOME/.kovri"
       _is_linux=true
+      ;;
+    freebsd* | dragonfly*)
+      _data="$HOME/.kovri"
       _is_bsd=true
       ;;
     darwin*)

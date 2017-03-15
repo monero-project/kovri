@@ -1,4 +1,8 @@
-## Step 1. Minimum requirements
+## Step 0. (Optional) Skip building and use the release binaries instead
+
+See the [README](https://github.com/monero-project/kovri/blob/master/README.md) to download pre-built kovri and checksum file. Simply install and start kovri, then off you go!
+
+## Step 1. If building, minimum requirements
 
 ### Linux / MacOSX / FreeBSD 11
 - [Git](https://git-scm.com/download) 1.9.1

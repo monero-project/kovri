@@ -35,6 +35,7 @@
 #include "util/command.h"
 #include "util/routerinfo.h"
 #include "util/su3file.h"
+#include "util/benchmark.h"
 
 namespace bpo = boost::program_options;
 typedef std::map<std::string, Command*> ListCommands;
@@ -58,10 +59,12 @@ int main(int argc, const char* argv[])
   Base64Command base64_cmd;
   SU3FileCommand su3file_cmd;
   RouterInfoCommand routerinfo_cmd;
+  Benchmark benchmark_cmd;
   list_cmd[base32_cmd.GetName()] = &base32_cmd;
   list_cmd[base64_cmd.GetName()] = &base64_cmd;
   list_cmd[su3file_cmd.GetName()] = &su3file_cmd;
   list_cmd[routerinfo_cmd.GetName()] = &routerinfo_cmd;
+  list_cmd[benchmark_cmd.GetName()] = &benchmark_cmd;
 
   bpo::options_description general_desc("General options");
   // See src/app/config.cc for log options

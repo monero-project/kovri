@@ -38,7 +38,6 @@ include_directories("${CMAKE_BINARY_DIR}")
 
 # Configurable options
 option(KOVRI_DATA_PATH "The path to the kovri data folder")
-option(WITH_BENCHMARKS "Build with benchmarks" OFF)
 option(WITH_BINARY     "Build binary" ON)
 option(WITH_COVERAGE   "Build with coverage" OFF)
 option(WITH_CRYPTOPP   "Build with Crypto++" ON)  # Default ON unless we switch libraries
@@ -292,7 +291,6 @@ message(STATUS "Compiler path      : ${CMAKE_CXX_COMPILER}")
 message(STATUS "Install prefix:    : ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "Kovri data directory: ${KOVRI_DATA_DIR}")
 message(STATUS "Options:")
-message(STATUS "  BENCHMARKS       : ${WITH_BENCHMARKS}")
 message(STATUS "  BINARY           : ${WITH_BINARY}")
 message(STATUS "  COVERAGE         : ${WITH_COVERAGE}")
 message(STATUS "  CRYPTOPP         : ${WITH_CRYPTOPP}")
@@ -314,7 +312,6 @@ set(CLIENT_NAME "${PROJECT_NAME}-client")
 set(CORE_NAME "${PROJECT_NAME}-core")
 set(UTIL_NAME "${PROJECT_NAME}-util")
 set(TESTS_NAME "${PROJECT_NAME}-tests")
-set(BENCHMARKS_NAME "${PROJECT_NAME}-benchmarks")
 
 add_subdirectory(src)
 add_subdirectory(tests)

@@ -4,6 +4,7 @@ set(UTIL_SRC
   "su3file.cc"
   "routerinfo.cc"
   "base.cc"
+  "benchmark.cc"
   "main.cc")
 
 if(WITH_BINARY)

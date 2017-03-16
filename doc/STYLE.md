@@ -13,6 +13,7 @@ $ cd kovri/ && cpplint src/path/to/my/file && [edit file manually to apply fixes
 
 - Vim integration
   - [clang-format](http://clang.llvm.org/docs/ClangFormat.html#vim-integration)
+  - [clang-format ubuntu 16.04 vim workaround](http://stackoverflow.com/questions/39490082/clang-format-not-working-under-gvim)
   - [cpplint.vim](https://github.com/vim-syntastic/syntastic/blob/master/syntax_checkers/cpp/cpplint.vim)
 - Emacs integration
   - [clang-format](http://clang.llvm.org/docs/ClangFormat.html#emacs-integration) + [clang-format.el](https://llvm.org/svn/llvm-project/cfe/trunk/tools/clang-format/clang-format.el)

@@ -210,17 +210,16 @@ void NTCPServer::HandleConnect(
           conn->GetRemoteIdentity().GetIdentHash(),
           true);
     conn->Terminate();
-  } else {
-    LOG(debug)
-      << "NTCPServer: connected to " << conn->GetSocket().remote_endpoint();
-    // TODO(anonimal): minor local endpoint refactor
-    if (conn->GetSocket().local_endpoint().protocol() == boost::asio::ip::tcp::v6())
-      context.UpdateNTCPV6Address(conn->GetSocket().local_endpoint().address());
-    conn->ClientLogin();
-    m_Service.post([conn, this]() {
-        this->AddNTCPSession(conn);
-    });
+    return;
   }
+  auto& socket = conn->GetSocket();
+  LOG(debug) << "NTCPServer: connected to " << socket.remote_endpoint();
+  if (socket.local_endpoint().protocol() == boost::asio::ip::tcp::v6())
+    context.UpdateNTCPV6Address(socket.local_endpoint().address());
+  conn->ClientLogin();
+  m_Service.post([conn, this]() {
+      this->AddNTCPSession(conn);
+  });
 }
 
 void NTCPServer::AddNTCPSession(

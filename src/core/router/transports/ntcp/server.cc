@@ -186,7 +186,7 @@ void NTCPServer::Connect(
     std::shared_ptr<NTCPSession> conn) {
   LOG(debug)
     << "NTCPServer: connecting to "
-    << "[" << context.GetRouterInfo().GetIdentHashAbbreviation() << "] "
+    << "[" << conn->GetRemoteRouter()->GetIdentHashAbbreviation() << "] "
     << address << ":" << port;
   conn->GetSocket().async_connect(
       boost::asio::ip::tcp::endpoint(

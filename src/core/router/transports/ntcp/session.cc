@@ -98,7 +98,7 @@ void NTCPSession::ClientLogin() {
     LOG(error)
       << "NTCPSession:" << GetFormattedSessionInfo()
       << "!!! " << __func__ << ": '" << ecode.message() << "'";
-    LOG(debug)
+    LOG(trace)
       << "NTCPSession:" << GetFormattedSessionInfo()
       << GetFormattedPhaseInfo(Phase::One);
     return;
@@ -134,7 +134,7 @@ void NTCPSession::ClientLogin() {
   for (std::size_t i = 0; i < NTCPSize::Hash; i++)
     m_Establisher->phase1.HXxorHI.at(i) ^= ident[i];
   // Send phase1
-  LOG(debug)
+  LOG(trace)
     << "NTCPSession:" << GetFormattedSessionInfo()
     << GetFormattedPhaseInfo(Phase::One);
   LOG(debug)
@@ -193,7 +193,7 @@ void NTCPSession::HandlePhase2Received(
       LOG(error)
         << "NTCPSession:" << GetFormattedSessionInfo()
         << "!!! Phase2 error, RI is not valid";
-      LOG(debug)
+      LOG(trace)
         << "NTCPSession:" << GetFormattedSessionInfo()
         << GetFormattedPhaseInfo(Phase::Two);
       kovri::core::netdb.SetUnreachable(
@@ -208,7 +208,7 @@ void NTCPSession::HandlePhase2Received(
   LOG(debug)
     << "NTCPSession:" << GetFormattedSessionInfo()
     << "*** Phase2 received, processing";
-  LOG(debug)
+  LOG(trace)
     << "NTCPSession:" << GetFormattedSessionInfo()
     << GetFormattedPhaseInfo(Phase::Two);
   // TODO(anonimal): this try block should be larger or handled entirely by caller
@@ -241,7 +241,7 @@ void NTCPSession::HandlePhase2Received(
       LOG(error)
         << "NTCPSession:" << GetFormattedSessionInfo()
         << "!!! Phase2 << incorrect hash";
-      LOG(debug)
+      LOG(trace)
         << "NTCPSession:" << GetFormattedSessionInfo()
         << GetFormattedPhaseInfo(Phase::Two);
       transports.ReuseDHKeysPair(std::move(m_DHKeysPair));
@@ -254,7 +254,7 @@ void NTCPSession::HandlePhase2Received(
     // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
     throw;
   }
-  LOG(debug)
+  LOG(trace)
     << "NTCPSession:" << GetFormattedSessionInfo()
     << GetFormattedPhaseInfo(Phase::Two);
   LOG(debug)
@@ -467,7 +467,7 @@ void NTCPSession::ServerLogin() {
     LOG(error)
       << "NTCPSession:" << GetFormattedSessionInfo()
       << "!!! " << __func__ << ": '" << ecode.message() << "'";
-    LOG(debug)
+    LOG(trace)
       << "NTCPSession:" << GetFormattedSessionInfo()
       << GetFormattedPhaseInfo(Phase::One);
     return;
@@ -496,7 +496,7 @@ void NTCPSession::HandlePhase1Received(
       << "NTCPSession:" << GetFormattedSessionInfo()
       << "!!! Phase1 receive error '" << ecode.message() << "'";
     if (ecode != boost::asio::error::operation_aborted) {
-      LOG(debug)
+      LOG(trace)
         << "NTCPSession:" << GetFormattedSessionInfo()
         << GetFormattedPhaseInfo(Phase::One);
       Terminate();
@@ -524,7 +524,7 @@ void NTCPSession::HandlePhase1Received(
       LOG(error)
         << "NTCPSession:" << GetFormattedSessionInfo()
         << "!!! " << __func__ << ": wrong ident";
-      LOG(debug)
+      LOG(trace)
         << "NTCPSession:" << GetFormattedSessionInfo()
         << GetFormattedPhaseInfo(Phase::One);
       Terminate();

@@ -77,7 +77,7 @@ cmake-disable-options = -D WITH_CPPNETLIB=OFF
 cmake-cpp-netlib-static = -D CPP-NETLIB_STATIC_OPENSSL=ON -D CPP-NETLIB_STATIC_BOOST=ON
 
 # Refrain from native CPU optimizations for crypto
-cmake-cryptopp-no-opt = -D DISABLE_CXXFLAGS_OPTIMIZATIONS=ON
+cmake-cryptopp-no-opt = -D DISABLE_NATIVE_ARCH=ON
 
 # Android-specific
 cmake-android = -D ANDROID=1 -D KOVRI_DATA_PATH="/data/local/tmp/.kovri"

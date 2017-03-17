@@ -204,7 +204,9 @@ void NTCPServer::HandleConnect(
     const boost::system::error_code& ecode) {
   if (ecode) {
     LOG(error)
-      << "NTCPServer: connection handler error '" << ecode.message() << "'";
+      << "NTCPServer:"
+      << " [" << conn->GetRemoteRouter()->GetIdentHashAbbreviation() << "] "
+      << __func__ << ": '" << ecode.message() << "'";
     if (ecode != boost::asio::error::operation_aborted)
       kovri::core::netdb.SetUnreachable(
           conn->GetRemoteIdentity().GetIdentHash(),

@@ -186,7 +186,7 @@ void NTCPServer::Connect(
     std::shared_ptr<NTCPSession> conn) {
   LOG(debug)
     << "NTCPServer: connecting to "
-    << "[" << context.GetRouterInfo().GetIdentHashAbbreviation() << "] "
+    << "[" << conn->GetRemoteRouter()->GetIdentHashAbbreviation() << "] "
     << address << ":" << port;
   conn->GetSocket().async_connect(
       boost::asio::ip::tcp::endpoint(
@@ -204,23 +204,24 @@ void NTCPServer::HandleConnect(
     const boost::system::error_code& ecode) {
   if (ecode) {
     LOG(error)
-      << "NTCPServer: connection handler error '" << ecode.message() << "'";
+      << "NTCPServer:"
+      << " [" << conn->GetRemoteRouter()->GetIdentHashAbbreviation() << "] "
+      << __func__ << ": '" << ecode.message() << "'";
     if (ecode != boost::asio::error::operation_aborted)
       kovri::core::netdb.SetUnreachable(
           conn->GetRemoteIdentity().GetIdentHash(),
           true);
     conn->Terminate();
-  } else {
-    LOG(debug)
-      << "NTCPServer: connected to " << conn->GetSocket().remote_endpoint();
-    // TODO(anonimal): minor local endpoint refactor
-    if (conn->GetSocket().local_endpoint().protocol() == boost::asio::ip::tcp::v6())
-      context.UpdateNTCPV6Address(conn->GetSocket().local_endpoint().address());
-    conn->ClientLogin();
-    m_Service.post([conn, this]() {
-        this->AddNTCPSession(conn);
-    });
+    return;
   }
+  auto& socket = conn->GetSocket();
+  LOG(debug) << "NTCPServer: connected to " << socket.remote_endpoint();
+  if (socket.local_endpoint().protocol() == boost::asio::ip::tcp::v6())
+    context.UpdateNTCPV6Address(socket.local_endpoint().address());
+  conn->ClientLogin();
+  m_Service.post([conn, this]() {
+      this->AddNTCPSession(conn);
+  });
 }
 
 void NTCPServer::AddNTCPSession(

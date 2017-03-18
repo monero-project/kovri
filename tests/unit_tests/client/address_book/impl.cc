@@ -41,7 +41,6 @@
 
 #include "core/crypto/rand.h"
 
-BOOST_AUTO_TEST_SUITE(AddressBook);
 
 /// @class SubscriptionFixture
 struct SubscriptionFixture {
@@ -171,4 +170,4 @@ BOOST_AUTO_TEST_CASE(PGPClearSign) {
 
 // TODO(unassigned): more cases?
 
-BOOST_AUTO_TEST_SUITE_END() }  // TODO(unassigned): why is this stray brace needed?
+BOOST_AUTO_TEST_SUITE_END() 

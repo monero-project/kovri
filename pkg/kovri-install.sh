@@ -71,7 +71,7 @@ PrepareOptions() {
       _data="$HOME/.kovri"
       _is_linux=true
       ;;
-    freebsd* | dragonfly*)
+    openbsd* | freebsd* | dragonfly*)
       _data="$HOME/.kovri"
       _is_bsd=true
       ;;

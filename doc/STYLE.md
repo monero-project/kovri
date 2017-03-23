@@ -44,3 +44,10 @@ return SSUPacket::GetSize()
 - Use Doxygen three-slash ```/// C++ comments``` when documenting for Doxygen
 - Try to document all your work for Doxygen as you progress
 - If anonymity is a concern, try to blend in with a present contributor's style
+
+## Optional Checks
+1. [cppdep](https://github.com/rakhimov/cppdep)
+   for component dependency, physical insulation, and include checks.
+2. [cppcheck](https://github.com/danmar/cppcheck/) for static analysis
+   (complementary to Coverity).
+3. [lizard](https://github.com/terryyin/lizard) for code complexity checks.

@@ -34,10 +34,6 @@
 
 #include <boost/bind.hpp>
 
-#include <cstdint>
-#include <vector>
-#include <memory>
-
 #include "core/crypto/diffie_hellman.h"
 #include "core/crypto/hash.h"
 #include "core/crypto/rand.h"

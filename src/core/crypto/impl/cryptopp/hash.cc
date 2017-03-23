@@ -33,8 +33,6 @@
 #include <cryptopp/md5.h>
 #include <cryptopp/sha.h>
 
-#include <cstdint>
-
 #include "core/util/log.h"
 
 namespace kovri {

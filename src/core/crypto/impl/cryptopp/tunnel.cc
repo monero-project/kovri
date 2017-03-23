@@ -32,11 +32,7 @@
 
 #include "core/crypto/tunnel.h"
 
-#include <cstdint>
-
 #include "aesni_macros.h"
-
-#include "core/crypto/aes.h"
 
 #include "core/router/tunnel/base.h"
 

@@ -35,19 +35,14 @@
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include <memory>
-#include <string>
 #include <thread>
 #include <vector>
-
-#include "app/instance.h"
 
 #include "client/context.h"
 
 #include "core/router/net_db/impl.h"
 #include "core/router/transports/impl.h"
 #include "core/router/tunnel/impl.h"
-#include "core/util/log.h"
 
 namespace kovri {
 namespace app {

@@ -40,17 +40,12 @@
 #include <boost/regex.hpp>
 #include <boost/tokenizer.hpp>
 #include <cassert>
-#include <cstdint>
 #include <cstring>
 #include <map>
-#include <memory>
-#include <string>
-#include <utility>
 
 #include <boost/foreach.hpp>
 #include "client/api/streaming.h"
 #include "client/context.h"
-#include "client/destination.h"
 #include "client/tunnel.h"
 #include "client/util/http.h"
 

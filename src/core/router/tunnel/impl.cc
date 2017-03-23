@@ -30,20 +30,15 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include <string.h>
+#include "core/router/tunnel/impl.h"
 
-#include <map>
-#include <memory>
-#include <thread>
-#include <vector>
+#include <string.h>
 
 #include "core/crypto/rand.h"
 
 #include "core/router/context.h"
-#include "core/router/i2np.h"
 #include "core/router/net_db/impl.h"
 #include "core/router/transports/impl.h"
-#include "core/router/tunnel/impl.h"
 
 #include "core/util/i2p_endian.h"
 #include "core/util/log.h"

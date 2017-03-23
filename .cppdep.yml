@@ -1,0 +1,45 @@
+internal:
+    - name: kovri
+      path: src
+      packages:
+          - name: include
+            include:
+                - .
+          - name: core
+            src:
+                - core
+          - name: app
+            src:
+                - app
+          - name: client
+            src:
+                - client
+          - name: util
+            src:
+                - util
+external:
+    - name: Dependencies
+      path: /usr/include
+      packages:
+          - name: STL
+            pattern:
+                - "[a-z_]+$"
+          - name: Boost
+            pattern:
+                - boost
+          - name: LibXML
+            pattern:
+                - libxml
+          - name: Qt5
+            pattern:
+                - Q\w+
+                - ui_
+          - name: Windows System
+            pattern:
+                - windows.h
+    - name: ExternalProjects
+      path: deps
+      packages:
+          - name: cryptopp
+            pattern:
+                - cryptopp

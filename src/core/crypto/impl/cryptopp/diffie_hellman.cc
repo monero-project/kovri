@@ -33,8 +33,6 @@
 #include <cryptopp/dh.h>
 #include <cryptopp/osrng.h>
 
-#include <cstdint>
-
 #include "crypto_const.h"
 
 #include "core/util/log.h"

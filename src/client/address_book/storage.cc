@@ -32,17 +32,7 @@
 
 #include "client/address_book/storage.h"
 
-#include <boost/filesystem.hpp>
-
-#include <cstdint>
 #include <fstream>
-#include <map>
-#include <memory>
-#include <string>
-
-#include "core/router/identity.h"
-
-#include "core/util/log.h"
 
 namespace kovri {
 namespace client {

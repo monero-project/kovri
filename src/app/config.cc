@@ -28,12 +28,11 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#include "app/instance.h"
+#include "app/instance.h"  // includes "app/config.h"
 
 // Config parsing
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
-#include <boost/program_options.hpp>
 
 // Logging
 #include <boost/core/null_deleter.hpp>
@@ -51,16 +50,13 @@
 #include <boost/make_shared.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include <cstdint>
 #include <stdexcept>
 #include <memory>
-#include <vector>
 
 #include "client/util/parse.h"
 
 #include "core/crypto/aes.h"
 #include "core/crypto/rand.h"
-#include "core/util/filesystem.h"
 
 // TODO(anonimal): instance configuration should probably be moved to libcore
 

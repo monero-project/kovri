@@ -30,6 +30,8 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
+#include "core/router/tunnel/gateway.h"
+
 #include <string.h>
 
 #include "core/crypto/hash.h"
@@ -37,7 +39,6 @@
 
 #include "core/router/context.h"
 #include "core/router/transports/impl.h"
-#include "core/router/tunnel/gateway.h"
 
 #include "core/util/i2p_endian.h"
 #include "core/util/log.h"

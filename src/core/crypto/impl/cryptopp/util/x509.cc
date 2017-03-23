@@ -38,13 +38,9 @@
 #include <cryptopp/rsa.h>
 
 #include <cstdint>
-#include <map>
 #include <sstream>
-#include <string>
 #include <unordered_map>
 #include <vector>
-
-#include "core/router/identity.h"
 
 #include "core/util/log.h"
 

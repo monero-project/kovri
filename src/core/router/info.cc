@@ -38,9 +38,6 @@
 #include <string.h>
 
 #include <fstream>
-#include <memory>
-#include <string>
-#include <vector>
 
 #include "core/router/context.h"
 

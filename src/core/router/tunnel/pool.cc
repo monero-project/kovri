@@ -33,11 +33,9 @@
 #include "core/router/tunnel/pool.h"
 
 #include <algorithm>
-#include <vector>
 
 #include "core/crypto/rand.h"
 
-#include "core/router/garlic.h"
 #include "core/router/net_db/impl.h"
 #include "core/router/transports/impl.h"
 #include "core/router/tunnel/impl.h"

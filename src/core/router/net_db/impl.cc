@@ -38,19 +38,13 @@
 
 #include <cctype>
 #include <fstream>
-#include <memory>
-#include <set>
-#include <string>
-#include <vector>
 
 #include "core/crypto/rand.h"
 #include "core/crypto/util/compression.h"
 
 #include "core/router/context.h"
 #include "core/router/garlic.h"
-#include "core/router/i2np.h"
 #include "core/router/transports/impl.h"
-#include "core/router/tunnel/impl.h"
 
 #include "core/util/base64.h"
 #include "core/util/filesystem.h"

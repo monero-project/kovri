@@ -32,7 +32,6 @@
 #define SRC_APP_CONFIG_H_
 
 #include <boost/program_options.hpp>
-#include <boost/property_tree/ptree.hpp>
 #include <boost/filesystem.hpp>
 
 #include <cstdint>

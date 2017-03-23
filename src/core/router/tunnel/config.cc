@@ -32,11 +32,7 @@
 
 #include "core/router/tunnel/config.h"
 
-#include <array>
 #include <cstring>
-#include <vector>
-
-#include "core/crypto/rand.h"
 
 #include "core/router/context.h"
 #include "core/router/i2np.h"

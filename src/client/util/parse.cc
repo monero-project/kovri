@@ -30,14 +30,11 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
+#include "client/util/parse.h"
+
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/lexical_cast.hpp>
-
-#include <string>
-#include <vector>
-
-#include "client/util/parse.h"
 
 #include "core/util/log.h"
 

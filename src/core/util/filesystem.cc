@@ -38,11 +38,7 @@
 #include <shlobj.h>
 #endif
 
-#include <string>
-
 #include "core/router/context.h"
-
-#include "core/util/log.h"
 
 namespace kovri {
 namespace core {

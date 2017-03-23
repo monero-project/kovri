@@ -37,25 +37,14 @@
 #include <boost/network/uri.hpp>
 
 #include <array>
-#include <cstdint>
-#include <string>
 #include <chrono>
 #include <condition_variable>
 #include <fstream>
-#include <map>
-#include <memory>
 #include <utility>
-
-#include "client/address_book/storage.h"
-#include "client/destination.h"
-#include "client/util/http.h"
 
 #include "core/crypto/rand.h"
 
-#include "core/router/identity.h"
 #include "core/router/net_db/impl.h"
-
-#include "core/util/log.h"
 
 namespace kovri {
 namespace client {

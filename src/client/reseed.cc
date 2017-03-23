@@ -35,15 +35,9 @@
 #include <boost/filesystem.hpp>
 
 #include <fstream>
-#include <limits>
-#include <memory>
 #include <regex>
-#include <sstream>
-#include <string>
-#include <vector>
 
 #include "client/util/http.h"
-#include "client/util/zip.h"
 
 #include "core/crypto/rand.h"
 #include "core/crypto/signature.h"
@@ -51,7 +45,6 @@
 #include "core/router/identity.h"
 #include "core/router/net_db/impl.h"
 
-#include "core/util/filesystem.h"
 #include "core/util/i2p_endian.h"
 #include "core/util/log.h"
 

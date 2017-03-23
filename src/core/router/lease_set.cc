@@ -32,10 +32,7 @@
 
 #include "core/router/lease_set.h"
 
-#include <cstdint>
 #include <cstring>
-#include <memory>
-#include <vector>
 
 #include "core/crypto/rand.h"
 

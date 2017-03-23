@@ -32,12 +32,7 @@
 
 #include "client/service.h"
 
-#include <string>
-
 #include "client/context.h"
-#include "client/destination.h"
-
-#include "core/router/identity.h"
 
 namespace kovri {
 namespace client {

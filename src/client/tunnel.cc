@@ -33,12 +33,8 @@
 #include "client/tunnel.h"
 
 #include <cassert>
-#include <memory>
-#include <set>
-#include <string>
 
 #include "client/context.h"
-#include "client/destination.h"
 #include "client/util/parse.h"
 
 #include "core/util/log.h"

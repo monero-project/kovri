@@ -32,17 +32,11 @@
 
 #include "core/router/garlic.h"
 
-#include <array>
-#include <cstdint>
 #include <cstring>
-#include <memory>
-#include <string>
 
 #include "core/crypto/hash.h"
-#include "core/crypto/rand.h"
 
 #include "core/router/context.h"
-#include "core/router/i2np.h"
 #include "core/router/tunnel/pool.h"
 #include "core/router/tunnel/impl.h"
 

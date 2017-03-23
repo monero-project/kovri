@@ -36,10 +36,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <map>
-#include <memory>
-#include <set>
-#include <string>
 #include <utility>
 #include <vector>
 
@@ -47,9 +43,6 @@
 
 #include "core/crypto/elgamal.h"
 #include "core/crypto/rand.h"
-
-#include "core/router/identity.h"
-#include "core/router/net_db/impl.h"
 
 #include "core/util/log.h"
 #include "core/util/timestamp.h"

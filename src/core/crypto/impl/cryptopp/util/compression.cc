@@ -34,8 +34,6 @@
 #include <cryptopp/gzip.h>
 #include <cryptopp/zinflate.h>
 
-#include <cstdint>
-
 #include "core/util/log.h"
 
 namespace kovri {

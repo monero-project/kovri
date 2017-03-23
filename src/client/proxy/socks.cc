@@ -35,7 +35,6 @@
 #include <atomic>
 #include <cassert>
 #include <cstring>
-#include <string>
 
 #include "client/api/streaming.h"
 #include "client/context.h"

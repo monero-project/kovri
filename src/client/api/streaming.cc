@@ -30,10 +30,10 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include <algorithm>
-#include <vector>
-
 #include "client/api/streaming.h"
+
+#include <algorithm>
+
 #include "client/destination.h"
 
 #include "core/crypto/rand.h"
@@ -41,7 +41,6 @@
 
 #include "core/router/context.h"
 #include "core/router/info.h"
-#include "core/router/tunnel/impl.h"
 
 #include "core/util/log.h"
 #include "core/util/timestamp.h"

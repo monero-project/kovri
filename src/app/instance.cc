@@ -35,7 +35,6 @@
 #include <cstdint>
 #include <stdexcept>
 #include <memory>
-#include <vector>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>

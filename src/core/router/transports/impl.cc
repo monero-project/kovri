@@ -33,17 +33,12 @@
 #include "core/router/transports/impl.h"
 
 #include <algorithm>
-#include <cstdint>
-#include <memory>
-#include <string>
-#include <vector>
 #include <ostream>
 
 #include "core/crypto/diffie_hellman.h"
 #include "core/crypto/rand.h"
 
 #include "core/router/context.h"
-#include "core/router/i2np.h"
 #include "core/router/net_db/impl.h"
 
 #include "core/util/log.h"

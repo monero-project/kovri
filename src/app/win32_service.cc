@@ -38,8 +38,6 @@
 
 #include <assert.h>
 
-#include <memory>
-
 #include "app/daemon.h"
 
 #include "core/util/log.h"

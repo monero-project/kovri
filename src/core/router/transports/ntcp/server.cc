@@ -32,13 +32,8 @@
 
 #include "core/router/transports/ntcp/server.h"
 
-#include <cstdint>
-#include <memory>
-#include <string>
-
 #include "core/router/context.h"
 #include "core/router/net_db/impl.h"
-#include "core/router/transports/ntcp/session.h"
 #include "core/router/transports/impl.h"
 
 #include "core/util/log.h"

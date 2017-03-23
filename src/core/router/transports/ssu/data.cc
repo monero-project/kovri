@@ -34,13 +34,8 @@
 
 #include <boost/bind.hpp>
 
-#include <array>
-#include <cstdint>
-#include <memory>
-
 #include "core/router/net_db/impl.h"
 #include "core/router/transports/ssu/server.h"
-#include "core/router/transports/ssu/packet.h"
 
 #include "core/util/log.h"
 #include "core/util/timestamp.h"

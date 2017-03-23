@@ -34,10 +34,7 @@
 
 #include <fstream>
 #include <iostream>
-#include <map>
-#include <memory>
 #include <set>
-#include <string>
 #include <vector>
 
 #include "core/router/identity.h"

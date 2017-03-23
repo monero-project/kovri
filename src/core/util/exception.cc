@@ -35,7 +35,6 @@
 #endif
 
 #include <exception>
-#include <string>
 
 #include <boost/program_options.hpp>
 #include "core/util/log.h"

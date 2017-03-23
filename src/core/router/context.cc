@@ -35,7 +35,6 @@
 #include <boost/lexical_cast.hpp>
 
 #include <fstream>
-#include <string>
 
 #include "core/router/i2np.h"
 #include "core/router/net_db/impl.h"

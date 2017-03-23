@@ -38,7 +38,6 @@
 #include <exception>
 #include <functional>
 #include <memory>
-#include <string>
 #include <vector>
 
 #include "client/address_book/impl.h"
@@ -48,7 +47,6 @@
 
 #include "core/util/byte_stream.h"
 #include "core/util/filesystem.h"
-#include "core/util/log.h"
 
 namespace kovri {
 namespace client {

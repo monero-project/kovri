@@ -35,7 +35,6 @@
 #include <string.h>
 
 #include "core/router/context.h"
-#include "core/router/i2np.h"
 #include "core/router/transports/impl.h"
 #include "core/router/tunnel/impl.h"
 

@@ -32,7 +32,6 @@
 
 #include "core/router/net_db/requests.h"
 
-#include "core/router/i2np.h"
 #include "core/router/net_db/impl.h"
 #include "core/router/transports/impl.h"
 

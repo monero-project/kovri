@@ -33,8 +33,8 @@
 #ifndef SRC_APP_DAEMON_H_
 #define SRC_APP_DAEMON_H_
 
-#include <string>
 #include <memory>
+#include <string>
 
 #ifdef _WIN32
 #define Daemon kovri::app::DaemonWin32::Instance()
@@ -44,8 +44,8 @@
 
 #include "app/instance.h"
 
-#include "core/util/log.h"
 #include "core/util/filesystem.h"
+#include "core/util/log.h"
 
 namespace kovri {
 namespace app {

@@ -35,18 +35,12 @@
 #include <stdio.h>
 #include <time.h>
 
-#include <memory>
-#include <string>
-
-#include "core/crypto/elgamal.h"
 #include "core/crypto/hash.h"
 #include "core/crypto/rand.h"
 #include "core/crypto/signature.h"
 
 #include "core/router/context.h"
 
-#include "core/util/base64.h"
-#include "core/util/exception.h"
 #include "core/util/i2p_endian.h"
 #include "core/util/log.h"
 

@@ -35,11 +35,8 @@
 #include <string.h>
 
 #include <atomic>
-#include <vector>
-#include <set>
 
 #include "core/crypto/elgamal.h"
-#include "core/crypto/hash.h"
 #include "core/crypto/rand.h"
 #include "core/crypto/util/compression.h"
 
@@ -49,8 +46,6 @@
 #include "core/router/transports/impl.h"
 #include "core/router/tunnel/impl.h"
 
-#include "core/util/exception.h"
-#include "core/util/i2p_endian.h"
 #include "core/util/log.h"
 #include "core/util/timestamp.h"
 

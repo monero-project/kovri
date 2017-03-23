@@ -33,8 +33,6 @@
 #include "client/util/zip.h"
 
 #include <istream>
-#include <string>
-#include <vector>
 
 #include "core/crypto/util/compression.h"
 

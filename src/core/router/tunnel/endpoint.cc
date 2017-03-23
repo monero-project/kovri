@@ -39,7 +39,6 @@
 #include "core/crypto/hash.h"
 
 #include "core/router/context.h"
-#include "core/router/i2np.h"
 #include "core/router/net_db/impl.h"
 #include "core/router/transports/impl.h"
 

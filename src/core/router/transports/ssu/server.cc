@@ -35,17 +35,11 @@
 #include <boost/bind.hpp>
 
 #include <array>
-#include <cstdint>
-#include <list>
-#include <memory>
-#include <set>
-#include <vector>
 
 #include "core/crypto/rand.h"
 
 #include "core/router/context.h"
 #include "core/router/net_db/impl.h"
-#include "core/router/transports/ssu/server.h"
 
 #include "core/util/log.h"
 #include "core/util/timestamp.h"

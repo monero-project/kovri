@@ -35,17 +35,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <cstdint>
-#include <memory>
-#include <vector>
-
 #include "core/crypto/diffie_hellman.h"
 #include "core/crypto/hash.h"
 #include "core/crypto/rand.h"
 #include "core/crypto/util/checksum.h"
 
 #include "core/router/context.h"
-#include "core/router/i2np.h"
 #include "core/router/net_db/impl.h"
 #include "core/router/transports/ntcp/server.h"
 #include "core/router/transports/impl.h"

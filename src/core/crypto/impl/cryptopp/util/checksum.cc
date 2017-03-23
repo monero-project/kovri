@@ -32,8 +32,6 @@
 
 #include <cryptopp/adler32.h>
 
-#include <cstdint>
-
 #include "core/util/log.h"
 
 namespace kovri {

@@ -33,12 +33,8 @@
 #ifdef USE_UPNP
 #include "core/router/transports/upnp.h"
 
-#include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/thread/thread.hpp>
-
-#include <miniupnpc/miniupnpc.h>
-#include <miniupnpc/upnpcommands.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -46,9 +42,6 @@
 #else
 #include <dlfcn.h>
 #endif
-
-#include <string>
-#include <thread>
 
 #include "core/router/context.h"
 #include "core/router/net_db/impl.h"
@@ -377,4 +370,4 @@ void UPnP::Close() {
 }  // namespace core
 }  // namespace kovri
 
-#endif
+#endif  // USE_UPNP

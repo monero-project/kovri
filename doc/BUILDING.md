@@ -4,11 +4,11 @@ See the [README](https://github.com/monero-project/kovri/blob/master/README.md) 
 
 ## Step 1. If building, minimum requirements
 
-### Linux / MacOSX / FreeBSD 11
+### Linux / MacOSX / FreeBSD 11 / OpenBSD 6
 - [Git](https://git-scm.com/download) 1.9.1
 - [GCC](https://gcc.gnu.org/) 4.9.2
 - [CMake](https://cmake.org/) 2.8.12
-- [Boost](http://www.boost.org/) 1.58
+- [Boost](http://www.boost.org/) 1.58 (see platform-specific version caveats)
 - [OpenSSL](https://openssl.org/) (always the latest stable version)
 
 ### Windows
@@ -17,7 +17,7 @@ See the [README](https://github.com/monero-project/kovri/blob/master/README.md) 
 
 Optional:
 
-- [Clang](http://clang.llvm.org/) 3.5 ([3.6 on FreeBSD](https://llvm.org/bugs/show_bug.cgi?id=28887))
+- [Clang](http://clang.llvm.org/) 3.5 ([3.6 or higher on FreeBSD](https://llvm.org/bugs/show_bug.cgi?id=28887))
 - [MiniUPnP](https://github.com/miniupnp/miniupnp/releases) 1.6 (Recommeded if you are behind a NAT without access to it)
 - [Doxygen](http://www.doxygen.org/) 1.8.6
 - [Graphviz](http://graphviz.org/) 2.36
@@ -134,6 +134,29 @@ $ sudo pkg install miniupnpc #For users behind a restrictive NAT
 ```
 **Note: see FreeBSD build instructions below**
 
+### OpenBSD 6
+Required dependencies:
+```bash
+$ sudo pkg_add bash git cmake gmake g++
+```
+Optional dependencies:
+```bash
+$ sudo pkg_add miniupnpc #For users behind a restrictive NAT
+$ sudo pkg_add doxygen graphviz
+```
+
+# Build latest boost
+```bash
+$ wget [latest boost] -O latest_boost.tar.bz2
+$ tar xvjf latest_boost.tar.bz2 && cd latest_boost/
+$ echo 'using gcc : : eg++ : "-fvisibility=hidden -fPIC" "" "ar" "strip"  "ranlib" "" : ;' > user-config.jam
+$ config_opts="runtime-link=shared threadapi=pthread threading=multi link=static variant=release --layout=tagged --build-type=complete --user-config=user-config.jam -sNO_BZIP2=1"
+$ ./bootstrap.sh --without-icu --with-libraries=chrono,log,program_options,date_time,thread,system,filesystem,regex,test
+$ sudo ./b2 -d2 -d1 ${config_opts} --prefix=${BOOST_PREFIX} stage
+$ sudo ./b2 -d0 ${config_opts} --prefix=${BOOST_PREFIX} install
+```
+**Note: see OpenBSD build instructions below**
+
 ### Windows (MSYS2/MinGW-64)
 * Download the [MSYS2 installer](http://msys2.github.io/), 64-bit or 32-bit as needed, and run it.
 * Use the shortcut associated with your architecture to launch the MSYS2 environment. On 64-bit systems that would be the MinGW-w64 Win64 Shell shortcut. Note that if you are running 64-bit Windows, you will have both 64-bit and 32-bit environments.
@@ -194,10 +217,19 @@ $ export CC=clang CXX=clang++  # replace ```clang``` with a clang version/path o
 
 ### FreeBSD
 ```bash
-$ export CC=clang36 CXX=clang++36
+$ export CC=clang36 CXX=clang++36  # Or higher clang version
 $ gmake && gmake install
 ```
 - Replace ```make``` with ```gmake``` for all other build options
+
+
+### OpenBSD
+```bash
+$ export CC=egcc CXX=eg++  # Clang optional
+$ gmake && gmake install
+```
+- Replace ```make``` with ```gmake``` for all other build options
+
 
 ### (Optional) Custom data path
 You can customize Kovri's data path to your liking. Simply export ```KOVRI_DATA_PATH```; example:

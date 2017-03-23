@@ -71,9 +71,14 @@ PrepareOptions() {
       _data="$HOME/.kovri"
       _is_linux=true
       ;;
-    openbsd* | freebsd* | dragonfly*)
+    freebsd* | dragonfly*)
       _data="$HOME/.kovri"
       _is_bsd=true
+      ;;
+    openbsd*)
+      _data="$HOME/.kovri"
+      _is_bsd=true
+      _is_openbsd=true
       ;;
     darwin*)
       _data="$HOME/Library/Application Support/Kovri"
@@ -256,10 +261,21 @@ CreatePackage() {
   if [[ $_create_checksum_file == true ]]; then
     local _output_size=256
     local _shasum_file=${_package_file}.sha${_output_size}sum.txt
+    # Use available check command
+    if [[ $_is_openbsd == true ]]; then
+      local _shasum_cmd="sha256"
+    else
+      local _shasum_cmd="shasum"
+    fi
     echo -n "Creating shasum $_shasum_file"
-    shasum -a $_output_size $_package_file 1> $_shasum_file ; catch "could not create shasum"
+    if [[ $_is_openbsd == true ]]; then
+      $_shasum_cmd $_package_file 1> $_shasum_file
+    else
+      $_shasum_cmd -a $_output_size $_package_file 1> $_shasum_file
+    fi
+    catch "could not create checksum file"
     echo -n "Verifying $_package_file"
-    shasum -c $_shasum_file 1>/dev/null ; catch "could not verify shasum"
+    $_shasum_cmd -c $_shasum_file 1>/dev/null ; catch "could not verify checksum"
   fi
 }
 

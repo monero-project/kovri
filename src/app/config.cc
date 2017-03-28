@@ -66,10 +66,6 @@ namespace app {
 namespace bpo = boost::program_options;
 
 void Configuration::ParseKovriConfig() {
-  // Random generated port if none is supplied via CLI or config
-  // See: i2p.i2p/router/java/src/net/i2p/router/transport/udp/UDPEndpoint.java
-  // TODO(unassigned): move this elsewhere (outside of ParseArgs()) when possible
-  std::uint16_t port = kovri::core::RandInRange32(9111, 30777);
   // Default visible option
   bpo::options_description help("\nhelp");
   help.add_options()("help,h", "");  // Blank so we can use custom message above
@@ -77,7 +73,7 @@ void Configuration::ParseKovriConfig() {
   bpo::options_description system("\nsystem");
   system.add_options()(
       "host", bpo::value<std::string>()->default_value("127.0.0.1"))(
-      "port,p", bpo::value<int>()->default_value(port))(
+      "port,p", bpo::value<int>()->default_value(0))(
       "data-dir",
       bpo::value<std::string>()->default_value(
           kovri::core::GetDefaultDataPath().string()))(
@@ -97,7 +93,7 @@ void Configuration::ParseKovriConfig() {
       "log-level", bpo::value<std::uint16_t>()->default_value(3))(
       "kovriconf,c", bpo::value<std::string>()->default_value(""))(
       "tunnelsconf,t", bpo::value<std::string>()->default_value(""));
-  // This is NOT our default values for log-file-name, kovriconf and tunnelsconf
+  // This is NOT our default values for port, log-file-name, kovriconf and tunnelsconf
 
   bpo::options_description network("\nnetwork");
   network.add_options()

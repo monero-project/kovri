@@ -207,13 +207,13 @@ void Instance::SetupTunnels() {
         else
           LOG(error) << "Instance: Failed to add server tunnel";
       }
-    } catch (const std::exception& ex) {
-      LOG(error) << "Instance: exception during tunnel setup: " << ex.what();
-      return;
-    } catch (...) {
-      LOG(error) << "Instance: unknown exception during tunnel setup";
-      return;
     }
+    catch (...)
+      {
+        kovri::core::Exception ex;
+        ex.Dispatch(__func__);
+        return;
+      }
   }  // end of iteration block
   if (m_IsReloading) {
     LOG(info) << "Instance: " << client_count << " client tunnels updated";

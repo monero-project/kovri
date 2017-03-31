@@ -189,22 +189,12 @@ void Instance::SetupTunnels() {
           ++client_count;
           continue;
         }
-        // Get local destination
-        std::shared_ptr<kovri::client::ClientDestination> local_destination;
-        if (!tunnel.keys.empty())
-          local_destination =
-            kovri::client::context.LoadLocalDestination(tunnel.keys, false);
-        // Insert client tunnel
-        bool result =
-          kovri::client::context.InsertClientTunnel(
-              tunnel.port,
-              std::make_unique<kovri::client::I2PClientTunnel>(
-                  tunnel,
-                  local_destination));
-        if (result)
+        // Create client tunnel
+        if (kovri::client::context.AddClientTunnel(tunnel))
           ++client_count;
         else
-          LOG(error) << "Instance: client tunnel with port " << tunnel.port << " already exists";
+          LOG(error) << "Instance: client tunnel with port " << tunnel.port
+                     << " already exists";
       } else {  // TODO(unassigned): currently, anything that's not client
         bool is_http = (tunnel.type == GetConfig().GetAttribute(Key::HTTP));
         if (m_IsReloading) {
@@ -212,24 +202,10 @@ void Instance::SetupTunnels() {
           ++server_count;
           continue;
         }
-        // TODO(anonimal): implement tunnel creation function
-        auto local_destination =
-          kovri::client::context.LoadLocalDestination(tunnel.keys, true);
-        auto server_tunnel = is_http
-          ? std::make_unique<kovri::client::I2PServerTunnelHTTP>(tunnel, local_destination)
-          : std::make_unique<kovri::client::I2PServerTunnel>(tunnel, local_destination);
-        // Insert server tunnel
-        bool result = kovri::client::context.InsertServerTunnel(
-            local_destination->GetIdentHash(),
-            std::move(server_tunnel));
-        if (result) {
+        if (kovri::client::context.AddServerTunnel(tunnel, is_http))
           ++server_count;
-        } else {
-          LOG(error)
-            << "Instance: server tunnel for destination "
-            << kovri::client::context.GetAddressBook().GetB32AddressFromIdentHash(local_destination->GetIdentHash())
-            << " already exists";
-        }
+        else
+          LOG(error) << "Instance: Failed to add server tunnel";
       }
     } catch (const std::exception& ex) {
       LOG(error) << "Instance: exception during tunnel setup: " << ex.what();

@@ -138,11 +138,23 @@ class ClientContext {
     const TunnelAttributes& tunnel,
     bool is_http);  // TODO(anonimal): this isn't ideal
 
-
   /// @brief Updates or creates the specified client tunnel
   /// @param tunnel Const reference to populated/initialized tunnel attributes class
   void UpdateClientTunnel(
     const TunnelAttributes& tunnel);
+
+  /// @brief Creates the specified server tunnel and tries to insert it
+  /// @param tunnel Const reference to populated/initialized tunnel attributes class
+  /// @param http true if server tunnel is an HTTP tunnel
+  /// @return true if the tunnel was inserted, false otherwise
+  bool AddServerTunnel(
+      const TunnelAttributes& tunnel,
+      bool is_http);  // TODO(anonimal): this isn't ideal
+
+  /// @brief Creates the specified client tunnel and tries to insert it
+  /// @param tunnel Const reference to populated/initialized tunnel attributes class
+  /// @return true if the tunnel was inserted, false otherwise
+  bool AddClientTunnel(const TunnelAttributes& tunnel);
 
   /// @brief Registers a shutdown handler, called by ClientContext::RequestShutdown.
   /// @param handler The handler to be called on shutdown

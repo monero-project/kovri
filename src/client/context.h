@@ -186,20 +186,16 @@ class ClientContext {
   void SetSOCKSProxy(std::unique_ptr<kovri::client::SOCKSProxy> proxy);
 
   /// @return the client tunnel with the given name, or nullptr
-  std::unique_ptr<I2PServerTunnel> GetServerTunnel(
-      const std::string& name);
+  I2PServerTunnel* GetServerTunnel(const std::string& name);
 
   /// @return the server tunnel with the given identity hash, or nullptr
-  std::unique_ptr<I2PServerTunnel> GetServerTunnel(
-      const kovri::core::IdentHash& id);
+  I2PServerTunnel* GetServerTunnel(const kovri::core::IdentHash& id);
 
   /// @return the client tunnel with the given name, or nullptr
-  std::unique_ptr<I2PClientTunnel> GetClientTunnel(
-      const std::string& name);
+  I2PClientTunnel* GetClientTunnel(const std::string& name);
 
   /// @return the client tunnel with the given (local) port
-  std::unique_ptr<I2PClientTunnel> GetClientTunnel(
-      int port);
+  I2PClientTunnel* GetClientTunnel(int port);
 
   boost::asio::io_service& GetIoService();
 

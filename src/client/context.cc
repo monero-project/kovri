@@ -446,40 +446,41 @@ void ClientContext::SetSOCKSProxy(
   m_SocksProxy = std::move(proxy);
 }
 
-std::unique_ptr<I2PServerTunnel> ClientContext::GetServerTunnel(
-    const std::string& name) {
+I2PServerTunnel* ClientContext::GetServerTunnel(const std::string& name)
+{
   std::lock_guard<std::mutex> lock(m_ServerMutex);
   auto it = std::find_if(
       m_ServerTunnels.begin(), m_ServerTunnels.end(),
       [&name](ServerTunnelEntry & e) -> bool {
         return e.second->GetName() == name;
       });
-  return it == m_ServerTunnels.end() ? nullptr : std::move(it->second);
+  return it == m_ServerTunnels.end() ? nullptr : it->second.get();
 }
 
-std::unique_ptr<I2PServerTunnel> ClientContext::GetServerTunnel(
-    const kovri::core::IdentHash& id) {
+I2PServerTunnel* ClientContext::GetServerTunnel(
+    const kovri::core::IdentHash& id)
+{
   std::lock_guard<std::mutex> lock(m_ServerMutex);
   auto it = m_ServerTunnels.find(id);
-  return it == m_ServerTunnels.end() ? nullptr : std::move(it->second);
+  return it == m_ServerTunnels.end() ? nullptr : it->second.get();
 }
 
-std::unique_ptr<I2PClientTunnel> ClientContext::GetClientTunnel(
-    const std::string& name) {
+I2PClientTunnel* ClientContext::GetClientTunnel(const std::string& name)
+{
   std::lock_guard<std::mutex> lock(m_ClientMutex);
   auto it = std::find_if(
       m_ClientTunnels.begin(), m_ClientTunnels.end(),
       [&name](ClientTunnelEntry & e) -> bool {
         return e.second->GetName() == name;
       });
-  return it == m_ClientTunnels.end() ? nullptr : std::move(it->second);
+  return it == m_ClientTunnels.end() ? nullptr : it->second.get();
 }
 
-std::unique_ptr<I2PClientTunnel> ClientContext::GetClientTunnel(
-    int port) {
+I2PClientTunnel* ClientContext::GetClientTunnel(int port)
+{
   std::lock_guard<std::mutex> lock(m_ClientMutex);
   auto it = m_ClientTunnels.find(port);
-  return it == m_ClientTunnels.end() ? nullptr : std::move(it->second);
+  return it == m_ClientTunnels.end() ? nullptr : it->second.get();
 }
 
 boost::asio::io_service& ClientContext::GetIoService() {

@@ -356,8 +356,9 @@ void ClientContext::UpdateClientTunnel(
     if (ec)  // New address is not an IP address, compare strings
       rebind = (tunnel.address != current_addr);
     else  // New address is an IP address, compare endpoints
-      rebind = (client_tunnel->GetEndpoint() == boost::asio::ip::tcp::endpoint(
-          next_addr, tunnel.port));
+      rebind =
+          (client_tunnel->GetEndpoint()
+           != boost::asio::ip::tcp::endpoint(next_addr, tunnel.port));
     if (rebind) {
       // The IP address has changed, rebind
       try {

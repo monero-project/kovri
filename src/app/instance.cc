@@ -84,6 +84,7 @@ void Instance::Reload() {
   // TODO(unassigned): locking etc.
   // TODO(unassigned): client/router contexts
   m_IsReloading = true;
+  GetConfig().ParseTunnelsConfig();
   SetupTunnels();
   m_IsReloading = false;
 }

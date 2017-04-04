@@ -190,6 +190,7 @@ void Configuration::ParseTunnelsConfig() {
     return;
   }
   // Parse on a per-section basis, store in tunnels config vector
+  m_TunnelsConfig.clear();
   for (auto& section : pt) {
     kovri::client::TunnelAttributes tunnel{};
     try {

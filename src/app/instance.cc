@@ -84,6 +84,7 @@ void Instance::Reload() {
   // TODO(unassigned): locking etc.
   // TODO(unassigned): client/router contexts
   m_IsReloading = true;
+  GetConfig().ParseTunnelsConfig();
   SetupTunnels();
   m_IsReloading = false;
 }
@@ -164,8 +165,7 @@ void Instance::InitClientContext() {
 
 void Instance::SetupTunnels() {
   // List of tunnels that exist after update
-  // TODO(unassigned): ensure that default IRC and eepsite tunnels aren't removed?
-  std::vector<std::string> updated_tunnels;  // TODO(unassigned): this was never fully implemented
+  std::vector<std::string> updated_tunnels;
   // Count number of tunnels
   std::size_t client_count = 0, server_count = 0;
   // Iterate through each section in tunnels config
@@ -186,63 +186,40 @@ void Instance::SetupTunnels() {
             continue;
           }
           kovri::client::context.UpdateClientTunnel(tunnel);
+          updated_tunnels.push_back(tunnel.name);
           ++client_count;
           continue;
         }
-        // Get local destination
-        std::shared_ptr<kovri::client::ClientDestination> local_destination;
-        if (!tunnel.keys.empty())
-          local_destination =
-            kovri::client::context.LoadLocalDestination(tunnel.keys, false);
-        // Insert client tunnel
-        bool result =
-          kovri::client::context.InsertClientTunnel(
-              tunnel.port,
-              std::make_unique<kovri::client::I2PClientTunnel>(
-                  tunnel,
-                  local_destination));
-        if (result)
+        // Create client tunnel
+        if (kovri::client::context.AddClientTunnel(tunnel))
           ++client_count;
         else
-          LOG(error) << "Instance: client tunnel with port " << tunnel.port << " already exists";
+          LOG(error) << "Instance: client tunnel with port " << tunnel.port
+                     << " already exists";
       } else {  // TODO(unassigned): currently, anything that's not client
         bool is_http = (tunnel.type == GetConfig().GetAttribute(Key::HTTP));
         if (m_IsReloading) {
           kovri::client::context.UpdateServerTunnel(tunnel, is_http);
+          updated_tunnels.push_back(tunnel.name);
           ++server_count;
           continue;
         }
-        // TODO(anonimal): implement tunnel creation function
-        auto local_destination =
-          kovri::client::context.LoadLocalDestination(tunnel.keys, true);
-        auto server_tunnel = is_http
-          ? std::make_unique<kovri::client::I2PServerTunnelHTTP>(tunnel, local_destination)
-          : std::make_unique<kovri::client::I2PServerTunnel>(tunnel, local_destination);
-        // Insert server tunnel
-        bool result = kovri::client::context.InsertServerTunnel(
-            local_destination->GetIdentHash(),
-            std::move(server_tunnel));
-        if (result) {
+        if (kovri::client::context.AddServerTunnel(tunnel, is_http))
           ++server_count;
-        } else {
-          LOG(error)
-            << "Instance: server tunnel for destination "
-            << kovri::client::context.GetAddressBook().GetB32AddressFromIdentHash(local_destination->GetIdentHash())
-            << " already exists";
-        }
+        else
+          LOG(error) << "Instance: Failed to add server tunnel";
       }
-    } catch (const std::exception& ex) {
-      LOG(error) << "Instance: exception during tunnel setup: " << ex.what();
-      return;
-    } catch (...) {
-      LOG(error) << "Instance: unknown exception during tunnel setup";
-      return;
     }
+    catch (...)
+      {
+        kovri::core::Exception ex;
+        ex.Dispatch(__func__);
+        return;
+      }
   }  // end of iteration block
   if (m_IsReloading) {
     LOG(info) << "Instance: " << client_count << " client tunnels updated";
     LOG(info) << "Instance: " << server_count << " server tunnels updated";
-    // TODO(unassigned): this was never fully implemented
     RemoveOldTunnels(updated_tunnels);
     return;
   }

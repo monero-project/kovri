@@ -336,19 +336,8 @@ void ClientContext::UpdateServerTunnel(
     throw std::runtime_error(
         "ClientContext: unknown exception in " + std::string(__func__));
   }
-  if (create_tunnel) {
-      // TODO(anonimal): implement tunnel creation function
-      // Create the server tunnel
-      auto local_destination =
-        kovri::client::context.LoadLocalDestination(tunnel.keys, true);
-      auto server_tunnel = is_http
-          ? std::make_unique<I2PServerTunnelHTTP>(tunnel, local_destination)
-          : std::make_unique<I2PServerTunnel>(tunnel, local_destination);
-      // Add the server tunnel
-      InsertServerTunnel(local_destination->GetIdentHash(), std::move(server_tunnel));
-      // Start the new server tunnel
-      server_tunnel->Start();
-  }
+  if (create_tunnel)
+    AddServerTunnel(tunnel, is_http);
 }
 
 void ClientContext::UpdateClientTunnel(
@@ -356,10 +345,7 @@ void ClientContext::UpdateClientTunnel(
   auto client_tunnel = GetClientTunnel(tunnel.name);
   if (client_tunnel == nullptr) {
     // Client tunnel does not exist yet, create it
-    auto local_destination = LoadLocalDestination(tunnel.keys, true);
-    client_tunnel = std::make_unique<I2PClientTunnel>(tunnel, local_destination);
-    InsertClientTunnel(tunnel.port, std::move(client_tunnel));
-    client_tunnel->Start();
+    AddClientTunnel(tunnel);
   } else {
     // Client with this name is already locally running, update settings
     // TODO(unassigned): use-case for remaining tunnel attributes?
@@ -370,8 +356,9 @@ void ClientContext::UpdateClientTunnel(
     if (ec)  // New address is not an IP address, compare strings
       rebind = (tunnel.address != current_addr);
     else  // New address is an IP address, compare endpoints
-      rebind = (client_tunnel->GetEndpoint() == boost::asio::ip::tcp::endpoint(
-          next_addr, tunnel.port));
+      rebind =
+          (client_tunnel->GetEndpoint()
+           != boost::asio::ip::tcp::endpoint(next_addr, tunnel.port));
     if (rebind) {
       // The IP address has changed, rebind
       try {
@@ -383,6 +370,45 @@ void ClientContext::UpdateClientTunnel(
       }
     }
   }
+}
+
+bool ClientContext::AddServerTunnel(
+    const TunnelAttributes& tunnel,
+    bool is_http)
+{
+  auto local_destination = LoadLocalDestination(tunnel.keys, true);
+  auto server_tunnel =
+      is_http ? std::make_unique<kovri::client::I2PServerTunnelHTTP>(
+                    tunnel, local_destination)
+              : std::make_unique<kovri::client::I2PServerTunnel>(
+                    tunnel, local_destination);
+  // Insert server tunnel
+  if (!InsertServerTunnel(
+          local_destination->GetIdentHash(), std::move(server_tunnel)))
+    {
+      LOG(error) << "Instance: server tunnel for destination "
+                 << GetAddressBook().GetB32AddressFromIdentHash(
+                        local_destination->GetIdentHash())
+                 << " already exists";
+      return false;
+    }
+  return true;
+}
+
+bool ClientContext::AddClientTunnel(const TunnelAttributes& tunnel)
+{
+  std::shared_ptr<kovri::client::ClientDestination> local_destination;
+  if (!tunnel.keys.empty())
+    local_destination = LoadLocalDestination(tunnel.keys, false);
+  // Insert client tunnel
+  auto client_tunnel = std::make_unique<kovri::client::I2PClientTunnel>(
+      tunnel, local_destination);
+  if (!InsertClientTunnel(tunnel.port, std::move(client_tunnel)))
+    {
+      LOG(error) << "Instance: failed to insert new client tunnel";
+      return false;
+    }
+  return true;
 }
 
 void ClientContext::RegisterShutdownHandler(
@@ -421,40 +447,41 @@ void ClientContext::SetSOCKSProxy(
   m_SocksProxy = std::move(proxy);
 }
 
-std::unique_ptr<I2PServerTunnel> ClientContext::GetServerTunnel(
-    const std::string& name) {
+I2PServerTunnel* ClientContext::GetServerTunnel(const std::string& name)
+{
   std::lock_guard<std::mutex> lock(m_ServerMutex);
   auto it = std::find_if(
       m_ServerTunnels.begin(), m_ServerTunnels.end(),
       [&name](ServerTunnelEntry & e) -> bool {
         return e.second->GetName() == name;
       });
-  return it == m_ServerTunnels.end() ? nullptr : std::move(it->second);
+  return it == m_ServerTunnels.end() ? nullptr : it->second.get();
 }
 
-std::unique_ptr<I2PServerTunnel> ClientContext::GetServerTunnel(
-    const kovri::core::IdentHash& id) {
+I2PServerTunnel* ClientContext::GetServerTunnel(
+    const kovri::core::IdentHash& id)
+{
   std::lock_guard<std::mutex> lock(m_ServerMutex);
   auto it = m_ServerTunnels.find(id);
-  return it == m_ServerTunnels.end() ? nullptr : std::move(it->second);
+  return it == m_ServerTunnels.end() ? nullptr : it->second.get();
 }
 
-std::unique_ptr<I2PClientTunnel> ClientContext::GetClientTunnel(
-    const std::string& name) {
+I2PClientTunnel* ClientContext::GetClientTunnel(const std::string& name)
+{
   std::lock_guard<std::mutex> lock(m_ClientMutex);
   auto it = std::find_if(
       m_ClientTunnels.begin(), m_ClientTunnels.end(),
       [&name](ClientTunnelEntry & e) -> bool {
         return e.second->GetName() == name;
       });
-  return it == m_ClientTunnels.end() ? nullptr : std::move(it->second);
+  return it == m_ClientTunnels.end() ? nullptr : it->second.get();
 }
 
-std::unique_ptr<I2PClientTunnel> ClientContext::GetClientTunnel(
-    int port) {
+I2PClientTunnel* ClientContext::GetClientTunnel(int port)
+{
   std::lock_guard<std::mutex> lock(m_ClientMutex);
   auto it = m_ClientTunnels.find(port);
-  return it == m_ClientTunnels.end() ? nullptr : std::move(it->second);
+  return it == m_ClientTunnels.end() ? nullptr : it->second.get();
 }
 
 boost::asio::io_service& ClientContext::GetIoService() {

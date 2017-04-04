@@ -165,8 +165,7 @@ void Instance::InitClientContext() {
 
 void Instance::SetupTunnels() {
   // List of tunnels that exist after update
-  // TODO(unassigned): ensure that default IRC and eepsite tunnels aren't removed?
-  std::vector<std::string> updated_tunnels;  // TODO(unassigned): this was never fully implemented
+  std::vector<std::string> updated_tunnels;
   // Count number of tunnels
   std::size_t client_count = 0, server_count = 0;
   // Iterate through each section in tunnels config
@@ -187,6 +186,7 @@ void Instance::SetupTunnels() {
             continue;
           }
           kovri::client::context.UpdateClientTunnel(tunnel);
+          updated_tunnels.push_back(tunnel.name);
           ++client_count;
           continue;
         }
@@ -200,6 +200,7 @@ void Instance::SetupTunnels() {
         bool is_http = (tunnel.type == GetConfig().GetAttribute(Key::HTTP));
         if (m_IsReloading) {
           kovri::client::context.UpdateServerTunnel(tunnel, is_http);
+          updated_tunnels.push_back(tunnel.name);
           ++server_count;
           continue;
         }
@@ -219,7 +220,6 @@ void Instance::SetupTunnels() {
   if (m_IsReloading) {
     LOG(info) << "Instance: " << client_count << " client tunnels updated";
     LOG(info) << "Instance: " << server_count << " server tunnels updated";
-    // TODO(unassigned): this was never fully implemented
     RemoveOldTunnels(updated_tunnels);
     return;
   }

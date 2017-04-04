@@ -80,9 +80,7 @@ class Instance {
   void SetupTunnels();
 
   /// @brief Should remove old tunnels after tunnels config is updated
-  /// TODO(unassigned): not fully implemented
-  void RemoveOldTunnels(
-      std::vector<std::string>& updated_tunnels);
+  void RemoveOldTunnels(std::vector<std::string>& updated_tunnels);
 
  private:
   /// @var m_Config

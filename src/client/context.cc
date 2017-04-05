@@ -348,7 +348,6 @@ void ClientContext::UpdateClientTunnel(
     AddClientTunnel(tunnel);
   } else {
     // Client with this name is already locally running, update settings
-    // TODO(unassigned): use-case for remaining tunnel attributes?
     std::string current_addr = client_tunnel->GetAddress();
     boost::system::error_code ec;
     auto next_addr = boost::asio::ip::address::from_string(tunnel.address, ec);
@@ -359,8 +358,29 @@ void ClientContext::UpdateClientTunnel(
       rebind =
           (client_tunnel->GetEndpoint()
            != boost::asio::ip::tcp::endpoint(next_addr, tunnel.port));
+    // Note: We also use rebind even if local address/port hasn't changed
+    // as a quick/easy way to drop previous connections
+    if (!rebind)  // check for change in destination
+      {
+        LOG(debug)
+            << "ClientContext: update checking for change in destination";
+        rebind = (client_tunnel->GetTunnelAttributes().dest != tunnel.dest)
+                 || (client_tunnel->GetTunnelAttributes().dest_port
+                     != tunnel.dest_port);
+      }
+    if (!tunnel.keys.empty())  // check for change in keys
+      {
+        LOG(debug) << "ClientContext: update checking for change in keys";
+        auto local_destination = LoadLocalDestination(tunnel.keys, false);
+        if (local_destination->GetIdentHash()
+            != client_tunnel->GetLocalDestination()->GetIdentHash())
+          {
+            client_tunnel->SetLocalDestination(local_destination);
+            rebind = true;
+          }
+      }
+    client_tunnel->SetTunnelAttributes(tunnel);
     if (rebind) {
-      // The IP address has changed, rebind
       try {
         client_tunnel->Rebind(tunnel.address, tunnel.port);
       } catch (const std::exception& err) {

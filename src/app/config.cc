@@ -209,6 +209,20 @@ void Configuration::ParseTunnelsConfig() {
         tunnel.keys = value.get<std::string>(GetAttribute(Key::Keys), "");
         // Parse for CSV destinations + dest:port, then set appropriately
         ParseClientDestination(&tunnel);
+        // Check for conflicting port
+        if (std::find_if(
+                m_TunnelsConfig.begin(),
+                m_TunnelsConfig.end(),
+                [&tunnel](
+                    kovri::client::TunnelAttributes const& tunnel_attribute) {
+                  return tunnel.port == tunnel_attribute.port;
+                })
+            != m_TunnelsConfig.end())
+          {
+            LOG(error) << "Config: " << tunnel.name
+                       << " will not be loaded, conflicting port";
+            continue;
+          }
       } else if (tunnel.type == GetAttribute(Key::Server)
                 || tunnel.type == GetAttribute(Key::HTTP)) {
         tunnel.in_port = value.get<std::uint16_t>(GetAttribute(Key::InPort), 0);

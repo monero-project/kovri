@@ -190,6 +190,13 @@ class I2PClientTunnel : public TCPIPAcceptor {
     return m_TunnelAttributes.name;
   }
 
+  /// @brief Set tunnel attributes
+  /// @param tunnel Initialized/populated tunnel attributes class
+  void SetTunnelAttributes(const TunnelAttributes& tunnel) noexcept
+  {
+    m_TunnelAttributes = tunnel;
+  }
+
  protected:
   /// @brief Implements TCPIPAcceptor
   std::shared_ptr<I2PServiceHandler> CreateHandler(

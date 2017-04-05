@@ -80,7 +80,11 @@ class Instance {
   void SetupTunnels();
 
   /// @brief Should remove old tunnels after tunnels config is updated
-  void RemoveOldTunnels(std::vector<std::string>& updated_tunnels);
+  /// @param updated_client_tunnels List of client tunnels to keep
+  /// @param updated_server_tunnels List of server tunnels to keep
+  void RemoveOldTunnels(
+      const std::vector<std::string>& updated_client_tunnels,
+      const std::vector<std::string>& updated_server_tunnels);
 
  private:
   /// @var m_Config

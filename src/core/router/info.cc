@@ -61,6 +61,8 @@ std::string RouterInfo::Introducer::GetDescription(
   return ss.str();
 }
 
+// TODO(unassigned): though this was originally intended for the kovri utility binary,
+//  we can expand reporting to include remaining POD types of the Address struct
 std::string RouterInfo::Address::GetDescription(const std::string& tabs) const
 {
   std::stringstream ss;
@@ -195,6 +197,7 @@ void RouterInfo::ReadFromBuffer(
   }
 }
 
+// TODO(anonimal): refactor + debug logging
 void RouterInfo::ReadFromStream(
     std::istream& s) {
   s.read(reinterpret_cast<char *>(&m_Timestamp), sizeof(m_Timestamp));
@@ -232,14 +235,24 @@ void RouterInfo::ReadFromStream(
       if (!strcmp(key, "host")) {
         boost::system::error_code ecode;
         address.host = boost::asio::ip::address::from_string(value, ecode);
-        if (ecode) {  // no error
-          if (address.transport_style == eTransportNTCP) {
-            m_SupportedTransports |= eNTCPV4;  // TODO(unassigned): ???
-            address.address_string = value;
-          } else {
-            // TODO(unassigned): resolve address for SSU
-            LOG(warning) << "RouterInfo: unexpected SSU address " << value;
+        if (ecode) {
+          // Unresolved hosts return invalid argument. See TODO below
+          if (ecode != boost::asio::error::invalid_argument) {
+            LOG(error) << "RouterInfo: " << __func__ << ": '" << ecode.message() << "'";
             is_valid_address = false;
+          }
+          switch (address.transport_style) {
+            case eTransportNTCP:
+              // NTCP will (should be) resolved in transports
+              // TODO(unassigned): refactor. Though we will resolve host later, assigning values upon error is simply confusing.
+              m_SupportedTransports |= eNTCPV4;
+              address.address_string = value;
+              break;
+            case eTransportSSU:
+              // TODO(unassigned): implement address resolver for SSU (then break from default case)
+              LOG(warning) << "RouterInfo: unexpected SSU address " << value;
+            default:
+              is_valid_address = false;
           }
         } else {
           // add supported protocol
@@ -284,6 +297,7 @@ void RouterInfo::ReadFromStream(
         }
       }
     }
+    LOG(debug) << address.GetDescription();
     if (is_valid_address)
       m_Addresses.push_back(address);
   }

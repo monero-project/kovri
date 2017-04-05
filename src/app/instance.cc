@@ -176,15 +176,17 @@ void Instance::SetupTunnels() {
           ||tunnel.type == GetConfig().GetAttribute(Key::IRC)) {  // TODO(unassigned): see #9
         if (m_IsReloading) {
           auto client_tunnel = kovri::client::context.GetClientTunnel(tunnel.port);
-          if (client_tunnel && client_tunnel->GetName() != tunnel.name) {
-            // Conflicting port
-            // TODO(unassigned): what if we interchange two client tunnels' ports?
-            // TODO(unassigned): the addresses could differ
-            LOG(error)
-              << "Instance: " << tunnel.name
-              << " will not be updated, conflicting port";
-            continue;
-          }
+          if (client_tunnel && client_tunnel->GetName() != tunnel.name)
+            {
+              // Check for conflicting port done in ParseTunnelsConfig
+              // early deletion of client_tunnel to avoid temp duplicate port bind
+              std::string name = client_tunnel->GetName();
+              LOG(debug) << "ClientContext: Premature delete tunnel " << name;
+              kovri::client::context.RemoveClientTunnels(
+                  [&name](kovri::client::I2PClientTunnel* old_tunnel) {
+                    return name == old_tunnel->GetName();
+                  });
+            }
           kovri::client::context.UpdateClientTunnel(tunnel);
           updated_client_tunnels.push_back(tunnel.name);
           ++client_count;

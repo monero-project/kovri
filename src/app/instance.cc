@@ -165,7 +165,7 @@ void Instance::InitClientContext() {
 
 void Instance::SetupTunnels() {
   // List of tunnels that exist after update
-  std::vector<std::string> updated_tunnels;
+  std::vector<std::string> updated_client_tunnels, updated_server_tunnels;
   // Count number of tunnels
   std::size_t client_count = 0, server_count = 0;
   // Iterate through each section in tunnels config
@@ -186,7 +186,7 @@ void Instance::SetupTunnels() {
             continue;
           }
           kovri::client::context.UpdateClientTunnel(tunnel);
-          updated_tunnels.push_back(tunnel.name);
+          updated_client_tunnels.push_back(tunnel.name);
           ++client_count;
           continue;
         }
@@ -200,7 +200,7 @@ void Instance::SetupTunnels() {
         bool is_http = (tunnel.type == GetConfig().GetAttribute(Key::HTTP));
         if (m_IsReloading) {
           kovri::client::context.UpdateServerTunnel(tunnel, is_http);
-          updated_tunnels.push_back(tunnel.name);
+          updated_server_tunnels.push_back(tunnel.name);
           ++server_count;
           continue;
         }
@@ -220,7 +220,7 @@ void Instance::SetupTunnels() {
   if (m_IsReloading) {
     LOG(info) << "Instance: " << client_count << " client tunnels updated";
     LOG(info) << "Instance: " << server_count << " server tunnels updated";
-    RemoveOldTunnels(updated_tunnels);
+    RemoveOldTunnels(updated_client_tunnels, updated_server_tunnels);
     return;
   }
   LOG(info) << "Instance: " << client_count << " client tunnels created";
@@ -228,20 +228,24 @@ void Instance::SetupTunnels() {
 }
 
 void Instance::RemoveOldTunnels(
-    std::vector<std::string>& updated_tunnels) {
+    const std::vector<std::string>& updated_client_tunnels,
+    const std::vector<std::string>& updated_server_tunnels)
+{
   kovri::client::context.RemoveServerTunnels(
-      [&updated_tunnels](kovri::client::I2PServerTunnel* tunnel) {
+      [&updated_server_tunnels](kovri::client::I2PServerTunnel* tunnel) {
         return std::find(
-            updated_tunnels.begin(),
-            updated_tunnels.end(),
-            tunnel->GetTunnelAttributes().name) == updated_tunnels.end();
+                   updated_server_tunnels.begin(),
+                   updated_server_tunnels.end(),
+                   tunnel->GetTunnelAttributes().name)
+               == updated_server_tunnels.end();
       });
   kovri::client::context.RemoveClientTunnels(
-      [&updated_tunnels](kovri::client::I2PClientTunnel* tunnel) {
+      [&updated_client_tunnels](kovri::client::I2PClientTunnel* tunnel) {
         return std::find(
-            updated_tunnels.begin(),
-            updated_tunnels.end(),
-            tunnel->GetTunnelAttributes().name) == updated_tunnels.end();
+                   updated_client_tunnels.begin(),
+                   updated_client_tunnels.end(),
+                   tunnel->GetTunnelAttributes().name)
+               == updated_client_tunnels.end();
       });
 }
 

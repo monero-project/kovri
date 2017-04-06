@@ -75,13 +75,17 @@ void Configuration::ParseKovriConfig() {
       "host", bpo::value<std::string>()->default_value("127.0.0.1"))(
       "port,p", bpo::value<int>()->default_value(0))(
       "data-dir",
-      bpo::value<std::string>()->default_value(
-          kovri::core::GetDefaultDataPath().string()))(
-      "daemon,d", bpo::value<bool>()->default_value(false))(
+      bpo::value<std::string>()
+          ->default_value(kovri::core::GetDefaultDataPath().string())
+          ->value_name("path"))(
+      "daemon,d", bpo::value<bool>()->default_value(false)->value_name("bool"))(
       "service,s", bpo::value<std::string>()->default_value(""))(
-      "log-to-console", bpo::value<bool>()->default_value(true))(
-      "log-to-file", bpo::value<bool>()->default_value(true))(
-      "log-file-name", bpo::value<std::string>()->default_value(""))(
+      "log-to-console",
+      bpo::value<bool>()->default_value(true)->value_name("bool"))(
+      "log-to-file",
+      bpo::value<bool>()->default_value(true)->value_name("bool"))(
+      "log-file-name",
+      bpo::value<std::string>()->default_value("")->value_name("path"))(
       // TODO(anonimal): use only 1 log file?
       // Log levels
       // 0 = fatal
@@ -90,20 +94,25 @@ void Configuration::ParseKovriConfig() {
       // 3 = info warn error fatal
       // 4 = debug info warn error fatal
       // 5 = trace debug info warn error fatal
-      "log-level", bpo::value<std::uint16_t>()->default_value(3))(
-      "kovriconf,c", bpo::value<std::string>()->default_value(""))(
-      "tunnelsconf,t", bpo::value<std::string>()->default_value(""));
+      "log-level",
+      bpo::value<std::uint16_t>()->default_value(3))(
+      "kovriconf,c",
+      bpo::value<std::string>()->default_value("")->value_name("path"))(
+      "tunnelsconf,t",
+      bpo::value<std::string>()->default_value("")->value_name("path"));
   // This is NOT our default values for port, log-file-name, kovriconf and tunnelsconf
 
   bpo::options_description network("\nnetwork");
   network.add_options()
-    ("v6,6", bpo::value<bool>()->default_value(false))
-    ("floodfill,f", bpo::value<bool>()->default_value(false))
+    ("v6,6", bpo::value<bool>()->default_value(false)->value_name("bool"))
+    ("floodfill,f",
+     bpo::value<bool>()->default_value(false)->value_name("bool"))
     ("bandwidth,b", bpo::value<std::string>()->default_value("L"))
-    ("enable-ssu", bpo::value<bool>()->default_value(true))
-    ("enable-ntcp", bpo::value<bool>()->default_value(true))
+    ("enable-ssu", bpo::value<bool>()->default_value(true)->value_name("bool"))
+    ("enable-ntcp", bpo::value<bool>()->default_value(true)->value_name("bool"))
     ("reseed-from,r", bpo::value<std::string>()->default_value(""))
-    ("reseed-skip-ssl-check", bpo::value<bool>()->default_value(false));
+    ("reseed-skip-ssl-check",
+     bpo::value<bool>()->default_value(false)->value_name("bool"));
 
   bpo::options_description client("\nclient");
   client.add_options()

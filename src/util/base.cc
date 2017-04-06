@@ -48,8 +48,12 @@ BaseCommand::BaseCommand() : m_Desc("General options")
 {
   m_Desc.add_options()("help,h", "produce this help message")(
       "type,t", bpo::value<std::string>(&m_OptType), "encode/decode")(
-      "infile,i", bpo::value<std::string>(&m_OptInfile), "input file")(
-      "outfile,o", bpo::value<std::string>(&m_OptOutfile), "output file");
+      "infile,i",
+      bpo::value<std::string>(&m_OptInfile)->value_name("path"),
+      "input file")(
+      "outfile,o",
+      bpo::value<std::string>(&m_OptOutfile)->value_name("path"),
+      "output file");
 }
 
 void BaseCommand::PrintUsage(const std::string& name) const

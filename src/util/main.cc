@@ -70,9 +70,12 @@ int main(int argc, const char* argv[])
   // See src/app/config.cc for log options
   general_desc.add_options()("help,h", "produce this help message")(
       "all,a", "print all options")(
-      "log-to-console", bpo::value<bool>()->default_value(true))(
-      "log-to-file", bpo::value<bool>()->default_value(false))(
-      "log-file-name", bpo::value<std::string>()->default_value(""))(
+      "log-to-console",
+      bpo::value<bool>()->default_value(true)->value_name("bool"))(
+      "log-to-file",
+      bpo::value<bool>()->default_value(false)->value_name("bool"))(
+      "log-file-name",
+      bpo::value<std::string>()->default_value("")->value_name("path"))(
       "log-level", bpo::value<std::uint16_t>()->default_value(3));
 
   bpo::options_description spec("Specific options");

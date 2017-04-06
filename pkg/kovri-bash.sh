@@ -57,25 +57,31 @@ _parse_kovri_help() {
 #   Completion suggestions
 ########################################
 _kovri() {
-  local cur prev
+  local cur prev type
   _init_completion -n = || return
 
   case "${prev}" in
-    --host|--port|--service|--httpproxyport|--httpproxyaddress|--socksproxyport| \
-    --socksproxyaddress|--i2pcontrolport|--i2pcontroladdress|--i2pcontrolpassword| \
-    --reseed-from)
-      # An argument is required.
-      return
-      ;;
-    --log-to-file|--log-to-console|--floodfill|-f|--enable-ssu|--enable-ntcp| \
-    --daemon)
-      COMPREPLY=($(compgen -W "on off yes no true false 1 0" -- "${cur}"))
-      return
-      ;;
     --log-level)
       COMPREPLY=($(compgen -W "0 1 2 3 4 5" -- "${cur}"))
       return
       ;;
+    -*)
+      type=$(kovri --help | \
+        grep -Poi "^\s*(${prev}|\-\w \[ ${prev} \]|${prev} \[ --\S+ \])\s\K\w+")
+      case "${type}" in
+        path)
+          _filedir
+          return
+          ;;
+        bool)
+          COMPREPLY=($(compgen -W "on off yes no true false 1 0" -- "${cur}"))
+          return
+          ;;
+        arg)
+          # An argument is required.
+          return
+          ;;
+      esac
   esac
 
   # Start parsing the help for option suggestions.

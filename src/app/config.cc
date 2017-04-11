@@ -168,6 +168,14 @@ void Configuration::ParseKovriConfigFile(
     throw std::runtime_error("Could not open " + file + "!\n");
   bpo::store(bpo::parse_config_file(filename, options), var_map);
   bpo::notify(var_map);
+  // Ensure port in valid range
+  if (!m_KovriConfig["port"].defaulted())
+    {
+      int port = m_KovriConfig["port"].as<int>();
+      if ((port < 9111) || (port > 30777))
+        throw std::runtime_error(
+            "Port not in range [9111,30777], see user-guide or config file");
+    }
 }
 
 void Configuration::SetupGlobalPath()

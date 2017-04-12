@@ -38,6 +38,8 @@
 #include <shlobj.h>
 #endif
 
+#include <tuple>
+
 #include "core/router/context.h"
 
 namespace kovri {
@@ -46,6 +48,49 @@ namespace core {
 StringStream::StringStream(const std::string& stream)
 {
   m_Stream.str(stream);
+}
+
+const std::tuple<std::string, std::string, std::size_t>
+StringStream::ReadKeyPair()
+{
+  std::uint16_t read_size(0);  // TODO(anonimal): member for stream read size
+
+  // Read key
+  std::string key(ReadStringFromByte());
+  read_size += key.size();
+
+  // Skip delimiter
+  read_size++;
+  m_Stream.seekg(1, std::ios_base::cur);
+  read_size++;
+
+  // Read value
+  std::string value(ReadStringFromByte());
+  read_size += value.size();
+
+  // Skip terminator
+  read_size++;
+  m_Stream.seekg(1, std::ios_base::cur);
+  read_size++;
+
+  // TODO(anonimal): debug logging; include delimiter/terminator
+
+  return std::make_tuple(key, value, read_size);
+}
+
+const std::string StringStream::ReadStringFromByte()
+{
+  // Get stated length amount
+  std::uint8_t len;
+  m_Stream.read(reinterpret_cast<char*>(&len), 1);
+
+  // Read given amount
+  char buf[len];
+  m_Stream.read(reinterpret_cast<char*>(buf), len);
+
+  // Return as string
+  const std::string string(buf, len);
+  return string;
 }
 
 /// @var g_AppName

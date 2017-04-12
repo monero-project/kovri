@@ -46,6 +46,8 @@
 #include "core/router/identity.h"
 #include "core/router/profiling.h"
 
+#include "core/util/filesystem.h"
+
 namespace kovri {
 namespace core {
 
@@ -425,18 +427,13 @@ class RouterInfo : public RoutingDestination {
 
   void ReadFromFile();
 
-  void ReadFromStream(
-      std::istream& s);
-
   void ReadFromBuffer(
       bool verify_signature);
 
+  void ParseRouterInfo(const std::string& router_info);
+
   void WriteToStream(
       std::ostream& s);
-
-  std::size_t ReadString(
-      char* str,
-      std::istream& s);
 
   void WriteString(
       const std::string& str,

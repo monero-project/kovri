@@ -82,6 +82,15 @@ class StringStream {
     return m_Stream.str();
   }
 
+  // TODO(anonimal): getter/setter for read stream size
+
+  /// @return Tuple of key pair (key/value) + size read of stream
+  // TODO(anonimal): std::pair refactor, use member for read stream size
+  const std::tuple<std::string, std::string, std::size_t> ReadKeyPair();
+
+  /// @return String value of stream amount as described in byte
+  const std::string ReadStringFromByte();
+
  private:
   std::stringstream m_Stream;
 };

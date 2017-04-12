@@ -42,6 +42,7 @@
 #include <sstream>
 #include <string>
 #include <utility>
+
 #include "core/util/log.h"
 
 namespace kovri {
@@ -57,9 +58,10 @@ class StringStream {
   }
 
   template <typename SizeCast = std::size_t, typename Buffer, typename Size>
-  void Read(Buffer& buf, Size&& size) {
+  void Read(Buffer* buf, Size&& size)
+  {
     m_Stream.read(
-        reinterpret_cast<char *>(&buf),
+        reinterpret_cast<char*>(buf),
         static_cast<SizeCast>(std::forward<Size>(size)));
   }
 

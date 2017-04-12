@@ -53,9 +53,7 @@ namespace core {
 /// @param String to be treated as stream
 class StringStream {
  public:
-  StringStream(const std::string& stream) {
-    m_Stream.str(stream);
-  }
+  StringStream(const std::string& stream);
 
   template <typename SizeCast = std::size_t, typename Buffer, typename Size>
   void Read(Buffer* buf, Size&& size)

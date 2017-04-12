@@ -43,6 +43,11 @@
 namespace kovri {
 namespace core {
 
+StringStream::StringStream(const std::string& stream)
+{
+  m_Stream.str(stream);
+}
+
 /// @var g_AppName
 /// @brief Global name for data directory on all platforms
 std::string g_AppName("kovri");

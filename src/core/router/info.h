@@ -86,6 +86,7 @@ class RouterInfo : public RoutingDestination {
     eUnreachable = 0x80
   };
 
+  // TODO(anonimal): refactor
   enum TransportStyle {
     eTransportUnknown = 0,
     eTransportNTCP,
@@ -108,9 +109,9 @@ class RouterInfo : public RoutingDestination {
     TransportStyle transport_style;
     boost::asio::ip::address host;
     std::string address_string;
-    int port, mtu;
-    std::uint64_t date;
-    std::uint8_t cost;
+    int port{}, mtu{};
+    std::uint64_t date{};
+    std::uint8_t cost{};
     // SSU only
     Tag<32> key;  // intro key for SSU
     std::vector<Introducer> introducers;
@@ -119,6 +120,7 @@ class RouterInfo : public RoutingDestination {
       return (host.is_v4() && other.is_v4()) ||
         (host.is_v6() && other.is_v6());
     }
+
     /// @brief Human readable description of this struct
     /// @param prefix for tabulations
     /// @returns human readable string

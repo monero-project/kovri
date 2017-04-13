@@ -38,10 +38,12 @@
 #include <string.h>
 
 #include <fstream>
+#include <tuple>
 
 #include "core/router/context.h"
 
 #include "core/util/base64.h"
+#include "core/util/filesystem.h"
 #include "core/util/i2p_endian.h"
 #include "core/util/log.h"
 #include "core/util/timestamp.h"
@@ -61,6 +63,8 @@ std::string RouterInfo::Introducer::GetDescription(
   return ss.str();
 }
 
+// TODO(unassigned): though this was originally intended for the kovri utility binary,
+//  we can expand reporting to include remaining POD types of the Address struct
 std::string RouterInfo::Address::GetDescription(const std::string& tabs) const
 {
   std::stringstream ss;
@@ -176,11 +180,10 @@ void RouterInfo::ReadFromFile() {
 void RouterInfo::ReadFromBuffer(
     bool verify_signature) {
   std::size_t identity_len = m_RouterIdentity.FromBuffer(m_Buffer.get(), m_BufferLen);
-  std::stringstream str(
-      std::string(
+  std::string str(
         reinterpret_cast<char *>(m_Buffer.get()) + identity_len,
-        m_BufferLen - identity_len));
-  ReadFromStream(str);
+        m_BufferLen - identity_len);
+  ParseRouterInfo(str);
   if (verify_signature) {
     // verify signature
     int len = m_BufferLen - m_RouterIdentity.GetSignatureLen();
@@ -195,130 +198,231 @@ void RouterInfo::ReadFromBuffer(
   }
 }
 
-void RouterInfo::ReadFromStream(
-    std::istream& s) {
-  s.read(reinterpret_cast<char *>(&m_Timestamp), sizeof(m_Timestamp));
+// TODO(anonimal): unit-test
+// TODO(anonimal): we could possibly implement by tokenizing the string but this could be more work (i.e., when reading string from byte) or overhead than needed
+void RouterInfo::ParseRouterInfo(const std::string& router_info)
+{
+  LOG(debug) << "RouterInfo: parsing";
+
+  // Create RI stream
+  core::StringStream stream(router_info);
+
+  // For key/value pair
+  std::string key, value;
+
+  // RI sizes
+  std::uint16_t read_size{}, given_size{}, remaining_size{};
+
+  // Does RI have introducers
+  bool has_introducers = false;
+
+  // Get timestamp
+  stream.Read(&m_Timestamp, sizeof(m_Timestamp));
   m_Timestamp = be64toh(m_Timestamp);
-  // read addresses
+  LOG(debug) << "RouterInfo: timestamp = " << m_Timestamp;
+
+  // Get number of IP addresses
   std::uint8_t num_addresses;
-  s.read(reinterpret_cast<char *>(&num_addresses), sizeof(num_addresses));
-  bool introducers = false;
-  for (int i = 0; i < num_addresses; i++) {
-    bool is_valid_address = true;
-    Address address;
-    s.read(reinterpret_cast<char *>(&address.cost), sizeof(address.cost));
-    s.read(reinterpret_cast<char *>(&address.date), sizeof(address.date));
-    char transport_style[5];
-    ReadString(transport_style, s);
-    if (!strcmp(transport_style, "NTCP"))
-      address.transport_style = eTransportNTCP;
-    else if (!strcmp(transport_style, "SSU"))
-      address.transport_style = eTransportSSU;
-    else
-      address.transport_style = eTransportUnknown;
-    address.port = 0;
-    address.mtu = 0;
-    std::uint16_t size, r = 0;
-    s.read(reinterpret_cast<char *>(&size), sizeof(size));
-    size = be16toh(size);
-    while (r < size) {
-      char key[500], value[500];
-      r += ReadString(key, s);
-      s.seekg(1, std::ios_base::cur);
-      r++;  // =
-      r += ReadString(value, s);
-      s.seekg(1, std::ios_base::cur);
-      r++;  // ;
-      if (!strcmp(key, "host")) {
-        boost::system::error_code ecode;
-        address.host = boost::asio::ip::address::from_string(value, ecode);
-        if (ecode) {  // no error
-          if (address.transport_style == eTransportNTCP) {
-            m_SupportedTransports |= eNTCPV4;  // TODO(unassigned): ???
-            address.address_string = value;
-          } else {
-            // TODO(unassigned): resolve address for SSU
-            LOG(warning) << "RouterInfo: unexpected SSU address " << value;
-            is_valid_address = false;
-          }
-        } else {
-          // add supported protocol
-          if (address.host.is_v4())
-            m_SupportedTransports |=
-              (address.transport_style == eTransportNTCP) ? eNTCPV4 : eSSUV4;
-          else
-            m_SupportedTransports |=
-              (address.transport_style == eTransportNTCP) ? eNTCPV6 : eSSUV6;
+  stream.Read(&num_addresses, sizeof(num_addresses));
+  LOG(debug) << "RouterInfo: number of addresses = "
+             << static_cast<std::size_t>(num_addresses);
+
+  // Process given addresses
+  for (std::size_t i = 0; i < num_addresses; i++)
+    {
+      Address address;
+      bool is_valid_address = true;
+
+      // Read cost + data
+      stream.Read(&address.cost, sizeof(address.cost));
+      stream.Read(&address.date, sizeof(address.date));
+
+      // Read/set transport
+      std::string transport(stream.ReadStringFromByte());
+      switch (GetTrait(transport))
+        {
+          case Trait::NTCP:
+            address.transport_style = eTransportNTCP;
+            break;
+          case Trait::SSU:
+            address.transport_style = eTransportSSU;
+            break;
+          default:
+            address.transport_style = eTransportUnknown;
+            break;
         }
-      } else if (!strcmp(key, "port")) {
-        address.port = boost::lexical_cast<int>(value);
-      } else if (!strcmp(key, "mtu")) {
-        address.mtu = boost::lexical_cast<int>(value);
-      } else if (!strcmp(key, "key")) {
-        kovri::core::Base64ToByteStream(value, strlen(value), address.key, 32);
-      } else if (!strcmp(key, "caps")) {
-        ExtractCaps(value);
-      } else if (key[0] == 'i') {
-        // introducers
-        introducers = true;
-        std::size_t len = strlen(key);
-        unsigned char index = key[len - 1] - '0';  // TODO(unassigned): ???
-        key[len - 1] = 0;
-        if (index >= address.introducers.size())
-          address.introducers.resize(index + 1);
-        Introducer& introducer = address.introducers.at(index);
-        if (!strcmp(key, "ihost")) {
-          boost::system::error_code ecode;
-          introducer.host =
-            boost::asio::ip::address::from_string(value, ecode);
-        } else if (!strcmp(key, "iport")) {
-          introducer.port = boost::lexical_cast<int>(value);
-        } else if (!strcmp(key, "itag")) {
-          introducer.tag = boost::lexical_cast<std::uint32_t>(value);
-        } else if (!strcmp(key, "ikey")) {
-          kovri::core::Base64ToByteStream(
-              value,
-              strlen(value),
-              introducer.key,
-              32);
+
+      // Get the given size of remaining chunk
+      stream.Read(&given_size, sizeof(given_size));
+      given_size = be16toh(given_size);
+
+      // Reset remaining size
+      remaining_size = 0;
+      while (remaining_size < given_size)
+        {
+          // Get key/value pair
+          // TODO(anonimal): consider member for stream size read, replace tuple with pair
+          std::tie(key, value, read_size) = stream.ReadKeyPair();
+          remaining_size += read_size;
+
+          // Get key / set members
+          switch (GetTrait(key))
+            {
+              case Trait::Host:
+                {
+                  // Process host and transport
+                  // TODO(unassigned): we process transport so we can resolve host. This seems like a hack.
+                  boost::system::error_code ecode;
+                  address.host =
+                      boost::asio::ip::address::from_string(value, ecode);
+                  if (ecode)
+                    {
+                      // Unresolved hosts return invalid argument. See TODO below
+                      if (ecode != boost::asio::error::invalid_argument)
+                        {
+                          is_valid_address = false;
+                          LOG(error) << "RouterInfo: " << __func__ << ": '"
+                                     << ecode.message() << "'";
+                        }
+                      // Prepare for host resolution
+                      switch (address.transport_style)
+                        {
+                          case eTransportNTCP:
+                            // NTCP will (should be) resolved in transports
+                            // TODO(unassigned): refactor. Though we will resolve host later, assigning values upon error is simply confusing.
+                            m_SupportedTransports |= eNTCPV4;
+                            address.address_string = value;
+                            break;
+                          case eTransportSSU:
+                            // TODO(unassigned): implement address resolver for SSU (then break from default case)
+                            LOG(warning)
+                                << "RouterInfo: unexpected SSU address "
+                                << value;
+                          default:
+                            is_valid_address = false;
+                        }
+                      break;
+                    }
+                  // add supported protocol
+                  if (address.host.is_v4())
+                    m_SupportedTransports |=
+                        (address.transport_style == eTransportNTCP) ? eNTCPV4
+                                                                    : eSSUV4;
+                  else
+                    m_SupportedTransports |=
+                        (address.transport_style == eTransportNTCP) ? eNTCPV6
+                                                                    : eSSUV6;
+                  break;
+                }
+              case Trait::Port:
+                address.port = boost::lexical_cast<int>(value);
+                break;
+              case Trait::MTU:
+                address.mtu = boost::lexical_cast<int>(value);
+                break;
+              case Trait::Key:
+                kovri::core::Base64ToByteStream(
+                    value.c_str(), value.size(), address.key, 32);
+                break;
+              case Trait::Caps:
+                ExtractCaps(value.c_str());
+                break;
+              default:
+                // Test for introducers
+                // TODO(unassigned): this is faster than a regexp, let's try to do this better though
+                if (key.front() == GetTrait(Trait::IntroHost).front())
+                  {
+                    has_introducers = true;
+
+                    // Because of multiple introducers, get/set the introducer number
+                    // TODO(unassigned): let's not implement like this, nor do this here
+                    unsigned char index = key[key.size() - 1] - '0';
+                    if (index >= address.introducers.size())
+                      address.introducers.resize(index + 1);
+                    Introducer& introducer = address.introducers.at(index);
+
+                    // Drop number count from introducer key trait
+                    key.pop_back();
+
+                    // Set introducer members
+                    switch (GetTrait(key))
+                      {
+                        case Trait::IntroHost:
+                          {
+                            // TODO(unassigned): error handling
+                            boost::system::error_code ecode;
+                            introducer.host =
+                                boost::asio::ip::address::from_string(
+                                    value, ecode);
+                          }
+                          break;
+                        case Trait::IntroPort:
+                          introducer.port = boost::lexical_cast<int>(value);
+                          break;
+                        case Trait::IntroTag:
+                          introducer.tag =
+                              boost::lexical_cast<std::uint32_t>(value);
+                          break;
+                        case Trait::IntroKey:
+                          kovri::core::Base64ToByteStream(
+                              value.c_str(), value.size(), introducer.key, 32);
+                          break;
+                        default:
+                          LOG(error) << "RouterInfo: invalid introducer trait";
+                          is_valid_address = false;
+                          break;
+                      }
+                  }
+                // TODO(anonimal): review/finish. We do not process/handle all possible RI entries
+                break;
+            }
         }
-      }
+
+      // Log RI details, save valid addresses
+      LOG(debug) << address.GetDescription();
+      if (is_valid_address)
+        m_Addresses.push_back(address);
     }
-    if (is_valid_address)
-      m_Addresses.push_back(address);
-  }
-  // read peers
+
+  // Read peers
+  // TODO(unassigned): handle peers
   std::uint8_t num_peers;
-  s.read(reinterpret_cast<char *>(&num_peers), sizeof(num_peers));
-  s.seekg(num_peers*32, std::ios_base::cur);  // TODO(unassigned): read peers
-  // read properties
-  std::uint16_t size, r = 0;
-  s.read(reinterpret_cast<char *>(&size), sizeof(size));
-  size = be16toh(size);
-  while (r < size) {
-#ifdef _WIN32
-    char key[500], value[500];
-    // TODO(unassigned): investigate why properties get read as one
-    // long string under Windows. Length should not be more than 44.
-#else
-    char key[50], value[50];
-#endif
-    r += ReadString(key, s);
-    s.seekg(1, std::ios_base::cur);
-    r++;  // =
-    r += ReadString(value, s);
-    s.seekg(1, std::ios_base::cur);
-    r++;  // ;
-    m_Properties[key] = value;
-    // extract caps
-    if (!strcmp(key, "caps"))
-      ExtractCaps(value);
-  }
-  if (!m_SupportedTransports || !m_Addresses.size() ||
-      (UsesIntroducer() && !introducers))
-    SetUnreachable(true);
+  stream.Read(&num_peers, sizeof(num_peers));
+  stream.Seekg(num_peers * 32, std::ios_base::cur);
+
+  // Read remaining properties
+  stream.Read(&given_size, sizeof(given_size));
+  given_size = be16toh(given_size);
+
+  // Reset remaining size
+  remaining_size = 0;
+  while (remaining_size < given_size)
+    {
+      // Get key/value pair
+      // TODO(anonimal): consider member for stream size read, replace tuple with pair
+      std::tie(key, value, read_size) = stream.ReadKeyPair();
+      remaining_size += read_size;
+
+      // Set property
+      SetProperty(key, value);
+
+      // Set capabilities
+      // TODO(anonimal): review setter implementation
+      if (key == GetTrait(Trait::Caps))
+        ExtractCaps(value.c_str());
+    }
+
+  // Router *should* be unreachable
+  if (!m_SupportedTransports || !m_Addresses.size()
+      || (UsesIntroducer() && !has_introducers))
+    {
+      LOG(error) << "RouterInfo: " << __func__ << ": router is unreachable";
+      // TODO(anonimal): ensure this doesn't add router info to NetDb
+      SetUnreachable(true);
+    }
 }
 
+// TODO(anonimal): rename as setter
 void RouterInfo::ExtractCaps(
     const char* value) {
   const char* cap = value;
@@ -540,16 +644,6 @@ void RouterInfo::SaveToFile(
   }
 }
 
-std::size_t RouterInfo::ReadString(
-    char* str,
-    std::istream& s) {
-  std::uint8_t len;
-  s.read(reinterpret_cast<char *>(&len), 1);
-  s.read(str, len);
-  str[len] = 0;
-  return len+1;
-}
-
 void RouterInfo::WriteString(
     const std::string& str,
     std::ostream& s) {
@@ -635,6 +729,7 @@ void RouterInfo::SetCaps(
   UpdateCapsProperty();
 }
 
+// TODO(anonimal): refactor this setter, it should be simpler
 void RouterInfo::SetCaps(
     const char* caps) {
   SetProperty("caps", caps);

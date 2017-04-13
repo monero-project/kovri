@@ -60,7 +60,7 @@ bool ZIP::Unzip() {
     // Process local files, one after another
     while (!m_Stream.EndOfFile()) {
       // Validate local file's header signature
-      m_Stream.Read(m_Data->header_signature, Size::header_signature);
+      m_Stream.Read(&m_Data->header_signature, Size::header_signature);
       m_Data->header_signature = le32toh(m_Data->header_signature);
       if (m_Data->header_signature ==
           static_cast<std::size_t>(Signature::header)) {
@@ -99,29 +99,29 @@ bool ZIP::PrepareLocalFile() {
     // Skip version needed to extract
     m_Stream.Seekg(Offset::version, std::ios::cur);
     // Prepare bit flag
-    m_Stream.Read(m_Data->bit_flag, Size::bit_flag);
+    m_Stream.Read(&m_Data->bit_flag, Size::bit_flag);
     m_Data->bit_flag = le16toh(m_Data->bit_flag);
     // Prepare compression method (sanity test done later)
-    m_Stream.Read(m_Data->compression_method, Size::compression_method);
+    m_Stream.Read(&m_Data->compression_method, Size::compression_method);
     m_Data->compression_method = le16toh(m_Data->compression_method);
     // Unused offset
     m_Stream.Seekg(Offset::last_mod, std::ios::cur);
     // Get CRC-32 checksum
-    m_Stream.Read(*m_Data->crc_32.data(), Size::crc_32);
+    m_Stream.Read(m_Data->crc_32.data(), Size::crc_32);
     if (!m_Data->crc_32.data()) {
       LOG(warning) << "ZIP: CRC-32 checksum was null";
       return false;
     }
     // Prepare compressed file size
-    m_Stream.Read(m_Data->compressed_size, Size::compressed_size);
+    m_Stream.Read(&m_Data->compressed_size, Size::compressed_size);
     m_Data->compressed_size = le32toh(m_Data->compressed_size);
     if (!m_Data->compressed_size)
       LOG(warning) << "ZIP: compressed file size was null";
     // Prepare uncompressed file size
-    m_Stream.Read(m_Data->uncompressed_size, Size::uncompressed_size);
+    m_Stream.Read(&m_Data->uncompressed_size, Size::uncompressed_size);
     m_Data->uncompressed_size = le32toh(m_Data->uncompressed_size);
     // Prepare local filename length
-    m_Stream.Read(m_Data->local_filename_length, Size::local_filename_length);
+    m_Stream.Read(&m_Data->local_filename_length, Size::local_filename_length);
     m_Data->local_filename_length = le16toh(m_Data->local_filename_length);
     // If we expand ZIP beyond SU3, we'll have to remove this check
     if ((m_Data->local_filename_length !=
@@ -132,13 +132,13 @@ bool ZIP::PrepareLocalFile() {
       return false;
     }
     // Prepare extra field length
-    m_Stream.Read(m_Data->extra_field_length, Size::extra_field_length);
+    m_Stream.Read(&m_Data->extra_field_length, Size::extra_field_length);
     m_Data->extra_field_length = le16toh(m_Data->extra_field_length);
     // Get local filename
     // TODO(unassigned): we don't check if filename is base64 standard
     // ex., 'routerInfo-asdfj23kjf2lk3nfnakjlsnfjklsdnfln23f.dat' (as defined in SU3 spec).
     // If we don't extend ZIP beyond SU3, we may wish to enforce a regex check.
-    m_Stream.Read(*m_Data->local_filename.data(), m_Data->local_filename_length);
+    m_Stream.Read(m_Data->local_filename.data(), m_Data->local_filename_length);
     // Skip extra field
     m_Stream.Seekg(m_Data->extra_field_length, std::ios::cur);
     // Verify if data descriptor is present
@@ -148,9 +148,9 @@ bool ZIP::PrepareLocalFile() {
         LOG(error) << "ZIP: archive data descriptor not found";
         return false;
       }
-      m_Stream.Read(*m_Data->crc_32.data(), Size::crc_32);
-      m_Stream.Read(m_Data->compressed_size, Size::compressed_size);
-      m_Stream.Read(m_Data->uncompressed_size, Size::uncompressed_size);
+      m_Stream.Read(m_Data->crc_32.data(), Size::crc_32);
+      m_Stream.Read(&m_Data->compressed_size, Size::compressed_size);
+      m_Stream.Read(&m_Data->uncompressed_size, Size::uncompressed_size);
       // We consider the signature as part of compressed data
       m_Data->compressed_size +=
         static_cast<std::size_t>(Size::header_signature);
@@ -169,7 +169,7 @@ bool ZIP::FindDataDescriptor() {
   std::size_t next_ind = 0;
   while (!m_Stream.EndOfFile()) {
     std::uint8_t next_byte;
-    m_Stream.Read(next_byte, 1);
+    m_Stream.Read(&next_byte, 1);
     if (next_byte == Descriptor.signature.at(next_ind)) {
       next_ind++;
       if (next_ind >= Descriptor.signature.size())
@@ -189,7 +189,7 @@ bool ZIP::DecompressLocalFile() {
     // Resize for next file
     m_Data->compressed.resize(m_Data->compressed_size);
     // Read in compressed data
-    m_Stream.Read(*m_Data->compressed.data(), m_Data->compressed.size());
+    m_Stream.Read(m_Data->compressed.data(), m_Data->compressed.size());
     switch (m_Data->compression_method) {
       case static_cast<std::size_t>(Method::deflate): {
         LOG(debug) << "ZIP: file uses compression method 'deflate'";

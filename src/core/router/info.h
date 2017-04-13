@@ -46,6 +46,8 @@
 #include "core/router/identity.h"
 #include "core/router/profiling.h"
 
+#include "core/util/filesystem.h"
+
 namespace kovri {
 namespace core {
 
@@ -86,6 +88,7 @@ class RouterInfo : public RoutingDestination {
     eUnreachable = 0x80
   };
 
+  // TODO(anonimal): refactor
   enum TransportStyle {
     eTransportUnknown = 0,
     eTransportNTCP,
@@ -108,9 +111,9 @@ class RouterInfo : public RoutingDestination {
     TransportStyle transport_style;
     boost::asio::ip::address host;
     std::string address_string;
-    int port, mtu;
-    std::uint64_t date;
-    std::uint8_t cost;
+    int port{}, mtu{};
+    std::uint64_t date{};
+    std::uint8_t cost{};
     // SSU only
     Tag<32> key;  // intro key for SSU
     std::vector<Introducer> introducers;
@@ -125,6 +128,106 @@ class RouterInfo : public RoutingDestination {
     /// @returns human readable string
     std::string GetDescription(const std::string& tabs = std::string()) const;
   };
+
+  /// @enum Trait
+  /// @brief RI traits
+  enum struct Trait : std::uint8_t
+  {
+    NTCP,
+    SSU,
+    Host,
+    Port,
+    MTU,
+    Key,
+    Caps,
+    // Introducer
+    IntroHost,
+    IntroPort,
+    IntroTag,
+    IntroKey,
+    // Demarcation
+    Delimiter,
+    Terminator,
+    // Unknown trait
+    Unknown,
+  };
+
+  /// @return String value of given enumerated RI trait
+  /// @param trait key used for RI trait string value
+  const std::string GetTrait(Trait trait) const noexcept
+  {
+    switch (trait)
+      {
+        case Trait::NTCP:
+          return "NTCP";
+        case Trait::SSU:
+          return "SSU";
+        case Trait::Host:
+          return "host";
+        case Trait::Port:
+          return "port";
+        case Trait::MTU:
+          return "mtu";
+        case Trait::Key:
+          return "key";
+        case Trait::Caps:
+          return "caps";
+        // Introducer
+        case Trait::IntroHost:
+          return "ihost";
+        case Trait::IntroPort:
+          return "iport";
+        case Trait::IntroTag:
+          return "itag";
+        case Trait::IntroKey:
+          return "ikey";
+        // Demarcation
+        case Trait::Delimiter:
+          return "=";
+        case Trait::Terminator:
+          return ";";
+        case Trait::Unknown:  // TODO(anonimal): review
+        default:
+          return "";
+      }
+  }
+
+  /// @return Enumerated key trait
+  /// @param value String value of potential trait given
+  Trait GetTrait(const std::string& value) const noexcept
+  {
+    if (value == GetTrait(Trait::NTCP))
+      return Trait::NTCP;
+    else if (value == GetTrait(Trait::SSU))
+      return Trait::SSU;
+    else if (value == GetTrait(Trait::Host))
+      return Trait::Host;
+    else if (value == GetTrait(Trait::Port))
+      return Trait::Port;
+    else if (value == GetTrait(Trait::MTU))
+      return Trait::MTU;
+    else if (value == GetTrait(Trait::Key))
+      return Trait::Key;
+    else if (value == GetTrait(Trait::Caps))
+      return Trait::Caps;
+    // Introducer
+    else if (value == GetTrait(Trait::IntroHost))
+      return Trait::IntroHost;
+    else if (value == GetTrait(Trait::IntroPort))
+      return Trait::IntroPort;
+    else if (value == GetTrait(Trait::IntroTag))
+      return Trait::IntroTag;
+    else if (value == GetTrait(Trait::IntroKey))
+      return Trait::IntroKey;
+    // Demarcation
+    else if (value == GetTrait(Trait::Delimiter))
+      return Trait::Delimiter;
+    else if (value == GetTrait(Trait::Terminator))
+      return Trait::Terminator;
+    // Unknown
+    else
+      return Trait::Unknown;  // TODO(anonimal): review
+  }
 
   RouterInfo();
 
@@ -324,18 +427,13 @@ class RouterInfo : public RoutingDestination {
 
   void ReadFromFile();
 
-  void ReadFromStream(
-      std::istream& s);
-
   void ReadFromBuffer(
       bool verify_signature);
 
+  void ParseRouterInfo(const std::string& router_info);
+
   void WriteToStream(
       std::ostream& s);
-
-  std::size_t ReadString(
-      char* str,
-      std::istream& s);
 
   void WriteString(
       const std::string& str,

@@ -264,7 +264,7 @@ bool SU3::SU3Impl() {
 bool SU3::PrepareStream() {
   try {
     // Validate stream as an SU3
-    m_Stream.Read(*m_Data->magic_number.data(), Size::magic_number);
+    m_Stream.Read(m_Data->magic_number.data(), Size::magic_number);
     if (m_Data->magic_number.data() != m_MagicValue) {
       LOG(error) << "SU3: invalid magic value";
       return false;
@@ -272,14 +272,14 @@ bool SU3::PrepareStream() {
     // File format version offset (spec defines it as 0, so we don't need it)
     m_Stream.Seekg(Offset::version, std::ios::cur);
     // Prepare signature type
-    m_Stream.Read(m_Data->signature_type, Size::signature_type);
+    m_Stream.Read(&m_Data->signature_type, Size::signature_type);
     m_Data->signature_type = be16toh(m_Data->signature_type);
     if (m_Data->signature_type != kovri::core::SIGNING_KEY_TYPE_RSA_SHA512_4096) {  // Temporary (see #160)
       LOG(error) << "SU3: signature type not supported";
       return false;
     }
     // Prepare signature length
-    m_Stream.Read(m_Data->signature_length, Size::signature_length);
+    m_Stream.Read(&m_Data->signature_length, Size::signature_length);
     m_Data->signature_length = be16toh(m_Data->signature_length);
     if (m_Data->signature_length != sizeof(kovri::core::PublicKey)) {  // Temporary (see #160)
       LOG(error) << "SU3: invalid signature length";
@@ -288,7 +288,7 @@ bool SU3::PrepareStream() {
     // Unused offset
     m_Stream.Seekg(Offset::unused, std::ios::cur);
     // Get version length
-    m_Stream.Read(m_Data->version_length, Size::version_length);
+    m_Stream.Read(&m_Data->version_length, Size::version_length);
     if (m_Data->version_length <
         static_cast<std::size_t>(Size::minimal_version)) {
       LOG(error) << "SU3: version length too short";
@@ -297,13 +297,13 @@ bool SU3::PrepareStream() {
     // Unused offset
     m_Stream.Seekg(Offset::unused, std::ios::cur);
     // Get signer ID length
-    m_Stream.Read(m_Data->signer_id_length, Size::signer_id_length);
+    m_Stream.Read(&m_Data->signer_id_length, Size::signer_id_length);
     if (!m_Data->signer_id_length) {
       LOG(error) << "SU3: invalid signer ID length";
       return false;
     }
     // Prepare content length
-    m_Stream.Read(m_Data->content_length, Size::content_length);
+    m_Stream.Read(&m_Data->content_length, Size::content_length);
     m_Data->content_length = be64toh(m_Data->content_length);
     if (!m_Data->content_length) {
       LOG(error) << "SU3: invalid content length";
@@ -312,7 +312,7 @@ bool SU3::PrepareStream() {
     // Unused offset
     m_Stream.Seekg(Offset::unused, std::ios::cur);
     // Get file type that contains non-su3 data
-    m_Stream.Read(m_Data->file_type, Size::file_type);
+    m_Stream.Read(&m_Data->file_type, Size::file_type);
     switch (m_Data->file_type) {
       case static_cast<std::size_t>(FileType::zip_file):
         break;
@@ -334,7 +334,7 @@ bool SU3::PrepareStream() {
     // Unused offset
     m_Stream.Seekg(Offset::unused, std::ios::cur);
     // Get content type that contains the RI's
-    m_Stream.Read(m_Data->content_type, Size::content_type);
+    m_Stream.Read(&m_Data->content_type, Size::content_type);
     switch (m_Data->content_type) {
       case static_cast<std::size_t>(ContentType::unknown):
         break;
@@ -359,9 +359,9 @@ bool SU3::PrepareStream() {
     // Unused offset
     m_Stream.Seekg(static_cast<std::size_t>(Offset::unused) * 12, std::ios::cur);
     // SU3 version (we *could* test against this if we want)
-    m_Stream.Read(*m_Data->version.data(), m_Data->version_length);
+    m_Stream.Read(m_Data->version.data(), m_Data->version_length);
     // Get signer ID
-    m_Stream.Read(*m_Data->signer_id.data(), m_Data->signer_id_length);
+    m_Stream.Read(m_Data->signer_id.data(), m_Data->signer_id_length);
     // Currently enforces signer ID as an email address (not spec-defined)
     // Note: do not rely on [a-z] to catch all letters as it will fail on some locales
     const std::string alpha = "abcdefghijklmnopqrstuvwxyz";
@@ -378,8 +378,8 @@ bool SU3::PrepareStream() {
     m_Data->signature.resize(m_Data->signature_length);
     // Read in content and signature for verification against signer ID
     m_Stream.Seekg(0, std::ios::beg);
-    m_Stream.Read(*m_Data->content.data(), m_Data->content.size());
-    m_Stream.Read(*m_Data->signature.data(), m_Data->signature.size());
+    m_Stream.Read(m_Data->content.data(), m_Data->content.size());
+    m_Stream.Read(m_Data->signature.data(), m_Data->signature.size());
     // Go back to prepare for RI extraction
     m_Stream.Seekg(m_Data->signature_position, std::ios::beg);
     // Our content position is the same as signature position

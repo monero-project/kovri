@@ -42,6 +42,7 @@
 #include <sstream>
 #include <string>
 #include <utility>
+
 #include "core/util/log.h"
 
 namespace kovri {
@@ -52,14 +53,13 @@ namespace core {
 /// @param String to be treated as stream
 class StringStream {
  public:
-  StringStream(const std::string& stream) {
-    m_Stream.str(stream);
-  }
+  StringStream(const std::string& stream);
 
   template <typename SizeCast = std::size_t, typename Buffer, typename Size>
-  void Read(Buffer& buf, Size&& size) {
+  void Read(Buffer* buf, Size&& size)
+  {
     m_Stream.read(
-        reinterpret_cast<char *>(&buf),
+        reinterpret_cast<char*>(buf),
         static_cast<SizeCast>(std::forward<Size>(size)));
   }
 
@@ -81,6 +81,15 @@ class StringStream {
   std::string Str() const {
     return m_Stream.str();
   }
+
+  // TODO(anonimal): getter/setter for read stream size
+
+  /// @return Tuple of key pair (key/value) + size read of stream
+  // TODO(anonimal): std::pair refactor, use member for read stream size
+  const std::tuple<std::string, std::string, std::size_t> ReadKeyPair();
+
+  /// @return String value of stream amount as described in byte
+  const std::string ReadStringFromByte();
 
  private:
   std::stringstream m_Stream;

@@ -303,7 +303,7 @@ class RouterContext : public kovri::core::GarlicDestination {
   void UpdateRouterInfo();
   bool Load();
   void SaveKeys();
-  void RemoveTransport(kovri::core::RouterInfo::TransportStyle transport);
+  void RemoveTransport(core::RouterInfo::Transport transport);
 
  private:
   kovri::core::RouterInfo m_RouterInfo;

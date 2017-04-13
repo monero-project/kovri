@@ -182,7 +182,7 @@ void Transports::Start() {
   for (const auto& address : addresses) {
     LOG(debug) << "Transports: creating servers for address " << address.host;
     if (address.transport_style ==
-        kovri::core::RouterInfo::eTransportNTCP && address.host.is_v4()) {
+        core::RouterInfo::Transport::NTCP && address.host.is_v4()) {
       if (!m_NTCPServer) {
         LOG(debug) << "Transports: TCP listening on port " << address.port;
         m_NTCPServer = std::make_unique<NTCPServer>(m_Service, address.port);
@@ -192,7 +192,7 @@ void Transports::Start() {
       }
     }
     if (address.transport_style ==
-        kovri::core::RouterInfo::eTransportSSU && address.host.is_v4()) {
+        core::RouterInfo::Transport::SSU && address.host.is_v4()) {
       if (!m_SSUServer) {
         LOG(debug) << "Transports: UDP listening on port " << address.port;
         m_SSUServer = std::make_unique<SSUServer>(m_Service, address.port);

@@ -904,7 +904,7 @@ std::shared_ptr<const RouterInfo> NetDb::GetHighBandwidthRandomRouter(
       return !router->IsHidden() &&
       router != compatible_with &&
       router->IsCompatible(*compatible_with) &&
-      (router->GetCaps() & RouterInfo::eHighBandwidth);
+      (router->GetCaps() & RouterInfo::Caps::HighBandwidth);
     });
 }
 

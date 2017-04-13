@@ -88,9 +88,9 @@ void RouterContext::NewRouterInfo() {
   routerInfo.AddSSUAddress(m_Host, m_Port, routerInfo.GetIdentHash());
   routerInfo.AddNTCPAddress(m_Host, m_Port);
   routerInfo.SetCaps(
-    kovri::core::RouterInfo::eReachable |
-    kovri::core::RouterInfo::eSSUTesting |
-    kovri::core::RouterInfo::eSSUIntroducer);
+    core::RouterInfo::Caps::Reachable |
+    core::RouterInfo::Caps::SSUTesting |
+    core::RouterInfo::Caps::SSUIntroducer);
   routerInfo.SetProperty("netId", I2P_NETWORK_ID);
   routerInfo.SetProperty("router.version", I2P_VERSION);
   routerInfo.CreateBuffer(m_Keys);
@@ -156,10 +156,10 @@ void RouterContext::SetFloodfill(
   m_IsFloodfill = floodfill;
   if (floodfill) {
     m_RouterInfo.SetCaps(
-        m_RouterInfo.GetCaps() | kovri::core::RouterInfo::eFloodfill);
+        m_RouterInfo.GetCaps() | core::RouterInfo::Caps::Floodfill);
   } else {
     m_RouterInfo.SetCaps(
-        m_RouterInfo.GetCaps() & ~kovri::core::RouterInfo::eFloodfill);
+        m_RouterInfo.GetCaps() & ~core::RouterInfo::Caps::Floodfill);
     // we don't publish number of routers and leaseset for non-floodfill
     m_RouterInfo.DeleteProperty(ROUTER_INFO_PROPERTY_LEASESETS);
     m_RouterInfo.DeleteProperty(ROUTER_INFO_PROPERTY_ROUTERS);
@@ -170,7 +170,7 @@ void RouterContext::SetFloodfill(
 void RouterContext::SetHighBandwidth() {
   if (!m_RouterInfo.IsHighBandwidth()) {
     m_RouterInfo.SetCaps(
-        m_RouterInfo.GetCaps() | kovri::core::RouterInfo::eHighBandwidth);
+        m_RouterInfo.GetCaps() | core::RouterInfo::Caps::HighBandwidth);
     UpdateRouterInfo();
   }
 }
@@ -178,21 +178,21 @@ void RouterContext::SetHighBandwidth() {
 void RouterContext::SetLowBandwidth() {
   if (m_RouterInfo.IsHighBandwidth()) {
     m_RouterInfo.SetCaps(
-        m_RouterInfo.GetCaps() & ~kovri::core::RouterInfo::eHighBandwidth);
+        m_RouterInfo.GetCaps() & ~core::RouterInfo::Caps::HighBandwidth);
     UpdateRouterInfo();
   }
 }
 
 bool RouterContext::IsUnreachable() const {
-  return m_RouterInfo.GetCaps() & kovri::core::RouterInfo::eUnreachable;
+  return m_RouterInfo.GetCaps() & core::RouterInfo::Caps::Unreachable;
 }
 
 void RouterContext::SetUnreachable() {
   // set caps
   m_RouterInfo.SetCaps(  // LU, B
-      kovri::core::RouterInfo::eUnreachable | kovri::core::RouterInfo::eSSUTesting);
+      core::RouterInfo::Caps::Unreachable | core::RouterInfo::Caps::SSUTesting);
   // remove NTCP address
-  RemoveTransport(kovri::core::RouterInfo::eTransportNTCP);
+  RemoveTransport(core::RouterInfo::Transport::NTCP);
   // delete previous introducers
   for (auto& addr : m_RouterInfo.GetAddresses())
     addr.introducers.clear();
@@ -203,17 +203,17 @@ void RouterContext::SetUnreachable() {
 void RouterContext::SetReachable() {
   // update caps
   std::uint8_t caps = m_RouterInfo.GetCaps();
-  caps &= ~kovri::core::RouterInfo::eUnreachable;
-  caps |= kovri::core::RouterInfo::eReachable;
-  caps |= kovri::core::RouterInfo::eSSUIntroducer;
+  caps &= ~core::RouterInfo::Caps::Unreachable;
+  caps |= core::RouterInfo::Caps::Reachable;
+  caps |= core::RouterInfo::Caps::SSUIntroducer;
   if (m_IsFloodfill)
-    caps |= kovri::core::RouterInfo::eFloodfill;
+    caps |= core::RouterInfo::Caps::Floodfill;
   m_RouterInfo.SetCaps(caps);
 
   // insert NTCP back
   auto& addresses = m_RouterInfo.GetAddresses();
   for (std::size_t i = 0; i < addresses.size(); i++) {
-    if (addresses[i].transport_style == kovri::core::RouterInfo::eTransportSSU) {
+    if (addresses[i].transport_style == core::RouterInfo::Transport::SSU) {
       // insert NTCP address with host/port form SSU
       m_RouterInfo.AddNTCPAddress(
           addresses[i].host.to_string().c_str(),
@@ -242,7 +242,7 @@ void RouterContext::SetSupportsNTCP(bool supportsNTCP) {
   if(supportsNTCP && !m_RouterInfo.GetNTCPAddress())
     m_RouterInfo.AddNTCPAddress(m_Host, m_Port);
   if(!supportsNTCP)
-    RemoveTransport(kovri::core::RouterInfo::eTransportNTCP);
+    RemoveTransport(core::RouterInfo::Transport::NTCP);
   UpdateRouterInfo();
 }
 
@@ -251,11 +251,11 @@ void RouterContext::SetSupportsSSU(bool supportsSSU) {
   if(supportsSSU && !m_RouterInfo.GetSSUAddress())
     m_RouterInfo.AddSSUAddress(m_Host, m_Port, m_RouterInfo.GetIdentHash());
   if(!supportsSSU)
-    RemoveTransport(kovri::core::RouterInfo::eTransportSSU);
+    RemoveTransport(core::RouterInfo::Transport::SSU);
   // Remove SSU-related flags
   m_RouterInfo.SetCaps(m_RouterInfo.GetCaps()
-      & ~kovri::core::RouterInfo::eSSUTesting
-      & ~kovri::core::RouterInfo::eSSUIntroducer);
+      & ~core::RouterInfo::Caps::SSUTesting
+      & ~core::RouterInfo::Caps::SSUIntroducer);
 
   UpdateRouterInfo();
 }
@@ -268,7 +268,7 @@ void RouterContext::UpdateNTCPV6Address(
   auto& addresses = m_RouterInfo.GetAddresses();
   for (auto& addr : addresses) {
     if (addr.host.is_v6() &&
-        addr.transport_style == kovri::core::RouterInfo::eTransportNTCP) {
+        addr.transport_style == core::RouterInfo::Transport::NTCP) {
       if (addr.host != host) {
         addr.host = host;
         updated = true;
@@ -343,7 +343,7 @@ void RouterContext::SaveKeys() {
 }
 
 void RouterContext::RemoveTransport(
-    kovri::core::RouterInfo::TransportStyle transport) {
+    core::RouterInfo::Transport transport) {
   auto& addresses = m_RouterInfo.GetAddresses();
   for (std::size_t i = 0; i < addresses.size(); i++) {
     if (addresses[i].transport_style == transport) {

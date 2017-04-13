@@ -70,29 +70,37 @@ const int MAX_RI_BUFFER_SIZE = 2048;
 
 class RouterInfo : public RoutingDestination {
  public:
-  enum SupportedTransports {
-    eNTCPV4 = 0x01,
-    eNTCPV6 = 0x02,
-    eSSUV4 = 0x04,
-    eSSUV6 = 0x08
+  /// @enum Transport
+  /// @brief Transport type(s) within RI
+  enum Transport : std::uint8_t
+  {
+    NTCP,
+    SSU,
+    Unknown,
   };
 
-  enum Caps {
-    eFloodfill = 0x01,
-    eUnlimitedBandwidth = 0x02,
-    eHighBandwidth = 0x04,
-    eReachable = 0x08,
-    eSSUTesting = 0x10,
-    eSSUIntroducer = 0x20,
-    eHidden = 0x40,
-    eUnreachable = 0x80
+  /// @enum SupportedTransport
+  /// @brief Transport and IP version that *our* router will use for peer
+  enum SupportedTransport : std::uint8_t
+  {
+    NTCPv4 = 0x01,
+    NTCPv6 = 0x02,
+    SSUv4 = 0x04,
+    SSUv6 = 0x08,
   };
 
-  // TODO(anonimal): refactor
-  enum TransportStyle {
-    eTransportUnknown = 0,
-    eTransportNTCP,
-    eTransportSSU
+  /// @enum Caps
+  /// @brief RI capabilities
+  enum Caps : std::uint8_t
+  {
+    Floodfill = 0x01,
+    UnlimitedBandwidth = 0x02,
+    HighBandwidth = 0x04,
+    Reachable = 0x08,
+    SSUTesting = 0x10,
+    SSUIntroducer = 0x20,
+    Hidden = 0x40,
+    Unreachable = 0x80,
   };
 
   struct Introducer {
@@ -108,7 +116,7 @@ class RouterInfo : public RoutingDestination {
   };
 
   struct Address {
-    TransportStyle transport_style;
+    Transport transport_style;
     boost::asio::ip::address host;
     std::string address_string;
     int port{}, mtu{};
@@ -330,19 +338,19 @@ class RouterInfo : public RoutingDestination {
   bool UsesIntroducer() const;
 
   bool IsIntroducer() const {
-    return m_Caps & eSSUIntroducer;
+    return m_Caps & Caps::SSUIntroducer;
   }
 
   bool IsPeerTesting() const {
-    return m_Caps & eSSUTesting;
+    return m_Caps & Caps::SSUTesting;
   }
 
   bool IsHidden() const {
-    return m_Caps & eHidden;
+    return m_Caps & Caps::Hidden;
   }
 
   bool IsHighBandwidth() const {
-    return m_Caps & RouterInfo::eHighBandwidth;
+    return m_Caps & Caps::HighBandwidth;
   }
 
   std::uint8_t GetCaps() const {
@@ -443,7 +451,7 @@ class RouterInfo : public RoutingDestination {
       const char* value);
 
   const Address* GetAddress(
-      TransportStyle s,
+      Transport s,
       bool v4only,
       bool v6only = false) const;
 

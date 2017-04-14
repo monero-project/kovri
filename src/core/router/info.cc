@@ -291,7 +291,7 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
                             // NTCP will (should be) resolved in transports
                             // TODO(unassigned): refactor. Though we will resolve host later, assigning values upon error is simply confusing.
                             m_SupportedTransports |= SupportedTransport::NTCPv4;
-                            address.address_string = value;
+                            address.address = value;
                             break;
 		          case Transport::SSU:
                             // TODO(unassigned): implement address resolver for SSU (then break from default case)

@@ -389,10 +389,9 @@ bool Transports::ConnectToPeerNTCP(
       return true;
     }
   } else {  // we don't have address
-    if (address->address_string.length() > 0) {  // trying to resolve
-      LOG(debug) <<
-          "Transports: NTCP resolving " << address->address_string;
-      NTCPResolve(address->address_string, ident);
+    if (address->address.length() > 0) {  // trying to resolve
+      LOG(debug) << "Transports: NTCP resolving " << address->address;
+      NTCPResolve(address->address, ident);
       return true;
     }
   }

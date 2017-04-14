@@ -65,7 +65,7 @@ RouterContext::RouterContext()
 
 void RouterContext::Init(
     const std::string& host,
-    int port) {
+    std::uint16_t port) {
   m_Host = host;
   m_Port = port;
   m_StartupTime = kovri::core::GetSecondsSinceEpoch();
@@ -106,7 +106,7 @@ void RouterContext::UpdateRouterInfo() {
 }
 
 void RouterContext::UpdatePort(
-    int port) {
+    std::uint16_t port) {
   bool updated = false;
   for (auto& address : m_RouterInfo.GetAddresses()) {
     if (address.port != port) {
@@ -264,7 +264,7 @@ void RouterContext::UpdateNTCPV6Address(
     const boost::asio::ip::address& host) {
   bool updated = false,
        found = false;
-  int port = 0;
+  std::uint16_t port = 0;
   auto& addresses = m_RouterInfo.GetAddresses();
   for (auto& addr : addresses) {
     if (addr.host.is_v6() &&

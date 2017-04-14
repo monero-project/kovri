@@ -105,7 +105,7 @@ class RouterInfo : public RoutingDestination {
 
   struct Introducer {
     boost::asio::ip::address host;
-    int port{};
+    std::uint16_t port{};
     Tag<32> key;
     std::uint32_t tag{};
 
@@ -119,7 +119,7 @@ class RouterInfo : public RoutingDestination {
     Transport transport_style;
     boost::asio::ip::address host;
     std::string address_string;
-    int port{}, mtu{};
+    std::uint16_t port{}, mtu{};
     std::uint64_t date{};
     std::uint8_t cost{};
     // SSU only
@@ -290,13 +290,13 @@ class RouterInfo : public RoutingDestination {
 
   void AddNTCPAddress(
       const std::string& host,
-      int port);
+      std::uint16_t port);
 
   void AddSSUAddress(
       const std::string& host,
-      int port,
+      std::uint16_t port,
       const std::uint8_t* key,
-      int mtu = 0);
+      std::uint16_t mtu = 0);
 
   bool AddIntroducer(
       const Address* address,

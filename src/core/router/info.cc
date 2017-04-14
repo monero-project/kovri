@@ -317,10 +317,10 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
                   break;
                 }
               case Trait::Port:
-                address.port = boost::lexical_cast<int>(value);
+                address.port = boost::lexical_cast<std::uint16_t>(value);
                 break;
               case Trait::MTU:
-                address.mtu = boost::lexical_cast<int>(value);
+                address.mtu = boost::lexical_cast<std::uint16_t>(value);
                 break;
               case Trait::Key:
                 kovri::core::Base64ToByteStream(
@@ -359,7 +359,7 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
                           }
                           break;
                         case Trait::IntroPort:
-                          introducer.port = boost::lexical_cast<int>(value);
+                          introducer.port = boost::lexical_cast<std::uint16_t>(value);
                           break;
                         case Trait::IntroTag:
                           introducer.tag =
@@ -656,7 +656,7 @@ void RouterInfo::WriteString(
 
 void RouterInfo::AddNTCPAddress(
     const std::string& host,
-    int port) {
+    std::uint16_t port) {
   Address addr;
   addr.host = boost::asio::ip::address::from_string(host);
   addr.port = port;
@@ -671,9 +671,9 @@ void RouterInfo::AddNTCPAddress(
 
 void RouterInfo::AddSSUAddress(
     const std::string& host,
-    int port,
+    std::uint16_t port,
     const std::uint8_t* key,
-    int mtu) {
+    std::uint16_t mtu) {
   Address addr;
   addr.host = boost::asio::ip::address::from_string(host);
   addr.port = port;

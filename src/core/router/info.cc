@@ -52,45 +52,74 @@ namespace kovri
 {
 namespace core
 {
-std::string RouterInfo::Introducer::GetDescription(
+
+const std::string RouterInfo::GetDescription(
+    const Introducer& introducer,
     const std::string& tabs) const
 {
   std::stringstream ss;
-  ss << tabs << "Host: " << host.to_string() << std::endl
-     << tabs << "Port: " << port << std::endl
-     << tabs << "Key: " << key.ToBase64() << std::endl
-     << tabs << "Tag: " << tag;
+
+  const std::string delimiter = GetTrait(Trait::Delimiter),
+                    terminator = GetTrait(Trait::Terminator) + "\n";
+
+  ss << tabs << GetTrait(Trait::IntroHost) << delimiter
+     << introducer.host.to_string() << terminator
+
+     << tabs << GetTrait(Trait::IntroPort) << delimiter
+     << introducer.port << terminator
+
+     << tabs << GetTrait(Trait::IntroKey) << delimiter
+     << introducer.key.ToBase64() << terminator
+
+     << tabs << GetTrait(Trait::IntroTag) << delimiter
+     << introducer.tag << terminator;
+
   return ss.str();
 }
 
 // TODO(unassigned): though this was originally intended for the kovri utility binary,
 //  we can expand reporting to include remaining POD types of the Address struct
-std::string RouterInfo::Address::GetDescription(const std::string& tabs) const
+const std::string RouterInfo::GetDescription(
+    const Address& address,
+    const std::string& tabs) const
 {
   std::stringstream ss;
-  ss << tabs << "Type: ";
-  switch (transport)
+
+  const std::string delimiter = GetTrait(Trait::Delimiter),
+                    terminator = GetTrait(Trait::Terminator) + "\n";
+
+  ss << tabs << "Address transport: ";
+  switch (address.transport)
     {
       case Transport::NTCP:
-        ss << "NTCP";
+        ss << GetTrait(Trait::NTCP);
         break;
       case Transport::SSU:
-        ss << "SSU";
+        ss << GetTrait(Trait::SSU);
         break;
       case Transport::Unknown:
-        ss << "Unknown";
+        ss << GetTrait(Trait::Unknown);
         return ss.str();
     }
-  ss << std::endl
-     << tabs << "\tCost: " << static_cast<int>(cost) << std::endl
-     << tabs << "\tHost: " << host.to_string() << std::endl
-     << tabs << "\tPort: " << port << std::endl;
-  if (transport == Transport::SSU)
+
+  ss << "\n"
+     << tabs << "\t" << GetTrait(Trait::Cost) << delimiter
+     << static_cast<int>(address.cost) << terminator
+
+     << tabs << "\t" << GetTrait(Trait::Cost) << delimiter
+     << address.host.to_string() << terminator
+
+     << tabs << "\t" << GetTrait(Trait::Port) << delimiter
+     << address.port << terminator;
+
+  if (address.transport == Transport::SSU)
     {
-      ss << tabs << "\tIntroducers (" << introducers.size() << ")" << std::endl;
-      for (const Introducer& introducer : introducers)
-        ss << introducer.GetDescription(tabs + "\t\t") << std::endl;
+      ss << tabs << "\n\tIntroducers(" << address.introducers.size() << ")"
+         << std::endl;
+      for (const Introducer& introducer : address.introducers)
+        ss << GetDescription(introducer, tabs + "\t\t") << std::endl;
     }
+
   return ss.str();
 }
 
@@ -233,7 +262,7 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
       Address address;
       bool is_valid_address = true;
 
-      // Read cost + data
+      // Read cost + date
       stream.Read(&address.cost, sizeof(address.cost));
       stream.Read(&address.date, sizeof(address.date));
 
@@ -381,7 +410,7 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
         }
 
       // Log RI details, save valid addresses
-      LOG(debug) << address.GetDescription();
+      LOG(debug) << GetDescription(address);
       if (is_valid_address)
         m_Addresses.push_back(address);
     }
@@ -860,7 +889,7 @@ std::shared_ptr<RouterProfile> RouterInfo::GetProfile() const {
   return m_Profile;
 }
 
-std::string RouterInfo::GetDescription(const std::string& tabs) const
+const std::string RouterInfo::GetDescription(const std::string& tabs) const
 {
   std::stringstream ss;
   boost::posix_time::ptime time_epoch(boost::gregorian::date(1970, 1, 1));
@@ -880,8 +909,8 @@ std::string RouterInfo::GetDescription(const std::string& tabs) const
                         : GetTrait(CapsFlag::Unknown))
      << "]" << std::endl;
   ss << tabs << "\tAddresses(" << m_Addresses.size() << "): " << std::endl;
-  for (const auto& a : m_Addresses)
-    ss << a.GetDescription(tabs + "\t\t");
+  for (const auto& address : m_Addresses)
+    ss << GetDescription(address, tabs + "\t\t");
   return ss.str();
 }
 

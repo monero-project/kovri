@@ -211,12 +211,15 @@ class RouterInfo : public RoutingDestination {
     std::uint16_t port{};
     Tag<32> key;
     std::uint32_t tag{};
-
-    /// @brief Human readable description of this struct
-    /// @param prefix for tabulations
-    /// @returns human readable string
-    std::string GetDescription(const std::string& tabs = std::string()) const;
   };
+
+  /// @brief Human readable description of Introducer members
+  /// @param introducer Introducer class to get description from
+  /// @param tabs Prefix for tabulations
+  /// @returns human readable string
+  const std::string GetDescription(
+      const Introducer& introducer,
+      const std::string& tabs = std::string()) const;
 
   struct Address {
     Transport transport;
@@ -233,17 +236,21 @@ class RouterInfo : public RoutingDestination {
       return (host.is_v4() && other.is_v4()) ||
         (host.is_v6() && other.is_v6());
     }
-
-    /// @brief Human readable description of this struct
-    /// @param prefix for tabulations
-    /// @returns human readable string
-    std::string GetDescription(const std::string& tabs = std::string()) const;
   };
+
+  /// @brief Human readable description of Address members
+  /// @param address Address class to get description from
+  /// @param tabs Prefix for tabulations
+  /// @returns human readable string
+  const std::string GetDescription(
+      const Address& address,
+      const std::string& tabs = std::string()) const;
 
   /// @enum Trait
   /// @brief RI traits
   enum struct Trait : std::uint8_t
   {
+    // Address-specific
     NTCP,
     SSU,
     Host,
@@ -251,6 +258,8 @@ class RouterInfo : public RoutingDestination {
     MTU,
     Key,
     Caps,
+    Cost,
+    Date,
     // Introducer
     IntroHost,
     IntroPort,
@@ -269,6 +278,7 @@ class RouterInfo : public RoutingDestination {
   {
     switch (trait)
       {
+        // Address-specific
         case Trait::NTCP:
           return "NTCP";
         case Trait::SSU:
@@ -283,6 +293,10 @@ class RouterInfo : public RoutingDestination {
           return "key";
         case Trait::Caps:
           return "caps";
+        case Trait::Cost:
+          return "cost";
+        case Trait::Date:
+          return "date";
         // Introducer
         case Trait::IntroHost:
           return "ihost";
@@ -307,6 +321,7 @@ class RouterInfo : public RoutingDestination {
   /// @param value String value of potential trait given
   Trait GetTrait(const std::string& value) const noexcept
   {
+    // Address-specific
     if (value == GetTrait(Trait::NTCP))
       return Trait::NTCP;
     else if (value == GetTrait(Trait::SSU))
@@ -321,6 +336,10 @@ class RouterInfo : public RoutingDestination {
       return Trait::Key;
     else if (value == GetTrait(Trait::Caps))
       return Trait::Caps;
+    else if (value == GetTrait(Trait::Cost))
+      return Trait::Cost;
+    else if (value == GetTrait(Trait::Date))
+      return Trait::Date;
     // Introducer
     else if (value == GetTrait(Trait::IntroHost))
       return Trait::IntroHost;
@@ -531,7 +550,8 @@ class RouterInfo : public RoutingDestination {
   /// @brief Human readable description of this struct
   /// @param prefix for tabulations
   /// @returns human readable string
-  std::string GetDescription(const std::string& tabs = std::string()) const;
+  const std::string GetDescription(
+      const std::string& tabs = std::string()) const;
 
  private:
   bool LoadFile();

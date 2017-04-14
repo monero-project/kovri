@@ -69,7 +69,7 @@ std::string RouterInfo::Address::GetDescription(const std::string& tabs) const
 {
   std::stringstream ss;
   ss << tabs << "Type: ";
-  switch (transport_style)
+  switch (transport)
     {
       case Transport::NTCP:
         ss << "NTCP";
@@ -85,7 +85,7 @@ std::string RouterInfo::Address::GetDescription(const std::string& tabs) const
      << tabs << "\tCost: " << static_cast<int>(cost) << std::endl
      << tabs << "\tHost: " << host.to_string() << std::endl
      << tabs << "\tPort: " << port << std::endl;
-  if (transport_style == Transport::SSU)
+  if (transport == Transport::SSU)
     {
       ss << tabs << "\tIntroducers (" << introducers.size() << ")" << std::endl;
       for (const Introducer& introducer : introducers)
@@ -242,13 +242,13 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
       switch (GetTrait(transport))
         {
           case Trait::NTCP:
-            address.transport_style = Transport::NTCP;
+            address.transport = Transport::NTCP;
             break;
           case Trait::SSU:
-            address.transport_style = Transport::SSU;
+            address.transport = Transport::SSU;
             break;
           default:
-            address.transport_style = Transport::Unknown;
+            address.transport = Transport::Unknown;
             break;
         }
 
@@ -285,7 +285,7 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
                                      << ecode.message() << "'";
                         }
                       // Prepare for host resolution
-                      switch (address.transport_style)
+                      switch (address.transport)
                         {
 		          case Transport::NTCP:
                             // NTCP will (should be) resolved in transports
@@ -306,12 +306,12 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
                   // add supported protocol
                   if (address.host.is_v4())
                     m_SupportedTransports |=
-                        (address.transport_style == Transport::NTCP)
+                        (address.transport == Transport::NTCP)
                             ? SupportedTransport::NTCPv4
                             : SupportedTransport::SSUv4;
                   else
                     m_SupportedTransports |=
-                        (address.transport_style == Transport::NTCP)
+                        (address.transport == Transport::NTCP)
                             ? SupportedTransport::NTCPv6
                             : SupportedTransport::SSUv6;
                   break;
@@ -490,9 +490,9 @@ void RouterInfo::WriteToStream(
     s.write(reinterpret_cast<char *>(&address.cost), sizeof(address.cost));
     s.write(reinterpret_cast<char *>(&address.date), sizeof(address.date));
     std::stringstream properties;
-    if (address.transport_style == Transport::NTCP) {
+    if (address.transport == Transport::NTCP) {
       WriteString("NTCP", s);
-    } else if (address.transport_style == Transport::SSU) {
+    } else if (address.transport == Transport::SSU) {
       WriteString("SSU", s);
       // caps
       WriteString("caps", properties);
@@ -511,7 +511,7 @@ void RouterInfo::WriteToStream(
     properties << '=';
     WriteString(address.host.to_string(), properties);
     properties << ';';
-    if (address.transport_style == Transport::SSU) {
+    if (address.transport == Transport::SSU) {
       // write introducers if any
       if (address.introducers.size() > 0) {
         int i = 0;
@@ -660,7 +660,7 @@ void RouterInfo::AddNTCPAddress(
   Address addr;
   addr.host = boost::asio::ip::address::from_string(host);
   addr.port = port;
-  addr.transport_style = Transport::NTCP;
+  addr.transport = Transport::NTCP;
   addr.cost = 10;  // NTCP should have priority over SSU
   addr.date = 0;
   addr.mtu = 0;
@@ -677,7 +677,7 @@ void RouterInfo::AddSSUAddress(
   Address addr;
   addr.host = boost::asio::ip::address::from_string(host);
   addr.port = port;
-  addr.transport_style = Transport::SSU;
+  addr.transport = Transport::SSU;
   addr.cost = 5;
   addr.date = 0;
   addr.mtu = mtu;
@@ -693,7 +693,7 @@ bool RouterInfo::AddIntroducer(
     const Address* address,
     std::uint32_t tag) {
   for (auto& addr : m_Addresses) {
-    if (addr.transport_style == Transport::SSU && addr.host.is_v4()) {
+    if (addr.transport == Transport::SSU && addr.host.is_v4()) {
       for (auto intro : addr.introducers)
         if (intro.tag == tag)
           return false;  // already presented
@@ -712,7 +712,7 @@ bool RouterInfo::AddIntroducer(
 bool RouterInfo::RemoveIntroducer(
     const boost::asio::ip::udp::endpoint& e) {
   for (auto& addr : m_Addresses) {
-    if (addr.transport_style == Transport::SSU && addr.host.is_v4()) {
+    if (addr.transport == Transport::SSU && addr.host.is_v4()) {
       for (std::vector<Introducer>::iterator it = addr.introducers.begin();
           it != addr.introducers.end();
           it++)
@@ -790,7 +790,7 @@ void RouterInfo::DisableV6() {
     // NTCP
     m_SupportedTransports &= ~SupportedTransport::NTCPv6;
     for (std::size_t i = 0; i < m_Addresses.size(); i++) {
-      if (m_Addresses[i].transport_style ==
+      if (m_Addresses[i].transport ==
           core::RouterInfo::Transport::NTCP &&
           m_Addresses[i].host.is_v6()) {
         m_Addresses.erase(m_Addresses.begin() + i);
@@ -800,7 +800,7 @@ void RouterInfo::DisableV6() {
     // SSU
     m_SupportedTransports &= ~SupportedTransport::SSUv6;
     for (std::size_t i = 0; i < m_Addresses.size(); i++) {
-      if (m_Addresses[i].transport_style ==
+      if (m_Addresses[i].transport ==
           Transport::SSU &&
           m_Addresses[i].host.is_v6()) {
         m_Addresses.erase(m_Addresses.begin() + i);
@@ -833,7 +833,7 @@ const RouterInfo::Address* RouterInfo::GetAddress(
     bool v4only,
     bool v6only) const {
   for (auto& address : m_Addresses) {
-    if (address.transport_style == s) {
+    if (address.transport == s) {
       if ((!v4only || address.host.is_v4()) &&
           (!v6only || address.host.is_v6()))
         return &address;

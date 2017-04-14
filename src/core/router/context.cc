@@ -213,7 +213,7 @@ void RouterContext::SetReachable() {
   // insert NTCP back
   auto& addresses = m_RouterInfo.GetAddresses();
   for (std::size_t i = 0; i < addresses.size(); i++) {
-    if (addresses[i].transport_style == core::RouterInfo::Transport::SSU) {
+    if (addresses[i].transport == core::RouterInfo::Transport::SSU) {
       // insert NTCP address with host/port form SSU
       m_RouterInfo.AddNTCPAddress(
           addresses[i].host.to_string().c_str(),
@@ -268,7 +268,7 @@ void RouterContext::UpdateNTCPV6Address(
   auto& addresses = m_RouterInfo.GetAddresses();
   for (auto& addr : addresses) {
     if (addr.host.is_v6() &&
-        addr.transport_style == core::RouterInfo::Transport::NTCP) {
+        addr.transport == core::RouterInfo::Transport::NTCP) {
       if (addr.host != host) {
         addr.host = host;
         updated = true;
@@ -346,7 +346,7 @@ void RouterContext::RemoveTransport(
     core::RouterInfo::Transport transport) {
   auto& addresses = m_RouterInfo.GetAddresses();
   for (std::size_t i = 0; i < addresses.size(); i++) {
-    if (addresses[i].transport_style == transport) {
+    if (addresses[i].transport == transport) {
       addresses.erase(addresses.begin() + i);
       break;
     }

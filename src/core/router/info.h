@@ -116,7 +116,7 @@ class RouterInfo : public RoutingDestination {
   };
 
   struct Address {
-    Transport transport_style;
+    Transport transport;
     boost::asio::ip::address host;
     std::string address_string;
     std::uint16_t port{}, mtu{};

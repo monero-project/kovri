@@ -181,7 +181,7 @@ void Transports::Start() {
   const auto addresses = context.GetRouterInfo().GetAddresses();
   for (const auto& address : addresses) {
     LOG(debug) << "Transports: creating servers for address " << address.host;
-    if (address.transport_style ==
+    if (address.transport ==
         core::RouterInfo::Transport::NTCP && address.host.is_v4()) {
       if (!m_NTCPServer) {
         LOG(debug) << "Transports: TCP listening on port " << address.port;
@@ -191,7 +191,7 @@ void Transports::Start() {
         LOG(error) << "Transports: TCP server already exists";
       }
     }
-    if (address.transport_style ==
+    if (address.transport ==
         core::RouterInfo::Transport::SSU && address.host.is_v4()) {
       if (!m_SSUServer) {
         LOG(debug) << "Transports: UDP listening on port " << address.port;

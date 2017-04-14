@@ -105,9 +105,9 @@ class RouterInfo : public RoutingDestination {
 
   struct Introducer {
     boost::asio::ip::address host;
-    int port;
+    int port{};
     Tag<32> key;
-    std::uint32_t tag;
+    std::uint32_t tag{};
 
     /// @brief Human readable description of this struct
     /// @param prefix for tabulations

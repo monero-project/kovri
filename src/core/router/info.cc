@@ -424,37 +424,37 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
     }
 }
 
-// TODO(anonimal): rename as setter
+// TODO(anonimal): refactor + rename as setter
 void RouterInfo::ExtractCaps(
     const char* value) {
   const char* cap = value;
   while (*cap) {
-    switch (*cap) {
-      case CAPS_FLAG_FLOODFILL:
+    switch (GetTrait(*cap)) {
+      case CapsFlag::Floodfill:
         m_Caps |= Caps::Floodfill;
         break;
-      case CAPS_FLAG_UNLIMITED_BANDWIDTH:
+      case CapsFlag::UnlimitedBandwidth:
         m_Caps |= Caps::UnlimitedBandwidth;
         break;
-      case CAPS_FLAG_HIGH_BANDWIDTH1:
-      case CAPS_FLAG_HIGH_BANDWIDTH2:
-      case CAPS_FLAG_HIGH_BANDWIDTH3:
-      case CAPS_FLAG_HIGH_BANDWIDTH4:
+      case CapsFlag::HighBandwidth1:
+      case CapsFlag::HighBandwidth2:
+      case CapsFlag::HighBandwidth3:
+      case CapsFlag::HighBandwidth4:
         m_Caps |= Caps::HighBandwidth;
         break;
-      case CAPS_FLAG_HIDDEN:
+      case CapsFlag::Hidden:
         m_Caps |= Caps::Hidden;
         break;
-      case CAPS_FLAG_REACHABLE:
+      case CapsFlag::Reachable:
         m_Caps |= Caps::Reachable;
         break;
-      case CAPS_FLAG_UNREACHABLE:
+      case CapsFlag::Unreachable:
         m_Caps |= Caps::Unreachable;
         break;
-      case CAPS_FLAG_SSU_TESTING:
+      case CapsFlag::SSUTesting:
         m_Caps |= Caps::SSUTesting;
         break;
-      case CAPS_FLAG_SSU_INTRODUCER:
+      case CapsFlag::SSUIntroducer:
         m_Caps |= Caps::SSUIntroducer;
         break;
       default: {}
@@ -463,19 +463,31 @@ void RouterInfo::ExtractCaps(
   }
 }
 
-void RouterInfo::UpdateCapsProperty() {
+void RouterInfo::UpdateCapsProperty()
+{
   std::string caps;
-  if (m_Caps & Caps::Floodfill) {
-    caps += CAPS_FLAG_HIGH_BANDWIDTH4;  // highest bandwidth
-    caps += CAPS_FLAG_FLOODFILL;  // floodfill
-  } else {
-    caps += (m_Caps & Caps::HighBandwidth) ?
-      CAPS_FLAG_HIGH_BANDWIDTH3 :
-      CAPS_FLAG_LOW_BANDWIDTH2;  // bandwidth
-  }
-  if (m_Caps & Caps::Hidden) caps += CAPS_FLAG_HIDDEN;  // hidden
-  if (m_Caps & Caps::Reachable) caps += CAPS_FLAG_REACHABLE;  // reachable
-  if (m_Caps & Caps::Unreachable) caps += CAPS_FLAG_UNREACHABLE;  // unreachable
+
+  if (m_Caps & Caps::Floodfill)
+    {
+      caps += GetTrait(CapsFlag::HighBandwidth4);  // highest bandwidth
+      caps += GetTrait(CapsFlag::Floodfill);
+    }
+  else
+    {
+      caps += (m_Caps & Caps::HighBandwidth)
+                  ? GetTrait(CapsFlag::HighBandwidth3)
+                  : GetTrait(CapsFlag::LowBandwidth2);
+    }
+
+  if (m_Caps & Caps::Hidden)
+    caps += GetTrait(CapsFlag::Hidden);
+
+  if (m_Caps & Caps::Reachable)
+    caps += GetTrait(CapsFlag::Reachable);
+
+  if (m_Caps & Caps::Unreachable)
+    caps += GetTrait(CapsFlag::Unreachable);
+
   SetProperty("caps", caps);
 }
 
@@ -499,9 +511,9 @@ void RouterInfo::WriteToStream(
       properties << '=';
       std::string caps;
       if (IsPeerTesting())
-        caps += CAPS_FLAG_SSU_TESTING;
+        caps += GetTrait(CapsFlag::SSUTesting);
       if (IsIntroducer())
-        caps += CAPS_FLAG_SSU_INTRODUCER;
+        caps += GetTrait(CapsFlag::SSUIntroducer);
       WriteString(caps, properties);
       properties << ';';
     } else {
@@ -862,8 +874,11 @@ std::string RouterInfo::GetDescription(const std::string& tabs) const
   for (const auto& p : m_Properties)
     ss << tabs << "\t\t[" << p.first << "] : [" << p.second << "]" << std::endl;
   ss << tabs << "\tSSU Caps: ["
-     << (IsPeerTesting() ? CAPS_FLAG_SSU_TESTING : ' ')
-     << (IsIntroducer() ? CAPS_FLAG_SSU_INTRODUCER : ' ') << "]" << std::endl;
+     << (IsPeerTesting() ? GetTrait(CapsFlag::SSUTesting)
+                         : GetTrait(CapsFlag::Unknown))
+     << (IsIntroducer() ? GetTrait(CapsFlag::SSUIntroducer)
+                        : GetTrait(CapsFlag::Unknown))
+     << "]" << std::endl;
   ss << tabs << "\tAddresses(" << m_Addresses.size() << "): " << std::endl;
   for (const auto& a : m_Addresses)
     ss << a.GetDescription(tabs + "\t\t");

@@ -51,21 +51,6 @@
 namespace kovri {
 namespace core {
 
-const char CAPS_FLAG_FLOODFILL = 'f';
-const char CAPS_FLAG_HIDDEN = 'H';
-const char CAPS_FLAG_REACHABLE = 'R';
-const char CAPS_FLAG_UNREACHABLE = 'U';
-const char CAPS_FLAG_LOW_BANDWIDTH1 = 'K';
-const char CAPS_FLAG_LOW_BANDWIDTH2 = 'L';
-const char CAPS_FLAG_HIGH_BANDWIDTH1 = 'M';
-const char CAPS_FLAG_HIGH_BANDWIDTH2 = 'N';
-const char CAPS_FLAG_HIGH_BANDWIDTH3 = 'O';
-const char CAPS_FLAG_HIGH_BANDWIDTH4 = 'P';
-const char CAPS_FLAG_UNLIMITED_BANDWIDTH = 'X';
-
-const char CAPS_FLAG_SSU_TESTING = 'B';
-const char CAPS_FLAG_SSU_INTRODUCER = 'C';
-
 const int MAX_RI_BUFFER_SIZE = 2048;
 
 class RouterInfo : public RoutingDestination {
@@ -102,6 +87,124 @@ class RouterInfo : public RoutingDestination {
     Hidden = 0x40,
     Unreachable = 0x80,
   };
+
+  /// @enum CapsFlag
+  /// @brief Flags used for RI capabilities
+  enum struct CapsFlag : std::uint8_t
+  {
+    Floodfill,
+    Hidden,
+    Reachable,
+    Unreachable,
+    LowBandwidth1,
+    LowBandwidth2,
+    HighBandwidth1,
+    HighBandwidth2,
+    HighBandwidth3,
+    HighBandwidth4,
+    UnlimitedBandwidth,
+    SSUTesting,
+    SSUIntroducer,
+    Unknown,
+  };
+
+  /// @return Char flag of given enumerated caps flag
+  /// @param flag Flag enum used for caps char flag
+  char GetTrait(CapsFlag flag) const noexcept
+  {
+    switch (flag)
+      {
+        case CapsFlag::Floodfill:
+          return 'f';
+
+        case CapsFlag::Hidden:
+          return 'H';
+
+        case CapsFlag::Reachable:
+          return 'R';
+
+        case CapsFlag::Unreachable:
+          return 'U';
+
+        case CapsFlag::LowBandwidth1:
+          return 'K';
+
+        case CapsFlag::LowBandwidth2:
+          return 'L';
+
+        case CapsFlag::HighBandwidth1:
+          return 'M';
+
+        case CapsFlag::HighBandwidth2:
+          return 'N';
+
+        case CapsFlag::HighBandwidth3:
+          return 'O';
+
+        case CapsFlag::HighBandwidth4:
+          return 'P';
+
+        case CapsFlag::UnlimitedBandwidth:
+          return 'X';
+
+        case CapsFlag::SSUTesting:
+          return 'B';
+
+        case CapsFlag::SSUIntroducer:
+          return 'C';
+
+        case CapsFlag::Unknown:
+        default:
+          return ' ';  // TODO(anonimal): review
+      }
+  }
+
+  /// @return Enumerated caps flag
+  /// @param value Char value of potential caps flag given
+  CapsFlag GetTrait(const char& value) const noexcept
+  {
+    if (value == GetTrait(CapsFlag::Floodfill))
+      return CapsFlag::Floodfill;
+
+    else if (value == GetTrait(CapsFlag::Hidden))
+      return CapsFlag::Hidden;
+
+    else if (value == GetTrait(CapsFlag::Reachable))
+      return CapsFlag::Reachable;
+
+    else if (value == GetTrait(CapsFlag::Unreachable))
+      return CapsFlag::Unreachable;
+
+    else if (value == GetTrait(CapsFlag::LowBandwidth1))
+      return CapsFlag::LowBandwidth1;
+
+    else if (value == GetTrait(CapsFlag::LowBandwidth2))
+      return CapsFlag::LowBandwidth2;
+
+    else if (value == GetTrait(CapsFlag::HighBandwidth1))
+      return CapsFlag::HighBandwidth1;
+
+    else if (value == GetTrait(CapsFlag::HighBandwidth2))
+      return CapsFlag::HighBandwidth2;
+
+    else if (value == GetTrait(CapsFlag::HighBandwidth3))
+      return CapsFlag::HighBandwidth3;
+
+    else if (value == GetTrait(CapsFlag::HighBandwidth4))
+      return CapsFlag::HighBandwidth4;
+
+    else if (value == GetTrait(CapsFlag::UnlimitedBandwidth))
+      return CapsFlag::UnlimitedBandwidth;
+
+    else if (value == GetTrait(CapsFlag::SSUTesting))
+      return CapsFlag::SSUTesting;
+
+    else if (value == GetTrait(CapsFlag::SSUIntroducer))
+      return CapsFlag::SSUIntroducer;
+
+    else
+      return CapsFlag::Unknown;  // TODO(anonimal): review
+  }
 
   struct Introducer {
     boost::asio::ip::address host;

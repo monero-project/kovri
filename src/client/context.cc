@@ -348,7 +348,7 @@ void ClientContext::UpdateClientTunnel(
     AddClientTunnel(tunnel);
   } else {
     // Client with this name is already locally running, update settings
-    std::string current_addr = client_tunnel->GetAddress();
+    std::string current_addr = client_tunnel->GetTunnelAttributes().address;
     boost::system::error_code ec;
     auto next_addr = boost::asio::ip::address::from_string(tunnel.address, ec);
     bool rebind = false;

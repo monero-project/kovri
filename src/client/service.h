@@ -163,7 +163,6 @@ class TCPIPAcceptor : public I2PService {
       std::uint16_t port,
       std::shared_ptr<ClientDestination> local_destination = nullptr)
       : I2PService(local_destination),
-        m_Address(address),
         m_Acceptor(
             GetService(),
             boost::asio::ip::tcp::endpoint(
@@ -178,7 +177,6 @@ class TCPIPAcceptor : public I2PService {
       std::uint16_t port,
       kovri::core::SigningKeyType kt)
     : I2PService(kt),
-      m_Address(address),
       m_Acceptor(
           GetService(),
           boost::asio::ip::tcp::endpoint(
@@ -217,9 +215,6 @@ class TCPIPAcceptor : public I2PService {
   /// @return std::string name of service
   std::string GetName() const { return "generic TCP/IP accepting daemon"; }
 
- protected:
-  std::string m_Address;
-
  private:
   /// @brief accept connection ; create socket for handler to listen on
   /// pass handler function; this is what starts the communication
@@ -233,12 +228,6 @@ class TCPIPAcceptor : public I2PService {
 
   boost::asio::ip::tcp::acceptor m_Acceptor;
   boost::asio::deadline_timer m_Timer;
-
- public:
-  /// @brief get current address
-  std::string GetAddress() const {
-    return m_Address;
-  }
 };
 
 }  // namespace client

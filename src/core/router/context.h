@@ -71,7 +71,7 @@ class RouterContext : public kovri::core::GarlicDestination {
   /// @param port The external port of this router
   void Init(
       const std::string& host,
-      int port);
+      std::uint16_t port);
 
   // @return This RouterContext's RouterInfo
   kovri::core::RouterInfo& GetRouterInfo() {
@@ -117,7 +117,7 @@ class RouterContext : public kovri::core::GarlicDestination {
   // Called from Daemon, updates this RouterContext's Port.
   // Rebuilds RouterInfo
   // @param port port number
-  void UpdatePort(int port);
+  void UpdatePort(std::uint16_t port);
 
   // Called From SSU or Daemon.
   // Update Our IP Address, external IP Address if behind NAT.
@@ -303,7 +303,7 @@ class RouterContext : public kovri::core::GarlicDestination {
   void UpdateRouterInfo();
   bool Load();
   void SaveKeys();
-  void RemoveTransport(kovri::core::RouterInfo::TransportStyle transport);
+  void RemoveTransport(core::RouterInfo::Transport transport);
 
  private:
   kovri::core::RouterInfo m_RouterInfo;
@@ -314,7 +314,7 @@ class RouterContext : public kovri::core::GarlicDestination {
   RouterStatus m_Status;
   std::mutex m_GarlicMutex;
   std::string m_Host;
-  int m_Port;
+  std::uint16_t m_Port;
   std::string m_ReseedFrom;
   bool m_ReseedSkipSSLCheck;
   bool m_SupportsNTCP, m_SupportsSSU;

@@ -51,67 +51,181 @@
 namespace kovri {
 namespace core {
 
-const char CAPS_FLAG_FLOODFILL = 'f';
-const char CAPS_FLAG_HIDDEN = 'H';
-const char CAPS_FLAG_REACHABLE = 'R';
-const char CAPS_FLAG_UNREACHABLE = 'U';
-const char CAPS_FLAG_LOW_BANDWIDTH1 = 'K';
-const char CAPS_FLAG_LOW_BANDWIDTH2 = 'L';
-const char CAPS_FLAG_HIGH_BANDWIDTH1 = 'M';
-const char CAPS_FLAG_HIGH_BANDWIDTH2 = 'N';
-const char CAPS_FLAG_HIGH_BANDWIDTH3 = 'O';
-const char CAPS_FLAG_HIGH_BANDWIDTH4 = 'P';
-const char CAPS_FLAG_UNLIMITED_BANDWIDTH = 'X';
-
-const char CAPS_FLAG_SSU_TESTING = 'B';
-const char CAPS_FLAG_SSU_INTRODUCER = 'C';
-
 const int MAX_RI_BUFFER_SIZE = 2048;
 
 class RouterInfo : public RoutingDestination {
  public:
-  enum SupportedTransports {
-    eNTCPV4 = 0x01,
-    eNTCPV6 = 0x02,
-    eSSUV4 = 0x04,
-    eSSUV6 = 0x08
+  /// @enum Transport
+  /// @brief Transport type(s) within RI
+  enum Transport : std::uint8_t
+  {
+    NTCP,
+    SSU,
+    Unknown,
   };
 
-  enum Caps {
-    eFloodfill = 0x01,
-    eUnlimitedBandwidth = 0x02,
-    eHighBandwidth = 0x04,
-    eReachable = 0x08,
-    eSSUTesting = 0x10,
-    eSSUIntroducer = 0x20,
-    eHidden = 0x40,
-    eUnreachable = 0x80
+  /// @enum SupportedTransport
+  /// @brief Transport and IP version that *our* router will use for peer
+  enum SupportedTransport : std::uint8_t
+  {
+    NTCPv4 = 0x01,
+    NTCPv6 = 0x02,
+    SSUv4 = 0x04,
+    SSUv6 = 0x08,
   };
 
-  // TODO(anonimal): refactor
-  enum TransportStyle {
-    eTransportUnknown = 0,
-    eTransportNTCP,
-    eTransportSSU
+  /// @enum Caps
+  /// @brief RI capabilities
+  enum Caps : std::uint8_t
+  {
+    Floodfill = 0x01,
+    UnlimitedBandwidth = 0x02,
+    HighBandwidth = 0x04,
+    Reachable = 0x08,
+    SSUTesting = 0x10,
+    SSUIntroducer = 0x20,
+    Hidden = 0x40,
+    Unreachable = 0x80,
   };
+
+  /// @enum CapsFlag
+  /// @brief Flags used for RI capabilities
+  enum struct CapsFlag : std::uint8_t
+  {
+    Floodfill,
+    Hidden,
+    Reachable,
+    Unreachable,
+    LowBandwidth1,
+    LowBandwidth2,
+    HighBandwidth1,
+    HighBandwidth2,
+    HighBandwidth3,
+    HighBandwidth4,
+    UnlimitedBandwidth,
+    SSUTesting,
+    SSUIntroducer,
+    Unknown,
+  };
+
+  /// @return Char flag of given enumerated caps flag
+  /// @param flag Flag enum used for caps char flag
+  char GetTrait(CapsFlag flag) const noexcept
+  {
+    switch (flag)
+      {
+        case CapsFlag::Floodfill:
+          return 'f';
+
+        case CapsFlag::Hidden:
+          return 'H';
+
+        case CapsFlag::Reachable:
+          return 'R';
+
+        case CapsFlag::Unreachable:
+          return 'U';
+
+        case CapsFlag::LowBandwidth1:
+          return 'K';
+
+        case CapsFlag::LowBandwidth2:
+          return 'L';
+
+        case CapsFlag::HighBandwidth1:
+          return 'M';
+
+        case CapsFlag::HighBandwidth2:
+          return 'N';
+
+        case CapsFlag::HighBandwidth3:
+          return 'O';
+
+        case CapsFlag::HighBandwidth4:
+          return 'P';
+
+        case CapsFlag::UnlimitedBandwidth:
+          return 'X';
+
+        case CapsFlag::SSUTesting:
+          return 'B';
+
+        case CapsFlag::SSUIntroducer:
+          return 'C';
+
+        case CapsFlag::Unknown:
+        default:
+          return ' ';  // TODO(anonimal): review
+      }
+  }
+
+  /// @return Enumerated caps flag
+  /// @param value Char value of potential caps flag given
+  CapsFlag GetTrait(const char& value) const noexcept
+  {
+    if (value == GetTrait(CapsFlag::Floodfill))
+      return CapsFlag::Floodfill;
+
+    else if (value == GetTrait(CapsFlag::Hidden))
+      return CapsFlag::Hidden;
+
+    else if (value == GetTrait(CapsFlag::Reachable))
+      return CapsFlag::Reachable;
+
+    else if (value == GetTrait(CapsFlag::Unreachable))
+      return CapsFlag::Unreachable;
+
+    else if (value == GetTrait(CapsFlag::LowBandwidth1))
+      return CapsFlag::LowBandwidth1;
+
+    else if (value == GetTrait(CapsFlag::LowBandwidth2))
+      return CapsFlag::LowBandwidth2;
+
+    else if (value == GetTrait(CapsFlag::HighBandwidth1))
+      return CapsFlag::HighBandwidth1;
+
+    else if (value == GetTrait(CapsFlag::HighBandwidth2))
+      return CapsFlag::HighBandwidth2;
+
+    else if (value == GetTrait(CapsFlag::HighBandwidth3))
+      return CapsFlag::HighBandwidth3;
+
+    else if (value == GetTrait(CapsFlag::HighBandwidth4))
+      return CapsFlag::HighBandwidth4;
+
+    else if (value == GetTrait(CapsFlag::UnlimitedBandwidth))
+      return CapsFlag::UnlimitedBandwidth;
+
+    else if (value == GetTrait(CapsFlag::SSUTesting))
+      return CapsFlag::SSUTesting;
+
+    else if (value == GetTrait(CapsFlag::SSUIntroducer))
+      return CapsFlag::SSUIntroducer;
+
+    else
+      return CapsFlag::Unknown;  // TODO(anonimal): review
+  }
 
   struct Introducer {
     boost::asio::ip::address host;
-    int port;
+    std::uint16_t port{};
     Tag<32> key;
-    std::uint32_t tag;
-
-    /// @brief Human readable description of this struct
-    /// @param prefix for tabulations
-    /// @returns human readable string
-    std::string GetDescription(const std::string& tabs = std::string()) const;
+    std::uint32_t tag{};
   };
 
+  /// @brief Human readable description of Introducer members
+  /// @param introducer Introducer class to get description from
+  /// @param tabs Prefix for tabulations
+  /// @returns human readable string
+  const std::string GetDescription(
+      const Introducer& introducer,
+      const std::string& tabs = std::string()) const;
+
   struct Address {
-    TransportStyle transport_style;
+    Transport transport;
     boost::asio::ip::address host;
-    std::string address_string;
-    int port{}, mtu{};
+    std::string address;
+    std::uint16_t port{}, mtu{};
     std::uint64_t date{};
     std::uint8_t cost{};
     // SSU only
@@ -122,17 +236,21 @@ class RouterInfo : public RoutingDestination {
       return (host.is_v4() && other.is_v4()) ||
         (host.is_v6() && other.is_v6());
     }
-
-    /// @brief Human readable description of this struct
-    /// @param prefix for tabulations
-    /// @returns human readable string
-    std::string GetDescription(const std::string& tabs = std::string()) const;
   };
+
+  /// @brief Human readable description of Address members
+  /// @param address Address class to get description from
+  /// @param tabs Prefix for tabulations
+  /// @returns human readable string
+  const std::string GetDescription(
+      const Address& address,
+      const std::string& tabs = std::string()) const;
 
   /// @enum Trait
   /// @brief RI traits
   enum struct Trait : std::uint8_t
   {
+    // Address-specific
     NTCP,
     SSU,
     Host,
@@ -140,6 +258,8 @@ class RouterInfo : public RoutingDestination {
     MTU,
     Key,
     Caps,
+    Cost,
+    Date,
     // Introducer
     IntroHost,
     IntroPort,
@@ -158,6 +278,7 @@ class RouterInfo : public RoutingDestination {
   {
     switch (trait)
       {
+        // Address-specific
         case Trait::NTCP:
           return "NTCP";
         case Trait::SSU:
@@ -172,6 +293,10 @@ class RouterInfo : public RoutingDestination {
           return "key";
         case Trait::Caps:
           return "caps";
+        case Trait::Cost:
+          return "cost";
+        case Trait::Date:
+          return "date";
         // Introducer
         case Trait::IntroHost:
           return "ihost";
@@ -196,6 +321,7 @@ class RouterInfo : public RoutingDestination {
   /// @param value String value of potential trait given
   Trait GetTrait(const std::string& value) const noexcept
   {
+    // Address-specific
     if (value == GetTrait(Trait::NTCP))
       return Trait::NTCP;
     else if (value == GetTrait(Trait::SSU))
@@ -210,6 +336,10 @@ class RouterInfo : public RoutingDestination {
       return Trait::Key;
     else if (value == GetTrait(Trait::Caps))
       return Trait::Caps;
+    else if (value == GetTrait(Trait::Cost))
+      return Trait::Cost;
+    else if (value == GetTrait(Trait::Date))
+      return Trait::Date;
     // Introducer
     else if (value == GetTrait(Trait::IntroHost))
       return Trait::IntroHost;
@@ -282,13 +412,13 @@ class RouterInfo : public RoutingDestination {
 
   void AddNTCPAddress(
       const std::string& host,
-      int port);
+      std::uint16_t port);
 
   void AddSSUAddress(
       const std::string& host,
-      int port,
+      std::uint16_t port,
       const std::uint8_t* key,
-      int mtu = 0);
+      std::uint16_t mtu = 0);
 
   bool AddIntroducer(
       const Address* address,
@@ -330,19 +460,19 @@ class RouterInfo : public RoutingDestination {
   bool UsesIntroducer() const;
 
   bool IsIntroducer() const {
-    return m_Caps & eSSUIntroducer;
+    return m_Caps & Caps::SSUIntroducer;
   }
 
   bool IsPeerTesting() const {
-    return m_Caps & eSSUTesting;
+    return m_Caps & Caps::SSUTesting;
   }
 
   bool IsHidden() const {
-    return m_Caps & eHidden;
+    return m_Caps & Caps::Hidden;
   }
 
   bool IsHighBandwidth() const {
-    return m_Caps & RouterInfo::eHighBandwidth;
+    return m_Caps & Caps::HighBandwidth;
   }
 
   std::uint8_t GetCaps() const {
@@ -420,7 +550,8 @@ class RouterInfo : public RoutingDestination {
   /// @brief Human readable description of this struct
   /// @param prefix for tabulations
   /// @returns human readable string
-  std::string GetDescription(const std::string& tabs = std::string()) const;
+  const std::string GetDescription(
+      const std::string& tabs = std::string()) const;
 
  private:
   bool LoadFile();
@@ -443,7 +574,7 @@ class RouterInfo : public RoutingDestination {
       const char* value);
 
   const Address* GetAddress(
-      TransportStyle s,
+      Transport s,
       bool v4only,
       bool v6only = false) const;
 

@@ -52,45 +52,74 @@ namespace kovri
 {
 namespace core
 {
-std::string RouterInfo::Introducer::GetDescription(
+
+const std::string RouterInfo::GetDescription(
+    const Introducer& introducer,
     const std::string& tabs) const
 {
   std::stringstream ss;
-  ss << tabs << "Host: " << host.to_string() << std::endl
-     << tabs << "Port: " << port << std::endl
-     << tabs << "Key: " << key.ToBase64() << std::endl
-     << tabs << "Tag: " << tag;
+
+  const std::string delimiter = GetTrait(Trait::Delimiter),
+                    terminator = GetTrait(Trait::Terminator) + "\n";
+
+  ss << tabs << GetTrait(Trait::IntroHost) << delimiter
+     << introducer.host.to_string() << terminator
+
+     << tabs << GetTrait(Trait::IntroPort) << delimiter
+     << introducer.port << terminator
+
+     << tabs << GetTrait(Trait::IntroKey) << delimiter
+     << introducer.key.ToBase64() << terminator
+
+     << tabs << GetTrait(Trait::IntroTag) << delimiter
+     << introducer.tag << terminator;
+
   return ss.str();
 }
 
 // TODO(unassigned): though this was originally intended for the kovri utility binary,
 //  we can expand reporting to include remaining POD types of the Address struct
-std::string RouterInfo::Address::GetDescription(const std::string& tabs) const
+const std::string RouterInfo::GetDescription(
+    const Address& address,
+    const std::string& tabs) const
 {
   std::stringstream ss;
-  ss << tabs << "Type: ";
-  switch (transport_style)
+
+  const std::string delimiter = GetTrait(Trait::Delimiter),
+                    terminator = GetTrait(Trait::Terminator) + "\n";
+
+  ss << tabs << "Address transport: ";
+  switch (address.transport)
     {
-      case eTransportNTCP:
-        ss << "NTCP";
+      case Transport::NTCP:
+        ss << GetTrait(Trait::NTCP);
         break;
-      case eTransportSSU:
-        ss << "SSU";
+      case Transport::SSU:
+        ss << GetTrait(Trait::SSU);
         break;
-      case eTransportUnknown:
-        ss << "Unknown";
+      case Transport::Unknown:
+        ss << GetTrait(Trait::Unknown);
         return ss.str();
     }
-  ss << std::endl
-     << tabs << "\tCost: " << static_cast<int>(cost) << std::endl
-     << tabs << "\tHost: " << host.to_string() << std::endl
-     << tabs << "\tPort: " << port << std::endl;
-  if (transport_style == eTransportSSU)
+
+  ss << "\n"
+     << tabs << "\t" << GetTrait(Trait::Cost) << delimiter
+     << static_cast<int>(address.cost) << terminator
+
+     << tabs << "\t" << GetTrait(Trait::Cost) << delimiter
+     << address.host.to_string() << terminator
+
+     << tabs << "\t" << GetTrait(Trait::Port) << delimiter
+     << address.port << terminator;
+
+  if (address.transport == Transport::SSU)
     {
-      ss << tabs << "\tIntroducers (" << introducers.size() << ")" << std::endl;
-      for (const Introducer& introducer : introducers)
-        ss << introducer.GetDescription(tabs + "\t\t") << std::endl;
+      ss << tabs << "\n\tIntroducers(" << address.introducers.size() << ")"
+         << std::endl;
+      for (const Introducer& introducer : address.introducers)
+        ss << GetDescription(introducer, tabs + "\t\t") << std::endl;
     }
+
   return ss.str();
 }
 
@@ -233,7 +262,7 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
       Address address;
       bool is_valid_address = true;
 
-      // Read cost + data
+      // Read cost + date
       stream.Read(&address.cost, sizeof(address.cost));
       stream.Read(&address.date, sizeof(address.date));
 
@@ -242,13 +271,13 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
       switch (GetTrait(transport))
         {
           case Trait::NTCP:
-            address.transport_style = eTransportNTCP;
+            address.transport = Transport::NTCP;
             break;
           case Trait::SSU:
-            address.transport_style = eTransportSSU;
+            address.transport = Transport::SSU;
             break;
           default:
-            address.transport_style = eTransportUnknown;
+            address.transport = Transport::Unknown;
             break;
         }
 
@@ -285,15 +314,15 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
                                      << ecode.message() << "'";
                         }
                       // Prepare for host resolution
-                      switch (address.transport_style)
+                      switch (address.transport)
                         {
-                          case eTransportNTCP:
+		          case Transport::NTCP:
                             // NTCP will (should be) resolved in transports
                             // TODO(unassigned): refactor. Though we will resolve host later, assigning values upon error is simply confusing.
-                            m_SupportedTransports |= eNTCPV4;
-                            address.address_string = value;
+                            m_SupportedTransports |= SupportedTransport::NTCPv4;
+                            address.address = value;
                             break;
-                          case eTransportSSU:
+		          case Transport::SSU:
                             // TODO(unassigned): implement address resolver for SSU (then break from default case)
                             LOG(warning)
                                 << "RouterInfo: unexpected SSU address "
@@ -306,19 +335,21 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
                   // add supported protocol
                   if (address.host.is_v4())
                     m_SupportedTransports |=
-                        (address.transport_style == eTransportNTCP) ? eNTCPV4
-                                                                    : eSSUV4;
+                        (address.transport == Transport::NTCP)
+                            ? SupportedTransport::NTCPv4
+                            : SupportedTransport::SSUv4;
                   else
                     m_SupportedTransports |=
-                        (address.transport_style == eTransportNTCP) ? eNTCPV6
-                                                                    : eSSUV6;
+                        (address.transport == Transport::NTCP)
+                            ? SupportedTransport::NTCPv6
+                            : SupportedTransport::SSUv6;
                   break;
                 }
               case Trait::Port:
-                address.port = boost::lexical_cast<int>(value);
+                address.port = boost::lexical_cast<std::uint16_t>(value);
                 break;
               case Trait::MTU:
-                address.mtu = boost::lexical_cast<int>(value);
+                address.mtu = boost::lexical_cast<std::uint16_t>(value);
                 break;
               case Trait::Key:
                 kovri::core::Base64ToByteStream(
@@ -357,7 +388,7 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
                           }
                           break;
                         case Trait::IntroPort:
-                          introducer.port = boost::lexical_cast<int>(value);
+                          introducer.port = boost::lexical_cast<std::uint16_t>(value);
                           break;
                         case Trait::IntroTag:
                           introducer.tag =
@@ -379,7 +410,7 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
         }
 
       // Log RI details, save valid addresses
-      LOG(debug) << address.GetDescription();
+      LOG(debug) << GetDescription(address);
       if (is_valid_address)
         m_Addresses.push_back(address);
     }
@@ -422,38 +453,38 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
     }
 }
 
-// TODO(anonimal): rename as setter
+// TODO(anonimal): refactor + rename as setter
 void RouterInfo::ExtractCaps(
     const char* value) {
   const char* cap = value;
   while (*cap) {
-    switch (*cap) {
-      case CAPS_FLAG_FLOODFILL:
-        m_Caps |= Caps::eFloodfill;
+    switch (GetTrait(*cap)) {
+      case CapsFlag::Floodfill:
+        m_Caps |= Caps::Floodfill;
         break;
-      case CAPS_FLAG_UNLIMITED_BANDWIDTH:
-        m_Caps |= Caps::eUnlimitedBandwidth;
+      case CapsFlag::UnlimitedBandwidth:
+        m_Caps |= Caps::UnlimitedBandwidth;
         break;
-      case CAPS_FLAG_HIGH_BANDWIDTH1:
-      case CAPS_FLAG_HIGH_BANDWIDTH2:
-      case CAPS_FLAG_HIGH_BANDWIDTH3:
-      case CAPS_FLAG_HIGH_BANDWIDTH4:
-        m_Caps |= Caps::eHighBandwidth;
+      case CapsFlag::HighBandwidth1:
+      case CapsFlag::HighBandwidth2:
+      case CapsFlag::HighBandwidth3:
+      case CapsFlag::HighBandwidth4:
+        m_Caps |= Caps::HighBandwidth;
         break;
-      case CAPS_FLAG_HIDDEN:
-        m_Caps |= Caps::eHidden;
+      case CapsFlag::Hidden:
+        m_Caps |= Caps::Hidden;
         break;
-      case CAPS_FLAG_REACHABLE:
-        m_Caps |= Caps::eReachable;
+      case CapsFlag::Reachable:
+        m_Caps |= Caps::Reachable;
         break;
-      case CAPS_FLAG_UNREACHABLE:
-        m_Caps |= Caps::eUnreachable;
+      case CapsFlag::Unreachable:
+        m_Caps |= Caps::Unreachable;
         break;
-      case CAPS_FLAG_SSU_TESTING:
-        m_Caps |= Caps::eSSUTesting;
+      case CapsFlag::SSUTesting:
+        m_Caps |= Caps::SSUTesting;
         break;
-      case CAPS_FLAG_SSU_INTRODUCER:
-        m_Caps |= Caps::eSSUIntroducer;
+      case CapsFlag::SSUIntroducer:
+        m_Caps |= Caps::SSUIntroducer;
         break;
       default: {}
     }
@@ -461,19 +492,31 @@ void RouterInfo::ExtractCaps(
   }
 }
 
-void RouterInfo::UpdateCapsProperty() {
+void RouterInfo::UpdateCapsProperty()
+{
   std::string caps;
-  if (m_Caps & eFloodfill) {
-    caps += CAPS_FLAG_HIGH_BANDWIDTH4;  // highest bandwidth
-    caps += CAPS_FLAG_FLOODFILL;  // floodfill
-  } else {
-    caps += (m_Caps & eHighBandwidth) ?
-      CAPS_FLAG_HIGH_BANDWIDTH3 :
-      CAPS_FLAG_LOW_BANDWIDTH2;  // bandwidth
-  }
-  if (m_Caps & eHidden) caps += CAPS_FLAG_HIDDEN;  // hidden
-  if (m_Caps & eReachable) caps += CAPS_FLAG_REACHABLE;  // reachable
-  if (m_Caps & eUnreachable) caps += CAPS_FLAG_UNREACHABLE;  // unreachable
+
+  if (m_Caps & Caps::Floodfill)
+    {
+      caps += GetTrait(CapsFlag::HighBandwidth4);  // highest bandwidth
+      caps += GetTrait(CapsFlag::Floodfill);
+    }
+  else
+    {
+      caps += (m_Caps & Caps::HighBandwidth)
+                  ? GetTrait(CapsFlag::HighBandwidth3)
+                  : GetTrait(CapsFlag::LowBandwidth2);
+    }
+
+  if (m_Caps & Caps::Hidden)
+    caps += GetTrait(CapsFlag::Hidden);
+
+  if (m_Caps & Caps::Reachable)
+    caps += GetTrait(CapsFlag::Reachable);
+
+  if (m_Caps & Caps::Unreachable)
+    caps += GetTrait(CapsFlag::Unreachable);
+
   SetProperty("caps", caps);
 }
 
@@ -488,18 +531,18 @@ void RouterInfo::WriteToStream(
     s.write(reinterpret_cast<char *>(&address.cost), sizeof(address.cost));
     s.write(reinterpret_cast<char *>(&address.date), sizeof(address.date));
     std::stringstream properties;
-    if (address.transport_style == eTransportNTCP) {
+    if (address.transport == Transport::NTCP) {
       WriteString("NTCP", s);
-    } else if (address.transport_style == eTransportSSU) {
+    } else if (address.transport == Transport::SSU) {
       WriteString("SSU", s);
       // caps
       WriteString("caps", properties);
       properties << '=';
       std::string caps;
       if (IsPeerTesting())
-        caps += CAPS_FLAG_SSU_TESTING;
+        caps += GetTrait(CapsFlag::SSUTesting);
       if (IsIntroducer())
-        caps += CAPS_FLAG_SSU_INTRODUCER;
+        caps += GetTrait(CapsFlag::SSUIntroducer);
       WriteString(caps, properties);
       properties << ';';
     } else {
@@ -509,7 +552,7 @@ void RouterInfo::WriteToStream(
     properties << '=';
     WriteString(address.host.to_string(), properties);
     properties << ';';
-    if (address.transport_style == eTransportSSU) {
+    if (address.transport == Transport::SSU) {
       // write introducers if any
       if (address.introducers.size() > 0) {
         int i = 0;
@@ -654,42 +697,44 @@ void RouterInfo::WriteString(
 
 void RouterInfo::AddNTCPAddress(
     const std::string& host,
-    int port) {
+    std::uint16_t port) {
   Address addr;
   addr.host = boost::asio::ip::address::from_string(host);
   addr.port = port;
-  addr.transport_style = eTransportNTCP;
+  addr.transport = Transport::NTCP;
   addr.cost = 10;  // NTCP should have priority over SSU
   addr.date = 0;
   addr.mtu = 0;
   m_Addresses.push_back(addr);
-  m_SupportedTransports |= addr.host.is_v6() ? eNTCPV6 : eNTCPV4;
+  m_SupportedTransports |= addr.host.is_v6() ? SupportedTransport::NTCPv6
+                                             : SupportedTransport::NTCPv6;
 }
 
 void RouterInfo::AddSSUAddress(
     const std::string& host,
-    int port,
+    std::uint16_t port,
     const std::uint8_t* key,
-    int mtu) {
+    std::uint16_t mtu) {
   Address addr;
   addr.host = boost::asio::ip::address::from_string(host);
   addr.port = port;
-  addr.transport_style = eTransportSSU;
+  addr.transport = Transport::SSU;
   addr.cost = 5;
   addr.date = 0;
   addr.mtu = mtu;
   memcpy(addr.key, key, 32);
   m_Addresses.push_back(addr);
-  m_SupportedTransports |= addr.host.is_v6() ? eSSUV6 : eSSUV4;
-  m_Caps |= eSSUTesting;
-  m_Caps |= eSSUIntroducer;
+  m_SupportedTransports |=
+      addr.host.is_v6() ? SupportedTransport::SSUv6 : SupportedTransport::SSUv4;
+  m_Caps |= Caps::SSUTesting;
+  m_Caps |= Caps::SSUIntroducer;
 }
 
 bool RouterInfo::AddIntroducer(
     const Address* address,
     std::uint32_t tag) {
   for (auto& addr : m_Addresses) {
-    if (addr.transport_style == eTransportSSU && addr.host.is_v4()) {
+    if (addr.transport == Transport::SSU && addr.host.is_v4()) {
       for (auto intro : addr.introducers)
         if (intro.tag == tag)
           return false;  // already presented
@@ -708,7 +753,7 @@ bool RouterInfo::AddIntroducer(
 bool RouterInfo::RemoveIntroducer(
     const boost::asio::ip::udp::endpoint& e) {
   for (auto& addr : m_Addresses) {
-    if (addr.transport_style == eTransportSSU && addr.host.is_v4()) {
+    if (addr.transport == Transport::SSU && addr.host.is_v4()) {
       for (std::vector<Introducer>::iterator it = addr.introducers.begin();
           it != addr.introducers.end();
           it++)
@@ -749,51 +794,55 @@ void RouterInfo::DeleteProperty(
 }
 
 bool RouterInfo::IsFloodfill() const {
-  return m_Caps & Caps::eFloodfill;
+  return m_Caps & Caps::Floodfill;
 }
 
 bool RouterInfo::IsNTCP(
     bool v4only) const {
   if (v4only)
-    return m_SupportedTransports & eNTCPV4;
+    return m_SupportedTransports & SupportedTransport::NTCPv4;
   else
-    return m_SupportedTransports & (eNTCPV4 | eNTCPV6);
+    return m_SupportedTransports
+           & (SupportedTransport::NTCPv4 | SupportedTransport::NTCPv6);
 }
 
 bool RouterInfo::IsSSU(
     bool v4only) const {
   if (v4only)
-    return m_SupportedTransports & eSSUV4;
+    return m_SupportedTransports & SupportedTransport::SSUv4;
   else
-    return m_SupportedTransports & (eSSUV4 | eSSUV6);
+    return m_SupportedTransports
+           & (SupportedTransport::SSUv4 | SupportedTransport::SSUv6);
 }
 
 bool RouterInfo::IsV6() const {
-  return m_SupportedTransports & (eNTCPV6 | eSSUV6);
+  return m_SupportedTransports
+         & (SupportedTransport::NTCPv6 | SupportedTransport::SSUv6);
 }
 
 void RouterInfo::EnableV6() {
   if (!IsV6())
-    m_SupportedTransports |= eNTCPV6 | eSSUV6;
+    m_SupportedTransports |=
+        SupportedTransport::NTCPv6 | SupportedTransport::SSUv6;
 }
 
 void RouterInfo::DisableV6() {
   if (IsV6()) {
     // NTCP
-    m_SupportedTransports &= ~eNTCPV6;
+    m_SupportedTransports &= ~SupportedTransport::NTCPv6;
     for (std::size_t i = 0; i < m_Addresses.size(); i++) {
-      if (m_Addresses[i].transport_style ==
-          kovri::core::RouterInfo::eTransportNTCP &&
+      if (m_Addresses[i].transport ==
+          core::RouterInfo::Transport::NTCP &&
           m_Addresses[i].host.is_v6()) {
         m_Addresses.erase(m_Addresses.begin() + i);
         break;
       }
     }
     // SSU
-    m_SupportedTransports &= ~eSSUV6;
+    m_SupportedTransports &= ~SupportedTransport::SSUv6;
     for (std::size_t i = 0; i < m_Addresses.size(); i++) {
-      if (m_Addresses[i].transport_style ==
-          kovri::core::RouterInfo::eTransportSSU &&
+      if (m_Addresses[i].transport ==
+          Transport::SSU &&
           m_Addresses[i].host.is_v6()) {
         m_Addresses.erase(m_Addresses.begin() + i);
         break;
@@ -803,29 +852,29 @@ void RouterInfo::DisableV6() {
 }
 
 bool RouterInfo::UsesIntroducer() const {
-  return m_Caps & Caps::eUnreachable;  // non-reachable
+  return m_Caps & Caps::Unreachable;  // non-reachable
 }
 
 const RouterInfo::Address* RouterInfo::GetNTCPAddress(
     bool v4only) const {
-  return GetAddress(eTransportNTCP, v4only);
+  return GetAddress(Transport::NTCP, v4only);
 }
 
 const RouterInfo::Address* RouterInfo::GetSSUAddress(
     bool v4only) const {
-  return GetAddress(eTransportSSU, v4only);
+  return GetAddress(Transport::SSU, v4only);
 }
 
 const RouterInfo::Address* RouterInfo::GetSSUV6Address() const {
-  return GetAddress(eTransportSSU, false, true);
+  return GetAddress(Transport::SSU, false, true);
 }
 
 const RouterInfo::Address* RouterInfo::GetAddress(
-    TransportStyle s,
+    Transport s,
     bool v4only,
     bool v6only) const {
   for (auto& address : m_Addresses) {
-    if (address.transport_style == s) {
+    if (address.transport == s) {
       if ((!v4only || address.host.is_v4()) &&
           (!v6only || address.host.is_v6()))
         return &address;
@@ -840,7 +889,7 @@ std::shared_ptr<RouterProfile> RouterInfo::GetProfile() const {
   return m_Profile;
 }
 
-std::string RouterInfo::GetDescription(const std::string& tabs) const
+const std::string RouterInfo::GetDescription(const std::string& tabs) const
 {
   std::stringstream ss;
   boost::posix_time::ptime time_epoch(boost::gregorian::date(1970, 1, 1));
@@ -854,11 +903,14 @@ std::string RouterInfo::GetDescription(const std::string& tabs) const
   for (const auto& p : m_Properties)
     ss << tabs << "\t\t[" << p.first << "] : [" << p.second << "]" << std::endl;
   ss << tabs << "\tSSU Caps: ["
-     << (IsPeerTesting() ? CAPS_FLAG_SSU_TESTING : ' ')
-     << (IsIntroducer() ? CAPS_FLAG_SSU_INTRODUCER : ' ') << "]" << std::endl;
+     << (IsPeerTesting() ? GetTrait(CapsFlag::SSUTesting)
+                         : GetTrait(CapsFlag::Unknown))
+     << (IsIntroducer() ? GetTrait(CapsFlag::SSUIntroducer)
+                        : GetTrait(CapsFlag::Unknown))
+     << "]" << std::endl;
   ss << tabs << "\tAddresses(" << m_Addresses.size() << "): " << std::endl;
-  for (const auto& a : m_Addresses)
-    ss << a.GetDescription(tabs + "\t\t");
+  for (const auto& address : m_Addresses)
+    ss << GetDescription(address, tabs + "\t\t");
   return ss.str();
 }
 

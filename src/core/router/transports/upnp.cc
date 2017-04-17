@@ -206,9 +206,9 @@ void UPnP::Run() {
   for (const auto& address : context.GetRouterInfo().GetAddresses()) {
     if (!address.host.is_v6()) {
       Discover();
-      if (address.transport_style == kovri::core::RouterInfo::eTransportSSU) {
+      if (address.transport == core::RouterInfo::Transport::SSU) {
         TryPortMapping(I2P_UPNP_UDP, address.port);
-      } else if (address.transport_style == kovri::core::RouterInfo::eTransportNTCP) {
+      } else if (address.transport == core::RouterInfo::Transport::NTCP) {
         TryPortMapping(I2P_UPNP_TCP, address.port);
       }
     }

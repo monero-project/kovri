@@ -181,8 +181,8 @@ void Transports::Start() {
   const auto addresses = context.GetRouterInfo().GetAddresses();
   for (const auto& address : addresses) {
     LOG(debug) << "Transports: creating servers for address " << address.host;
-    if (address.transport_style ==
-        kovri::core::RouterInfo::eTransportNTCP && address.host.is_v4()) {
+    if (address.transport ==
+        core::RouterInfo::Transport::NTCP && address.host.is_v4()) {
       if (!m_NTCPServer) {
         LOG(debug) << "Transports: TCP listening on port " << address.port;
         m_NTCPServer = std::make_unique<NTCPServer>(m_Service, address.port);
@@ -191,8 +191,8 @@ void Transports::Start() {
         LOG(error) << "Transports: TCP server already exists";
       }
     }
-    if (address.transport_style ==
-        kovri::core::RouterInfo::eTransportSSU && address.host.is_v4()) {
+    if (address.transport ==
+        core::RouterInfo::Transport::SSU && address.host.is_v4()) {
       if (!m_SSUServer) {
         LOG(debug) << "Transports: UDP listening on port " << address.port;
         m_SSUServer = std::make_unique<SSUServer>(m_Service, address.port);
@@ -389,10 +389,9 @@ bool Transports::ConnectToPeerNTCP(
       return true;
     }
   } else {  // we don't have address
-    if (address->address_string.length() > 0) {  // trying to resolve
-      LOG(debug) <<
-          "Transports: NTCP resolving " << address->address_string;
-      NTCPResolve(address->address_string, ident);
+    if (address->address.length() > 0) {  // trying to resolve
+      LOG(debug) << "Transports: NTCP resolving " << address->address;
+      NTCPResolve(address->address, ident);
       return true;
     }
   }

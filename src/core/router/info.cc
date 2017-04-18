@@ -150,6 +150,9 @@ RouterInfo::RouterInfo(
       m_IsUnreachable(false),
       m_SupportedTransports(0),
       m_Caps(0) {
+  if (len >= MAX_RI_BUFFER_SIZE)
+    throw std::length_error(
+        "RouterInfo: " + std::string(__func__) + ": buffer length too large");
   m_Buffer = std::make_unique<std::uint8_t[]>(MAX_RI_BUFFER_SIZE);
   memcpy(m_Buffer.get(), buf, len);
   m_BufferLen = len;
@@ -161,6 +164,9 @@ RouterInfo::~RouterInfo() {}
 void RouterInfo::Update(
     const std::uint8_t* buf,
     int len) {
+  if (len >= MAX_RI_BUFFER_SIZE)
+    throw std::length_error(
+        "RouterInfo: " + std::string(__func__) + ": buffer length too large");
   if (!m_Buffer)
     m_Buffer = std::make_unique<std::uint8_t[]>(MAX_RI_BUFFER_SIZE);
   m_IsUpdated = true;
@@ -186,10 +192,12 @@ bool RouterInfo::LoadFile() {
   if (s.is_open()) {
     s.seekg(0, std::ios::end);
     m_BufferLen = s.tellg();
-    if (m_BufferLen < 40) {
-      LOG(error) << "RouterInfo: file" << m_FullPath << " is malformed";
-      return false;
-    }
+    if (m_BufferLen < 40 || m_BufferLen >= MAX_RI_BUFFER_SIZE)
+      {
+        LOG(error) << "RouterInfo: " << m_FullPath
+                   << " is malformed. Length = " << m_BufferLen;
+        return false;
+      }
     s.seekg(0, std::ios::beg);
     if (!m_Buffer)
       m_Buffer = std::make_unique<std::uint8_t[]>(MAX_RI_BUFFER_SIZE);
@@ -202,8 +210,10 @@ bool RouterInfo::LoadFile() {
 }
 
 void RouterInfo::ReadFromFile() {
-  if (LoadFile())
-    ReadFromBuffer(false);
+  if (!LoadFile())
+    throw std::runtime_error(
+        "RouterInfo: " + std::string(__func__) + ": invalid file");
+  ReadFromBuffer(false);
 }
 
 void RouterInfo::ReadFromBuffer(

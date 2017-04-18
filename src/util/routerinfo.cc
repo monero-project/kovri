@@ -99,8 +99,17 @@ bool RouterInfoCommand::Impl(
           return false;
         }
       LOG(trace) << "routerinfo: read OK length " << length;
-      kovri::core::RouterInfo ri(buffer.get(), length);
-      LOG(info) << ri.GetDescription();
+      try
+        {
+          kovri::core::RouterInfo ri(buffer.get(), length);
+          LOG(info) << ri.GetDescription();
+        }
+      catch (...)
+        {
+          kovri::core::Exception ex(GetName().c_str());
+          ex.Dispatch(__func__);
+          return false;
+        }
     }
 
   return true;

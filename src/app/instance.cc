@@ -97,7 +97,7 @@ void Instance::InitRouterContext() {
   // Random generated port if none is supplied via CLI or config
   // See: i2p.i2p/router/java/src/net/i2p/router/transport/udp/UDPEndpoint.java
   auto port = map["port"].defaulted() ? kovri::core::RandInRange32(9111, 30777)
-                                      : map["port"].as<std::uint16_t>();
+                                      : map["port"].as<int>();
   // TODO(unassigned): context should be in core namespace (see TODO in router context)
   context.Init(host, port);
   context.UpdatePort(port);

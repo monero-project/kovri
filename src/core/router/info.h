@@ -390,7 +390,13 @@ class RouterInfo : public RoutingDestination {
     return GetIdentHash().ToBase64().substr(0, 4);
   }
 
-  std::uint64_t GetTimestamp() const {
+  void SetTimestamp(std::uint64_t timestamp) noexcept
+  {
+    m_Timestamp = timestamp;
+  }
+
+  std::uint64_t GetTimestamp() const noexcept
+  {
     return m_Timestamp;
   }
 
@@ -427,6 +433,7 @@ class RouterInfo : public RoutingDestination {
   bool RemoveIntroducer(
       const boost::asio::ip::udp::endpoint& e);
 
+  // TODO(anonimal): refactor
   void SetProperty(  // called from RouterContext only
       const std::string& key,
       const std::string& value);
@@ -435,7 +442,7 @@ class RouterInfo : public RoutingDestination {
       const std::string& key);
 
   void ClearProperties() {
-    m_Properties.clear();
+    m_Options.clear();
   }
 
   bool IsFloodfill() const;
@@ -543,6 +550,11 @@ class RouterInfo : public RoutingDestination {
     return m_RouterIdentity.GetStandardIdentity().public_key;
   }
 
+  const std::map<std::string, std::string>& GetOptions() const noexcept
+  {
+    return m_Options;
+  }
+
   bool IsDestination() const {
     return false;
   }
@@ -561,14 +573,15 @@ class RouterInfo : public RoutingDestination {
   void ReadFromBuffer(
       bool verify_signature);
 
+  /// @brief Parses complete RI
   void ParseRouterInfo(const std::string& router_info);
 
-  void WriteToStream(
-      std::ostream& s);
-
-  void WriteString(
-      const std::string& str,
-      std::ostream& s);
+  /// @brief Creates populated RI stream
+  /// @param router_info RI stream to write to
+  /// @param private_keys Keys to write/sign with
+  void CreateRouterInfo(
+      core::StringStream& router_info,
+      const PrivateKeys& private_keys);
 
   void ExtractCaps(
       const char* value);
@@ -587,7 +600,7 @@ class RouterInfo : public RoutingDestination {
   int m_BufferLen;
   std::uint64_t m_Timestamp;
   std::vector<Address> m_Addresses;
-  std::map<std::string, std::string> m_Properties;
+  std::map<std::string, std::string> m_Options;
   bool m_IsUpdated, m_IsUnreachable;
   std::uint8_t m_SupportedTransports, m_Caps;
   mutable std::shared_ptr<RouterProfile> m_Profile;

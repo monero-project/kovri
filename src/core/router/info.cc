@@ -174,7 +174,7 @@ void RouterInfo::Update(
   m_SupportedTransports = 0;
   m_Caps = 0;
   m_Addresses.clear();
-  m_Properties.clear();
+  m_Options.clear();
   memcpy(m_Buffer.get(), buf, len);
   m_BufferLen = len;
   ReadFromBuffer(true);
@@ -530,128 +530,173 @@ void RouterInfo::UpdateCapsProperty()
   SetProperty("caps", caps);
 }
 
-void RouterInfo::WriteToStream(
-    std::ostream& s) {
-  std::uint64_t ts = htobe64(m_Timestamp);
-  s.write(reinterpret_cast<char *>(&ts), sizeof(ts));
-  // addresses
-  std::uint8_t num_addresses = m_Addresses.size();
-  s.write(reinterpret_cast<char *>(&num_addresses), sizeof(num_addresses));
-  for (auto& address : m_Addresses) {
-    s.write(reinterpret_cast<char *>(&address.cost), sizeof(address.cost));
-    s.write(reinterpret_cast<char *>(&address.date), sizeof(address.date));
-    std::stringstream properties;
-    if (address.transport == Transport::NTCP) {
-      WriteString("NTCP", s);
-    } else if (address.transport == Transport::SSU) {
-      WriteString("SSU", s);
-      // caps
-      WriteString("caps", properties);
-      properties << '=';
-      std::string caps;
-      if (IsPeerTesting())
-        caps += GetTrait(CapsFlag::SSUTesting);
-      if (IsIntroducer())
-        caps += GetTrait(CapsFlag::SSUIntroducer);
-      WriteString(caps, properties);
-      properties << ';';
-    } else {
-      WriteString("", s);
+// TODO(anonimal): debug + trace logging
+// TODO(anonimal): unit-test
+void RouterInfo::CreateRouterInfo(
+    core::StringStream& router_info,
+    const PrivateKeys& private_keys)
+{
+  LOG(debug) << "RouterInfo: " << __func__;
+
+  // Write ident
+  // TODO(anonimal): review the following arbitrary size (must be >= 387)
+  std::array<std::uint8_t, 1024> ident{};
+  auto ident_len =
+      private_keys.GetPublic().ToBuffer(ident.data(), ident.size());
+  router_info.Write(ident.data(), ident_len);
+
+  // Set published timestamp
+  SetTimestamp(core::GetMillisecondsSinceEpoch());
+
+  // Write published timestamp
+  std::uint64_t timestamp = htobe64(GetTimestamp());
+  router_info.Write(&timestamp, sizeof(timestamp));
+
+  // Write number of addresses to follow
+  std::uint8_t num_addresses = GetAddresses().size();
+  router_info.Write(&num_addresses, sizeof(num_addresses));
+
+  // RI options, once populated, written to RI stream
+  core::StringStream options(
+      GetTrait(Trait::Delimiter), GetTrait(Trait::Terminator));
+
+  LOG(debug) << "RouterInfo: " << __func__ << ": processing "
+             << GetAddresses().size() << " addresses";
+
+  // Write each address + options
+  for (const auto& address : GetAddresses())
+    {
+      // Reset options for next address
+      options.Str(std::string());
+
+      // Write cost + date
+      router_info.Write(&address.cost, sizeof(address.cost));
+      router_info.Write(&address.date, sizeof(address.date));
+
+      // Write transport
+      switch (address.transport)
+        {
+          case Transport::NTCP:
+            router_info.WriteByteAndString(GetTrait(Trait::NTCP));
+            break;
+          case Transport::SSU:
+            {
+              router_info.WriteByteAndString(GetTrait(Trait::SSU));
+
+              // Get SSU capabilities
+              std::string caps;
+              if (IsPeerTesting())
+                caps += GetTrait(CapsFlag::SSUTesting);
+              if (IsIntroducer())
+                caps += GetTrait(CapsFlag::SSUIntroducer);
+
+              // Write SSU capabilities
+              options.WriteKeyPair(GetTrait(Trait::Caps), caps);
+              break;
+            }
+          default:
+            // TODO(anonimal): review
+            router_info.WriteByteAndString(GetTrait(Trait::Unknown));
+            break;
+        }
+
+      // Write host
+      options.WriteKeyPair(GetTrait(Trait::Host), address.host.to_string());
+
+      // SSU
+      if (address.transport == Transport::SSU)
+        {
+          // Write introducers (if any)
+          if (!address.introducers.empty())
+            {
+              LOG(debug) << "RouterInfo: " << __func__ << " writing "
+                         << address.introducers.size() << " introducers";
+
+              std::uint8_t count{};
+              for (const auto& introducer : address.introducers)
+                {
+                  std::string num = boost::lexical_cast<std::string>(count);
+
+                  // Write introducer host
+                  options.WriteKeyPair(
+                      GetTrait(Trait::IntroHost) + num,
+                      introducer.host.to_string());
+
+                  // Write introducer key
+                  std::array<char, 64> key{};
+                  core::ByteStreamToBase64(
+                      introducer.key,
+                      sizeof(introducer.key),
+                      key.data(),
+                      key.size());
+
+                  options.WriteKeyPair(
+                      GetTrait(Trait::IntroKey) + num, key.data());
+
+                  // Write introducer port
+                  options.WriteKeyPair(
+                      GetTrait(Trait::IntroPort) + num,
+                      boost::lexical_cast<std::string>(introducer.port));
+
+                  // Write introducer tag
+                  options.WriteKeyPair(
+                      GetTrait(Trait::IntroTag) + num,
+                      boost::lexical_cast<std::string>(introducer.tag));
+
+                  count++;
+                }
+            }
+
+          // Write key
+          std::array<char, 64> value{};
+          core::ByteStreamToBase64(
+              address.key, sizeof(address.key), value.data(), value.size());
+
+          options.WriteKeyPair(GetTrait(Trait::Key), value.data());
+
+          // Write MTU
+          if (address.mtu)
+            options.WriteKeyPair(
+                GetTrait(Trait::MTU),
+                boost::lexical_cast<std::string>(address.mtu));
+        }
+
+      // Write port
+      options.WriteKeyPair(
+          GetTrait(Trait::Port),
+          boost::lexical_cast<std::string>(address.port));
+
+      // Write size of populated options
+      std::uint16_t size = htobe16(options.Str().size());
+      router_info.Write(&size, sizeof(size));
+
+      // Write options to RI
+      router_info.Write(options.Str().c_str(), options.Str().size());
     }
-    WriteString("host", properties);
-    properties << '=';
-    WriteString(address.host.to_string(), properties);
-    properties << ';';
-    if (address.transport == Transport::SSU) {
-      // write introducers if any
-      if (address.introducers.size() > 0) {
-        int i = 0;
-        for (auto introducer : address.introducers) {
-          WriteString(
-              "ihost" + boost::lexical_cast<std::string>(i),
-              properties);
-          properties << '=';
-          WriteString(
-              introducer.host.to_string(),
-              properties);
-          properties << ';';
-          i++;
-        }
-        i = 0;
-        for (auto introducer : address.introducers) {
-          WriteString("ikey" + boost::lexical_cast<std::string>(i), properties);
-          properties << '=';
-          char value[64];
-          std::size_t len =
-            kovri::core::ByteStreamToBase64(introducer.key, 32, value, 64);
-          value[len] = 0;
-          WriteString(value, properties);
-          properties << ';';
-          i++;
-        }
-        i = 0;
-        for (auto introducer : address.introducers) {
-          WriteString(
-              "iport" + boost::lexical_cast<std::string>(i),
-              properties);
-          properties << '=';
-          WriteString(
-              boost::lexical_cast<std::string>(introducer.port),
-              properties);
-          properties << ';';
-          i++;
-        }
-        i = 0;
-        for (auto introducer : address.introducers) {
-          WriteString(
-              "itag" + boost::lexical_cast<std::string>(i),
-              properties);
-          properties << '=';
-          WriteString(
-              boost::lexical_cast<std::string>(introducer.tag),
-              properties);
-          properties << ';';
-          i++;
-        }
-      }
-      // write intro key
-      WriteString("key", properties);
-      properties << '=';
-      char value[64];
-      std::size_t len = kovri::core::ByteStreamToBase64(address.key, 32, value, 64);
-      value[len] = 0;
-      WriteString(value, properties);
-      properties << ';';
-      // write mtu
-      if (address.mtu) {
-        WriteString("mtu", properties);
-        properties << '=';
-        WriteString(boost::lexical_cast<std::string>(address.mtu), properties);
-        properties << ';';
-      }
-    }
-    WriteString("port", properties);
-    properties << '=';
-    WriteString(boost::lexical_cast<std::string>(address.port), properties);
-    properties << ';';
-    std::uint16_t size = htobe16(properties.str().size());
-    s.write(reinterpret_cast<char *>(&size), sizeof(size));
-    s.write(properties.str().c_str(), properties.str().size());
-  }
-  // peers
-  std::uint8_t num_peers = 0;
-  s.write(reinterpret_cast<char *>(&num_peers), sizeof(num_peers));
-  // properties
-  std::stringstream properties;
-  for (auto& p : m_Properties) {
-    WriteString(p.first, properties);
-    properties << '=';
-    WriteString(p.second, properties);
-    properties << ';';
-  }
-  std::uint16_t size = htobe16(properties.str().size());
-  s.write(reinterpret_cast<char *>(&size), sizeof(size));
-  s.write(properties.str().c_str(), properties.str().size());
+
+  // Write number of peers
+  // Note: this is unused / unimplemented, see RI spec
+  std::uint8_t num_peers{};
+  router_info.Write(&num_peers, sizeof(num_peers));
+
+  // Reset for more options
+  options.Str(std::string());
+
+  // Write remaining options
+  for (const auto& opt : GetOptions())
+    options.WriteKeyPair(opt.first, opt.second);
+
+  // Write size of remaining options
+  std::uint16_t size = htobe16(options.Str().size());
+  router_info.Write(&size, sizeof(size));
+
+  // Write remaining options to RI
+  router_info.Write(options.Str().c_str(), options.Str().size());
+
+  // TODO(anonimal): we should implement RI signing *here*
+
+  LOG(debug) << "RouterInfo: " << __func__
+             << " total RI size: " << router_info.Str().size();
 }
 
 const std::uint8_t* RouterInfo::LoadBuffer() {
@@ -664,23 +709,20 @@ const std::uint8_t* RouterInfo::LoadBuffer() {
   return m_Buffer.get();
 }
 
-void RouterInfo::CreateBuffer(const PrivateKeys& privateKeys) {
-  m_Timestamp = kovri::core::GetMillisecondsSinceEpoch();  // refresh timestamp
-  std::stringstream s;
-  std::uint8_t ident[1024];
-  auto ident_len = privateKeys.GetPublic().ToBuffer(ident, 1024);
-  s.write(reinterpret_cast<char *>(ident), ident_len);
-  WriteToStream(s);
-  m_BufferLen = s.str().size();
+void RouterInfo::CreateBuffer(const PrivateKeys& private_keys) {
+  core::StringStream router_info;
+  CreateRouterInfo(router_info, private_keys);
+  m_BufferLen = router_info.Str().size();
   if (!m_Buffer)
     m_Buffer = std::make_unique<std::uint8_t[]>(MAX_RI_BUFFER_SIZE);
-  memcpy(m_Buffer.get(), s.str().c_str(), m_BufferLen);
+  memcpy(m_Buffer.get(), router_info.Str().c_str(), m_BufferLen);
   // signature
-  privateKeys.Sign(
+  // TODO(anonimal): signing should be done when creating RI, not after. Requires other refactoring.
+  private_keys.Sign(
     reinterpret_cast<std::uint8_t *>(m_Buffer.get()),
     m_BufferLen,
     reinterpret_cast<std::uint8_t *>(m_Buffer.get()) + m_BufferLen);
-  m_BufferLen += privateKeys.GetPublic().GetSignatureLen();
+  m_BufferLen += private_keys.GetPublic().GetSignatureLen();
 }
 
 void RouterInfo::SaveToFile(
@@ -695,14 +737,6 @@ void RouterInfo::SaveToFile(
   } else {
     LOG(error) << "RouterInfo: can't save RouterInfo, buffer is empty";
   }
-}
-
-void RouterInfo::WriteString(
-    const std::string& str,
-    std::ostream& s) {
-  std::uint8_t len = str.size();
-  s.write(reinterpret_cast<char *>(&len), 1);
-  s.write(str.c_str(), len);
 }
 
 void RouterInfo::AddNTCPAddress(
@@ -795,12 +829,12 @@ void RouterInfo::SetCaps(
 void RouterInfo::SetProperty(
     const std::string& key,
     const std::string& value) {
-  m_Properties[key] = value;
+  m_Options[key] = value;
 }
 
 void RouterInfo::DeleteProperty(
     const std::string& key) {
-  m_Properties.erase(key);
+  m_Options.erase(key);
 }
 
 bool RouterInfo::IsFloodfill() const {
@@ -909,9 +943,9 @@ const std::string RouterInfo::GetDescription(const std::string& tabs) const
      << m_RouterIdentity.GetDescription(tabs + "\t") << tabs
      << "\tPublished: " << boost::posix_time::to_simple_string(timestamp)
      << std::endl
-     << tabs << "\tOptions(" << m_Properties.size() << "): " << std::endl;
-  for (const auto& p : m_Properties)
-    ss << tabs << "\t\t[" << p.first << "] : [" << p.second << "]" << std::endl;
+     << tabs << "\tOptions(" << m_Options.size() << "): " << std::endl;
+  for (const auto& opt : m_Options)
+    ss << tabs << "\t\t[" << opt.first << "] : [" << opt.second << "]" << std::endl;
   ss << tabs << "\tSSU Caps: ["
      << (IsPeerTesting() ? GetTrait(CapsFlag::SSUTesting)
                          : GetTrait(CapsFlag::Unknown))

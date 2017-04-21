@@ -45,9 +45,30 @@
 namespace kovri {
 namespace core {
 
+StringStream::StringStream()
+{
+}
+
+StringStream::~StringStream()
+{
+}
+
 StringStream::StringStream(const std::string& stream)
 {
   m_Stream.str(stream);
+}
+
+StringStream::StringStream(std::string& stream)
+{
+  m_Stream.str(stream);
+}
+
+StringStream::StringStream(
+    const std::string& delimiter,
+    const std::string& terminator)
+{
+  m_Delimiter = delimiter;
+  m_Terminator = terminator;
 }
 
 const std::tuple<std::string, std::string, std::size_t>
@@ -91,6 +112,26 @@ const std::string StringStream::ReadStringFromByte()
   // Return as string
   const std::string string(buf, len);
   return string;
+}
+
+void StringStream::WriteKeyPair(
+    const std::string& key,
+    const std::string& value)
+{
+  WriteByteAndString(key);
+  m_Stream.write(GetDelimiter().c_str(), GetDelimiter().size());
+  WriteByteAndString(value);
+  m_Stream.write(GetTerminator().c_str(), GetTerminator().size());
+}
+
+void StringStream::WriteByteAndString(const std::string& string)
+{
+  if (string.size() > std::numeric_limits<std::uint8_t>::max())
+    throw std::length_error(
+        "StringStream: " + std::string(__func__) + "invalid length");
+  std::uint8_t len = string.size();
+  m_Stream.write(reinterpret_cast<char*>(&len), 1);
+  m_Stream.write(string.c_str(), len);
 }
 
 /// @var g_AppName

@@ -53,13 +53,31 @@ namespace core {
 /// @param String to be treated as stream
 class StringStream {
  public:
+  StringStream();
+  ~StringStream();
+
+  /// @brief Stream to read from
   StringStream(const std::string& stream);
+
+  /// @brief Stream to write to
+  StringStream(std::string& stream);
+
+  /// @brief Stream to write to using specified delimiter and terminator
+  StringStream(const std::string& delimiter, const std::string& terminator);
 
   template <typename SizeCast = std::size_t, typename Buffer, typename Size>
   void Read(Buffer* buf, Size&& size)
   {
     m_Stream.read(
         reinterpret_cast<char*>(buf),
+        static_cast<SizeCast>(std::forward<Size>(size)));
+  }
+
+  template <typename SizeCast = std::size_t, typename Buffer, typename Size>
+  void Write(Buffer* buf, Size&& size)
+  {
+    m_Stream.write(
+        reinterpret_cast<const char*>(buf),
         static_cast<SizeCast>(std::forward<Size>(size)));
   }
 
@@ -82,8 +100,14 @@ class StringStream {
     return m_Stream.str();
   }
 
+  void Str(const std::string& string)
+  {
+    m_Stream.str(string);
+  }
+
   // TODO(anonimal): getter/setter for read stream size
 
+ public:
   /// @return Tuple of key pair (key/value) + size read of stream
   // TODO(anonimal): std::pair refactor, use member for read stream size
   const std::tuple<std::string, std::string, std::size_t> ReadKeyPair();
@@ -91,8 +115,37 @@ class StringStream {
   /// @return String value of stream amount as described in byte
   const std::string ReadStringFromByte();
 
+  /// @brief Write key value pair (with delimiter and terminator) to stream
+  /// @warning Writes size of key then key, size of value and then value
+  void WriteKeyPair(const std::string& key, const std::string& value);
+
+  /// @brief Write byte containing string length followed by string
+  void WriteByteAndString(const std::string& string);
+
+ public:
+  void SetDelimiter(const std::string& delimiter) noexcept
+  {
+    m_Delimiter = delimiter;
+  }
+
+  const std::string& GetDelimiter() const noexcept
+  {
+    return m_Delimiter;
+  }
+
+  void SetTerminator(const std::string& terminator) noexcept
+  {
+    m_Terminator = terminator;
+  }
+
+  const std::string& GetTerminator() const noexcept
+  {
+    return m_Terminator;
+  }
+
  private:
   std::stringstream m_Stream;
+  std::string m_Delimiter, m_Terminator;
 };
 
 /// @class FileStream

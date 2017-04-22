@@ -478,9 +478,6 @@ class RouterInfo : public RoutingDestination {
   void SetCaps(
       std::uint8_t caps);
 
-  void SetCaps(
-      const char* caps);
-
   void SetUnreachable(bool unreachable) {
     m_IsUnreachable = unreachable;
   }
@@ -573,8 +570,7 @@ class RouterInfo : public RoutingDestination {
       core::StringStream& router_info,
       const PrivateKeys& private_keys);
 
-  void ExtractCaps(
-      const char* value);
+  void SetCaps(const std::string& caps);
 
   const Address* GetAddress(
       Transport s,

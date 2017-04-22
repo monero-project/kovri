@@ -88,9 +88,9 @@ void RouterContext::NewRouterInfo() {
   routerInfo.AddSSUAddress(m_Host, m_Port, routerInfo.GetIdentHash());
   routerInfo.AddNTCPAddress(m_Host, m_Port);
   routerInfo.SetCaps(
-    core::RouterInfo::Caps::Reachable |
-    core::RouterInfo::Caps::SSUTesting |
-    core::RouterInfo::Caps::SSUIntroducer);
+    core::RouterInfo::Cap::Reachable |
+    core::RouterInfo::Cap::SSUTesting |
+    core::RouterInfo::Cap::SSUIntroducer);
   routerInfo.SetProperty("netId", I2P_NETWORK_ID);
   routerInfo.SetProperty("router.version", I2P_VERSION);
   routerInfo.CreateBuffer(m_Keys);
@@ -156,10 +156,10 @@ void RouterContext::SetFloodfill(
   m_IsFloodfill = floodfill;
   if (floodfill) {
     m_RouterInfo.SetCaps(
-        m_RouterInfo.GetCaps() | core::RouterInfo::Caps::Floodfill);
+        m_RouterInfo.GetCaps() | core::RouterInfo::Cap::Floodfill);
   } else {
     m_RouterInfo.SetCaps(
-        m_RouterInfo.GetCaps() & ~core::RouterInfo::Caps::Floodfill);
+        m_RouterInfo.GetCaps() & ~core::RouterInfo::Cap::Floodfill);
     // we don't publish number of routers and leaseset for non-floodfill
     m_RouterInfo.DeleteProperty(ROUTER_INFO_PROPERTY_LEASESETS);
     m_RouterInfo.DeleteProperty(ROUTER_INFO_PROPERTY_ROUTERS);
@@ -170,7 +170,7 @@ void RouterContext::SetFloodfill(
 void RouterContext::SetHighBandwidth() {
   if (!m_RouterInfo.IsHighBandwidth()) {
     m_RouterInfo.SetCaps(
-        m_RouterInfo.GetCaps() | core::RouterInfo::Caps::HighBandwidth);
+        m_RouterInfo.GetCaps() | core::RouterInfo::Cap::HighBandwidth);
     UpdateRouterInfo();
   }
 }
@@ -178,19 +178,19 @@ void RouterContext::SetHighBandwidth() {
 void RouterContext::SetLowBandwidth() {
   if (m_RouterInfo.IsHighBandwidth()) {
     m_RouterInfo.SetCaps(
-        m_RouterInfo.GetCaps() & ~core::RouterInfo::Caps::HighBandwidth);
+        m_RouterInfo.GetCaps() & ~core::RouterInfo::Cap::HighBandwidth);
     UpdateRouterInfo();
   }
 }
 
 bool RouterContext::IsUnreachable() const {
-  return m_RouterInfo.GetCaps() & core::RouterInfo::Caps::Unreachable;
+  return m_RouterInfo.GetCaps() & core::RouterInfo::Cap::Unreachable;
 }
 
 void RouterContext::SetUnreachable() {
   // set caps
   m_RouterInfo.SetCaps(  // LU, B
-      core::RouterInfo::Caps::Unreachable | core::RouterInfo::Caps::SSUTesting);
+      core::RouterInfo::Cap::Unreachable | core::RouterInfo::Cap::SSUTesting);
   // remove NTCP address
   RemoveTransport(core::RouterInfo::Transport::NTCP);
   // delete previous introducers
@@ -203,11 +203,11 @@ void RouterContext::SetUnreachable() {
 void RouterContext::SetReachable() {
   // update caps
   std::uint8_t caps = m_RouterInfo.GetCaps();
-  caps &= ~core::RouterInfo::Caps::Unreachable;
-  caps |= core::RouterInfo::Caps::Reachable;
-  caps |= core::RouterInfo::Caps::SSUIntroducer;
+  caps &= ~core::RouterInfo::Cap::Unreachable;
+  caps |= core::RouterInfo::Cap::Reachable;
+  caps |= core::RouterInfo::Cap::SSUIntroducer;
   if (m_IsFloodfill)
-    caps |= core::RouterInfo::Caps::Floodfill;
+    caps |= core::RouterInfo::Cap::Floodfill;
   m_RouterInfo.SetCaps(caps);
 
   // insert NTCP back
@@ -254,8 +254,8 @@ void RouterContext::SetSupportsSSU(bool supportsSSU) {
     RemoveTransport(core::RouterInfo::Transport::SSU);
   // Remove SSU-related flags
   m_RouterInfo.SetCaps(m_RouterInfo.GetCaps()
-      & ~core::RouterInfo::Caps::SSUTesting
-      & ~core::RouterInfo::Caps::SSUIntroducer);
+      & ~core::RouterInfo::Cap::SSUTesting
+      & ~core::RouterInfo::Cap::SSUIntroducer);
 
   UpdateRouterInfo();
 }

@@ -270,7 +270,7 @@ bool Transports::IsBandwidthExceeded() const {
     LOG(debug) << "Transports: bandwidth has been exceeded";
     return true;
   }
-  if (kovri::context.GetRouterInfo().IsHighBandwidth())
+  if (kovri::context.GetRouterInfo().HasCap(RouterInfo::Cap::HighBandwidth))
     LOG(debug) << "Transports: bandwidth has not been exceeded";
   return false;
 }

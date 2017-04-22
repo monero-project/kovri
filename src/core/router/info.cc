@@ -583,11 +583,11 @@ void RouterInfo::CreateRouterInfo(
             {
               router_info.WriteByteAndString(GetTrait(Trait::SSU));
 
-              // Get SSU capabilities
+              // Get/Set SSU capabilities flags
               std::string caps;
-              if (IsPeerTesting())
+              if (HasCap(Cap::SSUTesting))
                 caps += GetTrait(CapFlag::SSUTesting);
-              if (IsIntroducer())
+              if (HasCap(Cap::SSUIntroducer))
                 caps += GetTrait(CapFlag::SSUIntroducer);
 
               // Write SSU capabilities
@@ -837,10 +837,6 @@ void RouterInfo::DeleteProperty(
   m_Options.erase(key);
 }
 
-bool RouterInfo::IsFloodfill() const {
-  return m_Caps & Cap::Floodfill;
-}
-
 bool RouterInfo::IsNTCP(
     bool v4only) const {
   if (v4only)
@@ -896,7 +892,7 @@ void RouterInfo::DisableV6() {
 }
 
 bool RouterInfo::UsesIntroducer() const {
-  return m_Caps & Cap::Unreachable;  // non-reachable
+  return HasCap(Cap::Unreachable);  // Router is unreachable, must use introducer
 }
 
 const RouterInfo::Address* RouterInfo::GetNTCPAddress(
@@ -947,10 +943,10 @@ const std::string RouterInfo::GetDescription(const std::string& tabs) const
   for (const auto& opt : m_Options)
     ss << tabs << "\t\t[" << opt.first << "] : [" << opt.second << "]" << std::endl;
   ss << tabs << "\tSSU Caps: ["
-     << (IsPeerTesting() ? GetTrait(CapFlag::SSUTesting)
-                         : GetTrait(CapFlag::Unknown))
-     << (IsIntroducer() ? GetTrait(CapFlag::SSUIntroducer)
-                        : GetTrait(CapFlag::Unknown))
+     << (HasCap(Cap::SSUTesting) ? GetTrait(CapFlag::SSUTesting)
+                                 : GetTrait(CapFlag::Unknown))
+     << (HasCap(Cap::SSUIntroducer) ? GetTrait(CapFlag::SSUIntroducer)
+                                    : GetTrait(CapFlag::Unknown))
      << "]" << std::endl;
   ss << tabs << "\tAddresses(" << m_Addresses.size() << "): " << std::endl;
   for (const auto& address : m_Addresses)

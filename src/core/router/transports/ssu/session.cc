@@ -477,7 +477,7 @@ void SSUSession::SendSessionCreated(
   s.Insert<std::uint16_t> (htobe16(address->port));  // our port
 
   std::uint32_t relay_tag = 0;
-  if (kovri::context.GetRouterInfo().IsIntroducer()) {
+  if (kovri::context.GetRouterInfo().HasCap(RouterInfo::Cap::SSUIntroducer)) {
     relay_tag = kovri::core::Rand<std::uint32_t>();
     if (!relay_tag)
       relay_tag = 1;
@@ -1408,7 +1408,7 @@ void SSUSession::Established() {
   // send database store
   m_Data.Send(CreateDatabaseStoreMsg());
   transports.PeerConnected(shared_from_this());
-  if (m_PeerTest && (m_RemoteRouter && m_RemoteRouter->IsPeerTesting()))
+  if (m_PeerTest && (m_RemoteRouter && m_RemoteRouter->HasCap(RouterInfo::Cap::SSUTesting)))
     SendPeerTest();
   ScheduleTermination();
 }

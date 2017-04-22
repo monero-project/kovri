@@ -445,8 +445,6 @@ class RouterInfo : public RoutingDestination {
     m_Options.clear();
   }
 
-  bool IsFloodfill() const;
-
   bool IsNTCP(
       bool v4only = true) const;
 
@@ -466,20 +464,11 @@ class RouterInfo : public RoutingDestination {
 
   bool UsesIntroducer() const;
 
-  bool IsIntroducer() const {
-    return m_Caps & Cap::SSUIntroducer;
-  }
-
-  bool IsPeerTesting() const {
-    return m_Caps & Cap::SSUTesting;
-  }
-
-  bool IsHidden() const {
-    return m_Caps & Cap::Hidden;
-  }
-
-  bool IsHighBandwidth() const {
-    return m_Caps & Cap::HighBandwidth;
+  bool HasCap(Cap cap) const
+  {
+    bool has_cap = m_Caps & cap;
+    LOG(debug) << "RouterInfo: " << __func__ << ": " << has_cap;
+    return has_cap;
   }
 
   std::uint8_t GetCaps() const {
@@ -555,6 +544,7 @@ class RouterInfo : public RoutingDestination {
     return m_Options;
   }
 
+  // TODO(anonimal): really?...
   bool IsDestination() const {
     return false;
   }

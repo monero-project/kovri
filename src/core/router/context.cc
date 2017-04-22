@@ -168,17 +168,17 @@ void RouterContext::SetFloodfill(
 }
 
 void RouterContext::SetHighBandwidth() {
-  if (!m_RouterInfo.IsHighBandwidth()) {
-    m_RouterInfo.SetCaps(
-        m_RouterInfo.GetCaps() | core::RouterInfo::Cap::HighBandwidth);
+  auto cap = core::RouterInfo::Cap::HighBandwidth;
+  if (!m_RouterInfo.HasCap(cap)) {
+    m_RouterInfo.SetCaps(m_RouterInfo.GetCaps() | cap);
     UpdateRouterInfo();
   }
 }
 
 void RouterContext::SetLowBandwidth() {
-  if (m_RouterInfo.IsHighBandwidth()) {
-    m_RouterInfo.SetCaps(
-        m_RouterInfo.GetCaps() & ~core::RouterInfo::Cap::HighBandwidth);
+  auto cap = core::RouterInfo::Cap::HighBandwidth;
+  if (m_RouterInfo.HasCap(cap)) {
+    m_RouterInfo.SetCaps(m_RouterInfo.GetCaps() & ~cap);
     UpdateRouterInfo();
   }
 }

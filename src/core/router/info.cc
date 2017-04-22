@@ -482,7 +482,10 @@ void RouterInfo::SetCaps(const std::string& caps)
           case CapFlag::HighBandwidth4:
             m_Caps |= Cap::HighBandwidth;
             break;
-          // TODO(anonimal): Low bandwidth!?
+          case CapFlag::LowBandwidth1:
+          case CapFlag::LowBandwidth2:
+            // TODO(anonimal): implement!
+            break;
           case CapFlag::Hidden:
             m_Caps |= Cap::Hidden;
             break;

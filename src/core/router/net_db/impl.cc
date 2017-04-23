@@ -215,7 +215,7 @@ void NetDb::AddRouterInfo(
       std::unique_lock<std::mutex> l(m_RouterInfosMutex);
       m_RouterInfos[r->GetIdentHash()] = r;
     }
-    if (r->IsFloodfill()) {
+    if (r->HasCap(RouterInfo::Cap::Floodfill)) {
       std::unique_lock<std::mutex> l(m_FloodfillsMutex);
       m_Floodfills.push_back(r);
     }
@@ -351,7 +351,7 @@ bool NetDb::Load()
                     router->DeleteBuffer();
                     router->ClearProperties();  // properties are not used for regular routers
                     m_RouterInfos.insert(std::make_pair(router->GetIdentHash(), router));
-                    if (router->IsFloodfill())
+                    if (router->HasCap(RouterInfo::Cap::Floodfill))
                       m_Floodfills.push_back(router);
                     num_routers++;
                   }
@@ -451,7 +451,7 @@ void NetDb::SaveUpdated() {
 	 if (is_removed)
 	   deleted_count++;
         // delete from floodfills list
-        if (it.second->IsFloodfill()) {
+        if (it.second->HasCap(RouterInfo::Cap::Floodfill)) {
           std::unique_lock<std::mutex> l(m_FloodfillsMutex);
           m_Floodfills.remove(it.second);
         }
@@ -867,10 +867,11 @@ void NetDb::Publish() {
   }
 }
 
+// TODO(anonimal): refactor these getters into fewer functions
 std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter() const {
   return GetRandomRouter(
       [](std::shared_ptr<const RouterInfo> router)->bool {
-      return !router->IsHidden();
+      return !router->HasCap(RouterInfo::Cap::Hidden);
     });
 }
 
@@ -878,7 +879,7 @@ std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter(
     std::shared_ptr<const RouterInfo> compatible_with) const {
   return GetRandomRouter(
       [compatible_with](std::shared_ptr<const RouterInfo> router)->bool {
-      return !router->IsHidden() && router != compatible_with &&
+      return !router->HasCap(RouterInfo::Cap::Hidden) && router != compatible_with &&
         router->IsCompatible(*compatible_with);
     });
 }
@@ -886,14 +887,14 @@ std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter(
 std::shared_ptr<const RouterInfo> NetDb::GetRandomPeerTestRouter() const {
   return GetRandomRouter(
     [](std::shared_ptr<const RouterInfo> router)->bool {
-      return !router->IsHidden() && router->IsPeerTesting();
+      return !router->HasCap(RouterInfo::Cap::Hidden) && router->HasCap(RouterInfo::Cap::SSUTesting);
     });
 }
 
 std::shared_ptr<const RouterInfo> NetDb::GetRandomIntroducer() const {
   return GetRandomRouter(
       [](std::shared_ptr<const RouterInfo> router)->bool {
-      return !router->IsHidden() && router->IsIntroducer();
+      return !router->HasCap(RouterInfo::Cap::Hidden) && router->HasCap(RouterInfo::Cap::SSUIntroducer);
     });
 }
 
@@ -901,10 +902,10 @@ std::shared_ptr<const RouterInfo> NetDb::GetHighBandwidthRandomRouter(
     std::shared_ptr<const RouterInfo> compatible_with) const {
   return GetRandomRouter(
     [compatible_with](std::shared_ptr<const RouterInfo> router)->bool {
-      return !router->IsHidden() &&
+      return !router->HasCap(RouterInfo::Cap::Hidden) &&
       router != compatible_with &&
       router->IsCompatible(*compatible_with) &&
-      (router->GetCaps() & RouterInfo::Caps::HighBandwidth);
+      (router->GetCaps() & RouterInfo::Cap::HighBandwidth);
     });
 }
 
@@ -1014,7 +1015,7 @@ std::shared_ptr<const RouterInfo> NetDb::GetClosestNonFloodfill(
   min_metric.SetMax();
   // must be called from NetDb thread only
   for (auto it : m_RouterInfos) {
-    if (!it.second->IsFloodfill()) {
+    if (!it.second->HasCap(RouterInfo::Cap::Floodfill)) {
       XORMetric m = dest_key ^ it.first;
       if (m < min_metric && !excluded.count(it.first)) {
         min_metric = m;

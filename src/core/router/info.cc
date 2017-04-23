@@ -366,7 +366,7 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
                     value.c_str(), value.size(), address.key, 32);
                 break;
               case Trait::Caps:
-                ExtractCaps(value.c_str());
+                SetCaps(value);
                 break;
               default:
                 // Test for introducers
@@ -450,7 +450,7 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
       // Set capabilities
       // TODO(anonimal): review setter implementation
       if (key == GetTrait(Trait::Caps))
-        ExtractCaps(value.c_str());
+        SetCaps(value);
     }
 
   // Router *should* be unreachable
@@ -463,69 +463,78 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
     }
 }
 
-// TODO(anonimal): refactor + rename as setter
-void RouterInfo::ExtractCaps(
-    const char* value) {
-  const char* cap = value;
-  while (*cap) {
-    switch (GetTrait(*cap)) {
-      case CapsFlag::Floodfill:
-        m_Caps |= Caps::Floodfill;
-        break;
-      case CapsFlag::UnlimitedBandwidth:
-        m_Caps |= Caps::UnlimitedBandwidth;
-        break;
-      case CapsFlag::HighBandwidth1:
-      case CapsFlag::HighBandwidth2:
-      case CapsFlag::HighBandwidth3:
-      case CapsFlag::HighBandwidth4:
-        m_Caps |= Caps::HighBandwidth;
-        break;
-      case CapsFlag::Hidden:
-        m_Caps |= Caps::Hidden;
-        break;
-      case CapsFlag::Reachable:
-        m_Caps |= Caps::Reachable;
-        break;
-      case CapsFlag::Unreachable:
-        m_Caps |= Caps::Unreachable;
-        break;
-      case CapsFlag::SSUTesting:
-        m_Caps |= Caps::SSUTesting;
-        break;
-      case CapsFlag::SSUIntroducer:
-        m_Caps |= Caps::SSUIntroducer;
-        break;
-      default: {}
+void RouterInfo::SetCaps(const std::string& caps)
+{
+  LOG(debug) << "RouterInfo: " << __func__ << ": setting caps " << caps;
+  for (const auto& cap : caps)
+    {
+      switch (GetTrait(cap))
+        {
+          case CapFlag::Floodfill:
+            m_Caps |= Cap::Floodfill;
+            break;
+          case CapFlag::UnlimitedBandwidth:
+            m_Caps |= Cap::UnlimitedBandwidth;
+            break;
+          case CapFlag::HighBandwidth1:
+          case CapFlag::HighBandwidth2:
+          case CapFlag::HighBandwidth3:
+          case CapFlag::HighBandwidth4:
+            m_Caps |= Cap::HighBandwidth;
+            break;
+          case CapFlag::LowBandwidth1:
+          case CapFlag::LowBandwidth2:
+            // TODO(anonimal): implement!
+            break;
+          case CapFlag::Hidden:
+            m_Caps |= Cap::Hidden;
+            break;
+          case CapFlag::Reachable:
+            m_Caps |= Cap::Reachable;
+            break;
+          case CapFlag::Unreachable:
+            m_Caps |= Cap::Unreachable;
+            break;
+          case CapFlag::SSUTesting:
+            m_Caps |= Cap::SSUTesting;
+            break;
+          case CapFlag::SSUIntroducer:
+            m_Caps |= Cap::SSUIntroducer;
+            break;
+          case CapFlag::Unknown:
+          default:
+            {
+              LOG(error) << "RouterInfo: " << __func__
+                         << ": ignoring unknown cap " << cap;
+            }
+        }
     }
-    cap++;
-  }
 }
 
 void RouterInfo::UpdateCapsProperty()
 {
   std::string caps;
 
-  if (m_Caps & Caps::Floodfill)
+  if (m_Caps & Cap::Floodfill)
     {
-      caps += GetTrait(CapsFlag::HighBandwidth4);  // highest bandwidth
-      caps += GetTrait(CapsFlag::Floodfill);
+      caps += GetTrait(CapFlag::HighBandwidth4);  // highest bandwidth
+      caps += GetTrait(CapFlag::Floodfill);
     }
   else
     {
-      caps += (m_Caps & Caps::HighBandwidth)
-                  ? GetTrait(CapsFlag::HighBandwidth3)
-                  : GetTrait(CapsFlag::LowBandwidth2);
+      caps += (m_Caps & Cap::HighBandwidth)
+                  ? GetTrait(CapFlag::HighBandwidth3)
+                  : GetTrait(CapFlag::LowBandwidth2);
     }
 
-  if (m_Caps & Caps::Hidden)
-    caps += GetTrait(CapsFlag::Hidden);
+  if (m_Caps & Cap::Hidden)
+    caps += GetTrait(CapFlag::Hidden);
 
-  if (m_Caps & Caps::Reachable)
-    caps += GetTrait(CapsFlag::Reachable);
+  if (m_Caps & Cap::Reachable)
+    caps += GetTrait(CapFlag::Reachable);
 
-  if (m_Caps & Caps::Unreachable)
-    caps += GetTrait(CapsFlag::Unreachable);
+  if (m_Caps & Cap::Unreachable)
+    caps += GetTrait(CapFlag::Unreachable);
 
   SetProperty("caps", caps);
 }
@@ -583,12 +592,12 @@ void RouterInfo::CreateRouterInfo(
             {
               router_info.WriteByteAndString(GetTrait(Trait::SSU));
 
-              // Get SSU capabilities
+              // Get/Set SSU capabilities flags
               std::string caps;
-              if (IsPeerTesting())
-                caps += GetTrait(CapsFlag::SSUTesting);
-              if (IsIntroducer())
-                caps += GetTrait(CapsFlag::SSUIntroducer);
+              if (HasCap(Cap::SSUTesting))
+                caps += GetTrait(CapFlag::SSUTesting);
+              if (HasCap(Cap::SSUIntroducer))
+                caps += GetTrait(CapFlag::SSUIntroducer);
 
               // Write SSU capabilities
               options.WriteKeyPair(GetTrait(Trait::Caps), caps);
@@ -770,8 +779,8 @@ void RouterInfo::AddSSUAddress(
   m_Addresses.push_back(addr);
   m_SupportedTransports |=
       addr.host.is_v6() ? SupportedTransport::SSUv6 : SupportedTransport::SSUv4;
-  m_Caps |= Caps::SSUTesting;
-  m_Caps |= Caps::SSUIntroducer;
+  m_Caps |= Cap::SSUTesting;
+  m_Caps |= Cap::SSUIntroducer;
 }
 
 bool RouterInfo::AddIntroducer(
@@ -818,14 +827,6 @@ void RouterInfo::SetCaps(
   UpdateCapsProperty();
 }
 
-// TODO(anonimal): refactor this setter, it should be simpler
-void RouterInfo::SetCaps(
-    const char* caps) {
-  SetProperty("caps", caps);
-  m_Caps = 0;
-  ExtractCaps(caps);
-}
-
 void RouterInfo::SetProperty(
     const std::string& key,
     const std::string& value) {
@@ -835,10 +836,6 @@ void RouterInfo::SetProperty(
 void RouterInfo::DeleteProperty(
     const std::string& key) {
   m_Options.erase(key);
-}
-
-bool RouterInfo::IsFloodfill() const {
-  return m_Caps & Caps::Floodfill;
 }
 
 bool RouterInfo::IsNTCP(
@@ -896,7 +893,7 @@ void RouterInfo::DisableV6() {
 }
 
 bool RouterInfo::UsesIntroducer() const {
-  return m_Caps & Caps::Unreachable;  // non-reachable
+  return HasCap(Cap::Unreachable);  // Router is unreachable, must use introducer
 }
 
 const RouterInfo::Address* RouterInfo::GetNTCPAddress(
@@ -947,10 +944,10 @@ const std::string RouterInfo::GetDescription(const std::string& tabs) const
   for (const auto& opt : m_Options)
     ss << tabs << "\t\t[" << opt.first << "] : [" << opt.second << "]" << std::endl;
   ss << tabs << "\tSSU Caps: ["
-     << (IsPeerTesting() ? GetTrait(CapsFlag::SSUTesting)
-                         : GetTrait(CapsFlag::Unknown))
-     << (IsIntroducer() ? GetTrait(CapsFlag::SSUIntroducer)
-                        : GetTrait(CapsFlag::Unknown))
+     << (HasCap(Cap::SSUTesting) ? GetTrait(CapFlag::SSUTesting)
+                                 : GetTrait(CapFlag::Unknown))
+     << (HasCap(Cap::SSUIntroducer) ? GetTrait(CapFlag::SSUIntroducer)
+                                    : GetTrait(CapFlag::Unknown))
      << "]" << std::endl;
   ss << tabs << "\tAddresses(" << m_Addresses.size() << "): " << std::endl;
   for (const auto& address : m_Addresses)

@@ -74,9 +74,9 @@ class RouterInfo : public RoutingDestination {
     SSUv6 = 0x08,
   };
 
-  /// @enum Caps
+  /// @enum Cap
   /// @brief RI capabilities
-  enum Caps : std::uint8_t
+  enum Cap : std::uint8_t
   {
     Floodfill = 0x01,
     UnlimitedBandwidth = 0x02,
@@ -88,9 +88,9 @@ class RouterInfo : public RoutingDestination {
     Unreachable = 0x80,
   };
 
-  /// @enum CapsFlag
+  /// @enum CapFlag
   /// @brief Flags used for RI capabilities
-  enum struct CapsFlag : std::uint8_t
+  enum struct CapFlag : std::uint8_t
   {
     Floodfill,
     Hidden,
@@ -110,50 +110,50 @@ class RouterInfo : public RoutingDestination {
 
   /// @return Char flag of given enumerated caps flag
   /// @param flag Flag enum used for caps char flag
-  char GetTrait(CapsFlag flag) const noexcept
+  char GetTrait(CapFlag flag) const noexcept
   {
     switch (flag)
       {
-        case CapsFlag::Floodfill:
+        case CapFlag::Floodfill:
           return 'f';  // Floodfill
 
-        case CapsFlag::Hidden:
+        case CapFlag::Hidden:
           return 'H';  // Hidden
 
-        case CapsFlag::Reachable:
+        case CapFlag::Reachable:
           return 'R';  // Reachable
 
-        case CapsFlag::Unreachable:
+        case CapFlag::Unreachable:
           return 'U';  // Unreachable
 
-        case CapsFlag::LowBandwidth1:
+        case CapFlag::LowBandwidth1:
           return 'K';  // Under 12 KBps shared bandwidth
 
-        case CapsFlag::LowBandwidth2:
+        case CapFlag::LowBandwidth2:
           return 'L';  // 12 - 48 KBps shared bandwidth
 
-        case CapsFlag::HighBandwidth1:
+        case CapFlag::HighBandwidth1:
           return 'M';  // 48 - 64 KBps shared bandwidth
 
-        case CapsFlag::HighBandwidth2:
+        case CapFlag::HighBandwidth2:
           return 'N';  // 64 - 128 KBps shared bandwidth
 
-        case CapsFlag::HighBandwidth3:
+        case CapFlag::HighBandwidth3:
           return 'O';  // 128 - 256 KBps shared bandwidth
 
-        case CapsFlag::HighBandwidth4:
+        case CapFlag::HighBandwidth4:
           return 'P';  // 256 - 2000 KBps shared bandwidth
 
-        case CapsFlag::UnlimitedBandwidth:
+        case CapFlag::UnlimitedBandwidth:
           return 'X';  // Over 2000 KBps shared bandwidth
 
-        case CapsFlag::SSUTesting:
+        case CapFlag::SSUTesting:
           return 'B';  // Willing and able to participate in peer tests (as Bob or Charlie)
 
-        case CapsFlag::SSUIntroducer:
+        case CapFlag::SSUIntroducer:
           return 'C';  // Willing and able to serve as an introducer (serving as Bob for an otherwise unreachable Alice)
 
-        case CapsFlag::Unknown:
+        case CapFlag::Unknown:
         default:
           return ' ';  // TODO(anonimal): review
       }
@@ -161,49 +161,49 @@ class RouterInfo : public RoutingDestination {
 
   /// @return Enumerated caps flag
   /// @param value Char value of potential caps flag given
-  CapsFlag GetTrait(const char& value) const noexcept
+  CapFlag GetTrait(const char& value) const noexcept
   {
-    if (value == GetTrait(CapsFlag::Floodfill))
-      return CapsFlag::Floodfill;
+    if (value == GetTrait(CapFlag::Floodfill))
+      return CapFlag::Floodfill;
 
-    else if (value == GetTrait(CapsFlag::Hidden))
-      return CapsFlag::Hidden;
+    else if (value == GetTrait(CapFlag::Hidden))
+      return CapFlag::Hidden;
 
-    else if (value == GetTrait(CapsFlag::Reachable))
-      return CapsFlag::Reachable;
+    else if (value == GetTrait(CapFlag::Reachable))
+      return CapFlag::Reachable;
 
-    else if (value == GetTrait(CapsFlag::Unreachable))
-      return CapsFlag::Unreachable;
+    else if (value == GetTrait(CapFlag::Unreachable))
+      return CapFlag::Unreachable;
 
-    else if (value == GetTrait(CapsFlag::LowBandwidth1))
-      return CapsFlag::LowBandwidth1;
+    else if (value == GetTrait(CapFlag::LowBandwidth1))
+      return CapFlag::LowBandwidth1;
 
-    else if (value == GetTrait(CapsFlag::LowBandwidth2))
-      return CapsFlag::LowBandwidth2;
+    else if (value == GetTrait(CapFlag::LowBandwidth2))
+      return CapFlag::LowBandwidth2;
 
-    else if (value == GetTrait(CapsFlag::HighBandwidth1))
-      return CapsFlag::HighBandwidth1;
+    else if (value == GetTrait(CapFlag::HighBandwidth1))
+      return CapFlag::HighBandwidth1;
 
-    else if (value == GetTrait(CapsFlag::HighBandwidth2))
-      return CapsFlag::HighBandwidth2;
+    else if (value == GetTrait(CapFlag::HighBandwidth2))
+      return CapFlag::HighBandwidth2;
 
-    else if (value == GetTrait(CapsFlag::HighBandwidth3))
-      return CapsFlag::HighBandwidth3;
+    else if (value == GetTrait(CapFlag::HighBandwidth3))
+      return CapFlag::HighBandwidth3;
 
-    else if (value == GetTrait(CapsFlag::HighBandwidth4))
-      return CapsFlag::HighBandwidth4;
+    else if (value == GetTrait(CapFlag::HighBandwidth4))
+      return CapFlag::HighBandwidth4;
 
-    else if (value == GetTrait(CapsFlag::UnlimitedBandwidth))
-      return CapsFlag::UnlimitedBandwidth;
+    else if (value == GetTrait(CapFlag::UnlimitedBandwidth))
+      return CapFlag::UnlimitedBandwidth;
 
-    else if (value == GetTrait(CapsFlag::SSUTesting))
-      return CapsFlag::SSUTesting;
+    else if (value == GetTrait(CapFlag::SSUTesting))
+      return CapFlag::SSUTesting;
 
-    else if (value == GetTrait(CapsFlag::SSUIntroducer))
-      return CapsFlag::SSUIntroducer;
+    else if (value == GetTrait(CapFlag::SSUIntroducer))
+      return CapFlag::SSUIntroducer;
 
     else
-      return CapsFlag::Unknown;  // TODO(anonimal): review
+      return CapFlag::Unknown;  // TODO(anonimal): review
   }
 
   struct Introducer {
@@ -445,8 +445,6 @@ class RouterInfo : public RoutingDestination {
     m_Options.clear();
   }
 
-  bool IsFloodfill() const;
-
   bool IsNTCP(
       bool v4only = true) const;
 
@@ -466,20 +464,11 @@ class RouterInfo : public RoutingDestination {
 
   bool UsesIntroducer() const;
 
-  bool IsIntroducer() const {
-    return m_Caps & Caps::SSUIntroducer;
-  }
-
-  bool IsPeerTesting() const {
-    return m_Caps & Caps::SSUTesting;
-  }
-
-  bool IsHidden() const {
-    return m_Caps & Caps::Hidden;
-  }
-
-  bool IsHighBandwidth() const {
-    return m_Caps & Caps::HighBandwidth;
+  bool HasCap(Cap cap) const
+  {
+    bool has_cap = m_Caps & cap;
+    LOG(debug) << "RouterInfo: " << __func__ << ": " << has_cap;
+    return has_cap;
   }
 
   std::uint8_t GetCaps() const {
@@ -488,9 +477,6 @@ class RouterInfo : public RoutingDestination {
 
   void SetCaps(
       std::uint8_t caps);
-
-  void SetCaps(
-      const char* caps);
 
   void SetUnreachable(bool unreachable) {
     m_IsUnreachable = unreachable;
@@ -555,6 +541,7 @@ class RouterInfo : public RoutingDestination {
     return m_Options;
   }
 
+  // TODO(anonimal): really?...
   bool IsDestination() const {
     return false;
   }
@@ -583,8 +570,7 @@ class RouterInfo : public RoutingDestination {
       core::StringStream& router_info,
       const PrivateKeys& private_keys);
 
-  void ExtractCaps(
-      const char* value);
+  void SetCaps(const std::string& caps);
 
   const Address* GetAddress(
       Transport s,

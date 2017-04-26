@@ -367,13 +367,8 @@ class RouterInfo : public RoutingDestination {
       const std::string& full_path);
 
   RouterInfo(
-      const RouterInfo&) = default;
-
-  RouterInfo(
       const std::uint8_t* buf,
       int len);
-
-  RouterInfo& operator=(const RouterInfo&) = default;
 
   const IdentityEx& GetRouterIdentity() const {
     return m_RouterIdentity;

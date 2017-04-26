@@ -836,7 +836,7 @@ void RouterInfo::SetOption(
   m_Options[key] = value;
 }
 
-bool RouterInfo::IsNTCP(
+bool RouterInfo::HasNTCP(
     bool v4only) const {
   if (v4only)
     return m_SupportedTransports & SupportedTransport::NTCPv4;
@@ -845,7 +845,7 @@ bool RouterInfo::IsNTCP(
            & (SupportedTransport::NTCPv4 | SupportedTransport::NTCPv6);
 }
 
-bool RouterInfo::IsSSU(
+bool RouterInfo::HasSSU(
     bool v4only) const {
   if (v4only)
     return m_SupportedTransports & SupportedTransport::SSUv4;
@@ -854,19 +854,19 @@ bool RouterInfo::IsSSU(
            & (SupportedTransport::SSUv4 | SupportedTransport::SSUv6);
 }
 
-bool RouterInfo::IsV6() const {
+bool RouterInfo::HasV6() const {
   return m_SupportedTransports
          & (SupportedTransport::NTCPv6 | SupportedTransport::SSUv6);
 }
 
 void RouterInfo::EnableV6() {
-  if (!IsV6())
+  if (!HasV6())
     m_SupportedTransports |=
         SupportedTransport::NTCPv6 | SupportedTransport::SSUv6;
 }
 
 void RouterInfo::DisableV6() {
-  if (IsV6()) {
+  if (HasV6()) {
     // NTCP
     m_SupportedTransports &= ~SupportedTransport::NTCPv6;
     for (std::size_t i = 0; i < m_Addresses.size(); i++) {

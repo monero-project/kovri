@@ -231,7 +231,7 @@ class RouterInfo : public RoutingDestination {
     // SSU only
     Tag<32> key;  // intro key for SSU
     std::vector<Introducer> introducers;
-    bool IsCompatible(
+    bool HasCompatibleHost(
         const boost::asio::ip::address& other) const {
       return (host.is_v4() && other.is_v4()) ||
         (host.is_v6() && other.is_v6());
@@ -428,19 +428,19 @@ class RouterInfo : public RoutingDestination {
       const std::string& key,
       const std::string& value);
 
-  bool IsNTCP(
+  bool HasNTCP(
       bool v4only = true) const;
 
-  bool IsSSU(
+  bool HasSSU(
       bool v4only = true) const;
 
-  bool IsV6() const;
+  bool HasV6() const;
 
   void EnableV6();
 
   void DisableV6();
 
-  bool IsCompatible(
+  bool HasCompatibleTransports(
       const RouterInfo& other) const {
     return m_SupportedTransports & other.m_SupportedTransports;
   }

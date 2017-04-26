@@ -528,12 +528,12 @@ void Transports::DetectExternalIP() {
   // TODO(unassigned): Why 5 times? (make constant)
   for (int i = 0; i < 5; i++) {
     auto router = kovri::core::netdb.GetRandomPeerTestRouter();
-    if (router && router->IsSSU()) {
+    if (router && router->HasSSU()) {
       m_SSUServer->GetSession(router, true);  // peer test
     } else {
       // if not peer test capable routers found pick any
       router = kovri::core::netdb.GetRandomRouter();
-      if (router && router->IsSSU())
+      if (router && router->HasSSU())
         m_SSUServer->GetSession(router);  // no peer test
     }
   }

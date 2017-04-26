@@ -880,7 +880,7 @@ std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter(
   return GetRandomRouter(
       [compatible_with](std::shared_ptr<const RouterInfo> router)->bool {
       return !router->HasCap(RouterInfo::Cap::Hidden) && router != compatible_with &&
-        router->IsCompatible(*compatible_with);
+        router->HasCompatibleTransports(*compatible_with);
     });
 }
 
@@ -904,7 +904,7 @@ std::shared_ptr<const RouterInfo> NetDb::GetHighBandwidthRandomRouter(
     [compatible_with](std::shared_ptr<const RouterInfo> router)->bool {
       return !router->HasCap(RouterInfo::Cap::Hidden) &&
       router != compatible_with &&
-      router->IsCompatible(*compatible_with) &&
+      router->HasCompatibleTransports(*compatible_with) &&
       (router->GetCaps() & RouterInfo::Cap::HighBandwidth);
     });
 }

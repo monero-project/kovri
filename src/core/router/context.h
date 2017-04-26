@@ -183,7 +183,7 @@ class RouterContext : public kovri::core::GarlicDestination {
 
   // @return true if we support IPv6 connectivity otherwise false
   bool SupportsV6() const {
-    return m_RouterInfo.IsV6();
+    return m_RouterInfo.HasV6();
   }
 
   /// @return true if we support the NTCP transport, false otherwise

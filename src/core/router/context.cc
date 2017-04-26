@@ -122,7 +122,7 @@ void RouterContext::UpdateAddress(
     const boost::asio::ip::address& host) {
   bool updated = false;
   for (auto& address : m_RouterInfo.GetAddresses()) {
-    if (address.host != host && address.IsCompatible(host)) {
+    if (address.host != host && address.HasCompatibleHost(host)) {
       address.host = host;
       updated = true;
     }

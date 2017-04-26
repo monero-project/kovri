@@ -377,10 +377,6 @@ class RouterInfo : public RoutingDestination {
   void SetRouterIdentity(
       const IdentityEx& identity);
 
-  std::string GetIdentHashBase64() const {
-    return GetIdentHash().ToBase64();
-  }
-
   std::string GetIdentHashAbbreviation() const {
     return GetIdentHash().ToBase64().substr(0, 4);
   }

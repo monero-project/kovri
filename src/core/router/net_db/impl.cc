@@ -382,7 +382,7 @@ void NetDb::SaveUpdated() {
   auto GetFilePath = [](
       const boost::filesystem::path& directory,
       const RouterInfo* router_info) {
-    const std::string base64(router_info->GetIdentHashBase64());
+    const std::string base64(router_info->GetIdentHash().ToBase64());
     // TODO(unassigned): this is a patch for #520 until we implement a database in #385
     std::string sub_dir;
 #if defined(_WIN32) || defined(__APPLE__)

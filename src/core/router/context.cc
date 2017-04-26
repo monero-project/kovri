@@ -233,7 +233,7 @@ void RouterContext::SetSupportsV6(
   if (supportsV6)
     m_RouterInfo.EnableV6();
   else
-    m_RouterInfo.DisableV6();
+    m_RouterInfo.DisableV6();  // TODO(anonimal): unused (we disable by default)
   UpdateRouterInfo();
 }
 

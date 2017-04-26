@@ -453,8 +453,10 @@ class RouterInfo : public RoutingDestination {
            & (SupportedTransport::NTCPv6 | SupportedTransport::SSUv6);
   }
 
+  /// @brief Enable IPv6 for supported transports
   void EnableV6();
 
+  /// @brief Disable IPv6 for supported transports
   void DisableV6();
 
   bool HasCompatibleTransports(

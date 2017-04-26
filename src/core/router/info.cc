@@ -830,35 +830,38 @@ const std::string RouterInfo::GetCapsFlags() const
   return flags;
 }
 
-void RouterInfo::EnableV6() {
+void RouterInfo::EnableV6()
+{
   if (!HasV6())
-    m_SupportedTransports |=
-        SupportedTransport::NTCPv6 | SupportedTransport::SSUv6;
+    {
+      LOG(debug) << "RouterInfo: " << __func__ << ": enabling IPv6";
+      m_SupportedTransports |=
+          SupportedTransport::NTCPv6 | SupportedTransport::SSUv6;
+    }
 }
 
-void RouterInfo::DisableV6() {
-  if (HasV6()) {
-    // NTCP
-    m_SupportedTransports &= ~SupportedTransport::NTCPv6;
-    for (std::size_t i = 0; i < m_Addresses.size(); i++) {
-      if (m_Addresses[i].transport ==
-          core::RouterInfo::Transport::NTCP &&
-          m_Addresses[i].host.is_v6()) {
-        m_Addresses.erase(m_Addresses.begin() + i);
-        break;
-      }
+// TODO(anonimal): this is currently useless because we
+//  A) disable IPv6 by default on startup
+//  B) if IPv6 is set at startup, we do not currently disable during run-time (could be used by API though)
+void RouterInfo::DisableV6()
+{
+  // Test if RI supports V6
+  if (!HasV6())
+    return;
+
+  // Disable V6 transports
+  m_SupportedTransports &= ~SupportedTransport::NTCPv6;
+  m_SupportedTransports &= ~SupportedTransport::SSUv6;
+
+  // Remove addresses in question
+  for (std::size_t i = 0; i < m_Addresses.size(); i++)
+    {
+      if (m_Addresses[i].host.is_v6())
+        {
+          LOG(debug) << "RouterInfo: " << __func__ << ": removing address";
+          m_Addresses.erase(m_Addresses.begin() + i);
+        }
     }
-    // SSU
-    m_SupportedTransports &= ~SupportedTransport::SSUv6;
-    for (std::size_t i = 0; i < m_Addresses.size(); i++) {
-      if (m_Addresses[i].transport ==
-          Transport::SSU &&
-          m_Addresses[i].host.is_v6()) {
-        m_Addresses.erase(m_Addresses.begin() + i);
-        break;
-      }
-    }
-  }
 }
 
 bool RouterInfo::UsesIntroducer() const {

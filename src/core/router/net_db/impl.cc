@@ -349,7 +349,7 @@ bool NetDb::Load()
                                     + GetType(NetDbTime::RouterExpiration)))
                   {
                     router->DeleteBuffer();
-                    router->ClearProperties();  // properties are not used for regular routers
+                    router->ClearOptions();  // options are not used for regular routers  // TODO(anonimal): review
                     m_RouterInfos.insert(std::make_pair(router->GetIdentHash(), router));
                     if (router->HasCap(RouterInfo::Cap::Floodfill))
                       m_Floodfills.push_back(router);

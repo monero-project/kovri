@@ -53,8 +53,8 @@ const char ROUTER_INFO[] = "router.info";
 const char ROUTER_KEYS[] = "router.keys";
 const int ROUTER_INFO_UPDATE_INTERVAL = 1800;  // 30 minutes
 
-const char ROUTER_INFO_PROPERTY_LEASESETS[] = "netdb.knownLeaseSets";
-const char ROUTER_INFO_PROPERTY_ROUTERS[] = "netdb.knownRouters";
+const char ROUTER_INFO_OPTION_LEASESETS[] = "netdb.knownLeaseSets";
+const char ROUTER_INFO_OPTION_ROUTERS[] = "netdb.knownRouters";
 
 enum RouterStatus {
   eRouterStatusOK = 0,

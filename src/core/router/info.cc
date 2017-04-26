@@ -431,7 +431,7 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
   stream.Read(&num_peers, sizeof(num_peers));
   stream.Seekg(num_peers * 32, std::ios_base::cur);
 
-  // Read remaining properties
+  // Read remaining options
   stream.Read(&given_size, sizeof(given_size));
   given_size = be16toh(given_size);
 
@@ -444,8 +444,8 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
       std::tie(key, value, read_size) = stream.ReadKeyPair();
       remaining_size += read_size;
 
-      // Set property
-      SetProperty(key, value);
+      // Set option
+      SetOption(key, value);
 
       // Set capabilities
       // TODO(anonimal): review setter implementation
@@ -511,7 +511,7 @@ void RouterInfo::SetCaps(const std::string& caps)
     }
 }
 
-void RouterInfo::UpdateCapsProperty()
+void RouterInfo::UpdateCapsOption()
 {
   std::string caps;
 
@@ -536,7 +536,7 @@ void RouterInfo::UpdateCapsProperty()
   if (m_Caps & Cap::Unreachable)
     caps += GetTrait(CapFlag::Unreachable);
 
-  SetProperty("caps", caps);
+  SetOption("caps", caps);
 }
 
 // TODO(anonimal): debug + trace logging
@@ -824,16 +824,16 @@ bool RouterInfo::RemoveIntroducer(
 void RouterInfo::SetCaps(
     std::uint8_t caps) {
   m_Caps = caps;
-  UpdateCapsProperty();
+  UpdateCapsOption();
 }
 
-void RouterInfo::SetProperty(
+void RouterInfo::SetOption(
     const std::string& key,
     const std::string& value) {
   m_Options[key] = value;
 }
 
-void RouterInfo::DeleteProperty(
+void RouterInfo::DeleteOption(
     const std::string& key) {
   m_Options.erase(key);
 }

@@ -428,15 +428,14 @@ class RouterInfo : public RoutingDestination {
   bool RemoveIntroducer(
       const boost::asio::ip::udp::endpoint& e);
 
-  // TODO(anonimal): refactor
-  void SetProperty(  // called from RouterContext only
+  void SetOption(
       const std::string& key,
       const std::string& value);
 
-  void DeleteProperty(  // called from RouterContext only
+  void DeleteOption(
       const std::string& key);
 
-  void ClearProperties() {
+  void ClearOptions() {
     m_Options.clear();
   }
 
@@ -572,7 +571,7 @@ class RouterInfo : public RoutingDestination {
       bool v4only,
       bool v6only = false) const;
 
-  void UpdateCapsProperty();
+  void UpdateCapsOption();
 
  private:
   std::string m_FullPath;

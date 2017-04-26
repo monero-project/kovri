@@ -566,12 +566,13 @@ class RouterInfo : public RoutingDestination {
 
   void SetCaps(const std::string& caps);
 
+  /// @return Capabilities flags in string form
+  const std::string GetCapsFlags() const;
+
   const Address* GetAddress(
       Transport s,
       bool v4only,
       bool v6only = false) const;
-
-  void UpdateCapsOption();
 
  private:
   std::string m_FullPath;

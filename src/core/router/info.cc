@@ -511,34 +511,6 @@ void RouterInfo::SetCaps(const std::string& caps)
     }
 }
 
-void RouterInfo::UpdateCapsOption()
-{
-  std::string caps;
-
-  if (m_Caps & Cap::Floodfill)
-    {
-      caps += GetTrait(CapFlag::HighBandwidth4);  // highest bandwidth
-      caps += GetTrait(CapFlag::Floodfill);
-    }
-  else
-    {
-      caps += (m_Caps & Cap::HighBandwidth)
-                  ? GetTrait(CapFlag::HighBandwidth3)
-                  : GetTrait(CapFlag::LowBandwidth2);
-    }
-
-  if (m_Caps & Cap::Hidden)
-    caps += GetTrait(CapFlag::Hidden);
-
-  if (m_Caps & Cap::Reachable)
-    caps += GetTrait(CapFlag::Reachable);
-
-  if (m_Caps & Cap::Unreachable)
-    caps += GetTrait(CapFlag::Unreachable);
-
-  SetOption("caps", caps);
-}
-
 // TODO(anonimal): debug + trace logging
 // TODO(anonimal): unit-test
 void RouterInfo::CreateRouterInfo(
@@ -821,10 +793,41 @@ bool RouterInfo::RemoveIntroducer(
   return false;
 }
 
-void RouterInfo::SetCaps(
-    std::uint8_t caps) {
+void RouterInfo::SetCaps(std::uint8_t caps)
+{
+  // Set member
   m_Caps = caps;
-  UpdateCapsOption();
+
+  // Set RI option with new caps flags
+  SetOption(GetTrait(Trait::Caps), GetCapsFlags());
+}
+
+const std::string RouterInfo::GetCapsFlags() const
+{
+  std::string flags;
+
+  if (m_Caps & Cap::Floodfill)
+    {
+      flags += GetTrait(CapFlag::HighBandwidth4);  // highest bandwidth
+      flags += GetTrait(CapFlag::Floodfill);
+    }
+  else
+    {
+      flags += (m_Caps & Cap::HighBandwidth) ? GetTrait(CapFlag::HighBandwidth3)
+                                             : GetTrait(CapFlag::LowBandwidth2);
+      // TODO(anonimal): what about lowest bandwidth cap?
+    }
+
+  if (m_Caps & Cap::Hidden)
+    flags += GetTrait(CapFlag::Hidden);
+
+  if (m_Caps & Cap::Reachable)
+    flags += GetTrait(CapFlag::Reachable);
+
+  if (m_Caps & Cap::Unreachable)
+    flags += GetTrait(CapFlag::Unreachable);
+
+  return flags;
 }
 
 void RouterInfo::SetOption(

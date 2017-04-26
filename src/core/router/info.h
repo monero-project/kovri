@@ -428,13 +428,6 @@ class RouterInfo : public RoutingDestination {
       const std::string& key,
       const std::string& value);
 
-  void DeleteOption(
-      const std::string& key);
-
-  void ClearOptions() {
-    m_Options.clear();
-  }
-
   bool IsNTCP(
       bool v4only = true) const;
 
@@ -525,6 +518,12 @@ class RouterInfo : public RoutingDestination {
   const std::uint8_t* GetEncryptionPublicKey() const {
     return m_RouterIdentity.GetStandardIdentity().public_key;
   }
+
+  std::map<std::string, std::string>& GetOptions() noexcept
+  {
+    return m_Options;
+  }
+
 
   const std::map<std::string, std::string>& GetOptions() const noexcept
   {

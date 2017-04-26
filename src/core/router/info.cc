@@ -836,11 +836,6 @@ void RouterInfo::SetOption(
   m_Options[key] = value;
 }
 
-void RouterInfo::DeleteOption(
-    const std::string& key) {
-  m_Options.erase(key);
-}
-
 bool RouterInfo::IsNTCP(
     bool v4only) const {
   if (v4only)

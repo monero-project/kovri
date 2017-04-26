@@ -161,8 +161,8 @@ void RouterContext::SetFloodfill(
     m_RouterInfo.SetCaps(
         m_RouterInfo.GetCaps() & ~core::RouterInfo::Cap::Floodfill);
     // we don't publish number of routers and leaseset for non-floodfill
-    m_RouterInfo.DeleteOption(ROUTER_INFO_OPTION_LEASESETS);
-    m_RouterInfo.DeleteOption(ROUTER_INFO_OPTION_ROUTERS);
+    m_RouterInfo.GetOptions().erase(ROUTER_INFO_OPTION_LEASESETS);
+    m_RouterInfo.GetOptions().erase(ROUTER_INFO_OPTION_ROUTERS);
   }
   UpdateRouterInfo();
 }

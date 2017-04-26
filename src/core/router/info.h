@@ -424,17 +424,34 @@ class RouterInfo : public RoutingDestination {
   bool RemoveIntroducer(
       const boost::asio::ip::udp::endpoint& e);
 
-  void SetOption(
-      const std::string& key,
-      const std::string& value);
+  void SetOption(const std::string& key, const std::string& value)
+  {
+    m_Options[key] = value;
+  }
 
-  bool HasNTCP(
-      bool v4only = true) const;
+  bool HasNTCP(bool v4only = true) const noexcept
+  {
+    if (v4only)
+      return m_SupportedTransports & SupportedTransport::NTCPv4;
+    else
+      return m_SupportedTransports
+             & (SupportedTransport::NTCPv4 | SupportedTransport::NTCPv6);
+  }
 
-  bool HasSSU(
-      bool v4only = true) const;
+  bool HasSSU(bool v4only = true) const noexcept
+  {
+    if (v4only)
+      return m_SupportedTransports & SupportedTransport::SSUv4;
+    else
+      return m_SupportedTransports
+             & (SupportedTransport::SSUv4 | SupportedTransport::SSUv6);
+  }
 
-  bool HasV6() const;
+  bool HasV6() const noexcept
+  {
+    return m_SupportedTransports
+           & (SupportedTransport::NTCPv6 | SupportedTransport::SSUv6);
+  }
 
   void EnableV6();
 

@@ -830,35 +830,6 @@ const std::string RouterInfo::GetCapsFlags() const
   return flags;
 }
 
-void RouterInfo::SetOption(
-    const std::string& key,
-    const std::string& value) {
-  m_Options[key] = value;
-}
-
-bool RouterInfo::HasNTCP(
-    bool v4only) const {
-  if (v4only)
-    return m_SupportedTransports & SupportedTransport::NTCPv4;
-  else
-    return m_SupportedTransports
-           & (SupportedTransport::NTCPv4 | SupportedTransport::NTCPv6);
-}
-
-bool RouterInfo::HasSSU(
-    bool v4only) const {
-  if (v4only)
-    return m_SupportedTransports & SupportedTransport::SSUv4;
-  else
-    return m_SupportedTransports
-           & (SupportedTransport::SSUv4 | SupportedTransport::SSUv6);
-}
-
-bool RouterInfo::HasV6() const {
-  return m_SupportedTransports
-         & (SupportedTransport::NTCPv6 | SupportedTransport::SSUv6);
-}
-
 void RouterInfo::EnableV6() {
   if (!HasV6())
     m_SupportedTransports |=

@@ -106,7 +106,7 @@ const std::string RouterInfo::GetDescription(
      << tabs << "\t" << GetTrait(Trait::Cost) << delimiter
      << static_cast<int>(address.cost) << terminator
 
-     << tabs << "\t" << GetTrait(Trait::Cost) << delimiter
+     << tabs << "\t" << GetTrait(Trait::Host) << delimiter
      << address.host.to_string() << terminator
 
      << tabs << "\t" << GetTrait(Trait::Port) << delimiter

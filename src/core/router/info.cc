@@ -732,7 +732,7 @@ void RouterInfo::AddNTCPAddress(
   addr.mtu = 0;
   m_Addresses.push_back(addr);
   m_SupportedTransports |= addr.host.is_v6() ? SupportedTransport::NTCPv6
-                                             : SupportedTransport::NTCPv6;
+                                             : SupportedTransport::NTCPv4;
 }
 
 void RouterInfo::AddSSUAddress(

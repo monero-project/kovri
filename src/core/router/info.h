@@ -429,28 +429,31 @@ class RouterInfo : public RoutingDestination {
     m_Options[key] = value;
   }
 
-  bool HasNTCP(bool v4only = true) const noexcept
+  bool HasTransport(const std::uint8_t transport) const noexcept
   {
-    if (v4only)
-      return m_SupportedTransports & SupportedTransport::NTCPv4;
-    else
-      return m_SupportedTransports
-             & (SupportedTransport::NTCPv4 | SupportedTransport::NTCPv6);
+    return m_SupportedTransports & transport;
   }
 
-  bool HasSSU(bool v4only = true) const noexcept
+  bool HasNTCP(bool has_v6 = false) const noexcept
   {
-    if (v4only)
-      return m_SupportedTransports & SupportedTransport::SSUv4;
-    else
-      return m_SupportedTransports
-             & (SupportedTransport::SSUv4 | SupportedTransport::SSUv6);
+    if (!has_v6)
+      return HasTransport(SupportedTransport::NTCPv4);
+    return HasTransport(
+        (SupportedTransport::NTCPv4 | SupportedTransport::NTCPv6));
+  }
+
+  bool HasSSU(bool has_v6 = false) const noexcept
+  {
+    if (!has_v6)
+      return HasTransport(SupportedTransport::SSUv4);
+    return HasTransport(
+        (SupportedTransport::SSUv4 | SupportedTransport::SSUv6));
   }
 
   bool HasV6() const noexcept
   {
-    return m_SupportedTransports
-           & (SupportedTransport::NTCPv6 | SupportedTransport::SSUv6);
+    return HasTransport(
+        (SupportedTransport::NTCPv6 | SupportedTransport::SSUv6));
   }
 
   /// @brief Enable IPv6 for supported transports

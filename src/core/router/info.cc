@@ -868,31 +868,56 @@ bool RouterInfo::UsesIntroducer() const {
   return HasCap(Cap::Unreachable);  // Router is unreachable, must use introducer
 }
 
-const RouterInfo::Address* RouterInfo::GetNTCPAddress(
-    bool v4only) const {
-  return GetAddress(Transport::NTCP, v4only);
+const RouterInfo::Address* RouterInfo::GetNTCPAddress(bool has_v6) const
+{
+  if (!has_v6)
+    return GetAddress(SupportedTransport::NTCPv4);
+  return GetAddress(SupportedTransport::NTCPv4 | SupportedTransport::NTCPv6);
 }
 
-const RouterInfo::Address* RouterInfo::GetSSUAddress(
-    bool v4only) const {
-  return GetAddress(Transport::SSU, v4only);
-}
-
-const RouterInfo::Address* RouterInfo::GetSSUV6Address() const {
-  return GetAddress(Transport::SSU, false, true);
+const RouterInfo::Address* RouterInfo::GetSSUAddress(bool has_v6) const
+{
+  if (!has_v6)
+    return GetAddress(SupportedTransport::SSUv4);
+  return GetAddress(SupportedTransport::SSUv4 | SupportedTransport::SSUv6);
 }
 
 const RouterInfo::Address* RouterInfo::GetAddress(
-    Transport s,
-    bool v4only,
-    bool v6only) const {
-  for (auto& address : m_Addresses) {
-    if (address.transport == s) {
-      if ((!v4only || address.host.is_v4()) &&
-          (!v6only || address.host.is_v6()))
-        return &address;
+    const std::uint8_t transports) const
+{
+  // Ensures supported transports
+  auto has_transport = [transports](const std::uint8_t supported) -> bool {
+    return transports & supported;
+  };
+
+  Transport transport;
+  bool has_v6(false);
+
+  // Ensure address has appropriate transport
+  if (has_transport(SupportedTransport::NTCPv4 | SupportedTransport::NTCPv6))
+    transport = Transport::NTCP;
+
+  if (has_transport(SupportedTransport::SSUv4 | SupportedTransport::SSUv6))
+    transport = Transport::SSU;
+
+  if (has_transport(SupportedTransport::NTCPv6 | SupportedTransport::SSUv6))
+    has_v6 = true;
+
+  // Return only usable addresses
+  for (const auto& address : GetAddresses())
+    {
+      if (address.transport == transport)
+        {
+          // Ensurew we return v6 capable address if selected
+          if (address.host.is_v4() || (has_v6 && address.host.is_v6()))
+            {
+              LOG(debug) << "RouterInfo: " << __func__ << GetTrait(transport)
+                         << " " << address.host;
+              return &address;
+            }
+        }
     }
-  }
+
   return nullptr;
 }
 

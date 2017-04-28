@@ -272,6 +272,23 @@ class RouterInfo : public RoutingDestination {
     Unknown,
   };
 
+  /// @return String value of given transport
+  /// @param transport Enumerated transport
+  const std::string GetTrait(Transport transport) const noexcept
+  {
+    switch (transport)
+      {
+        case Transport::NTCP:
+          return GetTrait(Trait::NTCP);
+
+        case Transport::SSU:
+          return GetTrait(Trait::SSU);
+
+        default:
+          return GetTrait(Trait::Unknown);
+      }
+  }
+
   /// @return String value of given enumerated RI trait
   /// @param trait key used for RI trait string value
   const std::string GetTrait(Trait trait) const noexcept
@@ -399,13 +416,13 @@ class RouterInfo : public RoutingDestination {
     return m_Addresses;
   }
 
-  const Address* GetNTCPAddress(
-      bool v4only = true) const;
+  /// @return Address object capable of NTCP
+  /// @param has_v6 Address should have v6 capability
+  const Address* GetNTCPAddress(bool has_v6 = false) const;
 
-  const Address* GetSSUAddress(
-      bool v4only = true) const;
-
-  const Address* GetSSUV6Address() const;
+  /// @return Address object capable of SSU
+  /// @param has_v6 Address should have v6 capability
+  const Address* GetSSUAddress(bool has_v6 = false) const;
 
   void AddNTCPAddress(
       const std::string& host,
@@ -586,10 +603,11 @@ class RouterInfo : public RoutingDestination {
   /// @return Capabilities flags in string form
   const std::string GetCapsFlags() const;
 
-  const Address* GetAddress(
-      Transport s,
-      bool v4only,
-      bool v6only = false) const;
+  /// @brief Return address object which uses given transport(s)
+  /// @details Performs bitwise operations to determine if address contains given transport
+  /// @param transports integer value of transport(s) (see enum)
+  /// @return Address capable of given transport(s)
+  const RouterInfo::Address* GetAddress(const std::uint8_t transports) const;
 
  private:
   std::string m_FullPath;

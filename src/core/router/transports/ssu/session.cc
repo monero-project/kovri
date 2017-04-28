@@ -441,8 +441,8 @@ void SSUSession::SendSessionCreated(
     const std::uint8_t* x) {
   auto intro_key = GetIntroKey();
   auto address = IsV6() ?
-    kovri::context.GetRouterInfo().GetSSUV6Address() :
-    kovri::context.GetRouterInfo().GetSSUAddress(true);  // v4 only
+    kovri::context.GetRouterInfo().GetSSUAddress(true) :
+    kovri::context.GetRouterInfo().GetSSUAddress();  // v4 only
   if (!intro_key || !address) {
     LOG(error)
       << "SSUSession:" << GetFormattedSessionInfo()

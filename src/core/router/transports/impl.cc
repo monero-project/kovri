@@ -378,7 +378,7 @@ bool Transports::ConnectToPeerNTCP(
   LOG(debug)
     << "Transports: attempting NTCP for peer"
     << GetFormattedSessionInfo(peer.router);
-  const auto address = peer.router->GetNTCPAddress(!context.SupportsV6());
+  const auto address = peer.router->GetNTCPAddress(context.SupportsV6());
   // No NTCP address found
   if (!address)
     return false;

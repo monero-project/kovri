@@ -349,7 +349,7 @@ bool NetDb::Load()
                                     + GetType(NetDbTime::RouterExpiration)))
                   {
                     router->DeleteBuffer();
-                    router->ClearProperties();  // properties are not used for regular routers
+                    router->GetOptions().clear();  // options are not used for regular routers  // TODO(anonimal): review
                     m_RouterInfos.insert(std::make_pair(router->GetIdentHash(), router));
                     if (router->HasCap(RouterInfo::Cap::Floodfill))
                       m_Floodfills.push_back(router);
@@ -382,7 +382,7 @@ void NetDb::SaveUpdated() {
   auto GetFilePath = [](
       const boost::filesystem::path& directory,
       const RouterInfo* router_info) {
-    const std::string base64(router_info->GetIdentHashBase64());
+    const std::string base64(router_info->GetIdentHash().ToBase64());
     // TODO(unassigned): this is a patch for #520 until we implement a database in #385
     std::string sub_dir;
 #if defined(_WIN32) || defined(__APPLE__)
@@ -880,7 +880,7 @@ std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter(
   return GetRandomRouter(
       [compatible_with](std::shared_ptr<const RouterInfo> router)->bool {
       return !router->HasCap(RouterInfo::Cap::Hidden) && router != compatible_with &&
-        router->IsCompatible(*compatible_with);
+        router->HasCompatibleTransports(*compatible_with);
     });
 }
 
@@ -904,7 +904,7 @@ std::shared_ptr<const RouterInfo> NetDb::GetHighBandwidthRandomRouter(
     [compatible_with](std::shared_ptr<const RouterInfo> router)->bool {
       return !router->HasCap(RouterInfo::Cap::Hidden) &&
       router != compatible_with &&
-      router->IsCompatible(*compatible_with) &&
+      router->HasCompatibleTransports(*compatible_with) &&
       (router->GetCaps() & RouterInfo::Cap::HighBandwidth);
     });
 }

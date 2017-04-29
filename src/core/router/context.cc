@@ -91,8 +91,8 @@ void RouterContext::NewRouterInfo() {
     core::RouterInfo::Cap::Reachable |
     core::RouterInfo::Cap::SSUTesting |
     core::RouterInfo::Cap::SSUIntroducer);
-  routerInfo.SetProperty("netId", I2P_NETWORK_ID);
-  routerInfo.SetProperty("router.version", I2P_VERSION);
+  routerInfo.SetOption("netId", I2P_NETWORK_ID);
+  routerInfo.SetOption("router.version", I2P_VERSION);
   routerInfo.CreateBuffer(m_Keys);
   m_RouterInfo.Update(
       routerInfo.GetBuffer(),
@@ -122,7 +122,7 @@ void RouterContext::UpdateAddress(
     const boost::asio::ip::address& host) {
   bool updated = false;
   for (auto& address : m_RouterInfo.GetAddresses()) {
-    if (address.host != host && address.IsCompatible(host)) {
+    if (address.host != host && address.HasCompatibleHost(host)) {
       address.host = host;
       updated = true;
     }
@@ -161,8 +161,8 @@ void RouterContext::SetFloodfill(
     m_RouterInfo.SetCaps(
         m_RouterInfo.GetCaps() & ~core::RouterInfo::Cap::Floodfill);
     // we don't publish number of routers and leaseset for non-floodfill
-    m_RouterInfo.DeleteProperty(ROUTER_INFO_PROPERTY_LEASESETS);
-    m_RouterInfo.DeleteProperty(ROUTER_INFO_PROPERTY_ROUTERS);
+    m_RouterInfo.GetOptions().erase(ROUTER_INFO_OPTION_LEASESETS);
+    m_RouterInfo.GetOptions().erase(ROUTER_INFO_OPTION_ROUTERS);
   }
   UpdateRouterInfo();
 }
@@ -233,7 +233,7 @@ void RouterContext::SetSupportsV6(
   if (supportsV6)
     m_RouterInfo.EnableV6();
   else
-    m_RouterInfo.DisableV6();
+    m_RouterInfo.DisableV6();  // TODO(anonimal): unused (we disable by default)
   UpdateRouterInfo();
 }
 
@@ -297,11 +297,11 @@ void RouterContext::UpdateNTCPV6Address(
 void RouterContext::UpdateStats() {
   if (m_IsFloodfill) {
     // update routers and leasesets
-    m_RouterInfo.SetProperty(
-        ROUTER_INFO_PROPERTY_LEASESETS,
+    m_RouterInfo.SetOption(
+        ROUTER_INFO_OPTION_LEASESETS,
         boost::lexical_cast<std::string>(kovri::core::netdb.GetNumLeaseSets()));
-    m_RouterInfo.SetProperty(
-        ROUTER_INFO_PROPERTY_ROUTERS,
+    m_RouterInfo.SetOption(
+        ROUTER_INFO_OPTION_ROUTERS,
         boost::lexical_cast<std::string>(kovri::core::netdb.GetNumRouters()));
     UpdateRouterInfo();
   }
@@ -324,8 +324,8 @@ bool RouterContext::Load() {
   m_RouterInfo.Update(
       router_info.GetBuffer(),
       router_info.GetBufferLen());
-  m_RouterInfo.SetProperty("coreVersion", I2P_VERSION);
-  m_RouterInfo.SetProperty("router.version", I2P_VERSION);
+  m_RouterInfo.SetOption("coreVersion", I2P_VERSION);
+  m_RouterInfo.SetOption("router.version", I2P_VERSION);
   if (IsUnreachable())
     // we assume reachable until we discover firewall through peer tests
     SetReachable();

@@ -53,8 +53,8 @@ const char ROUTER_INFO[] = "router.info";
 const char ROUTER_KEYS[] = "router.keys";
 const int ROUTER_INFO_UPDATE_INTERVAL = 1800;  // 30 minutes
 
-const char ROUTER_INFO_PROPERTY_LEASESETS[] = "netdb.knownLeaseSets";
-const char ROUTER_INFO_PROPERTY_ROUTERS[] = "netdb.knownRouters";
+const char ROUTER_INFO_OPTION_LEASESETS[] = "netdb.knownLeaseSets";
+const char ROUTER_INFO_OPTION_ROUTERS[] = "netdb.knownRouters";
 
 enum RouterStatus {
   eRouterStatusOK = 0,
@@ -183,7 +183,7 @@ class RouterContext : public kovri::core::GarlicDestination {
 
   // @return true if we support IPv6 connectivity otherwise false
   bool SupportsV6() const {
-    return m_RouterInfo.IsV6();
+    return m_RouterInfo.HasV6();
   }
 
   /// @return true if we support the NTCP transport, false otherwise

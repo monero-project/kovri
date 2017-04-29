@@ -231,7 +231,7 @@ class RouterInfo : public RoutingDestination {
     // SSU only
     Tag<32> key;  // intro key for SSU
     std::vector<Introducer> introducers;
-    bool IsCompatible(
+    bool HasCompatibleHost(
         const boost::asio::ip::address& other) const {
       return (host.is_v4() && other.is_v4()) ||
         (host.is_v6() && other.is_v6());
@@ -271,6 +271,23 @@ class RouterInfo : public RoutingDestination {
     // Unknown trait
     Unknown,
   };
+
+  /// @return String value of given transport
+  /// @param transport Enumerated transport
+  const std::string GetTrait(Transport transport) const noexcept
+  {
+    switch (transport)
+      {
+        case Transport::NTCP:
+          return GetTrait(Trait::NTCP);
+
+        case Transport::SSU:
+          return GetTrait(Trait::SSU);
+
+        default:
+          return GetTrait(Trait::Unknown);
+      }
+  }
 
   /// @return String value of given enumerated RI trait
   /// @param trait key used for RI trait string value
@@ -367,13 +384,8 @@ class RouterInfo : public RoutingDestination {
       const std::string& full_path);
 
   RouterInfo(
-      const RouterInfo&) = default;
-
-  RouterInfo(
       const std::uint8_t* buf,
       int len);
-
-  RouterInfo& operator=(const RouterInfo&) = default;
 
   const IdentityEx& GetRouterIdentity() const {
     return m_RouterIdentity;
@@ -381,10 +393,6 @@ class RouterInfo : public RoutingDestination {
 
   void SetRouterIdentity(
       const IdentityEx& identity);
-
-  std::string GetIdentHashBase64() const {
-    return GetIdentHash().ToBase64();
-  }
 
   std::string GetIdentHashAbbreviation() const {
     return GetIdentHash().ToBase64().substr(0, 4);
@@ -408,13 +416,13 @@ class RouterInfo : public RoutingDestination {
     return m_Addresses;
   }
 
-  const Address* GetNTCPAddress(
-      bool v4only = true) const;
+  /// @return Address object capable of NTCP
+  /// @param has_v6 Address should have v6 capability
+  const Address* GetNTCPAddress(bool has_v6 = false) const;
 
-  const Address* GetSSUAddress(
-      bool v4only = true) const;
-
-  const Address* GetSSUV6Address() const;
+  /// @return Address object capable of SSU
+  /// @param has_v6 Address should have v6 capability
+  const Address* GetSSUAddress(bool has_v6 = false) const;
 
   void AddNTCPAddress(
       const std::string& host,
@@ -433,31 +441,45 @@ class RouterInfo : public RoutingDestination {
   bool RemoveIntroducer(
       const boost::asio::ip::udp::endpoint& e);
 
-  // TODO(anonimal): refactor
-  void SetProperty(  // called from RouterContext only
-      const std::string& key,
-      const std::string& value);
-
-  void DeleteProperty(  // called from RouterContext only
-      const std::string& key);
-
-  void ClearProperties() {
-    m_Options.clear();
+  void SetOption(const std::string& key, const std::string& value)
+  {
+    m_Options[key] = value;
   }
 
-  bool IsNTCP(
-      bool v4only = true) const;
+  bool HasTransport(const std::uint8_t transport) const noexcept
+  {
+    return m_SupportedTransports & transport;
+  }
 
-  bool IsSSU(
-      bool v4only = true) const;
+  bool HasNTCP(bool has_v6 = false) const noexcept
+  {
+    if (!has_v6)
+      return HasTransport(SupportedTransport::NTCPv4);
+    return HasTransport(
+        (SupportedTransport::NTCPv4 | SupportedTransport::NTCPv6));
+  }
 
-  bool IsV6() const;
+  bool HasSSU(bool has_v6 = false) const noexcept
+  {
+    if (!has_v6)
+      return HasTransport(SupportedTransport::SSUv4);
+    return HasTransport(
+        (SupportedTransport::SSUv4 | SupportedTransport::SSUv6));
+  }
 
+  bool HasV6() const noexcept
+  {
+    return HasTransport(
+        (SupportedTransport::NTCPv6 | SupportedTransport::SSUv6));
+  }
+
+  /// @brief Enable IPv6 for supported transports
   void EnableV6();
 
+  /// @brief Disable IPv6 for supported transports
   void DisableV6();
 
-  bool IsCompatible(
+  bool HasCompatibleTransports(
       const RouterInfo& other) const {
     return m_SupportedTransports & other.m_SupportedTransports;
   }
@@ -536,6 +558,12 @@ class RouterInfo : public RoutingDestination {
     return m_RouterIdentity.GetStandardIdentity().public_key;
   }
 
+  std::map<std::string, std::string>& GetOptions() noexcept
+  {
+    return m_Options;
+  }
+
+
   const std::map<std::string, std::string>& GetOptions() const noexcept
   {
     return m_Options;
@@ -572,12 +600,14 @@ class RouterInfo : public RoutingDestination {
 
   void SetCaps(const std::string& caps);
 
-  const Address* GetAddress(
-      Transport s,
-      bool v4only,
-      bool v6only = false) const;
+  /// @return Capabilities flags in string form
+  const std::string GetCapsFlags() const;
 
-  void UpdateCapsProperty();
+  /// @brief Return address object which uses given transport(s)
+  /// @details Performs bitwise operations to determine if address contains given transport
+  /// @param transports integer value of transport(s) (see enum)
+  /// @return Address capable of given transport(s)
+  const RouterInfo::Address* GetAddress(const std::uint8_t transports) const;
 
  private:
   std::string m_FullPath;

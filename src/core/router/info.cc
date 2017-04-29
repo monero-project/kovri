@@ -106,7 +106,7 @@ const std::string RouterInfo::GetDescription(
      << tabs << "\t" << GetTrait(Trait::Cost) << delimiter
      << static_cast<int>(address.cost) << terminator
 
-     << tabs << "\t" << GetTrait(Trait::Cost) << delimiter
+     << tabs << "\t" << GetTrait(Trait::Host) << delimiter
      << address.host.to_string() << terminator
 
      << tabs << "\t" << GetTrait(Trait::Port) << delimiter
@@ -431,7 +431,7 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
   stream.Read(&num_peers, sizeof(num_peers));
   stream.Seekg(num_peers * 32, std::ios_base::cur);
 
-  // Read remaining properties
+  // Read remaining options
   stream.Read(&given_size, sizeof(given_size));
   given_size = be16toh(given_size);
 
@@ -444,8 +444,8 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
       std::tie(key, value, read_size) = stream.ReadKeyPair();
       remaining_size += read_size;
 
-      // Set property
-      SetProperty(key, value);
+      // Set option
+      SetOption(key, value);
 
       // Set capabilities
       // TODO(anonimal): review setter implementation
@@ -509,34 +509,6 @@ void RouterInfo::SetCaps(const std::string& caps)
             }
         }
     }
-}
-
-void RouterInfo::UpdateCapsProperty()
-{
-  std::string caps;
-
-  if (m_Caps & Cap::Floodfill)
-    {
-      caps += GetTrait(CapFlag::HighBandwidth4);  // highest bandwidth
-      caps += GetTrait(CapFlag::Floodfill);
-    }
-  else
-    {
-      caps += (m_Caps & Cap::HighBandwidth)
-                  ? GetTrait(CapFlag::HighBandwidth3)
-                  : GetTrait(CapFlag::LowBandwidth2);
-    }
-
-  if (m_Caps & Cap::Hidden)
-    caps += GetTrait(CapFlag::Hidden);
-
-  if (m_Caps & Cap::Reachable)
-    caps += GetTrait(CapFlag::Reachable);
-
-  if (m_Caps & Cap::Unreachable)
-    caps += GetTrait(CapFlag::Unreachable);
-
-  SetProperty("caps", caps);
 }
 
 // TODO(anonimal): debug + trace logging
@@ -760,7 +732,7 @@ void RouterInfo::AddNTCPAddress(
   addr.mtu = 0;
   m_Addresses.push_back(addr);
   m_SupportedTransports |= addr.host.is_v6() ? SupportedTransport::NTCPv6
-                                             : SupportedTransport::NTCPv6;
+                                             : SupportedTransport::NTCPv4;
 }
 
 void RouterInfo::AddSSUAddress(
@@ -821,106 +793,131 @@ bool RouterInfo::RemoveIntroducer(
   return false;
 }
 
-void RouterInfo::SetCaps(
-    std::uint8_t caps) {
+void RouterInfo::SetCaps(std::uint8_t caps)
+{
+  // Set member
   m_Caps = caps;
-  UpdateCapsProperty();
+
+  // Set RI option with new caps flags
+  SetOption(GetTrait(Trait::Caps), GetCapsFlags());
 }
 
-void RouterInfo::SetProperty(
-    const std::string& key,
-    const std::string& value) {
-  m_Options[key] = value;
-}
+const std::string RouterInfo::GetCapsFlags() const
+{
+  std::string flags;
 
-void RouterInfo::DeleteProperty(
-    const std::string& key) {
-  m_Options.erase(key);
-}
-
-bool RouterInfo::IsNTCP(
-    bool v4only) const {
-  if (v4only)
-    return m_SupportedTransports & SupportedTransport::NTCPv4;
-  else
-    return m_SupportedTransports
-           & (SupportedTransport::NTCPv4 | SupportedTransport::NTCPv6);
-}
-
-bool RouterInfo::IsSSU(
-    bool v4only) const {
-  if (v4only)
-    return m_SupportedTransports & SupportedTransport::SSUv4;
-  else
-    return m_SupportedTransports
-           & (SupportedTransport::SSUv4 | SupportedTransport::SSUv6);
-}
-
-bool RouterInfo::IsV6() const {
-  return m_SupportedTransports
-         & (SupportedTransport::NTCPv6 | SupportedTransport::SSUv6);
-}
-
-void RouterInfo::EnableV6() {
-  if (!IsV6())
-    m_SupportedTransports |=
-        SupportedTransport::NTCPv6 | SupportedTransport::SSUv6;
-}
-
-void RouterInfo::DisableV6() {
-  if (IsV6()) {
-    // NTCP
-    m_SupportedTransports &= ~SupportedTransport::NTCPv6;
-    for (std::size_t i = 0; i < m_Addresses.size(); i++) {
-      if (m_Addresses[i].transport ==
-          core::RouterInfo::Transport::NTCP &&
-          m_Addresses[i].host.is_v6()) {
-        m_Addresses.erase(m_Addresses.begin() + i);
-        break;
-      }
+  if (m_Caps & Cap::Floodfill)
+    {
+      flags += GetTrait(CapFlag::HighBandwidth4);  // highest bandwidth
+      flags += GetTrait(CapFlag::Floodfill);
     }
-    // SSU
-    m_SupportedTransports &= ~SupportedTransport::SSUv6;
-    for (std::size_t i = 0; i < m_Addresses.size(); i++) {
-      if (m_Addresses[i].transport ==
-          Transport::SSU &&
-          m_Addresses[i].host.is_v6()) {
-        m_Addresses.erase(m_Addresses.begin() + i);
-        break;
-      }
+  else
+    {
+      flags += (m_Caps & Cap::HighBandwidth) ? GetTrait(CapFlag::HighBandwidth3)
+                                             : GetTrait(CapFlag::LowBandwidth2);
+      // TODO(anonimal): what about lowest bandwidth cap?
     }
-  }
+
+  if (m_Caps & Cap::Hidden)
+    flags += GetTrait(CapFlag::Hidden);
+
+  if (m_Caps & Cap::Reachable)
+    flags += GetTrait(CapFlag::Reachable);
+
+  if (m_Caps & Cap::Unreachable)
+    flags += GetTrait(CapFlag::Unreachable);
+
+  return flags;
+}
+
+void RouterInfo::EnableV6()
+{
+  if (!HasV6())
+    {
+      LOG(debug) << "RouterInfo: " << __func__ << ": enabling IPv6";
+      m_SupportedTransports |=
+          SupportedTransport::NTCPv6 | SupportedTransport::SSUv6;
+    }
+}
+
+// TODO(anonimal): this is currently useless because we
+//  A) disable IPv6 by default on startup
+//  B) if IPv6 is set at startup, we do not currently disable during run-time (could be used by API though)
+void RouterInfo::DisableV6()
+{
+  // Test if RI supports V6
+  if (!HasV6())
+    return;
+
+  // Disable V6 transports
+  m_SupportedTransports &= ~SupportedTransport::NTCPv6;
+  m_SupportedTransports &= ~SupportedTransport::SSUv6;
+
+  // Remove addresses in question
+  for (std::size_t i = 0; i < m_Addresses.size(); i++)
+    {
+      if (m_Addresses[i].host.is_v6())
+        {
+          LOG(debug) << "RouterInfo: " << __func__ << ": removing address";
+          m_Addresses.erase(m_Addresses.begin() + i);
+        }
+    }
 }
 
 bool RouterInfo::UsesIntroducer() const {
   return HasCap(Cap::Unreachable);  // Router is unreachable, must use introducer
 }
 
-const RouterInfo::Address* RouterInfo::GetNTCPAddress(
-    bool v4only) const {
-  return GetAddress(Transport::NTCP, v4only);
+const RouterInfo::Address* RouterInfo::GetNTCPAddress(bool has_v6) const
+{
+  if (!has_v6)
+    return GetAddress(SupportedTransport::NTCPv4);
+  return GetAddress(SupportedTransport::NTCPv4 | SupportedTransport::NTCPv6);
 }
 
-const RouterInfo::Address* RouterInfo::GetSSUAddress(
-    bool v4only) const {
-  return GetAddress(Transport::SSU, v4only);
-}
-
-const RouterInfo::Address* RouterInfo::GetSSUV6Address() const {
-  return GetAddress(Transport::SSU, false, true);
+const RouterInfo::Address* RouterInfo::GetSSUAddress(bool has_v6) const
+{
+  if (!has_v6)
+    return GetAddress(SupportedTransport::SSUv4);
+  return GetAddress(SupportedTransport::SSUv4 | SupportedTransport::SSUv6);
 }
 
 const RouterInfo::Address* RouterInfo::GetAddress(
-    Transport s,
-    bool v4only,
-    bool v6only) const {
-  for (auto& address : m_Addresses) {
-    if (address.transport == s) {
-      if ((!v4only || address.host.is_v4()) &&
-          (!v6only || address.host.is_v6()))
-        return &address;
+    const std::uint8_t transports) const
+{
+  // Ensures supported transports
+  auto has_transport = [transports](const std::uint8_t supported) -> bool {
+    return transports & supported;
+  };
+
+  Transport transport;
+  bool has_v6(false);
+
+  // Ensure address has appropriate transport
+  if (has_transport(SupportedTransport::NTCPv4 | SupportedTransport::NTCPv6))
+    transport = Transport::NTCP;
+
+  if (has_transport(SupportedTransport::SSUv4 | SupportedTransport::SSUv6))
+    transport = Transport::SSU;
+
+  if (has_transport(SupportedTransport::NTCPv6 | SupportedTransport::SSUv6))
+    has_v6 = true;
+
+  // Return only usable addresses
+  for (const auto& address : GetAddresses())
+    {
+      if (address.transport == transport)
+        {
+          // Ensurew we return v6 capable address if selected
+          if (address.host.is_v4() || (has_v6 && address.host.is_v6()))
+            {
+              LOG(debug) << "RouterInfo: " << __func__ << GetTrait(transport)
+                         << " " << address.host;
+              return &address;
+            }
+        }
     }
-  }
+
   return nullptr;
 }
 

@@ -139,7 +139,7 @@ RouterInfo::RouterInfo(
       m_IsUnreachable(false),
       m_SupportedTransports(0),
       m_Caps(0) {
-  m_Buffer = std::make_unique<std::uint8_t[]>(MAX_RI_BUFFER_SIZE);
+  m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
   ReadFromFile();
 }
 
@@ -150,10 +150,10 @@ RouterInfo::RouterInfo(
       m_IsUnreachable(false),
       m_SupportedTransports(0),
       m_Caps(0) {
-  if (len >= MAX_RI_BUFFER_SIZE)
+  if (len >= Size::MaxBuffer)
     throw std::length_error(
         "RouterInfo: " + std::string(__func__) + ": buffer length too large");
-  m_Buffer = std::make_unique<std::uint8_t[]>(MAX_RI_BUFFER_SIZE);
+  m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
   memcpy(m_Buffer.get(), buf, len);
   m_BufferLen = len;
   ReadFromBuffer(true);
@@ -164,11 +164,11 @@ RouterInfo::~RouterInfo() {}
 void RouterInfo::Update(
     const std::uint8_t* buf,
     int len) {
-  if (len >= MAX_RI_BUFFER_SIZE)
+  if (len >= Size::MaxBuffer)
     throw std::length_error(
         "RouterInfo: " + std::string(__func__) + ": buffer length too large");
   if (!m_Buffer)
-    m_Buffer = std::make_unique<std::uint8_t[]>(MAX_RI_BUFFER_SIZE);
+    m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
   m_IsUpdated = true;
   m_IsUnreachable = false;
   m_SupportedTransports = 0;
@@ -192,7 +192,7 @@ bool RouterInfo::LoadFile() {
   if (s.is_open()) {
     s.seekg(0, std::ios::end);
     m_BufferLen = s.tellg();
-    if (m_BufferLen < 40 || m_BufferLen >= MAX_RI_BUFFER_SIZE)
+    if (m_BufferLen < Size::MinBuffer || m_BufferLen >= Size::MaxBuffer)
       {
         LOG(error) << "RouterInfo: " << m_FullPath
                    << " is malformed. Length = " << m_BufferLen;
@@ -200,7 +200,7 @@ bool RouterInfo::LoadFile() {
       }
     s.seekg(0, std::ios::beg);
     if (!m_Buffer)
-      m_Buffer = std::make_unique<std::uint8_t[]>(MAX_RI_BUFFER_SIZE);
+      m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
     s.read(reinterpret_cast<char *>(m_Buffer.get()), m_BufferLen);
   } else {
     LOG(error) << "RouterInfo: can't open file " << m_FullPath;
@@ -695,7 +695,7 @@ void RouterInfo::CreateBuffer(const PrivateKeys& private_keys) {
   CreateRouterInfo(router_info, private_keys);
   m_BufferLen = router_info.Str().size();
   if (!m_Buffer)
-    m_Buffer = std::make_unique<std::uint8_t[]>(MAX_RI_BUFFER_SIZE);
+    m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
   memcpy(m_Buffer.get(), router_info.Str().c_str(), m_BufferLen);
   // signature
   // TODO(anonimal): signing should be done when creating RI, not after. Requires other refactoring.

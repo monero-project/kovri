@@ -51,8 +51,6 @@
 namespace kovri {
 namespace core {
 
-const int MAX_RI_BUFFER_SIZE = 2048;
-
 class RouterInfo : public RoutingDestination {
  public:
   /// @enum Transport
@@ -375,6 +373,14 @@ class RouterInfo : public RoutingDestination {
     else
       return Trait::Unknown;  // TODO(anonimal): review
   }
+
+  /// @enum Size
+  /// @brief Router Info size constants
+  enum Size : std::uint16_t
+  {
+    MinBuffer = 40,
+    MaxBuffer = 2048,
+  };
 
   RouterInfo();
 

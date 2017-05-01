@@ -187,26 +187,28 @@ void RouterInfo::SetRouterIdentity(
   m_Timestamp = kovri::core::GetMillisecondsSinceEpoch();
 }
 
-bool RouterInfo::LoadFile() {
-  std::ifstream s(m_FullPath.c_str(), std::ifstream::binary);
-  if (s.is_open()) {
-    s.seekg(0, std::ios::end);
-    m_BufferLen = s.tellg();
-    if (m_BufferLen < Size::MinBuffer || m_BufferLen >= Size::MaxBuffer)
-      {
-        LOG(error) << "RouterInfo: " << m_FullPath
-                   << " is malformed. Length = " << m_BufferLen;
-        return false;
-      }
-    s.seekg(0, std::ios::beg);
-    if (!m_Buffer)
-      m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
-    s.read(reinterpret_cast<char *>(m_Buffer.get()), m_BufferLen);
-  } else {
-    LOG(error) << "RouterInfo: can't open file " << m_FullPath;
-    return false;
-  }
-  return true;
+bool RouterInfo::LoadFile()
+{
+  core::InputFileStream stream(m_FullPath.c_str(), std::ifstream::binary);
+  if (stream.Fail())
+    {
+      LOG(error) << "RouterInfo: can't open file " << m_FullPath;
+      return false;
+    }
+  // Get full length of stream
+  stream.Seekg(0, std::ios::end);
+  m_BufferLen = stream.Tellg();
+  if (m_BufferLen < Size::MinBuffer || m_BufferLen >= Size::MaxBuffer)
+    {
+      LOG(error) << "RouterInfo: " << m_FullPath
+                 << " is malformed. Length = " << m_BufferLen;
+      return false;
+    }
+  // Read in complete length of stream
+  stream.Seekg(0, std::ios::beg);
+  if (!m_Buffer)
+    m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
+  return stream.Read(reinterpret_cast<char*>(m_Buffer.get()), m_BufferLen);
 }
 
 void RouterInfo::ReadFromFile() {

@@ -708,18 +708,16 @@ void RouterInfo::CreateBuffer(const PrivateKeys& private_keys) {
   m_BufferLen += private_keys.GetPublic().GetSignatureLen();
 }
 
-void RouterInfo::SaveToFile(
-    const std::string& full_path) {
-  m_FullPath = full_path;
-  if (m_Buffer) {
-    std::ofstream f(full_path, std::ofstream::binary | std::ofstream::out);
-    if (f.is_open())
-      f.write(reinterpret_cast<char *>(m_Buffer.get()), m_BufferLen);
-    else
-      LOG(error) << "RouterInfo: can't save RouterInfo to " << full_path;
-  } else {
-    LOG(error) << "RouterInfo: can't save RouterInfo, buffer is empty";
-  }
+void RouterInfo::SaveToFile(const std::string& path)
+{
+  core::OutputFileStream stream(path, std::ofstream::binary);
+  if (stream.Fail())
+    throw std::runtime_error("RouterInfo: cannot open " + path);
+  // TODO(anonimal): buffer should be guaranteed
+  if (!m_Buffer)
+    throw std::length_error("RouterInfo: cannot save file, buffer is empty");
+  if (!stream.Write(m_Buffer.get(), m_BufferLen))
+    throw std::runtime_error("RouterInfo: cannot save " + path);
 }
 
 void RouterInfo::AddNTCPAddress(

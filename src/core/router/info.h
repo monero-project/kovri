@@ -537,8 +537,7 @@ class RouterInfo : public RoutingDestination {
     m_IsUpdated = updated;
   }
 
-  void SaveToFile(
-      const std::string& full_path);
+  void SaveToFile(const std::string& path);
 
   std::shared_ptr<RouterProfile> GetProfile() const;
 

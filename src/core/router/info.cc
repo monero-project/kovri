@@ -123,48 +123,39 @@ const std::string RouterInfo::GetDescription(
   return ss.str();
 }
 
-RouterInfo::RouterInfo()
-    : m_Buffer(nullptr),
-      m_BufferLen(0),
-      m_Timestamp(0),
-      m_IsUpdated(false),
-      m_IsUnreachable(false),
-      m_SupportedTransports(0),
-      m_Caps(0) {}
-
-RouterInfo::RouterInfo(
-    const std::string& full_path)
-    : m_FullPath(full_path),
-      m_IsUpdated(false),
-      m_IsUnreachable(false),
-      m_SupportedTransports(0),
-      m_Caps(0) {
-  m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
-  ReadFromFile();
+RouterInfo::RouterInfo() : m_Buffer(nullptr)  // TODO(anonimal): buffer refactor
+{
 }
 
-RouterInfo::RouterInfo(
-    const std::uint8_t* buf,
-    int len)
-    : m_IsUpdated(true),
-      m_IsUnreachable(false),
-      m_SupportedTransports(0),
-      m_Caps(0) {
-  if (len >= Size::MaxBuffer)
-    throw std::length_error(
-        "RouterInfo: " + std::string(__func__) + ": buffer length too large");
-  m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
-  memcpy(m_Buffer.get(), buf, len);
-  m_BufferLen = len;
+RouterInfo::~RouterInfo()
+{
+}
+
+RouterInfo::RouterInfo(const std::string& path)
+    : m_Path(path), m_Buffer(std::make_unique<std::uint8_t[]>(Size::MaxBuffer))  // TODO(anonimal): buffer refactor
+{
+  if (!ReadFromFile())
+    throw std::runtime_error("RouterInfo: invalid file");
+  ReadFromBuffer(false);
+}
+
+RouterInfo::RouterInfo(const std::uint8_t* buf, int len)
+    : m_Buffer(std::make_unique<std::uint8_t[]>(Size::MaxBuffer)),  // TODO(anonimal): buffer refactor
+      m_BufferLen(len)
+{
+  if (!buf)
+    throw std::invalid_argument("RouterInfo: null buffer");
+  if (len > Size::MaxBuffer)
+    throw std::length_error("RouterInfo: buffer length too large");
+  memcpy(m_Buffer.get(), buf, Size::MaxBuffer);
   ReadFromBuffer(true);
+  m_IsUpdated = true;
 }
-
-RouterInfo::~RouterInfo() {}
 
 void RouterInfo::Update(
     const std::uint8_t* buf,
     int len) {
-  if (len >= Size::MaxBuffer)
+  if (len > Size::MaxBuffer)
     throw std::length_error(
         "RouterInfo: " + std::string(__func__) + ": buffer length too large");
   if (!m_Buffer)
@@ -187,20 +178,20 @@ void RouterInfo::SetRouterIdentity(
   m_Timestamp = kovri::core::GetMillisecondsSinceEpoch();
 }
 
-bool RouterInfo::LoadFile()
+bool RouterInfo::ReadFromFile()
 {
-  core::InputFileStream stream(m_FullPath.c_str(), std::ifstream::binary);
+  core::InputFileStream stream(m_Path.c_str(), std::ifstream::binary);
   if (stream.Fail())
     {
-      LOG(error) << "RouterInfo: can't open file " << m_FullPath;
+      LOG(error) << "RouterInfo: can't open file " << m_Path;
       return false;
     }
   // Get full length of stream
   stream.Seekg(0, std::ios::end);
   m_BufferLen = stream.Tellg();
-  if (m_BufferLen < Size::MinBuffer || m_BufferLen >= Size::MaxBuffer)
+  if (m_BufferLen < Size::MinBuffer || m_BufferLen > Size::MaxBuffer)
     {
-      LOG(error) << "RouterInfo: " << m_FullPath
+      LOG(error) << "RouterInfo: " << m_Path
                  << " is malformed. Length = " << m_BufferLen;
       return false;
     }
@@ -209,13 +200,6 @@ bool RouterInfo::LoadFile()
   if (!m_Buffer)
     m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
   return stream.Read(reinterpret_cast<char*>(m_Buffer.get()), m_BufferLen);
-}
-
-void RouterInfo::ReadFromFile() {
-  if (!LoadFile())
-    throw std::runtime_error(
-        "RouterInfo: " + std::string(__func__) + ": invalid file");
-  ReadFromBuffer(false);
 }
 
 void RouterInfo::ReadFromBuffer(
@@ -684,7 +668,7 @@ void RouterInfo::CreateRouterInfo(
 
 const std::uint8_t* RouterInfo::LoadBuffer() {
   if (!m_Buffer) {
-    if (LoadFile())
+    if (ReadFromFile())
       LOG(debug)
         << "RouterInfo: buffer for "
         << GetIdentHashAbbreviation() << " loaded from file";

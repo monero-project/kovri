@@ -383,15 +383,16 @@ class RouterInfo : public RoutingDestination {
   };
 
   RouterInfo();
-
   ~RouterInfo();
 
-  RouterInfo(
-      const std::string& full_path);
+  /// @brief Create RI from file
+  /// @param path Full path to RI file
+  RouterInfo(const std::string& path);
 
-  RouterInfo(
-      const std::uint8_t* buf,
-      int len);
+  /// @brief Create RI from buffer
+  /// @param buf RI buffer
+  /// @param len RI length
+  RouterInfo(const std::uint8_t* buf, int len);
 
   const IdentityEx& GetRouterIdentity() const {
     return m_RouterIdentity;
@@ -586,9 +587,7 @@ class RouterInfo : public RoutingDestination {
       const std::string& tabs = std::string()) const;
 
  private:
-  bool LoadFile();
-
-  void ReadFromFile();
+  bool ReadFromFile();
 
   void ReadFromBuffer(
       bool verify_signature);
@@ -615,15 +614,15 @@ class RouterInfo : public RoutingDestination {
   const RouterInfo::Address* GetAddress(const std::uint8_t transports) const;
 
  private:
-  std::string m_FullPath;
+  std::string m_Path;
   IdentityEx m_RouterIdentity;
   std::unique_ptr<std::uint8_t[]> m_Buffer;
-  int m_BufferLen;
-  std::uint64_t m_Timestamp;
+  int m_BufferLen{};
+  std::uint64_t m_Timestamp{};
   std::vector<Address> m_Addresses;
   std::map<std::string, std::string> m_Options;
-  bool m_IsUpdated, m_IsUnreachable;
-  std::uint8_t m_SupportedTransports, m_Caps;
+  bool m_IsUpdated = false, m_IsUnreachable = false;
+  std::uint8_t m_SupportedTransports{}, m_Caps{};
   mutable std::shared_ptr<RouterProfile> m_Profile;
 };
 

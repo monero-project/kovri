@@ -676,9 +676,14 @@ const std::uint8_t* RouterInfo::LoadBuffer() {
   return m_Buffer.get();
 }
 
-void RouterInfo::CreateBuffer(const PrivateKeys& private_keys) {
+void RouterInfo::CreateBuffer(const PrivateKeys& private_keys)
+{
+  // Create RI
   core::StringStream router_info;
   CreateRouterInfo(router_info, private_keys);
+  if (router_info.Str().size() > Size::MaxBuffer)
+    throw std::length_error("RouterInfo: created RI is too big");
+  // Create buffer
   m_BufferLen = router_info.Str().size();
   if (!m_Buffer)
     m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);

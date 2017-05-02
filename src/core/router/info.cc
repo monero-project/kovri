@@ -409,7 +409,10 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
                           break;
                         case Trait::IntroKey:
                           kovri::core::Base64ToByteStream(
-                              value.c_str(), value.size(), introducer.key, 32);
+                              value.c_str(),
+                              value.size(),
+                              introducer.key,
+                              sizeof(introducer.key));
                           break;
                         default:
                           LOG(error) << "RouterInfo: invalid introducer trait";

@@ -380,6 +380,9 @@ class RouterInfo : public RoutingDestination {
   {
     MinBuffer = 40,
     MaxBuffer = 2048,
+    // TODO(unassigned): algorithm to dynamically determine cost
+    NTCPCost = 10,  // NTCP *should* have priority over SSU
+    SSUCost = 5,
   };
 
   RouterInfo();

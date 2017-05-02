@@ -711,7 +711,7 @@ void RouterInfo::AddNTCPAddress(
   addr.host = boost::asio::ip::address::from_string(host);
   addr.port = port;
   addr.transport = Transport::NTCP;
-  addr.cost = 10;  // NTCP should have priority over SSU
+  addr.cost = Size::NTCPCost;
   addr.date = 0;
   addr.mtu = 0;
   m_Addresses.push_back(addr);
@@ -728,7 +728,7 @@ void RouterInfo::AddSSUAddress(
   addr.host = boost::asio::ip::address::from_string(host);
   addr.port = port;
   addr.transport = Transport::SSU;
-  addr.cost = 5;
+  addr.cost = Size::SSUCost;
   addr.date = 0;
   addr.mtu = mtu;
   memcpy(addr.key, key, 32);

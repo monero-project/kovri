@@ -383,11 +383,21 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
                       {
                         case Trait::IntroHost:
                           {
-                            // TODO(unassigned): error handling
                             boost::system::error_code ecode;
                             introducer.host =
                                 boost::asio::ip::address::from_string(
                                     value, ecode);
+                            // TODO(unassigned):
+                            // Because unresolved hosts return EINVAL,
+                            // and since we currently have no implementation to resolve introducer hosts,
+                            // treat *all* errors as an invalid address.
+                            if (ecode)
+                              {
+                                LOG(error) << "RouterInfo: " << __func__
+                                           << ": introducer host error: '"
+                                           << ecode.message() << "'";
+                                is_valid_address = false;
+                              }
                           }
                           break;
                         case Trait::IntroPort:

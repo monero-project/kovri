@@ -139,7 +139,7 @@ RouterInfo::RouterInfo(const std::string& path)
   ReadFromBuffer(false);
 }
 
-RouterInfo::RouterInfo(const std::uint8_t* buf, int len)
+RouterInfo::RouterInfo(const std::uint8_t* buf, std::uint16_t len)
     : m_Buffer(std::make_unique<std::uint8_t[]>(Size::MaxBuffer)),  // TODO(anonimal): buffer refactor
       m_BufferLen(len)
 {
@@ -154,7 +154,7 @@ RouterInfo::RouterInfo(const std::uint8_t* buf, int len)
 
 void RouterInfo::Update(
     const std::uint8_t* buf,
-    int len) {
+    std::uint16_t len) {
   if (len > Size::MaxBuffer)
     throw std::length_error(
         "RouterInfo: " + std::string(__func__) + ": buffer length too large");
@@ -211,7 +211,7 @@ void RouterInfo::ReadFromBuffer(
   ParseRouterInfo(str);
   if (verify_signature) {
     // verify signature
-    int len = m_BufferLen - m_RouterIdentity.GetSignatureLen();
+    std::uint16_t len = m_BufferLen - m_RouterIdentity.GetSignatureLen();  // TODO(anonimal): fix this handling of length
     if (!m_RouterIdentity.Verify(
           reinterpret_cast<std::uint8_t *>(m_Buffer.get()),
           len,

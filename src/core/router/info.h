@@ -395,7 +395,7 @@ class RouterInfo : public RoutingDestination {
   /// @brief Create RI from buffer
   /// @param buf RI buffer
   /// @param len RI length
-  RouterInfo(const std::uint8_t* buf, int len);
+  RouterInfo(const std::uint8_t* buf, std::uint16_t len);
 
   const IdentityEx& GetRouterIdentity() const {
     return m_RouterIdentity;
@@ -525,7 +525,7 @@ class RouterInfo : public RoutingDestination {
 
   const std::uint8_t* LoadBuffer();  // load if necessary
 
-  int GetBufferLen() const {
+  std::uint16_t GetBufferLen() const {
     return m_BufferLen;
   }
 
@@ -550,9 +550,7 @@ class RouterInfo : public RoutingDestination {
       m_Profile->Save();
   }
 
-  void Update(
-      const std::uint8_t* buf,
-      int len);
+  void Update(const std::uint8_t* buf, std::uint16_t len);
 
   void DeleteBuffer() {
     m_Buffer.reset(nullptr);
@@ -620,7 +618,7 @@ class RouterInfo : public RoutingDestination {
   std::string m_Path;
   IdentityEx m_RouterIdentity;
   std::unique_ptr<std::uint8_t[]> m_Buffer;
-  int m_BufferLen{};
+  std::uint16_t m_BufferLen{};
   std::uint64_t m_Timestamp{};
   std::vector<Address> m_Addresses;
   std::map<std::string, std::string> m_Options;

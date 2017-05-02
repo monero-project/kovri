@@ -77,8 +77,6 @@ const std::string RouterInfo::GetDescription(
   return ss.str();
 }
 
-// TODO(unassigned): though this was originally intended for the kovri utility binary,
-//  we can expand reporting to include remaining POD types of the Address struct
 const std::string RouterInfo::GetDescription(
     const Address& address,
     const std::string& tabs) const
@@ -103,14 +101,23 @@ const std::string RouterInfo::GetDescription(
     }
 
   ss << "\n"
-     << tabs << "\t" << GetTrait(Trait::Cost) << delimiter
-     << static_cast<int>(address.cost) << terminator
-
      << tabs << "\t" << GetTrait(Trait::Host) << delimiter
      << address.host.to_string() << terminator
 
      << tabs << "\t" << GetTrait(Trait::Port) << delimiter
-     << address.port << terminator;
+     << address.port << terminator
+
+     << tabs << "\t" << GetTrait(Trait::MTU) << delimiter
+     << address.mtu << terminator
+
+     << tabs << "\t" << GetTrait(Trait::Date) << delimiter
+     << address.date << terminator
+
+     << tabs << "\t" << GetTrait(Trait::Cost) << delimiter
+     << static_cast<std::uint16_t>(address.cost) << terminator
+
+     << tabs << "\t" << GetTrait(Trait::Key) << delimiter
+     << address.key.ToBase64() << terminator;
 
   if (address.transport == Transport::SSU)
     {

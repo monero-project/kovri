@@ -89,7 +89,7 @@ void RouterContext::NewRouterInfo() {
   routerInfo.AddNTCPAddress(m_Host, m_Port);
   routerInfo.SetCaps(
     core::RouterInfo::Cap::Reachable |
-    core::RouterInfo::Cap::SSUTesting |
+    core::RouterInfo::Cap::SSUTesting |  // TODO(anonimal): if we've disabled run-time SSU...
     core::RouterInfo::Cap::SSUIntroducer);
   routerInfo.SetOption("netId", I2P_NETWORK_ID);
   routerInfo.SetOption("router.version", I2P_VERSION);

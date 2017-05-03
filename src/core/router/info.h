@@ -43,6 +43,8 @@
 #include <string>
 #include <vector>
 
+#include "core/crypto/signature.h"
+
 #include "core/router/identity.h"
 #include "core/router/profiling.h"
 
@@ -50,8 +52,6 @@
 
 namespace kovri {
 namespace core {
-
-const int MAX_RI_BUFFER_SIZE = 2048;
 
 class RouterInfo : public RoutingDestination {
  public:
@@ -376,16 +376,28 @@ class RouterInfo : public RoutingDestination {
       return Trait::Unknown;  // TODO(anonimal): review
   }
 
-  RouterInfo();
+  /// @enum Size
+  /// @brief Router Info size constants
+  enum Size : std::uint16_t
+  {
+    MinBuffer = core::DSA_SIGNATURE_LENGTH,  // TODO(unassigned): see #498
+    MaxBuffer = 2048,  // TODO(anonimal): review if arbitrary
+    // TODO(unassigned): algorithm to dynamically determine cost
+    NTCPCost = 10,  // NTCP *should* have priority over SSU
+    SSUCost = 5,
+  };
 
+  RouterInfo();
   ~RouterInfo();
 
-  RouterInfo(
-      const std::string& full_path);
+  /// @brief Create RI from file
+  /// @param path Full path to RI file
+  RouterInfo(const std::string& path);
 
-  RouterInfo(
-      const std::uint8_t* buf,
-      int len);
+  /// @brief Create RI from buffer
+  /// @param buf RI buffer
+  /// @param len RI length
+  RouterInfo(const std::uint8_t* buf, std::uint16_t len);
 
   const IdentityEx& GetRouterIdentity() const {
     return m_RouterIdentity;
@@ -515,7 +527,7 @@ class RouterInfo : public RoutingDestination {
 
   const std::uint8_t* LoadBuffer();  // load if necessary
 
-  int GetBufferLen() const {
+  std::uint16_t GetBufferLen() const {
     return m_BufferLen;
   }
 
@@ -531,8 +543,7 @@ class RouterInfo : public RoutingDestination {
     m_IsUpdated = updated;
   }
 
-  void SaveToFile(
-      const std::string& full_path);
+  void SaveToFile(const std::string& path);
 
   std::shared_ptr<RouterProfile> GetProfile() const;
 
@@ -541,9 +552,7 @@ class RouterInfo : public RoutingDestination {
       m_Profile->Save();
   }
 
-  void Update(
-      const std::uint8_t* buf,
-      int len);
+  void Update(const std::uint8_t* buf, std::uint16_t len);
 
   void DeleteBuffer() {
     m_Buffer.reset(nullptr);
@@ -581,9 +590,7 @@ class RouterInfo : public RoutingDestination {
       const std::string& tabs = std::string()) const;
 
  private:
-  bool LoadFile();
-
-  void ReadFromFile();
+  bool ReadFromFile();
 
   void ReadFromBuffer(
       bool verify_signature);
@@ -610,15 +617,15 @@ class RouterInfo : public RoutingDestination {
   const RouterInfo::Address* GetAddress(const std::uint8_t transports) const;
 
  private:
-  std::string m_FullPath;
+  std::string m_Path;
   IdentityEx m_RouterIdentity;
   std::unique_ptr<std::uint8_t[]> m_Buffer;
-  int m_BufferLen;
-  std::uint64_t m_Timestamp;
+  std::uint16_t m_BufferLen{};
+  std::uint64_t m_Timestamp{};
   std::vector<Address> m_Addresses;
   std::map<std::string, std::string> m_Options;
-  bool m_IsUpdated, m_IsUnreachable;
-  std::uint8_t m_SupportedTransports, m_Caps;
+  bool m_IsUpdated = false, m_IsUnreachable = false;
+  std::uint8_t m_SupportedTransports{}, m_Caps{};
   mutable std::shared_ptr<RouterProfile> m_Profile;
 };
 

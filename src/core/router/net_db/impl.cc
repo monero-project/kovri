@@ -557,7 +557,7 @@ void NetDb::HandleDatabaseStoreMsg(
     LOG(debug) << "NetDb: RouterInfo";
     std::size_t size = bufbe16toh(buf + offset);
     offset += 2;
-    if (size > MAX_RI_BUFFER_SIZE || size > len - offset) {
+    if (size > RouterInfo::Size::MaxBuffer || size > len - offset) {
       LOG(error)
         << "NetDb: invalid RouterInfo length " << static_cast<int>(size);
       return;
@@ -565,9 +565,9 @@ void NetDb::HandleDatabaseStoreMsg(
     try {
       kovri::core::Gunzip decompressor;
       decompressor.Put(buf + offset, size);
-      std::array<std::uint8_t, MAX_RI_BUFFER_SIZE> uncompressed;
+      std::array<std::uint8_t, RouterInfo::Size::MaxBuffer> uncompressed;
       std::size_t uncompressed_size = decompressor.MaxRetrievable();
-      if (uncompressed_size > MAX_RI_BUFFER_SIZE) {
+      if (uncompressed_size > RouterInfo::Size::MaxBuffer) {
         LOG(error)
           << "NetDb: invalid RouterInfo uncompressed length "
           << static_cast<int>(uncompressed_size);

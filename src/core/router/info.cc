@@ -152,8 +152,8 @@ RouterInfo::RouterInfo(const std::uint8_t* buf, std::uint16_t len)
 {
   if (!buf)
     throw std::invalid_argument("RouterInfo: null buffer");
-  if (len > Size::MaxBuffer)
-    throw std::length_error("RouterInfo: buffer length too large");
+  if (len < Size::MinBuffer || len > Size::MaxBuffer)
+    throw std::length_error("RouterInfo: invalid buffer length");
   memcpy(m_Buffer.get(), buf, Size::MaxBuffer);
   ReadFromBuffer(true);
   m_IsUpdated = true;
@@ -162,9 +162,9 @@ RouterInfo::RouterInfo(const std::uint8_t* buf, std::uint16_t len)
 void RouterInfo::Update(
     const std::uint8_t* buf,
     std::uint16_t len) {
-  if (len > Size::MaxBuffer)
+  if (len < Size::MinBuffer || len > Size::MaxBuffer)
     throw std::length_error(
-        "RouterInfo: " + std::string(__func__) + ": buffer length too large");
+        "RouterInfo: " + std::string(__func__) + ": invalid buffer length");
   if (!m_Buffer)
     m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
   m_IsUpdated = true;
@@ -219,9 +219,10 @@ void RouterInfo::ReadFromBuffer(
         reinterpret_cast<char *>(m_Buffer.get()) + identity_len,
         m_BufferLen - identity_len);
   ParseRouterInfo(str);
+  // Verify signature
   if (verify_signature) {
-    // verify signature
-    std::uint16_t len = m_BufferLen - m_RouterIdentity.GetSignatureLen();  // TODO(anonimal): fix this handling of length
+    // Note: signature length is guaranteed to be no less than buffer length
+    std::uint16_t len = m_BufferLen - m_RouterIdentity.GetSignatureLen();
     if (!m_RouterIdentity.Verify(
           reinterpret_cast<std::uint8_t *>(m_Buffer.get()),
           len,

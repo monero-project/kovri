@@ -43,6 +43,8 @@
 #include <string>
 #include <vector>
 
+#include "core/crypto/signature.h"
+
 #include "core/router/identity.h"
 #include "core/router/profiling.h"
 
@@ -378,8 +380,8 @@ class RouterInfo : public RoutingDestination {
   /// @brief Router Info size constants
   enum Size : std::uint16_t
   {
-    MinBuffer = 40,
-    MaxBuffer = 2048,
+    MinBuffer = core::DSA_SIGNATURE_LENGTH,  // TODO(unassigned): see #498
+    MaxBuffer = 2048,  // TODO(anonimal): review if arbitrary
     // TODO(unassigned): algorithm to dynamically determine cost
     NTCPCost = 10,  // NTCP *should* have priority over SSU
     SSUCost = 5,

@@ -212,6 +212,9 @@ bool RouterInfo::ReadFromFile()
 void RouterInfo::ReadFromBuffer(
     bool verify_signature) {
   std::size_t identity_len = m_RouterIdentity.FromBuffer(m_Buffer.get(), m_BufferLen);
+  if (!identity_len)
+    throw std::length_error(
+        "RouterInfo: " + std::string(__func__) + ": null ident length");
   std::string str(
         reinterpret_cast<char *>(m_Buffer.get()) + identity_len,
         m_BufferLen - identity_len);

@@ -498,11 +498,9 @@ class RouterInfo : public RoutingDestination {
 
   bool UsesIntroducer() const;
 
-  bool HasCap(Cap cap) const
+  bool HasCap(Cap cap) const noexcept
   {
-    bool has_cap = m_Caps & cap;
-    LOG(debug) << "RouterInfo: " << __func__ << ": " << has_cap;
-    return has_cap;
+    return m_Caps & cap;
   }
 
   std::uint8_t GetCaps() const {

@@ -769,7 +769,7 @@ bool RouterInfo::AddIntroducer(
     const Address* address,
     std::uint32_t tag) {
   for (auto& addr : m_Addresses) {
-    if (addr.transport == Transport::SSU && addr.host.is_v4()) {
+    if (addr.transport == Transport::SSU && addr.host.is_v4()) {  // TODO(anonimal): IPv6 SSU introducers when we bump I2P version
       for (auto intro : addr.introducers)
         if (intro.tag == tag)
           return false;  // already presented
@@ -788,7 +788,7 @@ bool RouterInfo::AddIntroducer(
 bool RouterInfo::RemoveIntroducer(
     const boost::asio::ip::udp::endpoint& e) {
   for (auto& addr : m_Addresses) {
-    if (addr.transport == Transport::SSU && addr.host.is_v4()) {
+    if (addr.transport == Transport::SSU && addr.host.is_v4()) {  // TODO(anonimal): IPv6 SSU introducers when we bump I2P version
       for (std::vector<Introducer>::iterator it = addr.introducers.begin();
           it != addr.introducers.end();
           it++)

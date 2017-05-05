@@ -399,33 +399,40 @@ class RouterInfo : public RoutingDestination {
   /// @param len RI length
   RouterInfo(const std::uint8_t* buf, std::uint16_t len);
 
+  /// @return RI router identity
   const IdentityEx& GetRouterIdentity() const noexcept
   {
     return m_RouterIdentity;
   }
 
-  void SetRouterIdentity(
-      const IdentityEx& identity);
+  /// @brief Set RI identity and current timestamp
+  void SetRouterIdentity(const IdentityEx& identity);
 
-  std::string GetIdentHashAbbreviation() const {
+  /// @return Abbreviated ident hash in base64
+  std::string GetIdentHashAbbreviation() const
+  {
     return GetIdentHash().ToBase64().substr(0, 4);
   }
 
+  /// @brief Sets RI timestamp
   void SetTimestamp(std::uint64_t timestamp) noexcept
   {
     m_Timestamp = timestamp;
   }
 
+  /// @return RI timestamp
   std::uint64_t GetTimestamp() const noexcept
   {
     return m_Timestamp;
   }
 
+  /// @return Mutable RI addresses
   std::vector<Address>& GetAddresses() noexcept
   {
     return m_Addresses;
   }
 
+  /// @return Immutable RI addresses
   const std::vector<Address>& GetAddresses() const noexcept
   {
     return m_Addresses;
@@ -439,33 +446,50 @@ class RouterInfo : public RoutingDestination {
   /// @param has_v6 Address should have v6 capability
   const Address* GetSSUAddress(bool has_v6 = false) const;
 
-  void AddNTCPAddress(
-      const std::string& host,
-      std::uint16_t port);
+  /// @brief Adds SSU address to RI
+  /// @details Sets RI members appropriately, saves address object
+  void AddNTCPAddress(const std::string& host, std::uint16_t port);
 
+  /// @brief Adds SSU address to RI
+  /// @details Sets RI members appropriately, saves address object
   void AddSSUAddress(
       const std::string& host,
       std::uint16_t port,
       const std::uint8_t* key,
       std::uint16_t mtu = 0);
 
-  bool AddIntroducer(
-      const Address* address,
-      std::uint32_t tag);
+  /// @brief Adds introducer to RI using SSU capable address object
+  /// @param address SSU capable address
+  /// @param tag Relay tag
+  /// @return True if address is SSU capable and introducer was added
+  bool AddIntroducer(const Address* address, std::uint32_t tag);
 
-  bool RemoveIntroducer(
-      const boost::asio::ip::udp::endpoint& e);
+  /// @brief Removes introducer from RI address's introducer object
+  /// @param endpoint Endpoint address of introducer
+  /// @return True if introducer was found and erased
+  bool RemoveIntroducer(const boost::asio::ip::udp::endpoint& endpoint);
 
+  /// @brief Set RI option(s)
+  /// @details RI options consist of expected (required) options and additional options.
+  ///   Required options include capability flags (in non-int form) and various router version information.
+  ///   Additional options can include statistics and/or kovri-specific information if needed
+  /// @param key Key type
+  /// @param value Value type
   void SetOption(const std::string& key, const std::string& value)
   {
     m_Options[key] = value;
   }
 
+  /// @brief Does RI support given transport?
+  /// @param transport Transport type(s)
+  /// @return True if supports
   bool HasTransport(const std::uint8_t transport) const noexcept
   {
     return m_SupportedTransports & transport;
   }
 
+  /// @brief Does RI support NTCP?
+  /// @return True if supports
   bool HasNTCP(bool has_v6 = false) const noexcept
   {
     if (!has_v6)
@@ -474,6 +498,8 @@ class RouterInfo : public RoutingDestination {
         (SupportedTransport::NTCPv4 | SupportedTransport::NTCPv6));
   }
 
+  /// @brief Does RI support SSU?
+  /// @return True if supports
   bool HasSSU(bool has_v6 = false) const noexcept
   {
     if (!has_v6)
@@ -482,6 +508,8 @@ class RouterInfo : public RoutingDestination {
         (SupportedTransport::SSUv4 | SupportedTransport::SSUv6));
   }
 
+  /// @brief Does RI support IPv6?
+  /// @return True if supports
   bool HasV6() const noexcept
   {
     return HasTransport(
@@ -494,6 +522,9 @@ class RouterInfo : public RoutingDestination {
   /// @brief Disable IPv6 for supported transports
   void DisableV6();
 
+  /// @brief Does RI have compatible transports with other RI?
+  /// @param other Other RI to test compatability with
+  /// @return True if compatible
   bool HasCompatibleTransports(const RouterInfo& other) const noexcept
   {
     return m_SupportedTransports & other.m_SupportedTransports;
@@ -506,85 +537,121 @@ class RouterInfo : public RoutingDestination {
     return HasCap(Cap::Unreachable);
   }
 
+  /// @brief Does RI have given capabiliti(es)?
+  /// @param cap Capabiliti(es)
+  /// @return True if available
   bool HasCap(Cap cap) const noexcept
   {
     return m_Caps & cap;
   }
 
+  /// @return RI capabilities
   std::uint8_t GetCaps() const noexcept
   {
     return m_Caps;
   }
 
-  void SetCaps(
-      std::uint8_t caps);
+  /// @brief Sets RI capabilities *and* options
+  /// @param caps capabiliti(es) to set
+  void SetCaps(std::uint8_t caps);
 
+  /// @brief Set if RI has been made unreachable
+  /// @param updated True if unreachable
   void SetUnreachable(bool unreachable) noexcept
   {
     m_IsUnreachable = unreachable;
   }
 
+  /// @brief Was RI made unreachable?
+  /// @return True if reachable
   bool IsUnreachable() const noexcept
   {
     return m_IsUnreachable;
   }
 
+  /// @return Pointer to RI buffer
+  /// TODO(anonimal): refactor
   const std::uint8_t* GetBuffer() const {
     auto buf = m_Buffer.get();
     return buf;
   }
 
-  const std::uint8_t* LoadBuffer();  // load if necessary
+  /// @brief Loads RI buffer (by reading) if buffer is not yet available
+  /// @notes Required by NetDb
+  /// TODO(anonimal): remove, refactor (buffer should at least be guaranteed with getter)
+  const std::uint8_t* LoadBuffer();
 
+  /// @return RI buffer length
   std::uint16_t GetBufferLen() const noexcept
   {
     return m_BufferLen;
   }
 
-  void CreateBuffer(
-      const PrivateKeys& privateKeys);
+  /// @brief Create RI and put into buffer
+  /// @param private_keys Private keys used to derive signing key
+  ///   (and subsequently sign the RI with)
+  void CreateBuffer(const PrivateKeys& private_keys);
 
+  /// @brief Was RI updated with new RI?
+  /// @return True if updated
   bool IsUpdated() const noexcept
   {
     return m_IsUpdated;
   }
 
+  /// @brief Set if RI has been updated with new RI
+  /// @param updated True if updated
   void SetUpdated(bool updated) noexcept
   {
     m_IsUpdated = updated;
   }
 
+  /// @brief Save RI to file
+  /// @param path Full RI path of file to save to
   void SaveToFile(const std::string& path);
 
+  // TODO(anonimal): not an ideal getter
+  /// @brief Get RI profile
+  /// @detail If profile does not exist, creates it
   std::shared_ptr<RouterProfile> GetProfile() const;
 
+  /// @brief Save RI profile
   void SaveProfile() {
     if (m_Profile)
       m_Profile->Save();
   }
 
+  /// @brief Updates RI with new RI from buffer
+  /// @param buf New RI buffer
+  /// @param len New RI length
   void Update(const std::uint8_t* buf, std::uint16_t len);
 
-  void DeleteBuffer() {
+  /// @brief Deletes RI buffer
+  void DeleteBuffer()
+  {
     m_Buffer.reset(nullptr);
   }
 
-  // implements RoutingDestination
+  /// @return RI ident hash
+  /// @notes implements RoutingDestination
   const IdentHash& GetIdentHash() const noexcept
   {
     return m_RouterIdentity.GetIdentHash();
   }
 
+  /// @return RI's ident pubkey
   const std::uint8_t* GetEncryptionPublicKey() const noexcept
   {
     return m_RouterIdentity.GetStandardIdentity().public_key;
   }
 
+  /// @return Mutable RI options
   std::map<std::string, std::string>& GetOptions() noexcept
   {
     return m_Options;
   }
 
+  /// @return Immutable RI options
   const std::map<std::string, std::string>& GetOptions() const noexcept
   {
     return m_Options;
@@ -603,12 +670,16 @@ class RouterInfo : public RoutingDestination {
       const std::string& tabs = std::string()) const;
 
  private:
+  /// @brief Read RI from file
+  /// @return True if successfully read
   bool ReadFromFile();
 
-  void ReadFromBuffer(
-      bool verify_signature);
+  /// @brief Read RI from byte stream buffer
+  /// @param verify_signature True if we should verify RI signature against identity
+  void ReadFromBuffer(bool verify_signature);
 
   /// @brief Parses complete RI
+  /// @param router_info Object to write RI to
   void ParseRouterInfo(const std::string& router_info);
 
   /// @brief Creates populated RI stream
@@ -618,6 +689,7 @@ class RouterInfo : public RoutingDestination {
       core::StringStream& router_info,
       const PrivateKeys& private_keys);
 
+  /// @brief Set RI capabilities from string of caps flag(s)
   void SetCaps(const std::string& caps);
 
   /// @return Capabilities flags in string form

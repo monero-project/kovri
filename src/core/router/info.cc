@@ -203,7 +203,7 @@ bool RouterInfo::ReadFromFile()
   stream.Seekg(0, std::ios::beg);
   if (!m_Buffer)
     m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
-  return stream.Read(reinterpret_cast<char*>(m_Buffer.get()), m_BufferLen);
+  return stream.Read(m_Buffer.get(), m_BufferLen);
 }
 
 void RouterInfo::ReadFromBuffer(

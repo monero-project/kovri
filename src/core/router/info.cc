@@ -627,26 +627,34 @@ const std::uint8_t* RouterInfo::LoadBuffer()
 
 void RouterInfo::CreateBuffer(const PrivateKeys& private_keys)
 {
-  // Create RI
-  core::StringStream router_info;
-  CreateRouterInfo(router_info, private_keys);
-  if (router_info.Str().size() > Size::MaxBuffer)
-    throw std::length_error("RouterInfo: created RI is too big");
+  try
+    {
+      // Create RI
+      core::StringStream router_info;
+      CreateRouterInfo(router_info, private_keys);
+      if (router_info.Str().size() > Size::MaxBuffer)
+        throw std::length_error("created RI is too big");
 
-  // Create buffer
-  m_BufferLen = router_info.Str().size();
-  if (!m_Buffer)
-    m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
-  std::memcpy(m_Buffer.get(), router_info.Str().c_str(), m_BufferLen);
+      // Create buffer
+      m_BufferLen = router_info.Str().size();
+      if (!m_Buffer)
+        m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
+      std::memcpy(m_Buffer.get(), router_info.Str().c_str(), m_BufferLen);
 
-  // Signature
-  // TODO(anonimal): signing should be done when creating RI, not after. Requires other refactoring.
-  private_keys.Sign(
-      reinterpret_cast<std::uint8_t*>(m_Buffer.get()),
-      m_BufferLen,
-      reinterpret_cast<std::uint8_t*>(m_Buffer.get()) + m_BufferLen);
+      // Signature
+      // TODO(anonimal): signing should be done when creating RI, not after. Requires other refactoring.
+      private_keys.Sign(
+          reinterpret_cast<std::uint8_t*>(m_Buffer.get()),
+          m_BufferLen,
+          reinterpret_cast<std::uint8_t*>(m_Buffer.get()) + m_BufferLen);
 
-  m_BufferLen += private_keys.GetPublic().GetSignatureLen();
+      m_BufferLen += private_keys.GetPublic().GetSignatureLen();
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      throw;
+    }
 }
 
 // TODO(anonimal): debug + trace logging

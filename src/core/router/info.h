@@ -231,8 +231,8 @@ class RouterInfo : public RoutingDestination {
     // SSU only
     Tag<32> key;  // intro key for SSU
     std::vector<Introducer> introducers;
-    bool HasCompatibleHost(
-        const boost::asio::ip::address& other) const {
+    bool HasCompatibleHost(const boost::asio::ip::address& other) const noexcept
+    {
       return (host.is_v4() && other.is_v4()) ||
         (host.is_v6() && other.is_v6());
     }
@@ -399,7 +399,8 @@ class RouterInfo : public RoutingDestination {
   /// @param len RI length
   RouterInfo(const std::uint8_t* buf, std::uint16_t len);
 
-  const IdentityEx& GetRouterIdentity() const {
+  const IdentityEx& GetRouterIdentity() const noexcept
+  {
     return m_RouterIdentity;
   }
 
@@ -420,11 +421,13 @@ class RouterInfo : public RoutingDestination {
     return m_Timestamp;
   }
 
-  std::vector<Address>& GetAddresses() {
+  std::vector<Address>& GetAddresses() noexcept
+  {
     return m_Addresses;
   }
 
-  const std::vector<Address>& GetAddresses() const {
+  const std::vector<Address>& GetAddresses() const noexcept
+  {
     return m_Addresses;
   }
 
@@ -491,8 +494,8 @@ class RouterInfo : public RoutingDestination {
   /// @brief Disable IPv6 for supported transports
   void DisableV6();
 
-  bool HasCompatibleTransports(
-      const RouterInfo& other) const {
+  bool HasCompatibleTransports(const RouterInfo& other) const noexcept
+  {
     return m_SupportedTransports & other.m_SupportedTransports;
   }
 
@@ -508,18 +511,21 @@ class RouterInfo : public RoutingDestination {
     return m_Caps & cap;
   }
 
-  std::uint8_t GetCaps() const {
+  std::uint8_t GetCaps() const noexcept
+  {
     return m_Caps;
   }
 
   void SetCaps(
       std::uint8_t caps);
 
-  void SetUnreachable(bool unreachable) {
+  void SetUnreachable(bool unreachable) noexcept
+  {
     m_IsUnreachable = unreachable;
   }
 
-  bool IsUnreachable() const {
+  bool IsUnreachable() const noexcept
+  {
     return m_IsUnreachable;
   }
 
@@ -530,19 +536,21 @@ class RouterInfo : public RoutingDestination {
 
   const std::uint8_t* LoadBuffer();  // load if necessary
 
-  std::uint16_t GetBufferLen() const {
+  std::uint16_t GetBufferLen() const noexcept
+  {
     return m_BufferLen;
   }
 
   void CreateBuffer(
       const PrivateKeys& privateKeys);
 
-  bool IsUpdated() const {
+  bool IsUpdated() const noexcept
+  {
     return m_IsUpdated;
   }
 
-  void SetUpdated(
-      bool updated) {
+  void SetUpdated(bool updated) noexcept
+  {
     m_IsUpdated = updated;
   }
 
@@ -562,11 +570,13 @@ class RouterInfo : public RoutingDestination {
   }
 
   // implements RoutingDestination
-  const IdentHash& GetIdentHash() const {
+  const IdentHash& GetIdentHash() const noexcept
+  {
     return m_RouterIdentity.GetIdentHash();
   }
 
-  const std::uint8_t* GetEncryptionPublicKey() const {
+  const std::uint8_t* GetEncryptionPublicKey() const noexcept
+  {
     return m_RouterIdentity.GetStandardIdentity().public_key;
   }
 
@@ -575,14 +585,14 @@ class RouterInfo : public RoutingDestination {
     return m_Options;
   }
 
-
   const std::map<std::string, std::string>& GetOptions() const noexcept
   {
     return m_Options;
   }
 
   // TODO(anonimal): really?...
-  bool IsDestination() const {
+  bool IsDestination() const noexcept
+  {
     return false;
   }
 

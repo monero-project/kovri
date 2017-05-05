@@ -53,9 +53,19 @@
 namespace kovri {
 namespace core {
 
-class RouterInfo : public RoutingDestination
+struct RouterInfoTraits
 {
- public:
+  /// @enum Size
+  /// @brief Router Info size constants
+  enum Size : std::uint16_t
+  {
+    MinBuffer = core::DSA_SIGNATURE_LENGTH,  // TODO(unassigned): see #498
+    MaxBuffer = 2048,  // TODO(anonimal): review if arbitrary
+    // TODO(unassigned): algorithm to dynamically determine cost
+    NTCPCost = 10,  // NTCP *should* have priority over SSU
+    SSUCost = 5,
+  };
+
   /// @enum Transport
   /// @brief Transport type(s) within RI
   enum Transport : std::uint8_t
@@ -109,104 +119,6 @@ class RouterInfo : public RoutingDestination
     Unknown,
   };
 
-  /// @return Char flag of given enumerated caps flag
-  /// @param flag Flag enum used for caps char flag
-  char GetTrait(CapFlag flag) const noexcept
-  {
-    switch (flag)
-      {
-        case CapFlag::Floodfill:
-          return 'f';  // Floodfill
-
-        case CapFlag::Hidden:
-          return 'H';  // Hidden
-
-        case CapFlag::Reachable:
-          return 'R';  // Reachable
-
-        case CapFlag::Unreachable:
-          return 'U';  // Unreachable
-
-        case CapFlag::LowBandwidth1:
-          return 'K';  // Under 12 KBps shared bandwidth
-
-        case CapFlag::LowBandwidth2:
-          return 'L';  // 12 - 48 KBps shared bandwidth
-
-        case CapFlag::HighBandwidth1:
-          return 'M';  // 48 - 64 KBps shared bandwidth
-
-        case CapFlag::HighBandwidth2:
-          return 'N';  // 64 - 128 KBps shared bandwidth
-
-        case CapFlag::HighBandwidth3:
-          return 'O';  // 128 - 256 KBps shared bandwidth
-
-        case CapFlag::HighBandwidth4:
-          return 'P';  // 256 - 2000 KBps shared bandwidth
-
-        case CapFlag::UnlimitedBandwidth:
-          return 'X';  // Over 2000 KBps shared bandwidth
-
-        case CapFlag::SSUTesting:
-          return 'B';  // Willing and able to participate in peer tests (as Bob or Charlie)
-
-        case CapFlag::SSUIntroducer:
-          return 'C';  // Willing and able to serve as an introducer (serving as Bob for an otherwise unreachable Alice)
-
-        case CapFlag::Unknown:
-        default:
-          return ' ';  // TODO(anonimal): review
-      }
-  }
-
-  /// @return Enumerated caps flag
-  /// @param value Char value of potential caps flag given
-  CapFlag GetTrait(const char& value) const noexcept
-  {
-    if (value == GetTrait(CapFlag::Floodfill))
-      return CapFlag::Floodfill;
-
-    else if (value == GetTrait(CapFlag::Hidden))
-      return CapFlag::Hidden;
-
-    else if (value == GetTrait(CapFlag::Reachable))
-      return CapFlag::Reachable;
-
-    else if (value == GetTrait(CapFlag::Unreachable))
-      return CapFlag::Unreachable;
-
-    else if (value == GetTrait(CapFlag::LowBandwidth1))
-      return CapFlag::LowBandwidth1;
-
-    else if (value == GetTrait(CapFlag::LowBandwidth2))
-      return CapFlag::LowBandwidth2;
-
-    else if (value == GetTrait(CapFlag::HighBandwidth1))
-      return CapFlag::HighBandwidth1;
-
-    else if (value == GetTrait(CapFlag::HighBandwidth2))
-      return CapFlag::HighBandwidth2;
-
-    else if (value == GetTrait(CapFlag::HighBandwidth3))
-      return CapFlag::HighBandwidth3;
-
-    else if (value == GetTrait(CapFlag::HighBandwidth4))
-      return CapFlag::HighBandwidth4;
-
-    else if (value == GetTrait(CapFlag::UnlimitedBandwidth))
-      return CapFlag::UnlimitedBandwidth;
-
-    else if (value == GetTrait(CapFlag::SSUTesting))
-      return CapFlag::SSUTesting;
-
-    else if (value == GetTrait(CapFlag::SSUIntroducer))
-      return CapFlag::SSUIntroducer;
-
-    else
-      return CapFlag::Unknown;  // TODO(anonimal): review
-  }
-
   /// @enum Trait
   /// @brief RI traits
   enum struct Trait : std::uint8_t
@@ -235,23 +147,6 @@ class RouterInfo : public RoutingDestination
     // Unknown trait
     Unknown,
   };
-
-  /// @return String value of given transport
-  /// @param transport Enumerated transport
-  const std::string GetTrait(Transport transport) const noexcept
-  {
-    switch (transport)
-      {
-        case Transport::NTCP:
-          return GetTrait(Trait::NTCP);
-
-        case Transport::SSU:
-          return GetTrait(Trait::SSU);
-
-        default:
-          return GetTrait(Trait::Unknown);
-      }
-  }
 
   /// @return String value of given enumerated RI trait
   /// @param trait key used for RI trait string value
@@ -371,17 +266,125 @@ class RouterInfo : public RoutingDestination
       return Trait::Unknown;  // TODO(anonimal): review
   }
 
-  /// @enum Size
-  /// @brief Router Info size constants
-  enum Size : std::uint16_t
+  /// @return String value of given transport
+  /// @param transport Enumerated transport
+  const std::string GetTrait(Transport transport) const noexcept
   {
-    MinBuffer = core::DSA_SIGNATURE_LENGTH,  // TODO(unassigned): see #498
-    MaxBuffer = 2048,  // TODO(anonimal): review if arbitrary
-    // TODO(unassigned): algorithm to dynamically determine cost
-    NTCPCost = 10,  // NTCP *should* have priority over SSU
-    SSUCost = 5,
-  };
+    switch (transport)
+      {
+        case Transport::NTCP:
+          return GetTrait(Trait::NTCP);
 
+        case Transport::SSU:
+          return GetTrait(Trait::SSU);
+
+        default:
+          return GetTrait(Trait::Unknown);
+      }
+  }
+
+  /// @return Char flag of given enumerated caps flag
+  /// @param flag Flag enum used for caps char flag
+  char GetTrait(CapFlag flag) const noexcept
+  {
+    switch (flag)
+      {
+        case CapFlag::Floodfill:
+          return 'f';  // Floodfill
+
+        case CapFlag::Hidden:
+          return 'H';  // Hidden
+
+        case CapFlag::Reachable:
+          return 'R';  // Reachable
+
+        case CapFlag::Unreachable:
+          return 'U';  // Unreachable
+
+        case CapFlag::LowBandwidth1:
+          return 'K';  // Under 12 KBps shared bandwidth
+
+        case CapFlag::LowBandwidth2:
+          return 'L';  // 12 - 48 KBps shared bandwidth
+
+        case CapFlag::HighBandwidth1:
+          return 'M';  // 48 - 64 KBps shared bandwidth
+
+        case CapFlag::HighBandwidth2:
+          return 'N';  // 64 - 128 KBps shared bandwidth
+
+        case CapFlag::HighBandwidth3:
+          return 'O';  // 128 - 256 KBps shared bandwidth
+
+        case CapFlag::HighBandwidth4:
+          return 'P';  // 256 - 2000 KBps shared bandwidth
+
+        case CapFlag::UnlimitedBandwidth:
+          return 'X';  // Over 2000 KBps shared bandwidth
+
+        case CapFlag::SSUTesting:
+          return 'B';  // Willing and able to participate in peer tests (as Bob or Charlie)
+
+        case CapFlag::SSUIntroducer:
+          return 'C';  // Willing and able to serve as an introducer (serving as Bob for an otherwise unreachable Alice)
+
+        case CapFlag::Unknown:
+        default:
+          return ' ';  // TODO(anonimal): review
+      }
+  }
+
+  /// @return Enumerated caps flag
+  /// @param value Char value of potential caps flag given
+  CapFlag GetTrait(const char& value) const noexcept
+  {
+    if (value == GetTrait(CapFlag::Floodfill))
+      return CapFlag::Floodfill;
+
+    else if (value == GetTrait(CapFlag::Hidden))
+      return CapFlag::Hidden;
+
+    else if (value == GetTrait(CapFlag::Reachable))
+      return CapFlag::Reachable;
+
+    else if (value == GetTrait(CapFlag::Unreachable))
+      return CapFlag::Unreachable;
+
+    else if (value == GetTrait(CapFlag::LowBandwidth1))
+      return CapFlag::LowBandwidth1;
+
+    else if (value == GetTrait(CapFlag::LowBandwidth2))
+      return CapFlag::LowBandwidth2;
+
+    else if (value == GetTrait(CapFlag::HighBandwidth1))
+      return CapFlag::HighBandwidth1;
+
+    else if (value == GetTrait(CapFlag::HighBandwidth2))
+      return CapFlag::HighBandwidth2;
+
+    else if (value == GetTrait(CapFlag::HighBandwidth3))
+      return CapFlag::HighBandwidth3;
+
+    else if (value == GetTrait(CapFlag::HighBandwidth4))
+      return CapFlag::HighBandwidth4;
+
+    else if (value == GetTrait(CapFlag::UnlimitedBandwidth))
+      return CapFlag::UnlimitedBandwidth;
+
+    else if (value == GetTrait(CapFlag::SSUTesting))
+      return CapFlag::SSUTesting;
+
+    else if (value == GetTrait(CapFlag::SSUIntroducer))
+      return CapFlag::SSUIntroducer;
+
+    else
+      return CapFlag::Unknown;  // TODO(anonimal): review
+  }
+};
+
+class RouterInfo : public RouterInfoTraits, public RoutingDestination
+{
+ public:
   RouterInfo();
   ~RouterInfo();
 

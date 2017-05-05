@@ -113,34 +113,41 @@ void RouterInfo::ReadFromFile()
 
 void RouterInfo::ReadFromBuffer(bool verify_signature)
 {
-  // Get + verify identity length from existing RI in buffer
-  std::size_t ident_len =
-      m_RouterIdentity.FromBuffer(m_Buffer.get(), m_BufferLen);
-  if (!ident_len)
-    throw std::length_error(
-        "RouterInfo: " + std::string(__func__) + ": null ident length");
-
-  // Parse existing RI from buffer
-  std::string router_info(
-      reinterpret_cast<char*>(m_Buffer.get()) + ident_len,
-      m_BufferLen - ident_len);
-
-  ParseRouterInfo(router_info);
-
-  // Verify signature
-  if (verify_signature)
+  try
     {
-      // Note: signature length is guaranteed to be no less than buffer length
-      std::uint16_t len = m_BufferLen - m_RouterIdentity.GetSignatureLen();
-      if (!m_RouterIdentity.Verify(
-              reinterpret_cast<std::uint8_t*>(m_Buffer.get()),
-              len,
-              reinterpret_cast<std::uint8_t*>(m_Buffer.get() + len)))
+      // Get + verify identity length from existing RI in buffer
+      std::size_t ident_len =
+          m_RouterIdentity.FromBuffer(m_Buffer.get(), m_BufferLen);
+      if (!ident_len)
+        throw std::length_error("null ident length");
+
+      // Parse existing RI from buffer
+      std::string router_info(
+          reinterpret_cast<char*>(m_Buffer.get()) + ident_len,
+          m_BufferLen - ident_len);
+
+      ParseRouterInfo(router_info);
+
+      // Verify signature
+      if (verify_signature)
         {
-          LOG(error) << "RouterInfo: signature verification failed";
-          m_IsUnreachable = true;
+          // Note: signature length is guaranteed to be no less than buffer length
+          std::uint16_t len = m_BufferLen - m_RouterIdentity.GetSignatureLen();
+          if (!m_RouterIdentity.Verify(
+                  reinterpret_cast<std::uint8_t*>(m_Buffer.get()),
+                  len,
+                  reinterpret_cast<std::uint8_t*>(m_Buffer.get() + len)))
+            {
+              LOG(error) << "RouterInfo: signature verification failed";
+              m_IsUnreachable = true;
+            }
+          m_RouterIdentity.DropVerifier();
         }
-      m_RouterIdentity.DropVerifier();
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      throw;
     }
 }
 

@@ -34,11 +34,8 @@
 
 #include <boost/lexical_cast.hpp>
 
-#include <stdio.h>
-#include <string.h>
-
+#include <cstring>
 #include <fstream>
-#include <tuple>
 
 #include "core/router/context.h"
 
@@ -154,7 +151,7 @@ RouterInfo::RouterInfo(const std::uint8_t* buf, std::uint16_t len)
     throw std::invalid_argument("RouterInfo: null buffer");
   if (len < Size::MinBuffer || len > Size::MaxBuffer)
     throw std::length_error("RouterInfo: invalid buffer length");
-  memcpy(m_Buffer.get(), buf, Size::MaxBuffer);
+  std::memcpy(m_Buffer.get(), buf, Size::MaxBuffer);
   ReadFromBuffer(true);
   m_IsUpdated = true;
 }
@@ -173,7 +170,7 @@ void RouterInfo::Update(
   m_Caps = 0;
   m_Addresses.clear();
   m_Options.clear();
-  memcpy(m_Buffer.get(), buf, len);
+  std::memcpy(m_Buffer.get(), buf, len);
   m_BufferLen = len;
   ReadFromBuffer(true);
   // don't delete buffer until saved to file
@@ -711,7 +708,7 @@ void RouterInfo::CreateBuffer(const PrivateKeys& private_keys)
   m_BufferLen = router_info.Str().size();
   if (!m_Buffer)
     m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
-  memcpy(m_Buffer.get(), router_info.Str().c_str(), m_BufferLen);
+  std::memcpy(m_Buffer.get(), router_info.Str().c_str(), m_BufferLen);
   // signature
   // TODO(anonimal): signing should be done when creating RI, not after. Requires other refactoring.
   private_keys.Sign(
@@ -760,7 +757,7 @@ void RouterInfo::AddSSUAddress(
   addr.cost = Size::SSUCost;
   addr.date = 0;
   addr.mtu = mtu;
-  memcpy(addr.key, key, 32);
+  std::memcpy(addr.key, key, 32);
   m_Addresses.push_back(addr);
   m_SupportedTransports |=
       addr.host.is_v6() ? SupportedTransport::SSUv6 : SupportedTransport::SSUv4;
@@ -780,7 +777,7 @@ bool RouterInfo::AddIntroducer(
       i.host = address->host;
       i.port = address->port;
       i.tag = tag;
-      memcpy(i.key, address->key, 32);  // TODO(unassigned): replace to Tag<32>
+      std::memcpy(i.key, address->key, 32);  // TODO(unassigned): replace to Tag<32>
       addr.introducers.push_back(i);
       return true;
     }

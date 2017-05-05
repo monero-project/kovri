@@ -48,6 +48,7 @@
 #include "core/router/identity.h"
 #include "core/router/profiling.h"
 
+#include "core/util/exception.h"
 #include "core/util/filesystem.h"
 
 namespace kovri {
@@ -716,8 +717,8 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
 
  private:
   /// @brief Read RI from file
-  /// @return True if successfully read
-  bool ReadFromFile();
+  /// @throws std::exception
+  void ReadFromFile();
 
   /// @brief Read RI from byte stream buffer
   /// @param verify_signature True if we should verify RI signature against identity
@@ -757,6 +758,7 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
   bool m_IsUpdated = false, m_IsUnreachable = false;
   std::uint8_t m_SupportedTransports{}, m_Caps{};
   mutable std::shared_ptr<RouterProfile> m_Profile;
+  core::Exception m_Exception;
 };
 
 }  // namespace core

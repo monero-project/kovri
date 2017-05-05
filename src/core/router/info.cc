@@ -50,7 +50,7 @@ namespace kovri
 namespace core
 {
 
-RouterInfo::RouterInfo() : m_Buffer(nullptr)  // TODO(anonimal): buffer refactor
+RouterInfo::RouterInfo() : m_Buffer(nullptr), m_Exception(__func__)  // TODO(anonimal): buffer refactor
 {
 }
 
@@ -59,16 +59,18 @@ RouterInfo::~RouterInfo()
 }
 
 RouterInfo::RouterInfo(const std::string& path)
-    : m_Path(path), m_Buffer(std::make_unique<std::uint8_t[]>(Size::MaxBuffer))  // TODO(anonimal): buffer refactor
+    : m_Path(path),
+      m_Buffer(std::make_unique<std::uint8_t[]>(Size::MaxBuffer)),  // TODO(anonimal): buffer refactor
+      m_Exception(__func__)
 {
-  if (!ReadFromFile())
-    throw std::runtime_error("RouterInfo: invalid file");
+  ReadFromFile();
   ReadFromBuffer(false);
 }
 
 RouterInfo::RouterInfo(const std::uint8_t* buf, std::uint16_t len)
     : m_Buffer(std::make_unique<std::uint8_t[]>(Size::MaxBuffer)),  // TODO(anonimal): buffer refactor
-      m_BufferLen(len)
+      m_BufferLen(len),
+      m_Exception(__func__)
 {
   if (!buf)
     throw std::invalid_argument("RouterInfo: null buffer");
@@ -79,30 +81,34 @@ RouterInfo::RouterInfo(const std::uint8_t* buf, std::uint16_t len)
   m_IsUpdated = true;
 }
 
-bool RouterInfo::ReadFromFile()
+void RouterInfo::ReadFromFile()
 {
-  core::InputFileStream stream(m_Path.c_str(), std::ifstream::binary);
-  if (stream.Fail())
+  try
     {
-      LOG(error) << "RouterInfo: can't open file " << m_Path;
-      return false;
-    }
+      core::InputFileStream stream(m_Path.c_str(), std::ifstream::binary);
+      if (stream.Fail())
+        throw std::runtime_error("can't open file " + m_Path);
 
-  // Get full length of stream
-  stream.Seekg(0, std::ios::end);
-  m_BufferLen = stream.Tellg();
-  if (m_BufferLen < Size::MinBuffer || m_BufferLen > Size::MaxBuffer)
+      // Get full length of stream
+      stream.Seekg(0, std::ios::end);
+      m_BufferLen = stream.Tellg();
+      if (m_BufferLen < Size::MinBuffer || m_BufferLen > Size::MaxBuffer)
+        {
+          LOG(error) << "RouterInfo: buffer length = " << m_BufferLen;
+          throw std::runtime_error(m_Path + " is malformed");
+        }
+
+      // Read in complete length of stream
+      stream.Seekg(0, std::ios::beg);
+      if (!m_Buffer)
+        m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
+      stream.Read(m_Buffer.get(), m_BufferLen);
+    }
+  catch (...)
     {
-      LOG(error) << "RouterInfo: " << m_Path
-                 << " is malformed. Length = " << m_BufferLen;
-      return false;
+      m_Exception.Dispatch(__func__);
+      throw;
     }
-
-  // Read in complete length of stream
-  stream.Seekg(0, std::ios::beg);
-  if (!m_Buffer)
-    m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
-  return stream.Read(m_Buffer.get(), m_BufferLen);
 }
 
 void RouterInfo::ReadFromBuffer(bool verify_signature)
@@ -604,9 +610,9 @@ const std::uint8_t* RouterInfo::LoadBuffer()
 {
   if (!m_Buffer)
     {
-      if (ReadFromFile())
-        LOG(debug) << "RouterInfo: buffer for " << GetIdentHashAbbreviation()
-                   << " loaded from file";
+      ReadFromFile();
+      LOG(debug) << "RouterInfo: buffer for " << GetIdentHashAbbreviation()
+                 << " loaded from file";
     }
 
   return m_Buffer.get();

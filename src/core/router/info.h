@@ -496,7 +496,12 @@ class RouterInfo : public RoutingDestination {
     return m_SupportedTransports & other.m_SupportedTransports;
   }
 
-  bool UsesIntroducer() const;
+  /// @brief Router is unreachable, must use introducer
+  /// @return True if uses introducer
+  bool UsesIntroducer() const noexcept
+  {
+    return HasCap(Cap::Unreachable);
+  }
 
   bool HasCap(Cap cap) const noexcept
   {

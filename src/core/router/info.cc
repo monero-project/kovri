@@ -877,10 +877,6 @@ void RouterInfo::DisableV6()
     }
 }
 
-bool RouterInfo::UsesIntroducer() const {
-  return HasCap(Cap::Unreachable);  // Router is unreachable, must use introducer
-}
-
 const RouterInfo::Address* RouterInfo::GetNTCPAddress(bool has_v6) const
 {
   if (!has_v6)

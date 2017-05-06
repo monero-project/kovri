@@ -91,7 +91,7 @@ bool RouterInfoCommand::Impl(
         }
       // Read all input
       std::size_t length(0);
-      std::unique_ptr<std::uint8_t> buffer =
+      std::unique_ptr<std::uint8_t[]> buffer =
           input.ReadAll<std::uint8_t, std::size_t>(&length);
       if (!buffer)
         {

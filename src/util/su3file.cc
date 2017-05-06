@@ -171,7 +171,7 @@ bool SU3FileCommand::Impl(
     }
   // Read all input
   std::size_t length(0);
-  std::unique_ptr<std::uint8_t> buffer_ptr =
+  std::unique_ptr<std::uint8_t[]> buffer_ptr =
       input.ReadAll<std::uint8_t, std::size_t>(&length);
   if (!buffer_ptr)
     {

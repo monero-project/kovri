@@ -464,7 +464,7 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
 
   /// @brief Loads RI buffer (by reading) if buffer is not yet available
   /// @notes Required by NetDb
-  /// TODO(anonimal): remove, refactor (buffer should at least be guaranteed with getter)
+  /// TODO(anonimal): remove, refactor (buffer should be guaranteed upon object creation)
   const std::uint8_t* LoadBuffer();
 
   /// @brief Create RI and put into buffer
@@ -491,11 +491,9 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
 
  public:
   /// @return Pointer to RI buffer
-  /// TODO(anonimal): refactor
   const std::uint8_t* GetBuffer() const
   {
-    auto buf = m_Buffer.get();
-    return buf;
+    return m_Buffer.get();
   }
 
   /// @return RI buffer length

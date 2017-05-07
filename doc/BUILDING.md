@@ -248,3 +248,36 @@ Alternatively, if you use Docker, the following will build the image for you.
 ```bash
 $ docker build -t geti2p/kovri .
 ```
+
+## Fuzz testing
+
+From [reference](http://llvm.org/docs/LibFuzzer.html) : "LibFuzzer is under active development so you will need the current (or at least a very recent) version of the Clang compiler"
+
+Get a recent version of clang:
+
+```bash
+$ cd ~/ && mkdir TMP_CLANG && git clone https://chromium.googlesource.com/chromium/src/tools/clang TMP_CLANG/clang
+$ ./TMP_CLANG/clang/scripts/update.py
+$ cd --
+```
+
+Get libFuzzer:
+
+```bash
+$ git clone https://chromium.googlesource.com/chromium/llvm-project/llvm/lib/Fuzzer contrib/Fuzzer
+```
+
+Build kovri with fuzz testing enabled:
+
+```bash
+$ PATH="~/third_party/llvm-build/Release+Asserts/bin:$PATH" CC=clang CXX=clang++ make fuzz-tests
+```
+
+Usage (Example for RouterInfo):
+
+```bash
+mkdir RI_CORPUS MIN_RI_CORPUS
+find ~/.kovri/core/network_database/ -name "router_info*" -exec cp {} RI_CORPUS \;
+./build/kovri-util fuzz --target=routerinfo -merge=1 MIN_RI_CORPUS RI_CORPUS
+./build/kovri-util fuzz --target=routerinfo -jobs=2 -workers=2 MIN_RI_CORPUS
+```

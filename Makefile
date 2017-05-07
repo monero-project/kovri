@@ -65,6 +65,7 @@ cmake-upnp       = -D WITH_UPNP=ON
 cmake-optimize   = -D WITH_OPTIMIZE=ON
 cmake-hardening  = -D WITH_HARDENING=ON
 cmake-tests      = -D WITH_TESTS=ON
+cmake-fuzz-tests = -D WITH_FUZZ_TESTS=ON
 cmake-static     = -D WITH_STATIC=ON
 cmake-doxygen    = -D WITH_DOXYGEN=ON
 cmake-coverage   = -D WITH_COVERAGE=ON
@@ -87,6 +88,7 @@ build = build/
 build-cpp-netlib = deps/cpp-netlib/$(build)
 build-cryptopp = deps/cryptopp/$(build)
 build-doxygen = doc/Doxygen
+build-fuzzer = contrib/Fuzzer/$(build)
 
 # CMake builder macros
 define CMAKE
@@ -104,6 +106,13 @@ define CMAKE_CRYPTOPP
   @echo "=== Building cryptopp ==="
   $(eval cmake-cryptopp = $(cmake-release) -D BUILD_TESTING=OFF -D BUILD_SHARED=OFF $1)
   $(call CMAKE,$(build-cryptopp),$(cmake-cryptopp))
+endef
+
+define CMAKE_FUZZER
+  @echo "=== Building fuzzer ==="
+  $(eval cmake-fuzzer = $(cmake-release) -DLLVM_USE_SANITIZER=Address -DLLVM_USE_SANITIZE_COVERAGE=YES \
+      -DCMAKE_CXX_FLAGS="-g -O2 -fno-omit-frame-pointer -std=c++11" $1)
+  $(call CMAKE,$(build-fuzzer),$(cmake-fuzzer))
 endef
 
 # Targets
@@ -188,6 +197,11 @@ tests: deps
 	$(eval cmake-kovri += $(cmake-tests) $(cmake-benchmarks))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
+fuzz-tests: deps
+	$(call CMAKE_FUZZER) && $(MAKE)
+	$(eval cmake-kovri += $(cmake-fuzz-tests) )
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
+
 doxygen:
 	$(eval cmake-kovri += $(cmake-disable-options) $(cmake-doxygen))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
@@ -197,7 +211,7 @@ help:
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
 clean:
-	$(eval remove-build = rm -fR $(build) $(build-cpp-netlib) $(build-cryptopp) $(build-doxygen))
+	$(eval remove-build = rm -fR $(build) $(build-cpp-netlib) $(build-cryptopp) $(build-doxygen) $(build-fuzzer))
 	@if [ "$$FORCE_CLEAN" = "yes" ]; then $(remove-build); \
 	else echo "CAUTION: This will remove the build directories for Kovri and all submodule dependencies, and remove all Doxygen output"; \
 	read -r -p "Is this what you wish to do? (y/N)?: " CONFIRM; \

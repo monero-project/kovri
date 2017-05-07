@@ -32,10 +32,13 @@
 #include "core/util/exception.h"
 #include "core/util/log.h"
 #include "util/base.h"
+#include "util/benchmark.h"
 #include "util/command.h"
+#ifdef WITH_FUZZ_TESTS
+#include "util/fuzz.h"
+#endif  // WITH_FUZZ_TESTS
 #include "util/routerinfo.h"
 #include "util/su3file.h"
-#include "util/benchmark.h"
 
 namespace bpo = boost::program_options;
 typedef std::map<std::string, Command*> ListCommands;
@@ -65,6 +68,11 @@ int main(int argc, const char* argv[])
   list_cmd[su3file_cmd.GetName()] = &su3file_cmd;
   list_cmd[routerinfo_cmd.GetName()] = &routerinfo_cmd;
   list_cmd[benchmark_cmd.GetName()] = &benchmark_cmd;
+
+#ifdef WITH_FUZZ_TESTS
+  FuzzCommand fuzz_cmd;
+  list_cmd[fuzz_cmd.GetName()] = &fuzz_cmd;
+#endif  // WITH_FUZZ_TESTS
 
   bpo::options_description general_desc("General options");
   // See src/app/config.cc for log options

@@ -34,11 +34,8 @@
 
 #include <boost/lexical_cast.hpp>
 
-#include <stdio.h>
-#include <string.h>
-
+#include <cstring>
 #include <fstream>
-#include <tuple>
 
 #include "core/router/context.h"
 
@@ -53,84 +50,7 @@ namespace kovri
 namespace core
 {
 
-const std::string RouterInfo::GetDescription(
-    const Introducer& introducer,
-    const std::string& tabs) const
-{
-  std::stringstream ss;
-
-  const std::string delimiter = GetTrait(Trait::Delimiter),
-                    terminator = GetTrait(Trait::Terminator) + "\n";
-
-  ss << tabs << GetTrait(Trait::IntroHost) << delimiter
-     << introducer.host.to_string() << terminator
-
-     << tabs << GetTrait(Trait::IntroPort) << delimiter
-     << introducer.port << terminator
-
-     << tabs << GetTrait(Trait::IntroKey) << delimiter
-     << introducer.key.ToBase64() << terminator
-
-     << tabs << GetTrait(Trait::IntroTag) << delimiter
-     << introducer.tag << terminator;
-
-  return ss.str();
-}
-
-const std::string RouterInfo::GetDescription(
-    const Address& address,
-    const std::string& tabs) const
-{
-  std::stringstream ss;
-
-  const std::string delimiter = GetTrait(Trait::Delimiter),
-                    terminator = GetTrait(Trait::Terminator) + "\n";
-
-  ss << tabs << "Address transport: ";
-  switch (address.transport)
-    {
-      case Transport::NTCP:
-        ss << GetTrait(Trait::NTCP);
-        break;
-      case Transport::SSU:
-        ss << GetTrait(Trait::SSU);
-        break;
-      case Transport::Unknown:
-        ss << GetTrait(Trait::Unknown);
-        return ss.str();
-    }
-
-  ss << "\n"
-     << tabs << "\t" << GetTrait(Trait::Host) << delimiter
-     << address.host.to_string() << terminator
-
-     << tabs << "\t" << GetTrait(Trait::Port) << delimiter
-     << address.port << terminator
-
-     << tabs << "\t" << GetTrait(Trait::MTU) << delimiter
-     << address.mtu << terminator
-
-     << tabs << "\t" << GetTrait(Trait::Date) << delimiter
-     << address.date << terminator
-
-     << tabs << "\t" << GetTrait(Trait::Cost) << delimiter
-     << static_cast<std::uint16_t>(address.cost) << terminator
-
-     << tabs << "\t" << GetTrait(Trait::Key) << delimiter
-     << address.key.ToBase64() << terminator;
-
-  if (address.transport == Transport::SSU)
-    {
-      ss << tabs << "\n\tIntroducers(" << address.introducers.size() << ")"
-         << std::endl;
-      for (const Introducer& introducer : address.introducers)
-        ss << GetDescription(introducer, tabs + "\t\t") << std::endl;
-    }
-
-  return ss.str();
-}
-
-RouterInfo::RouterInfo() : m_Buffer(nullptr)  // TODO(anonimal): buffer refactor
+RouterInfo::RouterInfo() : m_Buffer(nullptr), m_Exception(__func__)  // TODO(anonimal): buffer refactor
 {
 }
 
@@ -139,99 +59,96 @@ RouterInfo::~RouterInfo()
 }
 
 RouterInfo::RouterInfo(const std::string& path)
-    : m_Path(path), m_Buffer(std::make_unique<std::uint8_t[]>(Size::MaxBuffer))  // TODO(anonimal): buffer refactor
+    : m_Path(path),
+      m_Buffer(std::make_unique<std::uint8_t[]>(Size::MaxBuffer)),  // TODO(anonimal): buffer refactor
+      m_Exception(__func__)
 {
-  if (!ReadFromFile())
-    throw std::runtime_error("RouterInfo: invalid file");
+  ReadFromFile();
   ReadFromBuffer(false);
 }
 
 RouterInfo::RouterInfo(const std::uint8_t* buf, std::uint16_t len)
     : m_Buffer(std::make_unique<std::uint8_t[]>(Size::MaxBuffer)),  // TODO(anonimal): buffer refactor
-      m_BufferLen(len)
+      m_BufferLen(len),
+      m_Exception(__func__)
 {
   if (!buf)
     throw std::invalid_argument("RouterInfo: null buffer");
   if (len < Size::MinBuffer || len > Size::MaxBuffer)
     throw std::length_error("RouterInfo: invalid buffer length");
-  memcpy(m_Buffer.get(), buf, Size::MaxBuffer);
+  std::memcpy(m_Buffer.get(), buf, len);
   ReadFromBuffer(true);
   m_IsUpdated = true;
 }
 
-void RouterInfo::Update(
-    const std::uint8_t* buf,
-    std::uint16_t len) {
-  if (len < Size::MinBuffer || len > Size::MaxBuffer)
-    throw std::length_error(
-        "RouterInfo: " + std::string(__func__) + ": invalid buffer length");
-  if (!m_Buffer)
-    m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
-  m_IsUpdated = true;
-  m_IsUnreachable = false;
-  m_SupportedTransports = 0;
-  m_Caps = 0;
-  m_Addresses.clear();
-  m_Options.clear();
-  memcpy(m_Buffer.get(), buf, len);
-  m_BufferLen = len;
-  ReadFromBuffer(true);
-  // don't delete buffer until saved to file
-}
-
-void RouterInfo::SetRouterIdentity(
-    const IdentityEx& identity) {
-  m_RouterIdentity = identity;
-  m_Timestamp = kovri::core::GetMillisecondsSinceEpoch();
-}
-
-bool RouterInfo::ReadFromFile()
+void RouterInfo::ReadFromFile()
 {
-  core::InputFileStream stream(m_Path.c_str(), std::ifstream::binary);
-  if (stream.Fail())
+  try
     {
-      LOG(error) << "RouterInfo: can't open file " << m_Path;
-      return false;
+      core::InputFileStream stream(m_Path.c_str(), std::ifstream::binary);
+      if (stream.Fail())
+        throw std::runtime_error("can't open file " + m_Path);
+
+      // Get full length of stream
+      stream.Seekg(0, std::ios::end);
+      m_BufferLen = stream.Tellg();
+      if (m_BufferLen < Size::MinBuffer || m_BufferLen > Size::MaxBuffer)
+        {
+          LOG(error) << "RouterInfo: buffer length = " << m_BufferLen;
+          throw std::runtime_error(m_Path + " is malformed");
+        }
+
+      // Read in complete length of stream
+      stream.Seekg(0, std::ios::beg);
+      if (!m_Buffer)
+        m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
+      stream.Read(m_Buffer.get(), m_BufferLen);
     }
-  // Get full length of stream
-  stream.Seekg(0, std::ios::end);
-  m_BufferLen = stream.Tellg();
-  if (m_BufferLen < Size::MinBuffer || m_BufferLen > Size::MaxBuffer)
+  catch (...)
     {
-      LOG(error) << "RouterInfo: " << m_Path
-                 << " is malformed. Length = " << m_BufferLen;
-      return false;
+      m_Exception.Dispatch(__func__);
+      throw;
     }
-  // Read in complete length of stream
-  stream.Seekg(0, std::ios::beg);
-  if (!m_Buffer)
-    m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
-  return stream.Read(reinterpret_cast<char*>(m_Buffer.get()), m_BufferLen);
 }
 
-void RouterInfo::ReadFromBuffer(
-    bool verify_signature) {
-  std::size_t identity_len = m_RouterIdentity.FromBuffer(m_Buffer.get(), m_BufferLen);
-  if (!identity_len)
-    throw std::length_error(
-        "RouterInfo: " + std::string(__func__) + ": null ident length");
-  std::string str(
-        reinterpret_cast<char *>(m_Buffer.get()) + identity_len,
-        m_BufferLen - identity_len);
-  ParseRouterInfo(str);
-  // Verify signature
-  if (verify_signature) {
-    // Note: signature length is guaranteed to be no less than buffer length
-    std::uint16_t len = m_BufferLen - m_RouterIdentity.GetSignatureLen();
-    if (!m_RouterIdentity.Verify(
-          reinterpret_cast<std::uint8_t *>(m_Buffer.get()),
-          len,
-          reinterpret_cast<std::uint8_t *>(m_Buffer.get() + len))) {
-      LOG(error) << "RouterInfo: signature verification failed";
-      m_IsUnreachable = true;
+void RouterInfo::ReadFromBuffer(bool verify_signature)
+{
+  try
+    {
+      // Get + verify identity length from existing RI in buffer
+      std::size_t ident_len =
+          m_RouterIdentity.FromBuffer(m_Buffer.get(), m_BufferLen);
+      if (!ident_len)
+        throw std::length_error("null ident length");
+
+      // Parse existing RI from buffer
+      std::string router_info(
+          reinterpret_cast<char*>(m_Buffer.get()) + ident_len,
+          m_BufferLen - ident_len);
+
+      ParseRouterInfo(router_info);
+
+      // Verify signature
+      if (verify_signature)
+        {
+          // Note: signature length is guaranteed to be no less than buffer length
+          std::uint16_t len = m_BufferLen - m_RouterIdentity.GetSignatureLen();
+          if (!m_RouterIdentity.Verify(
+                  reinterpret_cast<std::uint8_t*>(m_Buffer.get()),
+                  len,
+                  reinterpret_cast<std::uint8_t*>(m_Buffer.get() + len)))
+            {
+              LOG(error) << "RouterInfo: signature verification failed";
+              m_IsUnreachable = true;
+            }
+          m_RouterIdentity.DropVerifier();
+        }
     }
-    m_RouterIdentity.DropVerifier();
-  }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      throw;
+    }
 }
 
 // TODO(anonimal): unit-test
@@ -339,7 +256,7 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
                         }
                       break;
                     }
-                  // add supported protocol
+                  // Add supported transport
                   if (address.host.is_v4())
                     m_SupportedTransports |=
                         (address.transport == Transport::NTCP)
@@ -521,6 +438,225 @@ void RouterInfo::SetCaps(const std::string& caps)
     }
 }
 
+void RouterInfo::SetCaps(std::uint8_t caps)
+{
+  // Set member
+  m_Caps = caps;
+
+  // Set RI option with new caps flags
+  SetOption(GetTrait(Trait::Caps), GetCapsFlags());
+}
+
+const std::string RouterInfo::GetCapsFlags() const
+{
+  std::string flags;
+
+  if (m_Caps & Cap::Floodfill)
+    {
+      flags += GetTrait(CapFlag::HighBandwidth4);  // highest bandwidth
+      flags += GetTrait(CapFlag::Floodfill);
+    }
+  else
+    {
+      flags += (m_Caps & Cap::HighBandwidth) ? GetTrait(CapFlag::HighBandwidth3)
+                                             : GetTrait(CapFlag::LowBandwidth2);
+      // TODO(anonimal): what about lowest bandwidth cap?
+    }
+
+  if (m_Caps & Cap::Hidden)
+    flags += GetTrait(CapFlag::Hidden);
+
+  if (m_Caps & Cap::Reachable)
+    flags += GetTrait(CapFlag::Reachable);
+
+  if (m_Caps & Cap::Unreachable)
+    flags += GetTrait(CapFlag::Unreachable);
+
+  return flags;
+}
+
+void RouterInfo::SetRouterIdentity(const IdentityEx& identity)
+{
+  m_RouterIdentity = identity;
+  m_Timestamp = kovri::core::GetMillisecondsSinceEpoch();
+}
+
+void RouterInfo::AddNTCPAddress(const std::string& host, std::uint16_t port)
+{
+  Address addr;
+  addr.host = boost::asio::ip::address::from_string(host);
+  addr.port = port;
+  addr.transport = Transport::NTCP;
+  addr.cost = Size::NTCPCost;
+  addr.date = 0;
+  addr.mtu = 0;
+  m_Addresses.push_back(addr);
+  m_SupportedTransports |= addr.host.is_v6() ? SupportedTransport::NTCPv6
+                                             : SupportedTransport::NTCPv4;
+}
+
+void RouterInfo::AddSSUAddress(
+    const std::string& host,
+    std::uint16_t port,
+    const std::uint8_t* key,
+    std::uint16_t mtu)
+{
+  Address addr;
+  addr.host = boost::asio::ip::address::from_string(host);
+  addr.port = port;
+  addr.transport = Transport::SSU;
+  addr.cost = Size::SSUCost;
+  addr.date = 0;
+  addr.mtu = mtu;
+  std::memcpy(addr.key, key, 32);
+  m_Addresses.push_back(addr);
+  m_SupportedTransports |=
+      addr.host.is_v6() ? SupportedTransport::SSUv6 : SupportedTransport::SSUv4;
+  m_Caps |= Cap::SSUTesting;
+  m_Caps |= Cap::SSUIntroducer;
+}
+
+bool RouterInfo::AddIntroducer(const Address* address, std::uint32_t tag)
+{
+  for (auto& addr : m_Addresses)
+    {
+      // TODO(anonimal): IPv6 SSU introducers when we bump I2P version
+      if (addr.transport == Transport::SSU && addr.host.is_v4())
+        {
+          for (auto intro : addr.introducers)
+            if (intro.tag == tag)
+              return false;  // already presented
+          Introducer i;
+          i.host = address->host;
+          i.port = address->port;
+          i.tag = tag;
+          std::memcpy(
+              i.key, address->key, 32);  // TODO(unassigned): replace to Tag<32>
+          addr.introducers.push_back(i);
+          return true;
+        }
+    }
+  return false;
+}
+
+bool RouterInfo::RemoveIntroducer(
+    const boost::asio::ip::udp::endpoint& endpoint)
+{
+  for (auto& addr : m_Addresses)
+    {
+      // TODO(anonimal): IPv6 SSU introducers when we bump I2P version
+      if (addr.transport == Transport::SSU && addr.host.is_v4())
+        {
+          for (std::vector<Introducer>::iterator it = addr.introducers.begin();
+               it != addr.introducers.end();
+               it++)
+            if (boost::asio::ip::udp::endpoint(it->host, it->port) == endpoint)
+              {
+                addr.introducers.erase(it);
+                return true;
+              }
+        }
+    }
+  return false;
+}
+
+void RouterInfo::EnableV6()
+{
+  if (!HasV6())
+    {
+      LOG(debug) << "RouterInfo: " << __func__ << ": enabling IPv6";
+      m_SupportedTransports |=
+          SupportedTransport::NTCPv6 | SupportedTransport::SSUv6;
+    }
+}
+
+// TODO(anonimal): this is currently useless because we
+//  A) disable IPv6 by default on startup
+//  B) if IPv6 is set at startup, we do not currently disable during run-time (could be used by API though)
+void RouterInfo::DisableV6()
+{
+  // Test if RI supports V6
+  if (!HasV6())
+    return;
+
+  // Disable V6 transports
+  m_SupportedTransports &= ~SupportedTransport::NTCPv6;
+  m_SupportedTransports &= ~SupportedTransport::SSUv6;
+
+  // Remove addresses in question
+  for (std::size_t i = 0; i < m_Addresses.size(); i++)
+    {
+      if (m_Addresses[i].host.is_v6())
+        {
+          LOG(debug) << "RouterInfo: " << __func__ << ": removing address";
+          m_Addresses.erase(m_Addresses.begin() + i);
+        }
+    }
+}
+
+void RouterInfo::Update(const std::uint8_t* buf, std::uint16_t len)
+{
+  if (len < Size::MinBuffer || len > Size::MaxBuffer)
+    throw std::length_error(
+        "RouterInfo: " + std::string(__func__) + ": invalid buffer length");
+  if (!m_Buffer)
+    m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
+  m_BufferLen = len;
+  m_IsUpdated = true;
+  m_IsUnreachable = false;
+  m_SupportedTransports = 0;
+  m_Caps = 0;
+  m_Addresses.clear();
+  m_Options.clear();
+  std::memcpy(m_Buffer.get(), buf, len);
+  ReadFromBuffer(true);
+  // don't delete buffer until saved to file
+}
+
+const std::uint8_t* RouterInfo::LoadBuffer()
+{
+  if (!m_Buffer)
+    {
+      ReadFromFile();
+      LOG(debug) << "RouterInfo: buffer for " << GetIdentHashAbbreviation()
+                 << " loaded from file";
+    }
+
+  return m_Buffer.get();
+}
+
+void RouterInfo::CreateBuffer(const PrivateKeys& private_keys)
+{
+  try
+    {
+      // Create RI
+      core::StringStream router_info;
+      CreateRouterInfo(router_info, private_keys);
+      if (router_info.Str().size() > Size::MaxBuffer)
+        throw std::length_error("created RI is too big");
+
+      // Create buffer
+      m_BufferLen = router_info.Str().size();
+      if (!m_Buffer)
+        m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
+      std::memcpy(m_Buffer.get(), router_info.Str().c_str(), m_BufferLen);
+
+      // Signature
+      // TODO(anonimal): signing should be done when creating RI, not after. Requires other refactoring.
+      private_keys.Sign(
+          reinterpret_cast<std::uint8_t*>(m_Buffer.get()),
+          m_BufferLen,
+          reinterpret_cast<std::uint8_t*>(m_Buffer.get()) + m_BufferLen);
+
+      m_BufferLen += private_keys.GetPublic().GetSignatureLen();
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      throw;
+    }
+}
+
 // TODO(anonimal): debug + trace logging
 // TODO(anonimal): unit-test
 void RouterInfo::CreateRouterInfo(
@@ -690,195 +826,26 @@ void RouterInfo::CreateRouterInfo(
              << " total RI size: " << router_info.Str().size();
 }
 
-const std::uint8_t* RouterInfo::LoadBuffer() {
-  if (!m_Buffer) {
-    if (ReadFromFile())
-      LOG(debug)
-        << "RouterInfo: buffer for "
-        << GetIdentHashAbbreviation() << " loaded from file";
-  }
-  return m_Buffer.get();
-}
-
-void RouterInfo::CreateBuffer(const PrivateKeys& private_keys)
-{
-  // Create RI
-  core::StringStream router_info;
-  CreateRouterInfo(router_info, private_keys);
-  if (router_info.Str().size() > Size::MaxBuffer)
-    throw std::length_error("RouterInfo: created RI is too big");
-  // Create buffer
-  m_BufferLen = router_info.Str().size();
-  if (!m_Buffer)
-    m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
-  memcpy(m_Buffer.get(), router_info.Str().c_str(), m_BufferLen);
-  // signature
-  // TODO(anonimal): signing should be done when creating RI, not after. Requires other refactoring.
-  private_keys.Sign(
-    reinterpret_cast<std::uint8_t *>(m_Buffer.get()),
-    m_BufferLen,
-    reinterpret_cast<std::uint8_t *>(m_Buffer.get()) + m_BufferLen);
-  m_BufferLen += private_keys.GetPublic().GetSignatureLen();
-}
-
 void RouterInfo::SaveToFile(const std::string& path)
 {
   core::OutputFileStream stream(path, std::ofstream::binary);
+
   if (stream.Fail())
     throw std::runtime_error("RouterInfo: cannot open " + path);
+
   // TODO(anonimal): buffer should be guaranteed
   if (!m_Buffer)
     throw std::length_error("RouterInfo: cannot save file, buffer is empty");
+
   if (!stream.Write(m_Buffer.get(), m_BufferLen))
     throw std::runtime_error("RouterInfo: cannot save " + path);
 }
 
-void RouterInfo::AddNTCPAddress(
-    const std::string& host,
-    std::uint16_t port) {
-  Address addr;
-  addr.host = boost::asio::ip::address::from_string(host);
-  addr.port = port;
-  addr.transport = Transport::NTCP;
-  addr.cost = Size::NTCPCost;
-  addr.date = 0;
-  addr.mtu = 0;
-  m_Addresses.push_back(addr);
-  m_SupportedTransports |= addr.host.is_v6() ? SupportedTransport::NTCPv6
-                                             : SupportedTransport::NTCPv4;
-}
-
-void RouterInfo::AddSSUAddress(
-    const std::string& host,
-    std::uint16_t port,
-    const std::uint8_t* key,
-    std::uint16_t mtu) {
-  Address addr;
-  addr.host = boost::asio::ip::address::from_string(host);
-  addr.port = port;
-  addr.transport = Transport::SSU;
-  addr.cost = Size::SSUCost;
-  addr.date = 0;
-  addr.mtu = mtu;
-  memcpy(addr.key, key, 32);
-  m_Addresses.push_back(addr);
-  m_SupportedTransports |=
-      addr.host.is_v6() ? SupportedTransport::SSUv6 : SupportedTransport::SSUv4;
-  m_Caps |= Cap::SSUTesting;
-  m_Caps |= Cap::SSUIntroducer;
-}
-
-bool RouterInfo::AddIntroducer(
-    const Address* address,
-    std::uint32_t tag) {
-  for (auto& addr : m_Addresses) {
-    if (addr.transport == Transport::SSU && addr.host.is_v4()) {
-      for (auto intro : addr.introducers)
-        if (intro.tag == tag)
-          return false;  // already presented
-      Introducer i;
-      i.host = address->host;
-      i.port = address->port;
-      i.tag = tag;
-      memcpy(i.key, address->key, 32);  // TODO(unassigned): replace to Tag<32>
-      addr.introducers.push_back(i);
-      return true;
-    }
-  }
-  return false;
-}
-
-bool RouterInfo::RemoveIntroducer(
-    const boost::asio::ip::udp::endpoint& e) {
-  for (auto& addr : m_Addresses) {
-    if (addr.transport == Transport::SSU && addr.host.is_v4()) {
-      for (std::vector<Introducer>::iterator it = addr.introducers.begin();
-          it != addr.introducers.end();
-          it++)
-        if (boost::asio::ip::udp::endpoint(
-              it->host,
-              it->port) == e) {
-          addr.introducers.erase(it);
-          return true;
-        }
-    }
-  }
-  return false;
-}
-
-void RouterInfo::SetCaps(std::uint8_t caps)
+std::shared_ptr<RouterProfile> RouterInfo::GetProfile() const
 {
-  // Set member
-  m_Caps = caps;
-
-  // Set RI option with new caps flags
-  SetOption(GetTrait(Trait::Caps), GetCapsFlags());
-}
-
-const std::string RouterInfo::GetCapsFlags() const
-{
-  std::string flags;
-
-  if (m_Caps & Cap::Floodfill)
-    {
-      flags += GetTrait(CapFlag::HighBandwidth4);  // highest bandwidth
-      flags += GetTrait(CapFlag::Floodfill);
-    }
-  else
-    {
-      flags += (m_Caps & Cap::HighBandwidth) ? GetTrait(CapFlag::HighBandwidth3)
-                                             : GetTrait(CapFlag::LowBandwidth2);
-      // TODO(anonimal): what about lowest bandwidth cap?
-    }
-
-  if (m_Caps & Cap::Hidden)
-    flags += GetTrait(CapFlag::Hidden);
-
-  if (m_Caps & Cap::Reachable)
-    flags += GetTrait(CapFlag::Reachable);
-
-  if (m_Caps & Cap::Unreachable)
-    flags += GetTrait(CapFlag::Unreachable);
-
-  return flags;
-}
-
-void RouterInfo::EnableV6()
-{
-  if (!HasV6())
-    {
-      LOG(debug) << "RouterInfo: " << __func__ << ": enabling IPv6";
-      m_SupportedTransports |=
-          SupportedTransport::NTCPv6 | SupportedTransport::SSUv6;
-    }
-}
-
-// TODO(anonimal): this is currently useless because we
-//  A) disable IPv6 by default on startup
-//  B) if IPv6 is set at startup, we do not currently disable during run-time (could be used by API though)
-void RouterInfo::DisableV6()
-{
-  // Test if RI supports V6
-  if (!HasV6())
-    return;
-
-  // Disable V6 transports
-  m_SupportedTransports &= ~SupportedTransport::NTCPv6;
-  m_SupportedTransports &= ~SupportedTransport::SSUv6;
-
-  // Remove addresses in question
-  for (std::size_t i = 0; i < m_Addresses.size(); i++)
-    {
-      if (m_Addresses[i].host.is_v6())
-        {
-          LOG(debug) << "RouterInfo: " << __func__ << ": removing address";
-          m_Addresses.erase(m_Addresses.begin() + i);
-        }
-    }
-}
-
-bool RouterInfo::UsesIntroducer() const {
-  return HasCap(Cap::Unreachable);  // Router is unreachable, must use introducer
+  if (!m_Profile)
+    m_Profile = GetRouterProfile(GetIdentHash());
+  return m_Profile;
 }
 
 const RouterInfo::Address* RouterInfo::GetNTCPAddress(bool has_v6) const
@@ -934,10 +901,81 @@ const RouterInfo::Address* RouterInfo::GetAddress(
   return nullptr;
 }
 
-std::shared_ptr<RouterProfile> RouterInfo::GetProfile() const {
-  if (!m_Profile)
-    m_Profile = GetRouterProfile(GetIdentHash());
-  return m_Profile;
+const std::string RouterInfo::GetDescription(
+    const Introducer& introducer,
+    const std::string& tabs) const
+{
+  std::stringstream ss;
+
+  const std::string delimiter = GetTrait(Trait::Delimiter),
+                    terminator = GetTrait(Trait::Terminator) + "\n";
+
+  ss << tabs << GetTrait(Trait::IntroHost) << delimiter
+     << introducer.host.to_string() << terminator
+
+     << tabs << GetTrait(Trait::IntroPort) << delimiter
+     << introducer.port << terminator
+
+     << tabs << GetTrait(Trait::IntroKey) << delimiter
+     << introducer.key.ToBase64() << terminator
+
+     << tabs << GetTrait(Trait::IntroTag) << delimiter
+     << introducer.tag << terminator;
+
+  return ss.str();
+}
+
+const std::string RouterInfo::GetDescription(
+    const Address& address,
+    const std::string& tabs) const
+{
+  std::stringstream ss;
+
+  const std::string delimiter = GetTrait(Trait::Delimiter),
+                    terminator = GetTrait(Trait::Terminator) + "\n";
+
+  ss << tabs << "Address transport: ";
+  switch (address.transport)
+    {
+      case Transport::NTCP:
+        ss << GetTrait(Trait::NTCP);
+        break;
+      case Transport::SSU:
+        ss << GetTrait(Trait::SSU);
+        break;
+      case Transport::Unknown:
+        ss << GetTrait(Trait::Unknown);
+        return ss.str();
+    }
+
+  ss << "\n"
+     << tabs << "\t" << GetTrait(Trait::Host) << delimiter
+     << address.host.to_string() << terminator
+
+     << tabs << "\t" << GetTrait(Trait::Port) << delimiter
+     << address.port << terminator
+
+     << tabs << "\t" << GetTrait(Trait::MTU) << delimiter
+     << address.mtu << terminator
+
+     << tabs << "\t" << GetTrait(Trait::Date) << delimiter
+     << address.date << terminator
+
+     << tabs << "\t" << GetTrait(Trait::Cost) << delimiter
+     << static_cast<std::uint16_t>(address.cost) << terminator
+
+     << tabs << "\t" << GetTrait(Trait::Key) << delimiter
+     << address.key.ToBase64() << terminator;
+
+  if (address.transport == Transport::SSU)
+    {
+      ss << tabs << "\n\tIntroducers(" << address.introducers.size() << ")"
+         << std::endl;
+      for (const Introducer& introducer : address.introducers)
+        ss << GetDescription(introducer, tabs + "\t\t") << std::endl;
+    }
+
+  return ss.str();
 }
 
 const std::string RouterInfo::GetDescription(const std::string& tabs) const

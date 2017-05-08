@@ -48,13 +48,25 @@
 #include "core/router/identity.h"
 #include "core/router/profiling.h"
 
+#include "core/util/exception.h"
 #include "core/util/filesystem.h"
 
 namespace kovri {
 namespace core {
 
-class RouterInfo : public RoutingDestination {
- public:
+struct RouterInfoTraits
+{
+  /// @enum Size
+  /// @brief Router Info size constants
+  enum Size : std::uint16_t
+  {
+    MinBuffer = core::DSA_SIGNATURE_LENGTH,  // TODO(unassigned): see #498
+    MaxBuffer = 2048,  // TODO(anonimal): review if arbitrary
+    // TODO(unassigned): algorithm to dynamically determine cost
+    NTCPCost = 10,  // NTCP *should* have priority over SSU
+    SSUCost = 5,
+  };
+
   /// @enum Transport
   /// @brief Transport type(s) within RI
   enum Transport : std::uint8_t
@@ -107,6 +119,170 @@ class RouterInfo : public RoutingDestination {
     SSUIntroducer,
     Unknown,
   };
+
+  /// @enum Trait
+  /// @brief RI traits
+  enum struct Trait : std::uint8_t
+  {
+    // Address-specific
+    NTCP,
+    SSU,
+    Host,
+    Port,
+    MTU,
+    Key,
+    Caps,
+    Cost,
+    Date,
+
+    // Introducer
+    IntroHost,
+    IntroPort,
+    IntroTag,
+    IntroKey,
+
+    // Demarcation
+    Delimiter,
+    Terminator,
+
+    // Unknown trait
+    Unknown,
+  };
+
+  /// @return String value of given enumerated RI trait
+  /// @param trait key used for RI trait string value
+  const std::string GetTrait(Trait trait) const noexcept
+  {
+    switch (trait)
+      {
+        // Address-specific
+        case Trait::NTCP:
+          return "NTCP";
+
+        case Trait::SSU:
+          return "SSU";
+
+        case Trait::Host:
+          return "host";
+
+        case Trait::Port:
+          return "port";
+
+        case Trait::MTU:
+          return "mtu";
+
+        case Trait::Key:
+          return "key";
+
+        case Trait::Caps:
+          return "caps";
+
+        case Trait::Cost:
+          return "cost";
+
+        case Trait::Date:
+          return "date";
+
+        // Introducer
+        case Trait::IntroHost:
+          return "ihost";
+
+        case Trait::IntroPort:
+          return "iport";
+
+        case Trait::IntroTag:
+          return "itag";
+
+        case Trait::IntroKey:
+          return "ikey";
+
+        // Demarcation
+        case Trait::Delimiter:
+          return "=";
+
+        case Trait::Terminator:
+          return ";";
+
+        case Trait::Unknown:  // TODO(anonimal): review
+        default:
+          return "";
+      }
+  }
+
+  /// @return Enumerated key trait
+  /// @param value String value of potential trait given
+  Trait GetTrait(const std::string& value) const noexcept
+  {
+    // Address-specific
+    if (value == GetTrait(Trait::NTCP))
+      return Trait::NTCP;
+
+    else if (value == GetTrait(Trait::SSU))
+      return Trait::SSU;
+
+    else if (value == GetTrait(Trait::Host))
+      return Trait::Host;
+
+    else if (value == GetTrait(Trait::Port))
+      return Trait::Port;
+
+    else if (value == GetTrait(Trait::MTU))
+      return Trait::MTU;
+
+    else if (value == GetTrait(Trait::Key))
+      return Trait::Key;
+
+    else if (value == GetTrait(Trait::Caps))
+      return Trait::Caps;
+
+    else if (value == GetTrait(Trait::Cost))
+      return Trait::Cost;
+
+    else if (value == GetTrait(Trait::Date))
+      return Trait::Date;
+
+    // Introducer
+    else if (value == GetTrait(Trait::IntroHost))
+      return Trait::IntroHost;
+
+    else if (value == GetTrait(Trait::IntroPort))
+      return Trait::IntroPort;
+
+    else if (value == GetTrait(Trait::IntroTag))
+      return Trait::IntroTag;
+
+    else if (value == GetTrait(Trait::IntroKey))
+      return Trait::IntroKey;
+
+    // Demarcation
+    else if (value == GetTrait(Trait::Delimiter))
+      return Trait::Delimiter;
+
+    else if (value == GetTrait(Trait::Terminator))
+
+      return Trait::Terminator;
+
+    // Unknown
+    else
+      return Trait::Unknown;  // TODO(anonimal): review
+  }
+
+  /// @return String value of given transport
+  /// @param transport Enumerated transport
+  const std::string GetTrait(Transport transport) const noexcept
+  {
+    switch (transport)
+      {
+        case Transport::NTCP:
+          return GetTrait(Trait::NTCP);
+
+        case Transport::SSU:
+          return GetTrait(Trait::SSU);
+
+        default:
+          return GetTrait(Trait::Unknown);
+      }
+  }
 
   /// @return Char flag of given enumerated caps flag
   /// @param flag Flag enum used for caps char flag
@@ -205,188 +381,11 @@ class RouterInfo : public RoutingDestination {
     else
       return CapFlag::Unknown;  // TODO(anonimal): review
   }
+};
 
-  struct Introducer {
-    boost::asio::ip::address host;
-    std::uint16_t port{};
-    Tag<32> key;
-    std::uint32_t tag{};
-  };
-
-  /// @brief Human readable description of Introducer members
-  /// @param introducer Introducer class to get description from
-  /// @param tabs Prefix for tabulations
-  /// @returns human readable string
-  const std::string GetDescription(
-      const Introducer& introducer,
-      const std::string& tabs = std::string()) const;
-
-  struct Address {
-    Transport transport;
-    boost::asio::ip::address host;
-    std::string address;
-    std::uint16_t port{}, mtu{};
-    std::uint64_t date{};
-    std::uint8_t cost{};
-    // SSU only
-    Tag<32> key;  // intro key for SSU
-    std::vector<Introducer> introducers;
-    bool HasCompatibleHost(
-        const boost::asio::ip::address& other) const {
-      return (host.is_v4() && other.is_v4()) ||
-        (host.is_v6() && other.is_v6());
-    }
-  };
-
-  /// @brief Human readable description of Address members
-  /// @param address Address class to get description from
-  /// @param tabs Prefix for tabulations
-  /// @returns human readable string
-  const std::string GetDescription(
-      const Address& address,
-      const std::string& tabs = std::string()) const;
-
-  /// @enum Trait
-  /// @brief RI traits
-  enum struct Trait : std::uint8_t
-  {
-    // Address-specific
-    NTCP,
-    SSU,
-    Host,
-    Port,
-    MTU,
-    Key,
-    Caps,
-    Cost,
-    Date,
-    // Introducer
-    IntroHost,
-    IntroPort,
-    IntroTag,
-    IntroKey,
-    // Demarcation
-    Delimiter,
-    Terminator,
-    // Unknown trait
-    Unknown,
-  };
-
-  /// @return String value of given transport
-  /// @param transport Enumerated transport
-  const std::string GetTrait(Transport transport) const noexcept
-  {
-    switch (transport)
-      {
-        case Transport::NTCP:
-          return GetTrait(Trait::NTCP);
-
-        case Transport::SSU:
-          return GetTrait(Trait::SSU);
-
-        default:
-          return GetTrait(Trait::Unknown);
-      }
-  }
-
-  /// @return String value of given enumerated RI trait
-  /// @param trait key used for RI trait string value
-  const std::string GetTrait(Trait trait) const noexcept
-  {
-    switch (trait)
-      {
-        // Address-specific
-        case Trait::NTCP:
-          return "NTCP";
-        case Trait::SSU:
-          return "SSU";
-        case Trait::Host:
-          return "host";
-        case Trait::Port:
-          return "port";
-        case Trait::MTU:
-          return "mtu";
-        case Trait::Key:
-          return "key";
-        case Trait::Caps:
-          return "caps";
-        case Trait::Cost:
-          return "cost";
-        case Trait::Date:
-          return "date";
-        // Introducer
-        case Trait::IntroHost:
-          return "ihost";
-        case Trait::IntroPort:
-          return "iport";
-        case Trait::IntroTag:
-          return "itag";
-        case Trait::IntroKey:
-          return "ikey";
-        // Demarcation
-        case Trait::Delimiter:
-          return "=";
-        case Trait::Terminator:
-          return ";";
-        case Trait::Unknown:  // TODO(anonimal): review
-        default:
-          return "";
-      }
-  }
-
-  /// @return Enumerated key trait
-  /// @param value String value of potential trait given
-  Trait GetTrait(const std::string& value) const noexcept
-  {
-    // Address-specific
-    if (value == GetTrait(Trait::NTCP))
-      return Trait::NTCP;
-    else if (value == GetTrait(Trait::SSU))
-      return Trait::SSU;
-    else if (value == GetTrait(Trait::Host))
-      return Trait::Host;
-    else if (value == GetTrait(Trait::Port))
-      return Trait::Port;
-    else if (value == GetTrait(Trait::MTU))
-      return Trait::MTU;
-    else if (value == GetTrait(Trait::Key))
-      return Trait::Key;
-    else if (value == GetTrait(Trait::Caps))
-      return Trait::Caps;
-    else if (value == GetTrait(Trait::Cost))
-      return Trait::Cost;
-    else if (value == GetTrait(Trait::Date))
-      return Trait::Date;
-    // Introducer
-    else if (value == GetTrait(Trait::IntroHost))
-      return Trait::IntroHost;
-    else if (value == GetTrait(Trait::IntroPort))
-      return Trait::IntroPort;
-    else if (value == GetTrait(Trait::IntroTag))
-      return Trait::IntroTag;
-    else if (value == GetTrait(Trait::IntroKey))
-      return Trait::IntroKey;
-    // Demarcation
-    else if (value == GetTrait(Trait::Delimiter))
-      return Trait::Delimiter;
-    else if (value == GetTrait(Trait::Terminator))
-      return Trait::Terminator;
-    // Unknown
-    else
-      return Trait::Unknown;  // TODO(anonimal): review
-  }
-
-  /// @enum Size
-  /// @brief Router Info size constants
-  enum Size : std::uint16_t
-  {
-    MinBuffer = core::DSA_SIGNATURE_LENGTH,  // TODO(unassigned): see #498
-    MaxBuffer = 2048,  // TODO(anonimal): review if arbitrary
-    // TODO(unassigned): algorithm to dynamically determine cost
-    NTCPCost = 10,  // NTCP *should* have priority over SSU
-    SSUCost = 5,
-  };
-
+class RouterInfo : public RouterInfoTraits, public RoutingDestination
+{
+ public:
   RouterInfo();
   ~RouterInfo();
 
@@ -399,34 +398,88 @@ class RouterInfo : public RoutingDestination {
   /// @param len RI length
   RouterInfo(const std::uint8_t* buf, std::uint16_t len);
 
-  const IdentityEx& GetRouterIdentity() const {
-    return m_RouterIdentity;
-  }
-
-  void SetRouterIdentity(
-      const IdentityEx& identity);
-
-  std::string GetIdentHashAbbreviation() const {
-    return GetIdentHash().ToBase64().substr(0, 4);
-  }
-
-  void SetTimestamp(std::uint64_t timestamp) noexcept
+  /// @class Introducer
+  struct Introducer
   {
-    m_Timestamp = timestamp;
-  }
+    boost::asio::ip::address host;
+    std::uint16_t port{};
+    Tag<32> key;
+    std::uint32_t tag{};
+  };
 
-  std::uint64_t GetTimestamp() const noexcept
+  /// @class Address
+  struct Address
   {
-    return m_Timestamp;
-  }
+    Transport transport;
+    boost::asio::ip::address host;
+    std::string address;
+    std::uint16_t port{}, mtu{};
+    std::uint64_t date{};
+    std::uint8_t cost{};
+    // SSU only
+    Tag<32> key;  // intro key for SSU
+    std::vector<Introducer> introducers;
+    bool HasCompatibleHost(const boost::asio::ip::address& other) const noexcept
+    {
+      return (host.is_v4() && other.is_v4()) || (host.is_v6() && other.is_v6());
+    }
+  };
 
-  std::vector<Address>& GetAddresses() {
-    return m_Addresses;
-  }
+  /// @brief Set RI identity and current timestamp
+  void SetRouterIdentity(const IdentityEx& identity);
 
-  const std::vector<Address>& GetAddresses() const {
-    return m_Addresses;
-  }
+  /// @brief Adds SSU address to RI
+  /// @details Sets RI members appropriately, saves address object
+  void AddNTCPAddress(const std::string& host, std::uint16_t port);
+
+  /// @brief Adds SSU address to RI
+  /// @details Sets RI members appropriately, saves address object
+  void AddSSUAddress(
+      const std::string& host,
+      std::uint16_t port,
+      const std::uint8_t* key,
+      std::uint16_t mtu = 0);
+
+  /// @brief Adds introducer to RI using SSU capable address object
+  /// @param address SSU capable address
+  /// @param tag Relay tag
+  /// @return True if address is SSU capable and introducer was added
+  bool AddIntroducer(const Address* address, std::uint32_t tag);
+
+  /// @brief Removes introducer from RI address's introducer object
+  /// @param endpoint Endpoint address of introducer
+  /// @return True if introducer was found and erased
+  bool RemoveIntroducer(const boost::asio::ip::udp::endpoint& endpoint);
+
+  /// @brief Enable IPv6 for supported transports
+  void EnableV6();
+
+  /// @brief Disable IPv6 for supported transports
+  void DisableV6();
+
+  /// @brief Updates RI with new RI from buffer
+  /// @param buf New RI buffer
+  /// @param len New RI length
+  void Update(const std::uint8_t* buf, std::uint16_t len);
+
+  /// @brief Loads RI buffer (by reading) if buffer is not yet available
+  /// @notes Required by NetDb
+  /// TODO(anonimal): remove, refactor (buffer should be guaranteed upon object creation)
+  const std::uint8_t* LoadBuffer();
+
+  /// @brief Create RI and put into buffer
+  /// @param private_keys Private keys used to derive signing key
+  ///   (and subsequently sign the RI with)
+  void CreateBuffer(const PrivateKeys& private_keys);
+
+  /// @brief Save RI to file
+  /// @param path Full RI path of file to save to
+  void SaveToFile(const std::string& path);
+
+  // TODO(anonimal): not an ideal getter
+  /// @brief Get RI profile
+  /// @detail If profile does not exist, creates it
+  std::shared_ptr<RouterProfile> GetProfile() const;
 
   /// @return Address object capable of NTCP
   /// @param has_v6 Address should have v6 capability
@@ -436,33 +489,146 @@ class RouterInfo : public RoutingDestination {
   /// @param has_v6 Address should have v6 capability
   const Address* GetSSUAddress(bool has_v6 = false) const;
 
-  void AddNTCPAddress(
-      const std::string& host,
-      std::uint16_t port);
+ public:
+  /// @return Pointer to RI buffer
+  const std::uint8_t* GetBuffer() const
+  {
+    return m_Buffer.get();
+  }
 
-  void AddSSUAddress(
-      const std::string& host,
-      std::uint16_t port,
-      const std::uint8_t* key,
-      std::uint16_t mtu = 0);
+  /// @return RI buffer length
+  std::uint16_t GetBufferLen() const noexcept
+  {
+    return m_BufferLen;
+  }
 
-  bool AddIntroducer(
-      const Address* address,
-      std::uint32_t tag);
+  /// @brief Deletes RI buffer
+  void DeleteBuffer()
+  {
+    m_Buffer.reset(nullptr);
+  }
 
-  bool RemoveIntroducer(
-      const boost::asio::ip::udp::endpoint& e);
+  /// @return RI's router identity
+  const IdentityEx& GetRouterIdentity() const noexcept
+  {
+    return m_RouterIdentity;
+  }
 
+  /// @return RI's ident hash
+  /// @notes implements RoutingDestination
+  const IdentHash& GetIdentHash() const noexcept
+  {
+    return m_RouterIdentity.GetIdentHash();
+  }
+
+  /// @return Abbreviated ident hash in base64
+  std::string GetIdentHashAbbreviation() const
+  {
+    return GetIdentHash().ToBase64().substr(0, 4);
+  }
+
+  /// @return RI's ident pubkey
+  const std::uint8_t* GetEncryptionPublicKey() const noexcept
+  {
+    return m_RouterIdentity.GetStandardIdentity().public_key;
+  }
+
+  /// @brief Sets RI timestamp
+  void SetTimestamp(std::uint64_t timestamp) noexcept
+  {
+    m_Timestamp = timestamp;
+  }
+
+  /// @return RI timestamp
+  std::uint64_t GetTimestamp() const noexcept
+  {
+    return m_Timestamp;
+  }
+
+  /// @brief Sets RI capabilities *and* options
+  /// @param caps capabiliti(es) to set
+  void SetCaps(std::uint8_t caps);
+
+  /// @return RI capabilities
+  std::uint8_t GetCaps() const noexcept
+  {
+    return m_Caps;
+  }
+
+  /// @brief Set RI option(s)
+  /// @details RI options consist of expected (required) options and additional options.
+  ///   Required options include capability flags (in non-int form) and various router version information.
+  ///   Additional options can include statistics and/or kovri-specific information if needed
+  /// @param key Key type
+  /// @param value Value type
   void SetOption(const std::string& key, const std::string& value)
   {
     m_Options[key] = value;
   }
 
+  /// @return Mutable RI options
+  std::map<std::string, std::string>& GetOptions() noexcept
+  {
+    return m_Options;
+  }
+
+  /// @return Immutable RI options
+  const std::map<std::string, std::string>& GetOptions() const noexcept
+  {
+    return m_Options;
+  }
+
+  /// @brief Set if RI has been made unreachable
+  /// @param updated True if unreachable
+  void SetUnreachable(bool unreachable) noexcept
+  {
+    m_IsUnreachable = unreachable;
+  }
+
+  /// @brief Was RI made unreachable?
+  /// @return True if reachable
+  bool IsUnreachable() const noexcept
+  {
+    return m_IsUnreachable;
+  }
+
+  /// @brief Set if RI has been updated with new RI
+  /// @param updated True if updated
+  void SetUpdated(bool updated) noexcept
+  {
+    m_IsUpdated = updated;
+  }
+
+  /// @brief Was RI updated with new RI?
+  /// @return True if updated
+  bool IsUpdated() const noexcept
+  {
+    return m_IsUpdated;
+  }
+
+  /// @return Mutable RI addresses
+  std::vector<Address>& GetAddresses() noexcept
+  {
+    return m_Addresses;
+  }
+
+  /// @return Immutable RI addresses
+  const std::vector<Address>& GetAddresses() const noexcept
+  {
+    return m_Addresses;
+  }
+
+ public:
+  /// @brief Does RI support given transport?
+  /// @param transport Transport type(s)
+  /// @return True if supports
   bool HasTransport(const std::uint8_t transport) const noexcept
   {
     return m_SupportedTransports & transport;
   }
 
+  /// @brief Does RI support NTCP?
+  /// @return True if supports
   bool HasNTCP(bool has_v6 = false) const noexcept
   {
     if (!has_v6)
@@ -471,6 +637,8 @@ class RouterInfo : public RoutingDestination {
         (SupportedTransport::NTCPv4 | SupportedTransport::NTCPv6));
   }
 
+  /// @brief Does RI support SSU?
+  /// @return True if supports
   bool HasSSU(bool has_v6 = false) const noexcept
   {
     if (!has_v6)
@@ -479,109 +647,65 @@ class RouterInfo : public RoutingDestination {
         (SupportedTransport::SSUv4 | SupportedTransport::SSUv6));
   }
 
+  /// @brief Does RI support IPv6?
+  /// @return True if supports
   bool HasV6() const noexcept
   {
     return HasTransport(
         (SupportedTransport::NTCPv6 | SupportedTransport::SSUv6));
   }
 
-  /// @brief Enable IPv6 for supported transports
-  void EnableV6();
-
-  /// @brief Disable IPv6 for supported transports
-  void DisableV6();
-
-  bool HasCompatibleTransports(
-      const RouterInfo& other) const {
+  /// @brief Does RI have compatible transports with other RI?
+  /// @param other Other RI to test compatability with
+  /// @return True if compatible
+  bool HasCompatibleTransports(const RouterInfo& other) const noexcept
+  {
     return m_SupportedTransports & other.m_SupportedTransports;
   }
 
-  bool UsesIntroducer() const;
-
-  bool HasCap(Cap cap) const
+  /// @brief Does RI have given capabiliti(es)?
+  /// @param cap Capabiliti(es)
+  /// @return True if available
+  bool HasCap(Cap cap) const noexcept
   {
-    bool has_cap = m_Caps & cap;
-    LOG(debug) << "RouterInfo: " << __func__ << ": " << has_cap;
-    return has_cap;
+    return m_Caps & cap;
   }
 
-  std::uint8_t GetCaps() const {
-    return m_Caps;
+  /// @brief Router is unreachable, must use introducer
+  /// @return True if uses introducer
+  bool UsesIntroducer() const noexcept
+  {
+    return HasCap(Cap::Unreachable);
   }
 
-  void SetCaps(
-      std::uint8_t caps);
-
-  void SetUnreachable(bool unreachable) {
-    m_IsUnreachable = unreachable;
+  // TODO(anonimal): really?...
+  bool IsDestination() const noexcept
+  {
+    return false;
   }
 
-  bool IsUnreachable() const {
-    return m_IsUnreachable;
-  }
-
-  const std::uint8_t* GetBuffer() const {
-    auto buf = m_Buffer.get();
-    return buf;
-  }
-
-  const std::uint8_t* LoadBuffer();  // load if necessary
-
-  std::uint16_t GetBufferLen() const {
-    return m_BufferLen;
-  }
-
-  void CreateBuffer(
-      const PrivateKeys& privateKeys);
-
-  bool IsUpdated() const {
-    return m_IsUpdated;
-  }
-
-  void SetUpdated(
-      bool updated) {
-    m_IsUpdated = updated;
-  }
-
-  void SaveToFile(const std::string& path);
-
-  std::shared_ptr<RouterProfile> GetProfile() const;
-
-  void SaveProfile() {
+  /// @brief Save RI profile
+  void SaveProfile()
+  {
     if (m_Profile)
       m_Profile->Save();
   }
 
-  void Update(const std::uint8_t* buf, std::uint16_t len);
+  /// @brief Human readable description of Introducer members
+  /// @param introducer Introducer class to get description from
+  /// @param tabs Prefix for tabulations
+  /// @returns human readable string
+  const std::string GetDescription(
+      const Introducer& introducer,
+      const std::string& tabs = std::string()) const;
 
-  void DeleteBuffer() {
-    m_Buffer.reset(nullptr);
-  }
-
-  // implements RoutingDestination
-  const IdentHash& GetIdentHash() const {
-    return m_RouterIdentity.GetIdentHash();
-  }
-
-  const std::uint8_t* GetEncryptionPublicKey() const {
-    return m_RouterIdentity.GetStandardIdentity().public_key;
-  }
-
-  std::map<std::string, std::string>& GetOptions() noexcept
-  {
-    return m_Options;
-  }
-
-
-  const std::map<std::string, std::string>& GetOptions() const noexcept
-  {
-    return m_Options;
-  }
-
-  // TODO(anonimal): really?...
-  bool IsDestination() const {
-    return false;
-  }
+  /// @brief Human readable description of Address members
+  /// @param address Address class to get description from
+  /// @param tabs Prefix for tabulations
+  /// @returns human readable string
+  const std::string GetDescription(
+      const Address& address,
+      const std::string& tabs = std::string()) const;
 
   /// @brief Human readable description of this struct
   /// @param prefix for tabulations
@@ -590,13 +714,23 @@ class RouterInfo : public RoutingDestination {
       const std::string& tabs = std::string()) const;
 
  private:
-  bool ReadFromFile();
+  /// @brief Read RI from file
+  /// @throws std::exception
+  void ReadFromFile();
 
-  void ReadFromBuffer(
-      bool verify_signature);
+  /// @brief Read RI from byte stream buffer
+  /// @param verify_signature True if we should verify RI signature against identity
+  void ReadFromBuffer(bool verify_signature);
 
   /// @brief Parses complete RI
+  /// @param router_info Object to write RI to
   void ParseRouterInfo(const std::string& router_info);
+
+  /// @brief Set RI capabilities from string of caps flag(s)
+  void SetCaps(const std::string& caps);
+
+  /// @return Capabilities flags in string form
+  const std::string GetCapsFlags() const;
 
   /// @brief Creates populated RI stream
   /// @param router_info RI stream to write to
@@ -604,11 +738,6 @@ class RouterInfo : public RoutingDestination {
   void CreateRouterInfo(
       core::StringStream& router_info,
       const PrivateKeys& private_keys);
-
-  void SetCaps(const std::string& caps);
-
-  /// @return Capabilities flags in string form
-  const std::string GetCapsFlags() const;
 
   /// @brief Return address object which uses given transport(s)
   /// @details Performs bitwise operations to determine if address contains given transport
@@ -627,6 +756,7 @@ class RouterInfo : public RoutingDestination {
   bool m_IsUpdated = false, m_IsUnreachable = false;
   std::uint8_t m_SupportedTransports{}, m_Caps{};
   mutable std::shared_ptr<RouterProfile> m_Profile;
+  core::Exception m_Exception;
 };
 
 }  // namespace core

@@ -76,7 +76,7 @@ RouterInfo::RouterInfo(const std::uint8_t* buf, std::uint16_t len)
     throw std::invalid_argument("RouterInfo: null buffer");
   if (len < Size::MinBuffer || len > Size::MaxBuffer)
     throw std::length_error("RouterInfo: invalid buffer length");
-  std::memcpy(m_Buffer.get(), buf, Size::MaxBuffer);
+  std::memcpy(m_Buffer.get(), buf, len);
   ReadFromBuffer(true);
   m_IsUpdated = true;
 }

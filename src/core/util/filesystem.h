@@ -175,9 +175,9 @@ class FileStream {
   /// @param size : number of byte read
   /// @return Allocated buffer, null ptr on failure
   template <typename Buffer, typename Size>
-  std::unique_ptr<Buffer> ReadAll(Size* size)
+  std::unique_ptr<Buffer[]> ReadAll(Size* size)
   {
-    std::unique_ptr<Buffer> buf;
+    std::unique_ptr<Buffer[]> buf;
     // Read input length and allocate buffer
     Seekg(0, std::ios_base::end);
     if (Fail())

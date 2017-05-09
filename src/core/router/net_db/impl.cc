@@ -104,8 +104,7 @@ void NetDb::Run() {
       // if there are no messages a timeout is executed to wait
       // for messages to be received
       auto msg =
-        m_Queue.GetNextWithTimeout(
-            static_cast<std::uint16_t>(NetDbInterval::WaitForMessageTimeout));
+        m_Queue.GetNextWithTimeout(Time::WaitForMessageTimeout);
       if (msg) {
         std::uint8_t num_msgs = 0;
         while (msg) {
@@ -127,7 +126,7 @@ void NetDb::Run() {
               LOG(error) << "NetDb: unexpected message type " << msg->GetTypeID();
               // kovri::HandleI2NPMessage(msg);
           }
-          if (num_msgs > static_cast<std::uint16_t>(NetDbSize::MaxMessagesRead))
+          if (num_msgs > Size::MaxMessagesRead)
             break;
           msg = m_Queue.Get();
           num_msgs++;
@@ -137,13 +136,12 @@ void NetDb::Run() {
         break;
       std::uint64_t ts = kovri::core::GetSecondsSinceEpoch();
       // builds tunnels for requested destinations
-      if (ts - last_manage_request >=
-          static_cast<std::uint16_t>(NetDbInterval::ManageRequests)) {
+      if (ts - last_manage_request >= Time::ManageRequests) {
         m_Requests.ManageRequests();
         last_manage_request = ts;
       }
       // save routers, manage leasesets and validate subscriptions
-      if (ts - last_save >= static_cast<std::uint16_t>(NetDbInterval::Save)) {
+      if (ts - last_save >= Time::Save) {
         if (last_save) {
           SaveUpdated();
           ManageLeaseSets();
@@ -151,30 +149,24 @@ void NetDb::Run() {
         last_save = ts;
       }
       // publishes router info to a floodfill at Nth interval
-      if (ts - last_publish >=
-	  static_cast<std::uint16_t>(NetDbInterval::PublishRouterInfo)) {
+      if (ts - last_publish >= Time::PublishRouterInfo) {
         Publish();
         last_publish = ts;
       }
       // builds exploratory tunnels at Nth interval to find more peers
-      if (ts - last_exploratory >= static_cast<std::uint16_t>(NetDbInterval::Exploratory)) {
+      if (ts - last_exploratory >= Time::Exploratory) {
         // Set default exploratory count
-        std::uint16_t exploratory_count =
-          static_cast<std::uint16_t>(NetDbSize::MinExploratoryTunnels);
+        std::uint16_t exploratory_count = Size::MinExploratoryTunnels;
         // Get number of current available routers
         auto known_routers = GetNumRouters();
         // Evaluates if a router has a sufficient number of known routers
         // to use for building tunnels and sets exploratory count as needed
-        if (known_routers <
-            static_cast<std::uint16_t>(NetDbSize::FavouredKnownRouters)
-            || ts - last_exploratory >=
-            static_cast<std::uint16_t>(NetDbInterval::DelayedExploratory)) {
+        if (known_routers < Size::DesiredKnownRouters
+            || ts - last_exploratory >= Time::DelayedExploratory) {
           // Test if we're below the desired threshold
-          if (known_routers <
-              static_cast<std::uint16_t>(NetDbSize::MinKnownRouters)) {
+          if (known_routers < Size::MinKnownRouters) {
             // Set the max exploratory count
-            exploratory_count =
-              static_cast<std::uint16_t>(NetDbSize::MaxExploratoryTunnels);
+            exploratory_count = Size::MaxExploratoryTunnels;
           }
         }
         m_Requests.ManageRequests();
@@ -346,7 +338,7 @@ bool NetDb::Load()
                 if (!router->IsUnreachable()
                     && (!router->UsesIntroducer()
                         || timestamp < router->GetTimestamp()
-                                    + GetType(NetDbTime::RouterExpiration)))
+                                    + Time::RouterExpiration))
                   {
                     router->DeleteBuffer();
                     router->GetOptions().clear();  // options are not used for regular routers  // TODO(anonimal): review
@@ -406,37 +398,34 @@ void NetDb::SaveUpdated() {
     } else {
       // RouterInfo expires after N minutes if it uses an introducer
       if (it.second->UsesIntroducer() && ts > it.second->GetTimestamp()
-          + static_cast<std::uint32_t>(NetDbTime::RouterExpiration)) {
+          + Time::RouterExpiration) {
         it.second->SetUnreachable(true);
         // if the router count is greater than the threshold check, and the router
         // is no longer starting up, then continue to check for unreachable routers
-      } else if (total >
-          static_cast<std::uint16_t>(NetDbSize::RouterCheckUnreachableThreshold)
+      } else if (total > Size::RouterUnreachableThreshold
           && ts > (kovri::context.GetStartupTime()
-            + static_cast<std::uint32_t>(NetDbTime::RouterStartupPeriod)) * 1000LL) {
+            + Time::RouterStartupPeriod) * 1000LL) {
         if (kovri::context.IsFloodfill()) {
           if (ts > it.second->GetTimestamp()
-              + static_cast<std::uint32_t>(NetDbTime::RouterExpiration)) {
+              + Time::RouterExpiration) {
             it.second->SetUnreachable(true);
             total--;
           }
           //  if router count is higher, expiration date for unreachable
           //  peers is shorter
-        } else if (total >
-            static_cast<std::uint16_t>(NetDbSize::MaxRouterCheckUnreachable)) {
+        } else if (total > Size::MaxRouterUnreachable) {
           if (ts > it.second->GetTimestamp()
-              + static_cast<std::uint32_t>(NetDbTime::RouterMinGracePeriod)
-              * static_cast<std::uint32_t>(NetDbTime::RouterExpiration)) {
+              + Time::RouterMinGracePeriod
+              * Time::RouterExpiration) {
             it.second->SetUnreachable(true);
             total--;
           }
           //  if router count is low, expiration date for unreachable
           //  peers is longer
-        } else if (total >
-            static_cast<std::uint16_t>(NetDbSize::MinRouterCheckUnreachable)) {
+        } else if (total > Size::MinRouterUnreachable) {
            if (ts > it.second->GetTimestamp()
-               + static_cast<std::uint32_t>(NetDbTime::RouterMaxGracePeriod)
-               * static_cast<std::uint32_t>(NetDbTime::RouterExpiration)) {
+               + Time::RouterMaxGracePeriod
+               * Time::RouterExpiration) {
             it.second->SetUnreachable(true);
             total--;
           }
@@ -659,8 +648,7 @@ void NetDb::HandleDatabaseSearchReplyMsg(
     LOG(debug) << "NetDb: " << i << ": " << peer_hash.data();
     auto r = FindRouter(router);
     if (!r || kovri::core::GetMillisecondsSinceEpoch() >
-        r->GetTimestamp() +
-        static_cast<std::uint32_t>(NetDbTime::RouterExpiration))  {
+        r->GetTimestamp() + Time::RouterExpiration)  {
       // router with ident not found or too old
       LOG(debug) << "NetDb: found new/outdated router, requesting RouterInfo";
       RequestDestination(router);
@@ -694,8 +682,7 @@ void NetDb::HandleDatabaseLookupMsg(
   }
   std::uint16_t num_excluded = bufbe16toh(excluded);
   excluded += 2;
-  if (num_excluded >
-      static_cast<std::uint16_t>(NetDbSize::MaxExcludedPeers)) {
+  if (num_excluded > Size::MaxExcludedPeers) {
     LOG(warning)
       << "NetDb: number of excluded peers" << num_excluded << " exceeds the maximum";
     num_excluded = 0;  // TODO(unassigned): ???

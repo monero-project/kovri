@@ -57,105 +57,88 @@
 namespace kovri {
 namespace core {
 
-/// @enum NetDbInterval
-/// @brief Constants defining different refresh intervals
-///   for various NetDb operations
-enum struct NetDbInterval : const std::uint16_t {
-  /// @var WaitForMessageTimeout
-  /// @brief 15 seconds
-  WaitForMessageTimeout = 15000,
-  /// @var ManageRequests
-  /// @brief in seconds
-  ManageRequests = 15,
-  /// @var Save
-  /// @brief in seconds
-  Save = 60,
-  /// @var PublishRouterInfo
-  /// @brief in seconds
-  PublishRouterInfo = 2400,
-  /// @var Exploratory
-  /// @brief in seconds
-  Exploratory = 30,
-  /// @var DelayedExploratory
-  /// @brief in seconds
-  DelayedExploratory = 90,
+/// @class NetDbTraits
+struct NetDbTraits
+{
+  /// @enum Time
+  /// @brief NetDb time-related traits
+  enum Time : const std::uint32_t
+  {
+    /// @notes Measured in milliseconds
+    WaitForMessageTimeout = 15000,
+
+    /// @notes Measured in seconds
+    ManageRequests = 15,
+
+    /// @notes Measured in seconds
+    Save = 60,
+
+    /// @notes Measured in seconds
+    PublishRouterInfo = 2400,
+
+    /// @notes Measured in seconds
+    Exploratory = 30,
+
+    /// @notes Measured in seconds
+    DelayedExploratory = 90,
+
+    /// @brief Measured in milliseconds
+    RouterExpiration = 3600 * 1000,
+
+    /// @brief Defines a grace period when a router has just started to not set
+    ///   expired routers as unreachable, so tunnels will be built quickly
+    /// @notes Measured in seconds
+    RouterStartupPeriod = 600,
+
+    /// @brief Defines a grace period for expiring routers when router count
+    ///   exceeds maximum unreachable routers
+    /// @notes Measured in hours
+    RouterMinGracePeriod = 30,
+
+    /// @brief Defines a grace period for expiring routers when router count
+    ///   exceeds minimum unreachable routers
+    /// @notes Measured in hours
+    RouterMaxGracePeriod = 72,
+  };
+
+  /// @enum Size
+  /// @brief NetDb sizes/counts-related traits
+  enum Size : const std::uint16_t
+  {
+    /// @brief Minimum number of known routers desired for building tunnels
+    MinKnownRouters = 800,
+
+    /// @brief Desired number of known routers for building tunnels
+    DesiredKnownRouters = 2500,
+
+    /// @brief Minimum number of exploratory tunnels to be built
+    /// @notes Used when min known routers is less than known routers and less
+    ///   than preferred known router count
+    MinExploratoryTunnels = 1,
+
+    /// @brief Number of exploratory tunnels to be built for
+    /// @notes Used when router count is less than min known routers
+    MaxExploratoryTunnels = 9,
+
+    /// @brief Max number of NetDb messages that can be processed in succession
+    MaxMessagesRead = 100,
+
+    /// @brief Max number of excluded peers for handling database lookup messages
+    MaxExcludedPeers = 512,
+
+    /// @brief Defines the threshold where routers get checked if they have
+    ///  expired (i.e., unreachable)
+    RouterUnreachableThreshold = 75,
+
+    /// @brief Minimum limit for number of routers to be set unreachable
+    MinRouterUnreachable = 120,
+
+    /// @brief the maximum limit for number of routers to be set unreachable
+    MaxRouterUnreachable = 300,
+  };
 };
 
-/// @enum NetDbTime
-/// @brief Constants defining timestamp
-///  variables for various NetDb operations
-enum struct NetDbTime : const std::uint32_t {
-  /// @var RouterExpiration
-  /// @brief in milliseconds
-  RouterExpiration = 3600 * 1000,
-  /// @var RouterStartupPeriod
-  /// @brief in seconds, defines
-  ///  a grace period when a router
-  ///  has just started to not set
-  ///  expired routers as unreachable,
-  ///  so tunnels will be built quickly
-  RouterStartupPeriod = 600,
-  /// @var RouterMinGracePeriod
-  /// @brief in hours, defines a grace
-  ///  period for expiring routers when
-  ///  router count exceeds MaxRouterCheckUnreachable
-  RouterMinGracePeriod = 30,
-  /// @var RouterMaxGracePeriod
-  /// @brief in hours, defines a grace
-  ///  period for expiring routers when
-  ///  router count exceeds MinRouterCheckUnreachable
-  RouterMaxGracePeriod = 72,
-};
-
-/// @enum NetDbSize
-/// @brief Constants defining NetDb sizes
-///   for how many known routers are wanted for
-///   a large variety of peers to build tunnels
-///   and other uses
-enum struct NetDbSize : const std::uint16_t {
-  /// @var MinKnownRouters
-  /// @brief minimum number of known routers
-  ///   desired for building tunnels
-  MinKnownRouters = 800,
-  /// @var FavouredKnownRouters
-  /// @brief desired number of known routers
-  ///   for building tunnels
-  FavouredKnownRouters = 2500,
-  /// @var MaxExploratoryTunnels
-  /// @brief number of exploratory tunnels
-  ///   to be built for < 800 known router
-  MaxExploratoryTunnels = 9,
-  /// @var MinExploratoryTunnels
-  /// @brief number of exploratory tunnels
-  ///   to be built for 800 < known routers < 2500
-  MinExploratoryTunnels = 1,
-  /// @var MaxMessagesRead
-  /// @brief max number of NetDb messages
-  ///   that can be processed in succession
-  MaxMessagesRead = 100,
-  /// @var MaxExcludedPeers
-  /// @brief max number of excluded peers
-  ///  for handling database lookup messages,
-  ///  currently only used for printing error logs
-  MaxExcludedPeers = 512,
-  /// @var RouterCheckUnreachableThreshold
-  /// @brief defines the threshold where
-  ///  routers get checked if they have
-  ///  expired ie unreachable
-  RouterCheckUnreachableThreshold = 75,
-  /// @var MinRouterCheckUnreachable
-  /// @brief the minimum limit for
-  ///  number of routers to be checked and
-  ///  set unreachable by expiration date
-  MinRouterCheckUnreachable = 120,
-  /// @var MaxRouterCheckUnreachable
-  /// @brief the maximum limit for number of
-  ///  routers to be checked and set unreachable
-  ///  by expiration date
-  MaxRouterCheckUnreachable = 300,
-};
-
-class NetDb {
+class NetDb : public NetDbTraits {
  public:
   NetDb();
   ~NetDb();

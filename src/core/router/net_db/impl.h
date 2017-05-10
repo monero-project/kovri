@@ -105,6 +105,10 @@ struct NetDbTraits
   /// @brief NetDb sizes/counts-related traits
   enum Size : const std::uint16_t
   {
+    /// @brief Minimum required routers in the database
+    /// @notes Java i2p defined
+    MinRequiredRouters = 50,
+
     /// @brief Minimum number of known routers desired for building tunnels
     MinKnownRouters = 800,
 
@@ -227,9 +231,6 @@ class NetDb : public NetDbTraits {
   int GetNumLeaseSets() const {
     return m_LeaseSets.size();
   }
-
-  // Java i2p defined
-  const std::uint8_t MIN_REQUIRED_ROUTERS = 50;
 
  private:
   bool CreateNetDb(boost::filesystem::path directory);

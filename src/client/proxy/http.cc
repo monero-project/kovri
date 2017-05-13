@@ -414,8 +414,6 @@ void HTTPMessage::HandleJumpService() {
   }
   auto base64 = m_Path.substr(pos + m_JumpService.at(0).size());
   // We must decode
- // HTTP uri;
-
   base64 = boost::network::uri::decoded(base64);
   // Insert into address book
   LOG(debug)

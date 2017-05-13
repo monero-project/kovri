@@ -201,11 +201,6 @@ class HTTP : public HTTPStorage {
   /// @return False on failure
   bool Download();
 
-  /// @brief Decode URI in HTTP proxy request
-  /// @return The decoded URI as string
-  std::string HTTPProxyDecode(
-      const std::string& data);
-
  private:
   /// @brief Set default ports for in-net downloading
   /// @notes The default port is 80, for HTTPS it is 443

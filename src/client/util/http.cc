@@ -421,18 +421,5 @@ void HTTP::MergeI2PChunkedResponse(
   }
 }
 
-// TODO(anonimal): research if cpp-netlib can do this better
-std::string HTTP::HTTPProxyDecode(
-    const std::string& data) {
-  std::string res(data);
-  for (std::size_t pos = res.find('%');
-      pos != std::string::npos;
-      pos = res.find('%', pos + 1)) {
-    const char c = strtol(res.substr(pos + 1, 2).c_str(), NULL, 16);
-    res.replace(pos, 3, 1, c);
-  }
-  return res;
-}
-
 }  // namespace client
 }  // namespace kovri

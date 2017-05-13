@@ -36,6 +36,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/regex.hpp>
 
+
+#include <boost/network/uri/decode.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/regex.hpp>
 #include <boost/tokenizer.hpp>
@@ -412,8 +414,9 @@ void HTTPMessage::HandleJumpService() {
   }
   auto base64 = m_Path.substr(pos + m_JumpService.at(0).size());
   // We must decode
-  HTTP uri;
-  base64 = uri.HTTPProxyDecode(base64);
+ // HTTP uri;
+
+  base64 = boost::network::uri::decoded(base64);
   // Insert into address book
   LOG(debug)
     << "HTTPProxyHandler: jump service for " << m_Address

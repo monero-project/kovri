@@ -103,16 +103,20 @@ void Configuration::ParseKovriConfig() {
   // This is NOT our default values for port, log-file-name, kovriconf and tunnelsconf
 
   bpo::options_description network("\nnetwork");
-  network.add_options()
-    ("v6,6", bpo::value<bool>()->default_value(false)->value_name("bool"))
-    ("floodfill,f",
-     bpo::value<bool>()->default_value(false)->value_name("bool"))
-    ("bandwidth,b", bpo::value<std::string>()->default_value("L"))
-    ("enable-ssu", bpo::value<bool>()->default_value(true)->value_name("bool"))
-    ("enable-ntcp", bpo::value<bool>()->default_value(true)->value_name("bool"))
-    ("reseed-from,r", bpo::value<std::string>()->default_value(""))
-    ("reseed-skip-ssl-check",
-     bpo::value<bool>()->default_value(false)->value_name("bool"));
+  network.add_options()(
+      "v6,6", bpo::value<bool>()->default_value(false)->value_name("bool"))(
+      "floodfill,f",
+      bpo::value<bool>()->default_value(false)->value_name("bool"))(
+      "bandwidth,b", bpo::value<std::string>()->default_value("L"))(
+      "enable-ssu",
+      bpo::value<bool>()->default_value(true)->value_name("bool"))(
+      "enable-ntcp",
+      bpo::value<bool>()->default_value(true)->value_name("bool"))(
+      "reseed-from,r", bpo::value<std::string>()->default_value(""))(
+      "reseed-skip-ssl-check",
+      bpo::value<bool>()->default_value(false)->value_name("bool"))(
+      "disable-su3-verification",
+      bpo::value<bool>()->default_value(false)->value_name("bool"));
 
   bpo::options_description client("\nclient");
   client.add_options()

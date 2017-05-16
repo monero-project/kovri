@@ -51,12 +51,4 @@ BOOST_AUTO_TEST_CASE(UriParse) {
   BOOST_CHECK(http.GetURI().is_valid() && http.HostIsI2P());
 }
 
-BOOST_AUTO_TEST_CASE(DecodeEmptyUri) {
-  BOOST_CHECK_EQUAL(http.HTTPProxyDecode(""), "");
-}
-
-BOOST_AUTO_TEST_CASE(DecodeUri) {
-  BOOST_CHECK_EQUAL(http.HTTPProxyDecode("%20"), " ");
-}
-
 BOOST_AUTO_TEST_SUITE_END()

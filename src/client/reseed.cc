@@ -237,22 +237,31 @@ bool Reseed::FetchStream(
  *   - Extract RI's for Reseed
  *
  */
-bool SU3::SU3Impl() {
-  /**
-   * TODO(unassigned): when the --reseed-from file is a .zip, (or non-su3 type),
-   * it would be nice to skip su3 all-together, decompress as appropriate, and
-   * validate for RI type - then insert into NetDb.
-   */
-  LOG(debug) << "SU3: preparing stream...";
-  if (!PrepareStream()) {
-    LOG(error) << "SU3: preparation failed";
-    return false;
-  }
-  LOG(debug) << "SU3: verifying stream...";
-  if (!VerifySignature()) {
-    LOG(error) << "SU3: verification failed";
-    return false;
-  }
+bool SU3::SU3Impl()
+{
+  if (kovri::context.GetOptionDisableSU3Verification())
+    {
+      LOG(warning) << "SU3: verification disabled !";
+      // TODO(unassigned): detection and implemention of other formats
+      // Note: currently only zip format is implemented. Checks done in ZIP impl
+      m_Data->content_length = m_Stream.Str().size();
+      m_Data->content_position = 0;
+    }
+  else
+    {
+      LOG(debug) << "SU3: preparing stream...";
+      if (!PrepareStream())
+        {
+          LOG(error) << "SU3: preparation failed";
+          return false;
+        }
+      LOG(debug) << "SU3: verifying stream...";
+      if (!VerifySignature())
+        {
+          LOG(error) << "SU3: verification failed";
+          return false;
+        }
+    }
   LOG(debug) << "SU3: extracting content...";
   if (!ExtractContent()) {
     LOG(error) << "SU3: extraction failed";

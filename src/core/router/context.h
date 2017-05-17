@@ -285,6 +285,18 @@ class RouterContext : public kovri::core::GarlicDestination {
     return m_ReseedSkipSSLCheck;
   }
 
+  /// @brief Sets user-supplied disable SU3 verification option
+  void SetOptionDisableSU3Verification(bool option)
+  {
+    m_DisableSU3Verification = option;
+  }
+
+  /// @return User-supplied option to disable SU3 verification
+  bool GetOptionDisableSU3Verification() const
+  {
+    return m_DisableSU3Verification;
+  }
+
   /// @return root directory path
   const std::string& GetCustomDataDir() const
   {
@@ -317,6 +329,7 @@ class RouterContext : public kovri::core::GarlicDestination {
   std::uint16_t m_Port;
   std::string m_ReseedFrom;
   bool m_ReseedSkipSSLCheck;
+  bool m_DisableSU3Verification;
   bool m_SupportsNTCP, m_SupportsSSU;
   std::string m_CustomDataDir;
 };

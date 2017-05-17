@@ -60,6 +60,7 @@ RouterContext::RouterContext()
       m_Status(eRouterStatusOK),
       m_Port(0),
       m_ReseedSkipSSLCheck(false),
+      m_DisableSU3Verification(false),
       m_SupportsNTCP(true),
       m_SupportsSSU(true) {}
 

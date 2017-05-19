@@ -201,7 +201,7 @@ class I2PControlSession
     // Set an output parameter to a specified integer.
     void SetParam(
         const std::string& param,
-        int value);
+        std::size_t value);
 
     // Set an output parameter to a specified double.
     void SetParam(

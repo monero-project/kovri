@@ -151,19 +151,17 @@ class NetDb : public NetDbTraits {
   void Stop();
 
   /// @return False on failure
-  bool AddRouterInfo(
-      const std::uint8_t* buf,
-      int len);
+  bool AddRouterInfo(const std::uint8_t* buf, std::uint16_t len);
 
   void AddRouterInfo(
       const IdentHash& ident,
       const std::uint8_t* buf,
-      int len);
+      std::uint16_t len);
 
   void AddLeaseSet(
       const IdentHash& ident,
       const std::uint8_t* buf,
-      int len,
+      std::uint16_t len,
       std::shared_ptr<kovri::core::InboundTunnel> from);
 
   std::shared_ptr<RouterInfo> FindRouter(
@@ -203,7 +201,7 @@ class NetDb : public NetDbTraits {
 
   std::vector<IdentHash> GetClosestFloodfills(
       const IdentHash& destination,
-      std::size_t num,
+      std::uint8_t num,
       std::set<IdentHash>& excluded) const;
 
   std::shared_ptr<const RouterInfo> GetClosestNonFloodfill(
@@ -217,18 +215,18 @@ class NetDb : public NetDbTraits {
   void PostI2NPMsg(
       std::shared_ptr<const I2NPMessage> msg);
 
-  // TODO(unassigned): std::size_t refactor
-  int GetNumRouters() const {
+  std::size_t GetNumRouters() const
+  {
     return m_RouterInfos.size();
   }
 
-  // TODO(unassigned): std::size_t refactor
-  int GetNumFloodfills() const {
+  std::size_t GetNumFloodfills() const
+  {
     return m_Floodfills.size();
   }
 
-  // TODO(unassigned): std::size_t refactor
-  int GetNumLeaseSets() const {
+  std::size_t GetNumLeaseSets() const
+  {
     return m_LeaseSets.size();
   }
 
@@ -239,7 +237,7 @@ class NetDb : public NetDbTraits {
   bool Load();
   void SaveUpdated();
   void Run();  // exploratory thread
-  void Explore(int num_destinations);
+  void Explore(std::uint16_t num_destinations);
   void Publish();
   void ManageLeaseSets();
   void ManageRequests();

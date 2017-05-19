@@ -166,7 +166,7 @@ void I2PControlSession::Response::SetParam(
 
 void I2PControlSession::Response::SetParam(
     const std::string& param,
-    int value) {
+    std::size_t value) {
   m_Params[param] = std::to_string(value);
 }
 
@@ -358,8 +358,7 @@ std::string I2PControlSession::GenerateToken() const {
 void I2PControlSession::HandleAuthenticate(
     const ptree& pt,
     Response& response) {
-  const int api = pt.get<int>(
-      PARAM_API);
+  const std::size_t api = pt.get<std::size_t>(PARAM_API);
   const std::string given_pass = pt.get<std::string>(
       PARAM_PASSWORD);
   LOG(debug)
@@ -445,7 +444,7 @@ void I2PControlSession::HandleUptime(
     Response& response) {
   response.SetParam(
       ROUTER_INFO_UPTIME,
-      static_cast<int>(kovri::context.GetUptime())*1000);
+      static_cast<std::size_t>(kovri::context.GetUptime()) * 1000);
 }
 
 void I2PControlSession::HandleVersion(
@@ -467,56 +466,56 @@ void I2PControlSession::HandleDatapath(
     Response& response) {
   response.SetParam(
       ROUTER_INFO_DATAPATH,
-      kovri::core::GetCorePath().string());
+      core::GetCorePath().string());
 }
 
 void I2PControlSession::HandleNetDbKnownPeers(
     Response& response) {
   response.SetParam(
       ROUTER_INFO_NETDB_KNOWNPEERS,
-      kovri::core::netdb.GetNumRouters());
+      core::netdb.GetNumRouters());
 }
 
 void I2PControlSession::HandleNetDbActivePeers(
     Response& response) {
   response.SetParam(
       ROUTER_INFO_NETDB_ACTIVEPEERS,
-      static_cast<int>(kovri::core::transports.GetPeers().size()));
+      core::transports.GetPeers().size());
 }
 
 void I2PControlSession::HandleNetDbFloodfills(
     Response& response) {
   response.SetParam(
       ROUTER_INFO_NETDB_FLOODFILLS,
-      static_cast<int>(kovri::core::netdb.GetNumFloodfills()));
+      core::netdb.GetNumFloodfills());
 }
 
 void I2PControlSession::HandleNetDbLeaseSets(
     Response& response) {
   response.SetParam(
       ROUTER_INFO_NETDB_LEASESETS,
-      static_cast<int>(kovri::core::netdb.GetNumLeaseSets()));
+      core::netdb.GetNumLeaseSets());
 }
 
 void I2PControlSession::HandleNetStatus(
     Response& response) {
   response.SetParam(
       ROUTER_INFO_NET_STATUS,
-      static_cast<int>(kovri::context.GetStatus()));
+      static_cast<std::size_t>(kovri::context.GetStatus()));
 }
 
 void I2PControlSession::HandleTunnelsParticipating(
     Response& response) {
   response.SetParam(
       ROUTER_INFO_TUNNELS_PARTICIPATING,
-      static_cast<int>(kovri::core::tunnels.GetTransitTunnels().size()));
+      core::tunnels.GetTransitTunnels().size());
 }
 
 void I2PControlSession::HandleTunnelsCreationSuccess(
     Response& response) {
   response.SetParam(
       ROUTER_INFO_TUNNELS_CREATION_SUCCESS,
-      kovri::core::tunnels.GetTunnelCreationSuccessRate());
+      static_cast<std::size_t>(core::tunnels.GetTunnelCreationSuccessRate()));
 }
 
 void I2PControlSession::HandleTunnelsInList(

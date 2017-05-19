@@ -179,9 +179,8 @@ void NetDb::Run() {
   }
 }
 
-bool NetDb::AddRouterInfo(
-    const std::uint8_t* buf,
-    int len) {
+bool NetDb::AddRouterInfo(const std::uint8_t* buf, std::uint16_t len)
+{
   IdentityEx identity;
   if (!identity.FromBuffer(buf, len)) {
     LOG(error) << "NetDb: unable to add router info";
@@ -194,7 +193,8 @@ bool NetDb::AddRouterInfo(
 void NetDb::AddRouterInfo(
     const IdentHash& ident,
     const std::uint8_t* buf,
-    int len) {
+    std::uint16_t len)
+{
   auto r = FindRouter(ident);
   if (r) {
     auto ts = r->GetTimestamp();
@@ -219,8 +219,9 @@ void NetDb::AddRouterInfo(
 void NetDb::AddLeaseSet(
     const IdentHash& ident,
     const std::uint8_t* buf,
-    int len,
-    std::shared_ptr<kovri::core::InboundTunnel> from) {
+    std::uint16_t len,
+    std::shared_ptr<kovri::core::InboundTunnel> from)
+{
   if (!from) {  // unsolicited LS must be received directly
     auto it = m_LeaseSets.find(ident);
     if (it != m_LeaseSets.end()) {
@@ -286,7 +287,7 @@ bool NetDb::CreateNetDb(boost::filesystem::path directory)
     // list of chars might appear in base64 string
     const char* chars = kovri::core::GetBase64SubstitutionTable();  // 64 bytes
     boost::filesystem::path suffix;
-    for (int i = 0; i < 64; i++)
+    for (std::uint8_t i = 0; i < 64; i++)
       {
 #ifdef _WIN32
         suffix = std::string("\\r") + chars[i];
@@ -383,8 +384,7 @@ void NetDb::SaveUpdated() {
     return directory / sub_dir / (std::string("r") + base64[0]) / ("router_info_" + base64 + ".dat");
   };
   boost::filesystem::path full_directory(kovri::core::GetNetDbPath());
-  int count = 0, deleted_count = 0;
-  auto total = GetNumRouters();
+  std::size_t count{}, deleted_count{}, total = GetNumRouters();
   std::uint64_t ts = kovri::core::GetMillisecondsSinceEpoch();
   for (auto it : m_RouterInfos) {
     if (it.second->IsUpdated()) {
@@ -447,9 +447,9 @@ void NetDb::SaveUpdated() {
       }
     }
   }
-  if (count > 0)
+  if (count)
     LOG(debug) << "NetDb: " << count << " new/updated routers saved";
-  if (deleted_count > 0) {
+  if (deleted_count) {
     LOG(debug) << "NetDb: " << deleted_count << " routers deleted";
     // clean up RouterInfos table
     std::unique_lock<std::mutex> l(m_RouterInfosMutex);
@@ -496,14 +496,14 @@ void NetDb::RequestDestination(
 void NetDb::HandleDatabaseStoreMsg(
     std::shared_ptr<const I2NPMessage> m) {
   const std::uint8_t* buf = m->GetPayload();
-  std::size_t len = m->GetSize();
+  std::uint16_t len = m->GetSize();
   IdentHash ident(buf + DATABASE_STORE_KEY_OFFSET);
   if (ident.IsZero()) {
     LOG(error) << "NetDb: database store with zero ident, dropped";
     return;
   }
   std::uint32_t reply_token = bufbe32toh(buf + DATABASE_STORE_REPLY_TOKEN_OFFSET);
-  std::size_t offset = DATABASE_STORE_HEADER_SIZE;
+  std::uint8_t offset = DATABASE_STORE_HEADER_SIZE;
   if (reply_token) {
     auto delivery_status = CreateDeliveryStatusMsg(reply_token);
     std::uint32_t tunnel_ID = bufbe32toh(buf + offset);
@@ -530,7 +530,7 @@ void NetDb::HandleDatabaseStoreMsg(
       flood_msg->len += DATABASE_STORE_HEADER_SIZE + len -offset;
       flood_msg->FillI2NPMessageHeader(I2NPDatabaseStore);
       std::set<IdentHash> excluded;
-      for (int i = 0; i < 3; i++) {
+      for (std::uint8_t i = 0; i < 3; i++) {  // TODO(anonimal): enumerate
         auto floodfill = GetClosestFloodfill(ident, excluded);
         if (floodfill)
           kovri::core::transports.SendMessage(
@@ -544,7 +544,7 @@ void NetDb::HandleDatabaseStoreMsg(
     AddLeaseSet(ident, buf + offset, len - offset, m->from);
   } else {
     LOG(debug) << "NetDb: RouterInfo";
-    std::size_t size = bufbe16toh(buf + offset);
+    std::uint16_t size = bufbe16toh(buf + offset);
     offset += 2;
     if (size > RouterInfo::Size::MaxBuffer || size > len - offset) {
       LOG(error)
@@ -554,7 +554,7 @@ void NetDb::HandleDatabaseStoreMsg(
     try {
       kovri::core::Gunzip decompressor;
       decompressor.Put(buf + offset, size);
-      std::array<std::uint8_t, RouterInfo::Size::MaxBuffer> uncompressed;
+      std::array<std::uint8_t, RouterInfo::Size::MaxBuffer> uncompressed{};
       std::size_t uncompressed_size = decompressor.MaxRetrievable();
       if (uncompressed_size > RouterInfo::Size::MaxBuffer) {
         LOG(error)
@@ -574,15 +574,15 @@ void NetDb::HandleDatabaseSearchReplyMsg(
     std::shared_ptr<const I2NPMessage> msg) {
   const std::uint8_t* buf = msg->GetPayload();
   std::array<char, 48> key;
-  int l = kovri::core::ByteStreamToBase64(buf, 32, key.data(), key.size());
-  key.at(l) = 0;
-  int num = buf[32];  // num
+  std::uint8_t len = core::ByteStreamToBase64(buf, 32, key.data(), key.size());
+  key.at(len) = 0;  // TODO(anonimal): remove
+  std::uint8_t num = buf[32];  // num
   LOG(debug) << "NetDb: DatabaseSearchReply for " << key.data() << " num=" << num;
   IdentHash ident(buf);
   auto dest = m_Requests.FindRequest(ident);
   if (dest) {
     bool delete_dest = true;
-    if (num > 0) {
+    if (num) {
       auto pool = kovri::core::tunnels.GetExploratoryPool();
       auto outbound = pool ? pool->GetNextOutboundTunnel() : nullptr;
       auto inbound = pool ? pool->GetNextInboundTunnel() : nullptr;
@@ -591,7 +591,7 @@ void NetDb::HandleDatabaseSearchReplyMsg(
         if (outbound && inbound) {
           std::vector<kovri::core::TunnelMessageBlock> msgs;
           auto count = dest->GetExcludedPeers().size();
-          std::size_t max_ff(7);
+          std::uint8_t max_ff = 7;  // TODO(anonimal): enumerate or algorithm
           if (count < max_ff) {
             auto next_floodfill = GetClosestFloodfill(
                 dest->GetDestination(),
@@ -625,7 +625,7 @@ void NetDb::HandleDatabaseSearchReplyMsg(
               << "NetDb: " << key.data() << " was not found in "
               << max_ff << " floodfills";
           }
-          if (msgs.size() > 0)
+          if (!msgs.empty())
             outbound->SendTunnelDataMsg(msgs);
         }
       }
@@ -640,11 +640,11 @@ void NetDb::HandleDatabaseSearchReplyMsg(
     LOG(warning) << "NetDb: requested destination for " << key.data() << " not found";
   }
   // try responses
-  for (int i = 0; i < num; i++) {
+  for (std::uint8_t i = 0; i < num; i++) {
     const std::uint8_t* router = buf + 33 + i * 32;
     std::array<char, 48> peer_hash;
-    int l1 = kovri::core::ByteStreamToBase64(router, 32, peer_hash.data(), peer_hash.size());
-    peer_hash.at(l1) = 0;
+    std::uint8_t len = kovri::core::ByteStreamToBase64(router, 32, peer_hash.data(), peer_hash.size());
+    peer_hash.at(len) = 0;  // TODO(anonimal): remove
     LOG(debug) << "NetDb: " << i << ": " << peer_hash.data();
     auto r = FindRouter(router);
     if (!r || kovri::core::GetMillisecondsSinceEpoch() >
@@ -667,8 +667,8 @@ void NetDb::HandleDatabaseLookupMsg(
     return;
   }
   std::array<char, 48> key;
-  int l = kovri::core::ByteStreamToBase64(buf, 32, key.data(), key.size());
-  key.at(l) = 0;
+  std::uint8_t len = kovri::core::ByteStreamToBase64(buf, 32, key.data(), key.size());
+  key.at(len) = 0;  // TODO(anonimal): remove
   std::uint8_t flag = buf[64];
   LOG(debug)
     << "NetDb: DatabaseLookup for " << key.data()
@@ -693,12 +693,12 @@ void NetDb::HandleDatabaseLookupMsg(
       << "NetDb: exploratory close to  " << key.data()
       << " " << num_excluded << " excluded";
     std::set<IdentHash> excluded_routers;
-    for (int i = 0; i < num_excluded; i++) {
+    for (std::uint16_t i = 0; i < num_excluded; i++) {
       excluded_routers.insert(excluded);
       excluded += 32;
     }
     std::vector<IdentHash> routers;
-    for (int i = 0; i < 3; i++) {
+    for (std::uint8_t i = 0; i < 3; i++) {  // TODO(anonimal): enumerate
       auto r = GetClosestNonFloodfill(ident, excluded_routers);
       if (r) {
         routers.push_back(r->GetIdentHash());
@@ -730,7 +730,7 @@ void NetDb::HandleDatabaseLookupMsg(
         << "NetDb: requested " << key.data() << " not found. "
         << num_excluded << " were excluded";
       std::set<IdentHash> excluded_routers;
-      for (int i = 0; i < num_excluded; i++) {
+      for (std::uint16_t i = 0; i < num_excluded; i++) {
         excluded_routers.insert(excluded);
         excluded += 32;
       }
@@ -738,7 +738,7 @@ void NetDb::HandleDatabaseLookupMsg(
           ident,
           GetClosestFloodfills(
               ident,
-              3,
+              3,  // TODO(anonimal): enumerate or algorithm
               excluded_routers));
     }
   }
@@ -748,7 +748,7 @@ void NetDb::HandleDatabaseLookupMsg(
       if (flag & DATABASE_LOOKUP_ENCYPTION_FLAG) {  // encrypted reply requested
         const std::uint8_t* session_key = excluded;
         std::uint8_t num_tags = session_key[32];
-        if (num_tags > 0)  {
+        if (num_tags)  {
           const std::uint8_t* session_tag = session_key + 33;  // take first tag
           kovri::core::GarlicRoutingSession garlic(session_key, session_tag);
           reply_msg = garlic.WrapSingleMessage(reply_msg);
@@ -774,8 +774,8 @@ void NetDb::HandleDatabaseLookupMsg(
   }
 }
 
-void NetDb::Explore(
-    int num_destinations) {
+void NetDb::Explore(std::uint16_t num_destinations)
+{
   // new requests
   auto exploratory_pool = kovri::core::tunnels.GetExploratoryPool();
   auto outbound =
@@ -783,12 +783,12 @@ void NetDb::Explore(
   auto inbound =
     exploratory_pool ? exploratory_pool->GetNextInboundTunnel() : nullptr;
   bool through_tunnels = outbound && inbound;
-  std::array<std::uint8_t, 32> random_hash;
+  std::array<std::uint8_t, 32> random_hash{};  // Must be randomized before exploring
   std::vector<kovri::core::TunnelMessageBlock> msgs;
   std::set<const RouterInfo *> floodfills;
   // TODO(unassigned): docs
   LOG(debug) << "NetDb: exploring " << num_destinations << " new routers";
-  for (int i = 0; i < num_destinations; i++) {
+  for (std::uint16_t i = 0; i < num_destinations; i++) {
     kovri::core::RandBytes(random_hash.data(), random_hash.size());
     auto dest = m_Requests.CreateRequest(random_hash.data(), true);  // exploratory
     if (!dest) {
@@ -828,13 +828,13 @@ void NetDb::Explore(
       m_Requests.RequestComplete(random_hash.data(), nullptr);
     }
   }
-  if (through_tunnels && msgs.size() > 0)
+  if (through_tunnels && !msgs.empty())
     outbound->SendTunnelDataMsg(msgs);
 }
 
 void NetDb::Publish() {
   std::set<IdentHash> excluded;  // TODO(unassigned): fill up later
-  for (int i = 0; i < 2; i++) {
+  for (std::uint8_t i = 0; i < 2; i++) {  // TODO(anonimal): enumerate
     auto floodfill = GetClosestFloodfill(
         kovri::context.GetRouterInfo().GetIdentHash(),
         excluded);
@@ -953,8 +953,9 @@ std::shared_ptr<const RouterInfo> NetDb::GetClosestFloodfill(
 
 std::vector<IdentHash> NetDb::GetClosestFloodfills(
     const IdentHash& destination,
-    std::size_t num,
-    std::set<IdentHash>& excluded) const {
+    std::uint8_t num,
+    std::set<IdentHash>& excluded) const
+{
   struct Sorted {
     std::shared_ptr<const RouterInfo> r;
     XORMetric metric;
@@ -978,7 +979,7 @@ std::vector<IdentHash> NetDb::GetClosestFloodfills(
     }
   }
   std::vector<IdentHash> res;
-  std::size_t i = 0;
+  std::uint8_t i{};
   for (auto it : sorted) {
     if (i < num) {
       auto& ident = it.r->GetIdentHash();

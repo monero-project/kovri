@@ -134,7 +134,7 @@ PrepareOptions() {
     fi
   else
     # Ensure proper command line
-    if [[ ! -z $_package_file || $_create_checksum_file == false ]]; then
+    if [[ ! -z $_package_file || $_create_checksum_file == true ]]; then
       usage ; false ; catch "set the package option to build a package"
     fi
   fi

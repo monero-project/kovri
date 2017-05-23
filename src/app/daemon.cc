@@ -97,7 +97,7 @@ bool DaemonSingleton::Start() {
       LOG(error) << "DaemonSingleton: NetDb failed to start";
       return false;
     }
-    if (kovri::core::netdb.GetNumRouters() < kovri::core::netdb.MIN_REQUIRED_ROUTERS) {
+    if (core::netdb.GetNumRouters() < core::NetDb::Size::MinRequiredRouters) {
       LOG(debug) << "DaemonSingleton: reseeding NetDb";
       kovri::client::Reseed reseed;
       if (!reseed.Start()) {

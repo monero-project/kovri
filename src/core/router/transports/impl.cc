@@ -178,7 +178,7 @@ void Transports::Start() {
   m_IsRunning = true;
   m_Thread = std::make_unique<std::thread>(std::bind(&Transports::Run, this));
   // create acceptors
-  const auto addresses = context.GetRouterInfo().GetAddresses();
+  const auto &addresses = context.GetRouterInfo().GetAddresses();
   for (const auto& address : addresses) {
     LOG(debug) << "Transports: creating servers for address " << address.host;
     if (address.transport ==

@@ -91,14 +91,14 @@ class AddressBook : public AddressBookDefaults {
   /// @notes Used for in-net downloads only
   bool CheckAddressIdentHashFound(
       const std::string& address,
-      kovri::core::IdentHash& ident);
+      kovri::core::IdentHash& ident) const;
 
   /// @brief Finds address within loaded subscriptions
   /// @returns Unique pointer to identity hash of loaded address
   /// @param address Const reference to address
   /// @notes Used for in-net downloads only
   std::unique_ptr<const kovri::core::IdentHash> GetLoadedAddressIdentHash(
-      const std::string& address);
+      const std::string& address) const;
 
   /// @brief Used for destination to fetch subscription(s) from publisher(s)
   /// @return Shared pointer to client destination
@@ -136,7 +136,7 @@ class AddressBook : public AddressBookDefaults {
   /// @param stream Stream to process
   /// @return Vector of paired hostname to identity
   const std::map<std::string, kovri::core::IdentityEx>
-  ValidateSubscription(std::istream& stream);
+  ValidateSubscription(std::istream& stream) const;
 
   /// @brief Sets the download state as complete and resets timer as needed
   /// @details Resets update timer according to the state of completed download
@@ -150,7 +150,7 @@ class AddressBook : public AddressBookDefaults {
   /// @param ident Const reference to identity hash
   /// @return Identity hash's .b32.i2p address
   std::string GetB32AddressFromIdentHash(
-      const kovri::core::IdentHash& ident) {
+      const kovri::core::IdentHash& ident) const {
     return GetB32Address(ident);
   }
 

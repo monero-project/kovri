@@ -90,6 +90,7 @@ void AddressBook::Start(
         m_SharedLocalDestination->GetService());
   m_SubscriberUpdateTimer->expires_from_now(
       boost::posix_time::minutes(SubscriberTimeout::InitialUpdate));
+  LoadSubscriptionFromPublisher();
   m_SubscriberUpdateTimer->async_wait(
       std::bind(
           &AddressBook::SubscriberUpdateTimer,
@@ -115,8 +116,9 @@ void AddressBook::SubscriberUpdateTimer(
     DownloadSubscription();
   } else {
     if (!m_SubscriptionIsLoaded) {
-      // If subscription not available, will attempt download with subscriber
-      LoadSubscriptionFromPublisher();
+      // If subscription not available, error out - this should be done already
+      LOG(error) << "AddressBook: subscriptions not loaded";
+      return;
     }
     // Try again after timeout
     m_SubscriberUpdateTimer->expires_from_now(
@@ -330,7 +332,7 @@ bool AddressBook::SaveSubscription(
 // TODO(anonimal): unit-test
 
 const std::map<std::string, kovri::core::IdentityEx>
-AddressBook::ValidateSubscription(std::istream& stream) {
+AddressBook::ValidateSubscription(std::istream& stream) const {
   LOG(debug) << "AddressBook: validating subscription";
   // Map host to address identity
   std::map<std::string, kovri::core::IdentityEx> addresses;
@@ -378,7 +380,7 @@ AddressBook::ValidateSubscription(std::istream& stream) {
 // For in-net download only
 bool AddressBook::CheckAddressIdentHashFound(
     const std::string& address,
-    kovri::core::IdentHash& ident) {
+    kovri::core::IdentHash& ident) const {
   auto pos = address.find(".b32.i2p");
   if (pos != std::string::npos) {
     if (!kovri::core::Base32ToByteStream(address.c_str(), pos, ident, 32)) {
@@ -408,9 +410,9 @@ bool AddressBook::CheckAddressIdentHashFound(
 
 // For in-net download only
 std::unique_ptr<const kovri::core::IdentHash> AddressBook::GetLoadedAddressIdentHash(
-    const std::string& address) {
+    const std::string& address) const {
   if (!m_SubscriptionIsLoaded)
-    LoadSubscriptionFromPublisher();
+    return nullptr;
   if (m_SubscriptionIsLoaded) {
     auto it = m_Addresses.find(address);
     if (it != m_Addresses.end()) {

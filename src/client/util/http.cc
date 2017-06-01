@@ -233,7 +233,7 @@ bool HTTP::DownloadViaI2P()
   // Get URI
   auto uri = GetURI();
   // Reference the only instantiated address book instance in the singleton client context
-  auto& address_book = kovri::client::context.GetAddressBook();
+  const auto& address_book = kovri::client::context.GetAddressBook();
   // For identity hash of URI host
   kovri::core::IdentHash ident;
   // Get URI host's ident hash then find its lease-set

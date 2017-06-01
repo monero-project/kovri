@@ -38,6 +38,6 @@
 #cmakedefine KOVRI_CODENAME "@KOVRI_CODENAME@"
 
 #cmakedefine I2P_VERSION "@I2P_VERSION@"
-#cmakedefine I2P_NETWORK_ID "@I2P_NETWORK_ID@"
+#cmakedefine I2P_NETWORK_ID @I2P_NETWORK_ID@
 
 #endif  // BUILD_VERSION_H_

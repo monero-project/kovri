@@ -92,7 +92,7 @@ void RouterContext::NewRouterInfo() {
     core::RouterInfo::Cap::Reachable |
     core::RouterInfo::Cap::SSUTesting |  // TODO(anonimal): if we've disabled run-time SSU...
     core::RouterInfo::Cap::SSUIntroducer);
-  routerInfo.SetOption("netId", I2P_NETWORK_ID);
+  routerInfo.SetOption("netId", std::to_string(I2P_NETWORK_ID));
   routerInfo.SetOption("router.version", I2P_VERSION);
   routerInfo.CreateBuffer(m_Keys);
   m_RouterInfo.Update(

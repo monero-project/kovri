@@ -61,12 +61,6 @@ enum struct Timeout : std::uint8_t {
   Receive = 30,
 };
 
-enum struct ResponseCode : std::uint16_t {
-  // TODO(anonimal): see if cpp-netlib has this readily available
-  HTTP_OK = 200,
-  HTTP_NOT_MODIFIED = 304,
-};
-
 /// @class HTTPStorage
 /// @brief Storage for class HTTP
 class HTTPStorage {

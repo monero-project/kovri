@@ -34,6 +34,7 @@
 
 #include <boost/network/message/directives/header.hpp>
 #include <boost/network/message/wrappers/body.hpp>
+#include <boost/network/protocol/http/response.hpp>
 
 #include <exception>
 #include <functional>
@@ -50,6 +51,8 @@
 
 namespace kovri {
 namespace client {
+
+namespace http = boost::network::http;
 
 // TODO(unassigned): currently unused but will be useful
 // without needing to create a new object for each given URI
@@ -182,7 +185,7 @@ bool HTTP::DownloadViaClearnet() {
       // Test HTTP response status code
       switch (response.status()) {
         // New download or cached version does not match, so re-download
-        case static_cast<std::uint16_t>(ResponseCode::HTTP_OK):
+        case http::basic_response<http::tags::http_server>::status_type::ok:
           // Parse response headers for ETag and Last-Modified
           for (auto const& header : response.headers()) {
             if (header.first == "ETag") {
@@ -198,7 +201,7 @@ bool HTTP::DownloadViaClearnet() {
           SetDownloadedContents(boost::network::http::body(response));
           break;
         // File requested is unchanged since previous download
-        case static_cast<std::uint16_t>(ResponseCode::HTTP_NOT_MODIFIED):
+        case http::basic_response<http::tags::http_server>::status_type::not_modified:
           LOG(info) << "HTTP: no new updates available from " << uri.host();
           break;
         // Useless response code
@@ -338,7 +341,8 @@ bool HTTP::ProcessI2PResponse() {
   std::uint16_t response_code = 0;
   m_Response >> http_version;
   m_Response >> response_code;
-  if (response_code == static_cast<std::uint16_t>(ResponseCode::HTTP_OK)) {
+  if (response_code ==
+		http::basic_response<http::tags::http_server>::status_type::ok) {
     bool is_chunked = false;
     std::string header, status_message;
     std::getline(m_Response, status_message);
@@ -379,8 +383,9 @@ bool HTTP::ProcessI2PResponse() {
         SetDownloadedContents(content.str());
       }
     }
-  } else if (response_code
-             == static_cast<std::uint16_t>(ResponseCode::HTTP_NOT_MODIFIED)) {
+  } else if (response_code ==
+		http::basic_response<http::tags::http_server>::
+			status_type::not_modified) {
     LOG(info) << "HTTP: no new updates available from " << GetURI().host();
   } else {
     LOG(warning) << "HTTP: response code: " << response_code;

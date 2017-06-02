@@ -554,7 +554,7 @@ void NetDb::HandleDatabaseStoreMsg(
     try {
       kovri::core::Gunzip decompressor;
       decompressor.Put(buf + offset, size);
-      std::array<std::uint8_t, RouterInfo::Size::MaxBuffer> uncompressed{};
+      std::array<std::uint8_t, RouterInfo::Size::MaxBuffer> uncompressed {{}};
       std::size_t uncompressed_size = decompressor.MaxRetrievable();
       if (uncompressed_size > RouterInfo::Size::MaxBuffer) {
         LOG(error)
@@ -573,7 +573,7 @@ void NetDb::HandleDatabaseStoreMsg(
 void NetDb::HandleDatabaseSearchReplyMsg(
     std::shared_ptr<const I2NPMessage> msg) {
   const std::uint8_t* buf = msg->GetPayload();
-  std::array<char, 48> key{};
+  std::array<char, 48> key {{}};
   core::ByteStreamToBase64(buf, 32, key.data(), key.size());
   std::uint8_t num = buf[32];  // num
   LOG(debug) << "NetDb: DatabaseSearchReply for " << std::string(key.data()) << " num=" << num;
@@ -641,7 +641,7 @@ void NetDb::HandleDatabaseSearchReplyMsg(
   // try responses
   for (std::uint8_t i = 0; i < num; i++) {
     const std::uint8_t* router = buf + 33 + i * 32;
-    std::array<char, 48> peer_hash{};
+    std::array<char, 48> peer_hash {{}};
     core::ByteStreamToBase64(router, 32, peer_hash.data(), peer_hash.size());
     LOG(debug) << "NetDb: " << i << ": " << peer_hash.data();
     auto r = FindRouter(router);
@@ -664,7 +664,7 @@ void NetDb::HandleDatabaseLookupMsg(
     LOG(error) << "NetDb: DatabaseLookup for zero ident. Ignored";
     return;
   }
-  std::array<char, 48> key{};
+  std::array<char, 48> key {{}};
   core::ByteStreamToBase64(buf, 32, key.data(), key.size());
   std::uint8_t flag = buf[64];
   LOG(debug)
@@ -780,7 +780,7 @@ void NetDb::Explore(std::uint16_t num_destinations)
   auto inbound =
     exploratory_pool ? exploratory_pool->GetNextInboundTunnel() : nullptr;
   bool through_tunnels = outbound && inbound;
-  std::array<std::uint8_t, 32> random_hash{};  // Must be randomized before exploring
+  std::array<std::uint8_t, 32> random_hash {{}};  // Must be randomized before exploring
   std::vector<kovri::core::TunnelMessageBlock> msgs;
   std::set<const RouterInfo *> floodfills;
   // TODO(unassigned): docs

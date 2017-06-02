@@ -376,7 +376,7 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
             session->WaitForIntroduction();
             // if we are unreachable
             if (kovri::context.GetRouterInfo().UsesIntroducer()) {
-              std::array<std::uint8_t, 1> buf {};
+              std::array<std::uint8_t, 1> buf {{}};
               Send(buf.data(), 0, remote_endpoint);  // send HolePunch
             }
             introducer_session->Introduce(introducer->tag, introducer->key);

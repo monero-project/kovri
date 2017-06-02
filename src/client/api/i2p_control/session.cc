@@ -344,7 +344,7 @@ bool I2PControlSession::Authenticate(
 
 std::string I2PControlSession::GenerateToken() const {
   // Generate random data for token
-  std::array<std::uint8_t, TOKEN_SIZE> rand = {};
+  std::array<std::uint8_t, TOKEN_SIZE> rand {{}};
   kovri::core::RandBytes(rand.data(), TOKEN_SIZE);
   // Create base16 token from random data
   std::stringstream token;

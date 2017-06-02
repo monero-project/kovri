@@ -138,7 +138,7 @@ bool DaemonLinux::Init() {
     return false;
   }
   LOG(debug) << "DaemonLinux: writing pid file";
-  std::array<char, 10> pid{};
+  std::array<char, 10> pid {{}};
   snprintf(pid.data(), pid.size(), "%d\n", getpid());
   if (write(m_PIDFileHandle, pid.data(), strlen(pid.data())) < 0) {
     LOG(error)
@@ -147,7 +147,7 @@ bool DaemonLinux::Init() {
   }
   LOG(debug) << "DaemonLinux: pid file ready";
   // Signal handler
-  struct sigaction sa{};
+  struct sigaction sa {{}};
   sa.sa_handler = handle_signal;
   sigemptyset(&sa.sa_mask);
   sa.sa_flags = SA_RESTART;

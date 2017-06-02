@@ -660,7 +660,7 @@ SSUFragment SSUPacketParser::ParseFragment() {
   SSUFragment fragment;
   fragment.SetMessageID(ReadUInt32());
   // TODO(EinMByte): clean this up
-  std::array<std::uint8_t, 4> info_buf {};
+  std::array<std::uint8_t, 4> info_buf {{}};
   memcpy(info_buf.data() + 1, ReadBytes(3), 3);
   const std::uint32_t fragment_info = bufbe32toh(info_buf.data());
   fragment.SetSize(fragment_info & 0x3FFF);  // bits 0 - 13

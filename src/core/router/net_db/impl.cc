@@ -573,10 +573,10 @@ void NetDb::HandleDatabaseStoreMsg(
 void NetDb::HandleDatabaseSearchReplyMsg(
     std::shared_ptr<const I2NPMessage> msg) {
   const std::uint8_t* buf = msg->GetPayload();
-  std::array<char, 48> key;
+  std::array<char, 48> key{};
   core::ByteStreamToBase64(buf, 32, key.data(), key.size());
   std::uint8_t num = buf[32];  // num
-  LOG(debug) << "NetDb: DatabaseSearchReply for " << key.data() << " num=" << num;
+  LOG(debug) << "NetDb: DatabaseSearchReply for " << std::string(key.data()) << " num=" << num;
   IdentHash ident(buf);
   auto dest = m_Requests.FindRequest(ident);
   if (dest) {
@@ -606,7 +606,7 @@ void NetDb::HandleDatabaseSearchReplyMsg(
                   });
               // request destination
               LOG(debug)
-                << "NetDb: trying " << key.data()
+                << "NetDb: trying " << std::string(key.data())
                 << " at " << count
                 << " floodfill " << next_floodfill->GetIdentHash().ToBase64();
               auto msg = dest->CreateRequestMessage(next_floodfill, inbound);
@@ -621,8 +621,8 @@ void NetDb::HandleDatabaseSearchReplyMsg(
             }
           } else {
             LOG(warning)
-              << "NetDb: " << key.data() << " was not found in "
-              << max_ff << " floodfills";
+              << "NetDb: " << std::string(key.data()) << " was not found in "
+              << static_cast<std::size_t>(max_ff) << " floodfills";
           }
           if (!msgs.empty())
             outbound->SendTunnelDataMsg(msgs);
@@ -641,7 +641,7 @@ void NetDb::HandleDatabaseSearchReplyMsg(
   // try responses
   for (std::uint8_t i = 0; i < num; i++) {
     const std::uint8_t* router = buf + 33 + i * 32;
-    std::array<char, 48> peer_hash;
+    std::array<char, 48> peer_hash{};
     core::ByteStreamToBase64(router, 32, peer_hash.data(), peer_hash.size());
     LOG(debug) << "NetDb: " << i << ": " << peer_hash.data();
     auto r = FindRouter(router);
@@ -664,7 +664,7 @@ void NetDb::HandleDatabaseLookupMsg(
     LOG(error) << "NetDb: DatabaseLookup for zero ident. Ignored";
     return;
   }
-  std::array<char, 48> key;
+  std::array<char, 48> key{};
   core::ByteStreamToBase64(buf, 32, key.data(), key.size());
   std::uint8_t flag = buf[64];
   LOG(debug)

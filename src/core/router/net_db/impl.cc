@@ -576,7 +576,7 @@ void NetDb::HandleDatabaseSearchReplyMsg(
   std::array<char, 48> key{};
   core::ByteStreamToBase64(buf, 32, key.data(), key.size());
   std::uint8_t num = buf[32];  // num
-  LOG(debug) << "NetDb: DatabaseSearchReply for " << key.data() << " num=" << num;
+  LOG(debug) << "NetDb: DatabaseSearchReply for " << std::string(key.data()) << " num=" << num;
   IdentHash ident(buf);
   auto dest = m_Requests.FindRequest(ident);
   if (dest) {
@@ -606,7 +606,7 @@ void NetDb::HandleDatabaseSearchReplyMsg(
                   });
               // request destination
               LOG(debug)
-                << "NetDb: trying " << key.data()
+                << "NetDb: trying " << std::string(key.data())
                 << " at " << count
                 << " floodfill " << next_floodfill->GetIdentHash().ToBase64();
               auto msg = dest->CreateRequestMessage(next_floodfill, inbound);
@@ -621,8 +621,8 @@ void NetDb::HandleDatabaseSearchReplyMsg(
             }
           } else {
             LOG(warning)
-              << "NetDb: " << key.data() << " was not found in "
-              << max_ff << " floodfills";
+              << "NetDb: " << std::string(key.data()) << " was not found in "
+              << static_cast<std::size_t>(max_ff) << " floodfills";
           }
           if (!msgs.empty())
             outbound->SendTunnelDataMsg(msgs);

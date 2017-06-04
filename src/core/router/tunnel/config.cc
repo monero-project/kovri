@@ -169,7 +169,7 @@ void TunnelHopConfig::CreateBuildRequestRecord(
   LOG(debug) << "TunnelHopConfig: creating build request record";
 
   // Create clear text record
-  std::array<std::uint8_t, BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE> clear_text{};
+  std::array<std::uint8_t, BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE> clear_text {{}};
   auto stream = std::make_unique<OutputByteStream>(clear_text.data(), clear_text.size());
 
   // Tunnel ID to receive messages as

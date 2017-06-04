@@ -756,7 +756,7 @@ class RSARawVerifier {
             m_Modulus));  // s^e mod n
     std::vector<std::uint8_t> buf(key_length);
     encrypted_signature.Encode(buf.data(), buf.size());
-    std::array<std::uint8_t, Hash::DIGESTSIZE> digest{};
+    std::array<std::uint8_t, Hash::DIGESTSIZE> digest {{}};
     m_Hash.Final(digest.data());
     if (buf.size() < Hash::DIGESTSIZE)
       return false;  // Can't verify digest longer than key

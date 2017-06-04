@@ -667,7 +667,7 @@ void RouterInfo::CreateRouterInfo(
 
   // Write ident
   // TODO(anonimal): review the following arbitrary size (must be >= 387)
-  std::array<std::uint8_t, 1024> ident{};
+  std::array<std::uint8_t, 1024> ident {{}};
   auto ident_len =
       private_keys.GetPublic().ToBuffer(ident.data(), ident.size());
   router_info.Write(ident.data(), ident_len);
@@ -750,7 +750,7 @@ void RouterInfo::CreateRouterInfo(
                       introducer.host.to_string());
 
                   // Write introducer key
-                  std::array<char, 64> key{};
+                  std::array<char, 64> key {{}};
                   core::ByteStreamToBase64(
                       introducer.key,
                       sizeof(introducer.key),
@@ -775,7 +775,7 @@ void RouterInfo::CreateRouterInfo(
             }
 
           // Write key
-          std::array<char, 64> value{};
+          std::array<char, 64> value {{}};
           core::ByteStreamToBase64(
               address.key, sizeof(address.key), value.data(), value.size());
 

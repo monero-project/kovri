@@ -625,7 +625,7 @@ void SSUSession::SendRelayRequest(
       << __func__ << ": SSU is not supported";
     return;
   }
-  std::array<std::uint8_t, 96 + 18> buf {};  // TODO(unassigned): document size values
+  std::array<std::uint8_t, 96 + 18> buf {{}};  // TODO(unassigned): document size values
   auto payload = buf.data() + GetType(SSUSize::HeaderMin);
   htobe32buf(payload, introducer_tag);
   payload += 4;
@@ -697,7 +697,7 @@ void SSUSession::SendRelayResponse(
     const boost::asio::ip::udp::endpoint& from,
     const std::uint8_t* intro_key,
     const boost::asio::ip::udp::endpoint& to) {
-  std::array<std::uint8_t, 80 + 18> buf {};  // 64 Alice's ipv4 and 80 Alice's ipv6
+  std::array<std::uint8_t, 80 + 18> buf {{}};  // 64 Alice's ipv4 and 80 Alice's ipv6
   auto payload = buf.data() + GetType(SSUSize::HeaderMin);
   // Charlie's address always v4
   if (!to.address().is_v4()) {
@@ -796,7 +796,7 @@ void SSUSession::SendRelayIntro(
       << __func__ << ": Alice's IP must be V4";
     return;
   }
-  std::array<std::uint8_t, 48 + 18> buf {};
+  std::array<std::uint8_t, 48 + 18> buf {{}};
   auto payload = buf.data() + GetType(SSUSize::HeaderMin);
   *payload = 4;
   payload++;  // size
@@ -978,7 +978,7 @@ void SSUSession::SendPeerTest(
     const std::uint8_t* intro_key,
     bool to_address,  // is true for Alice<->Charlie communications only
     bool send_address) {  // is false if message comes from Alice
-  std::array<std::uint8_t, 80 + 18> buf {};
+  std::array<std::uint8_t, 80 + 18> buf {{}};
   auto payload = buf.data() + GetType(SSUSize::HeaderMin);
   htobe32buf(payload, nonce);
   payload += 4;  // nonce
@@ -1066,7 +1066,7 @@ void SSUSession::SendPeerTest() {
 
 void SSUSession::SendSesionDestroyed() {
   if (m_IsSessionKey) {
-    std::array<std::uint8_t, 48 + 18> buf {};
+    std::array<std::uint8_t, 48 + 18> buf {{}};
     // encrypt message with session key
     FillHeaderAndEncrypt(
         GetType(SSUPayloadType::SessionDestroyed),
@@ -1086,7 +1086,7 @@ void SSUSession::SendSesionDestroyed() {
 
 void SSUSession::SendKeepAlive() {
   if (m_State == SessionState::Established) {
-    std::array<std::uint8_t, 48 + 18> buf {};  // TODO(unassigned): document values
+    std::array<std::uint8_t, 48 + 18> buf {{}};  // TODO(unassigned): document values
     auto payload = buf.data() + GetType(SSUSize::HeaderMin);
     *payload = 0;  // flags
     payload++;
@@ -1476,7 +1476,7 @@ void SSUSession::Send(
     std::uint8_t type,
     const std::uint8_t* payload,
     std::size_t len) {
-  std::array<std::uint8_t, GetType(SSUSize::MTUv4) + 18> buf {};
+  std::array<std::uint8_t, GetType(SSUSize::MTUv4) + 18> buf {{}};
   auto msg_size = len + GetType(SSUSize::HeaderMin);
   auto padding_size = msg_size & 0x0F;  // %16
   if (padding_size > 0)

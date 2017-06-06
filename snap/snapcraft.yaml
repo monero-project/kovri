@@ -15,6 +15,7 @@ apps:
 parts:
   kovri:
     source: .
+    source-type: git
     plugin: make
     build-packages:
       - g++

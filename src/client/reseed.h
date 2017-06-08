@@ -119,6 +119,7 @@ class Reseed {
   const std::vector<std::string> m_Hosts = {
     "https://download.xxlspeed.com/",  // Requires SNI
     "https://i2p.mooo.com/netDb/",
+    "https://i2pseed.creativecowpat.net:8443/",
     "https://netdb.i2p2.no/",  // Requires SNI
     "https://reseed.i2p-projekt.de/",
     "https://reseed.onion.im/",

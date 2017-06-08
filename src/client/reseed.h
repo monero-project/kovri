@@ -121,7 +121,6 @@ class Reseed {
     "https://i2p.mooo.com/netDb/",
     "https://netdb.i2p2.no/",  // Requires SNI
     "https://reseed.i2p-projekt.de/",
-    "https://reseed.i2p.vzaws.com:8443/",
     "https://reseed.onion.im/",
     // Note: for "Let's Encrypt" certs,
     // we currently require DST Root CA X3 (not ISRG Root X1)

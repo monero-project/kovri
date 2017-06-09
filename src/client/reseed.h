@@ -119,9 +119,9 @@ class Reseed {
   const std::vector<std::string> m_Hosts = {
     "https://download.xxlspeed.com/",  // Requires SNI
     "https://i2p.mooo.com/netDb/",
+    "https://i2pseed.creativecowpat.net:8443/",
     "https://netdb.i2p2.no/",  // Requires SNI
     "https://reseed.i2p-projekt.de/",
-    "https://reseed.i2p.vzaws.com:8443/",
     "https://reseed.onion.im/",
     // Note: for "Let's Encrypt" certs,
     // we currently require DST Root CA X3 (not ISRG Root X1)

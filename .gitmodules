@@ -6,3 +6,6 @@
 	path = deps/cryptopp
 	url = https://github.com/anonimal/cryptopp.git
 	branch = CRYPTOPP_5_6_5
+[submodule "docs"]
+	path = docs
+	url = https://github.com/anonimal/kovri-docs.git

@@ -8,4 +8,4 @@
 	branch = CRYPTOPP_5_6_5
 [submodule "docs"]
 	path = docs
-	url = https://github.com/anonimal/kovri-docs.git
+	url = https://github.com/monero-project/kovri-docs.git

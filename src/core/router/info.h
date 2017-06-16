@@ -67,6 +67,14 @@ struct RouterInfoTraits
     SSUCost = 5,
   };
 
+  /// @enum PortRange
+  /// @brief Min and Max public port
+  enum PortRange : std::uint16_t
+  {
+    MinPort = 9111,
+    MaxPort = 30777,
+  };
+
   /// @enum Transport
   /// @brief Transport type(s) within RI
   enum Transport : std::uint8_t

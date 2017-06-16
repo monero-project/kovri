@@ -31,20 +31,46 @@
 #include "util/routerinfo.h"
 #include <assert.h>
 #include <memory>
+
+#include "core/crypto/rand.h"
 #include "core/router/info.h"
 #include "core/util/exception.h"
 #include "core/util/filesystem.h"
 #include "core/util/log.h"
+#include "version.h"  // NOLINT(build/include)
 
 namespace bpo = boost::program_options;
+namespace core = kovri::core;
 
 RouterInfoCommand::RouterInfoCommand()
 {
+  bpo::options_description read_options("Read options");
+  read_options.add_options()(
+      "args", bpo::value<std::vector<std::string>>()->multitoken());
+
+  bpo::options_description create_options("Create options");
+  create_options.add_options()(
+      "create,c", bpo::bool_switch()->default_value(false))(
+      "host", bpo::value<std::string>()->default_value("127.0.0.1"))(
+      "port", bpo::value<int>()->default_value(0))(
+      "netid", bpo::value<int>()->default_value(I2P_NETWORK_ID))(
+      "floodfill,f",
+      bpo::value<bool>()->default_value(false)->value_name("bool"))(
+      "bandwidth,b", bpo::value<std::string>()->default_value("L"))(
+      "ssuintroducer,i",
+      bpo::value<bool>()->default_value(true)->value_name("bool"))(
+      "ssutesting,t",
+      bpo::value<bool>()->default_value(true)->value_name("bool"));
+
+  m_Options.add(create_options).add(read_options);
 }
 
 void RouterInfoCommand::PrintUsage(const std::string& name) const
 {
-  LOG(info) << "Syntax: " << name << " routerInfo-(...).dat";
+  LOG(info) << "Syntax: " << name << m_Options;
+  LOG(info) << "Example: " << name << " routerInfo-(...).dat";
+  LOG(info) << "or: " << name << " --create --host 192.168.1.1 --port 10100 "
+                                 "--floodfill 1 --bandwidth P";
 }
 
 bool RouterInfoCommand::Impl(
@@ -52,26 +78,116 @@ bool RouterInfoCommand::Impl(
     const std::vector<std::string>& args)
 {
   std::vector<std::string> inputs;
-  bpo::options_description options("Specific options");
-  options.add_options()(
-      "args", bpo::value<std::vector<std::string>>(&inputs)->multitoken());
-
   bpo::positional_options_description pos;
   pos.add("args", -1);
 
   bpo::variables_map vm;
   try
     {
-      bpo::parsed_options parsed =
-          bpo::command_line_parser(args).options(options).positional(pos).run();
+      bpo::parsed_options parsed = bpo::command_line_parser(args)
+                                       .options(m_Options)
+                                       .positional(pos)
+                                       .run();
       bpo::store(parsed, vm);
       bpo::notify(vm);
     }
   catch (...)
     {
-      kovri::core::Exception ex(GetName().c_str());
+      core::Exception ex(GetName().c_str());
       ex.Dispatch(__func__);
       return false;
+    }
+
+  if (vm.count("args"))
+    inputs = vm["args"].as<std::vector<std::string>>();
+
+  if (vm["create"].as<bool>())  // Create new router info + keys
+    {
+      // Sanity checks
+      if (inputs.size() > 1)
+        {
+          LOG(error) << "routerinfo: Too many arguments";
+          PrintUsage(cmd_name);
+          return false;
+        }
+      auto filename = inputs.empty() ? std::string() : inputs.at(0);
+      if (filename == "-")
+        {
+          // Need to output 2 files : RI + key
+          LOG(error)
+              << "routerinfo: output to console is not supported for creation";
+          return false;
+        }
+      auto host = vm["host"].as<std::string>();
+      auto port = vm["port"].defaulted() ? core::RandInRange32(
+                                               core::RouterInfo::MinPort,
+                                               core::RouterInfo::MaxPort)
+                                         : vm["port"].as<int>();
+      // Generate private key
+      core::PrivateKeys keys = core::PrivateKeys::CreateRandomKeys(
+          core::DEFAULT_ROUTER_SIGNING_KEY_TYPE);
+      // Set router info attributes
+      core::RouterInfo routerInfo;
+      routerInfo.SetRouterIdentity(keys.GetPublic());
+      routerInfo.AddSSUAddress(host, port, routerInfo.GetIdentHash());
+      routerInfo.AddNTCPAddress(host, port);
+      // Set capabilities
+      routerInfo.SetCaps(core::RouterInfo::Cap::Reachable);
+      if (vm["ssuintroducer"].as<bool>())
+        routerInfo.SetCaps(
+            routerInfo.GetCaps() | core::RouterInfo::Cap::SSUIntroducer);
+      if (vm["ssutesting"].as<bool>())
+        routerInfo.SetCaps(
+            routerInfo.GetCaps() | core::RouterInfo::Cap::SSUTesting);
+      if (vm["floodfill"].as<bool>())
+        routerInfo.SetCaps(
+            routerInfo.GetCaps() | core::RouterInfo::Cap::Floodfill);
+      auto bandwidth = vm["bandwidth"].as<std::string>();
+      if (!bandwidth.empty() && (bandwidth[0] > 'L'))
+        routerInfo.SetCaps(
+            routerInfo.GetCaps() | core::RouterInfo::Cap::HighBandwidth);
+      // Set options
+      routerInfo.SetOption("netId", std::to_string(vm["netid"].as<int>()));
+      routerInfo.SetOption("router.version", I2P_VERSION);
+      routerInfo.CreateBuffer(keys);
+
+      // Set filename if none provided
+      if (filename.empty())
+        filename = std::string("routerInfo-")
+                   + routerInfo.GetIdentHash().ToBase64() + std::string(".dat");
+      // Write key to file
+      core::OutputFileStream output_key(
+          filename + ".key", std::ofstream::binary);
+      if (output_key.Fail())
+        {
+          LOG(error) << "routerinfo: Failed to open file " << filename
+                     << ".key";
+          return false;
+        }
+      const std::size_t len = keys.GetFullLen();
+      std::unique_ptr<std::uint8_t[]> buf(
+          std::make_unique<std::uint8_t[]>(len));
+      keys.ToBuffer(buf.get(), len);
+      output_key.Write(buf.get(), len);
+      if (output_key.Fail())
+        {
+          LOG(error) << "routerinfo: Failed to write to file " << filename
+                     << ".key";
+          return false;
+        }
+      // Write RI to file
+      try
+        {
+          routerInfo.SaveToFile(filename);
+        }
+      catch (...)
+        {
+          core::Exception ex(GetName().c_str());
+          ex.Dispatch(__func__);
+          return false;
+        }
+
+      return true;
     }
 
   if (inputs.size() == 0)
@@ -81,9 +197,10 @@ bool RouterInfoCommand::Impl(
       return false;
     }
 
+  // for each file : read and print description
   for (const auto& arg : inputs)
     {
-      kovri::core::InputFileStream input(arg, std::ios::in | std::ios::binary);
+      core::InputFileStream input(arg, std::ios::in | std::ios::binary);
       if (input.Fail())
         {
           LOG(error) << "routerinfo: Failed to open input " << arg;
@@ -101,12 +218,12 @@ bool RouterInfoCommand::Impl(
       LOG(trace) << "routerinfo: read OK length " << length;
       try
         {
-          kovri::core::RouterInfo ri(buffer.get(), length);
+          core::RouterInfo ri(buffer.get(), length);
           LOG(info) << ri.GetDescription();
         }
       catch (...)
         {
-          kovri::core::Exception ex(GetName().c_str());
+          core::Exception ex(GetName().c_str());
           ex.Dispatch(__func__);
           return false;
         }

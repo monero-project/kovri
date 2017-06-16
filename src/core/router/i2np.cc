@@ -49,9 +49,7 @@
 #include "core/util/log.h"
 #include "core/util/timestamp.h"
 
-#ifndef I2P_NETWORK_ID
-#define I2P_NETWORK_ID 2
-#endif
+#include "version.h"  // NOLINT(build/include)
 
 namespace kovri {
 namespace core {

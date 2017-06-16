@@ -52,6 +52,9 @@ class RouterInfoCommand : public Command
   {
     return "routerinfo";
   }
+
+ private:
+  boost::program_options::options_description m_Options;
 };
 
 #endif  // SRC_UTIL_ROUTERINFO_H_

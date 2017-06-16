@@ -176,9 +176,13 @@ void Configuration::ParseKovriConfigFile(
   if (!m_KovriConfig["port"].defaulted())
     {
       int port = m_KovriConfig["port"].as<int>();
-      if ((port < 9111) || (port > 30777))
+      if ((port < core::RouterInfo::MinPort)
+          || (port > core::RouterInfo::MaxPort))
         throw std::runtime_error(
-            "Port not in range [9111,30777], see user-guide or config file");
+            "Port not in range [" + std::to_string(core::RouterInfo::MinPort)
+            + ","
+            + std::to_string(core::RouterInfo::MaxPort)
+            + "], see user-guide or config file");
     }
 }
 

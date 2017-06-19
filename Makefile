@@ -166,9 +166,16 @@ release-static-android: release-static-deps
 	$(eval cmake-kovri += $(cmake-static) $(cmake-android))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
+# TODO(unassigned): static UPnP once our UPnP implementation is release-ready
+
 #-----------------#
 # Optional builds #
 #-----------------#
+
+# UPnP only
+upnp: deps
+	$(eval cmake-kovri += $(cmake-upnp))
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
 # Optimized + hardening + UPnP
 all-options: deps

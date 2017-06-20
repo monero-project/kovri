@@ -335,7 +335,8 @@ class SSUSessionCreatedPacket : public SSUPacket {
 
  private:
   std::size_t m_AddressSize, m_SignatureSize;
-  std::uint8_t* m_DhY, *m_IPAddress, *m_Signature;
+  std::uint8_t *m_DhY, *m_Signature;
+  std::unique_ptr<std::uint8_t[]> m_IPAddress;
   std::uint16_t m_Port;
   std::uint32_t m_RelayTag, m_SignedOnTime;
 };

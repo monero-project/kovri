@@ -77,19 +77,133 @@ bool RouterInfoCommand::Impl(
     const std::string& cmd_name,
     const std::vector<std::string>& args)
 {
-  std::vector<std::string> inputs;
-  bpo::positional_options_description pos;
-  pos.add("args", -1);
-
-  bpo::variables_map vm;
   try
     {
+      std::vector<std::string> inputs;
+      bpo::positional_options_description pos;
+      pos.add("args", -1);
+
+      bpo::variables_map vm;
       bpo::parsed_options parsed = bpo::command_line_parser(args)
                                        .options(m_Options)
                                        .positional(pos)
                                        .run();
       bpo::store(parsed, vm);
       bpo::notify(vm);
+
+      if (vm.count("args"))
+        inputs = vm["args"].as<std::vector<std::string>>();
+
+      if (vm["create"].as<bool>())  // Create new router info + keys
+        {
+          // Sanity checks
+          if (inputs.size() > 1)
+            {
+              LOG(error) << "routerinfo: Too many arguments";
+              PrintUsage(cmd_name);
+              return false;
+            }
+          auto filename = inputs.empty() ? std::string() : inputs.at(0);
+          if (filename == "-")
+            {
+              // Need to output 2 files : RI + key
+              LOG(error) << "routerinfo: output to console is not supported "
+                            "for creation";
+              return false;
+            }
+          auto host = vm["host"].as<std::string>();
+          auto port = vm["port"].defaulted() ? core::RandInRange32(
+                                                   core::RouterInfo::MinPort,
+                                                   core::RouterInfo::MaxPort)
+                                             : vm["port"].as<int>();
+
+          // Generate private key
+          core::PrivateKeys keys = core::PrivateKeys::CreateRandomKeys(
+              core::DEFAULT_ROUTER_SIGNING_KEY_TYPE);
+          // Set router info attributes
+          core::RouterInfo routerInfo;
+          routerInfo.SetRouterIdentity(keys.GetPublic());
+          routerInfo.AddSSUAddress(host, port, routerInfo.GetIdentHash());
+          routerInfo.AddNTCPAddress(host, port);
+          // Set capabilities
+          routerInfo.SetCaps(core::RouterInfo::Cap::Reachable);
+          if (vm["ssuintroducer"].as<bool>())
+            routerInfo.SetCaps(
+                routerInfo.GetCaps() | core::RouterInfo::Cap::SSUIntroducer);
+          if (vm["ssutesting"].as<bool>())
+            routerInfo.SetCaps(
+                routerInfo.GetCaps() | core::RouterInfo::Cap::SSUTesting);
+          if (vm["floodfill"].as<bool>())
+            routerInfo.SetCaps(
+                routerInfo.GetCaps() | core::RouterInfo::Cap::Floodfill);
+          auto bandwidth = vm["bandwidth"].as<std::string>();
+          if (!bandwidth.empty() && (bandwidth[0] > 'L'))
+            routerInfo.SetCaps(
+                routerInfo.GetCaps() | core::RouterInfo::Cap::HighBandwidth);
+          // Set options
+          routerInfo.SetOption("netId", std::to_string(vm["netid"].as<int>()));
+          routerInfo.SetOption("router.version", I2P_VERSION);
+          routerInfo.CreateBuffer(keys);
+
+          // Set filename if none provided
+          if (filename.empty())
+            filename = std::string("routerInfo-")
+                       + routerInfo.GetIdentHash().ToBase64()
+                       + std::string(".dat");
+          // Write key to file
+          core::OutputFileStream output_key(
+              filename + ".key", std::ofstream::binary);
+          if (output_key.Fail())
+            {
+              LOG(error) << "routerinfo: Failed to open file " << filename
+                         << ".key";
+              return false;
+            }
+          const std::size_t len = keys.GetFullLen();
+          std::unique_ptr<std::uint8_t[]> buf(
+              std::make_unique<std::uint8_t[]>(len));
+          keys.ToBuffer(buf.get(), len);
+          output_key.Write(buf.get(), len);
+          if (output_key.Fail())
+            {
+              LOG(error) << "routerinfo: Failed to write to file " << filename
+                         << ".key";
+              return false;
+            }
+          // Write RI to file
+          routerInfo.SaveToFile(filename);
+          return true;
+        }
+
+      if (inputs.size() == 0)
+        {
+          LOG(error) << "routerinfo: Not enough arguments";
+          PrintUsage(cmd_name);
+          return false;
+        }
+
+      // for each file : read and print description
+      for (const auto& arg : inputs)
+        {
+          core::InputFileStream input(arg, std::ios::in | std::ios::binary);
+          if (input.Fail())
+            {
+              LOG(error) << "routerinfo: Failed to open input " << arg;
+              return false;
+            }
+          // Read all input
+          std::size_t length(0);
+          std::unique_ptr<std::uint8_t[]> buffer =
+              input.ReadAll<std::uint8_t, std::size_t>(&length);
+          if (!buffer)
+            {
+              LOG(error) << "routerinfo: Failed to read input " << arg;
+              return false;
+            }
+          LOG(trace) << "routerinfo: read OK length " << length;
+          core::RouterInfo ri(buffer.get(), length);
+          LOG(info) << ri.GetDescription();
+        }
     }
   catch (...)
     {
@@ -97,137 +211,5 @@ bool RouterInfoCommand::Impl(
       ex.Dispatch(__func__);
       return false;
     }
-
-  if (vm.count("args"))
-    inputs = vm["args"].as<std::vector<std::string>>();
-
-  if (vm["create"].as<bool>())  // Create new router info + keys
-    {
-      // Sanity checks
-      if (inputs.size() > 1)
-        {
-          LOG(error) << "routerinfo: Too many arguments";
-          PrintUsage(cmd_name);
-          return false;
-        }
-      auto filename = inputs.empty() ? std::string() : inputs.at(0);
-      if (filename == "-")
-        {
-          // Need to output 2 files : RI + key
-          LOG(error)
-              << "routerinfo: output to console is not supported for creation";
-          return false;
-        }
-      auto host = vm["host"].as<std::string>();
-      auto port = vm["port"].defaulted() ? core::RandInRange32(
-                                               core::RouterInfo::MinPort,
-                                               core::RouterInfo::MaxPort)
-                                         : vm["port"].as<int>();
-      // Generate private key
-      core::PrivateKeys keys = core::PrivateKeys::CreateRandomKeys(
-          core::DEFAULT_ROUTER_SIGNING_KEY_TYPE);
-      // Set router info attributes
-      core::RouterInfo routerInfo;
-      routerInfo.SetRouterIdentity(keys.GetPublic());
-      routerInfo.AddSSUAddress(host, port, routerInfo.GetIdentHash());
-      routerInfo.AddNTCPAddress(host, port);
-      // Set capabilities
-      routerInfo.SetCaps(core::RouterInfo::Cap::Reachable);
-      if (vm["ssuintroducer"].as<bool>())
-        routerInfo.SetCaps(
-            routerInfo.GetCaps() | core::RouterInfo::Cap::SSUIntroducer);
-      if (vm["ssutesting"].as<bool>())
-        routerInfo.SetCaps(
-            routerInfo.GetCaps() | core::RouterInfo::Cap::SSUTesting);
-      if (vm["floodfill"].as<bool>())
-        routerInfo.SetCaps(
-            routerInfo.GetCaps() | core::RouterInfo::Cap::Floodfill);
-      auto bandwidth = vm["bandwidth"].as<std::string>();
-      if (!bandwidth.empty() && (bandwidth[0] > 'L'))
-        routerInfo.SetCaps(
-            routerInfo.GetCaps() | core::RouterInfo::Cap::HighBandwidth);
-      // Set options
-      routerInfo.SetOption("netId", std::to_string(vm["netid"].as<int>()));
-      routerInfo.SetOption("router.version", I2P_VERSION);
-      routerInfo.CreateBuffer(keys);
-
-      // Set filename if none provided
-      if (filename.empty())
-        filename = std::string("routerInfo-")
-                   + routerInfo.GetIdentHash().ToBase64() + std::string(".dat");
-      // Write key to file
-      core::OutputFileStream output_key(
-          filename + ".key", std::ofstream::binary);
-      if (output_key.Fail())
-        {
-          LOG(error) << "routerinfo: Failed to open file " << filename
-                     << ".key";
-          return false;
-        }
-      const std::size_t len = keys.GetFullLen();
-      std::unique_ptr<std::uint8_t[]> buf(
-          std::make_unique<std::uint8_t[]>(len));
-      keys.ToBuffer(buf.get(), len);
-      output_key.Write(buf.get(), len);
-      if (output_key.Fail())
-        {
-          LOG(error) << "routerinfo: Failed to write to file " << filename
-                     << ".key";
-          return false;
-        }
-      // Write RI to file
-      try
-        {
-          routerInfo.SaveToFile(filename);
-        }
-      catch (...)
-        {
-          core::Exception ex(GetName().c_str());
-          ex.Dispatch(__func__);
-          return false;
-        }
-
-      return true;
-    }
-
-  if (inputs.size() == 0)
-    {
-      LOG(error) << "routerinfo: Not enough arguments";
-      PrintUsage(cmd_name);
-      return false;
-    }
-
-  // for each file : read and print description
-  for (const auto& arg : inputs)
-    {
-      core::InputFileStream input(arg, std::ios::in | std::ios::binary);
-      if (input.Fail())
-        {
-          LOG(error) << "routerinfo: Failed to open input " << arg;
-          return false;
-        }
-      // Read all input
-      std::size_t length(0);
-      std::unique_ptr<std::uint8_t[]> buffer =
-          input.ReadAll<std::uint8_t, std::size_t>(&length);
-      if (!buffer)
-        {
-          LOG(error) << "routerinfo: Failed to read input " << arg;
-          return false;
-        }
-      LOG(trace) << "routerinfo: read OK length " << length;
-      try
-        {
-          core::RouterInfo ri(buffer.get(), length);
-          LOG(info) << ri.GetDescription();
-        }
-      catch (...)
-        {
-          core::Exception ex(GetName().c_str());
-          ex.Dispatch(__func__);
-          return false;
-        }
-    }
-
   return true;
 }

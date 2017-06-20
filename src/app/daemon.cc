@@ -81,6 +81,8 @@ bool DaemonSingleton::Init() {
     m_Instance->Initialize();
   } catch (const std::exception& ex) {
     LOG(error) << "DaemonSingleton: exception during initialization: " << ex.what();
+    // TODO(anonimal): Instance and RAII refactoring
+    Stop();
     return false;
   } catch (...) {
     LOG(error) << "DaemonSingleton: unknown exception during initialization";

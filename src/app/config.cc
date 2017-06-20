@@ -172,6 +172,12 @@ void Configuration::ParseKovriConfigFile(
     throw std::runtime_error("Could not open " + file + "!\n");
   bpo::store(bpo::parse_config_file(filename, options), var_map);
   bpo::notify(var_map);
+  // Check host syntax
+  boost::system::error_code ec;
+  boost::asio::ip::address::from_string(
+      m_KovriConfig["host"].as<std::string>(), ec);
+  if (ec)
+    throw std::runtime_error("Invalid host: " + ec.message());
   // Ensure port in valid range
   if (!m_KovriConfig["port"].defaulted())
     {

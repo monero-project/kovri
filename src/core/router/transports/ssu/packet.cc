@@ -217,12 +217,13 @@ std::uint8_t const* SSUSessionCreatedPacket::GetDhY() const {
 void SSUSessionCreatedPacket::SetIPAddress(
     std::uint8_t* address,
     std::size_t size) {
-  m_IPAddress = address;
+  m_IPAddress.reset(new std::uint8_t[size]);
+  std::memcpy(m_IPAddress.get(), address, size);
   m_AddressSize = size;
 }
 
 std::uint8_t const* SSUSessionCreatedPacket::GetIPAddress() const {
-  return m_IPAddress;
+  return m_IPAddress.get();
 }
 
 std::size_t SSUSessionCreatedPacket::GetIPAddressSize() const {

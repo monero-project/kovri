@@ -469,7 +469,7 @@ void SSUSession::SendSessionCreated(
     packet.SetIPAddress(remote_address.to_v6().to_bytes().data(), 16);
     s.Insert(remote_address.to_v6().to_bytes().data(), 16);
   }
-  s.Insert<std::uint16_t>(packet.GetPort());  // remote port
+  s.Insert<std::uint16_t>(htobe16(packet.GetPort()));  // remote port
   if (address->host.is_v4())
     s.Insert(address->host.to_v4().to_bytes().data(), 4);  // our IP V4
   else
@@ -485,8 +485,8 @@ void SSUSession::SendSessionCreated(
   }
   packet.SetRelayTag(relay_tag);
   packet.SetSignedOnTime(kovri::core::GetSecondsSinceEpoch());
-  s.Insert<std::uint32_t>(relay_tag);
-  s.Insert<std::uint32_t>(packet.GetSignedOnTime());
+  s.Insert<std::uint32_t>(htobe32(relay_tag));
+  s.Insert<std::uint32_t>(htobe32(packet.GetSignedOnTime()));
   // store for session confirmation
   m_SessionConfirmData = std::make_unique<SignedData>(s);
 

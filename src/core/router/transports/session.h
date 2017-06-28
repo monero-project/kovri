@@ -70,6 +70,18 @@ class SignedData {
     m_Stream.write(reinterpret_cast<char *>(&type), sizeof(T));
   }
 
+  /// @brief Insert at a specific position
+  /// @param way beginning, current or end
+  /// @param offset value relative to the seekdir parameter
+  /// @param buf buffer
+  /// @param len length
+  template <typename T>
+  void Insert(std::ios_base::seekdir way, std::streamoff offset, T type)
+  {
+    m_Stream.seekp(offset, way);
+    Insert(type);
+  }
+
   bool Verify(
       const kovri::core::IdentityEx& ident,
       const std::uint8_t* signature) const {

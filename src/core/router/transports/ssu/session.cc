@@ -543,8 +543,9 @@ void SSUSession::ProcessSessionConfirmed(SSUPacket* pkt) {
   auto packet = static_cast<SSUSessionConfirmedPacket*>(pkt);
   m_RemoteIdentity = packet->GetRemoteRouterIdentity();
   m_Data.UpdatePacketSize(m_RemoteIdentity.GetIdentHash());
-  // signature time
-  m_SessionConfirmData->Insert<std::uint32_t>(htobe32(packet->GetSignedOnTime()));
+  // signature time : replace with last value
+  m_SessionConfirmData->Insert<std::uint32_t>(
+      std::ios_base::end, -4, htobe32(packet->GetSignedOnTime()));
   if (m_SessionConfirmData->Verify(m_RemoteIdentity, packet->GetSignature())) {
     // verified
     Established();

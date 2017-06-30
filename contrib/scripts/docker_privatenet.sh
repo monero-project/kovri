@@ -1,8 +1,10 @@
 #!/bin/bash
 
-# Constants
-kovri_dir="/opt/kovri"
-workspace="/opt/testnet"
+# Get/set environment
+KOVRI_DIR=${KOVRI_DIR:-"/tmp/kovri"}
+
+# Set constants
+workspace=${KOVRI_DIR}/build/testnet
 
 docker_image="kovrid"
 docker_base_name="kovritestnet"
@@ -18,7 +20,7 @@ sequence="seq -f "%03g" 10 29"
 
 PrintUsage()
 {
-  echo "Usage: $0 {create|start|stop|destroy}" >&2
+  echo "Usage: $ export KOVRI_DIR=\"path to your kovri repo\" && $0 {create|start|stop|destroy}" >&2
 }
 
 if [ "$#" -ne 1 ]
@@ -29,6 +31,17 @@ fi
 
 Create()
 {
+  # Ensure paths
+  if [[ ! -d $KOVRI_DIR ]]; then
+    echo "Kovri not found. See building instructions."
+    exit 1
+  fi
+
+  if [[ ! -d $workspace ]]; then
+    echo "$workspace does not exist, creating"
+    mkdir -p $workspace 2>/dev/null
+  fi
+
   pushd $workspace
 
   ## Create RIs
@@ -58,8 +71,9 @@ Create()
   for _seq in $($sequence)
   do
     ## Create data-dir
-    cp -r ${kovri_dir}/pkg kovri_${_seq}
+    cp -r ${KOVRI_DIR}/pkg kovri_${_seq}
     mkdir kovri_${_seq}/core
+
     ## Default with 1 server tunnel
     echo "\
 [MyServer]

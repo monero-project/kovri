@@ -1,5 +1,21 @@
 #!/bin/bash
 
+# Constants
+kovri_dir="/opt/kovri"
+workspace="/opt/testnet"
+
+docker_image="kovrid"
+docker_base_name="kovritestnet"
+
+pid="1000"
+gid="1000"
+
+#Note: sequence limit [2:254]
+sequence="seq -f "%03g" 10 29"
+
+#Note: this can avoid to rebuild the docker image
+#custom_build_dir="-v /home/user/kovri:/kovri"
+
 PrintUsage()
 {
   echo "Usage: $0 {create|start|stop|destroy}" >&2
@@ -13,36 +29,37 @@ fi
 
 Create()
 {
-  pushd ${WORKSPACE}
+  pushd $workspace
+
   ## Create RIs
-  for var in `$SEQUENCE`
+  for _seq in $($sequence)
   do
-      mkdir -p router_$var/.kovri
-      chown -R $PID:$GID $WORKSPACE/router_$var
+      mkdir -p router_${_seq}/.kovri
+      chown -R ${pid}:${gid} ${workspace}/router_${_seq}
       docker run -w /home/kovri -it --rm \
-        -v $WORKSPACE/router_$var:/home/kovri \
-        $CUSTOM_BUILD_DIR \
-        $DOCKER_IMAGE  /kovri/build/kovri-util routerinfo --create \
-          --host=172.18.0.$((10#$var)) --port 10$var --floodfill 1 --bandwidth P
+        -v ${workspace}/router_${_seq}:/home/kovri \
+        $custom_build_dir \
+        $docker_image  /kovri/build/kovri-util routerinfo --create \
+          --host=172.18.0.$((10#${_seq})) --port 10${_seq} --floodfill 1 --bandwidth P
   done
 
   ## ZIP RIs to create reseed.zip
   mkdir tmp \
-    && cp `ls router_*/routerInfo* | grep -v key` tmp \
+    && cp $(ls router_*/routerInfo* | grep -v key) tmp \
     && cd tmp \
-    && zip reseed.zip * \
-    && mv reseed.zip $WORKSPACE \
+    && zip reseed.zip * \  # TODO(unassigned): ensure this binary is available
+    && mv reseed.zip $workspace \
     && cd .. \
-    && rm -rf $WORKSPACE/tmp
+    && rm -rf ${workspace}/tmp
 
   ## Create docker private network
   docker network create --subnet=172.18.0.0/16 privatenet
 
-  for var in `$SEQUENCE`
+  for _seq in $($sequence)
   do
     ## Create data-dir
-    cp -r ${KOVRI_SRC}/pkg kovri_$var
-    mkdir kovri_$var/core
+    cp -r ${kovri_dir}/pkg kovri_${_seq}
+    mkdir kovri_${_seq}/core
     ## Default with 1 server tunnel
     echo "\
 [MyServer]
@@ -53,27 +70,27 @@ in_port = 2222
 keys = server-keys.dat
 ;white_list =
 ;black_list =
-" > kovri_$var/config/tunnels.conf
+" > kovri_${_seq}/config/tunnels.conf
 
     ## Put RI + key in correct location
-    cp `ls router_$var/routerInfo*.dat` kovri_$var/core/router.info
-    cp `ls router_$var/routerInfo*.key` kovri_$var/core/router.keys
-    chown -R $PID:$GID kovri_$var
+    cp $(ls router_${_seq}/routerInfo*.dat) kovri_${_seq}/core/router.info
+    cp $(ls router_${_seq}/routerInfo*.key) kovri_${_seq}/core/router.keys
+    chown -R ${pid}:${gid} kovri_${_seq}
 
     ## Create container
     docker create -u 0 -w /home/kovri \
-      --name ${DOCKER_BASE_NAME}_$var \
-      --hostname ${DOCKER_BASE_NAME}_$var \
+      --name ${docker_base_name}_${_seq} \
+      --hostname ${docker_base_name}_${_seq} \
       --net privatenet \
-      --ip 172.18.0.$((10#$var)) \
-      -p 10$var:10$var \
-      -v $WORKSPACE:/home/kovri/testnet \
-      $CUSTOM_BUILD_DIR \
-      $DOCKER_IMAGE /kovri/build/kovri \
-      --data-dir /home/kovri/testnet/kovri_$var \
+      --ip 172.18.0.$((10#${_seq})) \
+      -p 10${_seq}:10${_seq} \
+      -v ${workspace}:/home/kovri/testnet \
+      $custom_build_dir \
+      $docker_image /kovri/build/kovri \
+      --data-dir /home/kovri/testnet/kovri_${_seq} \
       --log-level 5 \
-      --host 172.18.0.$((10#$var)) \
-      --port 10$var \
+      --host 172.18.0.$((10#${_seq})) \
+      --port 10${_seq} \
       --floodfill=1 \
       --enable-ntcp=0 \
       --disable-su3-verification=1 \
@@ -84,45 +101,32 @@ keys = server-keys.dat
 
 Start()
 {
-  for var in `$SEQUENCE`
+  for _seq in $($sequence)
   do
-    docker start ${DOCKER_BASE_NAME}_$var
+    docker start ${docker_base_name}_${_seq}
   done
 }
 
 Stop()
 {
-  for var in `$SEQUENCE`
+  for _seq in $($sequence)
   do
-    docker stop ${DOCKER_BASE_NAME}_$var
+    docker stop ${docker_base_name}_${_seq}
   done
 }
 
 Destroy()
 {
-  for var in `$SEQUENCE`
+  for _seq in $($sequence)
   do
-    docker stop ${DOCKER_BASE_NAME}_$var
-    docker rm -v ${DOCKER_BASE_NAME}_$var
-    rm -rf $WORKSPACE/router_$var
-    rm -rf $WORKSPACE/kovri_$var
+    docker stop ${docker_base_name}_${_seq}
+    docker rm -v ${docker_base_name}_${_seq}
+    rm -rf ${workspace}/router_${_seq}
+    rm -rf ${workspace}/kovri_${_seq}
   done
-  rm $WORKSPACE/reseed.zip
+  rm ${workspace}/reseed.zip
   docker network rm privatenet
 }
-
-## Variables
-KOVRI_SRC="/opt/kovri"
-WORKSPACE="/opt/testnet"
-DOCKER_IMAGE="kovrid"
-DOCKER_BASE_NAME="kovritestnet"
-PID="1000"
-GID="1000"
-#Note: sequence limit [2:254]
-SEQUENCE="seq -f "%03g" 10 29"
-
-#Note: this can avoid to rebuild the docker image
-#CUSTOM_BUILD_DIR="-v /home/user/kovri:/kovri"
 
 case "$1" in
   create)
@@ -137,4 +141,3 @@ case "$1" in
     PrintUsage
     exit 1
 esac
-

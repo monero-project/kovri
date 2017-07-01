@@ -18,6 +18,8 @@ sequence="seq -f "%03g" 10 29"
 #Note: this can avoid to rebuild the docker image
 #custom_build_dir="-v /home/user/kovri:/kovri"
 
+reseed_file="reseed.zip"
+
 PrintUsage()
 {
   echo "Usage: $ export KOVRI_DIR=\"path to your kovri repo\" && $0 {create|start|stop|destroy}" >&2
@@ -56,12 +58,12 @@ Create()
           --host=172.18.0.$((10#${_seq})) --port 10${_seq} --floodfill 1 --bandwidth P
   done
 
-  ## ZIP RIs to create reseed.zip
+  ## ZIP RIs to create unsigned reseed file
   mkdir tmp \
     && cp $(ls router_*/routerInfo* | grep -v key) tmp \
     && cd tmp \
-    && zip reseed.zip * \  # TODO(unassigned): ensure this binary is available
-    && mv reseed.zip $workspace \
+    && zip $reseed_file * \  # TODO(unassigned): ensure this binary is available
+    && mv $reseed_file $workspace \
     && cd .. \
     && rm -rf ${workspace}/tmp
 
@@ -108,7 +110,7 @@ keys = server-keys.dat
       --floodfill=1 \
       --enable-ntcp=0 \
       --disable-su3-verification=1 \
-      --reseed-from /home/kovri/testnet/reseed.zip
+      --reseed-from /home/kovri/testnet/${reseed_file}
   done
   popd
 }
@@ -138,7 +140,7 @@ Destroy()
     rm -rf ${workspace}/router_${_seq}
     rm -rf ${workspace}/kovri_${_seq}
   done
-  rm ${workspace}/reseed.zip
+  rm ${workspace}/${reseed_file}
   docker network rm privatenet
 }
 

@@ -6,7 +6,7 @@ KOVRI_DIR=${KOVRI_DIR:-"/tmp/kovri"}
 # Set constants
 workspace=${KOVRI_DIR}/build/testnet
 
-docker_image="kovrid"
+docker_image="geti2p/kovri"
 docker_base_name="kovritestnet"
 
 pid="1000"

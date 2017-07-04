@@ -2,15 +2,15 @@
 
 # Get/set environment
 KOVRI_DIR=${KOVRI_DIR:-"/tmp/kovri"}
+KOVRI_WORKSPACE=${KOVRI_WORKSPACE:-"${KOVRI_DIR}/build/testnet"}
 
 # Set constants
-workspace=${KOVRI_DIR}/build/testnet
 
 docker_image="geti2p/kovri"
-docker_base_name="kovritestnet"
+docker_base_name="kovri_testnet"
 
-pid="1000"
-gid="1000"
+pid=$(id -u)
+gid="docker" # Assumes user is in docker group
 
 #Note: sequence limit [2:254]
 sequence="seq -f "%03g" 10 29"
@@ -33,6 +33,9 @@ fi
 
 Create()
 {
+  echo "Kovri directory: $KOVRI_DIR"
+  echo "Kovri workspace: $KOVRI_WORKSPACE"
+
   # Ensure repo
   if [[ ! -d $KOVRI_DIR ]]; then
     false
@@ -40,13 +43,13 @@ Create()
   fi
 
   # Ensure workspace
-  if [[ ! -d $workspace ]]; then
-    echo "$workspace does not exist, creating"
-    mkdir -p $workspace 2>/dev/null
+  if [[ ! -d $KOVRI_WORKSPACE ]]; then
+    echo "$KOVRI_WORKSPACE does not exist, creating"
+    mkdir -p $KOVRI_WORKSPACE 2>/dev/null
     catch "Could not create workspace"
   fi
 
-  pushd $workspace
+  pushd $KOVRI_WORKSPACE
 
   ## Create RIs
   for _seq in $($sequence); do
@@ -58,12 +61,12 @@ Create()
     catch "Could not create data dir"
 
     # Set permissions
-    chown -R ${pid}:${gid} ${workspace}/${_dir}
+    chown -R ${pid}:${gid} ${KOVRI_WORKSPACE}/${_dir}
     catch "Could not set ownership ${pid}:${gid}"
 
     # Run Docker
     docker run -w /home/kovri -it --rm \
-      -v ${workspace}/${_dir}:/home/kovri \
+      -v ${KOVRI_WORKSPACE}/${_dir}:/home/kovri \
       $custom_build_dir \
       $docker_image  /kovri/build/kovri-util routerinfo --create \
         --host=172.18.0.$((10#${_seq})) --port 10${_seq} --floodfill 1 --bandwidth P
@@ -77,9 +80,9 @@ Create()
     && cp $(ls router_*/routerInfo* | grep -v key) $_tmp \
     && cd $_tmp \
     && zip $reseed_file * \
-    && mv $reseed_file $workspace \
+    && mv $reseed_file $KOVRI_WORKSPACE \
     && cd .. \
-    && rm -rf ${workspace}/${_tmp}
+    && rm -rf ${KOVRI_WORKSPACE}/${_tmp}
   catch "Could not ZIP RI's"
 
   ## Create docker private network
@@ -114,13 +117,13 @@ keys = server-keys.dat
     catch "Could not set ownership ${pid}:${gid}"
 
     ## Create container
-    docker create -u 0 -w /home/kovri \
+    docker create -w /home/kovri \
       --name ${docker_base_name}_${_seq} \
       --hostname ${docker_base_name}_${_seq} \
       --net privatenet \
       --ip 172.18.0.$((10#${_seq})) \
       -p 10${_seq}:10${_seq} \
-      -v ${workspace}:/home/kovri/testnet \
+      -v ${KOVRI_WORKSPACE}:/home/kovri/testnet \
       $custom_build_dir \
       $docker_image /kovri/build/kovri \
       --data-dir /home/kovri/testnet/kovri_${_seq} \
@@ -158,10 +161,10 @@ Destroy()
   for _seq in $($sequence); do
     docker stop ${docker_base_name}_${_seq}
     docker rm -v ${docker_base_name}_${_seq}
-    rm -rf ${workspace}/router_${_seq}
-    rm -rf ${workspace}/kovri_${_seq}
+    rm -rf ${KOVRI_WORKSPACE}/router_${_seq}
+    rm -rf ${KOVRI_WORKSPACE}/kovri_${_seq}
   done
-  rm ${workspace}/${reseed_file}
+  rm ${KOVRI_WORKSPACE}/${reseed_file}
   docker network rm privatenet
 }
 

@@ -33,48 +33,64 @@ fi
 
 Create()
 {
-  # Ensure paths
+  # Ensure repo
   if [[ ! -d $KOVRI_DIR ]]; then
-    echo "Kovri not found. See building instructions."
-    exit 1
+    false
+    catch "Kovri not found. See building instructions."
   fi
 
+  # Ensure workspace
   if [[ ! -d $workspace ]]; then
     echo "$workspace does not exist, creating"
     mkdir -p $workspace 2>/dev/null
+    catch "Could not create workspace"
   fi
 
   pushd $workspace
 
   ## Create RIs
-  for _seq in $($sequence)
-  do
-      mkdir -p router_${_seq}/.kovri
-      chown -R ${pid}:${gid} ${workspace}/router_${_seq}
-      docker run -w /home/kovri -it --rm \
-        -v ${workspace}/router_${_seq}:/home/kovri \
-        $custom_build_dir \
-        $docker_image  /kovri/build/kovri-util routerinfo --create \
-          --host=172.18.0.$((10#${_seq})) --port 10${_seq} --floodfill 1 --bandwidth P
+  for _seq in $($sequence); do
+    # Setup router dir
+    local _dir="router_${_seq}"
+
+    # Create data dir
+    mkdir -p ${_dir}/.kovri
+    catch "Could not create data dir"
+
+    # Set permissions
+    chown -R ${pid}:${gid} ${workspace}/${_dir}
+    catch "Could not set ownership ${pid}:${gid}"
+
+    # Run Docker
+    docker run -w /home/kovri -it --rm \
+      -v ${workspace}/${_dir}:/home/kovri \
+      $custom_build_dir \
+      $docker_image  /kovri/build/kovri-util routerinfo --create \
+        --host=172.18.0.$((10#${_seq})) --port 10${_seq} --floodfill 1 --bandwidth P
+    catch "Docker could not run"
   done
 
   ## ZIP RIs to create unsigned reseed file
-  mkdir tmp \
-    && cp $(ls router_*/routerInfo* | grep -v key) tmp \
-    && cd tmp \
-    && zip $reseed_file * \  # TODO(unassigned): ensure this binary is available
+  # TODO(unassigned): ensure the zip binary is available
+  local _tmp="tmp"
+  mkdir $_tmp \
+    && cp $(ls router_*/routerInfo* | grep -v key) $_tmp \
+    && cd $_tmp \
+    && zip $reseed_file * \
     && mv $reseed_file $workspace \
     && cd .. \
-    && rm -rf ${workspace}/tmp
+    && rm -rf ${workspace}/${_tmp}
+  catch "Could not ZIP RI's"
 
   ## Create docker private network
   docker network create --subnet=172.18.0.0/16 privatenet
+  catch "Docker could not create network"
 
   for _seq in $($sequence)
   do
     ## Create data-dir
-    cp -r ${KOVRI_DIR}/pkg kovri_${_seq}
-    mkdir kovri_${_seq}/core
+    cp -r ${KOVRI_DIR}/pkg kovri_${_seq} && mkdir kovri_${_seq}/core
+    catch "Could not copy package resources / create data-dir"
 
     ## Default with 1 server tunnel
     echo "\
@@ -87,11 +103,15 @@ keys = server-keys.dat
 ;white_list =
 ;black_list =
 " > kovri_${_seq}/config/tunnels.conf
+    catch "Could not create server tunnel"
 
     ## Put RI + key in correct location
     cp $(ls router_${_seq}/routerInfo*.dat) kovri_${_seq}/core/router.info
     cp $(ls router_${_seq}/routerInfo*.key) kovri_${_seq}/core/router.keys
+    catch "Could not copy RI and key"
+
     chown -R ${pid}:${gid} kovri_${_seq}
+    catch "Could not set ownership ${pid}:${gid}"
 
     ## Create container
     docker create -u 0 -w /home/kovri \
@@ -111,30 +131,31 @@ keys = server-keys.dat
       --enable-ntcp=0 \
       --disable-su3-verification=1 \
       --reseed-from /home/kovri/testnet/${reseed_file}
+    catch "Docker could not create container"
   done
   popd
 }
 
 Start()
 {
-  for _seq in $($sequence)
-  do
+  for _seq in $($sequence); do
     docker start ${docker_base_name}_${_seq}
+    catch "Could not start docker: $_seq"
   done
 }
 
 Stop()
 {
-  for _seq in $($sequence)
-  do
+  for _seq in $($sequence); do
     docker stop ${docker_base_name}_${_seq}
+    catch "Could not stop docker: $_seq"
   done
 }
 
 Destroy()
 {
-  for _seq in $($sequence)
-  do
+  # TODO(unassigned): error handling?
+  for _seq in $($sequence); do
     docker stop ${docker_base_name}_${_seq}
     docker rm -v ${docker_base_name}_${_seq}
     rm -rf ${workspace}/router_${_seq}
@@ -142,6 +163,15 @@ Destroy()
   done
   rm ${workspace}/${reseed_file}
   docker network rm privatenet
+}
+
+# Error handler
+catch()
+{
+  if [[ $? -ne 0 ]]; then
+    echo "$1" >&2
+    exit 1
+  fi
 }
 
 case "$1" in

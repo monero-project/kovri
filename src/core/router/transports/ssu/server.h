@@ -49,6 +49,7 @@
 #include "core/router/i2np.h"
 #include "core/router/identity.h"
 #include "core/router/info.h"
+#include "core/router/transports/ssu/packet.h"
 #include "core/router/transports/ssu/session.h"
 
 #include "core/util/i2p_endian.h"
@@ -57,7 +58,7 @@ namespace kovri {
 namespace core {
 
 struct RawSSUPacket {
-  kovri::core::AESAlignedBuffer<1500> buf;
+  kovri::core::AESAlignedBuffer<GetType(SSUSize::RawPacketBuffer)> buf;
   boost::asio::ip::udp::endpoint from;
   std::size_t len;
 };

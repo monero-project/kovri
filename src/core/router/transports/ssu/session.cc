@@ -184,27 +184,34 @@ void SSUSession::ProcessNextMessage(
     } else {
       // try intro key depending on side
       auto intro_key = GetIntroKey();
-      if (intro_key) {
-        if (Validate(buf, len, intro_key)) {
-          Decrypt(buf, len, intro_key);
+      bool validated = false;
+      if (intro_key)
+        {
+          if (Validate(buf, len, intro_key))
+            {
+              validated = true;
+              Decrypt(buf, len, intro_key);
+            }
         }
-      } else {
-        // try own intro key
-        auto address = kovri::context.GetRouterInfo().GetSSUAddress();
-        if (!address) {
-          LOG(error) << "SSUSession: " << __func__ << ": SSU is not supported";
-          return;
-        }
-        if (Validate(buf, len, address->key)) {
+      if (!validated)
+        {
+          // try own intro key
+          auto address = kovri::context.GetRouterInfo().GetSSUAddress();
+          if (!address)
+            {
+              LOG(error) << "SSUSession: " << __func__
+                         << ": SSU is not supported";
+              return;
+            }
+          if (!Validate(buf, len, address->key))
+            {
+              LOG(error) << "SSUSession: MAC verification failed " << len
+                         << " bytes from " << sender_endpoint;
+              m_Server.DeleteSession(shared_from_this());
+              return;
+            }
           Decrypt(buf, len, address->key);
-        } else {
-          LOG(error)
-            << "SSUSession: MAC verification failed "
-            << len << " bytes from " << sender_endpoint;
-          m_Server.DeleteSession(shared_from_this());
-          return;
         }
-      }
     }
     // successfully decrypted
     ProcessDecryptedMessage(buf, len, sender_endpoint);

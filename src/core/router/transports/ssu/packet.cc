@@ -701,11 +701,11 @@ std::unique_ptr<SSUHeader> SSUPacketParser::ParseHeader() {
 }
 
 std::unique_ptr<SSUPacket> SSUPacketParser::ParsePacket() {
-  std::unique_ptr<SSUHeader> header(ParseHeader());
+  m_Header = ParseHeader();
   std::unique_ptr<SSUPacket> packet;
   std::uint8_t* const old_data = m_Data;
   const std::size_t old_length = m_Length;
-  switch (header->GetPayloadType()) {
+  switch (m_Header->GetPayloadType()) {
     case SSUPayloadType::SessionRequest:
       packet = ParseSessionRequest();
       break;
@@ -740,7 +740,7 @@ std::unique_ptr<SSUPacket> SSUPacketParser::ParsePacket() {
   // TODO(EinMByte): Get rid of this
   packet->m_RawDataLength = old_length;
   packet->m_RawData = old_data;
-  packet->SetHeader(std::move(header));
+  packet->SetHeader(std::move(m_Header));
   return packet;
 }
 

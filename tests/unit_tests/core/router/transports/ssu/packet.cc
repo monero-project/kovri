@@ -66,7 +66,7 @@ struct SSUTestVectorsFixture : public IdentityExFixture
     // Append identity
     output.WriteData(m_AliceIdentity.data(), m_AliceIdentity.size());
     // Signed on time (0x57, 0x69, 0x04, 0xAA)
-    output.WriteUInt32(1466500266);
+    output.WriteUInt32(m_SignedOnTime);
     // Padding to reach multiple of 16 bytes
     // 13 = 16 - (37(header_plain) + 1 + 2 + (387+4) + 4(time) + 64(sig len)) % 16)
     output.ProduceData(13);
@@ -75,6 +75,9 @@ struct SSUTestVectorsFixture : public IdentityExFixture
     for(std::uint8_t i(0); i< 64; i++)
       output.WriteUInt8(i);
   }
+
+  // Signed on time (0x57, 0x69, 0x04, 0xAA)
+  const std::uint32_t m_SignedOnTime = 1466500266;
 
   std::array<std::uint8_t, 37> header_plain {{
     // 16 byte MAC (not an actual one)
@@ -188,7 +191,7 @@ struct SSUTestVectorsFixture : public IdentityExFixture
     0x23, 0x28,
     // Relay tag (1234567890) 
     0x49, 0x96, 0x02, 0xD2,
-    // Signed on time (1466500266)
+    // m_SignedOnTime (1466500266)
     0x57, 0x69, 0x04, 0xAA,
     // Signature (non-realistic example)
     // 40 bytes (DSA)
@@ -401,7 +404,7 @@ BOOST_AUTO_TEST_CASE(SessionCreatedPlain) {
   BOOST_CHECK_EQUAL(*packet->GetIPAddress(), 0x0A);
   BOOST_CHECK_EQUAL(packet->GetPort(), 9000);
   BOOST_CHECK_EQUAL(packet->GetRelayTag(), 1234567890);
-  BOOST_CHECK_EQUAL(packet->GetSignedOnTime(), 1466500266);
+  BOOST_CHECK_EQUAL(packet->GetSignedOnTime(), m_SignedOnTime);
   BOOST_CHECK_EQUAL(*packet->GetSignature(), 0x00);
   BOOST_CHECK_EQUAL(packet->GetSize(), session_created.size());
 }
@@ -423,7 +426,7 @@ BOOST_AUTO_TEST_CASE(SessionConfirmedPlain)
   BOOST_CHECK_EQUAL(
       packet->GetSize(), session_confirmed.size());
   // Check SignedOnTime
-  BOOST_CHECK_EQUAL(packet->GetSignedOnTime(), 1466500266);
+  BOOST_CHECK_EQUAL(packet->GetSignedOnTime(), m_SignedOnTime);
   // Check identity
   BOOST_CHECK_EQUAL(
       packet->GetRemoteRouterIdentity().GetStandardIdentity().Hash(),
@@ -585,7 +588,7 @@ BOOST_AUTO_TEST_CASE(SessionCreatedPlain) {
   packet.SetIPAddress(&session_created.at(257), 3);
   packet.SetPort(9000);
   packet.SetRelayTag(1234567890);
-  packet.SetSignedOnTime(1466500266);
+  packet.SetSignedOnTime(m_SignedOnTime);
   packet.SetSignature(&session_created.at(270), 40);
   auto buffer = std::make_unique<std::uint8_t[]>(packet.GetSize());
   SSUPacketBuilder builder(buffer.get(), packet.GetSize());
@@ -612,7 +615,7 @@ BOOST_AUTO_TEST_CASE(SessionConfirmedPlain)
   core::SSUSessionConfirmedPacket packet;
   packet.SetHeader(std::move(header));
   packet.SetRemoteRouterIdentity(identity);
-  packet.SetSignedOnTime(1466500266);
+  packet.SetSignedOnTime(m_SignedOnTime);
   const std::size_t sig_position =
       session_confirmed.size() - identity.GetSignatureLen();
   packet.SetSignature(&session_confirmed.at(sig_position));

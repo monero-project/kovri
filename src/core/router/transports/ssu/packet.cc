@@ -774,7 +774,9 @@ std::unique_ptr<SSUSessionConfirmedPacket> SSUPacketParser::ParseSessionConfirme
     throw std::length_error("SSUPacketParser: invalid length within identity");
   packet->SetRemoteRouterIdentity(identity);
   packet->SetSignedOnTime(ReadUInt32());
-  const std::size_t padding_size = ((m_Length - init_length) + identity.GetSignatureLen()) % 16;
+  const std::size_t padding_size = SSUPacketBuilder::GetPaddingSize(
+      m_Header->GetSize() + init_length - m_Length
+      + identity.GetSignatureLen());
   ConsumeData(padding_size);  // Skip padding
   packet->SetSignature(m_Data);
   return packet;

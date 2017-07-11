@@ -36,6 +36,9 @@
 #include <memory>
 
 #include "core/router/transports/ssu/packet.h"
+#include "tests/unit_tests/core/router/identity.h"
+
+namespace core = kovri::core;
 
 /**
  *
@@ -43,7 +46,35 @@
  *
  */
 
-struct SSUTestVectorsFixture {
+struct SSUTestVectorsFixture : public IdentityExFixture
+{
+  SSUTestVectorsFixture()
+  {
+    // Build session_confirmed : starts with header
+    std::memcpy(
+        session_confirmed.data(), header_plain.data(), header_plain.size());
+    // Set header flag to payload SessionConfirmed
+    session_confirmed[32] = std::uint8_t(
+        core::GetType(core::SSUPayloadType::SessionConfirmed) << 4);
+    core::OutputByteStream output(
+        session_confirmed.data() + header_plain.size(),
+        session_confirmed.size() - header_plain.size());
+    // 1 byte info
+    output.WriteUInt8(0x01);
+    // 2 byte identity size (0x01, 0x87)
+    output.WriteUInt16(m_AliceIdentity.size());
+    // Append identity
+    output.WriteData(m_AliceIdentity.data(), m_AliceIdentity.size());
+    // Signed on time (0x57, 0x69, 0x04, 0xAA)
+    output.WriteUInt32(1466500266);
+    // Padding to reach multiple of 16 bytes
+    // 13 = 16 - (37(header_plain) + 1 + 2 + (387+4) + 4(time) + 64(sig len)) % 16)
+    output.ProduceData(13);
+    // Signature (non-realistic example)
+    // 64 bytes (EDDSA_SHA512_ED25519)
+    for(std::uint8_t i(0); i< 64; i++)
+      output.WriteUInt8(i);
+  }
 
   std::array<std::uint8_t, 37> header_plain {{
     // 16 byte MAC (not an actual one)
@@ -168,27 +199,10 @@ struct SSUTestVectorsFixture {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
   }};
 
-  std::array<std::uint8_t, 64> session_confirmed {{
-    // TODO(EinMByte): Make this more realistic so it will parse
-    // 1 byte info
-    0x00,
-    // 2 byte fragment size (8)
-    0x08,
-    // 8 byte fragment
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    // Signed on time (1466500266)
-    0x57, 0x69, 0x04, 0xAA,
-    // Padding to reach multiple of 16 bytes
-    0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    // Signature (non-realistic example)
-    // 40 bytes (DSA)
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-  }};
+  // Initialized in constructor
+  // 512 = 37(header) + 1(info) + 2(size) + (387 + 4)(identity) + 4(time)
+  //     + 13(padding) + 64(sig len)
+  std::array<std::uint8_t, 512> session_confirmed;
 
   std::array<std::uint8_t, 52> relay_request {{
     // 4 byte relay tag
@@ -392,6 +406,38 @@ BOOST_AUTO_TEST_CASE(SessionCreatedPlain) {
   BOOST_CHECK_EQUAL(packet->GetSize(), session_created.size());
 }
 
+BOOST_AUTO_TEST_CASE(SessionConfirmedPlain)
+{
+  // Construct IdentityEx
+  core::IdentityEx identity;
+  BOOST_CHECK(
+      identity.FromBuffer(m_AliceIdentity.data(), m_AliceIdentity.size()));
+  std::unique_ptr<core::SSUSessionConfirmedPacket> packet;
+  // Parse
+  core::SSUPacketParser parser(session_confirmed.data(), session_confirmed.size());
+  BOOST_CHECK_NO_THROW(
+      packet.reset(
+          static_cast<core::SSUSessionConfirmedPacket*>(
+              parser.ParsePacket().release())));
+  // Check size
+  BOOST_CHECK_EQUAL(
+      packet->GetSize(), session_confirmed.size());
+  // Check SignedOnTime
+  BOOST_CHECK_EQUAL(packet->GetSignedOnTime(), 1466500266);
+  // Check identity
+  BOOST_CHECK_EQUAL(
+      packet->GetRemoteRouterIdentity().GetStandardIdentity().Hash(),
+      identity.GetStandardIdentity().Hash());
+  // Check Signature
+  const auto sig_len = identity.GetSignatureLen();
+  const std::size_t sig_position(session_confirmed.size() - sig_len);
+  BOOST_CHECK_EQUAL_COLLECTIONS(
+      packet->GetSignature(),
+      packet->GetSignature() + sig_len,
+      &session_confirmed.at(sig_position),
+      &session_confirmed.at(sig_position) + sig_len);
+}
+
 BOOST_AUTO_TEST_CASE(RelayRequestPlain) {
   using namespace kovri::core;
   SSUPacketParser parser(relay_request.data(), relay_request.size());
@@ -549,6 +595,47 @@ BOOST_AUTO_TEST_CASE(SessionCreatedPlain) {
     buffer.get() + packet.GetSize(),
     session_created.data(),
     session_created.data() + session_created.size());
+}
+
+BOOST_AUTO_TEST_CASE(SessionConfirmedPlain)
+{
+  // Construct IdentityEx
+  core::IdentityEx identity;
+  BOOST_CHECK(
+      identity.FromBuffer(m_AliceIdentity.data(), m_AliceIdentity.size()));
+  // Build initial packet : need header
+  core::SSUPacketParser parser(header_plain.data(), header_plain.size());
+  std::unique_ptr<core::SSUHeader> header;
+  BOOST_CHECK_NO_THROW(header = parser.ParseHeader());
+  header->SetPayloadType(core::GetType(core::SSUPayloadType::SessionConfirmed));
+  // Packet + attributes
+  core::SSUSessionConfirmedPacket packet;
+  packet.SetHeader(std::move(header));
+  packet.SetRemoteRouterIdentity(identity);
+  packet.SetSignedOnTime(1466500266);
+  const std::size_t sig_position =
+      session_confirmed.size() - identity.GetSignatureLen();
+  packet.SetSignature(&session_confirmed.at(sig_position));
+  // Output to buffer
+  auto buffer = std::make_unique<std::uint8_t[]>(packet.GetSize());
+  core::SSUPacketBuilder builder(buffer.get(), packet.GetSize());
+  builder.WriteHeader(packet.GetHeader());
+  builder.WritePacket(&packet);
+  // Padding is randomized, so check everything before and after
+  const std::size_t padding_position = header_plain.size() + 1  // Info
+                                       + 2  // Identity size
+                                       + m_AliceIdentity.size()  // Identity
+                                       + 4;  // SignedOnTime size
+  BOOST_CHECK_EQUAL_COLLECTIONS(
+      buffer.get(),
+      buffer.get() + padding_position,
+      session_confirmed.data(),
+      session_confirmed.data() + padding_position);
+  BOOST_CHECK_EQUAL_COLLECTIONS(
+      buffer.get() + sig_position,
+      buffer.get() + packet.GetSize(),
+      session_confirmed.data() + sig_position,
+      session_confirmed.data() + session_confirmed.size());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

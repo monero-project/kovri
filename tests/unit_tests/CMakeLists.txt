@@ -13,6 +13,7 @@ set(TESTS_CORE
   "core/crypto/elgamal.cc"
   "core/crypto/rand.cc"
   "core/crypto/util/x509.cc"
+  "core/router/identity.cc"
   "core/router/transports/ssu/packet.cc"
   "core/util/base64.cc")
 

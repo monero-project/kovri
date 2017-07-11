@@ -780,6 +780,9 @@ class SSUPacketParser : private kovri::core::InputByteStream {
   /// @brief Parses data fragment
   /// @return A parsed data fragment
   SSUFragment ParseFragment();
+
+  /// @brief Parsed header
+  std::unique_ptr<SSUHeader> m_Header;
 };
 
 /// @class SSUPacketBuilder

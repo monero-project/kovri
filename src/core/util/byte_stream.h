@@ -31,10 +31,12 @@
 #ifndef SRC_CORE_UTIL_BYTESTREAM_H_
 #define SRC_CORE_UTIL_BYTESTREAM_H_
 
-#include <cstdint>
+#include <boost/asio.hpp>
 #include <cstddef>
-#include <type_traits>
+#include <cstdint>
 #include <ios>
+#include <memory>
+#include <type_traits>
 
 namespace kovri {
 namespace core {
@@ -172,6 +174,11 @@ class OutputByteStream {
 /// @param data Pointer to data
 /// @param size Total size of data
 const std::string GetFormattedHex(const std::uint8_t* data, std::size_t size);
+
+/// @brief Returns vector of bytes representing address
+/// @param address IP v4 or v6 address
+std::unique_ptr<std::vector<std::uint8_t>> AddressToByteVector(
+    const boost::asio::ip::address& address);
 
 } // namespace core
 } // namespace kovri

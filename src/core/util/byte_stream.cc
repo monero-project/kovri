@@ -38,6 +38,7 @@
 #include <iomanip>
 
 #include "core/util/i2p_endian.h"
+#include "core/util/log.h"
 
 namespace kovri {
 namespace core {
@@ -100,6 +101,13 @@ void OutputByteStream::ProduceData(std::size_t amount) {
 }
 
 void OutputByteStream::WriteData(const std::uint8_t* data, std::size_t len) {
+  if (!len)
+    {
+      LOG(debug) << "OutputByteStream: skip empty data";
+      return;
+    }
+  if (!data)
+    throw std::runtime_error("OutputByteStream: null data");
   std::uint8_t* ptr = m_Data; 
   ProduceData(len);
   std::memcpy(ptr, data, len);

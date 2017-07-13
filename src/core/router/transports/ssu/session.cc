@@ -346,11 +346,8 @@ void SSUSession::SendSessionRequest() {
     packet.GetHeader()->SetExtendedOptions(true);
     packet.GetHeader()->SetExtendedOptionsData(extended_data.data(), 2);
   }
-  auto const address = GetRemoteEndpoint().address();
-  if (GetRemoteEndpoint().address().is_v4())
-    packet.SetIPAddress(address.to_v4().to_bytes().data(), 4);
-  else
-    packet.SetIPAddress(address.to_v6().to_bytes().data(), 16);
+  auto const remote_ip(core::AddressToByteVector(GetRemoteEndpoint().address()));
+  packet.SetIPAddress(remote_ip->data(), remote_ip->size());
   const std::size_t packet_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
   const std::size_t buffer_size = packet_size + GetType(SSUSize::BufferMargin);
   // Buffer has SSUSize::BufferMargin extra bytes for computing the HMAC
@@ -474,14 +471,9 @@ void SSUSession::SendSessionCreated(
   SignedData s;
   s.Insert(x, 256);  // x
   s.Insert(packet.GetDhY(), 256);  // y
-  const auto remote_address = GetRemoteEndpoint().address();
-  if (remote_address.is_v4()) {
-    packet.SetIPAddress(remote_address.to_v4().to_bytes().data(), 4);
-    s.Insert(remote_address.to_v4().to_bytes().data(), 4);
-  } else {
-    packet.SetIPAddress(remote_address.to_v6().to_bytes().data(), 16);
-    s.Insert(remote_address.to_v6().to_bytes().data(), 16);
-  }
+  auto const remote_ip(core::AddressToByteVector(GetRemoteEndpoint().address()));
+  packet.SetIPAddress(remote_ip->data(), remote_ip->size());
+  s.Insert(remote_ip->data(), remote_ip->size());  // remote ip
   s.Insert<std::uint16_t>(htobe16(packet.GetPort()));  // remote port
   if (address->host.is_v4())
     s.Insert(address->host.to_v4().to_bytes().data(), 4);  // our IP V4

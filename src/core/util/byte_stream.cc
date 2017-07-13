@@ -158,5 +158,18 @@ const std::string GetFormattedHex(const std::uint8_t* data, std::size_t size) {
   return hex.str();
 }
 
+std::unique_ptr<std::vector<std::uint8_t>> AddressToByteVector(
+    const boost::asio::ip::address& address)
+{
+  bool is_v4(address.is_v4());
+  auto data = std::make_unique<std::vector<std::uint8_t>>(is_v4 ? 4 : 16);
+  std::memcpy(
+      data->data(),
+      is_v4 ? address.to_v4().to_bytes().data()
+            : address.to_v6().to_bytes().data(),
+      data->size());
+  return data;
+}
+
 } // namespace core
 } // namespace kovri

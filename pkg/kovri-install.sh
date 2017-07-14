@@ -85,8 +85,15 @@ PrepareOptions() {
       _is_osx=true
       ;;
     msys)
-      # TODO(anonimal): Inno Setup
       _is_windows=true
+      if [[ $MSYSTEM_CARCH == x86_64 ]]; then
+        bitness=64
+      elif [[ $MSYSTEM_CARCH == i686 ]]; then
+        bitness=32
+      else
+        false
+        catch "unsupported architecture"
+      fi
       ;;
     *)
       false
@@ -126,6 +133,9 @@ PrepareOptions() {
     # Set package file path if none supplied
     if [[ -z $_package_file ]]; then
       local _ext=".tar.bz2"
+      if [[ $_is_windows == true ]]; then
+        local _ext=".exe"
+      fi
       _package_file="build/${_package_path}${_ext}"
     fi
   else
@@ -137,6 +147,10 @@ PrepareOptions() {
 }
 
 LocalUninstall() {
+  if [[ $_is_windows == true ]]; then
+    false
+    catch "this option is unsupported on this platform"
+  fi
   # Backup existing installation
   _config=${_data}/config
   _kovri_conf=${_config}/kovri.conf
@@ -178,6 +192,10 @@ LocalUninstall() {
 }
 
 LocalInstall() {
+  if [[ $_is_windows == true ]]; then
+    false
+    catch "this option is unsupported on this platform"
+  fi
   # Ensure paths for new install
   if [[ ! -d $_data ]]; then
     echo -n "Creating $_data"
@@ -208,39 +226,51 @@ CreatePackage() {
     echo -n "Testing write access"
     catch "we can't write to $_package_file"
   fi
-  echo -n "Creating staging path"
-  mkdir $_package_path
-  catch "could not create staging directory"
-  echo -n "Copying resources"
-  if [[ $_is_osx == true || $_is_bsd == true ]]; then
-    # TODO(anonimal): using rsync is a hack to preserve parent path
-    hash rsync 2>/dev/null
-    if [[ $? -ne 0 ]]; then
-      false
-      catch "rsync not installed. Install rsync for $OSTYPE"
-    fi
-    for _i in ${_resources[@]}; do
-      rsync -avR $_i $_package_path 1>/dev/null
-    done
+  # Windows
+  if [[ $_is_windows == true ]]; then
+    # Inno Setup
+    /c/Program\ Files\ \(x86\)/Inno\ Setup\ 5/ISCC.exe pkg/installers/windows/Kovri${bitness}.iss
+    catch "could not create Inno Setup installer"
+    local _setup_bin="build/KovriSetup${bitness}.exe"
+    echo -n "Moving $_setup_bin to $_package_file"
+    mv $_setup_bin $_package_file
+    catch "could not move package file"
   else
-    cp -R --parents $_resources $_package_path
+    # *nix packaging
+    echo -n "Creating staging path"
+    mkdir $_package_path
+    catch "could not create staging directory"
+    echo -n "Copying resources"
+    if [[ $_is_osx == true || $_is_bsd == true ]]; then
+      # TODO(anonimal): using rsync is a hack to preserve parent path
+      hash rsync 2>/dev/null
+      if [[ $? -ne 0 ]]; then
+        false
+        catch "rsync not installed. Install rsync for $OSTYPE"
+      fi
+      for _i in ${_resources[@]}; do
+        rsync -avR $_i $_package_path 1>/dev/null
+      done
+    else
+      cp -R --parents $_resources $_package_path
+    fi
+    catch "could not copy resources for packaging"
+    # Add ourself to the package
+    echo -n "Copying installer"
+    cp pkg/kovri-install.sh $_package_path
+    catch "could not copy installer"
+    # Add the install guide
+    echo -n "Copying guide"
+    cp pkg/INSTALL.txt $_package_path
+    catch "could not copy install guide"
+    # Compress package
+    echo -n "Compressing package $_package_file (please wait)..."
+    tar cjf $_package_file $_package_path
+    catch "could not create package file"
+    echo -n "Cleaning staging path"
+    rm -fr $_package_path
+    catch "could not clean staging path"
   fi
-  catch "could not copy resources for packaging"
-  # Add ourself to the package
-  echo -n "Copying installer"
-  cp pkg/kovri-install.sh $_package_path
-  catch "could not copy installer"
-  # Add the install guide
-  echo -n "Copying guide"
-  cp pkg/INSTALL.txt $_package_path
-  catch "could not copy install guide"
-  # Compress package
-  echo -n "Compressing package $_package_file (please wait)..."
-  tar cjf $_package_file $_package_path
-  catch "could not create package file"
-  echo -n "Cleaning staging path"
-  rm -fr $_package_path
-  catch "could not clean staging path"
   if [[ $_create_checksum_file == true ]]; then
     local _output_size=256
     local _shasum_file=${_package_file}.sha${_output_size}sum.txt

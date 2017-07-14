@@ -1,12 +1,13 @@
 #!/bin/bash
 
 # Get/set environment
+
 KOVRI_DIR=${KOVRI_DIR:-"/tmp/kovri"}
 KOVRI_WORKSPACE=${KOVRI_WORKSPACE:-"${KOVRI_DIR}/build/testnet"}
+KOVRI_IMAGE=${KOVRI_IMAGE:-"geti2p/kovri:$(git rev-parse --short HEAD)"}
 
 # Set constants
 
-docker_image="geti2p/kovri"
 docker_base_name="kovri_testnet"
 
 pid=$(id -u)
@@ -33,8 +34,11 @@ fi
 
 Create()
 {
+  # TODO(anonimal): read options
+
   echo "Kovri directory: $KOVRI_DIR"
   echo "Kovri workspace: $KOVRI_WORKSPACE"
+  echo "Kovri image: $KOVRI_IMAGE"
 
   # Ensure repo
   if [[ ! -d $KOVRI_DIR ]]; then
@@ -68,7 +72,7 @@ Create()
     docker run -w /home/kovri -it --rm \
       -v ${KOVRI_WORKSPACE}/${_dir}:/home/kovri \
       $custom_build_dir \
-      $docker_image  /kovri/build/kovri-util routerinfo --create \
+      $KOVRI_IMAGE  /kovri/build/kovri-util routerinfo --create \
         --host=172.18.0.$((10#${_seq})) --port 10${_seq} --floodfill 1 --bandwidth P
     catch "Docker could not run"
   done
@@ -125,7 +129,7 @@ keys = server-keys.dat
       -p 10${_seq}:10${_seq} \
       -v ${KOVRI_WORKSPACE}:/home/kovri/testnet \
       $custom_build_dir \
-      $docker_image /kovri/build/kovri \
+      $KOVRI_IMAGE /kovri/build/kovri \
       --data-dir /home/kovri/testnet/kovri_${_seq} \
       --log-level 5 \
       --host 172.18.0.$((10#${_seq})) \

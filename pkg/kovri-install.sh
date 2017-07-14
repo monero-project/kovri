@@ -85,7 +85,7 @@ PrepareOptions() {
       _is_osx=true
       ;;
     msys)
-      _data="$APPDATA/Kovri"
+      # TODO(anonimal): Inno Setup
       _is_windows=true
       ;;
     *)
@@ -125,11 +125,7 @@ PrepareOptions() {
     _package_path="kovri${_rev}-$(uname -s)-$(uname -m)-$(date +%Y.%m.%d)"
     # Set package file path if none supplied
     if [[ -z $_package_file ]]; then
-      if [[ $_is_windows == true ]]; then
-        local _ext=".zip"
-      else
-        local _ext=".tar.bz2"
-      fi
+      local _ext=".tar.bz2"
       _package_file="build/${_package_path}${_ext}"
     fi
   else
@@ -232,11 +228,7 @@ CreatePackage() {
   catch "could not copy resources for packaging"
   # Add ourself to the package
   echo -n "Copying installer"
-  if [[ $_is_windows == true ]]; then
-    cp pkg/kovri-install.bat $_package_path
-  else
-    cp pkg/kovri-install.sh $_package_path
-  fi
+  cp pkg/kovri-install.sh $_package_path
   catch "could not copy installer"
   # Add the install guide
   echo -n "Copying guide"
@@ -244,16 +236,7 @@ CreatePackage() {
   catch "could not copy install guide"
   # Compress package
   echo -n "Compressing package $_package_file (please wait)..."
-  if [[ $_is_windows == true ]]; then
-    hash zip 2>/dev/null
-    if [[ $? -ne 0 ]]; then
-      false
-      catch "zip not installed. Install zip for MSYS2"
-    fi
-    zip $_package_file -r $_package_path
-  else
-    tar cjf $_package_file $_package_path
-  fi
+  tar cjf $_package_file $_package_path
   catch "could not create package file"
   echo -n "Cleaning staging path"
   rm -fr $_package_path

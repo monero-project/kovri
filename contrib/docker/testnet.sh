@@ -29,26 +29,26 @@ fi
 Create()
 {
   # Set Kovri repo location
-  KOVRI_DIR=${KOVRI_DIR:-"/tmp/kovri"}
-  read -r -p "Set location of Kovri repo? [$KOVRI_DIR] [y/N] " REPLY
+  KOVRI_REPO=${KOVRI_REPO:-"/tmp/kovri"}
+  read -r -p "Set location of Kovri repo? [$KOVRI_REPO] [y/N] " REPLY
   case $REPLY in
     [yY])
       read -r -p "Set new location: " REPLY
-      KOVRI_DIR=$REPLY
+      KOVRI_REPO=$REPLY
       ;;
     *)
-      echo "Using default: $KOVRI_DIR"
+      echo "Using default: $KOVRI_REPO"
       ;;
   esac
 
   # Ensure repo
-  if [[ ! -d $KOVRI_DIR ]]; then
+  if [[ ! -d $KOVRI_REPO ]]; then
     false
     catch "Kovri not found. See building instructions."
   fi
 
   # Build Kovri image if applicable
-  cd $KOVRI_DIR && KOVRI_IMAGE=${KOVRI_IMAGE:-"geti2p/kovri:$(git rev-parse --short HEAD)"}
+  cd $KOVRI_REPO && KOVRI_IMAGE=${KOVRI_IMAGE:-"geti2p/kovri:$(git rev-parse --short HEAD)"}
   read -r -p "Build Kovri Docker image? [$KOVRI_IMAGE] [y/N] " REPLY
   case $REPLY in
     [yY])
@@ -63,7 +63,7 @@ Create()
           ;;
       esac
       echo "Building image: [$KOVRI_IMAGE]"
-      docker build -t $KOVRI_IMAGE $KOVRI_DIR
+      docker build -t $KOVRI_IMAGE $KOVRI_REPO
       catch "Could not build image"
       ;;
     *)
@@ -72,7 +72,7 @@ Create()
   esac
 
   # Set testnet workspace
-  KOVRI_WORKSPACE=${KOVRI_WORKSPACE:-"${KOVRI_DIR}/build/testnet"}
+  KOVRI_WORKSPACE=${KOVRI_WORKSPACE:-"${KOVRI_REPO}/build/testnet"}
   read -r -p "Set workspace for testnet output? [$KOVRI_WORKSPACE] [y/N] " REPLY
   case $REPLY in
     [yY])
@@ -134,7 +134,7 @@ Create()
   for _seq in $($sequence)
   do
     ## Create data-dir
-    cp -r ${KOVRI_DIR}/pkg kovri_${_seq} && mkdir kovri_${_seq}/core
+    cp -r ${KOVRI_REPO}/pkg kovri_${_seq} && mkdir kovri_${_seq}/core
     catch "Could not copy package resources / create data-dir"
 
     ## Default with 1 server tunnel

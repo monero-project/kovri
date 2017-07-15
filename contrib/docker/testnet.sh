@@ -48,7 +48,17 @@ Create()
   fi
 
   # Build Kovri image if applicable
-  cd $KOVRI_REPO && KOVRI_IMAGE=${KOVRI_IMAGE:-"geti2p/kovri:$(git rev-parse --short HEAD)"}
+  pushd $KOVRI_REPO
+  catch "Could not access $KOVRI_REPO"
+  # Set tag
+  hash git 2>/dev/null
+  if [[ $? -ne 0 ]]; then
+    echo "git is not installed, using default tag"
+    _docker_tag=":latest"
+  else
+    _docker_tag=":$(git rev-parse --short HEAD)"
+  fi
+  KOVRI_IMAGE=${KOVRI_IMAGE:-"geti2p/kovri${_docker_tag}"}
   read -r -p "Build Kovri Docker image? [$KOVRI_IMAGE] [y/N] " REPLY
   case $REPLY in
     [yY])
@@ -70,6 +80,7 @@ Create()
       echo "Using built image: $KOVRI_IMAGE"
       ;;
   esac
+  popd
 
   # Set testnet workspace
   KOVRI_WORKSPACE=${KOVRI_WORKSPACE:-"${KOVRI_REPO}/build/testnet"}

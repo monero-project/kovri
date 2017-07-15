@@ -1,11 +1,5 @@
 #!/bin/bash
 
-# Get/set environment
-
-KOVRI_DIR=${KOVRI_DIR:-"/tmp/kovri"}
-KOVRI_WORKSPACE=${KOVRI_WORKSPACE:-"${KOVRI_DIR}/build/testnet"}
-KOVRI_IMAGE=${KOVRI_IMAGE:-"geti2p/kovri:$(git rev-parse --short HEAD)"}
-
 # Set constants
 
 docker_base_name="kovri_testnet"
@@ -23,7 +17,7 @@ reseed_file="reseed.zip"
 
 PrintUsage()
 {
-  echo "Usage: $ export KOVRI_DIR=\"path to your kovri repo\" && $0 {create|start|stop|destroy}" >&2
+  echo "Usage: $ $0 {create|start|stop|destroy}" >&2
 }
 
 if [ "$#" -ne 1 ]
@@ -34,17 +28,61 @@ fi
 
 Create()
 {
-  # TODO(anonimal): read options
-
-  echo "Kovri directory: $KOVRI_DIR"
-  echo "Kovri workspace: $KOVRI_WORKSPACE"
-  echo "Kovri image: $KOVRI_IMAGE"
+  # Set Kovri repo location
+  KOVRI_DIR=${KOVRI_DIR:-"/tmp/kovri"}
+  read -r -p "Set location of Kovri repo? [$KOVRI_DIR] [y/N] " REPLY
+  case $REPLY in
+    [yY])
+      read -r -p "Set new location: " REPLY
+      KOVRI_DIR=$REPLY
+      ;;
+    *)
+      echo "Using default: $KOVRI_DIR"
+      ;;
+  esac
 
   # Ensure repo
   if [[ ! -d $KOVRI_DIR ]]; then
     false
     catch "Kovri not found. See building instructions."
   fi
+
+  # Build Kovri image if applicable
+  cd $KOVRI_DIR && KOVRI_IMAGE=${KOVRI_IMAGE:-"geti2p/kovri:$(git rev-parse --short HEAD)"}
+  read -r -p "Build Kovri Docker image? [$KOVRI_IMAGE] [y/N] " REPLY
+  case $REPLY in
+    [yY])
+      read -r -p "Set new image name?: [$KOVRI_IMAGE] [y/N] " REPLY
+      case $REPLY in
+        [yY])
+          read -r -p "Set new name: " REPLY
+          KOVRI_IMAGE=$REPLY
+          ;;
+        *)
+          echo "Using default: $KOVRI_IMAGE"
+          ;;
+      esac
+      echo "Building image: [$KOVRI_IMAGE]"
+      docker build -t $KOVRI_IMAGE $KOVRI_DIR
+      catch "Could not build image"
+      ;;
+    *)
+      echo "Using built image: $KOVRI_IMAGE"
+      ;;
+  esac
+
+  # Set testnet workspace
+  KOVRI_WORKSPACE=${KOVRI_WORKSPACE:-"${KOVRI_DIR}/build/testnet"}
+  read -r -p "Set workspace for testnet output? [$KOVRI_WORKSPACE] [y/N] " REPLY
+  case $REPLY in
+    [yY])
+      read -r -p "Set new workspace: " REPLY
+      KOVRI_WORKSPACE=$REPLY
+      ;;
+    *)
+      echo "Using default: $KOVRI_WORKSPACE"
+      ;;
+  esac
 
   # Ensure workspace
   if [[ ! -d $KOVRI_WORKSPACE ]]; then
@@ -162,6 +200,10 @@ Stop()
 Destroy()
 {
   # TODO(unassigned): error handling?
+  if [[ -z $KOVRI_WORKSPACE ]]; then
+    read -r -p "Enter workspace to destroy: " REPLY
+    KOVRI_WORKSPACE=$REPLY
+  fi
   for _seq in $($sequence); do
     docker stop ${docker_base_name}_${_seq}
     docker rm -v ${docker_base_name}_${_seq}

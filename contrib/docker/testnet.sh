@@ -32,14 +32,14 @@ Create()
   local _repo=$KOVRI_REPO
   if [[ -z $_repo ]]; then
     _repo="/tmp/kovri"
-    read -r -p "Set location of Kovri repo? [$_repo] [y/N] " REPLY
+    read -r -p "Set location of Kovri repo? [$_repo] [Y/n] " REPLY
     case $REPLY in
-      [yY])
-        read -r -p "Set new location: " REPLY
-        _repo=$REPLY
+      [nN])
+        echo "Using default: $_repo"
         ;;
       *)
-        echo "Using default: $_repo"
+        read -r -p "Set new location: " REPLY
+        _repo=$REPLY
         ;;
     esac
   fi
@@ -66,25 +66,25 @@ Create()
   local _image=$KOVRI_IMAGE
   if [[ -z $_image ]]; then
     _image="geti2p/kovri${_docker_tag}"
-    read -r -p "Build Kovri Docker image? [$_image] [y/N] " REPLY
+    read -r -p "Build Kovri Docker image? [$_image] [Y/n] " REPLY
     case $REPLY in
-      [yY])
-        read -r -p "Set new image name?: [$_image] [y/N] " REPLY
+      [nN])
+        echo "Using built image: $_image"
+        ;;
+      *)
+        read -r -p "Set new image name?: [$_image] [Y/n] " REPLY
         case $REPLY in
-          [yY])
-            read -r -p "Set new name: " REPLY
-            _image=$REPLY
+          [nN])
+            echo "Using default: $_image"
             ;;
           *)
-            echo "Using default: $_image"
+            read -r -p "Set new name: " REPLY
+            _image=$REPLY
             ;;
         esac
         echo "Building image: [$_image]"
         docker build -t $_image $_repo
         catch "Could not build image"
-        ;;
-      *)
-        echo "Using built image: $_image"
         ;;
     esac
   fi
@@ -94,14 +94,14 @@ Create()
   local _workspace=$KOVRI_WORKSPACE
   if [[ -z $_workspace ]]; then
     _workspace="${_repo}/build/testnet"
-    read -r -p "Set workspace for testnet output? [$_workspace] [y/N] " REPLY
+    read -r -p "Set workspace for testnet output? [$_workspace] [Y/n] " REPLY
     case $REPLY in
-      [yY])
-        read -r -p "Set new workspace: " REPLY
-        _workspace=$REPLY
+      [nN])
+        echo "Using default: $_workspace"
         ;;
       *)
-        echo "Using default: $_workspace"
+        read -r -p "Set new workspace: " REPLY
+        _workspace=$REPLY
         ;;
     esac
   fi

@@ -113,9 +113,43 @@ Create()
     catch "Could not create workspace"
   fi
 
-  pushd $_workspace
+  # TODO(unassigned): *all* arguments (including sequence count, etc.)
+  # Set utility binary arguments
+  local _util_args=$KOVRI_UTIL_ARGS
+  if [[ -z $_util_args ]]; then
+    _util_args="--floodfill 1 --bandwidth P"
+    read -r -p "Set utility binary arguments? [$_util_args] [Y/n] " REPLY
+    case $REPLY in
+      [nN])
+        echo "Using default: $_util_args"
+        ;;
+      *)
+        read -r -p "Set util args: " REPLY
+        _util_args=$REPLY
+        ;;
+    esac
+  fi
+
+  # TODO(unassigned): *all* arguments (including sequence count, etc.)
+  # Set daemon binary arguments
+  local _bin_args=$KOVRI_BIN_ARGS
+  if [[ -z $_bin_args ]]; then
+    _bin_args="--log-level 5 --floodfill 1 --enable-ntcp 0 --disable-su3-verification 1"
+    read -r -p "Set kovri binary arguments? [$_bin_args] [Y/n] " REPLY
+    case $REPLY in
+      [nN])
+        echo "Using default: $_bin_args"
+        ;;
+      *)
+        read -r -p "Set bin args: " REPLY
+        _bin_args=$REPLY
+        ;;
+    esac
+  fi
 
   ## Create RIs
+  pushd $_workspace
+
   for _seq in $($sequence); do
     # Setup router dir
     local _dir="router_${_seq}"
@@ -133,7 +167,9 @@ Create()
       -v ${_workspace}/${_dir}:/home/kovri \
       $custom_build_dir \
       $_image  /kovri/build/kovri-util routerinfo --create \
-        --host=172.18.0.$((10#${_seq})) --port 10${_seq} --floodfill 1 --bandwidth P
+        --host=172.18.0.$((10#${_seq})) \
+        --port 10${_seq} \
+        $_util_args
     catch "Docker could not run"
   done
 
@@ -191,13 +227,10 @@ keys = server-keys.dat
       $custom_build_dir \
       $_image /kovri/build/kovri \
       --data-dir /home/kovri/testnet/kovri_${_seq} \
-      --log-level 5 \
+      --reseed-from /home/kovri/testnet/${reseed_file} \
       --host 172.18.0.$((10#${_seq})) \
       --port 10${_seq} \
-      --floodfill=1 \
-      --enable-ntcp=0 \
-      --disable-su3-verification=1 \
-      --reseed-from /home/kovri/testnet/${reseed_file}
+      $_bin_args
     catch "Docker could not create container"
   done
   popd

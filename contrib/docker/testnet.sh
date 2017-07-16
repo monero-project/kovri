@@ -29,80 +29,91 @@ fi
 Create()
 {
   # Set Kovri repo location
-  KOVRI_REPO=${KOVRI_REPO:-"/tmp/kovri"}
-  read -r -p "Set location of Kovri repo? [$KOVRI_REPO] [y/N] " REPLY
-  case $REPLY in
-    [yY])
-      read -r -p "Set new location: " REPLY
-      KOVRI_REPO=$REPLY
-      ;;
-    *)
-      echo "Using default: $KOVRI_REPO"
-      ;;
-  esac
+  local _repo=$KOVRI_REPO
+  if [[ -z $_repo ]]; then
+    _repo="/tmp/kovri"
+    read -r -p "Set location of Kovri repo? [$_repo] [y/N] " REPLY
+    case $REPLY in
+      [yY])
+        read -r -p "Set new location: " REPLY
+        _repo=$REPLY
+        ;;
+      *)
+        echo "Using default: $_repo"
+        ;;
+    esac
+  fi
 
   # Ensure repo
-  if [[ ! -d $KOVRI_REPO ]]; then
+  if [[ ! -d $_repo ]]; then
     false
     catch "Kovri not found. See building instructions."
   fi
 
   # Build Kovri image if applicable
-  pushd $KOVRI_REPO
-  catch "Could not access $KOVRI_REPO"
+  pushd $_repo
+  catch "Could not access $_repo"
   # Set tag
   hash git 2>/dev/null
   if [[ $? -ne 0 ]]; then
     echo "git is not installed, using default tag"
-    _docker_tag=":latest"
+    local _docker_tag=":latest"
   else
-    _docker_tag=":$(git rev-parse --short HEAD)"
+    local _docker_tag=":$(git rev-parse --short HEAD)"
   fi
-  KOVRI_IMAGE=${KOVRI_IMAGE:-"geti2p/kovri${_docker_tag}"}
-  read -r -p "Build Kovri Docker image? [$KOVRI_IMAGE] [y/N] " REPLY
-  case $REPLY in
-    [yY])
-      read -r -p "Set new image name?: [$KOVRI_IMAGE] [y/N] " REPLY
-      case $REPLY in
-        [yY])
-          read -r -p "Set new name: " REPLY
-          KOVRI_IMAGE=$REPLY
-          ;;
-        *)
-          echo "Using default: $KOVRI_IMAGE"
-          ;;
-      esac
-      echo "Building image: [$KOVRI_IMAGE]"
-      docker build -t $KOVRI_IMAGE $KOVRI_REPO
-      catch "Could not build image"
-      ;;
-    *)
-      echo "Using built image: $KOVRI_IMAGE"
-      ;;
-  esac
+
+  # If image name not set, provide options + build
+  local _image=$KOVRI_IMAGE
+  if [[ -z $_image ]]; then
+    _image="geti2p/kovri${_docker_tag}"
+    read -r -p "Build Kovri Docker image? [$_image] [y/N] " REPLY
+    case $REPLY in
+      [yY])
+        read -r -p "Set new image name?: [$_image] [y/N] " REPLY
+        case $REPLY in
+          [yY])
+            read -r -p "Set new name: " REPLY
+            _image=$REPLY
+            ;;
+          *)
+            echo "Using default: $_image"
+            ;;
+        esac
+        echo "Building image: [$_image]"
+        docker build -t $_image $_repo
+        catch "Could not build image"
+        ;;
+      *)
+        echo "Using built image: $_image"
+        ;;
+    esac
+  fi
   popd
 
   # Set testnet workspace
-  KOVRI_WORKSPACE=${KOVRI_WORKSPACE:-"${KOVRI_REPO}/build/testnet"}
-  read -r -p "Set workspace for testnet output? [$KOVRI_WORKSPACE] [y/N] " REPLY
-  case $REPLY in
-    [yY])
-      read -r -p "Set new workspace: " REPLY
-      KOVRI_WORKSPACE=$REPLY
-      ;;
-    *)
-      echo "Using default: $KOVRI_WORKSPACE"
-      ;;
-  esac
+  local _workspace=$KOVRI_WORKSPACE
+  if [[ -z $_workspace ]]; then
+    _workspace="${_repo}/build/testnet"
+    read -r -p "Set workspace for testnet output? [$_workspace] [y/N] " REPLY
+    case $REPLY in
+      [yY])
+        read -r -p "Set new workspace: " REPLY
+        _workspace=$REPLY
+        ;;
+      *)
+        echo "Using default: $_workspace"
+        ;;
+    esac
+  fi
 
   # Ensure workspace
-  if [[ ! -d $KOVRI_WORKSPACE ]]; then
-    echo "$KOVRI_WORKSPACE does not exist, creating"
-    mkdir -p $KOVRI_WORKSPACE 2>/dev/null
+  if [[ ! -d $_workspace ]]; then
+    echo "$_workspace does not exist, creating"
+    mkdir -p $_workspace 2>/dev/null
     catch "Could not create workspace"
   fi
 
-  pushd $KOVRI_WORKSPACE
+  pushd $_workspace
 
   ## Create RIs
   for _seq in $($sequence); do
@@ -114,14 +125,14 @@ Create()
     catch "Could not create data dir"
 
     # Set permissions
-    chown -R ${pid}:${gid} ${KOVRI_WORKSPACE}/${_dir}
+    chown -R ${pid}:${gid} ${_workspace}/${_dir}
     catch "Could not set ownership ${pid}:${gid}"
 
     # Run Docker
     docker run -w /home/kovri -it --rm \
-      -v ${KOVRI_WORKSPACE}/${_dir}:/home/kovri \
+      -v ${_workspace}/${_dir}:/home/kovri \
       $custom_build_dir \
-      $KOVRI_IMAGE  /kovri/build/kovri-util routerinfo --create \
+      $_image  /kovri/build/kovri-util routerinfo --create \
         --host=172.18.0.$((10#${_seq})) --port 10${_seq} --floodfill 1 --bandwidth P
     catch "Docker could not run"
   done
@@ -133,9 +144,9 @@ Create()
     && cp $(ls router_*/routerInfo* | grep -v key) $_tmp \
     && cd $_tmp \
     && zip $reseed_file * \
-    && mv $reseed_file $KOVRI_WORKSPACE \
+    && mv $reseed_file $_workspace \
     && cd .. \
-    && rm -rf ${KOVRI_WORKSPACE}/${_tmp}
+    && rm -rf ${_workspace}/${_tmp}
   catch "Could not ZIP RI's"
 
   ## Create docker private network
@@ -145,7 +156,7 @@ Create()
   for _seq in $($sequence)
   do
     ## Create data-dir
-    cp -r ${KOVRI_REPO}/pkg kovri_${_seq} && mkdir kovri_${_seq}/core
+    cp -r ${_repo}/pkg kovri_${_seq} && mkdir kovri_${_seq}/core
     catch "Could not copy package resources / create data-dir"
 
     ## Default with 1 server tunnel
@@ -176,9 +187,9 @@ keys = server-keys.dat
       --net privatenet \
       --ip 172.18.0.$((10#${_seq})) \
       -p 10${_seq}:10${_seq} \
-      -v ${KOVRI_WORKSPACE}:/home/kovri/testnet \
+      -v ${_workspace}:/home/kovri/testnet \
       $custom_build_dir \
-      $KOVRI_IMAGE /kovri/build/kovri \
+      $_image /kovri/build/kovri \
       --data-dir /home/kovri/testnet/kovri_${_seq} \
       --log-level 5 \
       --host 172.18.0.$((10#${_seq})) \

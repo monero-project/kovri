@@ -3,7 +3,7 @@
 # docker build -t geti2p/kovri .
 # KOVRI_PORT=42085 && sudo docker run -p $KOVRI_PORT --env KOVRI_PORT=$KOVRI_PORT geti2p/kovri
 
-FROM alpine:3.5
+FROM alpine:3.6
 RUN apk add --update --no-cache -t .kovri-dev g++ make cmake binutils boost-dev libressl-dev
 ENV KOVRI_HOST 0.0.0.0
 ENV KOVRI_PORT 24085

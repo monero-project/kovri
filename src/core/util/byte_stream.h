@@ -103,7 +103,7 @@ class InputByteStream {
 
  protected:
   std::uint8_t* m_Data; ///< Pointer to first unparsed byte of the stream
-  std::size_t m_Length; ///< Remaining length of the stream
+  std::size_t m_Length{};  ///< Remaining length of the stream
 };
 
 /// @class OutputByteStream
@@ -165,9 +165,9 @@ class OutputByteStream {
 
  protected:
   std::uint8_t* m_Data; ///< Pointer to the first unwritten byte
-  std::size_t m_Length; ///< Remaining length of the stream
-  std::size_t m_Counter;  ///< Counter for amount of incremented data
-  std::size_t m_Size;  ///< Total size of stream given at initialization
+  std::size_t m_Length{};  ///< Remaining length of the stream
+  std::size_t m_Counter{};  ///< Counter for amount of incremented data
+  std::size_t m_Size{};  ///< Total size of stream given at initialization
 };
 
 /// @brief Returns hex encoding of given data

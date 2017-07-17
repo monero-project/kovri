@@ -29,10 +29,7 @@ Windows .exe files that can act as standalone installers for Kovri.
 
 The build steps in detail:
 
-1. Install *Inno Setup*. You can get it from [here](http://www.jrsoftware.org/isdl.php)
-2. Get the Inno Setup scripts plus related files by cloning the whole [kovri](https://github.com/monero-project/kovri) repository; you will only need the files in the installer directory  `pkg\installers\windows` however
-3. The setup scripts are written to take the Kovri files from subdirectories named `bin64` and `bin32`; so create `pkg\installers\windows\bin64` and `pkg\installers\windows\bin32`
-4. Get the zip files with the Kovri files you want to install [here](https://github.com/monero-project/kovri), unpack them somewhere, and copy all the files and subdirectories in the `kovri-...` directories to the `bin64` and `bin32` directories 
-4. Start Inno Setup, load and compile `Kovri64.iss` and `Kovri32.iss`
-5. The results i.e. the finished installers will be the files `KovriSetup64.exe` and `KovriSetup32.exe` in the `pkg\installers\windows\Output` subdirectory 
-
+1. Ensure that [Kovri](https://github.com/monero-project/kovri) is cloned and built (see building instructions for details)
+2. Install *Inno Setup*. You can get it from [here](http://www.jrsoftware.org/isdl.php)
+3. Start Inno Setup then load and compile either `Kovri64.iss` or `Kovri32.iss` (depending on your architecture) in the `pkg\installers\windows` directory (Inno Setup scripts plus related files are all in this directory). Optional: for a command-line build, run `ISCC.exe` in the Inno Setup Program Files directory
+4. The results i.e. the finished installers will be `KovriSetup64.exe` or `KovriSetup32.exe` in the repo's root `build` directory

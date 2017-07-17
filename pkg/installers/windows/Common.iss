@@ -5,6 +5,8 @@
 ; This is the common script code for both the 64 bit and the 32 bit installer,
 ; configured with the help of the compile-time constant "Bitness"
 
+#define RootDir "..\..\.."
+
 [Setup]
 AppName=Kovri I2P Router
 AppVersion=Latest
@@ -21,6 +23,7 @@ WizardImageFile=WizardImage.bmp
 DisableWelcomePage=no
 LicenseFile=LICENSE
 OutputBaseFilename=KovriSetup{#Bitness}
+OutputDir={#RootDir}\build
 
 
 [Languages]
@@ -28,22 +31,22 @@ Name: "en"; MessagesFile: "compiler:Default.isl"
 
 
 [Files]
-Source: "bin{#Bitness}\build\kovri.exe";      DestDir: "{app}"; Flags: comparetimestamp
-Source: "bin{#Bitness}\build\kovri-util.exe"; DestDir: "{app}"; Flags: comparetimestamp
+Source: "{#RootDir}\build\kovri.exe";      DestDir: "{app}"; Flags: comparetimestamp
+Source: "{#RootDir}\build\kovri-util.exe"; DestDir: "{app}"; Flags: comparetimestamp
 Source: "Kovri.ico";                          DestDir: "{app}"; Flags: comparetimestamp
 Source: "ReadMe.htm";                         DestDir: "{app}"; Flags: comparetimestamp
 
 ; Install new "client" files: Any new versions of "hosts.txt" and "publishers" in "\client\address_book"
 ; plus certificates in "\client\certificates"
-Source: "bin{#Bitness}\pkg\client\*"; DestDir: "{userappdata}\Kovri\client"; Flags: recursesubdirs comparetimestamp
+Source: "{#RootDir}\pkg\client\*"; DestDir: "{userappdata}\Kovri\client"; Flags: recursesubdirs comparetimestamp
 
 ; Backup any existing user config files, as we will overwrite "kovri.conf" and "tunnels.conf" unconditionally
 ; Note that Inno Setup goes through the "[Files]" entries strictly in the order given here,
 ; therefore the old files are backed-up correctly BEFORE the new ones overwrite them
-Source: "{userappdata}\Kovri\config\kovri.conf";   DestDir: "{userappdata}\Kovri\config"; DestName: "kovri.conf.bak";   Flags: external skipifsourcedoesntexist 
+Source: "{userappdata}\Kovri\config\kovri.conf";   DestDir: "{userappdata}\Kovri\config"; DestName: "kovri.conf.bak";   Flags: external skipifsourcedoesntexist
 Source: "{userappdata}\Kovri\config\tunnels.conf"; DestDir: "{userappdata}\Kovri\config"; DestName: "tunnels.conf.bak"; Flags: external skipifsourcedoesntexist
 
-Source: "bin{#Bitness}\pkg\config\*"; DestDir: "{userappdata}\Kovri\config"; Flags: recursesubdirs ignoreversion
+Source: "{#RootDir}\pkg\config\*"; DestDir: "{userappdata}\Kovri\config"; Flags: recursesubdirs ignoreversion
 
 
 

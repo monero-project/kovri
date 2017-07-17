@@ -13,5 +13,7 @@ Windows
 
 See Inno Setup scripts and instructions in the windows subdirectory
 
-See the user-guide on the website or GitHub repo for details
-https://github.com/monero-project/kovri
+User-guide
+----------
+
+Available at https://getkovri.org or https://github.com/monero-project/kovri-docs

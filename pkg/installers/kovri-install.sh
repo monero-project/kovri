@@ -257,11 +257,11 @@ CreatePackage() {
     catch "could not copy resources for packaging"
     # Add ourself to the package
     echo -n "Copying installer"
-    cp pkg/kovri-install.sh $_package_path
+    cp pkg/installers/kovri-install.sh $_package_path
     catch "could not copy installer"
     # Add the install guide
     echo -n "Copying guide"
-    cp pkg/INSTALL.txt $_package_path
+    cp pkg/installers/INSTALL.txt $_package_path
     catch "could not copy install guide"
     # Compress package
     echo -n "Compressing package $_package_file (please wait)..."

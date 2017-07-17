@@ -59,7 +59,7 @@ enum struct SSUSize : std::uint16_t {
   IV = 16,
   IntroKey = 32,
   BufferMargin = IV + 2,  // IV + 2 bytes size are appended on validation
-  RawPacketBuffer = MTUv4 + BufferMargin,
+  RawPacketBuffer = (MTUv4 > MTUv6 ? MTUv4 : MTUv6) + BufferMargin,
   KeyingMaterial = 64,
   DHPublic = 256,
   MaxReceivedMessages = 1000,  // TODO(unassigned): research this value

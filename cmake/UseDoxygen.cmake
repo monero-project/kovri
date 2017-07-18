@@ -86,7 +86,7 @@ find_package(Doxygen)
 
 if(DOXYGEN_FOUND)
   find_file(DOXYFILE_IN "Doxyfile.in"
-      PATHS "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_ROOT}/Modules/"
+      PATHS "${CMAKE_CURRENT_SOURCE_DIR}/contrib"
       NO_DEFAULT_PATH
       DOC "Path to the doxygen configuration template file")
   set(DOXYFILE "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile")
@@ -95,7 +95,7 @@ if(DOXYGEN_FOUND)
 endif()
 
 if(DOXYGEN_FOUND AND DOXYFILE_IN_FOUND)
-  usedoxygen_set_default(DOXYFILE_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/doc/Doxygen"
+  usedoxygen_set_default(DOXYFILE_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build/Doxygen"
     PATH "Doxygen output directory")
 
   usedoxygen_set_default(DOXYFILE_HTML_DIR "."

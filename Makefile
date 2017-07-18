@@ -211,7 +211,7 @@ fuzz-tests: deps
 
 doxygen:
 	$(eval cmake-kovri += $(cmake-disable-options) $(cmake-doxygen))
-	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) doc
 
 help:
 	$(eval cmake-kovri += $(cmake-disable-options) -LH)

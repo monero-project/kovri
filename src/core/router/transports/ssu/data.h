@@ -81,8 +81,7 @@ struct Fragment {
 
   std::size_t fragment_num, len;
   bool is_last;
-  // TODO(unassigned): document 18 and why ipv4
-  std::array<std::uint8_t, GetType(SSUSize::PacketMaxIPv4) + 18> buffer;
+  std::array<std::uint8_t, GetType(SSUSize::FragmentBuffer)> buffer;
 };
 
 struct FragmentCmp {

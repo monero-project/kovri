@@ -32,7 +32,8 @@
 # Kovri installer script: installs or packages binary/resources for nightly/branch-tip builds
 #
 
-usage() {
+PrintUsage()
+{
   echo "Usage: $0 [-r \"<resources to install>\"] [-p (creates package)] [-c (creates package checksum file)] [-f <package output file>] [-u (uninstall)]"
   echo ""
   echo "Examples"
@@ -46,116 +47,90 @@ usage() {
   echo -e "Create package with accompanying checksum file:\n\n$0 [-r \"client config kovri kovri-util\"] -p -c [-f /tmp/kovri-package.tar.bz2]\n\n"
 }
 
+# Path for binaries
+bin_path=$HOME/bin
+bins=(kovri kovri-util)
+
+# Get platform
+case $OSTYPE in
+  linux*)
+    kovri_data_dir="$HOME/.kovri"
+    is_linux=true
+    ;;
+  freebsd* | dragonfly*)
+    kovri_data_dir="$HOME/.kovri"
+    is_bsd=true
+    ;;
+  openbsd*)
+    kovri_data_dir="$HOME/.kovri"
+    is_bsd=true
+    is_openbsd=true
+    ;;
+  darwin*)
+    kovri_data_dir="$HOME/Library/Application Support/Kovri"
+    is_osx=true
+    ;;
+  msys)
+    is_windows=true
+    if [[ $MSYSTEM_CARCH == x86_64 ]]; then
+      bitness=64
+    elif [[ $MSYSTEM_CARCH == i686 ]]; then
+      bitness=32
+    else
+      false
+      catch "unsupported architecture"
+    fi
+    ;;
+  *)
+    false
+    catch "unsupported platform"
+    ;;
+esac
+
 while getopts ":r:f:cpu" _opt; do
   case $_opt in
-    r) _resources="$OPTARG"
+    r) resources="$OPTARG"
       ;;
-    f) _package_file="$OPTARG"
+    f) package_file="$OPTARG"
       ;;
-    c) _create_checksum_file=true
+    c) checksum_option=true
       ;;
-    p) _create_package=true
+    p) package_option=true
       ;;
-    u) _uninstall=true
+    u) uninstall_option=true
       ;;
-    *) usage && exit 1
+    *) PrintUsage && exit 1
       ;;
   esac
 done
 shift "$(($OPTIND -1))"
 
-PrepareOptions() {
-  # Get platform
-  case $OSTYPE in
-    linux*)
-      _data="$HOME/.kovri"
-      _is_linux=true
-      ;;
-    freebsd* | dragonfly*)
-      _data="$HOME/.kovri"
-      _is_bsd=true
-      ;;
-    openbsd*)
-      _data="$HOME/.kovri"
-      _is_bsd=true
-      _is_openbsd=true
-      ;;
-    darwin*)
-      _data="$HOME/Library/Application Support/Kovri"
-      _is_osx=true
-      ;;
-    msys)
-      _is_windows=true
-      if [[ $MSYSTEM_CARCH == x86_64 ]]; then
-        bitness=64
-      elif [[ $MSYSTEM_CARCH == i686 ]]; then
-        bitness=32
-      else
-        false
-        catch "unsupported architecture"
-      fi
-      ;;
-    *)
-      false
-      catch "unsupported platform"
-      ;;
-  esac
-  # Ensure we're top-level if packaging from git repo
-  _git="git rev-parse --show-toplevel"
-  $_git &>/dev/null
-  if [[ $? -eq 0 ]]; then
-    cd $($_git)
-    local _is_git=true
-  else
-    cd $(dirname "$0")
-  fi
-  # Path for binaries
-  _path=$HOME/bin
-  _binaries=(kovri kovri-util)
-  # Set default resources if needed
-  if [[ -z $_resources ]]; then
-    _resources="pkg/client pkg/config build/${_binaries[0]} build/${_binaries[1]} "
-  fi
-  # Test if resources are available
-  for _i in ${_resources[@]}; do
-    if [[ ! -e $_i ]]; then
-      false
-      catch "$_i is unavailable, did you build Kovri?"
-    fi
-  done
-  # Package preparation
-  if [[ $_create_package == true ]]; then
-    # Set defaults
-    if [[ $_is_git == true ]]; then
-      local _rev="-"$(git rev-parse --short HEAD 2>/dev/null)
-    fi
-    _package_path="kovri${_rev}-$(uname -s)-$(uname -m)-$(date +%Y.%m.%d)"
-    # Set package file path if none supplied
-    if [[ -z $_package_file ]]; then
-      local _ext=".tar.bz2"
-      if [[ $_is_windows == true ]]; then
-        local _ext=".exe"
-      fi
-      _package_file="build/${_package_path}${_ext}"
-    fi
-  else
-    # Ensure proper command line
-    if [[ ! -z $_package_file || $_create_checksum_file == true ]]; then
-      usage ; false ; catch "set the package option to build a package"
-    fi
-  fi
-}
+# Set default resources if needed
+if [[ -z $resources ]]; then
+  resources="pkg/client pkg/config build/${bins[0]} build/${bins[1]}"
+fi
 
-LocalUninstall() {
-  if [[ $_is_windows == true ]]; then
+# Test if resources are available
+for _resource in ${resources[@]}; do
+  if [[ ! -e $_resource ]]; then
+    false
+    catch "$_resource is unavailable, did you build Kovri?"
+  fi
+done
+
+Uninstall()
+{
+  # MSYS users should use our Inno Setup scripts/instructions
+  if [[ $is_windows == true ]]; then
     false
     catch "this option is unsupported on this platform"
   fi
+
   # Backup existing installation
-  _config=${_data}/config
-  _kovri_conf=${_config}/kovri.conf
-  _tunnels_conf=${_config}/tunnels.conf
-  if [[ -d $_data ]]; then
+  local _config=${kovri_data_dir}/config
+  local _kovri_conf=${_config}/kovri.conf
+  local _tunnels_conf=${_config}/tunnels.conf
+  if [[ -d $kovri_data_dir ]]; then
     echo -n "Backing up existing configuration files"
     if [[ -f $_kovri_conf ]]; then
       mv "$_kovri_conf" "${_kovri_conf}.bak" 2>/dev/null
@@ -165,162 +140,214 @@ LocalUninstall() {
     fi
     catch "could not backup configuration files"
   fi
+
   # Remove existing install
-  _core=${_data}/core
-  _client=${_data}/client
-  _installed=($_core $_client/address_book/addresses $_client/address_book/addresses.csv $_client/certificates)
-  for _i in ${_installed[@]}; do
-    if [[ -e $_i ]]; then
-      echo -n "Removing $_i"
-      rm -fr $_i 2>/dev/null
-      catch "could not remove $_i"
+  local _core=${kovri_data_dir}/core
+  local _client=${kovri_data_dir}/client
+  local _resources=($_core $_client/address_book/addresses $_client/address_book/addresses.csv $_client/certificates)
+  for _resource in ${_resources[@]}; do
+    if [[ -e $_resource ]]; then
+      echo -n "Removing $_resource"
+      rm -fr $_resource 2>/dev/null
+      catch "could not remove $_resource"
     fi
   done
+
   # Remove binaries
-  for _i in ${_binaries[@]}; do
-    local _bin=${_path}/${_i}
-    if [[ -e $_bin ]]; then
-      echo -n "Removing $_bin"
-      rm -f $_bin 2>/dev/null
-      catch "could not remove $_bin"
+  for _bin in ${bins[@]}; do
+    local _binary=${bin_path}/${_bin}
+    if [[ -e $_binary ]]; then
+      echo -n "Removing $_binary"
+      rm -f $_binary 2>/dev/null
+      catch "could not remove $_binary"
     fi
   done
+
   # Cleanup bin dir
-  if [[ ! $(ls -A $_path 2>/dev/null) ]]; then
-    rm -fr $_path
+  if [[ ! $(ls -A $bin_path 2>/dev/null) ]]; then
+    rm -fr $bin_path
   fi
 }
 
-LocalInstall() {
-  if [[ $_is_windows == true ]]; then
+Install()
+{
+  # MSYS users should use our Inno Setup scripts/instructions
+  if [[ $is_windows == true ]]; then
     false
     catch "this option is unsupported on this platform"
   fi
+
   # Ensure paths for new install
-  if [[ ! -d $_data ]]; then
-    echo -n "Creating $_data"
-    mkdir "$_data" 2>/dev/null
-    catch "could not create $_data"
+  if [[ ! -d $kovri_data_dir ]]; then
+    echo -n "Creating $kovri_data_dir"
+    mkdir "$kovri_data_dir" 2>/dev/null
+    catch "could not create $kovri_data_dir"
   fi
-  if [[ ! -d $_path ]]; then
-    echo -n "Creating $_path"
-    mkdir "$_path" 2>/dev/null
-    catch "could not create $_path"
+  if [[ ! -d $bin_path ]]; then
+    echo -n "Creating $bin_path"
+    mkdir "$bin_path" 2>/dev/null
+    catch "could not create $bin_path"
   fi
+
   # Install resources
-  for _i in ${_resources[@]}; do
-    if [[ -d $_i ]]; then
-      echo -n "Copying $_i to $_data"
-      cp -fR $_i "$_data" 2>/dev/null
+  for _resource in ${resources[@]}; do
+    if [[ -d $_resource ]]; then
+      echo -n "Copying $_resource to $kovri_data_dir"
+      cp -fR $_resource "$kovri_data_dir" 2>/dev/null
     else  # Implies binaries
-      echo -n "Copying $_i to $_path"
-      cp -f $_i "$_path" 2>/dev/null
+      echo -n "Copying $_resource to $bin_path"
+      cp -f $_resource "$bin_path" 2>/dev/null
     fi
     catch "could not copy resource"
   done
 }
 
-CreatePackage() {
-  # Test access
-  if [[ ! -x $_package_file ]]; then
-    echo -n "Testing write access"
-    catch "we can't write to $_package_file"
+CreatePackage()
+{
+  # Ensure we're top-level if packaging from git repo
+  local _git="git rev-parse --show-toplevel"
+  $_git &>/dev/null
+  if [[ $? -eq 0 ]]; then
+    cd $($_git)
+    local _is_git=true
+  else
+    cd $(dirname "$0")
   fi
-  # Windows
-  if [[ $_is_windows == true ]]; then
+
+  # Package preparation
+  if [[ $package_option == true ]]; then
+    # Set defaults
+    if [[ $_is_git == true ]]; then
+      local _rev="-"$(git rev-parse --short HEAD 2>/dev/null)
+    fi
+    staging_path="kovri${_rev}-$(uname -s)-$(uname -m)-$(date +%Y.%m.%d)"
+    # Set package file if none supplied
+    if [[ -z $package_file ]]; then
+      local _ext=".tar.bz2"
+      if [[ $is_windows == true ]]; then
+        local _ext=".exe"
+      fi
+      package_file="build/${staging_path}${_ext}"
+    fi
+  else
+    # Ensure proper command line
+    if [[ ! -z $package_file || $checksum_option == true ]]; then
+      PrintUsage ; false ; catch "set the package option to build a package"
+    fi
+  fi
+
+  # Test access
+  if [[ ! -x $package_file ]]; then
+    echo -n "Testing write access"
+    catch "we can't write to $package_file"
+  fi
+
+  # Create package
+  if [[ $is_windows == true ]]; then
     # Inno Setup
     /c/Program\ Files\ \(x86\)/Inno\ Setup\ 5/ISCC.exe pkg/installers/windows/Kovri${bitness}.iss
     catch "could not create Inno Setup installer"
     local _setup_bin="build/KovriSetup${bitness}.exe"
-    echo -n "Moving $_setup_bin to $_package_file"
-    mv $_setup_bin $_package_file
+    echo -n "Moving $_setup_bin to $package_file"
+    mv $_setup_bin $package_file
     catch "could not move package file"
   else
-    # *nix packaging
     echo -n "Creating staging path"
-    mkdir $_package_path
+    mkdir $staging_path
     catch "could not create staging directory"
+
+    # Copy resources
     echo -n "Copying resources"
-    if [[ $_is_osx == true || $_is_bsd == true ]]; then
+    if [[ $is_osx == true || $is_bsd == true ]]; then
       # TODO(anonimal): using rsync is a hack to preserve parent path
       hash rsync 2>/dev/null
       if [[ $? -ne 0 ]]; then
         false
         catch "rsync not installed. Install rsync for $OSTYPE"
       fi
-      for _i in ${_resources[@]}; do
-        rsync -avR $_i $_package_path 1>/dev/null
+      for _resource in ${resources[@]}; do
+        rsync -avR $_resource $staging_path 1>/dev/null
       done
     else
-      cp -R --parents $_resources $_package_path
+      cp -R --parents $resources $staging_path
     fi
     catch "could not copy resources for packaging"
+
     # Add ourself to the package
     echo -n "Copying installer"
-    cp pkg/installers/kovri-install.sh $_package_path
+    cp pkg/installers/kovri-install.sh $staging_path
     catch "could not copy installer"
+
     # Add the install guide
     echo -n "Copying guide"
-    cp pkg/installers/INSTALL.txt $_package_path
+    cp pkg/installers/INSTALL.txt $staging_path
     catch "could not copy install guide"
+
     # Compress package
-    echo -n "Compressing package $_package_file (please wait)..."
-    tar cjf $_package_file $_package_path
+    echo -n "Compressing package $package_file (please wait)..."
+    tar cjf $package_file $staging_path
     catch "could not create package file"
     echo -n "Cleaning staging path"
-    rm -fr $_package_path
+
+    # Cleanup
+    rm -fr $staging_path
     catch "could not clean staging path"
   fi
-  if [[ $_create_checksum_file == true ]]; then
+
+  # Create checksum
+  if [[ $checksum_option == true ]]; then
     local _output_size=256
-    local _shasum_file=${_package_file}.sha${_output_size}sum.txt
+    local _shasum_file=${package_file}.sha${_output_size}sum.txt
     # Use available check command
-    if [[ $_is_openbsd == true ]]; then
+    if [[ $is_openbsd == true ]]; then
       local _shasum_cmd="sha256"
     else
       local _shasum_cmd="shasum"
     fi
+    # Calculate sum
     echo -n "Creating shasum $_shasum_file"
-    if [[ $_is_openbsd == true ]]; then
-      $_shasum_cmd $_package_file 1> $_shasum_file
+    if [[ $is_openbsd == true ]]; then
+      $_shasum_cmd $package_file 1> $_shasum_file
     else
-      $_shasum_cmd -a $_output_size $_package_file 1> $_shasum_file
+      $_shasum_cmd -a $_output_size $package_file 1> $_shasum_file
     fi
     catch "could not create checksum file"
-    echo -n "Verifying $_package_file"
+    # Verify produced checksum
+    echo -n "Verifying $package_file"
     $_shasum_cmd -c $_shasum_file 1>/dev/null ; catch "could not verify checksum"
   fi
 }
 
 # Test if terminal is color capable
 if [[ $(tput colors) ]]; then
-  _red="$(tput setaf 1)"
-  _green="$(tput setaf 2)"
-  _yellow="$(tput setaf 3)"
-  _normal="$(tput sgr0)"
+  red="$(tput setaf 1)"
+  green="$(tput setaf 2)"
+  yellow="$(tput setaf 3)"
+  normal="$(tput sgr0)"
 fi
 
 # Error handler
-catch() {
+catch()
+{
   if [[ $? -ne 0 ]]; then
-    echo " ${_red}[ERROR] Failed to install: '$1' ${_normal}" >&2
+    echo " ${red}[ERROR] Failed to install: '$1' ${normal}" >&2
     exit 1
   fi
-  echo " ${_green}[OK]${_normal}"
+  echo " ${green}[OK]${normal}"
 }
 
-_banner="${_yellow}The Kovri I2P Router Project (c) 2015-2017${_normal}" && echo $_banner
-PrepareOptions
-if [[ $_create_package == true ]]; then
+echo "${yellow}The Kovri I2P Router Project (c) 2015-2017${normal}"
+
+if [[ $package_option == true ]]; then
   CreatePackage
-  echo "${_green}Package creation success!${_normal}"
-elif [[ $_uninstall == true ]]; then
-  LocalUninstall
-  echo "${_green}Un-installation success!${_normal}"
+  echo "${green}Package creation success!${normal}"
+elif [[ $uninstall_option == true ]]; then
+  Uninstall
+  echo "${green}Un-installation success!${normal}"
 else
-  LocalUninstall
-  LocalInstall
-  echo "Data directory is $_data"
-  echo "Binaries are located in $_path"
-  echo "${_green}Installation success!${_normal}"
+  Uninstall
+  Install
+  echo "Data directory is $kovri_data_dir"
+  echo "Binaries are located in $bin_path"
+  echo "${green}Installation success!${normal}"
 fi

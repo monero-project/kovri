@@ -1,0 +1,19 @@
+The Kovri I2P Router Project (c) 2015-2017
+==========================================
+
+Linux/OSX/BSD/MSYS2
+-------------------
+
+1. Run kovri-install.sh
+2. Location of configuration files + data and binary will be reported to you after successful installation
+3. Run kovri!
+
+Windows
+--------
+
+See Inno Setup scripts and instructions in the windows subdirectory
+
+User-guide
+----------
+
+Available at https://getkovri.org or https://github.com/monero-project/kovri-docs

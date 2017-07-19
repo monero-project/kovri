@@ -245,7 +245,11 @@ CreatePackage()
   # Create package
   if [[ $is_windows == true ]]; then
     # Inno Setup
-    /c/Program\ Files\ \(x86\)/Inno\ Setup\ 5/ISCC.exe pkg/installers/windows/Kovri${bitness}.iss
+    local _program_files="$PROGRAMFILES"
+    if [[ $bitness == 64 ]]; then
+      _program_files="$PROGRAMFILES (x86)"
+    fi
+    "${_program_files}"/Inno\ Setup\ 5/ISCC.exe pkg/installers/windows/Kovri${bitness}.iss
     catch "could not create Inno Setup installer"
     local _setup_bin="build/KovriSetup${bitness}.exe"
     echo -n "Moving $_setup_bin to $package_file"

@@ -749,7 +749,7 @@ void Stream::HandleResendTimer(
         case 2:
           // drop RTO to initial upon tunnels pair change first time
           m_RTO = INITIAL_RTO;
-          // no break here
+          // fall-through
         case 4:
           UpdateCurrentRemoteLease();  // pick another lease
           LOG(warning)

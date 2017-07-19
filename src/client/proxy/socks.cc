@@ -622,6 +622,7 @@ bool SOCKSHandler::HandleData(
           case UDP:
             if (m_SOCKSVersion == SOCKS5)
               break;
+            // fall-through
           default:
             LOG(error)
               << "SOCKSHandler: invalid command: "

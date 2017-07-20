@@ -251,6 +251,7 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
                             LOG(warning)
                                 << "RouterInfo: unexpected SSU address "
                                 << value;
+                            // fall-through
                           default:
                             is_valid_address = false;
                         }

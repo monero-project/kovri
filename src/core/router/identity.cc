@@ -695,6 +695,7 @@ PrivateKeys PrivateKeys::CreateRandomKeys(SigningKeyType type) {
         LOG(warning)
           << "IdentityEx: Signing key type "
           << static_cast<int>(type) << " is not supported, creating DSA-SHA1";
+        // fall-through
       case SIGNING_KEY_TYPE_DSA_SHA1:
         return PrivateKeys(kovri::core::CreateRandomKeys());  // DSA-SHA1
     }

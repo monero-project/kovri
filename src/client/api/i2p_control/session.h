@@ -41,6 +41,7 @@
 #include <mutex>
 #include <string>
 
+#include "client/util/json.h"
 #include "core/router/tunnel/impl.h"
 
 namespace kovri {
@@ -126,33 +127,6 @@ const char ROUTER_INFO_BW_OB_1S[] =
 const char ROUTER_MANAGER_SHUTDOWN[] = "Shutdown";
 const char ROUTER_MANAGER_SHUTDOWN_GRACEFUL[] = "ShutdownGraceful";
 const char ROUTER_MANAGER_RESEED[] = "Reseed";
-
-/**
- * @class JsonObject
- * @brief Represents a Json object, provides functionality to convert to string.
- */
-class JsonObject {
- public:
-  JsonObject() = default;
-
-  explicit JsonObject(
-      const std::string& value);
-
-  explicit JsonObject(
-      int value);
-
-  explicit JsonObject(
-      double value);
-
-  JsonObject& operator[](
-      const std::string& key);
-
-  std::string ToString() const;
-
- private:
-  std::map<std::string, JsonObject> m_Children;
-  std::string m_Value;
-};
 
 JsonObject TunnelToJsonObject(
     kovri::core::Tunnel* tunnel);

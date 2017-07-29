@@ -54,44 +54,6 @@
 namespace kovri {
 namespace client {
 
-JsonObject::JsonObject(
-    const std::string& value)
-    : m_Children(),
-      m_Value("\"" + value + "\"") {}
-
-JsonObject::JsonObject(
-    int value)
-    : m_Children(),
-      m_Value(std::to_string(value)) {}
-
-JsonObject::JsonObject(
-    double v)
-    : m_Children(),
-      m_Value() {
-        std::ostringstream oss;
-        oss << std::fixed << std::setprecision(2) << v;
-        m_Value = oss.str();
-}
-
-JsonObject& JsonObject::operator[](
-    const std::string& key) {
-  return m_Children[key];
-}
-
-std::string JsonObject::ToString() const {
-  if (m_Children.empty())
-    return m_Value;
-  std::ostringstream oss;
-  oss << '{';
-  for (auto it = m_Children.begin(); it != m_Children.end(); ++it) {
-    if (it != m_Children.begin())
-      oss << ',';
-    oss << '"' << it->first << "\":" << it->second.ToString();
-  }
-  oss << '}';
-  return oss.str();
-}
-
 JsonObject TunnelToJsonObject(
     kovri::core::Tunnel* tunnel) {
   JsonObject obj;

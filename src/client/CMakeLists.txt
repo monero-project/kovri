@@ -14,6 +14,7 @@ set(CLIENT_SRC
   "reseed.cc"
   "service.cc"
   "tunnel.cc"
+  "util/json.cc"
   "util/parse.cc"
   "util/http.cc"
   "util/zip.cc")

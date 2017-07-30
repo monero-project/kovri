@@ -61,6 +61,27 @@ JsonObject& JsonObject::operator[](
   return m_Children[key];
 }
 
+bool JsonObject::operator==(const JsonObject& other) const
+{
+  return ToString() == other.ToString();
+}
+
+bool JsonObject::operator<(const JsonObject& other) const
+{
+  return m_Value == other.GetValue();
+}
+
+std::ostream& operator<<(std::ostream& os, const JsonObject& object)
+{
+  os << object.ToString();
+  return os;
+}
+
+const std::string& JsonObject::GetValue() const
+{
+  return m_Value;
+}
+
 std::string JsonObject::ToString() const {
   if (m_Children.empty())
     return m_Value;

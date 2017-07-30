@@ -62,12 +62,24 @@ class JsonObject {
   JsonObject& operator[](
       const std::string& key);
 
+  // @return JsonObject associated with key
+  const JsonObject& Get(const std::string& key) const;
+
+  // @return current node value
+  const std::string& GetValue() const;
+
   std::string ToString() const;
+
+  // For usage with boost::variant
+  bool operator==(const JsonObject&) const;
+  bool operator<(const JsonObject&) const;
 
  private:
   std::map<std::string, JsonObject> m_Children;
   std::string m_Value;
 };
+
+std::ostream& operator<<(std::ostream& os, const JsonObject&);
 
 }  // namespace client
 }  // namespace kovri

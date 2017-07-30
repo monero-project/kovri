@@ -47,6 +47,8 @@ namespace client
  * @brief Represents a Json object, provides functionality to convert to string.
  */
 class JsonObject {
+  typedef boost::property_tree::ptree ptree;
+
  public:
   JsonObject() = default;
 
@@ -58,6 +60,8 @@ class JsonObject {
 
   explicit JsonObject(
       double value);
+
+  explicit JsonObject(const ptree& value);
 
   JsonObject& operator[](
       const std::string& key);

@@ -42,10 +42,10 @@ JsonObject::JsonObject(
     : m_Children(),
       m_Value("\"" + value + "\"") {}
 
-JsonObject::JsonObject(
-    int value)
-    : m_Children(),
-      m_Value(std::to_string(value)) {}
+JsonObject::JsonObject(int value)
+    : m_Children(), m_Value("\"" + std::to_string(value) + "\"")
+{
+}
 
 JsonObject::JsonObject(
     double v)
@@ -53,7 +53,19 @@ JsonObject::JsonObject(
       m_Value() {
         std::ostringstream oss;
         oss << std::fixed << std::setprecision(2) << v;
-        m_Value = oss.str();
+        m_Value = "\"" + oss.str() + "\"";
+}
+
+JsonObject::JsonObject(const ptree& node)
+{
+  m_Value = node.get_value<std::string>();
+  if (m_Value == "null")
+    m_Value = "";
+  else
+    m_Value = "\"" + m_Value + "\"";
+
+  for (const auto& child : node)
+    m_Children[child.first] = JsonObject(child.second);
 }
 
 JsonObject& JsonObject::operator[](

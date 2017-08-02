@@ -62,7 +62,7 @@ Alpha release coming soon
     - PGP Key fingerprint: 1218 6272 CD48 E253 9E2D  D29B 66A7 6ECF 9144 09F1
 
 ## Vulnerability Response
-- **We will pay hackers in XMR or BTC to exploit Kovri responsibly!** Please see our [Vulnerability Response Process](https://github.com/monero-project/kovri-docs/blob/master/developer/VULNERABILITY_RESPONSE_PROCESS.md) for responsible disclosure
+- **We will pay hackers in XMR to exploit Kovri responsibly!** Please see our [Vulnerability Response Process](https://github.com/monero-project/kovri-docs/blob/master/developer/VULNERABILITY_RESPONSE_PROCESS.md) for responsible disclosure
 
 ## Donations
 - Visit our [Donations Page](https://getmonero.org/getting-started/donate/) to help Kovri with your donations

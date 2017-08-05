@@ -36,19 +36,17 @@ Alpha release coming soon
 | License   | [![License](https://img.shields.io/badge/license-BSD3-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 ## Documentation
+- Build instructions, User Guide, and more can be found in your language within the [kovri-docs](https://github.com/monero-project/kovri-docs/) repository
 - [Moneropedia](https://getmonero.org/knowledge-base/moneropedia/kovri) is recommended for all users and developers
-- [Build Instructions](https://github.com/anonimal/kovri-docs/blob/master/end-user/BUILDING.md) to install dependencies and build Kovri
-- [User Guide](https://github.com/anonimal/kovri-docs/blob/master/end-user/USER_GUIDE.md) to get up and running with Kovri
-- [FAQ's](https://github.com/anonimal/kovri-docs/blob/master/end-user/FAQ.md) and other documentation available in the [docs repo](https://github.com/anonimal/kovri-docs/)
 
 ## Developers
-- [Contributing Guide](https://github.com/anonimal/kovri-docs/blob/master/developer/CONTRIBUTING.md) and [Style Guide](https://github.com/anonimal/kovri-docs/blob/master/developer//STYLE.md) before sending a pull-request
+- The Contributing Guide, Style guide, Vulnerability Response Process, and more can be found in your language within the [kovri-docs](https://github.com/monero-project/kovri-docs/) repository (please review before submitting a pull request)
 - [Forum Funding System](https://forum.getmonero.org/8/funding-required) to get funded for your work, [submit a proposal](https://forum.getmonero.org/7/open-tasks/2379/forum-funding-system-ffs-sticky)
 - [build.getmonero.org](https://build.getmonero.org/) or monero-build.i2p for detailed build information
 - [repo.getmonero.org](https://repo.getmonero.org/monero-project/kovri) or monero-repo.i2p are alternatives to GitHub for non-push repository access
 
 ## Contact
-- IRC: [Freenode](https://webchat.freenode.net/) | [OFTC](https://webchat.oftc.net/) | Irc2P with Kovri (see [User Guide](https://github.com/anonimal/kovri-docs/blob/master/end-user/USER_GUIDE.md))
+- IRC: [Freenode](https://webchat.freenode.net/) | [OFTC](https://webchat.oftc.net/) | Irc2P with Kovri
   - ```#kovri``` | Community & Support Channel
   - ```#kovri-dev``` | Development Channel
 - [Monero Slack](https://monero.slack.com/)
@@ -64,7 +62,7 @@ Alpha release coming soon
     - PGP Key fingerprint: 1218 6272 CD48 E253 9E2D  D29B 66A7 6ECF 9144 09F1
 
 ## Vulnerability Response
-- **We will pay hackers in XMR or BTC to exploit Kovri responsibly!** Please see our [Vulnerability Response Process](https://github.com/anonimal/kovri-docs/blob/master/developer/VULNERABILITY_RESPONSE_PROCESS.md) for responsible disclosure
+- **We will pay hackers in XMR to exploit Kovri responsibly!** Please see our [Vulnerability Response Process](https://github.com/monero-project/kovri-docs/blob/master/developer/VULNERABILITY_RESPONSE_PROCESS.md) for responsible disclosure
 
 ## Donations
 - Visit our [Donations Page](https://getmonero.org/getting-started/donate/) to help Kovri with your donations

@@ -40,10 +40,13 @@ Alpha release coming soon
 - [Moneropedia](https://getmonero.org/knowledge-base/moneropedia/kovri) is recommended for all users and developers
 
 ## Developers
-- The Contributing Guide, Style guide, Vulnerability Response Process, and more can be found in your language within the [kovri-docs](https://github.com/monero-project/kovri-docs/) repository (please review before submitting a pull request)
+- Various guides (contributing, style, etc.) can be found in your language within the [kovri-docs](https://github.com/monero-project/kovri-docs/) repository (please review before submitting a pull request)
 - [Forum Funding System](https://forum.getmonero.org/8/funding-required) to get funded for your work, [submit a proposal](https://forum.getmonero.org/7/open-tasks/2379/forum-funding-system-ffs-sticky)
 - [build.getmonero.org](https://build.getmonero.org/) or monero-build.i2p for detailed build information
 - [repo.getmonero.org](https://repo.getmonero.org/monero-project/kovri) or monero-repo.i2p are alternatives to GitHub for non-push repository access
+
+## Vulnerability Response
+- **We will pay hackers in XMR to exploit Kovri responsibly!** See our VRP (Vulnerability Response Process) in [kovri-docs](https://github.com/monero-project/kovri-docs/) for responsible disclosure
 
 ## Contact
 - IRC: [Freenode](https://webchat.freenode.net/) | [OFTC](https://webchat.oftc.net/) | Irc2P with Kovri
@@ -60,9 +63,6 @@ Alpha release coming soon
   - All other contact
     - anonimal [at] i2pmail.org
     - PGP Key fingerprint: 1218 6272 CD48 E253 9E2D  D29B 66A7 6ECF 9144 09F1
-
-## Vulnerability Response
-- **We will pay hackers in XMR to exploit Kovri responsibly!** Please see our [Vulnerability Response Process](https://github.com/monero-project/kovri-docs/blob/master/developer/VULNERABILITY_RESPONSE_PROCESS.md) for responsible disclosure
 
 ## Donations
 - Visit our [Donations Page](https://getmonero.org/getting-started/donate/) to help Kovri with your donations

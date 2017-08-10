@@ -288,7 +288,7 @@ class NTCPSession
       Phase3AliceTS +
       Phase3Padding +
       Phase3Signature,  // Total = 448
-    MaxMessage = 16384,
+    MaxMessage = 16378,  // Spec defined as 16 KB - 6 (16378 bytes)
     Buffer = 4160,  // fits 4 tunnel messages (4 * 1028)
   };
 

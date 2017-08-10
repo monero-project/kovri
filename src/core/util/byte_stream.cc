@@ -151,19 +151,29 @@ std::size_t OutputByteStream::GetSize() const {
 
 // Hex
 
-const std::string GetFormattedHex(const std::uint8_t* data, std::size_t size) {
+const std::string GetFormattedHex(const std::uint8_t* data, std::size_t size)
+{
   std::ostringstream hex;
-  std::size_t count = 0;
-  for (std::size_t i = 0; i < size; i++) {
-    hex << std::hex << std::setfill('0') << std::setw(2) << static_cast<std::uint16_t>(data[i]) << " ";
-    count++;
-    if (count == 8) {
-      hex.put('|');
-      hex.put(' ');
-      count = 0;
+  hex << "\n\t" << " |  ";
+  std::size_t count{}, sub_count{};
+  for (std::size_t i = 0; i < size; i++)
+    {
+      hex << std::hex << std::setfill('0') << std::setw(2)
+          << static_cast<std::uint16_t>(data[i]) << " ";
+      count++;
+      if (count == 32 || (i == size - 1))
+        {
+          hex << " |" << "\n\t";
+          count = 0;
+        }
+      sub_count++;
+      if (sub_count == 8 && (i != size - 1))
+        {
+          hex << " |  ";
+          sub_count = 0;
+        }
     }
-  }
-  return hex.str();
+  return hex.str() + "\n";
 }
 
 std::unique_ptr<std::vector<std::uint8_t>> AddressToByteVector(

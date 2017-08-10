@@ -35,6 +35,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <vector>
+
 #include "core/crypto/diffie_hellman.h"
 #include "core/crypto/hash.h"
 #include "core/crypto/rand.h"
@@ -107,27 +109,28 @@ void NTCPSession::ClientLogin() {
     m_DHKeysPair = transports.GetNextDHKeysPair();
   }
   // X as calculated from Diffie-Hellman
-  const std::uint8_t* x = m_DHKeysPair->public_key.data();
+  const std::uint8_t* X = m_DHKeysPair->public_key.data();
   memcpy(
       m_Establisher->phase1.pub_key.data(),
-      x,
+      X,
       NTCPSize::PubKey);
-  // HXxorHI: SHA256 Hash(X) xored with SHA256 Hash(Bob's RouterIdentity)
+  // SHA256 hash(X)
   // TODO(anonimal): this try block should be larger or handled entirely by caller
   try {
     kovri::core::SHA256().CalculateDigest(
-        m_Establisher->phase1.HXxorHI.data(),
-        x,
+        m_HX.data(),
+        X,
         NTCPSize::PubKey);
   } catch (...) {
     m_Exception.Dispatch(__func__);
     // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
     throw;
   }
-  // HXxorHI: get ident hash, then XOR
-  const std::uint8_t* ident = m_RemoteIdentity.GetIdentHash();
+  // HXxorHI: get SHA256 hash(Bob's ident) and XOR against SHA256 hash(X)
+  const std::uint8_t* HI = m_RemoteIdentity.GetIdentHash();
   for (std::size_t i = 0; i < NTCPSize::Hash; i++)
-    m_Establisher->phase1.HXxorHI.at(i) ^= ident[i];
+    m_Establisher->phase1.HXxorHI.at(i) = m_HX.at(i) ^ HI[i];
+
   // Send phase1
   LOG(trace)
     << "NTCPSession:" << GetFormattedSessionInfo()
@@ -1191,15 +1194,25 @@ const std::string NTCPSession::GetFormattedPhaseInfo(const Phase& num) {
   std::string info;
   switch (num) {
     case Phase::One: {
-      info += "*** Phase1 ";
+      info += "*** Phase1:\n";
+
       // X as calculated from Diffie-Hellman
-      auto& pub_key = m_Establisher->phase1.pub_key;
-      info += "[pub key X] ";
-      info += GetFormattedHex(pub_key.data(), pub_key.size());
-      // SHA256 Hash(X) xored with SHA256 Hash(Bob's RouterIdentity)
-      auto& HXxorHI = m_Establisher->phase1.HXxorHI;
-      info += "[HXxorHI] ";
-      info += GetFormattedHex(HXxorHI.data(), HXxorHI.size());
+      info += "\tDH X: ";
+      const auto& pub_key = m_Establisher->phase1.pub_key;
+      info += GetFormattedHex(pub_key.data(), pub_key.size()) + "\n";
+
+      // SHA256 hash(X)
+      info += "\tHash(X): ";
+      info += GetFormattedHex(m_HX.data(), m_HX.size()) + "\n";
+
+      // SHA256 hash(Bob's RouterIdentity)
+      info += "\tHash(I): ";
+      info += GetFormattedHex(m_RemoteIdentity.GetIdentHash(), NTCPSize::Hash) + "\n";
+
+      // SHA256 hash(X) XOR'd with SHA256 hash(Bob's RouterIdentity)
+      info += "\tHXxorHI: ";
+      const auto& HXxorHI = m_Establisher->phase1.HXxorHI;
+      info += GetFormattedHex(HXxorHI.data(), HXxorHI.size()) + "\n";
       break;
     }
     case Phase::Two: {

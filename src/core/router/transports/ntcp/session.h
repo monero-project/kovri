@@ -296,7 +296,10 @@ class NTCPSession
   // If so, should we not be consistent with other protocols?
   #pragma pack(1)
   struct NTCPPhase1 {
+    // @brief Diffie-Hellman X
     std::array<std::uint8_t, NTCPSize::PubKey> pub_key;
+
+    /// @brief Hash of DH-X XOR'd with Bob's Ident Hash
     std::array<std::uint8_t, NTCPSize::Hash> HXxorHI;
   };
 
@@ -316,6 +319,9 @@ class NTCPSession
   };
 
   std::unique_ptr<Establisher> m_Establisher;
+
+  /// @brief Hash of Diffie-Hellman X
+  std::array<std::uint8_t, NTCPSize::Hash> m_HX;
 
   kovri::core::AESAlignedBuffer<NTCPSize::Buffer + NTCPSize::IV> m_ReceiveBuffer;
   kovri::core::AESAlignedBuffer<NTCPSize::IV> m_TimeSyncBuffer;

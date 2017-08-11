@@ -87,7 +87,8 @@ class NTCPSession
     return m_IsEstablished;
   }
 
-  void ClientLogin();
+  /// @brief Starts client NTCP session (local router -> external router)
+  void StartClientSession();
 
   void ServerLogin();
 
@@ -154,6 +155,10 @@ class NTCPSession
   void CreateAESKey(
       std::uint8_t* pub_key,
       kovri::core::AESKey& key);
+
+  // TODO(anonimal): simplify phase impl/handler
+
+  void SendPhase1();
 
   // Client
   void SendPhase3();

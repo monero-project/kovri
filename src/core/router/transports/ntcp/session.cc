@@ -86,64 +86,75 @@ NTCPSession::~NTCPSession() {}
  *
  */
 
-// Phase1: SessionRequest
-
-void NTCPSession::ClientLogin() {
+void NTCPSession::StartClientSession()
+{
   // Set endpoint
   const auto& ecode = SetRemoteEndpoint();
-  if (ecode) {
-    LOG(error)
-      << "NTCPSession:" << GetFormattedSessionInfo()
-      << "!!! " << __func__ << ": '" << ecode.message() << "'";
-    LOG(trace)
-      << "NTCPSession:" << GetFormattedSessionInfo()
-      << GetFormattedPhaseInfo(Phase::One);
-    return;
-  }
-  LOG(debug)
-    << "NTCPSession:" << GetFormattedSessionInfo() << "*** Phase1, preparing";
-  if (!m_DHKeysPair) {
-    LOG(debug)
-      << "NTCPSession:" << GetFormattedSessionInfo()
-      << "*** Phase1, acquiring DH keys pair";
-    m_DHKeysPair = transports.GetNextDHKeysPair();
-  }
+  if (ecode)
+    {
+      LOG(error) << "NTCPSession:" << GetFormattedSessionInfo() << "!!! "
+                 << __func__ << ": '" << ecode.message() << "'";
+      return;
+    }
+  try
+    {
+      SendPhase1();
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      // TODO(anonimal): ensure exception handling by caller
+      throw;
+    }
+}
+
+// Phase1: SessionRequest
+
+void NTCPSession::SendPhase1()
+{
+  LOG(debug) << "NTCPSession:" << GetFormattedSessionInfo()
+             << "*** Phase1, preparing";
+
+  if (!m_DHKeysPair)
+    {
+      LOG(debug) << "NTCPSession:" << GetFormattedSessionInfo()
+                 << "*** Phase1, acquiring DH keys pair";
+      m_DHKeysPair = transports.GetNextDHKeysPair();
+      // TODO(anonimal): throw if null
+    }
+
   // X as calculated from Diffie-Hellman
   m_Establisher->phase1.pub_key = m_DHKeysPair->public_key;
+
   // SHA256 hash(X)
-  // TODO(anonimal): this try block should be larger or handled entirely by caller
-  try {
-    kovri::core::SHA256().CalculateDigest(
-        m_HX.data(),
-        m_Establisher->phase1.pub_key.data(),
-        m_Establisher->phase1.pub_key.size());
-  } catch (...) {
-    m_Exception.Dispatch(__func__);
-    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
-    throw;
-  }
+  kovri::core::SHA256().CalculateDigest(
+      m_HX.data(),
+      m_Establisher->phase1.pub_key.data(),
+      m_Establisher->phase1.pub_key.size());
+
   // HXxorHI: get SHA256 hash(Bob's ident) and XOR against SHA256 hash(X)
   for (std::size_t i = 0; i < m_HX.size(); i++)
     m_Establisher->phase1.HXxorHI.at(i) =
         m_HX.at(i) ^ m_RemoteIdentity.GetIdentHash()[i];
 
+  LOG(trace) << "NTCPSession:" << GetFormattedSessionInfo()
+             << GetFormattedPhaseInfo(Phase::One);
+
   // Send phase1
-  LOG(trace)
-    << "NTCPSession:" << GetFormattedSessionInfo()
-    << GetFormattedPhaseInfo(Phase::One);
-  LOG(debug)
-    << "NTCPSession:" << GetFormattedSessionInfo() << "<-- Phase1, sending";
+  LOG(debug) << "NTCPSession:" << GetFormattedSessionInfo()
+             << "<-- Phase1, sending";
+
   boost::asio::async_write(
       m_Socket,
       boost::asio::buffer(
-          &m_Establisher->phase1,
-          sizeof(m_Establisher->phase1)),
+          &m_Establisher->phase1, sizeof(m_Establisher->phase1)),
       boost::asio::transfer_all(),
       std::bind(
           &NTCPSession::HandlePhase1Sent,
           shared_from_this(),
           std::placeholders::_1,
           std::placeholders::_2));
+
   ScheduleTermination();
 }
 

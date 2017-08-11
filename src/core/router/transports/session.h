@@ -43,13 +43,10 @@
 #include "core/router/identity.h"
 #include "core/router/info.h"
 
+#include "core/crypto/diffie_hellman.h"
+
 namespace kovri {
 namespace core {
-
-struct DHKeysPair {  // transient keys for transport sessions
-  std::array<std::uint8_t, 256> public_key;
-  std::array<std::uint8_t, 256> private_key;
-};
 
 class SignedData {
  public:

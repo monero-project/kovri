@@ -266,7 +266,7 @@ class NTCPSession
 
   /// @enum NTCPSize
   enum NTCPSize : std::uint16_t {
-    PubKey     = 256,  // DH (X, Y)
+    PubKey     = DHKeySize::PubKey,  // DH (X, Y)
     Hash        = 32,
     Padding     = 12,
     SessionKey = 32,

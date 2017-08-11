@@ -109,27 +109,23 @@ void NTCPSession::ClientLogin() {
     m_DHKeysPair = transports.GetNextDHKeysPair();
   }
   // X as calculated from Diffie-Hellman
-  const std::uint8_t* X = m_DHKeysPair->public_key.data();
-  memcpy(
-      m_Establisher->phase1.pub_key.data(),
-      X,
-      NTCPSize::PubKey);
+  m_Establisher->phase1.pub_key = m_DHKeysPair->public_key;
   // SHA256 hash(X)
   // TODO(anonimal): this try block should be larger or handled entirely by caller
   try {
     kovri::core::SHA256().CalculateDigest(
         m_HX.data(),
-        X,
-        NTCPSize::PubKey);
+        m_Establisher->phase1.pub_key.data(),
+        m_Establisher->phase1.pub_key.size());
   } catch (...) {
     m_Exception.Dispatch(__func__);
     // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
     throw;
   }
   // HXxorHI: get SHA256 hash(Bob's ident) and XOR against SHA256 hash(X)
-  const std::uint8_t* HI = m_RemoteIdentity.GetIdentHash();
-  for (std::size_t i = 0; i < NTCPSize::Hash; i++)
-    m_Establisher->phase1.HXxorHI.at(i) = m_HX.at(i) ^ HI[i];
+  for (std::size_t i = 0; i < m_HX.size(); i++)
+    m_Establisher->phase1.HXxorHI.at(i) =
+        m_HX.at(i) ^ m_RemoteIdentity.GetIdentHash()[i];
 
   // Send phase1
   LOG(trace)

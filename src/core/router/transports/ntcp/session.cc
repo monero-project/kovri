@@ -120,7 +120,8 @@ void NTCPSession::SendPhase1()
       LOG(debug) << "NTCPSession:" << GetFormattedSessionInfo()
                  << "*** Phase1, acquiring DH keys pair";
       m_DHKeysPair = transports.GetNextDHKeysPair();
-      // TODO(anonimal): throw if null
+      if (!m_DHKeysPair)
+        throw std::runtime_error("acquired null DH keypair");
     }
 
   // X as calculated from Diffie-Hellman

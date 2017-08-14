@@ -87,7 +87,8 @@ class NTCPSession
     return m_IsEstablished;
   }
 
-  void ClientLogin();
+  /// @brief Starts client NTCP session (local router -> external router)
+  void StartClientSession();
 
   void ServerLogin();
 
@@ -154,6 +155,10 @@ class NTCPSession
   void CreateAESKey(
       std::uint8_t* pub_key,
       kovri::core::AESKey& key);
+
+  // TODO(anonimal): simplify phase impl/handler
+
+  void SendPhase1();
 
   // Client
   void SendPhase3();
@@ -250,7 +255,7 @@ class NTCPSession
   enum struct Phase : std::uint8_t { One, Two, Three, Four };
 
   /// @brief Returns phase info
-  const std::string GetFormattedPhaseInfo(const Phase& num);
+  const std::string GetFormattedPhaseInfo(Phase num);
 
  private:
   std::string m_RemoteIdentHashAbbreviation;
@@ -266,7 +271,7 @@ class NTCPSession
 
   /// @enum NTCPSize
   enum NTCPSize : std::uint16_t {
-    PubKey     = 256,  // DH (X, Y)
+    PubKey     = DHKeySize::PubKey,  // DH (X, Y)
     Hash        = 32,
     Padding     = 12,
     SessionKey = 32,
@@ -288,7 +293,7 @@ class NTCPSession
       Phase3AliceTS +
       Phase3Padding +
       Phase3Signature,  // Total = 448
-    MaxMessage = 16384,
+    MaxMessage = 16378,  // Spec defined as 16 KB - 6 (16378 bytes)
     Buffer = 4160,  // fits 4 tunnel messages (4 * 1028)
   };
 
@@ -296,7 +301,10 @@ class NTCPSession
   // If so, should we not be consistent with other protocols?
   #pragma pack(1)
   struct NTCPPhase1 {
+    // @brief Diffie-Hellman X
     std::array<std::uint8_t, NTCPSize::PubKey> pub_key;
+
+    /// @brief Hash of DH-X XOR'd with Bob's Ident Hash
     std::array<std::uint8_t, NTCPSize::Hash> HXxorHI;
   };
 
@@ -316,6 +324,9 @@ class NTCPSession
   };
 
   std::unique_ptr<Establisher> m_Establisher;
+
+  /// @brief Hash of Diffie-Hellman X
+  std::array<std::uint8_t, NTCPSize::Hash> m_HX;
 
   kovri::core::AESAlignedBuffer<NTCPSize::Buffer + NTCPSize::IV> m_ReceiveBuffer;
   kovri::core::AESAlignedBuffer<NTCPSize::IV> m_TimeSyncBuffer;

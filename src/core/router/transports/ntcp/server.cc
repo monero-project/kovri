@@ -213,7 +213,7 @@ void NTCPServer::HandleConnect(
   LOG(debug) << "NTCPServer: connected to " << socket.remote_endpoint();
   if (socket.local_endpoint().protocol() == boost::asio::ip::tcp::v6())
     context.UpdateNTCPV6Address(socket.local_endpoint().address());
-  conn->ClientLogin();
+  conn->StartClientSession();
   m_Service.post([conn, this]() {
       this->AddNTCPSession(conn);
   });

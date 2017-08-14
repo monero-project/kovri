@@ -35,6 +35,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <vector>
+
 #include "core/crypto/diffie_hellman.h"
 #include "core/crypto/hash.h"
 #include "core/crypto/rand.h"
@@ -84,67 +86,76 @@ NTCPSession::~NTCPSession() {}
  *
  */
 
-// Phase1: SessionRequest
-
-void NTCPSession::ClientLogin() {
+void NTCPSession::StartClientSession()
+{
   // Set endpoint
   const auto& ecode = SetRemoteEndpoint();
-  if (ecode) {
-    LOG(error)
-      << "NTCPSession:" << GetFormattedSessionInfo()
-      << "!!! " << __func__ << ": '" << ecode.message() << "'";
-    LOG(trace)
-      << "NTCPSession:" << GetFormattedSessionInfo()
-      << GetFormattedPhaseInfo(Phase::One);
-    return;
-  }
-  LOG(debug)
-    << "NTCPSession:" << GetFormattedSessionInfo() << "*** Phase1, preparing";
-  if (!m_DHKeysPair) {
-    LOG(debug)
-      << "NTCPSession:" << GetFormattedSessionInfo()
-      << "*** Phase1, acquiring DH keys pair";
-    m_DHKeysPair = transports.GetNextDHKeysPair();
-  }
+  if (ecode)
+    {
+      LOG(error) << "NTCPSession:" << GetFormattedSessionInfo() << "!!! "
+                 << __func__ << ": '" << ecode.message() << "'";
+      return;
+    }
+  try
+    {
+      SendPhase1();
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      // TODO(anonimal): ensure exception handling by caller
+      throw;
+    }
+}
+
+// Phase1: SessionRequest
+
+void NTCPSession::SendPhase1()
+{
+  LOG(debug) << "NTCPSession:" << GetFormattedSessionInfo()
+             << "*** Phase1, preparing";
+
+  if (!m_DHKeysPair)
+    {
+      LOG(debug) << "NTCPSession:" << GetFormattedSessionInfo()
+                 << "*** Phase1, acquiring DH keys pair";
+      m_DHKeysPair = transports.GetNextDHKeysPair();
+      if (!m_DHKeysPair)
+        throw std::runtime_error("acquired null DH keypair");
+    }
+
   // X as calculated from Diffie-Hellman
-  const std::uint8_t* x = m_DHKeysPair->public_key.data();
-  memcpy(
+  m_Establisher->phase1.pub_key = m_DHKeysPair->public_key;
+
+  // SHA256 hash(X)
+  kovri::core::SHA256().CalculateDigest(
+      m_HX.data(),
       m_Establisher->phase1.pub_key.data(),
-      x,
-      NTCPSize::PubKey);
-  // HXxorHI: SHA256 Hash(X) xored with SHA256 Hash(Bob's RouterIdentity)
-  // TODO(anonimal): this try block should be larger or handled entirely by caller
-  try {
-    kovri::core::SHA256().CalculateDigest(
-        m_Establisher->phase1.HXxorHI.data(),
-        x,
-        NTCPSize::PubKey);
-  } catch (...) {
-    m_Exception.Dispatch(__func__);
-    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
-    throw;
-  }
-  // HXxorHI: get ident hash, then XOR
-  const std::uint8_t* ident = m_RemoteIdentity.GetIdentHash();
-  for (std::size_t i = 0; i < NTCPSize::Hash; i++)
-    m_Establisher->phase1.HXxorHI.at(i) ^= ident[i];
+      m_Establisher->phase1.pub_key.size());
+
+  // HXxorHI: get SHA256 hash(Bob's ident) and XOR against SHA256 hash(X)
+  for (std::size_t i = 0; i < m_HX.size(); i++)
+    m_Establisher->phase1.HXxorHI.at(i) =
+        m_HX.at(i) ^ m_RemoteIdentity.GetIdentHash()[i];
+
+  LOG(trace) << "NTCPSession:" << GetFormattedSessionInfo()
+             << GetFormattedPhaseInfo(Phase::One);
+
   // Send phase1
-  LOG(trace)
-    << "NTCPSession:" << GetFormattedSessionInfo()
-    << GetFormattedPhaseInfo(Phase::One);
-  LOG(debug)
-    << "NTCPSession:" << GetFormattedSessionInfo() << "<-- Phase1, sending";
+  LOG(debug) << "NTCPSession:" << GetFormattedSessionInfo()
+             << "<-- Phase1, sending";
+
   boost::asio::async_write(
       m_Socket,
       boost::asio::buffer(
-          &m_Establisher->phase1,
-          sizeof(m_Establisher->phase1)),
+          &m_Establisher->phase1, sizeof(m_Establisher->phase1)),
       boost::asio::transfer_all(),
       std::bind(
           &NTCPSession::HandlePhase1Sent,
           shared_from_this(),
           std::placeholders::_1,
           std::placeholders::_2));
+
   ScheduleTermination();
 }
 
@@ -205,7 +216,7 @@ void NTCPSession::HandlePhase2Received(
     << "*** Phase2 received, processing";
   LOG(trace)
     << "NTCPSession:" << GetFormattedSessionInfo()
-    << GetFormattedPhaseInfo(Phase::Two);
+    << "Encrypted " << GetFormattedPhaseInfo(Phase::Two);
   // TODO(anonimal): this try block should be larger or handled entirely by caller
   try {
     kovri::core::AESKey aes_key;
@@ -238,7 +249,7 @@ void NTCPSession::HandlePhase2Received(
         << "!!! Phase2 << incorrect hash";
       LOG(trace)
         << "NTCPSession:" << GetFormattedSessionInfo()
-        << GetFormattedPhaseInfo(Phase::Two);
+        << "Decrypted " << GetFormattedPhaseInfo(Phase::Two);
       transports.ReuseDHKeysPair(std::move(m_DHKeysPair));
       m_DHKeysPair.reset(nullptr);
       Terminate();
@@ -251,7 +262,7 @@ void NTCPSession::HandlePhase2Received(
   }
   LOG(trace)
     << "NTCPSession:" << GetFormattedSessionInfo()
-    << GetFormattedPhaseInfo(Phase::Two);
+    << "Decrypted " << GetFormattedPhaseInfo(Phase::Two);
   LOG(debug)
     << "NTCPSession:" << GetFormattedSessionInfo()
     << "*** Phase2 successful, proceeding to Phase3";
@@ -1185,49 +1196,73 @@ void NTCPSession::Terminate() {
 
 // Utilities
 
-const std::string NTCPSession::GetFormattedPhaseInfo(const Phase& num) {
+const std::string NTCPSession::GetFormattedPhaseInfo(Phase num)
+{
   if (!m_Establisher)
     return "*** null establisher";
   std::string info;
-  switch (num) {
-    case Phase::One: {
-      info += "*** Phase1 ";
-      // X as calculated from Diffie-Hellman
-      auto& pub_key = m_Establisher->phase1.pub_key;
-      info += "[pub key X] ";
-      info += GetFormattedHex(pub_key.data(), pub_key.size());
-      // SHA256 Hash(X) xored with SHA256 Hash(Bob's RouterIdentity)
-      auto& HXxorHI = m_Establisher->phase1.HXxorHI;
-      info += "[HXxorHI] ";
-      info += GetFormattedHex(HXxorHI.data(), HXxorHI.size());
-      break;
-    }
-    case Phase::Two: {
-      info += "*** Phase2 ";
-      // Y as calculated from Diffie-Hellman
-      auto& pub_key = m_Establisher->phase2.pub_key;
-      info += ("[pub key Y] ");
-      info += GetFormattedHex(pub_key.data(), pub_key.size());
-      // Hash of X concat with Y
-      auto& hxy = m_Establisher->phase2.encrypted.hxy;
-      info += ("[hash of XY] ");
-      info += GetFormattedHex(hxy.data(), hxy.size());
-      // Bob's timestamp
-      auto& ts_B = m_Establisher->phase2.encrypted.timestamp;
-      info += ("[timestamp B] ");
-      info += GetFormattedHex(reinterpret_cast<const std::uint8_t *>(&ts_B), sizeof(ts_B));
-      // Padding
-      auto& rand = m_Establisher->phase2.encrypted.padding;
-      info += ("[random padding] ");
-      info += GetFormattedHex(rand.data(), rand.size());
-      break;
-    }
-    // TODO(anonimal): finish
-    case Phase::Three:
-    case Phase::Four:
-    default:
-      break;
-  };
+  switch (num)
+    {
+      case Phase::One:
+        {
+          info += "*** Phase1:\n";
+
+          // X as calculated from Diffie-Hellman
+          info += "\tDH X: ";
+          const auto& pub_key = m_Establisher->phase1.pub_key;
+          info += GetFormattedHex(pub_key.data(), pub_key.size());
+
+          // SHA256 hash(X)
+          info += "\tHash(X): ";
+          info += GetFormattedHex(m_HX.data(), m_HX.size());
+
+          // SHA256 hash(Bob's RouterIdentity)
+          info += "\tHash(I): ";
+          info +=
+              GetFormattedHex(m_RemoteIdentity.GetIdentHash(), NTCPSize::Hash);
+
+          // SHA256 hash(X) XOR'd with SHA256 hash(Bob's RouterIdentity)
+          info += "\tHXxorHI: ";
+          const auto& HXxorHI = m_Establisher->phase1.HXxorHI;
+          info += GetFormattedHex(HXxorHI.data(), HXxorHI.size());
+          break;
+        }
+      case Phase::Two:
+        {
+          // TODO(anonimal): finish
+
+          info += "Phase2:\n";
+
+          // Y as calculated from Diffie-Hellman
+          const auto& pub_key = m_Establisher->phase2.pub_key;
+          info += "\tDH Y: ";
+          info += GetFormattedHex(pub_key.data(), pub_key.size());
+
+          // TODO(anonimal): whether encrypted or not depends on placement of call
+
+          // Hash of X concat with Y
+          const auto& hxy = m_Establisher->phase2.encrypted.hxy;
+          info += "\tHash(X+Y): ";
+          info += GetFormattedHex(hxy.data(), hxy.size());
+
+          // Bob's timestamp
+          const auto ts_B = m_Establisher->phase2.encrypted.timestamp;
+          info += "\tTimestamp B: ";
+          info += GetFormattedHex(
+              reinterpret_cast<const std::uint8_t*>(&ts_B), sizeof(ts_B));
+
+          // Random padding
+          const auto& rand = m_Establisher->phase2.encrypted.padding;
+          info += "\tRandom padding: ";
+          info += GetFormattedHex(rand.data(), rand.size());
+          break;
+        }
+      // TODO(anonimal): finish
+      case Phase::Three:
+      case Phase::Four:
+      default:
+        break;
+    };
   return info;
 }
 

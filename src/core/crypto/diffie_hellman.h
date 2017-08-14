@@ -31,11 +31,26 @@
 #ifndef SRC_CORE_CRYPTO_DIFFIE_HELLMAN_H_
 #define SRC_CORE_CRYPTO_DIFFIE_HELLMAN_H_
 
+#include <array>
 #include <memory>
 #include <cstdint>
 
 namespace kovri {
 namespace core {
+
+enum DHKeySize : std::uint16_t
+{
+  PubKey = 256,
+  PrivKey = 256,
+};
+
+/// @class DHKeysPair
+/// @brief Transient keys for transport sessions
+struct DHKeysPair
+{
+  std::array<std::uint8_t, DHKeySize::PubKey> public_key {{}};
+  std::array<std::uint8_t, DHKeySize::PrivKey> private_key {{}};
+};
 
 /// @class DiffieHellman
 /// @brief Diffie-Hellman

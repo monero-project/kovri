@@ -255,7 +255,7 @@ class NTCPSession
   enum struct Phase : std::uint8_t { One, Two, Three, Four };
 
   /// @brief Returns phase info
-  const std::string GetFormattedPhaseInfo(const Phase& num);
+  const std::string GetFormattedPhaseInfo(Phase num);
 
  private:
   std::string m_RemoteIdentHashAbbreviation;

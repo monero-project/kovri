@@ -126,7 +126,7 @@ class ECBCryptoAESNI {
 #endif
 
  private:
-  AESAlignedBuffer<240> m_KeySchedule;  // 14 rounds for AES-256, 240 bytes
+  AESAlignedBuffer<AESSize::ExpandedKey> m_KeySchedule;
 };
 
 /**

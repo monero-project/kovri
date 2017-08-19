@@ -37,6 +37,7 @@
 #ifdef WITH_FUZZ_TESTS
 #include "util/fuzz.h"
 #endif  // WITH_FUZZ_TESTS
+#include "util/i2pcontrol.h"
 #include "util/routerinfo.h"
 #include "util/su3file.h"
 
@@ -63,11 +64,13 @@ int main(int argc, const char* argv[])
   SU3FileCommand su3file_cmd;
   RouterInfoCommand routerinfo_cmd;
   Benchmark benchmark_cmd;
+  I2PControlCommand i2pcontrol_cmd;
   list_cmd[base32_cmd.GetName()] = &base32_cmd;
   list_cmd[base64_cmd.GetName()] = &base64_cmd;
   list_cmd[su3file_cmd.GetName()] = &su3file_cmd;
   list_cmd[routerinfo_cmd.GetName()] = &routerinfo_cmd;
   list_cmd[benchmark_cmd.GetName()] = &benchmark_cmd;
+  list_cmd[i2pcontrol_cmd.GetName()] = &i2pcontrol_cmd;
 
 #ifdef WITH_FUZZ_TESTS
   FuzzCommand fuzz_cmd;

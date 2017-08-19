@@ -35,6 +35,7 @@
 
 #include "core/util/log.h"
 
+#include "tests/fuzz_tests/i2pcontrol.h"
 #include "tests/fuzz_tests/lease_set.h"
 #include "tests/fuzz_tests/routerinfo.h"
 #include "tests/fuzz_tests/su3.h"
@@ -99,6 +100,7 @@ FuzzCommand::FuzzCommand()
 void FuzzCommand::PrintAvailableTargets() const
 {
   LOG(info) << "Available targets : ";
+  LOG(info) << "\ti2pcontrol";
   LOG(info) << "\tleaseset";
   LOG(info) << "\trouterinfo";
   LOG(info) << "\tsu3";
@@ -177,6 +179,10 @@ bool FuzzCommand::Impl(
   else if (target == "leaseset")
     {
       CurrentTarget = new kovri::fuzz::LeaseSet();
+    }
+  else if (target == "i2pcontrol")
+    {
+      CurrentTarget = new kovri::fuzz::I2PControl();
     }
   else
     {

@@ -34,14 +34,14 @@
 #define SRC_CLIENT_API_I2P_CONTROL_SESSION_H_
 
 #include <boost/asio.hpp>
-#include <boost/property_tree/ptree.hpp>
 
 #include <functional>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <string>
 
-#include "client/util/json.h"
+#include "client/api/i2p_control/data.h"
 #include "core/router/tunnel/impl.h"
 
 namespace kovri {
@@ -50,86 +50,6 @@ namespace client {
 const char DEFAULT_PASSWORD[] = "itoopie";
 const std::uint64_t TOKEN_LIFETIME = 600;  // Token lifetime in seconds
 const std::size_t TOKEN_SIZE = 8;  // Token size in bytes
-
-const char PROPERTY_ID[] = "id";
-const char PROPERTY_METHOD[] = "method";
-const char PROPERTY_PARAMS[] = "params";
-const char PROPERTY_RESULT[] = "result";
-
-// methods
-const char METHOD_AUTHENTICATE[] = "Authenticate";
-const char METHOD_ECHO[] = "Echo";
-const char METHOD_I2PCONTROL[] = "I2PControl";
-const char METHOD_ROUTER_INFO[] = "RouterInfo";
-const char METHOD_ROUTER_MANAGER[] = "RouterManager";
-const char METHOD_NETWORK_SETTING[] = "NetworkSetting";
-
-// params
-const char PARAM_API[] = "API";
-const char PARAM_PASSWORD[] = "Password";
-const char PARAM_TOKEN[] = "Token";
-const char PARAM_ECHO[] = "Echo";
-const char PARAM_RESULT[] = "Result";
-
-// I2PControl
-const char I2PCONTROL_ADDRESS[] = "i2pcontrol.address";
-const char I2PCONTROL_PASSWORD[] = "i2pcontrol.password";
-const char I2PCONTROL_PORT[] = "i2pcontrol.port";
-
-// RouterInfo requests
-const char ROUTER_INFO_UPTIME[] =
-  "i2p.router.uptime";
-
-const char ROUTER_INFO_VERSION[] =
-  "i2p.router.version";
-
-const char ROUTER_INFO_STATUS[] =
-  "i2p.router.status";
-
-const char ROUTER_INFO_DATAPATH[] =
-  "i2p.router.datapath";
-
-const char ROUTER_INFO_NETDB_KNOWNPEERS[] =
-  "i2p.router.netdb.knownpeers";
-
-const char ROUTER_INFO_NETDB_ACTIVEPEERS[] =
-  "i2p.router.netdb.activepeers";
-
-const char ROUTER_INFO_NETDB_FLOODFILLS[] =
-  "i2p.router.netdb.floodfills";
-
-const char ROUTER_INFO_NETDB_LEASESETS[] =
-  "i2p.router.netdb.leasesets";
-
-const char ROUTER_INFO_NET_STATUS[] =
-  "i2p.router.net.status";
-
-const char ROUTER_INFO_TUNNELS_PARTICIPATING[] =
-  "i2p.router.net.tunnels.participating";
-
-// TODO(unassigned): Probably better to use the standard GetRate instead
-const char ROUTER_INFO_TUNNELS_CREATION_SUCCESS[] =
-  "i2p.router.net.tunnels.creationsuccessrate";
-
-const char ROUTER_INFO_TUNNELS_IN_LIST[] =
-  "i2p.router.net.tunnels.inbound.list";
-
-const char ROUTER_INFO_TUNNELS_OUT_LIST[] =
-  "i2p.router.net.tunnels.outbound.list";
-
-const char ROUTER_INFO_BW_IB_1S[] =
-  "i2p.router.net.bw.inbound.1s";
-
-const char ROUTER_INFO_BW_OB_1S[] =
-  "i2p.router.net.bw.outbound.1s";
-
-// RouterManager requests
-const char ROUTER_MANAGER_SHUTDOWN[] = "Shutdown";
-const char ROUTER_MANAGER_SHUTDOWN_GRACEFUL[] = "ShutdownGraceful";
-const char ROUTER_MANAGER_RESEED[] = "Reseed";
-
-JsonObject TunnelToJsonObject(
-    kovri::core::Tunnel* tunnel);
 
 /**
  * @class I2PControlSession
@@ -141,66 +61,12 @@ JsonObject TunnelToJsonObject(
 class I2PControlSession
     : public std::enable_shared_from_this<I2PControlSession> {
  public:
-  enum class ErrorCode {
-    e_None = 0,
-    // JSON-RPC2
-    e_MethodNotFound = 32601,
-    e_InvalidParameters = 32602,
-    e_InvalidRequest = 32600,
-    e_InternalError = 32603,
-    e_ParseError = 32700,
-    // I2PControl specific
-    e_InvalidPassword = 32001,
-    e_NoToken = 32002,
-    e_NonexistentToken = 32003,
-    e_ExpiredToken = 32004,
-    e_UnspecifiedVersion = 32005,
-    e_UnsupportedVersion = 32006
-  };
-
-  class Response {
-   public:
-    explicit Response(
-        const std::string& version = "2.0");
-
-    // Returns response params in JSON form
-    std::string ToJsonString() const;
-
-    // Set an output parameter to a specified string.
-    // @todo escape quotes
-    void SetParam(
-        const std::string& param,
-        const std::string& value);
-
-    // Set an output parameter to a specified integer.
-    void SetParam(
-        const std::string& param,
-        std::size_t value);
-
-    // Set an output parameter to a specified double.
-    void SetParam(
-        const std::string& param,
-        double value);
-
-    // Set an output parameter to a specified Json object.
-    void SetParam(
-        const std::string& param,
-        const JsonObject& value);
-
-    void SetError(
-        ErrorCode code);
-
-    void SetID(
-        const std::string& id);
-
-    std::string GetErrorMsg() const;
-
-   private:
-    std::string m_ID;
-    std::string m_Version;
-    ErrorCode m_Error;
-    std::map<std::string, std::string> m_Params;
-  };  // class Response
+  // For convenience
+  typedef I2PControlResponse Response;
+  typedef I2PControlRequest Request;
+  typedef I2PControlData::Method Method;
+  typedef I2PControlData::MethodRouterManager RouterManager;
+  typedef I2PControlData::ErrorCode ErrorCode;
 
   // Sets up the appropriate handlers.
   // @param ios the parent io_service object, must remain valid throughout
@@ -220,25 +86,17 @@ class I2PControlSession
   void Stop();
 
   // Handle a json string with I2PControl instructions.
-  Response HandleRequest(
-      std::stringstream& request);
+  std::unique_ptr<Response> HandleRequest(std::stringstream& request);
 
  private:
-  // For convenience
-  typedef boost::property_tree::ptree ptree;
-
   // Handler types
-  typedef void (I2PControlSession::*MethodHandler)(
-      const ptree& pt,
-      Response& results);
-  typedef void (I2PControlSession::*RequestHandler)(
-      Response& results);
+  typedef void (
+      I2PControlSession::*MethodHandler)(const Request& pt, Response* results);
+  typedef void (I2PControlSession::*RequestHandler)(Response* results);
 
   // Tries to authenticate by checking whether the given token is valid.
   // Sets the appropriate error code in the given response.
-  bool Authenticate(
-      const ptree& pt,
-      Response& response);
+  bool Authenticate(const Request& request, Response* response);
 
   // Generate a random authentication token.
   // @return 8 random bytes as a hexadecimal string
@@ -249,46 +107,28 @@ class I2PControlSession
   void ExpireTokens(const boost::system::error_code& error);
 
   // Method handlers
-  void HandleAuthenticate(const ptree& pt, Response& response);
-  void HandleEcho(const ptree& pt, Response& response);
-  void HandleI2PControl(const ptree& pt, Response& response);
-  void HandleRouterInfo(const ptree& pt, Response& response);
-  void HandleRouterManager(const ptree& pt, Response& response);
-  void HandleNetworkSetting(const ptree& pt, Response& response);
+  void HandleAuthenticate(const Request& request, Response* response);
+  void HandleEcho(const Request& request, Response* response);
+  void HandleI2PControl(const Request& request, Response* response);
+  void HandleRouterInfo(const Request& request, Response* response);
+  void HandleRouterManager(const Request& request, Response* response);
 
   // RouterInfo handlers
-  void HandleUptime(Response& response);
-  void HandleVersion(Response& response);
-  void HandleStatus(Response& response);
-  void HandleDatapath(Response& response);
-  void HandleNetDbKnownPeers(Response& response);
-  void HandleNetDbActivePeers(Response& response);
-  void HandleNetDbFloodfills(Response& response);
-  void HandleNetDbLeaseSets(Response& response);
-  void HandleNetStatus(Response& response);
-
-  void HandleTunnelsParticipating(Response& response);
-  void HandleTunnelsCreationSuccess(Response& response);
-  void HandleTunnelsInList(Response& response);
-  void HandleTunnelsOutList(Response& response);
-
-  void HandleInBandwidth1S(Response& response);
-  void HandleOutBandwidth1S(Response& response);
+  void HandleTunnelsInList(Response* response);
+  void HandleTunnelsOutList(Response* response);
 
   // RouterManager handlers
-  void HandleShutdown(Response& response);
-  void HandleShutdownGraceful(Response& response);
-  void HandleReseed(Response& response);
+  void HandleShutdown(Response* response);
+  void HandleShutdownGraceful(Response* response);
+  void HandleReseed(Response* response);
 
   std::string m_Password;
   std::map<std::string, std::uint64_t> m_Tokens;
   std::mutex m_TokensMutex,
              m_ShutdownMutex;
 
-  std::map<std::string, MethodHandler> m_MethodHandlers;
-  std::map<std::string, RequestHandler> m_RouterInfoHandlers,
-                                        m_RouterManagerHandlers,
-                                        m_NetworkSettingHandlers;
+  std::map<I2PControlData::Method, MethodHandler> m_MethodHandlers;
+  std::map<std::uint8_t, RequestHandler> m_RouterManagerHandlers;
 
   boost::asio::deadline_timer m_ShutdownTimer,
                               m_ExpireTokensTimer;

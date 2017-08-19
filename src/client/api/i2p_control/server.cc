@@ -165,9 +165,9 @@ void I2PControlService::HandleRequestReceived(
       }
     }
     LOG(debug) << "I2PControlService: creating response";
-    I2PControlSession::Response response = m_Session->HandleRequest(ss);
+    auto response = m_Session->HandleRequest(ss);
     LOG(debug) << "I2PControlService: sending response";
-    SendResponse(socket, buf, response.ToJsonString(), is_html);
+    SendResponse(socket, buf, response->ToJsonString(), is_html);
   } catch (const std::exception& ex) {
     LOG(error) << "I2PControlService: handle request exception: " << ex.what();
   } catch (...) {

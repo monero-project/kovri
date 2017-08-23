@@ -33,9 +33,7 @@
 #include "client/api/i2p_control/session.h"
 
 #include <boost/property_tree/json_parser.hpp>
-
-#include <iomanip>
-#include <sstream>
+#include <memory>
 
 #include "client/context.h"
 
@@ -53,45 +51,6 @@
 
 namespace kovri {
 namespace client {
-
-JsonObject::JsonObject(
-    const std::string& value)
-    : m_Children(),
-      m_Value("\"" + value + "\"") {}
-
-JsonObject::JsonObject(
-    int value)
-    : m_Children(),
-      m_Value(std::to_string(value)) {}
-
-JsonObject::JsonObject(
-    double v)
-    : m_Children(),
-      m_Value() {
-        std::ostringstream oss;
-        oss << std::fixed << std::setprecision(2) << v;
-        m_Value = oss.str();
-}
-
-JsonObject& JsonObject::operator[](
-    const std::string& key) {
-  return m_Children[key];
-}
-
-std::string JsonObject::ToString() const {
-  if (m_Children.empty())
-    return m_Value;
-  std::ostringstream oss;
-  oss << '{';
-  for (auto it = m_Children.begin(); it != m_Children.end(); ++it) {
-    if (it != m_Children.begin())
-      oss << ',';
-    oss << '"' << it->first << "\":" << it->second.ToString();
-  }
-  oss << '}';
-  return oss.str();
-}
-
 JsonObject TunnelToJsonObject(
     kovri::core::Tunnel* tunnel) {
   JsonObject obj;
@@ -106,94 +65,6 @@ JsonObject TunnelToJsonObject(
   return obj;
 }
 
-I2PControlSession::Response::Response(
-    const std::string& version)
-    : m_ID(),
-      m_Version(version),
-      m_Error(ErrorCode::e_None),
-      m_Params() {}
-
-std::string I2PControlSession::Response::ToJsonString() const {
-  std::ostringstream oss;
-  oss << "{\"id\":" << m_ID << ",\"result\":{";
-  for (auto it = m_Params.begin(); it != m_Params.end(); ++it) {
-    if (it != m_Params.begin())
-      oss << ',';
-    oss << '"' << it->first << "\":" << it->second;
-  }
-  oss << "},\"jsonrpc\":\"" << m_Version << '"';
-  if (m_Error != ErrorCode::e_None)
-    oss << ",\"error\":{\"code\":" << -static_cast<int>(m_Error)
-      << ",\"message\":\"" << GetErrorMsg() << "\"" << "}";
-  oss << "}";
-  return oss.str();
-}
-
-std::string I2PControlSession::Response::GetErrorMsg() const {
-  switch (m_Error) {
-    case ErrorCode::e_MethodNotFound:
-      return "Method not found.";
-    case ErrorCode::e_InvalidParameters:
-      return "Invalid parameters.";
-    case ErrorCode::e_InvalidRequest:
-      return "Invalid request.";
-    case ErrorCode::e_ParseError:
-      return "Json parse error.";
-    case ErrorCode::e_InvalidPassword:
-      return "Invalid password.";
-    case ErrorCode::e_NoToken:
-      return "No authentication token given.";
-    case ErrorCode::e_NonexistentToken:
-      return "Nonexistent authentication token given.";
-    case ErrorCode::e_ExpiredToken:
-      return "Expired authentication token given.";
-    case ErrorCode::e_UnspecifiedVersion:
-      return "Version not specified.";
-    case ErrorCode::e_UnsupportedVersion:
-      return "Version not supported.";
-    default:
-      return "";
-  }
-}
-
-void I2PControlSession::Response::SetParam(
-    const std::string& param,
-    const std::string& value) {
-  m_Params[param] = value.empty() ?
-    "null" :
-    "\"" + value + "\"";
-}
-
-void I2PControlSession::Response::SetParam(
-    const std::string& param,
-    std::size_t value) {
-  m_Params[param] = std::to_string(value);
-}
-
-void I2PControlSession::Response::SetParam(
-    const std::string& param,
-    double value) {
-  std::ostringstream oss;
-  oss << std::fixed << std::setprecision(2) << value;
-  m_Params[param] = oss.str();
-}
-
-void I2PControlSession::Response::SetParam(
-    const std::string& param,
-    const JsonObject& value) {
-  m_Params[param] = value.ToString();
-}
-
-void I2PControlSession::Response::SetError(
-    ErrorCode code) {
-  m_Error = code;
-}
-
-void I2PControlSession::Response::SetID(
-    const std::string& id) {
-  m_ID = id;
-}
-
 I2PControlSession::I2PControlSession(
   boost::asio::io_service& ios,
   const std::string& pass)
@@ -204,79 +75,29 @@ I2PControlSession::I2PControlSession(
       m_ExpireTokensTimer(ios) {
 
   // Method handlers
-  m_MethodHandlers[METHOD_AUTHENTICATE] =
-    &I2PControlSession::HandleAuthenticate;
+  m_MethodHandlers[Method::Authenticate] =
+      &I2PControlSession::HandleAuthenticate;
 
-  m_MethodHandlers[METHOD_ECHO] =
-    &I2PControlSession::HandleEcho;
+  m_MethodHandlers[Method::Echo] = &I2PControlSession::HandleEcho;
 
-  m_MethodHandlers[METHOD_I2PCONTROL] =
-    &I2PControlSession::HandleI2PControl;
+  // TODO(unassigned): method GetRate
 
-  m_MethodHandlers[METHOD_ROUTER_INFO] =
-    &I2PControlSession::HandleRouterInfo;
+  m_MethodHandlers[Method::I2PControl] = &I2PControlSession::HandleI2PControl;
 
-  m_MethodHandlers[METHOD_ROUTER_MANAGER] =
-    &I2PControlSession::HandleRouterManager;
+  m_MethodHandlers[Method::RouterInfo] = &I2PControlSession::HandleRouterInfo;
 
-  m_MethodHandlers[METHOD_NETWORK_SETTING] =
-    &I2PControlSession::HandleNetworkSetting;
-
-  // RouterInfo handlers
-  m_RouterInfoHandlers[ROUTER_INFO_UPTIME] =
-    &I2PControlSession::HandleUptime;
-
-  m_RouterInfoHandlers[ROUTER_INFO_VERSION] =
-    &I2PControlSession::HandleVersion;
-
-  m_RouterInfoHandlers[ROUTER_INFO_STATUS] =
-    &I2PControlSession::HandleStatus;
-
-  m_RouterInfoHandlers[ROUTER_INFO_DATAPATH] =
-    &I2PControlSession::HandleDatapath;
-
-  m_RouterInfoHandlers[ROUTER_INFO_NETDB_KNOWNPEERS] =
-    &I2PControlSession::HandleNetDbKnownPeers;
-
-  m_RouterInfoHandlers[ROUTER_INFO_NETDB_ACTIVEPEERS] =
-    &I2PControlSession::HandleNetDbActivePeers;
-
-  m_RouterInfoHandlers[ROUTER_INFO_NETDB_LEASESETS] =
-    &I2PControlSession::HandleNetDbLeaseSets;
-
-  m_RouterInfoHandlers[ROUTER_INFO_NETDB_FLOODFILLS] =
-    &I2PControlSession::HandleNetDbFloodfills;
-
-  m_RouterInfoHandlers[ROUTER_INFO_NET_STATUS] =
-    &I2PControlSession::HandleNetStatus;
-
-  m_RouterInfoHandlers[ROUTER_INFO_TUNNELS_PARTICIPATING] =
-    &I2PControlSession::HandleTunnelsParticipating;
-
-  m_RouterInfoHandlers[ROUTER_INFO_TUNNELS_CREATION_SUCCESS] =
-    &I2PControlSession::HandleTunnelsCreationSuccess;
-
-  m_RouterInfoHandlers[ROUTER_INFO_TUNNELS_IN_LIST] =
-    &I2PControlSession::HandleTunnelsInList;
-
-  m_RouterInfoHandlers[ROUTER_INFO_TUNNELS_OUT_LIST] =
-    &I2PControlSession::HandleTunnelsOutList;
-
-  m_RouterInfoHandlers[ROUTER_INFO_BW_IB_1S] =
-    &I2PControlSession::HandleInBandwidth1S;
-
-  m_RouterInfoHandlers[ROUTER_INFO_BW_OB_1S] =
-    &I2PControlSession::HandleOutBandwidth1S;
+  m_MethodHandlers[Method::RouterManager] =
+      &I2PControlSession::HandleRouterManager;
 
   // RouterManager handlers
-  m_RouterManagerHandlers[ROUTER_MANAGER_SHUTDOWN] =
-    &I2PControlSession::HandleShutdown;
+  m_RouterManagerHandlers[RouterManager::Shutdown] =
+      &I2PControlSession::HandleShutdown;
 
-  m_RouterManagerHandlers[ROUTER_MANAGER_SHUTDOWN_GRACEFUL] =
-    &I2PControlSession::HandleShutdownGraceful;
+  m_RouterManagerHandlers[RouterManager::ShutdownGraceful] =
+      &I2PControlSession::HandleShutdownGraceful;
 
-  m_RouterManagerHandlers[ROUTER_MANAGER_RESEED] =
-    &I2PControlSession::HandleReseed;
+  m_RouterManagerHandlers[RouterManager::Reseed] =
+      &I2PControlSession::HandleReseed;
 }
 
 void I2PControlSession::Start() {
@@ -289,56 +110,69 @@ void I2PControlSession::Stop() {
   m_ExpireTokensTimer.cancel(e);
 }
 
-I2PControlSession::Response I2PControlSession::HandleRequest(
-    std::stringstream& request) {
-  boost::property_tree::ptree pt;
+std::unique_ptr<I2PControlResponse> I2PControlSession::HandleRequest(
+    std::stringstream& stream)
+{
   LOG(debug) << "I2PControlSession: reading json request";
-  boost::property_tree::read_json(request, pt);
-  Response response;
+  auto response = std::make_unique<I2PControlResponse>();
   try {
-    response.SetID(pt.get<std::string>(PROPERTY_ID));
-    std::string method = pt.get<std::string>(PROPERTY_METHOD);
+    // Parse request
+    I2PControlRequest request;
+    request.Parse(stream);
+    // Build response
+    response->SetID(request.GetID());
+    auto method = request.GetMethod();
     auto it = m_MethodHandlers.find(method);
     if (it == m_MethodHandlers.end()) {  // Not found
-      LOG(warning) << "I2PControlSession: unknown I2PControl method " << method;
-      response.SetError(ErrorCode::e_MethodNotFound);
-      return response;
+        LOG(error) << "I2PControlSession: unknown or unimplemented method "
+                     << core::GetType(method);
+        response->SetError(ErrorCode::MethodNotFound);
+        return response;
     }
-    ptree params = pt.get_child(PROPERTY_PARAMS);
-    if (method != METHOD_AUTHENTICATE &&
-        !Authenticate(params, response)) {
-      LOG(warning) << "I2PControlSession: invalid token presented";
-      return response;
-    }
+    response->SetMethod(method);
+
+    if (method != Method::Authenticate
+        && !Authenticate(request, response.get()))
+      {
+        LOG(warning) << "I2PControlSession: invalid token presented";
+        return response;
+      }
     LOG(debug) << "I2PControlSession: calling handler";
-    (this->*(it->second))(params, response);
+    (this->*(it->second))(request, response.get());
   } catch (const boost::property_tree::ptree_error&) {
-    response.SetError(ErrorCode::e_ParseError);
+      response->SetError(ErrorCode::ParseError);
+  } catch (const std::logic_error&) {
+      response->SetError(ErrorCode::ParseError);
+  } catch (const boost::bad_get&) {
+      response->SetError(ErrorCode::ParseError);
   } catch (...) {
-    response.SetError(ErrorCode::e_InternalError);
+      response->SetError(ErrorCode::InternalError);
   }
   return response;
 }
 
 bool I2PControlSession::Authenticate(
-    const ptree& pt,
-    Response& response) {
-  try {
-    std::string token = pt.get<std::string>(PARAM_TOKEN);
-    std::lock_guard<std::mutex> lock(m_TokensMutex);
-    auto it = m_Tokens.find(token);
-    if (it == m_Tokens.end()) {
-      response.SetError(ErrorCode::e_NonexistentToken);
-      return false;
-    } else if (kovri::core::GetSecondsSinceEpoch() - it->second >
-        TOKEN_LIFETIME) {
-      response.SetError(ErrorCode::e_ExpiredToken);
+    const I2PControlRequest& request,
+    I2PControlResponse* response)
+{
+  std::lock_guard<std::mutex> lock(m_TokensMutex);
+  auto token = request.GetToken();
+  if (token.empty())
+    {
+      response->SetError(ErrorCode::NoToken);
       return false;
     }
-  } catch (const boost::property_tree::ptree_error&) {
-    response.SetError(ErrorCode::e_NoToken);
-    return false;
-  }
+  auto it = m_Tokens.find(token);
+  if (it == m_Tokens.end())
+    {
+      response->SetError(ErrorCode::NonexistentToken);
+      return false;
+    }
+  else if (kovri::core::GetSecondsSinceEpoch() - it->second > TOKEN_LIFETIME)
+    {
+      response->SetError(ErrorCode::ExpiredToken);
+      return false;
+    }
   return true;
 }
 
@@ -356,11 +190,13 @@ std::string I2PControlSession::GenerateToken() const {
 }
 
 void I2PControlSession::HandleAuthenticate(
-    const ptree& pt,
-    Response& response) {
-  const std::size_t api = pt.get<std::size_t>(PARAM_API);
-  const std::string given_pass = pt.get<std::string>(
-      PARAM_PASSWORD);
+    const Request& request,
+    Response* response)
+{
+  typedef I2PControlData::MethodAuthenticate Auth;
+
+  const auto api = request.GetParam<std::size_t>(Auth::API);
+  const auto given_pass = request.GetParam<std::string>(Auth::Password);
   LOG(debug)
     << "I2PControlSession: Authenticate API = " << api
     << " Password = " << given_pass;
@@ -368,12 +204,12 @@ void I2PControlSession::HandleAuthenticate(
     LOG(error)
       << "I2PControlSession: invalid password "
       << given_pass << " expected " << m_Password;
-    response.SetError(ErrorCode::e_InvalidPassword);
+    response->SetError(ErrorCode::InvalidPassword);
     return;
   }
   const std::string token = GenerateToken();
-  response.SetParam(PARAM_API, api);
-  response.SetParam(PARAM_TOKEN, token);
+  response->SetParam(Auth::API, api);
+  response->SetParam(Auth::Token, token);
   std::lock_guard<std::mutex> lock(m_TokensMutex);
   m_Tokens.insert(
       std::make_pair(
@@ -381,145 +217,141 @@ void I2PControlSession::HandleAuthenticate(
         kovri::core::GetSecondsSinceEpoch()));
 }
 
-void I2PControlSession::HandleEcho(
-    const ptree& pt,
-    Response& response) {
-  const std::string echo = pt.get<std::string>(PARAM_ECHO);
+void I2PControlSession::HandleEcho(const Request& request, Response* response)
+{
+  typedef I2PControlData::MethodEcho Keys;
+  const std::string echo = request.GetParam<std::string>(Keys::Echo);
   LOG(debug) << "I2PControlSession: Echo = " << echo;
-  response.SetParam(PARAM_RESULT, echo);
+  response->SetParam(Keys::Result, echo);
 }
 
-void I2PControlSession::HandleI2PControl(
-    const ptree&,
-    Response&) {
-  // TODO(unassigned): implement
+void I2PControlSession::HandleI2PControl(const Request&, Response*)
+{
+  // TODO(unassigned): implement method I2PControl
   LOG(debug) << "I2PControlSession: I2PControl";
 }
 
 void I2PControlSession::HandleRouterInfo(
-    const ptree& pt,
-    Response& response) {
+    const Request& request,
+    Response* response)
+{
+  typedef I2PControlData::MethodRouterInfo RouterInfo;
   LOG(debug) << "I2PControlSession: HandleRouterInfo()";
-  for (const auto& pair : pt) {
-    if (pair.first == PARAM_TOKEN)
-      continue;
-    LOG(debug) << "I2PControlSession: " << pair.first;
-    auto it = m_RouterInfoHandlers.find(pair.first);
-    if (it != m_RouterInfoHandlers.end()) {
-      (this->*(it->second))(response);
-    } else {
-      LOG(error)
-        << "I2PControlSession: " << __func__ << ": unknown request " << pair.first;
-      response.SetError(ErrorCode::e_InvalidRequest);
+  for (const auto& pair : request.GetParams())
+    {
+      switch (pair.first)
+        {
+          case RouterInfo::Status:  // TODO(unassigned): implement
+            response->SetParam(pair.first, std::string("???"));
+            break;
+
+          case RouterInfo::Uptime:
+            response->SetParam(
+                pair.first,
+                static_cast<std::size_t>(kovri::context.GetUptime()) * 1000);
+            break;
+
+          case RouterInfo::Version:
+            response->SetParam(
+                pair.first,
+                std::string(KOVRI_VERSION) + "-" + KOVRI_GIT_REVISION + "-"
+                    + KOVRI_CODENAME);
+            break;
+
+          case RouterInfo::BWIn1S:
+            response->SetParam(
+                pair.first,
+                static_cast<double>(kovri::core::transports.GetInBandwidth()));
+            break;
+
+          case RouterInfo::BWOut1S:
+            response->SetParam(
+                pair.first,
+                static_cast<double>(kovri::core::transports.GetOutBandwidth()));
+            break;
+
+          case RouterInfo::NetStatus:
+            response->SetParam(
+                pair.first,
+                static_cast<std::size_t>(kovri::context.GetStatus()));
+            break;
+
+          case RouterInfo::TunnelsParticipating:
+            response->SetParam(
+                pair.first, core::tunnels.GetTransitTunnels().size());
+            break;
+
+          case RouterInfo::ActivePeers:
+            response->SetParam(pair.first, core::transports.GetPeers().size());
+            break;
+
+          case RouterInfo::KnownPeers:
+            response->SetParam(pair.first, core::netdb.GetNumRouters());
+            break;
+
+          // Extra pair.firsts
+          case RouterInfo::DataPath:
+            response->SetParam(pair.first, core::GetCorePath().string());
+            break;
+
+          case RouterInfo::Floodfills:
+            response->SetParam(pair.first, core::netdb.GetNumFloodfills());
+            break;
+
+          case RouterInfo::LeaseSets:
+            response->SetParam(pair.first, core::netdb.GetNumLeaseSets());
+            break;
+
+          case RouterInfo::TunnelsCreationSuccessRate:
+            response->SetParam(
+                pair.first,
+                static_cast<std::size_t>(
+                    core::tunnels.GetTunnelCreationSuccessRate()));
+            break;
+
+          case RouterInfo::TunnelsInList:
+            HandleTunnelsInList(response);
+            break;
+
+          case RouterInfo::TunnelsOutList:
+            HandleTunnelsOutList(response);
+            break;
+
+          case RouterInfo::BWIn15S:
+          case RouterInfo::BWOut15S:
+          case RouterInfo::FastPeers:
+          case RouterInfo::HighCapacityPeers:
+          case RouterInfo::IsReseeding:
+          // TODO(unassigned): implement these indicators
+          default:
+            throw std::runtime_error("Indicator not implemented");
+        }
     }
-  }
 }
 
 void I2PControlSession::HandleRouterManager(
-    const ptree& pt,
-    Response& response) {
+    const Request& request,
+    Response* response)
+{
   LOG(debug) << "I2PControlSession: " << __func__;
-  for (const auto& pair : pt) {
-    if (pair.first == PARAM_TOKEN)
-      continue;
-    LOG(debug) << pair.first;
-    auto it = m_RouterManagerHandlers.find(pair.first);
-    if (it != m_RouterManagerHandlers.end()) {
-      (this->*(it->second))(response);
-    } else {
-      LOG(error)
-        << "I2PControlSession: " << __func__ << ": unknown request " << pair.first;
-      response.SetError(ErrorCode::e_InvalidRequest);
+  for (const auto& pair : request.GetParams())
+    {
+      auto it = m_RouterManagerHandlers.find(pair.first);
+      if (it != m_RouterManagerHandlers.end())
+        {
+          (this->*(it->second))(response);
+        }
+      else
+        {
+          LOG(error) << "I2PControlSession: " << __func__
+                     << ": unknown request " << std::to_string(pair.first);
+          response->SetError(ErrorCode::InvalidRequest);
+        }
     }
-  }
 }
 
-void I2PControlSession::HandleNetworkSetting(
-    const ptree&,
-    Response&) {
-  // TODO(unassigned): implement
-}
-
-void I2PControlSession::HandleUptime(
-    Response& response) {
-  response.SetParam(
-      ROUTER_INFO_UPTIME,
-      static_cast<std::size_t>(kovri::context.GetUptime()) * 1000);
-}
-
-void I2PControlSession::HandleVersion(
-    Response& response) {
-  response.SetParam(
-      ROUTER_INFO_VERSION,
-      KOVRI_VERSION);
-}
-
-void I2PControlSession::HandleStatus(
-    Response& response) {
-  // TODO(unassigned): implement
-  response.SetParam(
-      ROUTER_INFO_STATUS,
-      "???");
-}
-
-void I2PControlSession::HandleDatapath(
-    Response& response) {
-  response.SetParam(
-      ROUTER_INFO_DATAPATH,
-      core::GetCorePath().string());
-}
-
-void I2PControlSession::HandleNetDbKnownPeers(
-    Response& response) {
-  response.SetParam(
-      ROUTER_INFO_NETDB_KNOWNPEERS,
-      core::netdb.GetNumRouters());
-}
-
-void I2PControlSession::HandleNetDbActivePeers(
-    Response& response) {
-  response.SetParam(
-      ROUTER_INFO_NETDB_ACTIVEPEERS,
-      core::transports.GetPeers().size());
-}
-
-void I2PControlSession::HandleNetDbFloodfills(
-    Response& response) {
-  response.SetParam(
-      ROUTER_INFO_NETDB_FLOODFILLS,
-      core::netdb.GetNumFloodfills());
-}
-
-void I2PControlSession::HandleNetDbLeaseSets(
-    Response& response) {
-  response.SetParam(
-      ROUTER_INFO_NETDB_LEASESETS,
-      core::netdb.GetNumLeaseSets());
-}
-
-void I2PControlSession::HandleNetStatus(
-    Response& response) {
-  response.SetParam(
-      ROUTER_INFO_NET_STATUS,
-      static_cast<std::size_t>(kovri::context.GetStatus()));
-}
-
-void I2PControlSession::HandleTunnelsParticipating(
-    Response& response) {
-  response.SetParam(
-      ROUTER_INFO_TUNNELS_PARTICIPATING,
-      core::tunnels.GetTransitTunnels().size());
-}
-
-void I2PControlSession::HandleTunnelsCreationSuccess(
-    Response& response) {
-  response.SetParam(
-      ROUTER_INFO_TUNNELS_CREATION_SUCCESS,
-      static_cast<std::size_t>(core::tunnels.GetTunnelCreationSuccessRate()));
-}
-
-void I2PControlSession::HandleTunnelsInList(
-    Response& response) {
+void I2PControlSession::HandleTunnelsInList(Response* response)
+{
   JsonObject list;
   for (auto pair : kovri::core::tunnels.GetInboundTunnels()) {
     const std::string id = std::to_string(pair.first);
@@ -527,13 +359,11 @@ void I2PControlSession::HandleTunnelsInList(
     list[id]["bytes"] = JsonObject(
       static_cast<int>(pair.second->GetNumReceivedBytes()));
   }
-  response.SetParam(
-      ROUTER_INFO_TUNNELS_IN_LIST,
-      list);
+  response->SetParam(I2PControlData::MethodRouterInfo::TunnelsInList, list);
 }
 
-void I2PControlSession::HandleTunnelsOutList(
-    Response& response) {
+void I2PControlSession::HandleTunnelsOutList(Response* response)
+{
   JsonObject list;
   for (auto tunnel : kovri::core::tunnels.GetOutboundTunnels()) {
     const std::string id = std::to_string(
@@ -542,29 +372,13 @@ void I2PControlSession::HandleTunnelsOutList(
     list[id]["bytes"] = JsonObject(
         static_cast<int>(tunnel->GetNumSentBytes()));
   }
-  response.SetParam(
-      ROUTER_INFO_TUNNELS_OUT_LIST,
-      list);
+  response->SetParam(I2PControlData::MethodRouterInfo::TunnelsOutList, list);
 }
 
-void I2PControlSession::HandleInBandwidth1S(
-    Response& response) {
-  response.SetParam(
-      ROUTER_INFO_BW_IB_1S,
-      static_cast<double>(kovri::core::transports.GetInBandwidth()));
-}
-
-void I2PControlSession::HandleOutBandwidth1S(
-    Response& response) {
-  response.SetParam(
-      ROUTER_INFO_BW_OB_1S,
-      static_cast<double>(kovri::core::transports.GetOutBandwidth()));
-}
-
-void I2PControlSession::HandleShutdown(
-    Response& response) {
+void I2PControlSession::HandleShutdown(Response* response)
+{
   LOG(info) << "I2PControlSession: shutdown requested";
-  response.SetParam(ROUTER_MANAGER_SHUTDOWN, "");
+  response->SetParam(RouterManager::Shutdown, "");
   // 1 second to make sure response has been sent
   m_ShutdownTimer.expires_from_now(
       boost::posix_time::seconds(1));
@@ -576,8 +390,8 @@ void I2PControlSession::HandleShutdown(
       });
 }
 
-void I2PControlSession::HandleShutdownGraceful(
-    Response& response) {
+void I2PControlSession::HandleShutdownGraceful(Response* response)
+{
   // Stop accepting tunnels
   kovri::context.SetAcceptsTunnels(false);
   // Get tunnel expiry time
@@ -586,9 +400,7 @@ void I2PControlSession::HandleShutdownGraceful(
     << "I2PControlSession: graceful shutdown requested."
     << "Will shutdown after " << timeout << " seconds";
   // Initiate graceful shutdown
-  response.SetParam(
-      ROUTER_MANAGER_SHUTDOWN_GRACEFUL,
-      "");
+  response->SetParam(RouterManager::ShutdownGraceful, "");
   m_ShutdownTimer.expires_from_now(
       boost::posix_time::seconds(
         timeout + 1));
@@ -600,10 +412,10 @@ void I2PControlSession::HandleShutdownGraceful(
       });
 }
 
-void I2PControlSession::HandleReseed(
-    Response& response) {
+void I2PControlSession::HandleReseed(Response* response)
+{
   LOG(info) << "I2PControlSession: reseed requested";
-  response.SetParam(ROUTER_MANAGER_SHUTDOWN, "");
+  response->SetParam(RouterManager::Reseed, "");
   Reseed reseed;
   if (!reseed.Start())
     LOG(error) << "I2PControlSession: reseed failed";

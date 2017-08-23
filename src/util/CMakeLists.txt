@@ -1,15 +1,18 @@
 include_directories("../")
 
 set(UTIL_SRC
-  "su3file.cc"
-  "routerinfo.cc"
   "base.cc"
   "benchmark.cc"
-  "main.cc")
+  "i2pcontrol_client.cc"
+  "i2pcontrol.cc"
+  "main.cc"
+  "routerinfo.cc"
+  "su3file.cc")
 
 if(WITH_FUZZ_TESTS)
   include_directories("${Fuzzer_INCLUDE_DIR}")
   list(APPEND UTIL_SRC
+    "../../tests/fuzz_tests/i2pcontrol.cc"
     "../../tests/fuzz_tests/lease_set.cc"
     "../../tests/fuzz_tests/routerinfo.cc"
     "../../tests/fuzz_tests/su3.cc"

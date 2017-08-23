@@ -4,6 +4,7 @@ set(CLIENT_SRC
   "address_book/impl.cc"
   "address_book/storage.cc"
   "api/datagram.cc"
+  "api/i2p_control/data.cc"
   "api/i2p_control/server.cc"
   "api/i2p_control/session.cc"
   "api/streaming.cc"
@@ -14,6 +15,7 @@ set(CLIENT_SRC
   "reseed.cc"
   "service.cc"
   "tunnel.cc"
+  "util/json.cc"
   "util/parse.cc"
   "util/http.cc"
   "util/zip.cc")

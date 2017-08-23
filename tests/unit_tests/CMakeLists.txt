@@ -1,5 +1,7 @@
 set(TESTS_CLIENT
   "client/address_book/impl.cc"
+  "client/api/i2p_control/data.cc"
+  "client/api/i2p_control/parser.cc"
   "client/reseed.cc"
   "client/proxy/http.cc"
   "client/util/http.cc"

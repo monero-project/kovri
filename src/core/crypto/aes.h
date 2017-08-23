@@ -39,6 +39,9 @@
 
 #include "core/router/identity.h"
 
+// FIPS 197 (AES)
+// http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf
+
 namespace kovri {
 namespace core {
 
@@ -76,6 +79,26 @@ struct CipherBlock {
 };
 
 typedef kovri::core::Tag<32> AESKey;
+
+/// @enum AESSize
+/// @brief Sizes for, specifically, AES-256
+enum AESSize : std::uint8_t
+{
+  /// @brief 32-bit word
+  W = 32,
+
+  /// @brief Number of columns in state
+  Nb = 4,
+
+  /// @brief Number of columns in cipher key
+  Nk = 8,
+
+  /// @brief Number of rounds
+  Nr = 14,
+
+  /// @brief W*Nb*(Nr+1)/Nk (i.e., 60-word schedule / Nk = 7.5 rounds of expansion)
+  ExpandedKey = W * Nb * (Nr + 1) / Nk,  // 240 bytes
+};
 
 template<std::size_t Size>
 class AESAlignedBuffer {  // 16 bytes alignment

@@ -222,8 +222,7 @@ void NTCPSession::HandlePhase2Received(
     kovri::core::AESKey aes_key;
     CreateAESKey(m_Establisher->phase2.pub_key.data(), aes_key);
     m_Decryption.SetKey(aes_key);
-    // TODO(unassigned): document 240
-    m_Decryption.SetIV(m_Establisher->phase2.pub_key.data() + 240);
+    m_Decryption.SetIV(m_Establisher->phase2.pub_key.data() + NTCPSize::Phase2BobIVOffset);
     m_Encryption.SetKey(aes_key);
     m_Encryption.SetIV(m_Establisher->phase1.HXxorHI.data() + NTCPSize::IV);
     m_Decryption.Decrypt(
@@ -590,7 +589,7 @@ void NTCPSession::SendPhase2() {
     kovri::core::AESKey aes_key;
     CreateAESKey(m_Establisher->phase1.pub_key.data(), aes_key);
     m_Encryption.SetKey(aes_key);
-    m_Encryption.SetIV(y + 240);
+    m_Encryption.SetIV(y + NTCPSize::Phase2BobIVOffset);
     m_Decryption.SetKey(aes_key);
     m_Decryption.SetIV(m_Establisher->phase1.HXxorHI.data() + NTCPSize::IV);
     m_Encryption.Encrypt(

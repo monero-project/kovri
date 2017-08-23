@@ -277,6 +277,7 @@ class NTCPSession
     SessionKey = 32,
     IV          = 16,
     Adler32     = 4,
+    Phase2BobIVOffset = AESSize::ExpandedKey,
     // TODO(unassigned):
     // Through release of java 0.9.15, the router identity was always 387 bytes,
     // the signature was always a 40 byte DSA signature, and the padding was always 15 bytes.

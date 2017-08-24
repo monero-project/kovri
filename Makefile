@@ -77,11 +77,12 @@ cmake-disable-options = -D WITH_CPPNETLIB=OFF
 # Currently, our dependencies are static but cpp-netlib's dependencies are not (by default)
 cmake-cpp-netlib-static = -D CPP-NETLIB_STATIC_OPENSSL=ON -D CPP-NETLIB_STATIC_BOOST=ON
 
-# Refrain from native CPU optimizations for crypto
-cmake-cryptopp-no-opt = -D DISABLE_NATIVE_ARCH=ON
-
 # Android-specific
 cmake-android = -D ANDROID=1 -D KOVRI_DATA_PATH="/data/local/tmp/.kovri"
+
+# Native
+cmake-native = -DCMAKE_CXX_FLAGS="-march=native"
+cmake-cryptopp-native = -DCRYPTOPP_NATIVE_ARCH=ON
 
 # Filesystem
 build = build/
@@ -123,26 +124,27 @@ all: dynamic
 #--------------------------------#
 
 deps:
-	$(call CMAKE_CPP-NETLIB) && $(MAKE)
-	$(call CMAKE_CRYPTOPP) && $(MAKE)
+	$(call CMAKE_CPP-NETLIB,$(cmake-native)) && $(MAKE)
+	$(call CMAKE_CRYPTOPP,$(cmake-cryptopp-native)) && $(MAKE)  # See #693
 
 release-deps:
 	$(call CMAKE_CPP-NETLIB) && $(MAKE)
-	$(call CMAKE_CRYPTOPP,$(cmake-cryptopp-no-opt)) && $(MAKE)
+	$(call CMAKE_CRYPTOPP) && $(MAKE)
 
 release-static-deps:
 	$(call CMAKE_CPP-NETLIB,$(cmake-cpp-netlib-static)) && $(MAKE)
-	$(call CMAKE_CRYPTOPP,$(cmake-cryptopp-no-opt)) && $(MAKE)
+	$(call CMAKE_CRYPTOPP) && $(MAKE)
 
 #-----------------------------------#
 # For local, end-user cloned builds #
 #-----------------------------------#
 
 dynamic: deps
+	$(eval cmake-kovri += $(cmake-native))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
-static: release-deps  # Keep crypto CPU optimizations (don't use "release" static deps)
-	$(eval cmake-kovri += $(cmake-static))
+static: deps
+	$(eval cmake-kovri += $(cmake-native) $(cmake-static))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
 #-----------------------------------#

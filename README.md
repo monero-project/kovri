@@ -1,7 +1,7 @@
 [<img width="300" src="https://static.getmonero.org/images/kovri/logo.png" alt="ˈKoʊvriː" />](https://github.com/monero-project/kovri)
 
 1. [To cover, veil, wrap](https://en.wikipedia.org/wiki/Esperanto)
-2. A secure, private, untraceable C++ implementation of the [I2P anonymous network](https://getmonero.org/knowledge-base/moneropedia/i2p)
+2. A free, decentralized, anonymity technology based on [I2P](https://getmonero.org/resources/moneropedia/i2p.html)'s open specifications
 
 ## Disclaimer
 - Currently **pre-alpha** software; under heavy development (and not yet integrated with monero)
@@ -46,23 +46,32 @@ Alpha release coming soon
 - [repo.getmonero.org](https://repo.getmonero.org/monero-project/kovri) or monero-repo.i2p are alternatives to GitHub for non-push repository access
 
 ## Vulnerability Response
-- **We will pay hackers in XMR to exploit Kovri responsibly!** See our VRP (Vulnerability Response Process) in [kovri-docs](https://github.com/monero-project/kovri-docs/) for responsible disclosure
+**We will pay hackers in Monero ([XMR](https://coinmarketcap.com/currencies/monero/)) to exploit Kovri responsibly!**
+
+See our VRP (Vulnerability Response Process) in [kovri-docs](https://github.com/monero-project/kovri-docs/) for responsible disclosure
+
+## Repositories
+- [Kovri](https://github.com/monero-project/kovri)
+- [Kovri Docs](https://github.com/monero-project/kovri-docs)
+- [Kovri Website](https://github.com/monero-project/kovri-site)
+- [Monero/Kovri meta](https://github.com/monero-project/meta)
+
+## Support
+- IRC: [Freenode](https://webchat.freenode.net/) | [OFTC](https://webchat.oftc.net/) | Irc2P with Kovri
+  - `#kovri` | Community & Support Channel
+  - `#kovri-dev` | Development Channel
+- [Reddit /r/Kovri](https://www.reddit.com/r/Kovri/)
+- [Monero StackExchange](https://monero.stackexchange.com/)
+- [Monero Slack](https://monero.slack.com/) (ask for an invite on IRC or email anonimal)
 
 ## Contact
-- IRC: [Freenode](https://webchat.freenode.net/) | [OFTC](https://webchat.oftc.net/) | Irc2P with Kovri
-  - ```#kovri``` | Community & Support Channel
-  - ```#kovri-dev``` | Development Channel
-- [Monero Slack](https://monero.slack.com/)
-- [Monero StackExchange](https://monero.stackexchange.com/)
-- [Monero Forum](https://forum.getmonero.org/)
-- [Monero Meta Repository](https://github.com/monero-project/meta)
-- [@monerocurrency](https://twitter.com/monerocurrency)
 - Email:
   - General Purpose / Media Contact
     - dev [at] getmonero.org
   - All other contact
     - anonimal [at] i2pmail.org
     - PGP Key fingerprint: 1218 6272 CD48 E253 9E2D  D29B 66A7 6ECF 9144 09F1
+- [@monerocurrency](https://twitter.com/monerocurrency)
 
 ## Donations
 - Visit our [Donations Page](https://getmonero.org/getting-started/donate/) to help Kovri with your donations

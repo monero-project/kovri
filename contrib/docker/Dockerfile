@@ -26,9 +26,11 @@ RUN apk add --update --no-cache \
     mkdir /home/kovri/.kovri && \
     cp -r /kovri/pkg/* /home/kovri/.kovri && \
     strip /kovri/build/kovri && \
+    strip /kovri/build/kovri-util && \
     strip /kovri/build/kovri-tests && \
-    install /kovri/build/kovri-tests /usr/bin/kovri-tests && \
     install /kovri/build/kovri /usr/bin/kovri && \
+    install /kovri/build/kovri-util /usr/bin/kovri-util && \
+    install /kovri/build/kovri-tests /usr/bin/kovri-tests && \
     cd .. && \
     rm -rf ~/kovri && \
     chown -R kovri:kovri /home/kovri && \

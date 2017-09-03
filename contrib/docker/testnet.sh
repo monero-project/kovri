@@ -7,11 +7,14 @@ docker_base_name="kovri_testnet"
 pid=$(id -u)
 gid="docker" # Assumes user is in docker group
 
+# TODO(unassigned): better sequencing impl
 #Note: sequence limit [2:254]
-sequence="seq -f "%03g" 10 29"
+seq_start=10  # Not 0 because of port assignments, not 1 because we can't use IP ending in .1 (assigned to gateway)
+seq_end=$((${seq_start} + 19))  # TODO(unassigned): arbitrary end amount
+sequence="seq -f "%03g" ${seq_start} ${seq_end}"
 
 #Note: this can avoid to rebuild the docker image
-#custom_build_dir="-v /home/user/kovri:/kovri"
+#custom_build_dir="-v /home/user/kovri/build/kovri:/usr/bin/kovri -v /home/user/kovri/build/kovri-util:/usr/bin/kovri-util"
 
 reseed_file="reseed.zip"
 
@@ -26,13 +29,29 @@ then
   exit 1
 fi
 
+# TODO(anonimal): refactor out preparation
 Create()
 {
+  # Cleanup for new testnet
+  if [[ $KOVRI_WORKSPACE || $KOVRI_NETWORK ]]; then
+    read -r -p "Kovri testnet environment detected. Attempt to destroy previous testnet? [Y/n] " REPLY
+    case $REPLY in
+      [nN])
+        ;;
+      *)
+        Destroy
+        if [[ $? -ne 0 ]]; then
+          echo "Previous testnet not found, continuing creation"
+        fi
+        ;;
+    esac
+  fi
+
   # Set Kovri repo location
   local _repo=$KOVRI_REPO
   if [[ -z $_repo ]]; then
     _repo="/tmp/kovri"
-    read -r -p "Set location of Kovri repo? [$_repo] [Y/n] " REPLY
+    read -r -p "Change location of Kovri repo? [KOVRI_REPO=${_repo}] [Y/n] " REPLY
     case $REPLY in
       [nN])
         echo "Using default: $_repo"
@@ -53,6 +72,7 @@ Create()
   # Build Kovri image if applicable
   pushd $_repo
   catch "Could not access $_repo"
+
   # Set tag
   hash git 2>/dev/null
   if [[ $? -ne 0 ]]; then
@@ -62,39 +82,43 @@ Create()
     local _docker_tag=":$(git rev-parse --short HEAD)"
   fi
 
-  # If image name not set, provide options + build
+  # If image name not set, provide name options + build options
   local _image=$KOVRI_IMAGE
   if [[ -z $_image ]]; then
-    _image="geti2p/kovri${_docker_tag}"
-    read -r -p "Build Kovri Docker image? [$_image] [Y/n] " REPLY
+    _default_image="geti2p/kovri${_docker_tag}"
+    read -r -p "Change image name?: [KOVRI_IMAGE=${_default_image}] [Y/n] " REPLY
     case $REPLY in
       [nN])
-        echo "Using built image: $_image"
+        echo "Using default: $_default_image"
         ;;
       *)
-        read -r -p "Set new image name?: [$_image] [Y/n] " REPLY
-        case $REPLY in
-          [nN])
-            echo "Using default: $_image"
-            ;;
-          *)
-            read -r -p "Set new name: " REPLY
-            _image=$REPLY
-            ;;
-        esac
-        echo "Building image: [$_image]"
-        docker build -t $_image $_repo
-        catch "Could not build image"
+        read -r -p "Set new name: " REPLY
+        _image=$REPLY
+        if [[ -z $_image ]]; then
+          _image="$_default_image"
+        fi
         ;;
     esac
   fi
+
+  read -r -p "Build Kovri Docker image? [$_image] [Y/n] " REPLY
+  case $REPLY in
+    [nN])
+      echo "Using built image: $_image"
+      ;;
+    *)
+      echo "Building image: [$_image]"
+      docker build -t $_image $_repo
+      catch "Could not build image"
+      ;;
+  esac
   popd
 
   # Set testnet workspace
   local _workspace=$KOVRI_WORKSPACE
   if [[ -z $_workspace ]]; then
     _workspace="${_repo}/build/testnet"
-    read -r -p "Set workspace for testnet output? [$_workspace] [Y/n] " REPLY
+    read -r -p "Change workspace for testnet output? [KOVRI_WORKSPACE=${_workspace}] [Y/n] " REPLY
     case $REPLY in
       [nN])
         echo "Using default: $_workspace"
@@ -118,7 +142,7 @@ Create()
   local _util_args=$KOVRI_UTIL_ARGS
   if [[ -z $_util_args ]]; then
     _util_args="--floodfill 1 --bandwidth P"
-    read -r -p "Set utility binary arguments? [$_util_args] [Y/n] " REPLY
+    read -r -p "Change utility binary arguments? [KOVRI_UTIL_ARGS=\"${_util_args}\"] [Y/n] " REPLY
     case $REPLY in
       [nN])
         echo "Using default: $_util_args"
@@ -135,7 +159,7 @@ Create()
   local _bin_args=$KOVRI_BIN_ARGS
   if [[ -z $_bin_args ]]; then
     _bin_args="--log-level 5 --floodfill 1 --enable-ntcp 0 --disable-su3-verification 1"
-    read -r -p "Set kovri binary arguments? [$_bin_args] [Y/n] " REPLY
+    read -r -p "Change kovri binary arguments? [KOVRI_BIN_ARGS=\"${_bin_args}\"] [Y/n] " REPLY
     case $REPLY in
       [nN])
         echo "Using default: $_bin_args"
@@ -147,7 +171,42 @@ Create()
     esac
   fi
 
-  ## Create RIs
+  # Create network
+  # TODO(anonimal): we splitup octet segments as a hack for later setting RI addresses
+  local _network_name=${KOVRI_NETWORK}
+  if [[ -z $_network_name ]]; then
+    _network_name="kovri-testnet"
+  fi
+
+  local _network_octets="172.18.0"
+  local _network_subnet="${_network_octets}.0/16"
+
+  echo "Creating $_network_name"
+  docker network create --subnet=${_network_subnet} $_network_name
+
+  if [[ $? -ne 0 ]]; then
+    read -r -p "Create a new network? [Y/n] " REPLY
+    case $REPLY in
+      [nN])
+        echo "Could not finish testnet creation"
+        exit 1
+        ;;
+      *)
+        read -r -p "Set network name: " REPLY
+        _network_name=${REPLY}
+        read -r -p "Set first 3 octets: " REPLY
+        _network_octets=${REPLY}
+        _network_subnet="${_network_octets}.0/16"
+        ;;
+    esac
+    # Fool me once, shame on you. Fool me twice, ...
+    docker network create --subnet=${_network_subnet} $_network_name
+    catch "Docker could not create network"
+  fi
+
+  echo "Created network: $_network_name"
+
+  # Create workspace
   pushd $_workspace
 
   for _seq in $($sequence); do
@@ -155,22 +214,46 @@ Create()
     local _dir="router_${_seq}"
 
     # Create data dir
-    mkdir -p ${_dir}/.kovri
-    catch "Could not create data dir"
+    local _data_dir="${_dir}/.kovri"
+    mkdir -p $_data_dir
+    catch "Could not create $_data_dir"
 
     # Set permissions
     chown -R ${pid}:${gid} ${_workspace}/${_dir}
     catch "Could not set ownership ${pid}:${gid}"
 
-    # Run Docker
-    docker run -w /home/kovri -it --rm \
-      -v ${_workspace}/${_dir}:/home/kovri \
+    # Create RI's
+    local _host="${_network_octets}.$((10#${_seq}))"
+    local _port="${seq_start}${_seq}"
+    local _mount="/home/kovri"
+    local _volume="${_workspace}/${_dir}:${_mount}"
+    docker run -w $_mount -it --rm \
+      -v $_volume \
       $custom_build_dir \
-      $_image  /kovri/build/kovri-util routerinfo --create \
-        --host=172.18.0.$((10#${_seq})) \
-        --port 10${_seq} \
+      $_image  /usr/bin/kovri-util routerinfo --create \
+        --host $_host \
+        --port $_port \
         $_util_args
     catch "Docker could not run"
+    echo "Created RI | host: $_host | port: $_port | args: $_util_args | volume: $_volume"
+
+    # Create container
+    local _container_name="${docker_base_name}_${_seq}"
+    docker create -w /home/kovri \
+      --name $_container_name \
+      --hostname $_container_name \
+      --net $_network_name \
+      --ip $_host \
+      -p ${_port}:${_port} \
+      -v ${_workspace}:/home/kovri/testnet \
+      $custom_build_dir \
+      $_image /usr/bin/kovri \
+      --data-dir /home/kovri/testnet/kovri_${_seq} \
+      --reseed-from /home/kovri/testnet/${reseed_file} \
+      --host $_host \
+      --port $_port \
+      $_bin_args
+    catch "Docker could not create container"
   done
 
   ## ZIP RIs to create unsigned reseed file
@@ -185,14 +268,9 @@ Create()
     && rm -rf ${_workspace}/${_tmp}
   catch "Could not ZIP RI's"
 
-  ## Create docker private network
-  docker network create --subnet=172.18.0.0/16 privatenet
-  catch "Docker could not create network"
-
-  for _seq in $($sequence)
-  do
-    ## Create data-dir
-    cp -r ${_repo}/pkg kovri_${_seq} && mkdir kovri_${_seq}/core
+  for _seq in $($sequence); do
+    # Create data-dir + copy only what's needed from pkg
+    mkdir -p kovri_${_seq}/core && cp -r ${_repo}/pkg/{client,config,*.sh} kovri_${_seq}
     catch "Could not copy package resources / create data-dir"
 
     ## Default with 1 server tunnel
@@ -215,23 +293,6 @@ keys = server-keys.dat
 
     chown -R ${pid}:${gid} kovri_${_seq}
     catch "Could not set ownership ${pid}:${gid}"
-
-    ## Create container
-    docker create -w /home/kovri \
-      --name ${docker_base_name}_${_seq} \
-      --hostname ${docker_base_name}_${_seq} \
-      --net privatenet \
-      --ip 172.18.0.$((10#${_seq})) \
-      -p 10${_seq}:10${_seq} \
-      -v ${_workspace}:/home/kovri/testnet \
-      $custom_build_dir \
-      $_image /kovri/build/kovri \
-      --data-dir /home/kovri/testnet/kovri_${_seq} \
-      --reseed-from /home/kovri/testnet/${reseed_file} \
-      --host 172.18.0.$((10#${_seq})) \
-      --port 10${_seq} \
-      $_bin_args
-    catch "Docker could not create container"
   done
   popd
 }
@@ -239,7 +300,8 @@ keys = server-keys.dat
 Start()
 {
   for _seq in $($sequence); do
-    docker start ${docker_base_name}_${_seq}
+    local _container_name="${docker_base_name}_${_seq}"
+    echo -n "Starting... " && docker start $_container_name
     catch "Could not start docker: $_seq"
   done
 }
@@ -247,26 +309,42 @@ Start()
 Stop()
 {
   for _seq in $($sequence); do
-    docker stop ${docker_base_name}_${_seq}
+    local _container_name="${docker_base_name}_${_seq}"
+    echo -n "Stopping... " && docker stop $_container_name
     catch "Could not stop docker: $_seq"
   done
 }
 
 Destroy()
 {
+  local _workspace=${KOVRI_WORKSPACE}
+  local _network=${KOVRI_NETWORK}
+
+  echo "Destroying... [Workspace: $_workspace | Network: $_network]"
+
   # TODO(unassigned): error handling?
-  if [[ -z $KOVRI_WORKSPACE ]]; then
-    read -r -p "Enter workspace to destroy: " REPLY
-    KOVRI_WORKSPACE=$REPLY
+  if [[ -z $_workspace ]]; then
+    read -r -p "Enter workspace to remove: " REPLY
+    _workspace=${REPLY}
   fi
+
+  Stop
+
   for _seq in $($sequence); do
-    docker stop ${docker_base_name}_${_seq}
-    docker rm -v ${docker_base_name}_${_seq}
-    rm -rf ${KOVRI_WORKSPACE}/router_${_seq}
-    rm -rf ${KOVRI_WORKSPACE}/kovri_${_seq}
+    local _container_name="${docker_base_name}_${_seq}"
+    echo -n "Removing... " && docker rm -v $_container_name
+    rm -rf ${_workspace}/router_${_seq}
+    rm -rf ${_workspace}/kovri_${_seq}
   done
-  rm ${KOVRI_WORKSPACE}/${reseed_file}
-  docker network rm privatenet
+
+  rm ${_workspace}/${reseed_file}
+
+  if [[ -z $_network ]]; then
+    read -r -p "Enter network name to remove: " REPLY
+    _network=${REPLY}
+  fi
+
+  docker network rm $_network && echo "Removed network: $_network"
 }
 
 # Error handler
@@ -280,13 +358,17 @@ catch()
 
 case "$1" in
   create)
-    Create;;
+    Create && echo "Kovri testnet created"
+    ;;
   start)
-    Start;;
+    Start && echo "Kovri testnet started"
+    ;;
   stop)
-    Stop;;
+    Stop && echo "Kovri testnet stopped"
+    ;;
   destroy)
-    Destroy;;
+    Destroy && echo "Kovri testnet destroyed"
+    ;;
   *)
     PrintUsage
     exit 1

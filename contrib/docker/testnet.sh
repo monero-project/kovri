@@ -123,7 +123,7 @@ set_args()
 
   # Set daemon binary arguments
   if [[ -z $KOVRI_BIN_ARGS ]]; then
-    KOVRI_BIN_ARGS="--log-level 5 --floodfill 1 --enable-ntcp 0 --disable-su3-verification 1"
+    KOVRI_BIN_ARGS="--floodfill 1 --disable-su3-verification 1"
     read_input "Change kovri binary arguments? [KOVRI_BIN_ARGS=\"${KOVRI_BIN_ARGS}\"]" KOVRI_BIN_ARGS
   fi
 }

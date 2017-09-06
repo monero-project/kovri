@@ -31,10 +31,19 @@ fi
 
 Prepare()
 {
+  # Ensure we have proper binaries installed
+  hash docker 2>/dev/null
+  catch "docker not installed, please install"
+
+  hash zip 2>/dev/null
+  catch "zip not installed, please install"
+
   # Cleanup for new testnet
   if [[ $KOVRI_WORKSPACE || $KOVRI_NETWORK ]]; then
     read_input "Kovri testnet environment detected. Attempt to destroy previous testnet?" NULL cleanup_testnet
   fi
+
+  # Set environment
   set_repo
   set_image
   set_workspace
@@ -226,15 +235,7 @@ Create()
   done
 
   ## ZIP RIs to create unsigned reseed file
-  # TODO(unassigned): ensure the zip binary is available
-  local _tmp="tmp"
-  mkdir $_tmp \
-    && cp $(ls router_*/routerInfo* | grep -v key) $_tmp \
-    && cd $_tmp \
-    && zip $reseed_file * \
-    && mv $reseed_file $KOVRI_WORKSPACE \
-    && cd .. \
-    && rm -rf ${KOVRI_WORKSPACE}/${_tmp}
+  zip -j ${KOVRI_WORKSPACE}/${reseed_file} $(ls router_*/routerInfo* | grep -v key)
   catch "Could not ZIP RI's"
 
   for _seq in $($sequence); do

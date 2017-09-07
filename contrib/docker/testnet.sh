@@ -65,7 +65,7 @@ Prepare()
 
   # Cleanup for new testnet
   if [[ $KOVRI_WORKSPACE || $KOVRI_NETWORK ]]; then
-    read_input "Kovri testnet environment detected. Attempt to destroy previous testnet?" NULL cleanup_testnet
+    read_bool_input "Kovri testnet environment detected. Attempt to destroy previous testnet?" KOVRI_CLEANUP cleanup_testnet
   fi
 
   # Set environment
@@ -152,7 +152,7 @@ set_image()
 
   local _dockerfile_path="${KOVRI_REPO}/contrib/docker/${KOVRI_DOCKERFILE}"
 
-  read_input "Build Kovri Docker image? [$KOVRI_IMAGE]" NULL "docker build -t $KOVRI_IMAGE -f $_dockerfile_path $KOVRI_REPO"
+  read_bool_input "Build Kovri Docker image? [$KOVRI_IMAGE]" KOVRI_BUILD_IMAGE "docker build -t $KOVRI_IMAGE -f $_dockerfile_path $KOVRI_REPO"
   popd
 }
 

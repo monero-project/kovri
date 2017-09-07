@@ -41,17 +41,14 @@ seq_start=10  # Not 0 because of port assignments, not 1 because we can't use IP
 seq_end=$((${seq_start} + 19))  # TODO(unassigned): arbitrary end amount
 sequence="seq -f "%03g" ${seq_start} ${seq_end}"
 
-#Note: this can avoid to rebuild the docker image
-#custom_build_dir="-v /home/user/kovri/build/kovri:/usr/bin/kovri -v /home/user/kovri/build/kovri-util:/usr/bin/kovri-util"
-
 reseed_file="reseed.zip"
 
 PrintUsage()
 {
-  echo "Usage: $ $0 {create|start|stop|destroy}" >&2
+  echo "Usage: $ $0 {create|start|stop|destroy|exec}" >&2
 }
 
-if [ "$#" -ne 1 ]
+if [[ $# -lt 1 ]]
 then
   PrintUsage
   exit 1
@@ -74,6 +71,7 @@ Prepare()
   # Set environment
   set_repo
   set_image
+  set_bins
   set_workspace
   set_args
   set_network
@@ -99,6 +97,22 @@ set_repo()
   if [[ ! -d $KOVRI_REPO ]]; then
     false
     catch "Kovri not found. See building instructions."
+  fi
+}
+
+set_bins()
+{
+  read_bool_input "Use binaries from repo?" KOVRI_USE_REPO_BINS ""
+
+  if [[ $KOVRI_USE_REPO_BINS = true ]];then
+    echo "Using binaries in ${KOVRI_REPO}/build"
+    mount_repo_bins="-v ${KOVRI_REPO}/build/kovri:/usr/bin/kovri \
+      -v ${KOVRI_REPO}/build/kovri-util:/usr/bin/kovri-util"
+
+    read_bool_input "Build repo binaries?" KOVRI_BUILD_REPO_BINS "Exec make release-static"
+    if [[ $KOVRI_BUILD_REPO_BINS = false ]];then
+      echo "Please ensure that the binaries are built statically if not built within a container"
+    fi
   fi
 }
 
@@ -129,7 +143,16 @@ set_image()
     KOVRI_IMAGE=${_default_image}
   fi
 
-  read_input "Build Kovri Docker image? [$KOVRI_IMAGE]" NULL "docker build -t $KOVRI_IMAGE $KOVRI_REPO"
+  # Select Dockerfile
+  local _default_dockerfile="Dockerfile_dev"
+  if [[ -z $KOVRI_DOCKERFILE ]]; then
+    KOVRI_DOCKERFILE=${_default_dockerfile}
+    read_input "Change Dockerfile?: [KOVRI_DOCKERFILE=${KOVRI_DOCKERFILE}]" KOVRI_DOCKERFILE
+  fi
+
+  local _dockerfile_path="${KOVRI_REPO}/contrib/docker/${KOVRI_DOCKERFILE}"
+
+  read_input "Build Kovri Docker image? [$KOVRI_IMAGE]" NULL "docker build -t $KOVRI_IMAGE -f $_dockerfile_path $KOVRI_REPO"
   popd
 }
 
@@ -235,7 +258,7 @@ Create()
     local _volume="${KOVRI_WORKSPACE}/${_dir}:${_mount}"
     docker run -w $_mount -it --rm \
       -v $_volume \
-      $custom_build_dir \
+      $mount_repo_bins \
       $KOVRI_IMAGE /usr/bin/kovri-util routerinfo --create \
         --host $_host \
         --port $_port \
@@ -252,7 +275,7 @@ Create()
       --ip $_host \
       -p ${_port}:${_port} \
       -v ${KOVRI_WORKSPACE}:/home/kovri/testnet \
-      $custom_build_dir \
+      $mount_repo_bins \
       $KOVRI_IMAGE /usr/bin/kovri \
       --data-dir /home/kovri/testnet/kovri_${_seq} \
       --reseed-from /home/kovri/testnet/${reseed_file} \
@@ -342,6 +365,17 @@ Destroy()
   docker network rm $KOVRI_NETWORK && echo "Removed network: $KOVRI_NETWORK"
 }
 
+Exec()
+{
+  docker run -i -t \
+    --rm \
+    -v $KOVRI_REPO:/home/kovri/kovri \
+    -w /home/kovri/kovri \
+    $KOVRI_IMAGE \
+    $@
+  catch "Docker: run failed"
+}
+
 # Error handler
 catch()
 {
@@ -371,6 +405,30 @@ read_input()
   esac
 }
 
+# Read boolean handler
+# $1 - message
+# $2 - varname to set
+# $3 - function or string to execute if var true
+read_bool_input()
+{
+  if [[ ! ${!2} ]]; then
+    read -r -p "$1 [Y/n] " REPLY
+    case $REPLY in
+      [nN])
+        eval ${2}=false
+        ;;
+      *)
+        eval ${2}=true
+        ;;
+    esac
+  fi
+
+  if [[ ${!2} = true ]];then
+    $3
+  fi
+}
+
+_args=($@)
 case "$1" in
   create)
     Prepare && Create && echo "Kovri testnet created"
@@ -383,6 +441,9 @@ case "$1" in
     ;;
   destroy)
     Destroy && echo "Kovri testnet destroyed"
+    ;;
+  exec)
+    set_repo && set_image && Exec "${_args[@]:1}"
     ;;
   *)
     PrintUsage

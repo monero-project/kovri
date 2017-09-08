@@ -122,9 +122,10 @@ void SetupLogging(const boost::program_options::variables_map& kovri_config)
               : kovri_config["log-file-name"].as<std::string>(),
       keywords::time_based_rotation =
           sinks::file::rotation_at_time_point(0, 0, 0));  // Rotate at midnight
-  // If debug/trace, enable auto flush to (try to) catch records right before segfault
-  if (severity <= logging::trivial::
-                      debug)  // Our severity levels are processed in reverse
+  // Auto flush for closer-to-real-time record message reporting
+  // Note: our severity levels are processed in reverse
+  if (severity <= logging::trivial::debug
+      || kovri_config["log-auto-flush"].as<bool>())
     file_backend->auto_flush();
   // Create file sink
   auto file_sink = boost::shared_ptr<text_file_sink>(

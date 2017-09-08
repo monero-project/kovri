@@ -96,6 +96,8 @@ void Configuration::ParseKovriConfig() {
       // 5 = trace debug info warn error fatal
       "log-level",
       bpo::value<std::uint16_t>()->default_value(3))(
+      "log-auto-flush",
+      bpo::value<bool>()->default_value(false)->value_name("bool"))(
       "kovriconf,c",
       bpo::value<std::string>()->default_value("")->value_name("path"))(
       "tunnelsconf,t",

@@ -70,10 +70,6 @@ cmake-static     = -D WITH_STATIC=ON
 cmake-doxygen    = -D WITH_DOXYGEN=ON
 cmake-coverage   = -D WITH_COVERAGE=ON
 
-# Disable build options that will fail CMake if not built
-# (used for help and doxygen build options)
-cmake-disable-options = -D WITH_CPPNETLIB=OFF
-
 # Currently, our dependencies are static but cpp-netlib's dependencies are not (by default)
 cmake-cpp-netlib-static = -D CPP-NETLIB_STATIC_OPENSSL=ON -D CPP-NETLIB_STATIC_BOOST=ON
 
@@ -174,51 +170,57 @@ release-static-android: release-static-deps
 # Optional builds #
 #-----------------#
 
-# UPnP only
+# Produce vanilla binary with UPnP support
 upnp: deps
 	$(eval cmake-kovri += $(cmake-upnp))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
-# Optimized + hardening + UPnP
+# Produce optimized, hardened binary *with* UPnP
 all-options: deps
 	$(eval cmake-kovri += $(cmake-optimize) $(cmake-hardening) $(cmake-upnp))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
-# We need (or very much should have) optimizations with hardening
+# Produce optimized, hardened binary *without* UPnP. Note: we need (or very much should have) optimizations with hardening
 optimized-hardened: deps
 	$(eval cmake-kovri += $(cmake-optimize) $(cmake-hardening))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
+# Produce all unit-tests with optimized hardening
 optimized-hardened-tests: deps
-	$(eval cmake-kovri += $(cmake-optimize) $(cmake-hardening) $(cmake-tests) $(cmake-benchmarks))
+	$(eval cmake-kovri += $(cmake-optimize) $(cmake-hardening) $(cmake-tests))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
-# Note: leaving out hardening because of need for optimizations
+# Produce build with coverage. Note: leaving out hardening because of need for optimizations
 coverage: deps
 	$(eval cmake-kovri += $(cmake-coverage) $(cmake-upnp))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
+# Produce unit-tests with coverage
 coverage-tests: deps
-	$(eval cmake-kovri += $(cmake-coverage) $(cmake-tests) $(cmake-benchmarks))
+	$(eval cmake-kovri += $(cmake-coverage) $(cmake-tests))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
+# Produce vanilla unit-tests
 tests: deps
-	$(eval cmake-kovri += $(cmake-tests) $(cmake-benchmarks))
+	$(eval cmake-kovri += $(cmake-tests))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
+# Produce vanilla fuzzer-tests
 fuzz-tests: deps
 	$(call CMAKE_FUZZER) && $(MAKE)
-	$(eval cmake-kovri += $(cmake-fuzz-tests) )
+	$(eval cmake-kovri += $(cmake-fuzz-tests))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
+# Produce Doxygen documentation
 doxygen:
-	$(eval cmake-kovri += $(cmake-disable-options) $(cmake-doxygen))
+	$(eval cmake-kovri += $(cmake-doxygen))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) doc
 
+# Produce available CMake build options
 help:
-	$(eval cmake-kovri += $(cmake-disable-options) -LH)
-	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
+	$(call CMAKE,$(build),$(cmake-kovri) -LH)
 
+# Clean all build directories and Doxygen output
 clean:
 	$(eval remove-build = rm -fR $(build) $(build-cpp-netlib) $(build-cryptopp) $(build-doxygen) $(build-fuzzer))
 	@if [ "$$FORCE_CLEAN" = "yes" ]; then $(remove-build); \
@@ -229,10 +231,12 @@ clean:
           fi; \
         fi
 
+# Install binaries and package
 install:
 	@_install="./pkg/installers/kovri-install.sh"; \
 	if [ -e $$_install ]; then $$_install; else echo "Unable to find $$_install"; exit 1; fi
 
+# Un-install binaries and package
 uninstall:
 	@_install="./pkg/installers/kovri-install.sh"; \
 	if [ -e $$_install ]; then $$_install -u; else echo "Unable to find $$_install"; exit 1; fi

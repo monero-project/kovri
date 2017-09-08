@@ -231,6 +231,75 @@ create_network()
   echo "Created network: $KOVRI_NETWORK"
 }
 
+# Create data directory
+# $1 - sequence id
+create_data_dir()
+{
+  # Setup router dir
+  local _dir="router_$1"
+
+  # Create data dir
+  local _data_dir="${_dir}/.kovri"
+  mkdir -p $_data_dir
+  catch "Could not create $_data_dir"
+
+  # Set permissions
+  chown -R ${pid}:${gid} ${KOVRI_WORKSPACE}/${_dir}
+  catch "Could not set ownership ${pid}:${gid}"
+
+  # Create data-dir + copy only what's needed from pkg
+  mkdir -p kovri_${_seq}/core && cp -r ${KOVRI_REPO}/pkg/{client,config,*.sh} kovri_${_seq}
+  catch "Could not copy package resources / create data-dir"
+
+  ## Default with 1 server tunnel
+  echo "\
+[MyServer]
+type = server
+address = 127.0.0.1
+port = 2222
+in_port = 2222
+keys = server-keys.dat
+;white_list =
+;black_list =
+" > kovri_${_seq}/config/tunnels.conf
+  catch "Could not create server tunnel"
+}
+
+# Create data directory
+# $1 - sequence id
+# $2 - Extra docker options
+# $3 - Binary arguments
+create_instance()
+{
+  local _seq=$1
+
+  local _dir="router_${_seq}"
+  local _data_dir="${_dir}/.kovri"
+  local _host="${network_octets}.$((10#${_seq}))"
+  local _port="${seq_start}${_seq}"
+  local _mount="/home/kovri"
+  local _volume="${KOVRI_WORKSPACE}/${_dir}:${_mount}"
+  local _container_name="${docker_base_name}_${_seq}"
+
+  docker create -w /home/kovri \
+    --name $_container_name \
+    --hostname $_container_name \
+    --net $KOVRI_NETWORK \
+    --ip $_host \
+    -p ${_port}:${_port} \
+    -v ${KOVRI_WORKSPACE}:/home/kovri/testnet \
+    $mount_repo_bins \
+    $2 \
+    $KOVRI_IMAGE /usr/bin/kovri \
+    --data-dir /home/kovri/testnet/kovri_${_seq} \
+    --reseed-from /home/kovri/testnet/${reseed_file} \
+    --host $_host \
+    --port $_port \
+    $3
+
+  catch "Docker could not create container"
+}
+
 Create()
 {
   # Create network
@@ -240,19 +309,11 @@ Create()
   pushd $KOVRI_WORKSPACE
 
   for _seq in $($sequence); do
-    # Setup router dir
-    local _dir="router_${_seq}"
-
-    # Create data dir
-    local _data_dir="${_dir}/.kovri"
-    mkdir -p $_data_dir
-    catch "Could not create $_data_dir"
-
-    # Set permissions
-    chown -R ${pid}:${gid} ${KOVRI_WORKSPACE}/${_dir}
-    catch "Could not set ownership ${pid}:${gid}"
+    create_data_dir ${_seq}
 
     # Create RI's
+    local _dir="router_${_seq}"
+    local _data_dir="${_dir}/.kovri"
     local _host="${network_octets}.$((10#${_seq}))"
     local _port="${seq_start}${_seq}"
     local _mount="/home/kovri"
@@ -268,22 +329,7 @@ Create()
     echo "Created RI | host: $_host | port: $_port | args: $KOVRI_UTIL_ARGS | volume: $_volume"
 
     # Create container
-    local _container_name="${docker_base_name}_${_seq}"
-    docker create -w /home/kovri \
-      --name $_container_name \
-      --hostname $_container_name \
-      --net $KOVRI_NETWORK \
-      --ip $_host \
-      -p ${_port}:${_port} \
-      -v ${KOVRI_WORKSPACE}:/home/kovri/testnet \
-      $mount_repo_bins \
-      $KOVRI_IMAGE /usr/bin/kovri \
-      --data-dir /home/kovri/testnet/kovri_${_seq} \
-      --reseed-from /home/kovri/testnet/${reseed_file} \
-      --host $_host \
-      --port $_port \
-      $KOVRI_BIN_ARGS
-    catch "Docker could not create container"
+    create_instance $_seq "" "${KOVRI_BIN_ARGS}"
   done
 
   ## ZIP RIs to create unsigned reseed file
@@ -291,23 +337,6 @@ Create()
   catch "Could not ZIP RI's"
 
   for _seq in $($sequence); do
-    # Create data-dir + copy only what's needed from pkg
-    mkdir -p kovri_${_seq}/core && cp -r ${KOVRI_REPO}/pkg/{client,config,*.sh} kovri_${_seq}
-    catch "Could not copy package resources / create data-dir"
-
-    ## Default with 1 server tunnel
-    echo "\
-[MyServer]
-type = server
-address = 127.0.0.1
-port = 2222
-in_port = 2222
-keys = server-keys.dat
-;white_list =
-;black_list =
-" > kovri_${_seq}/config/tunnels.conf
-    catch "Could not create server tunnel"
-
     ## Put RI + key in correct location
     cp $(ls router_${_seq}/routerInfo*.dat) kovri_${_seq}/core/router.info
     cp $(ls router_${_seq}/routerInfo*.key) kovri_${_seq}/core/router.keys

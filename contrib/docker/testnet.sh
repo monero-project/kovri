@@ -38,8 +38,9 @@ gid="docker" # Assumes user is in docker group
 # TODO(unassigned): better sequencing impl
 #Note: sequence limit [2:254]
 seq_start=10  # Not 0 because of port assignments, not 1 because we can't use IP ending in .1 (assigned to gateway)
-seq_end=$((${seq_start} + 19))  # TODO(unassigned): arbitrary end amount
-sequence="seq -f "%03g" ${seq_start} ${seq_end}"
+seq_base_nb=${KOVRI_NB_BASE:-20}  # TODO(unassigned): arbitrary end amount
+seq_base_end=$((${seq_start} + ${seq_base_nb} - 1))
+sequence="seq -f "%03g" ${seq_start} ${seq_base_end}"
 
 reseed_file="reseed.zip"
 

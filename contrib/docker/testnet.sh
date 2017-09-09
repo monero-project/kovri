@@ -119,22 +119,6 @@ set_repo()
   fi
 }
 
-set_bins()
-{
-  read_bool_input "Use binaries from repo?" KOVRI_USE_REPO_BINS ""
-
-  if [[ $KOVRI_USE_REPO_BINS = true ]];then
-    echo "Using binaries in ${KOVRI_REPO}/build"
-    mount_repo_bins="-v ${KOVRI_REPO}/build/kovri:/usr/bin/kovri \
-      -v ${KOVRI_REPO}/build/kovri-util:/usr/bin/kovri-util"
-
-    read_bool_input "Build repo binaries?" KOVRI_BUILD_REPO_BINS "Exec make release-static"
-    if [[ $KOVRI_BUILD_REPO_BINS = false ]];then
-      echo "Please ensure that the binaries are built statically if not built within a container"
-    fi
-  fi
-}
-
 set_image()
 {
   # Build Kovri image if applicable
@@ -173,6 +157,24 @@ set_image()
 
   read_bool_input "Build Kovri Docker image? [$KOVRI_IMAGE]" KOVRI_BUILD_IMAGE "docker build -t $KOVRI_IMAGE -f $_dockerfile_path $KOVRI_REPO"
   popd
+}
+
+set_bins()
+{
+  read_bool_input "Use binaries from repo?" KOVRI_USE_REPO_BINS ""
+
+  if [[ $KOVRI_USE_REPO_BINS = true ]]; then
+    echo "Using binaries in ${KOVRI_REPO}/build"
+
+    mount_repo_bins="-v ${KOVRI_REPO}/build/kovri:/usr/bin/kovri \
+      -v ${KOVRI_REPO}/build/kovri-util:/usr/bin/kovri-util"
+
+    read_bool_input "Build repo binaries?" KOVRI_BUILD_REPO_BINS "Exec make release-static"
+
+    if [[ $KOVRI_BUILD_REPO_BINS = false ]]; then
+      echo "Please ensure that the binaries are built statically if not built within a container"
+    fi
+  fi
 }
 
 set_workspace()
@@ -224,6 +226,57 @@ set_network()
     network_octets="172.18.0"
   fi
   network_subnet="${network_octets}.0/16"
+}
+
+Create()
+{
+  # Create network
+  create_network
+
+  # Create workspace
+  pushd $KOVRI_WORKSPACE
+
+  for _seq in $($base_sequence); do
+    # Create data dir
+    create_data_dir $_seq
+
+    # Create RI's
+    create_ri $_seq
+
+    # Create container
+    create_instance $_seq "" "$KOVRI_BIN_ARGS"
+  done
+
+  if [[ $KOVRI_NB_FW -gt 0 ]]; then
+    # Create instances that are not in reseed file and not directly accessible
+    echo "Create $KOVRI_NB_FW firewalled instances"
+
+    local _extra_opts="-v ${KOVRI_REPO}/contrib/docker/fw_entrypoint.sh:/entrypoint.sh \
+      --entrypoint /entrypoint.sh \
+      --user 0 --cap-add=NET_ADMIN"
+
+    for _seq in $($fw_sequence); do
+      create_data_dir $_seq
+      create_instance $_seq "$_extra_opts" "$KOVRI_FW_BIN_ARGS"
+    done
+  fi
+
+  ## ZIP RIs to create unsigned reseed file
+  zip -j ${KOVRI_WORKSPACE}/${reseed_file} $(ls router_*/routerInfo* | grep -v key)
+  catch "Could not ZIP RI's"
+
+  for _seq in $($base_sequence); do
+    local _base_dir="${kovri_base_name}${_seq}"
+
+    ## Put RI + key in correct location
+    cp $(ls ${router_base_name}${_seq}/routerInfo*.dat) "${_base_dir}/core/router.info"
+    cp $(ls ${router_base_name}${_seq}/routerInfo*.key) "${_base_dir}/core/router.keys"
+    catch "Could not copy RI and key"
+
+    chown -R ${pid}:${gid} ${_base_dir}
+    catch "Could not set ownership ${pid}:${gid}"
+  done
+  popd
 }
 
 create_network()
@@ -346,56 +399,6 @@ create_instance()
   catch "Docker could not create container"
 }
 
-Create()
-{
-  # Create network
-  create_network
-
-  # Create workspace
-  pushd $KOVRI_WORKSPACE
-
-  for _seq in $($base_sequence); do
-    # Create data dir
-    create_data_dir $_seq
-
-    # Create RI's
-    create_ri $_seq
-
-    # Create container
-    create_instance $_seq "" "${KOVRI_BIN_ARGS}"
-  done
-
-  if [[ $KOVRI_NB_FW -gt 0 ]]; then
-    # Create instances that are not in reseed file and not directly accessible
-    echo "Create ${KOVRI_NB_FW} firewalled instances"
-
-    local _extra_opts="-v ${KOVRI_REPO}/contrib/docker/fw_entrypoint.sh:/entrypoint.sh \
-      --entrypoint /entrypoint.sh \
-      --user 0 --cap-add=NET_ADMIN"
-
-    for _seq in $($fw_sequence); do
-      create_data_dir ${_seq}
-      create_instance $_seq "$_extra_opts" "$KOVRI_FW_BIN_ARGS"
-    done
-  fi
-
-  ## ZIP RIs to create unsigned reseed file
-  zip -j ${KOVRI_WORKSPACE}/${reseed_file} $(ls router_*/routerInfo* | grep -v key)
-  catch "Could not ZIP RI's"
-
-  for _seq in $($base_sequence); do
-    local _base_dir="${kovri_base_name}${_seq}"
-
-    ## Put RI + key in correct location
-    cp $(ls ${router_base_name}${_seq}/routerInfo*.dat) "${_base_dir}/core/router.info"
-    cp $(ls ${router_base_name}${_seq}/routerInfo*.key) "${_base_dir}/core/router.keys"
-    catch "Could not copy RI and key"
-
-    chown -R ${pid}:${gid} ${_base_dir}
-    catch "Could not set ownership ${pid}:${gid}"
-  done
-  popd
-}
 
 Start()
 {

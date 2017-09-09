@@ -33,6 +33,7 @@
 docker_base_name="kovri_testnet_"
 router_base_name="router_"
 kovri_base_name="kovri_"
+pipe_base_name="log_pipe"
 
 # Docker mount
 mount="/home/kovri"
@@ -204,13 +205,13 @@ set_args()
 
   # Set daemon binary arguments
   if [[ -z $KOVRI_BIN_ARGS ]]; then
-    KOVRI_BIN_ARGS="--floodfill 1 --disable-su3-verification 1"
+    KOVRI_BIN_ARGS="--floodfill 1 --disable-su3-verification 1 --log-auto-flush 1"
     read_input "Change kovri binary arguments? [KOVRI_BIN_ARGS=\"${KOVRI_BIN_ARGS}\"]" KOVRI_BIN_ARGS
   fi
 
   # Set firewalled daemon binary arguments
   if [[ $KOVRI_NB_FW -gt 0 && -z $KOVRI_FW_BIN_ARGS ]]; then
-    KOVRI_FW_BIN_ARGS="--floodfill 0 --disable-su3-verification 1"
+    KOVRI_FW_BIN_ARGS="--floodfill 0 --disable-su3-verification 1 --log-auto-flush 1"
     read_input "Change firewalled kovri binary arguments? [KOVRI_FW_BIN_ARGS=\"${KOVRI_FW_BIN_ARGS}\"]" KOVRI_FW_BIN_ARGS
   fi
 }
@@ -220,6 +221,7 @@ set_network()
   # Create network
   # TODO(anonimal): we splitup octet segments as a hack for later setting RI addresses
   if [[ -z $KOVRI_NETWORK ]]; then
+    # TODO(anonimal): read input
     KOVRI_NETWORK="kovri-testnet"
   fi
   if [[ -z $network_octets ]]; then
@@ -240,10 +242,10 @@ Create()
     # Create data dir
     create_data_dir $_seq
 
-    # Create RI's
+    # Create RI
     create_ri $_seq
 
-    # Create container
+    # Create instance
     create_instance $_seq "" "$KOVRI_BIN_ARGS"
   done
 
@@ -367,7 +369,6 @@ create_ri()
   echo "Created RI | host: $_host | port: $_port | args: $KOVRI_UTIL_ARGS | volume: $_volume"
 }
 
-
 # Create kovri container instance
 # $1 - sequence id
 # $2 - Extra docker options
@@ -376,11 +377,22 @@ create_instance()
 {
   local _seq=${1}
 
+  # Create named pipe for logging
+  local _pipe="${KOVRI_WORKSPACE}/${kovri_base_name}${_seq}/${pipe_base_name}"
+
+  mkfifo "$_pipe"
+  catch "Could not create named pipe $_pipe"
+
+  # Set container options
   local _container_name="${docker_base_name}${_seq}"
+
+  local _data_dir="${mount_testnet}/${kovri_base_name}${_seq}"
+  local _container_pipe="${_data_dir}/${pipe_base_name}"
 
   local _host="${network_octets}.$((10#${_seq}))"
   local _port="${seq_start}${_seq}"
 
+  # Create container
   docker create -w $mount \
     --name $_container_name \
     --hostname $_container_name \
@@ -391,14 +403,14 @@ create_instance()
     $mount_repo_bins \
     $2 \
     $KOVRI_IMAGE /usr/bin/kovri \
-    --data-dir ${mount_testnet}/${kovri_base_name}${_seq} \
+    --data-dir $_data_dir \
     --reseed-from ${mount_testnet}/${reseed_file} \
     --host $_host \
     --port $_port \
+    --log-file-name $_container_pipe \
     $3
   catch "Docker could not create container"
 }
-
 
 Start()
 {

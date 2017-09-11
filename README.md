@@ -48,7 +48,8 @@ Alpha release coming soon
 ## Vulnerability Response
 **We will pay hackers in Monero ([XMR](https://coinmarketcap.com/currencies/monero/)) to exploit Kovri responsibly!**
 
-See our VRP (Vulnerability Response Process) in [kovri-docs](https://github.com/monero-project/kovri-docs/) for responsible disclosure
+- Our [Vulnerability Response Process](https://github.com/monero-project/meta/blob/master/VULNERABILITY_RESPONSE_PROCESS.md) encourages responsible disclosure
+- We are also available via [HackerOne](https://hackerone.com/monero)
 
 ## Repositories
 - [Kovri](https://github.com/monero-project/kovri)

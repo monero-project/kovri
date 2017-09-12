@@ -376,6 +376,7 @@ create_ri()
 create_instance()
 {
   local _seq=${1}
+  local _docker_opts=${2}
 
   # Create named pipe for logging
   local _pipe="${KOVRI_WORKSPACE}/${kovri_base_name}${_seq}/${pipe_base_name}"
@@ -392,6 +393,15 @@ create_instance()
   local _host="${network_octets}.$((10#${_seq}))"
   local _port="${seq_start}${_seq}"
 
+  local _volume="${KOVRI_WORKSPACE}:${mount_testnet}"
+
+  local _bin_args="
+    --data-dir $_data_dir
+    --reseed-from ${mount_testnet}/${reseed_file}
+    --host $_host --port $_port
+    --log-file-name $_container_pipe
+    $3"
+
   # Create container
   docker create -w $mount \
     --name $_container_name \
@@ -399,17 +409,14 @@ create_instance()
     --net $KOVRI_NETWORK \
     --ip $_host \
     -p ${_port}:${_port} \
-    -v ${KOVRI_WORKSPACE}:${mount_testnet} \
+    -v $_volume \
     $mount_repo_bins \
-    $2 \
-    $KOVRI_IMAGE /usr/bin/kovri \
-    --data-dir $_data_dir \
-    --reseed-from ${mount_testnet}/${reseed_file} \
-    --host $_host \
-    --port $_port \
-    --log-file-name $_container_pipe \
-    $3
+    $_docker_opts \
+    $KOVRI_IMAGE \
+    /usr/bin/kovri $_bin_args
   catch "Docker could not create container"
+
+  echo "Created container | volume: $_volume | host: $_host | port: $_port | args: $_bin_args"
 }
 
 Start()

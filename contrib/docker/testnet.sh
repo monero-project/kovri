@@ -30,7 +30,16 @@
 
 # Set constants
 
-docker_base_name="kovri_testnet"
+docker_base_name="kovri_testnet_"
+router_base_name="router_"
+kovri_base_name="kovri_"
+pipe_base_name="log_pipe"
+
+# Docker mount
+mount="/home/kovri"
+mount_testnet="${mount}/testnet"
+
+kovri_data_dir=".kovri"
 
 pid=$(id -u)
 gid="docker" # Assumes user is in docker group
@@ -111,22 +120,6 @@ set_repo()
   fi
 }
 
-set_bins()
-{
-  read_bool_input "Use binaries from repo?" KOVRI_USE_REPO_BINS ""
-
-  if [[ $KOVRI_USE_REPO_BINS = true ]];then
-    echo "Using binaries in ${KOVRI_REPO}/build"
-    mount_repo_bins="-v ${KOVRI_REPO}/build/kovri:/usr/bin/kovri \
-      -v ${KOVRI_REPO}/build/kovri-util:/usr/bin/kovri-util"
-
-    read_bool_input "Build repo binaries?" KOVRI_BUILD_REPO_BINS "Exec make release-static"
-    if [[ $KOVRI_BUILD_REPO_BINS = false ]];then
-      echo "Please ensure that the binaries are built statically if not built within a container"
-    fi
-  fi
-}
-
 set_image()
 {
   # Build Kovri image if applicable
@@ -167,6 +160,24 @@ set_image()
   popd
 }
 
+set_bins()
+{
+  read_bool_input "Use binaries from repo?" KOVRI_USE_REPO_BINS ""
+
+  if [[ $KOVRI_USE_REPO_BINS = true ]]; then
+    echo "Using binaries in ${KOVRI_REPO}/build"
+
+    mount_repo_bins="-v ${KOVRI_REPO}/build/kovri:/usr/bin/kovri \
+      -v ${KOVRI_REPO}/build/kovri-util:/usr/bin/kovri-util"
+
+    read_bool_input "Build repo binaries?" KOVRI_BUILD_REPO_BINS "Exec make release-static"
+
+    if [[ $KOVRI_BUILD_REPO_BINS = false ]]; then
+      echo "Please ensure that the binaries are built statically if not built within a container"
+    fi
+  fi
+}
+
 set_workspace()
 {
   # Set testnet workspace
@@ -194,14 +205,14 @@ set_args()
 
   # Set daemon binary arguments
   if [[ -z $KOVRI_BIN_ARGS ]]; then
-    KOVRI_BIN_ARGS="--floodfill 1 --disable-su3-verification 1"
+    KOVRI_BIN_ARGS="--floodfill 1 --disable-su3-verification 1 --log-auto-flush 1"
     read_input "Change kovri binary arguments? [KOVRI_BIN_ARGS=\"${KOVRI_BIN_ARGS}\"]" KOVRI_BIN_ARGS
   fi
 
   # Set firewalled daemon binary arguments
   if [[ $KOVRI_NB_FW -gt 0 && -z $KOVRI_FW_BIN_ARGS ]]; then
-    KOVRI_FW_BIN_ARGS="--floodfill 0 --disable-su3-verification 1"
-    read_input "Change firewalled kovri binary arguments? [KOVRI_BIN_ARGS=\"${KOVRI_FW_BIN_ARGS}\"]" KOVRI_FW_BIN_ARGS
+    KOVRI_FW_BIN_ARGS="--floodfill 0 --disable-su3-verification 1 --log-auto-flush 1"
+    read_input "Change firewalled kovri binary arguments? [KOVRI_FW_BIN_ARGS=\"${KOVRI_FW_BIN_ARGS}\"]" KOVRI_FW_BIN_ARGS
   fi
 }
 
@@ -210,12 +221,64 @@ set_network()
   # Create network
   # TODO(anonimal): we splitup octet segments as a hack for later setting RI addresses
   if [[ -z $KOVRI_NETWORK ]]; then
+    # TODO(anonimal): read input
     KOVRI_NETWORK="kovri-testnet"
   fi
   if [[ -z $network_octets ]]; then
     network_octets="172.18.0"
   fi
   network_subnet="${network_octets}.0/16"
+}
+
+Create()
+{
+  # Create network
+  create_network
+
+  # Create workspace
+  pushd $KOVRI_WORKSPACE
+
+  for _seq in $($base_sequence); do
+    # Create data dir
+    create_data_dir $_seq
+
+    # Create RI
+    create_ri $_seq
+
+    # Create instance
+    create_instance $_seq "" "$KOVRI_BIN_ARGS"
+  done
+
+  if [[ $KOVRI_NB_FW -gt 0 ]]; then
+    # Create instances that are not in reseed file and not directly accessible
+    echo "Create $KOVRI_NB_FW firewalled instances"
+
+    local _extra_opts="-v ${KOVRI_REPO}/contrib/docker/fw_entrypoint.sh:/entrypoint.sh \
+      --entrypoint /entrypoint.sh \
+      --user 0 --cap-add=NET_ADMIN"
+
+    for _seq in $($fw_sequence); do
+      create_data_dir $_seq
+      create_instance $_seq "$_extra_opts" "$KOVRI_FW_BIN_ARGS"
+    done
+  fi
+
+  ## ZIP RIs to create unsigned reseed file
+  zip -j ${KOVRI_WORKSPACE}/${reseed_file} $(ls router_*/routerInfo* | grep -v key)
+  catch "Could not ZIP RI's"
+
+  for _seq in $($base_sequence); do
+    local _base_dir="${kovri_base_name}${_seq}"
+
+    ## Put RI + key in correct location
+    cp $(ls ${router_base_name}${_seq}/routerInfo*.dat) "${_base_dir}/core/router.info"
+    cp $(ls ${router_base_name}${_seq}/routerInfo*.key) "${_base_dir}/core/router.keys"
+    catch "Could not copy RI and key"
+
+    chown -R ${pid}:${gid} ${_base_dir}
+    catch "Could not set ownership ${pid}:${gid}"
+  done
+  popd
 }
 
 create_network()
@@ -252,19 +315,20 @@ create_network()
 create_data_dir()
 {
   # Setup router dir
-  local _dir="router_$1"
+  local _host_router_dir="${router_base_name}${1}"
+  local _host_data_dir="${kovri_base_name}${1}"
 
   # Create data dir
-  local _data_dir="${_dir}/.kovri"
+  local _data_dir="${_host_router_dir}/${kovri_data_dir}"
   mkdir -p $_data_dir
   catch "Could not create $_data_dir"
 
   # Set permissions
-  chown -R ${pid}:${gid} ${KOVRI_WORKSPACE}/${_dir}
+  chown -R ${pid}:${gid} "${KOVRI_WORKSPACE}/${_host_router_dir}"
   catch "Could not set ownership ${pid}:${gid}"
 
   # Create data-dir + copy only what's needed from pkg
-  mkdir -p kovri_${_seq}/core && cp -r ${KOVRI_REPO}/pkg/{client,config,*.sh} kovri_${_seq}
+  mkdir -p ${_host_data_dir}/core && cp -r ${KOVRI_REPO}/pkg/{client,config,*.sh} "$_host_data_dir"
   catch "Could not copy package resources / create data-dir"
 
   ## Default with 1 server tunnel
@@ -277,110 +341,88 @@ in_port = 2222
 keys = server-keys.dat
 ;white_list =
 ;black_list =
-" > kovri_${_seq}/config/tunnels.conf
+" > ${_host_data_dir}/config/tunnels.conf
   catch "Could not create server tunnel"
 }
 
-# Create data directory
+# Create router info
+# $1 - sequence ID
+create_ri()
+{
+  local _seq=${1}
+
+  local _host_dir="${KOVRI_WORKSPACE}/${router_base_name}${_seq}"
+  local _volume="${_host_dir}:${mount}"
+
+  local _host="${network_octets}.$((10#${_seq}))"
+  local _port="${seq_start}${_seq}"
+
+  docker run -w $mount -it --rm \
+    -v $_volume \
+    $mount_repo_bins \
+    $KOVRI_IMAGE /usr/bin/kovri-util routerinfo --create \
+      --host $_host \
+      --port $_port \
+      $KOVRI_UTIL_ARGS
+  catch "Docker could not run"
+
+  echo "Created RI | host: $_host | port: $_port | args: $KOVRI_UTIL_ARGS | volume: $_volume"
+}
+
+# Create kovri container instance
 # $1 - sequence id
 # $2 - Extra docker options
 # $3 - Binary arguments
 create_instance()
 {
-  local _seq=$1
+  local _seq=${1}
+  local _docker_opts=${2}
 
-  local _dir="router_${_seq}"
-  local _data_dir="${_dir}/.kovri"
+  # Create named pipe for logging
+  local _pipe="${KOVRI_WORKSPACE}/${kovri_base_name}${_seq}/${pipe_base_name}"
+
+  mkfifo "$_pipe"
+  catch "Could not create named pipe $_pipe"
+
+  # Set container options
+  local _container_name="${docker_base_name}${_seq}"
+
+  local _data_dir="${mount_testnet}/${kovri_base_name}${_seq}"
+  local _container_pipe="${_data_dir}/${pipe_base_name}"
+
   local _host="${network_octets}.$((10#${_seq}))"
   local _port="${seq_start}${_seq}"
-  local _mount="/home/kovri"
-  local _volume="${KOVRI_WORKSPACE}/${_dir}:${_mount}"
-  local _container_name="${docker_base_name}_${_seq}"
 
-  docker create -w /home/kovri \
+  local _volume="${KOVRI_WORKSPACE}:${mount_testnet}"
+
+  local _bin_args="
+    --data-dir $_data_dir
+    --reseed-from ${mount_testnet}/${reseed_file}
+    --host $_host --port $_port
+    --log-file-name $_container_pipe
+    $3"
+
+  # Create container
+  docker create -w $mount \
     --name $_container_name \
     --hostname $_container_name \
     --net $KOVRI_NETWORK \
     --ip $_host \
     -p ${_port}:${_port} \
-    -v ${KOVRI_WORKSPACE}:/home/kovri/testnet \
+    -v $_volume \
     $mount_repo_bins \
-    $2 \
-    $KOVRI_IMAGE /usr/bin/kovri \
-    --data-dir /home/kovri/testnet/kovri_${_seq} \
-    --reseed-from /home/kovri/testnet/${reseed_file} \
-    --host $_host \
-    --port $_port \
-    $3
+    $_docker_opts \
+    $KOVRI_IMAGE \
+    /usr/bin/kovri $_bin_args
   catch "Docker could not create container"
-}
 
-Create()
-{
-  # Create network
-  create_network
-
-  # Create workspace
-  pushd $KOVRI_WORKSPACE
-
-  for _seq in $($base_sequence); do
-    create_data_dir ${_seq}
-
-    # Create RI's
-    local _dir="router_${_seq}"
-    local _data_dir="${_dir}/.kovri"
-    local _host="${network_octets}.$((10#${_seq}))"
-    local _port="${seq_start}${_seq}"
-    local _mount="/home/kovri"
-    local _volume="${KOVRI_WORKSPACE}/${_dir}:${_mount}"
-    docker run -w $_mount -it --rm \
-      -v $_volume \
-      $mount_repo_bins \
-      $KOVRI_IMAGE /usr/bin/kovri-util routerinfo --create \
-        --host $_host \
-        --port $_port \
-        $KOVRI_UTIL_ARGS
-    catch "Docker could not run"
-    echo "Created RI | host: $_host | port: $_port | args: $KOVRI_UTIL_ARGS | volume: $_volume"
-
-    # Create container
-    create_instance $_seq "" "${KOVRI_BIN_ARGS}"
-  done
-
-  if [[ $KOVRI_NB_FW -gt 0 ]]; then
-    # Create instances that are not in reseed file and not directly accessible
-    echo "Create ${KOVRI_NB_FW} firewalled instances"
-
-    local _extra_opts="-v ${KOVRI_REPO}/contrib/docker/fw_entrypoint.sh:/entrypoint.sh \
-      --entrypoint /entrypoint.sh \
-      --user 0 --cap-add=NET_ADMIN"
-
-    for _seq in $($fw_sequence); do
-      create_data_dir ${_seq}
-      create_instance $_seq "$_extra_opts" "$KOVRI_FW_BIN_ARGS"
-    done
-  fi
-
-  ## ZIP RIs to create unsigned reseed file
-  zip -j ${KOVRI_WORKSPACE}/${reseed_file} $(ls router_*/routerInfo* | grep -v key)
-  catch "Could not ZIP RI's"
-
-  for _seq in $($base_sequence); do
-    ## Put RI + key in correct location
-    cp $(ls router_${_seq}/routerInfo*.dat) kovri_${_seq}/core/router.info
-    cp $(ls router_${_seq}/routerInfo*.key) kovri_${_seq}/core/router.keys
-    catch "Could not copy RI and key"
-
-    chown -R ${pid}:${gid} kovri_${_seq}
-    catch "Could not set ownership ${pid}:${gid}"
-  done
-  popd
+  echo "Created container | volume: $_volume | host: $_host | port: $_port | args: $_bin_args"
 }
 
 Start()
 {
   for _seq in $($sequence); do
-    local _container_name="${docker_base_name}_${_seq}"
+    local _container_name="${docker_base_name}${_seq}"
     echo -n "Starting... " && docker start $_container_name
     catch "Could not start docker: $_seq"
   done
@@ -389,7 +431,7 @@ Start()
 Stop()
 {
   for _seq in $($sequence); do
-    local _container_name="${docker_base_name}_${_seq}"
+    local _container_name="${docker_base_name}${_seq}"
     echo -n "Stopping... " && docker stop $_container_name
     catch "Could not stop docker: $_seq"
   done
@@ -408,7 +450,7 @@ Destroy()
   Stop
 
   for _seq in $($sequence); do
-    local _container_name="${docker_base_name}_${_seq}"
+    local _container_name="${docker_base_name}${_seq}"
     echo -n "Removing... " && docker rm -v $_container_name
     rm -rf ${KOVRI_WORKSPACE}/router_${_seq}
     rm -rf ${KOVRI_WORKSPACE}/kovri_${_seq}

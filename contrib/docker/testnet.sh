@@ -93,8 +93,19 @@ PrintUsage()
   echo "KOVRI_BUILD_REPO_BINS   = build repo binaries from *within* the container"
   echo "KOVRI_CLEANUP           = cleanup/destroy previous testnet"
   echo ""
-  echo "Usage: $ $0 {create|start|stop|destroy|exec|help}" >&2
+  echo "Log monitoring"
+  echo "--------------"
   echo ""
+  echo "Every kovri instance will provide real-time logging via named pipes."
+  echo "These pipes are located in their respective directories."
+  echo ""
+  echo "  Example: /tmp/testnet/kovri_010/log_pipe"
+  echo ""
+  echo "You can \"poll\" this output by simply cat'ing the pipe:"
+  echo ""
+  echo "  $ cat /tmp/testnet/kovri_010/log_pipe"
+  echo ""
+  echo "Usage: $ $0 {create|start|stop|destroy|exec|help}" >&2
 }
 
 if [[ $# -lt 1 ]]

@@ -65,7 +65,36 @@ reseed_file="reseed.zip"
 
 PrintUsage()
 {
-  echo "Usage: $ $0 {create|start|stop|destroy|exec}" >&2
+
+  echo ""
+  echo "Testnet environment variables"
+  echo "-----------------------------"
+  echo ""
+  echo "strings:"
+  echo ""
+  echo "KOVRI_WORKSPACE         = testnet output directory"
+  echo "KOVRI_NETWORK           = docker network name"
+  echo "KOVRI_REPO              = kovri source repository (location of binaries)"
+  echo "KOVRI_IMAGE             = kovri docker image repository:tag"
+  echo "KOVRI_DOCKERFILE        = Dockerfile to build kovri image"
+  echo "KOVRI_BIN_ARGS          = daemon binary arguments"
+  echo "KOVRI_FW_BIN_ARGS       = firewalled daemon binary arguments"
+  echo "KOVRI_UTIL_ARGS         = utility binary arguments"
+  echo ""
+  echo "integrals:"
+  echo ""
+  echo "KOVRI_NB_BASE           = number of kovri instances to run"
+  echo "KOVRI_NB_FW             = number of firewalled kovri instances"
+  echo ""
+  echo "booleans:"
+  echo ""
+  echo "KOVRI_BUILD_IMAGE       = build kovri image"
+  echo "KOVRI_USE_REPO_BINS     = use repo-built binaries"
+  echo "KOVRI_BUILD_REPO_BINS   = build repo binaries from *within* the container"
+  echo "KOVRI_CLEANUP           = cleanup/destroy previous testnet"
+  echo ""
+  echo "Usage: $ $0 {create|start|stop|destroy|exec|help}" >&2
+  echo ""
 }
 
 if [[ $# -lt 1 ]]
@@ -170,7 +199,7 @@ set_bins()
     mount_repo_bins="-v ${KOVRI_REPO}/build/kovri:/usr/bin/kovri \
       -v ${KOVRI_REPO}/build/kovri-util:/usr/bin/kovri-util"
 
-    read_bool_input "Build repo binaries?" KOVRI_BUILD_REPO_BINS "Exec make release-static"
+    read_bool_input "Build repo binaries from within the container?" KOVRI_BUILD_REPO_BINS "Exec make release-static"
 
     if [[ $KOVRI_BUILD_REPO_BINS = false ]]; then
       echo "Please ensure that the binaries are built statically if not built within a container"
@@ -546,7 +575,7 @@ case "$1" in
   exec)
     set_repo && set_image && Exec "${_args[@]:1}"
     ;;
-  *)
+  help | *)
     PrintUsage
     exit 1
 esac

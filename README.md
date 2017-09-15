@@ -67,7 +67,6 @@ Alpha release coming soon
 
 ## Contact
 - Twitter: [@getkovri](https://twitter.com/getkovri)
-- Mastodon: [@kovri@mastodon.social](https://mastodon.social)
 - Email:
   - General Purpose / Media Contact
     - dev [at] getmonero.org

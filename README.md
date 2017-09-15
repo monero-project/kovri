@@ -66,13 +66,14 @@ Alpha release coming soon
 - [Monero Slack](https://monero.slack.com/) (ask for an invite on IRC or email anonimal)
 
 ## Contact
+- Twitter: [@getkovri](https://twitter.com/getkovri)
+- Mastodon: [@kovri@mastodon.social](https://mastodon.social)
 - Email:
   - General Purpose / Media Contact
     - dev [at] getmonero.org
   - All other contact
     - anonimal [at] i2pmail.org
     - PGP Key fingerprint: 1218 6272 CD48 E253 9E2D  D29B 66A7 6ECF 9144 09F1
-- [@monerocurrency](https://twitter.com/monerocurrency)
 
 ## Donations
 - Visit our [Donations Page](https://getmonero.org/getting-started/donate/) to help Kovri with your donations

@@ -495,11 +495,10 @@ Destroy()
   for _seq in $($sequence); do
     local _container_name="${docker_base_name}${_seq}"
     echo -n "Removing... " && docker rm -v $_container_name
-    rm -rf ${KOVRI_WORKSPACE}/router_${_seq}
-    rm -rf ${KOVRI_WORKSPACE}/kovri_${_seq}
   done
 
-  rm ${KOVRI_WORKSPACE}/${reseed_file}
+  # Remove the entire the workspace
+  rm -fr ${KOVRI_WORKSPACE}
 
   if [[ -z $KOVRI_NETWORK ]]; then
     read -r -p "Enter network name to remove: " REPLY

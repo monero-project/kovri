@@ -473,7 +473,10 @@ Stop()
   for _seq in $($sequence); do
     local _container_name="${docker_base_name}${_seq}"
     echo -n "Stopping... " && docker stop $_container_name
-    catch "Could not stop docker: $_seq"
+    # Don't exit, attempt to stop all potential containers
+    if [[ $? -ne 0 ]]; then
+      echo "Could not stop docker: $_seq"
+    fi
   done
 }
 

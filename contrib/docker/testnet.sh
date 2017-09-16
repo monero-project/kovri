@@ -188,7 +188,7 @@ set_image()
   fi
 
   # Select Dockerfile
-  local _default_dockerfile="Dockerfile_dev"
+  local _default_dockerfile="Dockerfile.dev.alpine"
   if [[ -z $KOVRI_DOCKERFILE ]]; then
     KOVRI_DOCKERFILE=${_default_dockerfile}
     read_input "Change Dockerfile?: [KOVRI_DOCKERFILE=${KOVRI_DOCKERFILE}]" KOVRI_DOCKERFILE

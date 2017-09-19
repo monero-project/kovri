@@ -188,7 +188,7 @@ set_image()
   fi
 
   # Select Dockerfile
-  local _default_dockerfile="Dockerfile_dev"
+  local _default_dockerfile="Dockerfile.dev.alpine"
   if [[ -z $KOVRI_DOCKERFILE ]]; then
     KOVRI_DOCKERFILE=${_default_dockerfile}
     read_input "Change Dockerfile?: [KOVRI_DOCKERFILE=${KOVRI_DOCKERFILE}]" KOVRI_DOCKERFILE
@@ -473,7 +473,10 @@ Stop()
   for _seq in $($sequence); do
     local _container_name="${docker_base_name}${_seq}"
     echo -n "Stopping... " && docker stop $_container_name
-    catch "Could not stop docker: $_seq"
+    # Don't exit, attempt to stop all potential containers
+    if [[ $? -ne 0 ]]; then
+      echo "Could not stop docker: $_seq"
+    fi
   done
 }
 
@@ -492,11 +495,10 @@ Destroy()
   for _seq in $($sequence); do
     local _container_name="${docker_base_name}${_seq}"
     echo -n "Removing... " && docker rm -v $_container_name
-    rm -rf ${KOVRI_WORKSPACE}/router_${_seq}
-    rm -rf ${KOVRI_WORKSPACE}/kovri_${_seq}
   done
 
-  rm ${KOVRI_WORKSPACE}/${reseed_file}
+  # Remove the entire the workspace
+  rm -fr ${KOVRI_WORKSPACE}
 
   if [[ -z $KOVRI_NETWORK ]]; then
     read -r -p "Enter network name to remove: " REPLY

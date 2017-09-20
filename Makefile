@@ -78,6 +78,7 @@ cmake-android = -D ANDROID=1 -D KOVRI_DATA_PATH="/data/local/tmp/.kovri"
 
 # Native
 cmake-native = -DCMAKE_CXX_FLAGS="-march=native"
+cryptopp-native = CXXFLAGS="-march=native -DCRYPTOPP_NO_CPU_FEATURE_PROBES=1"  # Refs #699
 
 # Filesystem
 build = build/
@@ -119,7 +120,7 @@ all: dynamic
 
 deps:
 	$(call CMAKE_CPP-NETLIB,$(cmake-native)) && $(MAKE)
-	$(call MAKE_CRYPTOPP, $(MAKE) CXXFLAGS="-march=native")
+	$(call MAKE_CRYPTOPP, $(MAKE) $(cryptopp-native))
 
 release-deps:
 	$(call CMAKE_CPP-NETLIB) && $(MAKE)

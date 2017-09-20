@@ -78,12 +78,11 @@ cmake-android = -D ANDROID=1 -D KOVRI_DATA_PATH="/data/local/tmp/.kovri"
 
 # Native
 cmake-native = -DCMAKE_CXX_FLAGS="-march=native"
-cmake-cryptopp-native = -DCRYPTOPP_NATIVE_ARCH=ON
 
 # Filesystem
 build = build/
 build-cpp-netlib = deps/cpp-netlib/$(build)
-build-cryptopp = deps/cryptopp/$(build)
+build-cryptopp = deps/cryptopp/  # No longer using CMake
 build-doxygen = doc/Doxygen
 build-fuzzer = contrib/Fuzzer/$(build)
 
@@ -99,10 +98,9 @@ define CMAKE_CPP-NETLIB
   $(call CMAKE,$(build-cpp-netlib),$(cmake-cpp-netlib))
 endef
 
-define CMAKE_CRYPTOPP
+define MAKE_CRYPTOPP
   @echo "=== Building cryptopp ==="
-  $(eval cmake-cryptopp = $(cmake-release) -D BUILD_TESTING=OFF -D BUILD_SHARED=OFF $1)
-  $(call CMAKE,$(build-cryptopp),$(cmake-cryptopp))
+  cd $(build-cryptopp) && $1 static
 endef
 
 define CMAKE_FUZZER
@@ -121,15 +119,15 @@ all: dynamic
 
 deps:
 	$(call CMAKE_CPP-NETLIB,$(cmake-native)) && $(MAKE)
-	$(call CMAKE_CRYPTOPP,$(cmake-cryptopp-native)) && $(MAKE)  # See #693
+	$(call MAKE_CRYPTOPP, $(MAKE) CXXFLAGS="-march=native")
 
 release-deps:
 	$(call CMAKE_CPP-NETLIB) && $(MAKE)
-	$(call CMAKE_CRYPTOPP) && $(MAKE)
+	$(call MAKE_CRYPTOPP, $(MAKE))
 
 release-static-deps:
 	$(call CMAKE_CPP-NETLIB,$(cmake-cpp-netlib-static)) && $(MAKE)
-	$(call CMAKE_CRYPTOPP) && $(MAKE)
+	$(call MAKE_CRYPTOPP, $(MAKE))
 
 #-----------------------------------#
 # For local, end-user cloned builds #
@@ -222,7 +220,7 @@ help:
 
 # Clean all build directories and Doxygen output
 clean:
-	$(eval remove-build = rm -fR $(build) $(build-cpp-netlib) $(build-cryptopp) $(build-doxygen) $(build-fuzzer))
+	$(eval remove-build = rm -fR $(build) $(build-cpp-netlib) $(build-doxygen) $(build-fuzzer) && cd $(build-cryptopp) && $(MAKE) clean)
 	@if [ "$$FORCE_CLEAN" = "yes" ]; then $(remove-build); \
 	else echo "CAUTION: This will remove the build directories for Kovri and all submodule dependencies, and remove all Doxygen output"; \
 	read -r -p "Is this what you wish to do? (y/N)?: " CONFIRM; \

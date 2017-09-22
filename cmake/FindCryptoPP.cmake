@@ -51,7 +51,7 @@ else(CryptoPP_INCLUDE_DIR AND CryptoPP_LIBRARIES)
 
   find_library(CryptoPP_LIBRARIES
     NAMES cryptopp
-    PATHS ${PROJECT_SOURCE_DIR}/deps/cryptopp/build /usr/lib /usr/local/lib
+    PATHS ${PROJECT_SOURCE_DIR}/deps/cryptopp /usr/lib /usr/local/lib
     NO_DEFAULT_PATH)
 
   # Commented to prevent confusion if submodule was not built correctly.

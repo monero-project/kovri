@@ -41,6 +41,17 @@ mount_testnet="${mount}/testnet"
 
 kovri_data_dir=".kovri"
 
+docker_dir="contrib/docker"
+
+# TODO(unassigned): only useful if we don't use Apache
+web_name="kovri-webserver"
+web_system_dir="/usr/local/apache2"
+web_conf="httpd.conf"
+web_dir="httpd"
+web_conf_dir="conf"
+web_root_dir="htdocs"
+web_host_octet=".2"
+
 pid=$(id -u)
 gid="docker" # Assumes user is in docker group
 
@@ -62,6 +73,7 @@ fw_sequence="seq -f "%03g" $seq_fw_start $seq_fw_end"
 sequence="seq -f "%03g" ${seq_start} ${seq_fw_end}"
 
 reseed_file="reseed.zip"
+apache_entrypoint="apache.entrypoint.sh"
 
 PrintUsage()
 {
@@ -76,7 +88,9 @@ PrintUsage()
   echo "KOVRI_NETWORK           = docker network name"
   echo "KOVRI_REPO              = kovri source repository (location of binaries)"
   echo "KOVRI_IMAGE             = kovri docker image repository:tag"
+  echo "KOVRI_WEB_IMAGE         = kovri docker webserver image repository:tag"
   echo "KOVRI_DOCKERFILE        = Dockerfile to build kovri image"
+  echo "KOVRI_WEB_DOCKERFILE    = Dockerfile to build kovri image"
   echo "KOVRI_BIN_ARGS          = daemon binary arguments"
   echo "KOVRI_FW_BIN_ARGS       = firewalled daemon binary arguments"
   echo "KOVRI_UTIL_ARGS         = utility binary arguments"
@@ -89,6 +103,7 @@ PrintUsage()
   echo "booleans:"
   echo ""
   echo "KOVRI_BUILD_IMAGE       = build kovri image"
+  echo "KOVRI_BUILD_WEB_IMAGE   = build kovri webserver image"
   echo "KOVRI_USE_REPO_BINS     = use repo-built binaries"
   echo "KOVRI_BUILD_REPO_BINS   = build repo binaries from *within* the container"
   echo "KOVRI_CLEANUP           = cleanup/destroy previous testnet"
@@ -130,7 +145,7 @@ Prepare()
 
   # Set environment
   set_repo
-  set_image
+  set_images
   set_bins
   set_workspace
   set_args
@@ -160,7 +175,7 @@ set_repo()
   fi
 }
 
-set_image()
+set_images()
 {
   # Build Kovri image if applicable
   pushd $KOVRI_REPO
@@ -179,24 +194,42 @@ set_image()
   local _default_image="geti2p/kovri${_docker_tag}"
   if [[ -z $KOVRI_IMAGE ]]; then
     KOVRI_IMAGE=${_default_image}
-    read_input "Change image name?: [KOVRI_IMAGE=${KOVRI_IMAGE}]" KOVRI_IMAGE
+    read_input "Change kovri image name?: [KOVRI_IMAGE=\"${KOVRI_IMAGE}\"]" KOVRI_IMAGE
+    # If input was null
+    if [[ -z $KOVRI_IMAGE ]]; then
+      KOVRI_IMAGE=${_default_image}
+    fi
   fi
 
-  # If input was null
-  if [[ -z $KOVRI_IMAGE ]]; then
-    KOVRI_IMAGE=${_default_image}
+  # Web server image
+  local _default_web_image="httpd:2.4"
+  if [[ -z $KOVRI_WEB_IMAGE ]]; then
+    KOVRI_WEB_IMAGE=${_default_web_image}
+    read_input "Change kovri web image name?: [KOVRI_WEB_IMAGE=\"${KOVRI_WEB_IMAGE}\"]" KOVRI_WEB_IMAGE
+    # If input was null
+    if [[ -z $KOVRI_WEB_IMAGE ]]; then
+      KOVRI_WEB_IMAGE=${_default_web_image}
+    fi
   fi
 
-  # Select Dockerfile
+  # Select Kovri Dockerfile
   local _default_dockerfile="Dockerfile.dev.alpine"
   if [[ -z $KOVRI_DOCKERFILE ]]; then
     KOVRI_DOCKERFILE=${_default_dockerfile}
     read_input "Change Dockerfile?: [KOVRI_DOCKERFILE=${KOVRI_DOCKERFILE}]" KOVRI_DOCKERFILE
   fi
+  local _kovri_dockerfile_path="${KOVRI_REPO}/contrib/docker/${KOVRI_DOCKERFILE}"
+  read_bool_input "Build Kovri Docker image? [$KOVRI_IMAGE]" KOVRI_BUILD_IMAGE "docker build -t $KOVRI_IMAGE -f $_kovri_dockerfile_path $KOVRI_REPO"
 
-  local _dockerfile_path="${KOVRI_REPO}/contrib/docker/${KOVRI_DOCKERFILE}"
+  # Select Kovri Webserver Dockerfile
+  local _default_web_dockerfile="Dockerfile.dev.apache"
+  if [[ -z $KOVRI_WEB_DOCKERFILE ]]; then
+    KOVRI_WEB_DOCKERFILE=${_default_web_dockerfile}
+    read_input "Change Dockerfile?: [KOVRI_WEB_DOCKERFILE=${KOVRI_WEB_DOCKERFILE}]" KOVRI_WEB_DOCKERFILE
+  fi
+  local _web_dockerfile_path="${KOVRI_REPO}/contrib/docker/${KOVRI_WEB_DOCKERFILE}"
+  read_bool_input "Build Web Docker image? [$KOVRI_WEB_IMAGE]" KOVRI_BUILD_WEB_IMAGE "docker build -t $KOVRI_WEB_IMAGE -f $_web_dockerfile_path $KOVRI_REPO"
 
-  read_bool_input "Build Kovri Docker image? [$KOVRI_IMAGE]" KOVRI_BUILD_IMAGE "docker build -t $KOVRI_IMAGE -f $_dockerfile_path $KOVRI_REPO"
   popd
 }
 
@@ -245,7 +278,7 @@ set_args()
 
   # Set daemon binary arguments
   if [[ -z $KOVRI_BIN_ARGS ]]; then
-    KOVRI_BIN_ARGS="--floodfill 1 --disable-su3-verification 1 --log-auto-flush 1"
+    KOVRI_BIN_ARGS="--floodfill 1 --disable-su3-verification 1 --log-auto-flush 1 --enable-ssl 0"
     read_input "Change kovri binary arguments? [KOVRI_BIN_ARGS=\"${KOVRI_BIN_ARGS}\"]" KOVRI_BIN_ARGS
   fi
 
@@ -278,6 +311,7 @@ Create()
   # Create workspace
   pushd $KOVRI_WORKSPACE
 
+  # Create unfirewalled testnet
   for _seq in $($base_sequence); do
     # Create data dir
     create_data_dir $_seq
@@ -287,6 +321,15 @@ Create()
 
     # Create instance
     create_instance $_seq "" "$KOVRI_BIN_ARGS"
+
+    # Create publisher webserver instance for first kovri instance only
+    # TODO(unassigned): we create the instance with the first instance in mind
+    #   because we want to "reserve" that instance as the eventual in-net publisher.
+    if [[ $((10#${_seq})) -eq $seq_start ]]; then
+      # TODO(unassigned): we run here instead of when starting testnet because
+      #   we need to ensure we have set ENV vars without needing to re-read input.
+      create_webserver_instance $_seq
+    fi
   done
 
   if [[ $KOVRI_NB_FW -gt 0 ]]; then
@@ -369,9 +412,33 @@ create_data_dir()
 
   # Create data-dir + copy only what's needed from pkg
   mkdir -p ${_host_data_dir}/core && cp -r ${KOVRI_REPO}/pkg/{client,config,*.sh} "$_host_data_dir"
+
+  # Set webserver IP
+  local _web_host="${network_octets}${web_host_octet}"
+
+  # Create publisher data on *single* instance (note: requires webserver)
+  # TODO(unassigned): create server tunnel + persistent keys for in-net publishing.
+  #   If we continue to keep a webserver in a separate container,
+  #   we would need to forward the traffic from the kovri instance to the webserver.
+  if [[ $((10#${_seq})) -eq $seq_start ]]; then
+    local _repo_dir="${KOVRI_REPO}/${docker_dir}"
+    local _dest_dir="${KOVRI_WORKSPACE}/${_host_data_dir}/${web_dir}"
+
+    # TODO(unassigned): enable TLS/SSL + key copy
+
+    # Create servable subscription
+    # TODO(unassigned): run-time generated testnet subscription file
+
+    mkdir -p ${_dest_dir}/${web_root_dir} \
+      && cp "${_host_data_dir}/client/address_book/hosts.txt" "${_dest_dir}/${web_root_dir}"
+  fi
   catch "Could not copy package resources / create data-dir"
 
+  # Set publisher to testnet publisher
+  echo "http://${_web_host}/hosts.txt" > "${_host_data_dir}/client/address_book/publishers.txt"
+
   ## Default with 1 server tunnel
+  # TODO(unassigned): client tunnel for in-net publisher
   echo "\
 [MyServer]
 type = server
@@ -459,8 +526,30 @@ create_instance()
   echo "Created container | volume: $_volume | host: $_host | port: $_port | args: $_bin_args"
 }
 
+# Create webserver instance (subscription publishing)
+# $1 - sequence id
+create_webserver_instance()
+{
+  local _seq=${1}
+  local _web_host="${network_octets}${web_host_octet}"
+  local _dest_dir="${KOVRI_WORKSPACE}/${kovri_base_name}${_seq}/${web_dir}"
+
+  local _entrypoint="-v ${KOVRI_REPO}/${docker_dir}/${apache_entrypoint}:/${apache_entrypoint} --entrypoint /${apache_entrypoint}"
+  local _cmd="sed -i -e 's/#ServerName .*/ServerName ${_web_host}:80/' ${web_system_dir}/${web_conf_dir}/${web_conf} && httpd-foreground"
+
+  # Start publisher instance
+  docker run -dit --rm --network=${KOVRI_NETWORK} --ip=${_web_host} --name $web_name \
+    $_entrypoint \
+    -v ${_dest_dir}/${web_root_dir}/:${web_system_dir}/${web_root_dir}/ \
+    $KOVRI_WEB_IMAGE \
+    "$_cmd"
+
+  catch "Docker could not run webserver"
+}
+
 Start()
 {
+  # Start testnet
   for _seq in $($sequence); do
     local _container_name="${docker_base_name}${_seq}"
     echo -n "Starting... " && docker start $_container_name
@@ -470,6 +559,7 @@ Start()
 
 Stop()
 {
+  # Stop testnet
   for _seq in $($sequence); do
     local _container_name="${docker_base_name}${_seq}"
     echo -n "Stopping... " && docker stop $_container_name
@@ -478,6 +568,9 @@ Stop()
       echo "Could not stop docker: $_seq"
     fi
   done
+
+  # Stop webserver subscription publishing
+  docker stop $web_name
 }
 
 Destroy()

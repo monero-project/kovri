@@ -116,12 +116,13 @@ void Instance::InitRouterContext() {
   }
   // Set reseed options
   context.SetOptionReseedFrom(map["reseed-from"].as<std::string>());
-  context.SetOptionReseedSkipSSLCheck(map["reseed-skip-ssl-check"].as<bool>());
   context.SetOptionDisableSU3Verification(
       map["disable-su3-verification"].as<bool>());
   // Set transport options
   context.SetSupportsNTCP(map["enable-ntcp"].as<bool>());
   context.SetSupportsSSU(map["enable-ssu"].as<bool>());
+  // Set SSL option
+  context.SetOptionEnableSSL(map["enable-ssl"].as<bool>());
 }
 
 // TODO(unassigned): see TODO's for router/client context and singleton

@@ -99,6 +99,7 @@ PrintUsage()
   echo ""
   echo "KOVRI_NB_BASE           = number of kovri instances to run"
   echo "KOVRI_NB_FW             = number of firewalled kovri instances"
+  echo "KOVRI_STOP_TIMEOUT      = interval in seconds to stop container (0 for immediate)"
   echo ""
   echo "booleans:"
   echo ""
@@ -559,10 +560,20 @@ Start()
 
 Stop()
 {
+  # Set timeout
+  if [[ -z $KOVRI_STOP_TIMEOUT ]]; then
+    read_input "Set container timeout interval (in seconds)?" KOVRI_STOP_TIMEOUT
+    if [[ -z $KOVRI_STOP_TIMEOUT ]]; then
+      KOVRI_STOP_TIMEOUT=10  # Set to 0 for immediate timeout
+    fi
+  fi
+
+  local _stop="docker stop -t $KOVRI_STOP_TIMEOUT"
+
   # Stop testnet
   for _seq in $($sequence); do
     local _container_name="${docker_base_name}${_seq}"
-    echo -n "Stopping... " && docker stop $_container_name
+    echo -n "Stopping... " && $_stop $_container_name
     # Don't exit, attempt to stop all potential containers
     if [[ $? -ne 0 ]]; then
       echo "Could not stop docker: $_seq"
@@ -570,7 +581,7 @@ Stop()
   done
 
   # Stop webserver subscription publishing
-  docker stop $web_name
+  $_stop $web_name
 }
 
 Destroy()

@@ -41,6 +41,7 @@
 #include <boost/log/sources/severity_channel_logger.hpp>
 #include <boost/log/support/date_time.hpp>
 #include <boost/make_shared.hpp>
+#include <boost/phoenix/bind.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/shared_ptr.hpp>
@@ -64,12 +65,63 @@ namespace kovri
 {
 namespace core
 {
+namespace logging = boost::log;
+namespace expr = boost::log::expressions;
+namespace attrs = boost::log::attributes;
+
+std::string SetColor(
+    logging::value_ref<
+        logging::trivial::severity_level,
+        logging::trivial::tag::severity> const& severity,
+    bool has_color)
+{
+  if (has_color)
+    {
+      if (severity)
+        {
+          switch (severity.get())
+            {
+              case logging::trivial::fatal:
+              case logging::trivial::error:
+                return "\033[31m";  // Red
+              case logging::trivial::info:
+                return "\033[32m";  // Green
+              case logging::trivial::warning:
+                return "\033[33m";  // Yellow
+              case logging::trivial::debug:
+                return "\033[34m";  // Blue
+              case logging::trivial::trace:
+                return "\033[36m";  // Cyan
+            }
+        }
+      return "\033[0m";  // Reset
+    }
+  return "";
+}
+
+logging::formatter GetFormat(bool has_color)
+{
+  logging::formatter format =
+      expr::stream
+      << boost::phoenix::bind(  // TODO(unassigned): replace with std::bind
+             &SetColor,
+             logging::trivial::severity.or_none(),
+             has_color)
+      << "["
+      << expr::format_date_time(
+             expr::attr<boost::posix_time::ptime>("TimeStamp"),
+             "%Y.%m.%d %T.%f")
+      << "]"
+      << " [" << expr::attr<attrs::current_thread_id::value_type>("ThreadID")
+      << "]"
+      << " [" << logging::trivial::severity << "]"
+      << "  " << expr::smessage << (has_color ? "\033[0m" : "");  // Reset
+  return format;
+}
+
 void SetupLogging(const boost::program_options::variables_map& kovri_config)
 {
-  namespace logging = boost::log;
-  namespace expr = boost::log::expressions;
   namespace sinks = boost::log::sinks;
-  namespace attrs = boost::log::attributes;
   namespace keywords = boost::log::keywords;
   // Get global logger
   // TODO(unassigned): depends on global logging initialization. See notes in log impl
@@ -131,19 +183,9 @@ void SetupLogging(const boost::program_options::variables_map& kovri_config)
   auto file_sink = boost::shared_ptr<text_file_sink>(
       std::make_unique<text_file_sink>(file_backend));
   // Set sink formatting
-  logging::formatter format =
-      expr::stream << "["
-                   << expr::format_date_time(
-                          expr::attr<boost::posix_time::ptime>("TimeStamp"),
-                          "%Y.%m.%d %T.%f")
-                   << "]"
-                   << " [" << expr::attr<attrs::current_thread_id::value_type>(
-                                  "ThreadID")
-                   << "]"
-                   << " [" << logging::trivial::severity << "]"
-                   << "  " << expr::smessage;
-  text_sink->set_formatter(format);
-  file_sink->set_formatter(format);
+  text_sink->set_formatter(
+      GetFormat(kovri_config["log-enable-color"].as<bool>()));
+  file_sink->set_formatter(GetFormat(false));
   // Add sinks
   core->add_sink(text_sink);
   core->add_sink(file_sink);

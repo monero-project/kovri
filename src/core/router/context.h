@@ -275,14 +275,14 @@ class RouterContext : public kovri::core::GarlicDestination {
   }
 
   /// @brief Sets user-supplied reseed SSL option
-  void SetOptionReseedSkipSSLCheck(
+  void SetOptionEnableSSL(
       bool option) {
-    m_ReseedSkipSSLCheck = option;
+    m_EnableSSL = option;
   }
 
   /// @return User-supplied option to skip SSL
-  bool GetOptionReseedSkipSSLCheck() const {
-    return m_ReseedSkipSSLCheck;
+  bool GetOptionEnableSSL() const {
+    return m_EnableSSL;
   }
 
   /// @brief Sets user-supplied disable SU3 verification option
@@ -328,7 +328,7 @@ class RouterContext : public kovri::core::GarlicDestination {
   std::string m_Host;
   std::uint16_t m_Port;
   std::string m_ReseedFrom;
-  bool m_ReseedSkipSSLCheck;
+  bool m_EnableSSL;
   bool m_DisableSU3Verification;
   bool m_SupportsNTCP, m_SupportsSSU;
   std::string m_CustomDataDir;

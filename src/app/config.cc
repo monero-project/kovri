@@ -115,8 +115,8 @@ void Configuration::ParseKovriConfig() {
       "enable-ntcp",
       bpo::value<bool>()->default_value(true)->value_name("bool"))(
       "reseed-from,r", bpo::value<std::string>()->default_value(""))(
-      "reseed-skip-ssl-check",
-      bpo::value<bool>()->default_value(false)->value_name("bool"))(
+      "enable-ssl",
+      bpo::value<bool>()->default_value(true)->value_name("bool"))(
       "disable-su3-verification",
       bpo::value<bool>()->default_value(false)->value_name("bool"));
 

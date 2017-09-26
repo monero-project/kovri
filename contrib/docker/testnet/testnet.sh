@@ -41,7 +41,7 @@ mount_testnet="${mount}/testnet"
 
 kovri_data_dir=".kovri"
 
-docker_dir="contrib/docker"
+docker_dir="contrib/docker/testnet"
 
 # TODO(unassigned): only useful if we don't use Apache
 web_name="kovri-webserver"
@@ -73,7 +73,9 @@ fw_sequence="seq -f "%03g" $seq_fw_start $seq_fw_end"
 sequence="seq -f "%03g" ${seq_start} ${seq_fw_end}"
 
 reseed_file="reseed.zip"
-apache_entrypoint="apache.entrypoint.sh"
+
+web_entrypoint="webserver.sh"
+fw_entrypoint="firewall.sh"
 
 PrintUsage()
 {
@@ -214,21 +216,21 @@ set_images()
   fi
 
   # Select Kovri Dockerfile
-  local _default_dockerfile="Dockerfile.dev.alpine"
+  local _default_dockerfile="Dockerfile.alpine"
   if [[ -z $KOVRI_DOCKERFILE ]]; then
     KOVRI_DOCKERFILE=${_default_dockerfile}
     read_input "Change Dockerfile?: [KOVRI_DOCKERFILE=${KOVRI_DOCKERFILE}]" KOVRI_DOCKERFILE
   fi
-  local _kovri_dockerfile_path="${KOVRI_REPO}/contrib/docker/${KOVRI_DOCKERFILE}"
+  local _kovri_dockerfile_path="${KOVRI_REPO}/${docker_dir}/dockerfiles/${KOVRI_DOCKERFILE}"
   read_bool_input "Build Kovri Docker image? [$KOVRI_IMAGE]" KOVRI_BUILD_IMAGE "docker build -t $KOVRI_IMAGE -f $_kovri_dockerfile_path $KOVRI_REPO"
 
   # Select Kovri Webserver Dockerfile
-  local _default_web_dockerfile="Dockerfile.dev.apache"
+  local _default_web_dockerfile="Dockerfile.apache"
   if [[ -z $KOVRI_WEB_DOCKERFILE ]]; then
     KOVRI_WEB_DOCKERFILE=${_default_web_dockerfile}
     read_input "Change Dockerfile?: [KOVRI_WEB_DOCKERFILE=${KOVRI_WEB_DOCKERFILE}]" KOVRI_WEB_DOCKERFILE
   fi
-  local _web_dockerfile_path="${KOVRI_REPO}/contrib/docker/${KOVRI_WEB_DOCKERFILE}"
+  local _web_dockerfile_path="${KOVRI_REPO}/${docker_dir}/dockerfiles/${KOVRI_WEB_DOCKERFILE}"
   read_bool_input "Build Web Docker image? [$KOVRI_WEB_IMAGE]" KOVRI_BUILD_WEB_IMAGE "docker build -t $KOVRI_WEB_IMAGE -f $_web_dockerfile_path $KOVRI_REPO"
 
   popd
@@ -337,8 +339,8 @@ Create()
     # Create instances that are not in reseed file and not directly accessible
     echo "Create $KOVRI_NB_FW firewalled instances"
 
-    local _extra_opts="-v ${KOVRI_REPO}/contrib/docker/fw_entrypoint.sh:/entrypoint.sh \
-      --entrypoint /entrypoint.sh \
+    local _extra_opts="-v ${KOVRI_REPO}/${docker_dir}/entrypoints/${fw_entrypoint}:/${fw_entrypoint} \
+      --entrypoint /${fw_entrypoint} \
       --user 0 --cap-add=NET_ADMIN"
 
     for _seq in $($fw_sequence); do
@@ -422,7 +424,6 @@ create_data_dir()
   #   If we continue to keep a webserver in a separate container,
   #   we would need to forward the traffic from the kovri instance to the webserver.
   if [[ $((10#${_seq})) -eq $seq_start ]]; then
-    local _repo_dir="${KOVRI_REPO}/${docker_dir}"
     local _dest_dir="${KOVRI_WORKSPACE}/${_host_data_dir}/${web_dir}"
 
     # TODO(unassigned): enable TLS/SSL + key copy
@@ -535,7 +536,9 @@ create_webserver_instance()
   local _web_host="${network_octets}${web_host_octet}"
   local _dest_dir="${KOVRI_WORKSPACE}/${kovri_base_name}${_seq}/${web_dir}"
 
-  local _entrypoint="-v ${KOVRI_REPO}/${docker_dir}/${apache_entrypoint}:/${apache_entrypoint} --entrypoint /${apache_entrypoint}"
+  local _entrypoint="-v ${KOVRI_REPO}/${docker_dir}/entrypoints/${web_entrypoint}:/${web_entrypoint} --entrypoint /${web_entrypoint}"
+
+  # TODO(unassigned): this is Apache-specific
   local _cmd="sed -i -e 's/#ServerName .*/ServerName ${_web_host}:80/' ${web_system_dir}/${web_conf_dir}/${web_conf} && httpd-foreground"
 
   # Start publisher instance

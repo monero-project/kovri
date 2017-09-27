@@ -69,6 +69,15 @@ namespace logging = boost::log;
 namespace expr = boost::log::expressions;
 namespace attrs = boost::log::attributes;
 
+std::string GetServerityString(logging::value_ref<
+                               logging::trivial::severity_level,
+                               logging::trivial::tag::severity> const& severity)
+{
+  std::stringstream severity_stream;
+  severity_stream << "[" << severity << "]";
+  return severity_stream.str();
+}
+
 std::string SetColor(
     logging::value_ref<
         logging::trivial::severity_level,
@@ -113,9 +122,11 @@ logging::formatter GetFormat(bool has_color)
              "%Y.%m.%d %T.%f")
       << "]"
       << " [" << expr::attr<attrs::current_thread_id::value_type>("ThreadID")
-      << "]"
-      << " [" << logging::trivial::severity << "]"
-      << "  " << expr::smessage << (has_color ? "\033[0m" : "");  // Reset
+      << "] " << std::left << std::setw(10)
+      << boost::phoenix::bind(  // TODO(unassigned): replace with std::bind
+             &GetServerityString,
+             logging::trivial::severity.or_none())
+      << expr::smessage << (has_color ? "\033[0m" : "");  // Reset
   return format;
 }
 

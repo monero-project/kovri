@@ -89,7 +89,9 @@ int main(int argc, const char* argv[])
       bpo::value<std::string>()->default_value("")->value_name("path"))(
       "log-level", bpo::value<std::uint16_t>()->default_value(3))(
       "log-auto-flush",
-      bpo::value<bool>()->default_value(false)->value_name("bool"));
+      bpo::value<bool>()->default_value(false)->value_name("bool"))(
+      "log-enable-color",
+      bpo::value<bool>()->default_value(true)->value_name("bool"));
 
   bpo::options_description spec("Specific options");
   spec.add_options()(

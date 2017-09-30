@@ -693,7 +693,7 @@ case "$1" in
     Destroy && echo "Kovri testnet destroyed"
     ;;
   exec)
-    set_repo && set_image && Exec "${_args[@]:1}"
+    set_repo && set_images && Exec "${_args[@]:1}"
     ;;
   help | *)
     PrintUsage

@@ -47,6 +47,7 @@ RUN apk add --update --no-cache \
       g++ \
       libressl-dev \
       make \
+      bash \
     && \
     cd kovri && \
     make all tests && \
@@ -68,6 +69,7 @@ RUN apk add --update --no-cache \
       cmake \
       g++ \
       make \
+      bash \
     && \
     rm -rf /kovri && \
     rm -rf /var/cache/*

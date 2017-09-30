@@ -42,6 +42,7 @@ RUN apk add --update --no-cache \
       make \
       iptables \
       gdb \
+      bash \
       && \ 
       adduser -D kovri && \
       chown -R kovri:kovri /home/kovri

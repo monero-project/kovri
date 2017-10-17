@@ -1,0 +1,15 @@
+# Generate list of options with the help of this: `kovri --help | grep '-' | sed 's/--/\n--/g' | grep '-' | sed 's/  //g' | cut -d' ' -f1 - | sort | tr '\n' ' '`
+
+_kovri()
+{
+    local cur prev opts
+    _init_completion || return
+
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    opts="--bandwidth --daemon --data-dir --disable-su3-verification --enable-ntcp --enable-ssl --enable-ssu --floodfill --host --httpproxyaddress --httpproxyport --i2pcontroladdress --i2pcontrolpassword --i2pcontrolport --kovriconf --log-auto-flush --log-enable-color --log-file-name --log-level --log-to-console --log-to-file --port --proxykeys --reseed-from --service --socksproxyaddress --socksproxyport --tunnelsconf --v6 -6 -b -c -d -f -p -r -s -t"
+    COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+}
+complete -F _kovri kovri
+

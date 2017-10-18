@@ -34,6 +34,9 @@
 #include "util/base.h"
 #include "util/benchmark.h"
 #include "util/command.h"
+#ifdef WITH_CRYPTOPP
+#include "util/cpuid.h"
+#endif // WITH_CRYPTOPP
 #ifdef WITH_FUZZ_TESTS
 #include "util/fuzz.h"
 #endif  // WITH_FUZZ_TESTS
@@ -71,6 +74,11 @@ int main(int argc, const char* argv[])
   list_cmd[routerinfo_cmd.GetName()] = &routerinfo_cmd;
   list_cmd[benchmark_cmd.GetName()] = &benchmark_cmd;
   list_cmd[i2pcontrol_cmd.GetName()] = &i2pcontrol_cmd;
+
+#ifdef WITH_CRYPTOPP
+  CpuidCommand cpuid_cmd;
+  list_cmd[cpuid_cmd.GetName()] = &cpuid_cmd;
+#endif // WITH_CRYPTOPP
 
 #ifdef WITH_FUZZ_TESTS
   FuzzCommand fuzz_cmd;

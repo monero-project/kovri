@@ -9,6 +9,11 @@ set(UTIL_SRC
   "routerinfo.cc"
   "su3file.cc")
 
+if(WITH_CRYPTOPP)
+  list(APPEND UTIL_SRC
+  "cpuid.cc")
+endif()
+
 if(WITH_FUZZ_TESTS)
   include_directories("${Fuzzer_INCLUDE_DIR}")
   list(APPEND UTIL_SRC

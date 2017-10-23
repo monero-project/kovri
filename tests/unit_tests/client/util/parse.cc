@@ -34,7 +34,51 @@
 
 #include "client/util/parse.h"
 
+#include <set>
+
+#include "core/crypto/rand.h"
+#include "core/router/identity.h"
+#include "core/util/log.h"
+
 BOOST_AUTO_TEST_SUITE(ClientParsing)
+
+BOOST_AUTO_TEST_CASE(ParseACL)
+{
+  std::set<kovri::core::IdentHash> idents;
+  std::uint8_t count(3);
+  std::string acl;
+
+  // Create hashes + construct malformed ACL
+  for (std::uint8_t i(0); i < count; i++)
+    {
+      // Note: not a "real" (key-generated) ident hash
+      std::array<std::uint8_t, sizeof(kovri::core::IdentHash)> rand{{}};
+      kovri::core::RandBytes(rand.data(), rand.size());
+
+      // Create hash + insert into set
+      kovri::core::IdentHash hash(rand.data());
+      idents.insert(hash);
+
+      // Log valid b32
+      const std::string b32 = hash.ToBase32();
+      LOG(debug) << "ParseACL: " << b32;
+
+      // Construct malformed ACL delimiters
+      // TODO(unassigned): extend test for malformed ACLs?
+      acl += b32;
+      if (i != (count - 1))
+        acl += ",,,,";
+    }
+
+  // Log our malformed ACL
+  LOG(debug) << "ParseACL: " << acl;
+
+  // Parse our malformed ACL
+  auto const& parsed_idents = kovri::client::ParseACL(acl);
+
+  // Check if parser fixed the ACL and if parsed ACL matches the correct ACL
+  BOOST_CHECK(parsed_idents == idents);
+}
 
 struct TunnelFixture {
   kovri::client::TunnelAttributes tunnel{};

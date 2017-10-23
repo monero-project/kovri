@@ -41,12 +41,6 @@
 namespace kovri {
 namespace client {
 
-/// @brief Parses CSV string
-/// @param record String record of CSV
-/// @return Vector of parsed values
-const std::vector<std::string> ParseCSV(
-    const std::string& record);
-
 /// @brief Parse for multiple CSV destination(s) and also dest:port
 /// @details Free function used solely for configuration which shows that we
 ///   need to move nearly everything useful out of app and into client because:

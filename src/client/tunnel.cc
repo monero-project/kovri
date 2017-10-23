@@ -506,7 +506,8 @@ void I2PServerTunnel::SetACL() {
     return;
   }
   // Get parsed CSV
-  auto parsed = kovri::client::ParseCSV(list);
+  std::vector<std::string> parsed;
+  boost::split(parsed, list, boost::is_any_of(","));
   // Get b32 of each value
   std::set<kovri::core::IdentHash> idents;
   for (auto const& p : parsed) {

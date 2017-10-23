@@ -36,56 +36,6 @@
 
 BOOST_AUTO_TEST_SUITE(ClientParsing)
 
-// TODO(unassigned): improve + refactor to expand test-cases
-struct CSVFixture {
-  /// @brief Creates a test vector with given string and count
-  const std::vector<std::string> CreateTestVector(
-      const std::string& test,
-      const std::size_t count) {
-    std::vector<std::string> vec;
-    for (std::size_t i = 0; i < count; i++)
-      vec.push_back(std::string(test + std::to_string(i)));
-    return vec;
-  }
-
-  /// @brief Create CSV vector from non-CSV "test" vector
-  const std::vector<std::string> CreateCSVVector(
-      const std::vector<std::string>& csv) {
-    std::vector<std::string> vec;
-    for (auto const& field : csv)
-      vec.push_back(std::string(field + ","));
-    return vec;
-  }
-
-  /// @brief Create record from vector
-  const std::string CreateRecord(
-      const std::vector<std::string>& vec) {
-    std::string record;
-    for (auto const& field : vec)
-      record.append(field);
-    return record;
-  }
-};
-
-// TODO(unassigned): improve + refactor to expand test-cases
-BOOST_AUTO_TEST_CASE(ParseCSV) {
-  CSVFixture csv;
-  // Create test fixture
-  auto test_vector = csv.CreateTestVector("test", 10);
-
-  // Create test record to test against parsed record
-  auto test_record = csv.CreateRecord(test_vector);
-
-  // Create CSV record to parse
-  auto csv_record = csv.CreateRecord(csv.CreateCSVVector(test_vector));
-
-  // Get final parsed record, should return equivalent of test fixture
-  auto final_record = csv.CreateRecord(kovri::client::ParseCSV(csv_record));
-
-  // Test against original test record
-  BOOST_CHECK_EQUAL(final_record, test_record);
-}
-
 struct TunnelFixture {
   kovri::client::TunnelAttributes tunnel{};
 };

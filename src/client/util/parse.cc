@@ -41,6 +41,21 @@
 namespace kovri {
 namespace client {
 
+const std::set<kovri::core::IdentHash> ParseACL(const std::string list)
+{
+  std::vector<std::string> parsed;
+  boost::split(parsed, list, boost::is_any_of(","));
+  // Get b32 of each value
+  std::set<kovri::core::IdentHash> idents;
+  for (auto const& p : parsed)
+    {
+      kovri::core::IdentHash ident;
+      ident.FromBase32(p);
+      idents.insert(ident);
+    }
+  return idents;
+}
+
 // TODO(anonimal): see TODO in declaration
 void ParseClientDestination(
     TunnelAttributes* tunnel) {

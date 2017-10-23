@@ -51,9 +51,6 @@ class Instance {
 
    ~Instance();
 
-  /// @brief Configures instance
-  void Configure();
-
   /// @brief Initializes instance (client/router contexts)
   void Initialize();
 
@@ -62,7 +59,6 @@ class Instance {
 
   /// @brief Stops instance
   void Stop();
-
 
   /// @brief Reloads configuration
   /// @notes TODO(unassigned): should also reload client/router contexts
@@ -75,6 +71,9 @@ class Instance {
   }
 
  private:
+  /// @brief Configures instance
+  void Configure();
+
   /// @brief Initializes router context / core settings
   void InitRouterContext();
 

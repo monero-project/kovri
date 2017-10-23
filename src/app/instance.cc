@@ -55,44 +55,39 @@
 namespace kovri {
 namespace app {
 
-Instance::Instance(
-    const std::vector<std::string>& args)
+Instance::Instance(const std::vector<std::string>& args) try
     : m_Config(args),
       m_IsReloading(false),
-      m_Exception(__func__) {}
+      m_Exception(__func__)
+  {
+    Configure();
+  }
+catch (...)
+  {
+    m_Exception.Dispatch("could not construct");
+  }
 
 Instance::~Instance() {}
 
 void Instance::Configure() {
   // TODO(anonimal): instance configuration should probably be moved to libcore
-  GetConfig().ParseKovriConfig();
+  m_Config.ParseKovriConfig();
   // TODO(anonimal): Initializing of sources/streams/sinks must come after we've properly configured the logger.
   //   we do this here so we can catch debug logging before instance "initialization". This is not ideal
-  kovri::core::SetupLogging(GetConfig().GetParsedKovriConfig());
+  core::SetupLogging(m_Config.GetParsedKovriConfig());
   // Log the banner
   LOG(info) << "The Kovri I2P Router Project";
   LOG(info) << KOVRI_VERSION << "-" << KOVRI_GIT_REVISION << " \"" << KOVRI_CODENAME << "\"";
   // Continue with configuration/setup
-  GetConfig().SetupAESNI();
-  GetConfig().ParseTunnelsConfig();
+  m_Config.SetupAESNI();
+  m_Config.ParseTunnelsConfig();
 }
 
-// TODO(anonimal): we want RAII
+// Note: we'd love Instance RAII but singleton needs to be daemonized (if applicable) before initialization
 void Instance::Initialize() {
   // TODO(anonimal): what use-case to unhook contexts from an instance? Alternate client/core implementations?
   InitClientContext();
   InitRouterContext();
-}
-
-void Instance::Reload() {
-  LOG(info) << "Instance: reloading";
-  // TODO(unassigned): reload kovri.conf
-  // TODO(unassigned): locking etc.
-  // TODO(unassigned): client/router contexts
-  m_IsReloading = true;
-  GetConfig().ParseTunnelsConfig();
-  SetupTunnels();
-  m_IsReloading = false;
 }
 
 // TODO(unassigned): see TODO's for router/client context and singleton
@@ -183,8 +178,8 @@ void Instance::SetupTunnels() {
   for (auto const& tunnel : m_Config.GetParsedTunnelsConfig()) {
     try {
       // Test which type of tunnel (client or server)
-      if (tunnel.type == GetConfig().GetAttribute(Key::Client)
-          ||tunnel.type == GetConfig().GetAttribute(Key::IRC)) {  // TODO(unassigned): see #9
+      if (tunnel.type == m_Config.GetAttribute(Key::Client)
+          ||tunnel.type == m_Config.GetAttribute(Key::IRC)) {  // TODO(unassigned): see #9
         if (m_IsReloading) {
           auto client_tunnel = kovri::client::context.GetClientTunnel(tunnel.port);
           if (client_tunnel && client_tunnel->GetName() != tunnel.name)
@@ -210,7 +205,7 @@ void Instance::SetupTunnels() {
           LOG(error) << "Instance: client tunnel with port " << tunnel.port
                      << " already exists";
       } else {  // TODO(unassigned): currently, anything that's not client
-        bool is_http = (tunnel.type == GetConfig().GetAttribute(Key::HTTP));
+        bool is_http = (tunnel.type == m_Config.GetAttribute(Key::HTTP));
         if (m_IsReloading) {
           kovri::client::context.UpdateServerTunnel(tunnel, is_http);
           updated_server_tunnels.push_back(tunnel.name);
@@ -322,6 +317,17 @@ void Instance::Stop()
     }
 
   LOG(info) << "Instance: successfully stopped";
+}
+
+void Instance::Reload() {
+  LOG(info) << "Instance: reloading";
+  // TODO(unassigned): reload kovri.conf
+  // TODO(unassigned): locking etc.
+  // TODO(unassigned): client/router contexts
+  m_IsReloading = true;
+  m_Config.ParseTunnelsConfig();
+  SetupTunnels();
+  m_IsReloading = false;
 }
 
 }  // namespace app

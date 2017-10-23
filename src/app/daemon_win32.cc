@@ -45,12 +45,12 @@
 namespace kovri {
 namespace app {
 
-bool DaemonWin32::Config(
+bool DaemonWin32::Configure(
     const std::vector<std::string>& args) {
-  return DaemonSingleton::Config(args);
+  return DaemonSingleton::Configure(args);
 }
 
-bool DaemonWin32::Init() {
+bool DaemonWin32::Initialize() {
   // TODO(unassigned): use Boost.Locale
   setlocale(LC_CTYPE, "");  // "" uses environment's default locale
   SetConsoleCP(65001);  // UTF-8
@@ -85,7 +85,7 @@ bool DaemonWin32::Init() {
   } else {
     LOG(info) << "DaemonWin32: user session";
   }
-  return DaemonSingleton::Init();
+  return DaemonSingleton::Initialize();
 }
 
 bool DaemonWin32::Start() {

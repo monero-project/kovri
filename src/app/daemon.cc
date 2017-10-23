@@ -49,16 +49,25 @@ DaemonSingleton::DaemonSingleton()
 
 DaemonSingleton::~DaemonSingleton() {}
 
-// TODO(anonimal): Instance and RAII refactoring
+// Note: we'd love Instance RAII but singleton needs to be daemonized (if applicable) before initialization
 
-bool DaemonSingleton::Config(const std::vector<std::string>& args)
+bool DaemonSingleton::Configure(const std::vector<std::string>& args)
 {
-  // TODO(unassigned): ideally, all instance configuration, etc., happens outside of singleton
-  m_Instance = std::make_unique<Instance>(args);
-
   try
     {
-      m_Instance->Configure();
+      m_Instance = std::make_unique<Instance>(args);
+
+      // Set daemon mode (if applicable)
+      m_IsDaemon = m_Instance->GetConfig()
+                       .GetParsedKovriConfig()
+                       .at("daemon")
+                       .as<bool>();
+#ifdef _WIN32
+      m_Service = m_Instance->GetConfig()
+                      .GetParsedKovriConfig()
+                      .at("service")
+                      .as<std::string>();
+#endif
     }
   catch (...)
     {
@@ -66,19 +75,11 @@ bool DaemonSingleton::Config(const std::vector<std::string>& args)
       return false;
     }
 
-  // Set daemon mode (if applicable)
-  m_IsDaemon =
-      m_Instance->GetConfig().GetParsedKovriConfig().at("daemon").as<bool>();
-#ifdef _WIN32
-  m_Service = m_Instance->GetConfig()
-                  .GetParsedKovriConfig()
-                  .at("service")
-                  .as<std::string>();
-#endif
+  LOG(info) << "DaemonSingleton: configured";
   return true;
 }
 
-bool DaemonSingleton::Init()
+bool DaemonSingleton::Initialize()
 {
   // We must initialize contexts here (in child process, if in daemon mode)
   try

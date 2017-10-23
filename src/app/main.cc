@@ -46,10 +46,10 @@ int main(int argc, const char* argv[]) {
   // before any other singleton removal is considered (if still applicable, see notes in log impl)
   std::vector<std::string> args(argv, argv + argc);
   // Configure daemon for initialization
-  if (!Daemon.Config(args))
+  if (!Daemon.Configure(args))
     return EXIT_FAILURE;
   // Initialize daemon mode and contexts
-  if (!Daemon.Init())
+  if (!Daemon.Initialize())
     return EXIT_FAILURE;
   // Start core/client (must begin in child process if in daemon mode)
   if (Daemon.Start()) {

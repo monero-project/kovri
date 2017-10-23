@@ -55,12 +55,12 @@ class DaemonSingleton {
  public:
   /// @brief Get/Set configuration options before initialization/forking
   /// @param args Reference to string vector of command line args
-  virtual bool Config(
+  virtual bool Configure(
       const std::vector<std::string>& args);
 
   /// @brief Forks process if daemon mode is set, initializes contexts
   /// @warning Child *must* fork *before* contexts are initialized
-  virtual bool Init();
+  virtual bool Initialize();
 
   /// @brief Start client/router
   virtual bool Start();
@@ -96,10 +96,9 @@ class DaemonWin32 : public DaemonSingleton {
     static DaemonWin32 instance;
     return instance;
   }
-  virtual bool Config(
-      const std::vector<std::string>& args);
+  virtual bool Configure(const std::vector<std::string>& args);
+  virtual bool Initialize();
 
-  virtual bool Init();
   virtual bool Start();
   virtual bool Stop();
 };
@@ -113,10 +112,9 @@ class DaemonLinux : public DaemonSingleton {
     static DaemonLinux instance;
     return instance;
   }
-  virtual bool Config(
-      const std::vector<std::string>& args);
+  virtual bool Configure(const std::vector<std::string>& args);
+  virtual bool Initialize();
 
-  virtual bool Init();
   virtual bool Start();
   virtual bool Stop();
   void Reload();

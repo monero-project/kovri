@@ -44,6 +44,7 @@
 
 #include "app/instance.h"
 
+#include "core/util/exception.h"
 #include "core/util/filesystem.h"
 #include "core/util/log.h"
 
@@ -79,6 +80,9 @@ class DaemonSingleton {
   /// @var m_Instance
   /// @brief Unique pointer to instance object (client/router)
   std::unique_ptr<Instance> m_Instance;
+
+  /// @brief Exception dispatcher
+  core::Exception m_Exception;
 
  protected:
   DaemonSingleton();

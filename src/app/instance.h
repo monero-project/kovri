@@ -57,6 +57,13 @@ class Instance {
   /// @brief Initializes instance (client/router contexts)
   void Initialize();
 
+  /// @brief Starts instance
+  void Start();
+
+  /// @brief Stops instance
+  void Stop();
+
+
   /// @brief Reloads configuration
   /// @notes TODO(unassigned): should also reload client/router contexts
   void Reload();
@@ -95,6 +102,9 @@ class Instance {
   /// @brief Are tunnels configuration in the process of reloading?
   /// TODO(unassigned): expand types of reloading
   bool m_IsReloading;
+
+  /// @brief Exception dispatcher
+  core::Exception m_Exception;
 };
 
 }  // namespace app

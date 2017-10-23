@@ -32,17 +32,11 @@
 
 #include "app/daemon.h"
 
-#include <boost/property_tree/ini_parser.hpp>
-#include <boost/property_tree/ptree.hpp>
-
-#include <thread>
+#include <memory>
 #include <vector>
+#include <exception>
 
-#include "client/context.h"
-
-#include "core/router/net_db/impl.h"
-#include "core/router/transports/impl.h"
-#include "core/router/tunnel/impl.h"
+#include "app/instance.h"
 
 namespace kovri {
 namespace app {
@@ -50,7 +44,8 @@ namespace app {
 DaemonSingleton::DaemonSingleton()
     : m_IsDaemon(false),
       m_IsRunning(true),
-      m_Instance(nullptr) {}
+      m_Instance(nullptr),
+      m_Exception(__func__) {}
 
 DaemonSingleton::~DaemonSingleton() {}
 
@@ -91,35 +86,18 @@ bool DaemonSingleton::Init() {
   return true;
 }
 
-// TODO(anonimal): when refactoring TODO's for singleton, have instance Start
-bool DaemonSingleton::Start() {
-  try {
-    LOG(debug) << "DaemonSingleton: starting NetDb";
-    if (!kovri::core::netdb.Start()) {
-      LOG(error) << "DaemonSingleton: NetDb failed to start";
+bool DaemonSingleton::Start()
+{
+  try
+    {
+      m_Instance->Start();
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
       return false;
     }
-    if (core::netdb.GetNumRouters() < core::NetDb::Size::MinRequiredRouters) {
-      LOG(debug) << "DaemonSingleton: reseeding NetDb";
-      kovri::client::Reseed reseed;
-      if (!reseed.Start()) {
-        LOG(error) << "DaemonSingleton: reseed failed";
-        return false;
-      }
-    }
-    LOG(debug) << "DaemonSingleton: starting transports";
-    kovri::core::transports.Start();
-    LOG(debug) << "DaemonSingleton: starting tunnels";
-    kovri::core::tunnels.Start();
-    LOG(debug) << "DaemonSingleton: starting client";
-    kovri::client::context.Start();
-  } catch (const std::exception& ex) {
-    LOG(error) << "DaemonSingleton: start exception: " << ex.what();
-    return false;
-  }  catch (...) {
-    LOG(error) << "DaemonSingleton: unknown exception when starting";
-    return false;
-  }
+
   LOG(info) << "DaemonSingleton: successfully started";
   return true;
 }
@@ -131,24 +109,18 @@ void DaemonSingleton::Reload() {
   m_Instance->Reload();
 }
 
-// TODO(anonimal): when refactoring TODO's for singleton, have instance Stop
-bool DaemonSingleton::Stop() {
-  try {
-    LOG(debug) << "DaemonSingleton: stopping client";
-    kovri::client::context.Stop();
-    LOG(debug) << "DaemonSingleton: stopping tunnels";
-    kovri::core::tunnels.Stop();
-    LOG(debug) << "DaemonSingleton: stopping transports";
-    kovri::core::transports.Stop();
-    LOG(debug) << "DaemonSingleton: stopping NetDb";
-    kovri::core::netdb.Stop();
-  } catch (const std::exception& ex) {
-    LOG(error) << "DaemonSingleton: stop exception: " << ex.what();
-    return false;
-  }  catch (...) {
-    LOG(error) << "DaemonSingleton: unknown exception when stopping";
-    return false;
-  }
+bool DaemonSingleton::Stop()
+{
+  try
+    {
+      m_Instance->Stop();
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      return false;
+    }
+
   LOG(info) << "DaemonSingleton: successfully stopped";
   LOG(info) << "Goodbye!";
   return true;

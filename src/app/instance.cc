@@ -32,17 +32,22 @@
 
 #include "app/instance.h"
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/ini_parser.hpp>
+
 #include <cstdint>
 #include <stdexcept>
 #include <memory>
 
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/ini_parser.hpp>
-
 #include "client/context.h"
 
 #include "core/crypto/aes.h"  // For AES-NI detection/initialization
+
 #include "core/router/context.h"
+#include "core/router/net_db/impl.h"
+#include "core/router/transports/impl.h"
+#include "core/router/tunnel/impl.h"
+
 #include "core/util/log.h"
 
 #include "version.h"
@@ -53,7 +58,8 @@ namespace app {
 Instance::Instance(
     const std::vector<std::string>& args)
     : m_Config(args),
-      m_IsReloading(false) {}
+      m_IsReloading(false),
+      m_Exception(__func__) {}
 
 Instance::~Instance() {}
 
@@ -254,6 +260,68 @@ void Instance::RemoveOldTunnels(
                    tunnel->GetTunnelAttributes().name)
                == updated_client_tunnels.end();
       });
+}
+
+void Instance::Start()
+{
+  try
+    {
+      LOG(debug) << "Instance: starting NetDb";
+
+      // NetDb
+      if (!kovri::core::netdb.Start())
+        throw std::runtime_error("Instance: NetDb failed to start");
+
+      // Reseed
+      if (core::netdb.GetNumRouters() < core::NetDb::Size::MinRequiredRouters)
+        {
+          LOG(debug) << "Instance: reseeding NetDb";
+          kovri::client::Reseed reseed;
+          if (!reseed.Start())
+            throw std::runtime_error("Instance: reseed failed");
+        }
+
+      LOG(debug) << "Instance: starting transports";
+      kovri::core::transports.Start();
+
+      LOG(debug) << "Instance: starting tunnels";
+      kovri::core::tunnels.Start();
+
+      LOG(debug) << "Instance: starting client";
+      kovri::client::context.Start();
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      throw;
+    }
+
+  LOG(info) << "Instance: successfully started";
+}
+
+void Instance::Stop()
+{
+  try
+    {
+      LOG(debug) << "Instance: stopping client";
+      kovri::client::context.Stop();
+
+      LOG(debug) << "Instance: stopping tunnels";
+      kovri::core::tunnels.Stop();
+
+      LOG(debug) << "Instance: stopping transports";
+      kovri::core::transports.Stop();
+
+      LOG(debug) << "Instance: stopping NetDb";
+      kovri::core::netdb.Stop();
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      throw;
+    }
+
+  LOG(info) << "Instance: successfully stopped";
 }
 
 }  // namespace app

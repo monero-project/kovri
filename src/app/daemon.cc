@@ -49,40 +49,50 @@ DaemonSingleton::DaemonSingleton()
 
 DaemonSingleton::~DaemonSingleton() {}
 
-bool DaemonSingleton::Config(
-    const std::vector<std::string>& args) {
+// TODO(anonimal): Instance and RAII refactoring
+
+bool DaemonSingleton::Config(const std::vector<std::string>& args)
+{
   // TODO(unassigned): ideally, all instance configuration, etc., happens outside of singleton
   m_Instance = std::make_unique<Instance>(args);
-  try {
-    m_Instance->Configure();
-  } catch (const std::exception& ex) {
-    LOG(error) << "DaemonSingleton: " << ex.what();
-    return false;
-  } catch (...) {
-    LOG(error) << "DaemonSingleton: unknown exception when configuring";
-    return false;
-  }
+
+  try
+    {
+      m_Instance->Configure();
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      return false;
+    }
+
   // Set daemon mode (if applicable)
-  m_IsDaemon = m_Instance->GetConfig().GetParsedKovriConfig().at("daemon").as<bool>();
+  m_IsDaemon =
+      m_Instance->GetConfig().GetParsedKovriConfig().at("daemon").as<bool>();
 #ifdef _WIN32
-  m_Service = m_Instance->GetConfig().GetParsedKovriConfig().at("service").as<std::string>();
+  m_Service = m_Instance->GetConfig()
+                  .GetParsedKovriConfig()
+                  .at("service")
+                  .as<std::string>();
 #endif
   return true;
 }
 
-bool DaemonSingleton::Init() {
+bool DaemonSingleton::Init()
+{
   // We must initialize contexts here (in child process, if in daemon mode)
-  try {
-    m_Instance->Initialize();
-  } catch (const std::exception& ex) {
-    LOG(error) << "DaemonSingleton: exception during initialization: " << ex.what();
-    // TODO(anonimal): Instance and RAII refactoring
-    Stop();
-    return false;
-  } catch (...) {
-    LOG(error) << "DaemonSingleton: unknown exception during initialization";
-    return false;
-  }
+  try
+    {
+      m_Instance->Initialize();
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      Stop();
+      return false;
+    }
+
+  LOG(info) << "DaemonSingleton: initialized";
   return true;
 }
 

@@ -41,32 +41,27 @@
 namespace kovri {
 namespace client {
 
-// TODO(unassigned): boost::split refactor? If so, then pass custom delimiter and
-// rename function. If there are not many use-cases, simply use directly within
-// implementation and remove this unit-test.
-const std::vector<std::string> ParseCSV(
-    const std::string& record) {
+const std::set<kovri::core::IdentHash> ParseACL(const std::string list)
+{
   std::vector<std::string> parsed;
-  if (!record.empty()) {
-    std::size_t pos = 0, comma;
-    do {
-      comma = record.find(',', pos);
-      auto value =
-        record.substr(
-            pos,
-            comma != std::string::npos ? comma - pos : std::string::npos);
-      parsed.push_back(value);
-      pos = comma + 1;
-    } while (comma != std::string::npos);
-  }
-  return parsed;
+  boost::split(parsed, list, boost::is_any_of(","));
+  // Get b32 of each value
+  std::set<kovri::core::IdentHash> idents;
+  for (auto const& p : parsed)
+    {
+      kovri::core::IdentHash ident;
+      ident.FromBase32(p);
+      idents.insert(ident);
+    }
+  return idents;
 }
 
 // TODO(anonimal): see TODO in declaration
 void ParseClientDestination(
     TunnelAttributes* tunnel) {
   // Get all destination(s)
-  auto parsed = ParseCSV(tunnel->dest);
+  std::vector<std::string> parsed;
+  boost::split(parsed, tunnel->dest, boost::is_any_of(","));
   // Pick random destination (if applicable)
   if (parsed.size() > 1) {
     // Shuffle to ensure all destinations are accessible

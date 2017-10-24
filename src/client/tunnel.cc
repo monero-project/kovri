@@ -505,17 +505,7 @@ void I2PServerTunnel::SetACL() {
     // No CSV list given, ignore
     return;
   }
-  // Get parsed CSV
-  auto parsed = kovri::client::ParseCSV(list);
-  // Get b32 of each value
-  std::set<kovri::core::IdentHash> idents;
-  for (auto const& p : parsed) {
-    kovri::core::IdentHash ident;
-    ident.FromBase32(p);
-    idents.insert(ident);
-  }
-  // Set ACL
-  m_ACL = idents;
+  m_ACL = client::ParseACL(list);
 }
 
 void I2PServerTunnel::Accept() {

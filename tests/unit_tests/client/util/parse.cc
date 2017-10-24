@@ -34,56 +34,50 @@
 
 #include "client/util/parse.h"
 
+#include <set>
+
+#include "core/crypto/rand.h"
+#include "core/router/identity.h"
+#include "core/util/log.h"
+
 BOOST_AUTO_TEST_SUITE(ClientParsing)
 
-// TODO(unassigned): improve + refactor to expand test-cases
-struct CSVFixture {
-  /// @brief Creates a test vector with given string and count
-  const std::vector<std::string> CreateTestVector(
-      const std::string& test,
-      const std::size_t count) {
-    std::vector<std::string> vec;
-    for (std::size_t i = 0; i < count; i++)
-      vec.push_back(std::string(test + std::to_string(i)));
-    return vec;
-  }
+BOOST_AUTO_TEST_CASE(ParseACL)
+{
+  std::set<kovri::core::IdentHash> idents;
+  std::uint8_t count(3);
+  std::string acl;
 
-  /// @brief Create CSV vector from non-CSV "test" vector
-  const std::vector<std::string> CreateCSVVector(
-      const std::vector<std::string>& csv) {
-    std::vector<std::string> vec;
-    for (auto const& field : csv)
-      vec.push_back(std::string(field + ","));
-    return vec;
-  }
+  // Create hashes + construct malformed ACL
+  for (std::uint8_t i(0); i < count; i++)
+    {
+      // Note: not a "real" (key-generated) ident hash
+      std::array<std::uint8_t, sizeof(kovri::core::IdentHash)> rand{{}};
+      kovri::core::RandBytes(rand.data(), rand.size());
 
-  /// @brief Create record from vector
-  const std::string CreateRecord(
-      const std::vector<std::string>& vec) {
-    std::string record;
-    for (auto const& field : vec)
-      record.append(field);
-    return record;
-  }
-};
+      // Create hash + insert into set
+      kovri::core::IdentHash hash(rand.data());
+      idents.insert(hash);
 
-// TODO(unassigned): improve + refactor to expand test-cases
-BOOST_AUTO_TEST_CASE(ParseCSV) {
-  CSVFixture csv;
-  // Create test fixture
-  auto test_vector = csv.CreateTestVector("test", 10);
+      // Log valid b32
+      const std::string b32 = hash.ToBase32();
+      LOG(debug) << "ParseACL: " << b32;
 
-  // Create test record to test against parsed record
-  auto test_record = csv.CreateRecord(test_vector);
+      // Construct malformed ACL delimiters
+      // TODO(unassigned): extend test for malformed ACLs?
+      acl += b32;
+      if (i != (count - 1))
+        acl += ",,,,";
+    }
 
-  // Create CSV record to parse
-  auto csv_record = csv.CreateRecord(csv.CreateCSVVector(test_vector));
+  // Log our malformed ACL
+  LOG(debug) << "ParseACL: " << acl;
 
-  // Get final parsed record, should return equivalent of test fixture
-  auto final_record = csv.CreateRecord(kovri::client::ParseCSV(csv_record));
+  // Parse our malformed ACL
+  auto const& parsed_idents = kovri::client::ParseACL(acl);
 
-  // Test against original test record
-  BOOST_CHECK_EQUAL(final_record, test_record);
+  // Check if parser fixed the ACL and if parsed ACL matches the correct ACL
+  BOOST_CHECK(parsed_idents == idents);
 }
 
 struct TunnelFixture {

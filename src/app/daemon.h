@@ -42,7 +42,7 @@
 #define Daemon kovri::app::DaemonLinux::Instance()
 #endif
 
-#include "app/instance.h"
+#include "client/instance.h"
 
 #include "core/util/exception.h"
 #include "core/util/filesystem.h"
@@ -77,9 +77,8 @@ class DaemonSingleton {
   std::string m_Service;
 #endif
 
-  /// @var m_Instance
   /// @brief Unique pointer to instance object (client/router)
-  std::unique_ptr<Instance> m_Instance;
+  std::unique_ptr<client::Instance> m_Instance;
 
   /// @brief Exception dispatcher
   core::Exception m_Exception;

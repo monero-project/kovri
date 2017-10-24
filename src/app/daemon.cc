@@ -36,7 +36,7 @@
 #include <vector>
 #include <exception>
 
-#include "app/instance.h"
+#include "client/instance.h"
 
 namespace kovri {
 namespace app {
@@ -55,7 +55,7 @@ bool DaemonSingleton::Configure(const std::vector<std::string>& args)
 {
   try
     {
-      m_Instance = std::make_unique<Instance>(args);
+      m_Instance = std::make_unique<client::Instance>(args);
 
       // Set daemon mode (if applicable)
       m_IsDaemon = m_Instance->GetConfig()

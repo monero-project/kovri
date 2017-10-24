@@ -1,6 +1,7 @@
 include_directories("../")
 
 set(CLIENT_SRC
+	"instance.cc"
   "address_book/impl.cc"
   "address_book/storage.cc"
   "api/datagram.cc"
@@ -15,9 +16,10 @@ set(CLIENT_SRC
   "reseed.cc"
   "service.cc"
   "tunnel.cc"
+	"util/config.cc"
+  "util/http.cc"
   "util/json.cc"
   "util/parse.cc"
-  "util/http.cc"
   "util/zip.cc")
 
 if(WITH_LIBRARY)

@@ -28,16 +28,16 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#ifndef SRC_APP_INSTANCE_H_
-#define SRC_APP_INSTANCE_H_
+#ifndef SRC_CLIENT_INSTANCE_H_
+#define SRC_CLIENT_INSTANCE_H_
 
 #include <string>
 #include <vector>
 
-#include "app/config.h"
+#include "client/util/config.h"
 
 namespace kovri {
-namespace app {
+namespace client {
 
 /// @class Instance
 /// @brief Instance implementation for client / router contexts
@@ -106,7 +106,7 @@ class Instance {
   core::Exception m_Exception;
 };
 
-}  // namespace app
+}  // namespace client
 }  // namespace kovri
 
-#endif  // SRC_APP_INSTANCE_H_
+#endif  // SRC_CLIENT_INSTANCE_H_

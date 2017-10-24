@@ -28,7 +28,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#include "app/instance.h"  // includes "app/config.h"
+#include "client/instance.h"  // includes "client/util/config.h"
 
 // Config parsing
 #include <boost/property_tree/ptree.hpp>
@@ -61,7 +61,7 @@
 // TODO(anonimal): instance configuration should probably be moved to libcore
 
 namespace kovri {
-namespace app {
+namespace client {
 
 namespace bpo = boost::program_options;
 
@@ -343,5 +343,5 @@ const std::string Configuration::GetAttribute(Key key) const {
   };
 }
 
-}  // namespace app
+}  // namespace client
 }  // namespace kovri

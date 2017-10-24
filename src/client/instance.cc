@@ -30,7 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include "app/instance.h"
+#include "client/instance.h"
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
@@ -53,7 +53,11 @@
 #include "version.h"
 
 namespace kovri {
-namespace app {
+namespace client {
+
+//
+// TODO(anonimal): a client controlled instance of both client and core? Not ideal since we want our own core instance
+//
 
 Instance::Instance(const std::vector<std::string>& args) try
     : m_Config(args),
@@ -102,28 +106,28 @@ void Instance::InitRouterContext() {
                         core::RouterInfo::MinPort, core::RouterInfo::MaxPort)
                   : map["port"].as<int>();
   // TODO(unassigned): context should be in core namespace (see TODO in router context)
-  context.Init(host, port);
-  context.UpdatePort(port);
+  kovri::context.Init(host, port);
+  kovri::context.UpdatePort(port);
   LOG(info) << "Instance: listening on port " << map["port"].as<int>();
-  context.UpdateAddress(boost::asio::ip::address::from_string(host));
-  context.SetSupportsV6(map["v6"].as<bool>());
-  context.SetFloodfill(map["floodfill"].as<bool>());
+  kovri::context.UpdateAddress(boost::asio::ip::address::from_string(host));
+  kovri::context.SetSupportsV6(map["v6"].as<bool>());
+  kovri::context.SetFloodfill(map["floodfill"].as<bool>());
   auto bandwidth = map["bandwidth"].as<std::string>();
   if (!bandwidth.empty()) {
     if (bandwidth[0] > 'L')
-      context.SetHighBandwidth();
+      kovri::context.SetHighBandwidth();
     else
-      context.SetLowBandwidth();
+      kovri::context.SetLowBandwidth();
   }
   // Set reseed options
-  context.SetOptionReseedFrom(map["reseed-from"].as<std::string>());
-  context.SetOptionDisableSU3Verification(
+  kovri::context.SetOptionReseedFrom(map["reseed-from"].as<std::string>());
+  kovri::context.SetOptionDisableSU3Verification(
       map["disable-su3-verification"].as<bool>());
   // Set transport options
-  context.SetSupportsNTCP(map["enable-ntcp"].as<bool>());
-  context.SetSupportsSSU(map["enable-ssu"].as<bool>());
+  kovri::context.SetSupportsNTCP(map["enable-ntcp"].as<bool>());
+  kovri::context.SetSupportsSSU(map["enable-ssu"].as<bool>());
   // Set SSL option
-  context.SetOptionEnableSSL(map["enable-ssl"].as<bool>());
+  kovri::context.SetOptionEnableSSL(map["enable-ssl"].as<bool>());
 }
 
 // TODO(unassigned): see TODO's for router/client context and singleton
@@ -330,5 +334,5 @@ void Instance::Reload() {
   m_IsReloading = false;
 }
 
-}  // namespace app
+}  // namespace client
 }  // namespace kovri

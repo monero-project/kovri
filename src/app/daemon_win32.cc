@@ -34,7 +34,7 @@
 
 #include "daemon.h"
 
-#include "app/config.h"
+#include "client/util/config.h"
 
 #include "core/util/log.h"
 

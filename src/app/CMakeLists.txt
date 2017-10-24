@@ -2,9 +2,7 @@ include_directories("../")
 
 set(APP_SRC
   "main.cc"
-  "config.cc"
-  "daemon.cc"
-  "instance.cc")
+  "daemon.cc")
 
 # Linux/OSX/BSD/DragonFly
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Windows")

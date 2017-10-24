@@ -28,8 +28,8 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#ifndef SRC_APP_CONFIG_H_
-#define SRC_APP_CONFIG_H_
+#ifndef SRC_CLIENT_UTIL_CONFIG_H_
+#define SRC_CLIENT_UTIL_CONFIG_H_
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
@@ -44,7 +44,7 @@
 #include "core/util/filesystem.h"
 
 namespace kovri {
-namespace app {
+namespace client {
 
 /// @enum Key
 /// @brief Tunnels config attribute key for const tunnel param string
@@ -187,7 +187,7 @@ class Configuration {
       boost::program_options::variables_map& var_map);
 };
 
-}  // namespace app
+}  // namespace client
 }  // namespace kovri
 
-#endif  // SRC_APP_CONFIG_H_
+#endif  // SRC_CLIENT_UTIL_CONFIG_H_

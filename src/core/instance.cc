@@ -89,8 +89,7 @@ void Instance::Initialize()
       map["port"].defaulted()
           ? RandInRange32(RouterInfo::MinPort, RouterInfo::MaxPort)
           : map["port"].as<int>();
-  LOG(info) << "Instance: listening on port "
-            << map["port"].as<int>();  // TODO(anonimal): fix
+  LOG(info) << "Instance: listening on port " << port;
 
   // TODO(unassigned): context should be in core namespace (see TODO in router context)
   context.Init(host, port);

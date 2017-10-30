@@ -74,7 +74,7 @@ class Instance
 
   /// @brief Get client configuration object
   /// @return Reference to configuration object
-  Configuration& GetConfig() noexcept
+  const Configuration& GetConfig() const noexcept
   {
     return m_Config;
   }

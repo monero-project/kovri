@@ -77,8 +77,8 @@ void Instance::Initialize()
 
   // Initialize proxies
   std::shared_ptr<ClientDestination> local_destination;
-  auto map = m_Config.GetCoreConfig().GetMap();
-  auto proxy_keys = map["proxykeys"].as<std::string>();
+  auto const& map = m_Config.GetCoreConfig().GetMap();
+  auto const proxy_keys = map["proxykeys"].as<std::string>();
 
   if (!proxy_keys.empty())
     local_destination = context.LoadLocalDestination(proxy_keys, false);
@@ -95,7 +95,7 @@ void Instance::Initialize()
       local_destination));
 
   // Initialize I2PControl
-  auto i2pcontrol_port = map["i2pcontrolport"].as<int>();
+  auto const i2pcontrol_port = map["i2pcontrolport"].as<int>();
   if (i2pcontrol_port)
     {
       context.SetI2PControlService(std::make_unique<I2PControlService>(
@@ -126,7 +126,8 @@ void Instance::SetupTunnels()
             {  // TODO(unassigned): see #9
               if (m_IsReloading)
                 {
-                  auto client_tunnel = context.GetClientTunnel(tunnel.port);
+                  auto const* client_tunnel =
+                      context.GetClientTunnel(tunnel.port);
                   if (client_tunnel && client_tunnel->GetName() != tunnel.name)
                     {
                       // Check for conflicting port done in ParseTunnelsConfig
@@ -153,7 +154,8 @@ void Instance::SetupTunnels()
             }
           else
             {  // TODO(unassigned): currently, anything that's not client
-              bool is_http = (tunnel.type == m_Config.GetAttribute(Key::HTTP));
+              bool const is_http =
+                  (tunnel.type == m_Config.GetAttribute(Key::HTTP));
               if (m_IsReloading)
                 {
                   context.UpdateServerTunnel(tunnel, is_http);

@@ -70,7 +70,7 @@ class Configuration
   /// @brief Gets complete path + name of core config
   /// @return Boost filesystem path of file
   /// @warning Config file must first be parsed
-  boost::filesystem::path GetConfigPath()
+  const boost::filesystem::path GetConfigPath() const
   {
     std::string kovri_config = m_Map["kovriconf"].defaulted()
                                    ? "kovri.conf"
@@ -83,7 +83,7 @@ class Configuration
 
   /// @brief Gets core config variable map
   /// @return Reference to kovri config member variable map
-  boost::program_options::variables_map& GetMap() noexcept
+  const boost::program_options::variables_map& GetMap() const noexcept
   {
     return m_Map;
   }

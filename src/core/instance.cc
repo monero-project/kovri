@@ -80,14 +80,15 @@ void Instance::Initialize()
 {
   // TODO(unassigned): see TODO's for router context and singleton
   LOG(debug) << "Instance: initializing core";
-  auto map = m_Config.GetMap();
+  auto const& map = m_Config.GetMap();
   auto host = map["host"].as<std::string>();
 
   // Random generated port if none is supplied via CLI or config
   // See: i2p.i2p/router/java/src/net/i2p/router/transport/udp/UDPEndpoint.java
-  auto port = map["port"].defaulted()
-                  ? RandInRange32(RouterInfo::MinPort, RouterInfo::MaxPort)
-                  : map["port"].as<int>();
+  auto const port =
+      map["port"].defaulted()
+          ? RandInRange32(RouterInfo::MinPort, RouterInfo::MaxPort)
+          : map["port"].as<int>();
   LOG(info) << "Instance: listening on port "
             << map["port"].as<int>();  // TODO(anonimal): fix
 
@@ -99,7 +100,7 @@ void Instance::Initialize()
   context.SetSupportsV6(map["v6"].as<bool>());
   context.SetFloodfill(map["floodfill"].as<bool>());
 
-  auto bandwidth = map["bandwidth"].as<std::string>();
+  auto const bandwidth = map["bandwidth"].as<std::string>();
   if (!bandwidth.empty())
     {
       if (bandwidth[0] > 'L')

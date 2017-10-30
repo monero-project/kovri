@@ -195,11 +195,10 @@ void Configuration::ParseConfigFile(
   if (!m_Map["port"].defaulted())
     {
       int port = m_Map["port"].as<int>();
-      if ((port < RouterInfo::MinPort)
-          || (port > RouterInfo::MaxPort))
+      if ((port < RouterInfo::MinPort) || (port > RouterInfo::MaxPort))
         throw std::runtime_error(
-            "Port not in range [" + std::to_string(RouterInfo::MinPort)
-            + "," + std::to_string(RouterInfo::MaxPort)
+            "Port not in range [" + std::to_string(RouterInfo::MinPort) + ","
+            + std::to_string(RouterInfo::MaxPort)
             + "], see user-guide or config file");
     }
 }

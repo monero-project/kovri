@@ -119,7 +119,7 @@ class Configuration
 
   /// @brief Gets tunnels config member
   /// @return Reference to tunnels attributes vector member
-  std::vector<TunnelAttributes>& GetParsedTunnelsConfig() noexcept
+  const std::vector<TunnelAttributes>& GetParsedTunnelsConfig() const noexcept
   {
     return m_TunnelsConfig;
   }
@@ -127,7 +127,7 @@ class Configuration
   /// @brief Gets complete path + name of tunnels config
   /// @return Boost filesystem path of file
   /// @warning Config file must first be parsed
-  boost::filesystem::path GetConfigPath()
+  const boost::filesystem::path GetConfigPath() const
   {
     std::string tunnels_config =
         m_CoreConfig.GetMap()["tunnelsconf"].defaulted()
@@ -140,7 +140,7 @@ class Configuration
   }
 
   /// @brief Get core configuration object
-  core::Configuration& GetCoreConfig() noexcept
+  const core::Configuration& GetCoreConfig() const noexcept
   {
     return m_CoreConfig;
   }

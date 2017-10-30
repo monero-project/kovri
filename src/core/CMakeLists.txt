@@ -1,6 +1,7 @@
 include_directories("../")
 
 set(CORE_SRC
+  "instance.cc"
   "router/context.cc"
   "router/garlic.cc"
   "router/i2np.cc"
@@ -26,6 +27,7 @@ set(CORE_SRC
   "router/tunnel/transit.cc"
   "util/base64.cc"
   "util/byte_stream.cc"
+  "util/config.cc"
   "util/exception.cc"
   "util/filesystem.cc"
   "util/log.cc"

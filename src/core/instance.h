@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2015-2017, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -26,107 +26,54 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,          //
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF    //
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
- *                                                                                            //
- * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_APP_DAEMON_H_
-#define SRC_APP_DAEMON_H_
+#ifndef SRC_CORE_INSTANCE_H_
+#define SRC_CORE_INSTANCE_H_
 
-#include <memory>
 #include <string>
+#include <vector>
 
-#ifdef _WIN32
-#define Daemon kovri::app::DaemonWin32::Instance()
-#else
-#define Daemon kovri::app::DaemonLinux::Instance()
-#endif
-
-#include "client/instance.h"
-
-#include "core/instance.h"
-
+#include "core/util/config.h"
 #include "core/util/exception.h"
-#include "core/util/filesystem.h"
-#include "core/util/log.h"
 
 namespace kovri {
-namespace app {
+namespace core {
 
-class DaemonSingleton {
+/// @class Instance
+/// @brief Core instance implementation
+class Instance {
  public:
-  /// @brief Get/Set configuration options before initialization/forking
-  /// @param args Reference to string vector of command line args
-  virtual bool Configure(
-      const std::vector<std::string>& args);
+  /// @param args argc + argv style options
+  explicit Instance(const std::vector<std::string>& args);
 
-  /// @brief Forks process if daemon mode is set, initializes contexts
-  /// @warning Child *must* fork *before* contexts are initialized
-  virtual bool Initialize();
+  // TODO(anonimal): overload ctor
+  ~Instance();
 
-  /// @brief Start client/router
-  virtual bool Start();
+  /// @brief Initializes router context / core settings
+  void Initialize();
 
-  /// @brief Stop client/router
-  virtual bool Stop();
+  /// @brief Starts instance
+  void Start();
 
-  /// @brief Reload tunnels
-  virtual void Reload();
+  /// @brief Stops instance
+  void Stop();
 
-#ifdef _WIN32
-  std::string m_Service;
-#endif
+  /// @brief Get configuration object
+  /// @return Reference to configuration object
+  Configuration& GetConfig() noexcept {
+    return m_Config;
+  }
 
-  /// @brief Client instance
-  std::unique_ptr<client::Instance> m_Client;
-
+ private:
   /// @brief Exception dispatcher
   core::Exception m_Exception;
 
-  bool m_IsDaemon, m_IsRunning;
-
- protected:
-  DaemonSingleton();
-  virtual ~DaemonSingleton();
+  /// @brief Client configuration implementation
+  Configuration m_Config;
 };
 
-#ifdef _WIN32
-class DaemonWin32 : public DaemonSingleton {
- public:
-  static DaemonWin32& Instance() {
-    static DaemonWin32 instance;
-    return instance;
-  }
-  virtual bool Configure(const std::vector<std::string>& args);
-  virtual bool Initialize();
-
-  virtual bool Start();
-  virtual bool Stop();
-};
-#else
-class DaemonLinux : public DaemonSingleton {
- public:
-  DaemonLinux() : m_PIDFileHandle()
-  {
-  }
-  static DaemonLinux& Instance() {
-    static DaemonLinux instance;
-    return instance;
-  }
-  virtual bool Configure(const std::vector<std::string>& args);
-  virtual bool Initialize();
-
-  virtual bool Start();
-  virtual bool Stop();
-  void Reload();
-
- private:
-  std::string m_PIDPath, m_PIDFile;
-  int m_PIDFileHandle;
-};
-#endif
-
-}  // namespace app
+}  // namespace core
 }  // namespace kovri
 
-#endif  // SRC_APP_DAEMON_H_
+#endif  // SRC_CORE_INSTANCE_H_

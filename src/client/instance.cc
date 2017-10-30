@@ -32,106 +32,37 @@
 
 #include "client/instance.h"
 
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/ini_parser.hpp>
-
 #include <cstdint>
 #include <stdexcept>
 #include <memory>
 
 #include "client/context.h"
 
-#include "core/crypto/aes.h"  // For AES-NI detection/initialization
-
-#include "core/router/context.h"
-#include "core/router/net_db/impl.h"
-#include "core/router/transports/impl.h"
-#include "core/router/tunnel/impl.h"
-
 #include "core/util/log.h"
-
-#include "version.h"
 
 namespace kovri {
 namespace client {
 
-//
-// TODO(anonimal): a client controlled instance of both client and core? Not ideal since we want our own core instance
-//
-
-Instance::Instance(const std::vector<std::string>& args) try
-    : m_Config(args),
-      m_IsReloading(false),
-      m_Exception(__func__)
+Instance::Instance(std::unique_ptr<core::Instance> core) try
+    : m_Exception(__func__),
+      m_Core(std::move(core)),  // TODO(anonimal): leave null check to caller?
+      m_Config(m_Core->GetConfig()),
+      m_IsReloading(false)
   {
-    Configure();
   }
 catch (...)
   {
-    m_Exception.Dispatch("could not construct");
+    m_Exception.Dispatch();
   }
 
 Instance::~Instance() {}
 
-void Instance::Configure() {
-  // TODO(anonimal): instance configuration should probably be moved to libcore
-  m_Config.ParseKovriConfig();
-  // TODO(anonimal): Initializing of sources/streams/sinks must come after we've properly configured the logger.
-  //   we do this here so we can catch debug logging before instance "initialization". This is not ideal
-  core::SetupLogging(m_Config.GetParsedKovriConfig());
-  // Log the banner
-  LOG(info) << "The Kovri I2P Router Project";
-  LOG(info) << KOVRI_VERSION << "-" << KOVRI_GIT_REVISION << " \"" << KOVRI_CODENAME << "\"";
-  // Continue with configuration/setup
-  m_Config.SetupAESNI();
-  m_Config.ParseTunnelsConfig();
-}
-
 // Note: we'd love Instance RAII but singleton needs to be daemonized (if applicable) before initialization
+// TODO(unassigned): see TODO's for client context and singleton
 void Instance::Initialize() {
-  // TODO(anonimal): what use-case to unhook contexts from an instance? Alternate client/core implementations?
-  InitClientContext();
-  InitRouterContext();
-}
+  // Initialize core
+  m_Core->Initialize();
 
-// TODO(unassigned): see TODO's for router/client context and singleton
-void Instance::InitRouterContext() {
-  LOG(debug) << "Instance: initializing router context";
-  auto map = m_Config.GetParsedKovriConfig();
-  auto host = map["host"].as<std::string>();
-  // Random generated port if none is supplied via CLI or config
-  // See: i2p.i2p/router/java/src/net/i2p/router/transport/udp/UDPEndpoint.java
-  auto port = map["port"].defaulted()
-                  ? kovri::core::RandInRange32(
-                        core::RouterInfo::MinPort, core::RouterInfo::MaxPort)
-                  : map["port"].as<int>();
-  // TODO(unassigned): context should be in core namespace (see TODO in router context)
-  kovri::context.Init(host, port);
-  kovri::context.UpdatePort(port);
-  LOG(info) << "Instance: listening on port " << map["port"].as<int>();
-  kovri::context.UpdateAddress(boost::asio::ip::address::from_string(host));
-  kovri::context.SetSupportsV6(map["v6"].as<bool>());
-  kovri::context.SetFloodfill(map["floodfill"].as<bool>());
-  auto bandwidth = map["bandwidth"].as<std::string>();
-  if (!bandwidth.empty()) {
-    if (bandwidth[0] > 'L')
-      kovri::context.SetHighBandwidth();
-    else
-      kovri::context.SetLowBandwidth();
-  }
-  // Set reseed options
-  kovri::context.SetOptionReseedFrom(map["reseed-from"].as<std::string>());
-  kovri::context.SetOptionDisableSU3Verification(
-      map["disable-su3-verification"].as<bool>());
-  // Set transport options
-  kovri::context.SetSupportsNTCP(map["enable-ntcp"].as<bool>());
-  kovri::context.SetSupportsSSU(map["enable-ssu"].as<bool>());
-  // Set SSL option
-  kovri::context.SetOptionEnableSSL(map["enable-ssl"].as<bool>());
-}
-
-// TODO(unassigned): see TODO's for router/client context and singleton
-void Instance::InitClientContext() {
   LOG(debug) << "Instance: initializing client context";
   // TODO(unassigned): a useful shutdown handler but needs to callback to daemon
   // singleton's member. It's only used for I2PControl (and currently doesn't work)
@@ -143,7 +74,7 @@ void Instance::InitClientContext() {
     [this]() { m_IsRunning = false; });*/
   // Initialize proxies
   std::shared_ptr<kovri::client::ClientDestination> local_destination;
-  auto map = m_Config.GetParsedKovriConfig();
+  auto map = m_Config.GetCoreConfig().GetMap();
   auto proxy_keys = map["proxykeys"].as<std::string>();
   if (!proxy_keys.empty())
     local_destination =
@@ -265,26 +196,8 @@ void Instance::Start()
 {
   try
     {
-      LOG(debug) << "Instance: starting NetDb";
-
-      // NetDb
-      if (!kovri::core::netdb.Start())
-        throw std::runtime_error("Instance: NetDb failed to start");
-
-      // Reseed
-      if (core::netdb.GetNumRouters() < core::NetDb::Size::MinRequiredRouters)
-        {
-          LOG(debug) << "Instance: reseeding NetDb";
-          kovri::client::Reseed reseed;
-          if (!reseed.Start())
-            throw std::runtime_error("Instance: reseed failed");
-        }
-
-      LOG(debug) << "Instance: starting transports";
-      kovri::core::transports.Start();
-
-      LOG(debug) << "Instance: starting tunnels";
-      kovri::core::tunnels.Start();
+      LOG(debug) << "Instance: starting core";
+      m_Core->Start();
 
       LOG(debug) << "Instance: starting client";
       kovri::client::context.Start();
@@ -305,14 +218,8 @@ void Instance::Stop()
       LOG(debug) << "Instance: stopping client";
       kovri::client::context.Stop();
 
-      LOG(debug) << "Instance: stopping tunnels";
-      kovri::core::tunnels.Stop();
-
-      LOG(debug) << "Instance: stopping transports";
-      kovri::core::transports.Stop();
-
-      LOG(debug) << "Instance: stopping NetDb";
-      kovri::core::netdb.Stop();
+      LOG(debug) << "Instance: stopping core";
+      m_Core->Stop();
     }
   catch (...)
     {
@@ -325,11 +232,10 @@ void Instance::Stop()
 
 void Instance::Reload() {
   LOG(info) << "Instance: reloading";
-  // TODO(unassigned): reload kovri.conf
   // TODO(unassigned): locking etc.
-  // TODO(unassigned): client/router contexts
+  // TODO(unassigned): core instance
   m_IsReloading = true;
-  m_Config.ParseTunnelsConfig();
+  m_Config.ParseConfig();
   SetupTunnels();
   m_IsReloading = false;
 }

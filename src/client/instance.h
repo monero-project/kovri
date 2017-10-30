@@ -34,24 +34,30 @@
 #include <string>
 #include <vector>
 
+#include "core/instance.h"
 #include "client/util/config.h"
 
 namespace kovri {
 namespace client {
 
+// TODO(anonimal): we currently want to limit core interaction through client only for all apps and most API cases.
+//  A member function getter can return the object which will (should) change mutable data via the core API.
+//  In essence, the core and client Instance objects are essentially a preliminary API.
+
 /// @class Instance
-/// @brief Instance implementation for client / router contexts
-/// @notes It is currently implied that only a single configuration object will
+/// @brief Client instance implementation
+/// @note Owns core instance object
+/// @note It is currently implied that only a single configuration object will
 ///   be used by a single instance object.
 class Instance {
  public:
-   // TODO(unassigned): see note and TODO in main about multiple instances
-   explicit Instance(
-       const std::vector<std::string>& args);
+  explicit Instance(std::unique_ptr<core::Instance> core);
 
-   ~Instance();
+  // TODO(anonimal): overload ctor
+  ~Instance();
 
-  /// @brief Initializes instance (client/router contexts)
+  /// @brief Initializes the router's client context object
+  /// @details Creates tunnels, proxies and I2PControl service
   void Initialize();
 
   /// @brief Starts instance
@@ -61,26 +67,16 @@ class Instance {
   void Stop();
 
   /// @brief Reloads configuration
-  /// @notes TODO(unassigned): should also reload client/router contexts
+  /// @notes TODO(unassigned): should also reload client context
   void Reload();
 
-  /// @brief Get configuration object
+  /// @brief Get client configuration object
   /// @return Reference to configuration object
   Configuration& GetConfig() noexcept {
     return m_Config;
   }
 
  private:
-  /// @brief Configures instance
-  void Configure();
-
-  /// @brief Initializes router context / core settings
-  void InitRouterContext();
-
-  /// @brief Initializes the router's client context object
-  /// @details Creates tunnels, proxies and I2PControl service
-  void InitClientContext();
-
   /// @brief Sets up (or reloads) client/server tunnels
   /// @warning Configuration files must be parsed prior to setup
   void SetupTunnels();
@@ -93,17 +89,19 @@ class Instance {
       const std::vector<std::string>& updated_server_tunnels);
 
  private:
-  /// @var m_Config
-  /// @brief Configuration implementation
-  Configuration m_Config;
-
-  /// @var m_IsReloading
-  /// @brief Are tunnels configuration in the process of reloading?
-  /// TODO(unassigned): expand types of reloading
-  bool m_IsReloading;
-
   /// @brief Exception dispatcher
   core::Exception m_Exception;
+
+  /// @brief Core instance
+  std::unique_ptr<core::Instance> m_Core;
+
+  /// @brief Client configuration implementation
+  /// @note Must be initialized with core configuration
+  Configuration m_Config;
+
+  /// @brief Is client configuration in the process of reloading?
+  /// TODO(unassigned): expand types of reloading
+  bool m_IsReloading;
 };
 
 }  // namespace client

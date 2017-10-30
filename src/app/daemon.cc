@@ -42,10 +42,9 @@ namespace kovri {
 namespace app {
 
 DaemonSingleton::DaemonSingleton()
-    : m_IsDaemon(false),
-      m_IsRunning(true),
-      m_Instance(nullptr),
-      m_Exception(__func__) {}
+    : m_Exception(__func__),
+      m_IsDaemon(false),
+      m_IsRunning(true) {}
 
 DaemonSingleton::~DaemonSingleton() {}
 
@@ -55,19 +54,20 @@ bool DaemonSingleton::Configure(const std::vector<std::string>& args)
 {
   try
     {
-      m_Instance = std::make_unique<client::Instance>(args);
+      // TODO(anonimal): we currently want to limit core interaction through client only for all apps and most API users.
+      //  A member function getter can return the object which will (should) change mutable data via the core API.
+      //  In essence, the core and client Instance objects are essentially a preliminary API.
+
+      // Create/configure core instance
+      auto core = std::make_unique<core::Instance>(args);
 
       // Set daemon mode (if applicable)
-      m_IsDaemon = m_Instance->GetConfig()
-                       .GetParsedKovriConfig()
-                       .at("daemon")
-                       .as<bool>();
+      m_IsDaemon = core->GetConfig().GetMap().at("daemon").as<bool>();
 #ifdef _WIN32
-      m_Service = m_Instance->GetConfig()
-                      .GetParsedKovriConfig()
-                      .at("service")
-                      .as<std::string>();
+      m_Service = core->GetConfig().GetMap().at("service").as<std::string>();
 #endif
+      // Create/configure client instance
+      m_Client = std::make_unique<client::Instance>(std::move(core));
     }
   catch (...)
     {
@@ -84,7 +84,7 @@ bool DaemonSingleton::Initialize()
   // We must initialize contexts here (in child process, if in daemon mode)
   try
     {
-      m_Instance->Initialize();
+      m_Client->Initialize();
     }
   catch (...)
     {
@@ -101,7 +101,7 @@ bool DaemonSingleton::Start()
 {
   try
     {
-      m_Instance->Start();
+      m_Client->Start();
     }
   catch (...)
     {
@@ -114,17 +114,18 @@ bool DaemonSingleton::Start()
 }
 
 void DaemonSingleton::Reload() {
+  // TODO(unassigned): reload complete instance?
   // TODO(unassigned): do we want to add locking?
   LOG(info) << "DaemonSingleton: reloading configuration";
-  // Reload tunnels configuration
-  m_Instance->Reload();
+  // Reload client configuration
+  m_Client->Reload();
 }
 
 bool DaemonSingleton::Stop()
 {
   try
     {
-      m_Instance->Stop();
+      m_Client->Stop();
     }
   catch (...)
     {

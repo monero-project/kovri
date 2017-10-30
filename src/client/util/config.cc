@@ -66,19 +66,12 @@ void Configuration::ParseConfig()
     {
       boost::property_tree::read_ini(file, pt);
     }
-  // TODO(anonimal): use dispatcher
-  catch (const std::exception& ex)
-    {
-      throw std::runtime_error(
-          "Configuration: can't read " + file + ": " + ex.what());
-      return;
-    }
   catch (...)
     {
-      throw std::runtime_error(
-          "Configuration: can't read " + file + ": unknown exception");
+      m_Exception.Dispatch(__func__);
       return;
     }
+
   // Parse on a per-section basis, store in tunnels config vector
   m_TunnelsConfig.clear();
   for (auto& section : pt)
@@ -156,19 +149,14 @@ void Configuration::ParseConfig()
                   + tunnel.name + " in " + file);
             }
         }
-      // TODO(anonimal): use dispatcher
-      catch (const std::exception& ex)
-        {
-          throw std::runtime_error(
-              "Configuration: can't read tunnel " + tunnel.name
-              + " params: " + ex.what());
-        }
       catch (...)
         {
-          throw std::runtime_error(
-              "Configuration: can't read tunnel " + tunnel.name
-              + " unknown exception");
+          std::string message =
+              std::string(__func__) + ": tunnel name " + tunnel.name;
+          m_Exception.Dispatch(message.data());
+          throw;
         }
+
       // Save section for later client insertion
       m_TunnelsConfig.push_back(tunnel);
     }

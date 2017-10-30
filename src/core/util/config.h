@@ -51,9 +51,10 @@ namespace core
 class Configuration
 {
  public:
-  explicit Configuration(const std::vector<std::string>& args);
+  /// @param args Taken as standard argv arguments (element = "space delimited" arg)
+  explicit Configuration(
+      const std::vector<std::string>& args = std::vector<std::string>());
 
-  // TODO(anonimal): overload ctor
   ~Configuration();
 
   /// @brief Parse config arguments

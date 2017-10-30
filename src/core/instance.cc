@@ -65,6 +65,10 @@ Instance::Instance(const std::vector<std::string>& args) try
     LOG(info) << KOVRI_VERSION << "-" << KOVRI_GIT_REVISION << " \""
               << KOVRI_CODENAME << "\"";
 
+    // Log args (if applicable)
+    for (auto const& arg : args)
+      LOG(debug) << __func__ << ": arg=" << arg;
+
     // Continue with configuration/setup
     m_Config.SetupAESNI();
   }

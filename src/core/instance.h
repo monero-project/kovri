@@ -47,9 +47,9 @@ class Instance
 {
  public:
   /// @param args argc + argv style options
-  explicit Instance(const std::vector<std::string>& args);
+  explicit Instance(
+      const std::vector<std::string>& args = std::vector<std::string>());
 
-  // TODO(anonimal): overload ctor
   ~Instance();
 
   /// @brief Initializes router context / core settings

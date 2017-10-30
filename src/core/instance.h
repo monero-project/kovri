@@ -37,12 +37,14 @@
 #include "core/util/config.h"
 #include "core/util/exception.h"
 
-namespace kovri {
-namespace core {
-
+namespace kovri
+{
+namespace core
+{
 /// @class Instance
 /// @brief Core instance implementation
-class Instance {
+class Instance
+{
  public:
   /// @param args argc + argv style options
   explicit Instance(const std::vector<std::string>& args);
@@ -61,7 +63,8 @@ class Instance {
 
   /// @brief Get configuration object
   /// @return Reference to configuration object
-  Configuration& GetConfig() noexcept {
+  Configuration& GetConfig() noexcept
+  {
     return m_Config;
   }
 

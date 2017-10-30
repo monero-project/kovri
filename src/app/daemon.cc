@@ -32,19 +32,20 @@
 
 #include "app/daemon.h"
 
+#include <exception>
 #include <memory>
 #include <vector>
-#include <exception>
 
 #include "client/instance.h"
 
-namespace kovri {
-namespace app {
-
+namespace kovri
+{
+namespace app
+{
 DaemonSingleton::DaemonSingleton()
-    : m_Exception(__func__),
-      m_IsDaemon(false),
-      m_IsRunning(true) {}
+    : m_Exception(__func__), m_IsDaemon(false), m_IsRunning(true)
+{
+}
 
 DaemonSingleton::~DaemonSingleton() {}
 
@@ -113,7 +114,8 @@ bool DaemonSingleton::Start()
   return true;
 }
 
-void DaemonSingleton::Reload() {
+void DaemonSingleton::Reload()
+{
   // TODO(unassigned): reload complete instance?
   // TODO(unassigned): do we want to add locking?
   LOG(info) << "DaemonSingleton: reloading configuration";

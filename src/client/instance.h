@@ -34,12 +34,13 @@
 #include <string>
 #include <vector>
 
-#include "core/instance.h"
 #include "client/util/config.h"
+#include "core/instance.h"
 
-namespace kovri {
-namespace client {
-
+namespace kovri
+{
+namespace client
+{
 // TODO(anonimal): we currently want to limit core interaction through client only for all apps and most API cases.
 //  A member function getter can return the object which will (should) change mutable data via the core API.
 //  In essence, the core and client Instance objects are essentially a preliminary API.
@@ -49,7 +50,8 @@ namespace client {
 /// @note Owns core instance object
 /// @note It is currently implied that only a single configuration object will
 ///   be used by a single instance object.
-class Instance {
+class Instance
+{
  public:
   explicit Instance(std::unique_ptr<core::Instance> core);
 
@@ -72,7 +74,8 @@ class Instance {
 
   /// @brief Get client configuration object
   /// @return Reference to configuration object
-  Configuration& GetConfig() noexcept {
+  Configuration& GetConfig() noexcept
+  {
     return m_Config;
   }
 

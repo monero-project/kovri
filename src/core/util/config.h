@@ -31,28 +31,30 @@
 #ifndef SRC_CORE_UTIL_CONFIG_H_
 #define SRC_CORE_UTIL_CONFIG_H_
 
-#include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/program_options.hpp>
 
 #include <cstdint>
 #include <map>
 #include <string>
 #include <vector>
 
-#include "core/util/filesystem.h"
 #include "core/util/exception.h"
+#include "core/util/filesystem.h"
 
-namespace kovri {
-namespace core {
-
+namespace kovri
+{
+namespace core
+{
 /// @class Configuration
 /// @brief Core configuration implementation
-class Configuration {
+class Configuration
+{
  public:
-   explicit Configuration(const std::vector<std::string>& args);
+  explicit Configuration(const std::vector<std::string>& args);
 
   // TODO(anonimal): overload ctor
-   ~Configuration();
+  ~Configuration();
 
   /// @brief Parse config arguments
   void ParseConfig();
@@ -68,20 +70,21 @@ class Configuration {
   /// @brief Gets complete path + name of core config
   /// @return Boost filesystem path of file
   /// @warning Config file must first be parsed
-  boost::filesystem::path GetConfigPath() {
-    std::string kovri_config =
-        m_Map["kovriconf"].defaulted()
-            ? "kovri.conf"
-            : m_Map["kovriconf"].as<std::string>();
+  boost::filesystem::path GetConfigPath()
+  {
+    std::string kovri_config = m_Map["kovriconf"].defaulted()
+                                   ? "kovri.conf"
+                                   : m_Map["kovriconf"].as<std::string>();
     boost::filesystem::path file(kovri_config);
     if (!file.is_complete())
-      file = kovri::core::GetConfigPath() / file;
+      file = core::GetConfigPath() / file;
     return file;
   }
 
   /// @brief Gets core config variable map
   /// @return Reference to kovri config member variable map
-  boost::program_options::variables_map& GetMap() noexcept {
+  boost::program_options::variables_map& GetMap() noexcept
+  {
     return m_Map;
   }
 

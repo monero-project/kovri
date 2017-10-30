@@ -33,16 +33,17 @@
 #include "client/instance.h"
 
 #include <cstdint>
-#include <stdexcept>
 #include <memory>
+#include <stdexcept>
 
 #include "client/context.h"
 
 #include "core/util/log.h"
 
-namespace kovri {
-namespace client {
-
+namespace kovri
+{
+namespace client
+{
 Instance::Instance(std::unique_ptr<core::Instance> core) try
     : m_Exception(__func__),
       m_Core(std::move(core)),  // TODO(anonimal): leave null check to caller?
@@ -59,113 +60,127 @@ Instance::~Instance() {}
 
 // Note: we'd love Instance RAII but singleton needs to be daemonized (if applicable) before initialization
 // TODO(unassigned): see TODO's for client context and singleton
-void Instance::Initialize() {
+void Instance::Initialize()
+{
   // Initialize core
   m_Core->Initialize();
 
-  LOG(debug) << "Instance: initializing client context";
+  LOG(debug) << "Instance: initializing client";
   // TODO(unassigned): a useful shutdown handler but needs to callback to daemon
   // singleton's member. It's only used for I2PControl (and currently doesn't work)
   // so we'll have to figure out another way to *not* rely on the singleton to
   // tell the contexts to shutdown. Note: previous to refactor work, the shutdown handler
   // (or related) was not fully functional (for possible threading reasons), so
   // commenting out this function does not provide any loss in functionality.
-  /*kovri::client::context.RegisterShutdownHandler(
+  /*context.RegisterShutdownHandler(
     [this]() { m_IsRunning = false; });*/
+
   // Initialize proxies
-  std::shared_ptr<kovri::client::ClientDestination> local_destination;
+  std::shared_ptr<ClientDestination> local_destination;
   auto map = m_Config.GetCoreConfig().GetMap();
   auto proxy_keys = map["proxykeys"].as<std::string>();
+
   if (!proxy_keys.empty())
-    local_destination =
-      kovri::client::context.LoadLocalDestination(proxy_keys, false);
-  kovri::client::context.SetHTTPProxy(
-      std::make_unique<kovri::client::HTTPProxy>(
-          "HTTP Proxy",  // TODO(unassigned): what if we want to change the name?
-          map["httpproxyaddress"].as<std::string>(),
-          map["httpproxyport"].as<int>(),
-          local_destination));
-  kovri::client::context.SetSOCKSProxy(
-      std::make_unique<kovri::client::SOCKSProxy>(
-          map["socksproxyaddress"].as<std::string>(),
-          map["socksproxyport"].as<int>(),
-          local_destination));
+    local_destination = context.LoadLocalDestination(proxy_keys, false);
+
+  context.SetHTTPProxy(std::make_unique<HTTPProxy>(
+      "HTTP Proxy",  // TODO(unassigned): what if we want to change the name?
+      map["httpproxyaddress"].as<std::string>(),
+      map["httpproxyport"].as<int>(),
+      local_destination));
+
+  context.SetSOCKSProxy(std::make_unique<SOCKSProxy>(
+      map["socksproxyaddress"].as<std::string>(),
+      map["socksproxyport"].as<int>(),
+      local_destination));
+
   // Initialize I2PControl
   auto i2pcontrol_port = map["i2pcontrolport"].as<int>();
-  if (i2pcontrol_port) {
-    kovri::client::context.SetI2PControlService(
-        std::make_unique<kovri::client::I2PControlService>(
-            kovri::client::context.GetIoService(),
-            map["i2pcontroladdress"].as<std::string>(),
-            i2pcontrol_port,
-            map["i2pcontrolpassword"].as<std::string>()));
-  }
+  if (i2pcontrol_port)
+    {
+      context.SetI2PControlService(std::make_unique<I2PControlService>(
+          context.GetIoService(),
+          map["i2pcontroladdress"].as<std::string>(),
+          i2pcontrol_port,
+          map["i2pcontrolpassword"].as<std::string>()));
+    }
+
   // Setup client and server tunnels
   SetupTunnels();
 }
 
-void Instance::SetupTunnels() {
+void Instance::SetupTunnels()
+{
   // List of tunnels that exist after update
   std::vector<std::string> updated_client_tunnels, updated_server_tunnels;
   // Count number of tunnels
-  std::size_t client_count = 0, server_count = 0;
+  std::size_t client_count{}, server_count{};
   // Iterate through each section in tunnels config
-  for (auto const& tunnel : m_Config.GetParsedTunnelsConfig()) {
-    try {
-      // Test which type of tunnel (client or server)
-      if (tunnel.type == m_Config.GetAttribute(Key::Client)
-          ||tunnel.type == m_Config.GetAttribute(Key::IRC)) {  // TODO(unassigned): see #9
-        if (m_IsReloading) {
-          auto client_tunnel = kovri::client::context.GetClientTunnel(tunnel.port);
-          if (client_tunnel && client_tunnel->GetName() != tunnel.name)
-            {
-              // Check for conflicting port done in ParseTunnelsConfig
-              // early deletion of client_tunnel to avoid temp duplicate port bind
-              std::string name = client_tunnel->GetName();
-              LOG(debug) << "ClientContext: Premature delete tunnel " << name;
-              kovri::client::context.RemoveClientTunnels(
-                  [&name](kovri::client::I2PClientTunnel* old_tunnel) {
-                    return name == old_tunnel->GetName();
-                  });
+  for (auto const& tunnel : m_Config.GetParsedTunnelsConfig())
+    {
+      try
+        {
+          // Test which type of tunnel (client or server)
+          if (tunnel.type == m_Config.GetAttribute(Key::Client)
+              || tunnel.type == m_Config.GetAttribute(Key::IRC))
+            {  // TODO(unassigned): see #9
+              if (m_IsReloading)
+                {
+                  auto client_tunnel = context.GetClientTunnel(tunnel.port);
+                  if (client_tunnel && client_tunnel->GetName() != tunnel.name)
+                    {
+                      // Check for conflicting port done in ParseTunnelsConfig
+                      // early deletion of client_tunnel to avoid temp duplicate port bind
+                      std::string name = client_tunnel->GetName();
+                      LOG(debug)
+                          << "ClientContext: Premature delete tunnel " << name;
+                      context.RemoveClientTunnels(
+                          [&name](I2PClientTunnel* old_tunnel) {
+                            return name == old_tunnel->GetName();
+                          });
+                    }
+                  context.UpdateClientTunnel(tunnel);
+                  updated_client_tunnels.push_back(tunnel.name);
+                  ++client_count;
+                  continue;
+                }
+              // Create client tunnel
+              if (context.AddClientTunnel(tunnel))
+                ++client_count;
+              else
+                LOG(error) << "Instance: client tunnel with port "
+                           << tunnel.port << " already exists";
             }
-          kovri::client::context.UpdateClientTunnel(tunnel);
-          updated_client_tunnels.push_back(tunnel.name);
-          ++client_count;
-          continue;
+          else
+            {  // TODO(unassigned): currently, anything that's not client
+              bool is_http = (tunnel.type == m_Config.GetAttribute(Key::HTTP));
+              if (m_IsReloading)
+                {
+                  context.UpdateServerTunnel(tunnel, is_http);
+                  updated_server_tunnels.push_back(tunnel.name);
+                  ++server_count;
+                  continue;
+                }
+              if (context.AddServerTunnel(tunnel, is_http))
+                ++server_count;
+              else
+                LOG(error) << "Instance: Failed to add server tunnel";
+            }
         }
-        // Create client tunnel
-        if (kovri::client::context.AddClientTunnel(tunnel))
-          ++client_count;
-        else
-          LOG(error) << "Instance: client tunnel with port " << tunnel.port
-                     << " already exists";
-      } else {  // TODO(unassigned): currently, anything that's not client
-        bool is_http = (tunnel.type == m_Config.GetAttribute(Key::HTTP));
-        if (m_IsReloading) {
-          kovri::client::context.UpdateServerTunnel(tunnel, is_http);
-          updated_server_tunnels.push_back(tunnel.name);
-          ++server_count;
-          continue;
+      catch (...)
+        {
+          core::Exception ex;
+          ex.Dispatch(__func__);
+          return;
         }
-        if (kovri::client::context.AddServerTunnel(tunnel, is_http))
-          ++server_count;
-        else
-          LOG(error) << "Instance: Failed to add server tunnel";
-      }
+    }  // end of iteration block
+  if (m_IsReloading)
+    {
+      LOG(info) << "Instance: " << client_count << " client tunnels updated";
+      LOG(info) << "Instance: " << server_count << " server tunnels updated";
+      RemoveOldTunnels(updated_client_tunnels, updated_server_tunnels);
+      return;
     }
-    catch (...)
-      {
-        kovri::core::Exception ex;
-        ex.Dispatch(__func__);
-        return;
-      }
-  }  // end of iteration block
-  if (m_IsReloading) {
-    LOG(info) << "Instance: " << client_count << " client tunnels updated";
-    LOG(info) << "Instance: " << server_count << " server tunnels updated";
-    RemoveOldTunnels(updated_client_tunnels, updated_server_tunnels);
-    return;
-  }
   LOG(info) << "Instance: " << client_count << " client tunnels created";
   LOG(info) << "Instance: " << server_count << " server tunnels created";
 }
@@ -174,16 +189,16 @@ void Instance::RemoveOldTunnels(
     const std::vector<std::string>& updated_client_tunnels,
     const std::vector<std::string>& updated_server_tunnels)
 {
-  kovri::client::context.RemoveServerTunnels(
-      [&updated_server_tunnels](kovri::client::I2PServerTunnel* tunnel) {
+  context.RemoveServerTunnels(
+      [&updated_server_tunnels](I2PServerTunnel* tunnel) {
         return std::find(
                    updated_server_tunnels.begin(),
                    updated_server_tunnels.end(),
                    tunnel->GetTunnelAttributes().name)
                == updated_server_tunnels.end();
       });
-  kovri::client::context.RemoveClientTunnels(
-      [&updated_client_tunnels](kovri::client::I2PClientTunnel* tunnel) {
+  context.RemoveClientTunnels(
+      [&updated_client_tunnels](I2PClientTunnel* tunnel) {
         return std::find(
                    updated_client_tunnels.begin(),
                    updated_client_tunnels.end(),
@@ -200,7 +215,7 @@ void Instance::Start()
       m_Core->Start();
 
       LOG(debug) << "Instance: starting client";
-      kovri::client::context.Start();
+      context.Start();
     }
   catch (...)
     {
@@ -208,7 +223,7 @@ void Instance::Start()
       throw;
     }
 
-  LOG(info) << "Instance: successfully started";
+  LOG(info) << "Instance: client successfully started";
 }
 
 void Instance::Stop()
@@ -216,7 +231,7 @@ void Instance::Stop()
   try
     {
       LOG(debug) << "Instance: stopping client";
-      kovri::client::context.Stop();
+      context.Stop();
 
       LOG(debug) << "Instance: stopping core";
       m_Core->Stop();
@@ -227,11 +242,12 @@ void Instance::Stop()
       throw;
     }
 
-  LOG(info) << "Instance: successfully stopped";
+  LOG(info) << "Instance: client successfully stopped";
 }
 
-void Instance::Reload() {
-  LOG(info) << "Instance: reloading";
+void Instance::Reload()
+{
+  LOG(info) << "Instance: reloading client";
   // TODO(unassigned): locking etc.
   // TODO(unassigned): core instance
   m_IsReloading = true;

@@ -32,10 +32,10 @@
 
 // Logging
 #include <boost/core/null_deleter.hpp>
-#include <boost/log/expressions/formatters/date_time.hpp>
 #include <boost/log/attributes.hpp>
 #include <boost/log/core.hpp>
 #include <boost/log/expressions.hpp>
+#include <boost/log/expressions/formatters/date_time.hpp>
 #include <boost/log/sinks.hpp>
 #include <boost/log/sources/logger.hpp>
 #include <boost/log/sources/record_ostream.hpp>
@@ -46,8 +46,8 @@
 #include <boost/make_shared.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include <stdexcept>
 #include <memory>
+#include <stdexcept>
 
 #include "core/router/context.h"
 #include "core/router/info.h"
@@ -55,9 +55,10 @@
 #include "core/crypto/aes.h"  // For AES-NI detection/initialization
 #include "core/crypto/rand.h"
 
-namespace kovri {
-namespace core {
-
+namespace kovri
+{
+namespace core
+{
 namespace bpo = boost::program_options;
 
 Configuration::Configuration(const std::vector<std::string>& args) try
@@ -73,7 +74,8 @@ catch (...)
 
 Configuration::~Configuration() {}
 
-void Configuration::ParseConfig() {
+void Configuration::ParseConfig()
+{
   // Default visible option
   bpo::options_description help("\nhelp");
   help.add_options()("help,h", "");  // Blank so we can use custom message above
@@ -84,7 +86,7 @@ void Configuration::ParseConfig() {
       "port,p", bpo::value<int>()->default_value(0))(
       "data-dir",
       bpo::value<std::string>()
-          ->default_value(kovri::core::GetDefaultDataPath().string())
+          ->default_value(GetDefaultDataPath().string())
           ->value_name("path"))(
       "daemon,d", bpo::value<bool>()->default_value(false)->value_name("bool"))(
       "service,s", bpo::value<std::string>()->default_value(""))(
@@ -131,41 +133,38 @@ void Configuration::ParseConfig() {
       bpo::value<bool>()->default_value(false)->value_name("bool"));
 
   bpo::options_description client("\nclient");
-  client.add_options()
-    ("httpproxyport", bpo::value<int>()->default_value(4446))
-    ("httpproxyaddress", bpo::value<std::string>()->default_value("127.0.0.1"))
-    ("socksproxyport", bpo::value<int>()->default_value(4447))
-    ("socksproxyaddress", bpo::value<std::string>()->default_value("127.0.0.1"))
-    ("proxykeys", bpo::value<std::string>()->default_value(""))
-    ("i2pcontrolport", bpo::value<int>()->default_value(0))
-    ("i2pcontroladdress", bpo::value<std::string>()->default_value("127.0.0.1"))
-    ("i2pcontrolpassword", bpo::value<std::string>()->default_value("itoopie"));
-    //("reseed-to", bpo::value<std::string>()->default_value(""),
-    // "Creates a reseed file for you to share\n"
-    // "Example: ~/path/to/new/i2pseeds.su3\n")
+  client.add_options()("httpproxyport", bpo::value<int>()->default_value(4446))(
+      "httpproxyaddress",
+      bpo::value<std::string>()->default_value("127.0.0.1"))(
+      "socksproxyport", bpo::value<int>()->default_value(4447))(
+      "socksproxyaddress",
+      bpo::value<std::string>()->default_value("127.0.0.1"))(
+      "proxykeys", bpo::value<std::string>()->default_value(""))(
+      "i2pcontrolport", bpo::value<int>()->default_value(0))(
+      "i2pcontroladdress",
+      bpo::value<std::string>()->default_value("127.0.0.1"))(
+      "i2pcontrolpassword",
+      bpo::value<std::string>()->default_value("itoopie"));
+  //("reseed-to", bpo::value<std::string>()->default_value(""),
+  // "Creates a reseed file for you to share\n"
+  // "Example: ~/path/to/new/i2pseeds.su3\n")
   // Available command-line options
   bpo::options_description cli_options;
-  cli_options
-    .add(help)
-    .add(system)
-    .add(network)
-    .add(client);
+  cli_options.add(help).add(system).add(network).add(client);
   // Available config file options
   bpo::options_description config_options;
-  config_options
-    .add(system)
-    .add(network)
-    .add(client);
+  config_options.add(system).add(network).add(client);
   // Map and store command-line options
   bpo::store(
-      bpo::command_line_parser(m_Args).options(cli_options).run(),
-      m_Map);
+      bpo::command_line_parser(m_Args).options(cli_options).run(), m_Map);
   bpo::notify(m_Map);
   // Help options
-  if (m_Map.count("help")) {
-    std::cout << config_options << std::endl;
-    throw std::runtime_error("for more details, see user-guide or config file");
-  }
+  if (m_Map.count("help"))
+    {
+      std::cout << config_options << std::endl;
+      throw std::runtime_error(
+          "for more details, see user-guide or config file");
+    }
   // Parse config file after mapping command-line
   // TODO(anonimal): we want to be able to reload config file without original
   // cli args overwriting any *new* config file options
@@ -177,28 +176,30 @@ void Configuration::ParseConfig() {
 void Configuration::ParseConfigFile(
     const std::string& file,
     const bpo::options_description& options,
-    bpo::variables_map& var_map) {
+    bpo::variables_map& var_map)
+{
   std::ifstream filename(file.c_str());
   if (!filename)
     throw std::runtime_error("Could not open " + file + "!\n");
+
   bpo::store(bpo::parse_config_file(filename, options), var_map);
   bpo::notify(var_map);
+
   // Check host syntax
   boost::system::error_code ec;
-  boost::asio::ip::address::from_string(
-      m_Map["host"].as<std::string>(), ec);
+  boost::asio::ip::address::from_string(m_Map["host"].as<std::string>(), ec);
   if (ec)
     throw std::runtime_error("Invalid host: " + ec.message());
+
   // Ensure port in valid range
   if (!m_Map["port"].defaulted())
     {
       int port = m_Map["port"].as<int>();
-      if ((port < core::RouterInfo::MinPort)
-          || (port > core::RouterInfo::MaxPort))
+      if ((port < RouterInfo::MinPort)
+          || (port > RouterInfo::MaxPort))
         throw std::runtime_error(
-            "Port not in range [" + std::to_string(core::RouterInfo::MinPort)
-            + ","
-            + std::to_string(core::RouterInfo::MaxPort)
+            "Port not in range [" + std::to_string(RouterInfo::MinPort)
+            + "," + std::to_string(RouterInfo::MaxPort)
             + "], see user-guide or config file");
     }
 }
@@ -206,12 +207,12 @@ void Configuration::ParseConfigFile(
 void Configuration::SetupGlobalPath()
 {
   context.SetCustomDataDir(
-      m_Map["data-dir"].defaulted()
-          ? kovri::core::GetDefaultDataPath().string()
-          : m_Map["data-dir"].as<std::string>());
+      m_Map["data-dir"].defaulted() ? GetDefaultDataPath().string()
+                                    : m_Map["data-dir"].as<std::string>());
 }
 
-void Configuration::SetupAESNI() {
+void Configuration::SetupAESNI()
+{
   // TODO(anonimal): implement user-option to disable AES-NI auto-detection
   core::SetupAESNI();
 }

@@ -50,15 +50,16 @@
 #include "core/util/filesystem.h"
 #include "core/util/log.h"
 
-namespace kovri {
-namespace app {
-
-class DaemonSingleton {
+namespace kovri
+{
+namespace app
+{
+class DaemonSingleton
+{
  public:
   /// @brief Get/Set configuration options before initialization/forking
   /// @param args Reference to string vector of command line args
-  virtual bool Configure(
-      const std::vector<std::string>& args);
+  virtual bool Configure(const std::vector<std::string>& args);
 
   /// @brief Forks process if daemon mode is set, initializes contexts
   /// @warning Child *must* fork *before* contexts are initialized
@@ -91,9 +92,11 @@ class DaemonSingleton {
 };
 
 #ifdef _WIN32
-class DaemonWin32 : public DaemonSingleton {
+class DaemonWin32 : public DaemonSingleton
+{
  public:
-  static DaemonWin32& Instance() {
+  static DaemonWin32& Instance()
+  {
     static DaemonWin32 instance;
     return instance;
   }
@@ -104,12 +107,12 @@ class DaemonWin32 : public DaemonSingleton {
   virtual bool Stop();
 };
 #else
-class DaemonLinux : public DaemonSingleton {
+class DaemonLinux : public DaemonSingleton
+{
  public:
-  DaemonLinux() : m_PIDFileHandle()
+  DaemonLinux() : m_PIDFileHandle() {}
+  static DaemonLinux& Instance()
   {
-  }
-  static DaemonLinux& Instance() {
     static DaemonLinux instance;
     return instance;
   }

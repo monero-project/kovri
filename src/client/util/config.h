@@ -33,8 +33,8 @@
 
 #include "core/util/config.h"
 
-#include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/program_options.hpp>
 
 #include <cstdint>
 #include <map>
@@ -46,12 +46,14 @@
 #include "core/util/exception.h"
 #include "core/util/filesystem.h"
 
-namespace kovri {
-namespace client {
-
+namespace kovri
+{
+namespace client
+{
 /// @enum Key
 /// @brief Tunnels config attribute key for const tunnel param string
-enum struct Key : std::uint8_t {
+enum struct Key : std::uint8_t
+{
   /// @var Type
   /// @brief Key for type of tunnel  (client/server/HTTP, etc.)
   Type,
@@ -99,7 +101,8 @@ enum struct Key : std::uint8_t {
 /// @class Configuration
 /// @brief Client configuration implementation
 /// @note Core configuration SHOULD be initialized first
-class Configuration {
+class Configuration
+{
  public:
   explicit Configuration(const core::Configuration& core_config);
 
@@ -116,21 +119,23 @@ class Configuration {
 
   /// @brief Gets tunnels config member
   /// @return Reference to tunnels attributes vector member
-  std::vector<kovri::client::TunnelAttributes>& GetParsedTunnelsConfig() noexcept {
+  std::vector<TunnelAttributes>& GetParsedTunnelsConfig() noexcept
+  {
     return m_TunnelsConfig;
   }
 
   /// @brief Gets complete path + name of tunnels config
   /// @return Boost filesystem path of file
   /// @warning Config file must first be parsed
-  boost::filesystem::path GetConfigPath() {
+  boost::filesystem::path GetConfigPath()
+  {
     std::string tunnels_config =
         m_CoreConfig.GetMap()["tunnelsconf"].defaulted()
             ? "tunnels.conf"
             : m_CoreConfig.GetMap()["tunnelsconf"].as<std::string>();
     boost::filesystem::path file(tunnels_config);
     if (!file.is_complete())
-      file = kovri::core::GetConfigPath() / file;
+      file = core::GetConfigPath() / file;
     return file;
   }
 

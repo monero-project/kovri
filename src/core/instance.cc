@@ -33,8 +33,8 @@
 #include "core/instance.h"
 
 #include <cstdint>
-#include <stdexcept>
 #include <memory>
+#include <stdexcept>
 
 // TODO(anonimal): we musn't use client code in core...
 #include "client/reseed.h"
@@ -48,9 +48,10 @@
 
 #include "version.h"
 
-namespace kovri {
-namespace core {
-
+namespace kovri
+{
+namespace core
+{
 Instance::Instance(const std::vector<std::string>& args) try
     : m_Exception(__func__),
       m_Config(args)
@@ -75,40 +76,49 @@ catch (...)
 Instance::~Instance() {}
 
 // Note: we'd love Instance RAII but singleton needs to be daemonized (if applicable) before initialization
-void Instance::Initialize() {
+void Instance::Initialize()
+{
   // TODO(unassigned): see TODO's for router context and singleton
-  LOG(debug) << "Instance: initializing core context";
+  LOG(debug) << "Instance: initializing core";
   auto map = m_Config.GetMap();
   auto host = map["host"].as<std::string>();
+
   // Random generated port if none is supplied via CLI or config
   // See: i2p.i2p/router/java/src/net/i2p/router/transport/udp/UDPEndpoint.java
   auto port = map["port"].defaulted()
-                  ? kovri::core::RandInRange32(
-                        core::RouterInfo::MinPort, core::RouterInfo::MaxPort)
+                  ? RandInRange32(RouterInfo::MinPort, RouterInfo::MaxPort)
                   : map["port"].as<int>();
+  LOG(info) << "Instance: listening on port "
+            << map["port"].as<int>();  // TODO(anonimal): fix
+
   // TODO(unassigned): context should be in core namespace (see TODO in router context)
-  kovri::context.Init(host, port);
-  kovri::context.UpdatePort(port);
-  LOG(info) << "Instance: listening on port " << map["port"].as<int>();
-  kovri::context.UpdateAddress(boost::asio::ip::address::from_string(host));
-  kovri::context.SetSupportsV6(map["v6"].as<bool>());
-  kovri::context.SetFloodfill(map["floodfill"].as<bool>());
+  context.Init(host, port);
+  context.UpdatePort(port);
+
+  context.UpdateAddress(boost::asio::ip::address::from_string(host));
+  context.SetSupportsV6(map["v6"].as<bool>());
+  context.SetFloodfill(map["floodfill"].as<bool>());
+
   auto bandwidth = map["bandwidth"].as<std::string>();
-  if (!bandwidth.empty()) {
-    if (bandwidth[0] > 'L')
-      kovri::context.SetHighBandwidth();
-    else
-      kovri::context.SetLowBandwidth();
-  }
+  if (!bandwidth.empty())
+    {
+      if (bandwidth[0] > 'L')
+        context.SetHighBandwidth();
+      else
+        context.SetLowBandwidth();
+    }
+
   // Set reseed options
-  kovri::context.SetOptionReseedFrom(map["reseed-from"].as<std::string>());
-  kovri::context.SetOptionDisableSU3Verification(
+  context.SetOptionReseedFrom(map["reseed-from"].as<std::string>());
+  context.SetOptionDisableSU3Verification(
       map["disable-su3-verification"].as<bool>());
+
   // Set transport options
-  kovri::context.SetSupportsNTCP(map["enable-ntcp"].as<bool>());
-  kovri::context.SetSupportsSSU(map["enable-ssu"].as<bool>());
+  context.SetSupportsNTCP(map["enable-ntcp"].as<bool>());
+  context.SetSupportsSSU(map["enable-ssu"].as<bool>());
+
   // Set SSL option
-  kovri::context.SetOptionEnableSSL(map["enable-ssl"].as<bool>());
+  context.SetOptionEnableSSL(map["enable-ssl"].as<bool>());
 }
 
 void Instance::Start()
@@ -117,24 +127,24 @@ void Instance::Start()
     {
       // NetDb
       LOG(debug) << "Instance: starting NetDb";
-      if (!kovri::core::netdb.Start())
+      if (!netdb.Start())
         throw std::runtime_error("Instance: NetDb failed to start");
 
       // Reseed
-      if (core::netdb.GetNumRouters() < core::NetDb::Size::MinRequiredRouters)
+      if (netdb.GetNumRouters() < NetDb::Size::MinRequiredRouters)
         {
           LOG(debug) << "Instance: reseeding NetDb";
           // TODO(anonimal): we musn't use client code in core...
-          kovri::client::Reseed reseed;
+          client::Reseed reseed;
           if (!reseed.Start())
             throw std::runtime_error("Instance: reseed failed");
         }
 
       LOG(debug) << "Instance: starting transports";
-      kovri::core::transports.Start();
+      transports.Start();
 
       LOG(debug) << "Instance: starting tunnels";
-      kovri::core::tunnels.Start();
+      tunnels.Start();
     }
   catch (...)
     {
@@ -142,7 +152,7 @@ void Instance::Start()
       throw;
     }
 
-  LOG(info) << "Instance: successfully started";
+  LOG(info) << "Instance: core successfully started";
 }
 
 void Instance::Stop()
@@ -150,13 +160,13 @@ void Instance::Stop()
   try
     {
       LOG(debug) << "Instance: stopping tunnels";
-      kovri::core::tunnels.Stop();
+      tunnels.Stop();
 
       LOG(debug) << "Instance: stopping transports";
-      kovri::core::transports.Stop();
+      transports.Stop();
 
       LOG(debug) << "Instance: stopping NetDb";
-      kovri::core::netdb.Stop();
+      netdb.Stop();
     }
   catch (...)
     {
@@ -164,7 +174,7 @@ void Instance::Stop()
       throw;
     }
 
-  LOG(info) << "Instance: successfully stopped";
+  LOG(info) << "Instance: core successfully stopped";
 }
 
 }  // namespace core

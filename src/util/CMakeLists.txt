@@ -9,6 +9,10 @@ set(UTIL_SRC
   "routerinfo.cc"
   "su3file.cc")
 
+if(NOT WIN32)
+  list(APPEND UTIL_SRC "kovri.cc")
+endif()
+
 if(WITH_CRYPTOPP)
   list(APPEND UTIL_SRC
   "cpuid.cc")

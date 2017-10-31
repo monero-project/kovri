@@ -44,6 +44,10 @@
 #include "util/routerinfo.h"
 #include "util/su3file.h"
 
+#ifndef _WIN32
+#include "util/kovri.h"
+#endif
+
 namespace bpo = boost::program_options;
 typedef std::map<std::string, Command*> ListCommands;
 
@@ -62,18 +66,29 @@ void PrintUsage(
 int main(int argc, const char* argv[])
 {
   ListCommands list_cmd;
+
   Base32Command base32_cmd;
-  Base64Command base64_cmd;
-  SU3FileCommand su3file_cmd;
-  RouterInfoCommand routerinfo_cmd;
-  Benchmark benchmark_cmd;
-  I2PControlCommand i2pcontrol_cmd;
   list_cmd[base32_cmd.GetName()] = &base32_cmd;
+
+  Base64Command base64_cmd;
   list_cmd[base64_cmd.GetName()] = &base64_cmd;
+
+  SU3FileCommand su3file_cmd;
   list_cmd[su3file_cmd.GetName()] = &su3file_cmd;
+
+  RouterInfoCommand routerinfo_cmd;
   list_cmd[routerinfo_cmd.GetName()] = &routerinfo_cmd;
+
+  Benchmark benchmark_cmd;
   list_cmd[benchmark_cmd.GetName()] = &benchmark_cmd;
+
+  I2PControlCommand i2pcontrol_cmd;
   list_cmd[i2pcontrol_cmd.GetName()] = &i2pcontrol_cmd;
+
+#ifndef _WIN32
+  KovriCommand kovri_cmd;
+  list_cmd[kovri_cmd.GetName()] = &kovri_cmd;
+#endif
 
 #ifdef WITH_CRYPTOPP
   CpuidCommand cpuid_cmd;

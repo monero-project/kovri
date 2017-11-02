@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2015-2017, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -26,77 +26,50 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,          //
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF    //
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
- *                                                                                            //
- * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
+#ifndef SRC_UTIL_KOVRI_H_
+#define SRC_UTIL_KOVRI_H_
+
+#include <memory>
 #include <string>
+#include <vector>
 
-#include "daemon.h"
+#include "util/command.h"
 
-#include "client/util/config.h"
+#include "client/instance.h"
 
-#include "core/util/log.h"
+#include "core/util/exception.h"
 
-#ifdef _WIN32
+/**
+ * @class KovriCommand
+ * @brief class for command kovri
+ */
 
-#include "app/win32_service.h"
+class KovriCommand : public Command
+{
+ public:
+  KovriCommand();
 
-namespace kovri {
-namespace app {
+  void PrintUsage(const std::string& cmd_name) const;
 
-bool DaemonWin32::Configure(
-    const std::vector<std::string>& args) {
-  return DaemonSingleton::Configure(args);
-}
+  bool Impl(const std::string& path, const std::vector<std::string>& args);
 
-bool DaemonWin32::Initialize() {
-  // TODO(unassigned): use Boost.Locale
-  setlocale(LC_CTYPE, "");  // "" uses environment's default locale
-  SetConsoleCP(65001);  // UTF-8
-  SetConsoleOutputCP(65001);
-  setlocale(LC_ALL, "");
-  if (I2PService::IsService())
-    m_IsDaemon = true;
-  else
-    m_IsDaemon = false;
-  if (m_Service == "install") {
-    InstallService(
-        SERVICE_NAME,               // Name of service
-        SERVICE_DISPLAY_NAME,       // Name to display
-        SERVICE_START_TYPE,         // Service start type
-        SERVICE_DEPENDENCIES,       // Dependencies
-        SERVICE_ACCOUNT,            // Service running account
-        SERVICE_PASSWORD);          // Password of the account
-    exit(0);
-  } else if (m_Service == "remove") {
-    UninstallService(SERVICE_NAME);
-    exit(0);
+  std::string GetName(void) const
+  {
+    return "kovri";
   }
-  if (m_IsDaemon) {
-    LOG(info) << "DaemonWin32: service session";
-    I2PService service(SERVICE_NAME);
-    if (!I2PService::Run(service)) {
-      LOG(error)
-        << "DaemonWin32: service failed to run w/err 0x%08lx\n", GetLastError();
-      exit(EXIT_FAILURE);
-    }
-    exit(EXIT_SUCCESS);
-  } else {
-    LOG(info) << "DaemonWin32: user session";
-  }
-  return DaemonSingleton::Initialize();
-}
 
-bool DaemonWin32::Start() {
-  return DaemonSingleton::Start();
-}
+ private:
+  /// @brief Exception dispatcher
+  kovri::core::Exception m_Exception;
 
-bool DaemonWin32::Stop() {
-  return DaemonSingleton::Stop();
-}
+  /// @brief Kovri instance
+  std::unique_ptr<kovri::client::Instance> m_Client;
 
-}  // namespace app
-}  // namespace kovri
+ private:
+  /// @brief Signal handler
+  static void Signal(int signal);
+};
 
-#endif
+#endif  // SRC_UTIL_KOVRI_H_

@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2015-2017, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -26,77 +26,88 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,          //
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF    //
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
- *                                                                                            //
- * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#include <string>
+#ifndef SRC_CLIENT_INSTANCE_H_
+#define SRC_CLIENT_INSTANCE_H_
 
-#include "daemon.h"
+#include <string>
+#include <vector>
 
 #include "client/util/config.h"
+#include "core/instance.h"
 
-#include "core/util/log.h"
+namespace kovri
+{
+namespace client
+{
+// TODO(anonimal): we currently want to limit core interaction through client only for all apps and most API cases.
+//  A member function getter can return the object which will (should) change mutable data via the core API.
+//  In essence, the core and client Instance objects are essentially a preliminary API.
 
-#ifdef _WIN32
+/// @class Instance
+/// @brief Client instance implementation
+/// @note Owns core instance object
+/// @note It is currently implied that only a single configuration object will
+///   be used by a single instance object.
+class Instance
+{
+ public:
+  explicit Instance(std::unique_ptr<core::Instance> core);
 
-#include "app/win32_service.h"
+  // TODO(anonimal): overload ctor
+  ~Instance();
 
-namespace kovri {
-namespace app {
+  /// @brief Initializes the router's client context object
+  /// @details Creates tunnels, proxies and I2PControl service
+  void Initialize();
 
-bool DaemonWin32::Configure(
-    const std::vector<std::string>& args) {
-  return DaemonSingleton::Configure(args);
-}
+  /// @brief Starts instance
+  void Start();
 
-bool DaemonWin32::Initialize() {
-  // TODO(unassigned): use Boost.Locale
-  setlocale(LC_CTYPE, "");  // "" uses environment's default locale
-  SetConsoleCP(65001);  // UTF-8
-  SetConsoleOutputCP(65001);
-  setlocale(LC_ALL, "");
-  if (I2PService::IsService())
-    m_IsDaemon = true;
-  else
-    m_IsDaemon = false;
-  if (m_Service == "install") {
-    InstallService(
-        SERVICE_NAME,               // Name of service
-        SERVICE_DISPLAY_NAME,       // Name to display
-        SERVICE_START_TYPE,         // Service start type
-        SERVICE_DEPENDENCIES,       // Dependencies
-        SERVICE_ACCOUNT,            // Service running account
-        SERVICE_PASSWORD);          // Password of the account
-    exit(0);
-  } else if (m_Service == "remove") {
-    UninstallService(SERVICE_NAME);
-    exit(0);
+  /// @brief Stops instance
+  void Stop();
+
+  /// @brief Reloads configuration
+  /// @notes TODO(unassigned): should also reload client context
+  void Reload();
+
+  /// @brief Get client configuration object
+  /// @return Reference to configuration object
+  const Configuration& GetConfig() const noexcept
+  {
+    return m_Config;
   }
-  if (m_IsDaemon) {
-    LOG(info) << "DaemonWin32: service session";
-    I2PService service(SERVICE_NAME);
-    if (!I2PService::Run(service)) {
-      LOG(error)
-        << "DaemonWin32: service failed to run w/err 0x%08lx\n", GetLastError();
-      exit(EXIT_FAILURE);
-    }
-    exit(EXIT_SUCCESS);
-  } else {
-    LOG(info) << "DaemonWin32: user session";
-  }
-  return DaemonSingleton::Initialize();
-}
 
-bool DaemonWin32::Start() {
-  return DaemonSingleton::Start();
-}
+ private:
+  /// @brief Sets up (or reloads) client/server tunnels
+  /// @warning Configuration files must be parsed prior to setup
+  void SetupTunnels();
 
-bool DaemonWin32::Stop() {
-  return DaemonSingleton::Stop();
-}
+  /// @brief Should remove old tunnels after tunnels config is updated
+  /// @param updated_client_tunnels List of client tunnels to keep
+  /// @param updated_server_tunnels List of server tunnels to keep
+  void RemoveOldTunnels(
+      const std::vector<std::string>& updated_client_tunnels,
+      const std::vector<std::string>& updated_server_tunnels);
 
-}  // namespace app
+ private:
+  /// @brief Exception dispatcher
+  core::Exception m_Exception;
+
+  /// @brief Core instance
+  std::unique_ptr<core::Instance> m_Core;
+
+  /// @brief Client configuration implementation
+  /// @note Must be initialized with core configuration
+  Configuration m_Config;
+
+  /// @brief Is client configuration in the process of reloading?
+  /// TODO(unassigned): expand types of reloading
+  bool m_IsReloading;
+};
+
+}  // namespace client
 }  // namespace kovri
 
-#endif
+#endif  // SRC_CLIENT_INSTANCE_H_

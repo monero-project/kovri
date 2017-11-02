@@ -28,81 +28,37 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#ifndef SRC_APP_CONFIG_H_
-#define SRC_APP_CONFIG_H_
+#ifndef SRC_CORE_UTIL_CONFIG_H_
+#define SRC_CORE_UTIL_CONFIG_H_
 
-#include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/program_options.hpp>
 
 #include <cstdint>
 #include <map>
 #include <string>
 #include <vector>
 
-#include "client/tunnel.h"
-
+#include "core/util/exception.h"
 #include "core/util/filesystem.h"
 
-namespace kovri {
-namespace app {
-
-/// @enum Key
-/// @brief Tunnels config attribute key for const tunnel param string
-enum struct Key : std::uint8_t {
-  /// @var Type
-  /// @brief Key for type of tunnel  (client/server/HTTP, etc.)
-  Type,
-  /// @var Client
-  /// @brief Key for client tunnel
-  Client,
-  /// @var IRC
-  /// @brief Key for IRC tunnel
-  IRC,
-  /// @var Server
-  /// @brief Key for server tunnel
-  Server,
-  /// @var HTTP
-  /// @brief Key for HTTP tunnel
-  HTTP,
-  /// @var Address
-  /// @brief Key for local listening address that you or service connects to
-  /// @notes Should default to 127.0.0.1
-  Address,
-  /// @var Dest
-  /// @brief Key for I2P hostname or .b32 address
-  Dest,
-  /// @var DestPort
-  /// @brief Key for I2P destination port used in destination
-  DestPort,
-  /// @var InPort
-  /// @brief Key for I2P service port. If unset, should be the same as 'port'
-  InPort,
-  /// @var Whitelist
-  /// @brief Key for Access Control whitelist of I2P addresses for server tunnel
-  Whitelist,
-  /// @var Blackslist
-  /// @brief Key for Access Control blacklist of I2P addresses for server tunnel
-  Blacklist,
-  /// @var Port
-  /// @brief Key for port of our listening client or server tunnel
-  ///   (example: port 80 if you are hosting website)
-  Port,
-  /// @var Keys
-  /// @brief Key for client tunnel identity
-  ///   or file with LeaseSet of local service I2P address
-  Keys,
-};
-
+namespace kovri
+{
+namespace core
+{
 /// @class Configuration
-/// @brief Configuration processing and implementation
-class Configuration {
+/// @brief Core configuration implementation
+class Configuration
+{
  public:
-   Configuration(
-       const std::vector<std::string>& args)
-       : m_Args(args) {}
+  /// @param args Taken as standard argv arguments (element = "space delimited" arg)
+  explicit Configuration(
+      const std::vector<std::string>& args = std::vector<std::string>());
 
-  /// @brief Parse command line arguments
-  void ParseKovriConfig();
+  ~Configuration();
+
+  /// @brief Parse config arguments
+  void ParseConfig();
 
   /// @details This configures/sets up the global path.
   /// @warning Kovri config must first be parsed and this must be called before anything else
@@ -112,67 +68,36 @@ class Configuration {
   /// @warning Kovri config must first be parsed
   void SetupAESNI();
 
-  /// @brief Parses tunnel configuration file
-  /// @warning Logging must be setup to see any debug output
-  void ParseTunnelsConfig();
+  /// @brief Gets complete path + name of core config
+  /// @return Boost filesystem path of file
+  /// @warning Config file must first be parsed
+  const boost::filesystem::path GetConfigPath() const
+  {
+    std::string kovri_config = m_Map["kovriconf"].defaulted()
+                                   ? "kovri.conf"
+                                   : m_Map["kovriconf"].as<std::string>();
+    boost::filesystem::path file(kovri_config);
+    if (!file.is_complete())
+      file = core::GetConfigPath() / file;
+    return file;
+  }
 
-  /// @brief Gets pre-defined tunnel attribute from tunnel config
-  /// @param key Key for tunnels config attribute
-  const std::string GetAttribute(Key key) const;
+  /// @brief Gets core config variable map
+  /// @return Reference to kovri config member variable map
+  const boost::program_options::variables_map& GetMap() const noexcept
+  {
+    return m_Map;
+  }
 
  private:
-  /// @var m_Args
+  /// @brief Exception dispatcher
+  core::Exception m_Exception;
+
   /// @brief Vector of string arguments passed to configuration
   std::vector<std::string> m_Args;
 
-  /// @var m_KovriConfig
-  /// @brief Variable map for command-line and kovri config file data
-  boost::program_options::variables_map m_KovriConfig{};
-
-  /// @var m_TunnelsConfig
-  /// @brief Vector of all sections in a tunnel configuration
-  std::vector<kovri::client::TunnelAttributes> m_TunnelsConfig{};
-
- public:
-  /// @brief Gets kovri config variable map
-  /// @return Reference to kovri config member variable map
-  boost::program_options::variables_map& GetParsedKovriConfig() noexcept {
-    return m_KovriConfig;
-  }
-
-  /// @brief Gets tunnels config member
-  /// @return Reference to tunnels attributes vector member
-  std::vector<kovri::client::TunnelAttributes>& GetParsedTunnelsConfig() noexcept {
-    return m_TunnelsConfig;
-  }
-
-  /// @brief Gets complete path + name of kovri config
-  /// @return Boost filesystem path of file
-  /// @warning Config file must first be parsed
-  boost::filesystem::path GetConfigFile() {
-    std::string kovri_config =
-        m_KovriConfig["kovriconf"].defaulted()
-            ? "kovri.conf"
-            : m_KovriConfig["kovriconf"].as<std::string>();
-    boost::filesystem::path file(kovri_config);
-    if (!file.is_complete())
-      file = kovri::core::GetConfigPath() / file;
-    return file;
-  }
-
-  /// @brief Gets complete path + name of tunnels config
-  /// @return Boost filesystem path of file
-  /// @warning Config file must first be parsed
-  boost::filesystem::path GetTunnelsConfigFile() {
-    std::string tunnels_config =
-        m_KovriConfig["tunnelsconf"].defaulted()
-            ? "tunnels.conf"
-            : m_KovriConfig["tunnelsconf"].as<std::string>();
-    boost::filesystem::path file(tunnels_config);
-    if (!file.is_complete())
-      file = kovri::core::GetConfigPath() / file;
-    return file;
-  }
+  /// @brief Variable map for command-line and core config file data
+  boost::program_options::variables_map m_Map{};
 
  private:
   // TODO(unassigned): improve this function and use-case
@@ -181,13 +106,13 @@ class Configuration {
   /// @param config_options Reference to instantiated options_description
   /// @param var_map Reference to instantiated variables map
   /// @notes command-line opts take precedence over config file opts
-  void ParseKovriConfigFile(
+  void ParseConfigFile(
       const std::string& config,
       const boost::program_options::options_description& config_options,
       boost::program_options::variables_map& var_map);
 };
 
-}  // namespace app
+}  // namespace core
 }  // namespace kovri
 
-#endif  // SRC_APP_CONFIG_H_
+#endif  // SRC_CORE_UTIL_CONFIG_H_

@@ -77,12 +77,12 @@ void handle_signal(int sig) {
 namespace kovri {
 namespace app {
 
-bool DaemonLinux::Config(
+bool DaemonLinux::Configure(
     const std::vector<std::string>& args) {
-  return DaemonSingleton::Config(args);
+  return DaemonSingleton::Configure(args);
 }
 
-bool DaemonLinux::Init() {
+bool DaemonLinux::Initialize() {
   m_PIDPath = kovri::core::GetDataPath().string();
   m_PIDFile = (kovri::core::GetDataPath() / "kovri.pid").string();
 
@@ -155,7 +155,7 @@ bool DaemonLinux::Init() {
   sigaction(SIGABRT, &sa, 0);
   sigaction(SIGTERM, &sa, 0);
   sigaction(SIGINT, &sa, 0);
-  return DaemonSingleton::Init();
+  return DaemonSingleton::Initialize();
 }
 
 bool DaemonLinux::Start() {

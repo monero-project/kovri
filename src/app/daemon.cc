@@ -32,123 +32,109 @@
 
 #include "app/daemon.h"
 
-#include <boost/property_tree/ini_parser.hpp>
-#include <boost/property_tree/ptree.hpp>
-
-#include <thread>
+#include <exception>
+#include <memory>
 #include <vector>
 
-#include "client/context.h"
+#include "client/instance.h"
 
-#include "core/router/net_db/impl.h"
-#include "core/router/transports/impl.h"
-#include "core/router/tunnel/impl.h"
-
-namespace kovri {
-namespace app {
-
+namespace kovri
+{
+namespace app
+{
 DaemonSingleton::DaemonSingleton()
-    : m_IsDaemon(false),
-      m_IsRunning(true),
-      m_Instance(nullptr) {}
+    : m_Exception(__func__), m_IsDaemon(false), m_IsRunning(true)
+{
+}
 
 DaemonSingleton::~DaemonSingleton() {}
 
-bool DaemonSingleton::Config(
-    const std::vector<std::string>& args) {
-  // TODO(unassigned): ideally, all instance configuration, etc., happens outside of singleton
-  m_Instance = std::make_unique<Instance>(args);
-  try {
-    m_Instance->Configure();
-  } catch (const std::exception& ex) {
-    LOG(error) << "DaemonSingleton: " << ex.what();
-    return false;
-  } catch (...) {
-    LOG(error) << "DaemonSingleton: unknown exception when configuring";
-    return false;
-  }
-  // Set daemon mode (if applicable)
-  m_IsDaemon = m_Instance->GetConfig().GetParsedKovriConfig().at("daemon").as<bool>();
+// Note: we'd love Instance RAII but singleton needs to be daemonized (if applicable) before initialization
+
+bool DaemonSingleton::Configure(const std::vector<std::string>& args)
+{
+  try
+    {
+      // TODO(anonimal): we currently want to limit core interaction through client only for all apps and most API users.
+      //  A member function getter can return the object which will (should) change mutable data via the core API.
+      //  In essence, the core and client Instance objects are essentially a preliminary API.
+
+      // Create/configure core instance
+      auto core = std::make_unique<core::Instance>(args);
+
+      // Set daemon mode (if applicable)
+      m_IsDaemon = core->GetConfig().GetMap().at("daemon").as<bool>();
 #ifdef _WIN32
-  m_Service = m_Instance->GetConfig().GetParsedKovriConfig().at("service").as<std::string>();
+      m_Service = core->GetConfig().GetMap().at("service").as<std::string>();
 #endif
-  return true;
-}
-
-bool DaemonSingleton::Init() {
-  // We must initialize contexts here (in child process, if in daemon mode)
-  try {
-    m_Instance->Initialize();
-  } catch (const std::exception& ex) {
-    LOG(error) << "DaemonSingleton: exception during initialization: " << ex.what();
-    // TODO(anonimal): Instance and RAII refactoring
-    Stop();
-    return false;
-  } catch (...) {
-    LOG(error) << "DaemonSingleton: unknown exception during initialization";
-    return false;
-  }
-  return true;
-}
-
-// TODO(anonimal): when refactoring TODO's for singleton, have instance Start
-bool DaemonSingleton::Start() {
-  try {
-    LOG(debug) << "DaemonSingleton: starting NetDb";
-    if (!kovri::core::netdb.Start()) {
-      LOG(error) << "DaemonSingleton: NetDb failed to start";
+      // Create/configure client instance
+      m_Client = std::make_unique<client::Instance>(std::move(core));
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
       return false;
     }
-    if (core::netdb.GetNumRouters() < core::NetDb::Size::MinRequiredRouters) {
-      LOG(debug) << "DaemonSingleton: reseeding NetDb";
-      kovri::client::Reseed reseed;
-      if (!reseed.Start()) {
-        LOG(error) << "DaemonSingleton: reseed failed";
-        return false;
-      }
+
+  LOG(info) << "DaemonSingleton: configured";
+  return true;
+}
+
+bool DaemonSingleton::Initialize()
+{
+  // We must initialize contexts here (in child process, if in daemon mode)
+  try
+    {
+      m_Client->Initialize();
     }
-    LOG(debug) << "DaemonSingleton: starting transports";
-    kovri::core::transports.Start();
-    LOG(debug) << "DaemonSingleton: starting tunnels";
-    kovri::core::tunnels.Start();
-    LOG(debug) << "DaemonSingleton: starting client";
-    kovri::client::context.Start();
-  } catch (const std::exception& ex) {
-    LOG(error) << "DaemonSingleton: start exception: " << ex.what();
-    return false;
-  }  catch (...) {
-    LOG(error) << "DaemonSingleton: unknown exception when starting";
-    return false;
-  }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      Stop();
+      return false;
+    }
+
+  LOG(info) << "DaemonSingleton: initialized";
+  return true;
+}
+
+bool DaemonSingleton::Start()
+{
+  try
+    {
+      m_Client->Start();
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      return false;
+    }
+
   LOG(info) << "DaemonSingleton: successfully started";
   return true;
 }
 
-void DaemonSingleton::Reload() {
+void DaemonSingleton::Reload()
+{
+  // TODO(unassigned): reload complete instance?
   // TODO(unassigned): do we want to add locking?
   LOG(info) << "DaemonSingleton: reloading configuration";
-  // Reload tunnels configuration
-  m_Instance->Reload();
+  // Reload client configuration
+  m_Client->Reload();
 }
 
-// TODO(anonimal): when refactoring TODO's for singleton, have instance Stop
-bool DaemonSingleton::Stop() {
-  try {
-    LOG(debug) << "DaemonSingleton: stopping client";
-    kovri::client::context.Stop();
-    LOG(debug) << "DaemonSingleton: stopping tunnels";
-    kovri::core::tunnels.Stop();
-    LOG(debug) << "DaemonSingleton: stopping transports";
-    kovri::core::transports.Stop();
-    LOG(debug) << "DaemonSingleton: stopping NetDb";
-    kovri::core::netdb.Stop();
-  } catch (const std::exception& ex) {
-    LOG(error) << "DaemonSingleton: stop exception: " << ex.what();
-    return false;
-  }  catch (...) {
-    LOG(error) << "DaemonSingleton: unknown exception when stopping";
-    return false;
-  }
+bool DaemonSingleton::Stop()
+{
+  try
+    {
+      m_Client->Stop();
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      return false;
+    }
+
   LOG(info) << "DaemonSingleton: successfully stopped";
   LOG(info) << "Goodbye!";
   return true;

@@ -28,76 +28,55 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#ifndef SRC_APP_INSTANCE_H_
-#define SRC_APP_INSTANCE_H_
+#ifndef SRC_CORE_INSTANCE_H_
+#define SRC_CORE_INSTANCE_H_
 
 #include <string>
 #include <vector>
 
-#include "app/config.h"
+#include "core/util/config.h"
+#include "core/util/exception.h"
 
-namespace kovri {
-namespace app {
-
+namespace kovri
+{
+namespace core
+{
 /// @class Instance
-/// @brief Instance implementation for client / router contexts
-/// @notes It is currently implied that only a single configuration object will
-///   be used by a single instance object.
-class Instance {
+/// @brief Core instance implementation
+class Instance
+{
  public:
-   // TODO(unassigned): see note and TODO in main about multiple instances
-   explicit Instance(
-       const std::vector<std::string>& args);
+  /// @param args argc + argv style options
+  explicit Instance(
+      const std::vector<std::string>& args = std::vector<std::string>());
 
-   ~Instance();
+  ~Instance();
 
-  /// @brief Configures instance
-  void Configure();
-
-  /// @brief Initializes instance (client/router contexts)
+  /// @brief Initializes router context / core settings
   void Initialize();
 
-  /// @brief Reloads configuration
-  /// @notes TODO(unassigned): should also reload client/router contexts
-  void Reload();
+  /// @brief Starts instance
+  void Start();
+
+  /// @brief Stops instance
+  void Stop();
 
   /// @brief Get configuration object
   /// @return Reference to configuration object
-  Configuration& GetConfig() noexcept {
+  const Configuration& GetConfig() const noexcept
+  {
     return m_Config;
   }
 
  private:
-  /// @brief Initializes router context / core settings
-  void InitRouterContext();
+  /// @brief Exception dispatcher
+  core::Exception m_Exception;
 
-  /// @brief Initializes the router's client context object
-  /// @details Creates tunnels, proxies and I2PControl service
-  void InitClientContext();
-
-  /// @brief Sets up (or reloads) client/server tunnels
-  /// @warning Configuration files must be parsed prior to setup
-  void SetupTunnels();
-
-  /// @brief Should remove old tunnels after tunnels config is updated
-  /// @param updated_client_tunnels List of client tunnels to keep
-  /// @param updated_server_tunnels List of server tunnels to keep
-  void RemoveOldTunnels(
-      const std::vector<std::string>& updated_client_tunnels,
-      const std::vector<std::string>& updated_server_tunnels);
-
- private:
-  /// @var m_Config
-  /// @brief Configuration implementation
+  /// @brief Client configuration implementation
   Configuration m_Config;
-
-  /// @var m_IsReloading
-  /// @brief Are tunnels configuration in the process of reloading?
-  /// TODO(unassigned): expand types of reloading
-  bool m_IsReloading;
 };
 
-}  // namespace app
+}  // namespace core
 }  // namespace kovri
 
-#endif  // SRC_APP_INSTANCE_H_
+#endif  // SRC_CORE_INSTANCE_H_

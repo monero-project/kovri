@@ -52,7 +52,7 @@ class Exception final {
   void Dispatch(const char* message = "");
 
  private:
-  std::string m_CtorMessage, m_Message;
+  std::string m_Message;
 };
 
 }  // namespace core

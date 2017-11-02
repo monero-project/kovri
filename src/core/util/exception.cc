@@ -42,33 +42,44 @@
 namespace kovri {
 namespace core {
 
-Exception::Exception(const char* message) : m_CtorMessage(message) {}
+Exception::Exception(const char* message) : m_Message(message) {}
 
 // TODO(anonimal): exception error codes to replace strings?
-void Exception::Dispatch(const char* message) {
-  // Reset previous Message
-  m_Message.clear();
-  // Set new message with formatting
-  if (!m_CtorMessage.empty())
-    m_Message += m_CtorMessage + ": ";
-  m_Message += message;
-  m_Message += ": ";
+void Exception::Dispatch(const char* message)
+{
+  // Message to log
+  std::string log;
+
+  // Begin formatting. Ctor string is usually a class name.
+  if (!m_Message.empty())
+    {
+      log += m_Message + ": ";
+    }
+
+  // Complete the dispatched message
+  std::string msg(message);
+  if (!msg.empty())
+    {
+      log += msg;
+      log += ": ";
+    }
+
   // Throw original exception
   try {
     throw;
 #ifdef WITH_CRYPTOPP
   // Note: CryptoPP::Exception inherits std::exception
   } catch (const CryptoPP::Exception& ex) {
-    LOG(error) << m_Message << "cryptopp exception" << ": '" << ex.what() << "'";
+    LOG(error) << log << "cryptopp exception" << ": '" << ex.what() << "'";
 #endif
   // TODO(anonimal): boost exception/exception_ptr
   } catch (const boost::program_options::error& ex) {
-    LOG(error) << m_Message << "program option exception"
+    LOG(error) << log << "program option exception"
                << ": '" << ex.what() << "'";
   } catch (const std::exception& ex) {
-    LOG(error) << m_Message << "standard exception" << ": '" << ex.what() << "'";
+    LOG(error) << log << "standard exception" << ": '" << ex.what() << "'";
   } catch (...) {
-    LOG(error) << m_Message << "unknown exception";
+    LOG(error) << log << "unknown exception";
   }
 }
 

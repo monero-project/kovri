@@ -162,7 +162,7 @@ int main(int argc, const char* argv[])
           return EXIT_SUCCESS;
         }
 
-      if (args.size() > 0)
+      if (!args.empty())
         {
           const auto& c = list_cmd.find(args.front());
           if (c != list_cmd.end())
@@ -176,7 +176,7 @@ int main(int argc, const char* argv[])
       return EXIT_SUCCESS;
     }
 
-  if (opts.size() < 1)
+  if (opts.empty())
     {
       LOG(error) << "Not enough arguments !";
       PrintUsage(argv[0], general_desc, list_cmd);

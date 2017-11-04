@@ -58,7 +58,7 @@ void PrintUsage(
 {
   LOG(info) << "Syntax: " << name << " <options> command";
   LOG(info) << desc;
-  LOG(info) << "Available commands : ";
+  LOG(info) << "Available commands:";
   for (const auto& c : list_cmd)
     LOG(info) << "\t" << c.first;
 }
@@ -178,7 +178,7 @@ int main(int argc, const char* argv[])
 
   if (opts.size() < 1)
     {
-      LOG(error) << "Error : Not enough arguments !";
+      LOG(error) << "Not enough arguments !";
       PrintUsage(argv[0], general_desc, list_cmd);
       return EXIT_FAILURE;
     }
@@ -187,7 +187,7 @@ int main(int argc, const char* argv[])
   // If the first argument is not a command
   if (list_cmd.find(sub_cmd) == list_cmd.end())
     {
-      LOG(error) << "Error : Invalid command or option \"" << sub_cmd << "\"";
+      LOG(error) << "Invalid command or option \"" << sub_cmd << "\"";
       PrintUsage(argv[0], general_desc, list_cmd);
       return EXIT_FAILURE;
     }

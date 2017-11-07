@@ -4,6 +4,9 @@ function(ConfigureBinary BIN_NAME BIN_SRC OUT_NAME)
     ${BIN_NAME}
     ${CLIENT_NAME} ${CORE_NAME}
     ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+  if (WITH_PYTHON)
+    target_link_libraries(${BIN_NAME} ${PYTHON_LIBRARIES})
+  endif()
   set_target_properties(${BIN_NAME} PROPERTIES OUTPUT_NAME "${OUT_NAME}")
   if(WITH_STATIC)
     if(NOT MINGW)

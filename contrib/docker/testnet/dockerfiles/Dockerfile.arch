@@ -29,12 +29,9 @@
 FROM greyltc/archlinux:latest
 
 RUN pacman -Syu --noconfirm && pacman -S --noconfirm \
-      binutils \
-      boost \
-      cmake \
-      gcc \
-      make \
-      gdb \
+      binutils boost cmake gcc gdb make \
+      gnu-netcat iftop iproute2 openssh tcpdump \
+      htop iotop \
       && \
       useradd -m kovri -s /usr/bin/bash && \
       chown -R kovri:kovri /home/kovri

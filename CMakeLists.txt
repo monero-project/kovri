@@ -46,6 +46,7 @@ option(WITH_DOXYGEN    "Enable support for Doxygen" OFF)
 option(WITH_HARDENING  "Use hardening compiler flags" OFF)
 option(WITH_LIBRARY    "Build library" ON)
 option(WITH_OPTIMIZE   "Optimization flags" OFF)
+option(WITH_PYTHON     "Build wrappers which require Boost.Python" OFF)
 option(WITH_STATIC     "Static build" OFF)
 option(WITH_SUPERCOP   "Build Ed25519 using the ref10 implementation from SUPERCOP" ON)  # Default ON unless we switch implementations
 option(WITH_TESTS      "Build unit tests" OFF)
@@ -187,14 +188,14 @@ if(WITH_STATIC)
   endif()
 endif()
 
-find_package(
-  Boost 1.58
-  COMPONENTS
-    chrono log
-    program_options date_time
-    thread system
-    filesystem regex
-  REQUIRED)
+# TODO(unassigned): Boost.Python build currently only tested on Arch Linux
+if (WITH_PYTHON)
+  find_package(Boost 1.58
+    COMPONENTS chrono date_time filesystem log program_options python3 regex system thread REQUIRED)
+else()
+  find_package(Boost 1.58
+    COMPONENTS chrono date_time filesystem log program_options regex system thread REQUIRED)
+endif()
 
 if(NOT Boost_FOUND)
   message(FATAL_ERROR "Boost not found or requirement not satisfied. See building instructions.")
@@ -293,6 +294,17 @@ if(WITH_DOXYGEN)
   include(UseDoxygen)
 endif()
 
+# For Boost.Python wrapping
+if (WITH_PYTHON)
+  find_package(PythonLibs REQUIRED)
+  if (NOT PythonLibs_FOUND)
+    message(FATAL_ERROR "Python not found or requirement not satisfied. See building instructions.")
+  else()
+    message(STATUS "Found Python: ${PYTHON_INCLUDE_DIR}, ${PYTHON_LIBRARIES}")
+    include_directories(${PYTHON_INCLUDE_DIRS})
+  endif()
+endif()
+
 # Load remaining includes
 include_directories(${CMAKE_SOURCE_DIR})
 
@@ -317,6 +329,7 @@ message(STATUS "  DOXYGEN          : ${WITH_DOXYGEN}")
 message(STATUS "  HARDENING        : ${WITH_HARDENING}")
 message(STATUS "  LIBRARY          : ${WITH_LIBRARY}")
 message(STATUS "  OPTIMIZATION     : ${WITH_OPTIMIZE}")
+message(STATUS "  PYTHON           : ${WITH_PYTHON}")
 message(STATUS "  STATIC BUILD     : ${WITH_STATIC}")
 message(STATUS "  SUPERCOP         : ${WITH_SUPERCOP}")
 message(STATUS "  TESTS            : ${WITH_TESTS}")
@@ -327,11 +340,17 @@ message(STATUS "---------------------------------------")
 # Handle paths nicely
 include(GNUInstallDirs)
 
+# Binaries
 set(APP_NAME "${PROJECT_NAME}-app")
-set(CLIENT_NAME "${PROJECT_NAME}-client")
-set(CORE_NAME "${PROJECT_NAME}-core")
 set(UTIL_NAME "${PROJECT_NAME}-util")
 set(TESTS_NAME "${PROJECT_NAME}-tests")
 
+# TODO(unassigned): add version numbers
+# Libraries
+set(CLIENT_NAME "${PROJECT_NAME}-client")
+set(CORE_NAME "${PROJECT_NAME}-core")
+set(PYTHON_NAME "${PROJECT_NAME}_python")
+
 add_subdirectory(src)
 add_subdirectory(tests)
+add_subdirectory(contrib)

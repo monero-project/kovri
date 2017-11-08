@@ -69,9 +69,13 @@ cmake-fuzz-tests = -D WITH_FUZZ_TESTS=ON
 cmake-static     = -D WITH_STATIC=ON
 cmake-doxygen    = -D WITH_DOXYGEN=ON
 cmake-coverage   = -D WITH_COVERAGE=ON
+cmake-python     = -D WITH_PYTHON=ON
 
 # Currently, our dependencies are static but cpp-netlib's dependencies are not (by default)
 cmake-cpp-netlib-static = -D CPP-NETLIB_STATIC_OPENSSL=ON -D CPP-NETLIB_STATIC_BOOST=ON
+
+# cpp-netlib shared
+cmake-cpp-netlib-shared = -D CPP-NETLIB_BUILD_SHARED_LIBS=ON
 
 # Android-specific
 cmake-android = -D ANDROID=1 -D KOVRI_DATA_PATH="/data/local/tmp/.kovri"
@@ -101,7 +105,7 @@ endef
 
 define MAKE_CRYPTOPP
   @echo "=== Building cryptopp ==="
-  cd $(build-cryptopp) && $1 static
+  cd $(build-cryptopp) && $1
 endef
 
 define CMAKE_FUZZER
@@ -120,21 +124,25 @@ all: dynamic
 
 deps:
 	$(call CMAKE_CPP-NETLIB,$(cmake-native)) && $(MAKE)
-	$(call MAKE_CRYPTOPP, $(MAKE) $(cryptopp-native))
+	$(call MAKE_CRYPTOPP, $(MAKE) $(cryptopp-native) static)
+
+shared-deps:
+	$(call CMAKE_CPP-NETLIB,$(cmake-native) $(cmake-cpp-netlib-shared)) && $(MAKE)
+	$(call MAKE_CRYPTOPP, $(MAKE) shared)
 
 release-deps:
 	$(call CMAKE_CPP-NETLIB) && $(MAKE)
-	$(call MAKE_CRYPTOPP, $(MAKE))
+	$(call MAKE_CRYPTOPP, $(MAKE) static)
 
 release-static-deps:
 	$(call CMAKE_CPP-NETLIB,$(cmake-cpp-netlib-static)) && $(MAKE)
-	$(call MAKE_CRYPTOPP, $(MAKE))
+	$(call MAKE_CRYPTOPP, $(MAKE) static)
 
 #-----------------------------------#
 # For local, end-user cloned builds #
 #-----------------------------------#
 
-dynamic: deps
+dynamic: shared-deps
 	$(eval cmake-kovri += $(cmake-native))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
@@ -168,6 +176,11 @@ release-static-android: release-static-deps
 #-----------------#
 # Optional builds #
 #-----------------#
+
+# For API/testnet development
+python: shared-deps
+	$(eval cmake-kovri += $(cmake-python))
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
 # Produce vanilla binary with UPnP support
 upnp: deps

@@ -1,1 +1,1 @@
-contrib/docker/Dockerfile
+contrib/pkg/docker/Dockerfile

@@ -41,7 +41,7 @@ mount_testnet="${mount}/testnet"
 
 kovri_data_dir=".kovri"
 
-docker_dir="contrib/docker/testnet"
+docker_dir="contrib/testnet"
 
 # TODO(unassigned): only useful if we don't use Apache
 web_name="kovri-webserver"
@@ -221,7 +221,7 @@ set_images()
     KOVRI_DOCKERFILE=${_default_dockerfile}
     read_input "Change Dockerfile?: [KOVRI_DOCKERFILE=${KOVRI_DOCKERFILE}]" KOVRI_DOCKERFILE
   fi
-  local _kovri_dockerfile_path="${KOVRI_REPO}/${docker_dir}/dockerfiles/${KOVRI_DOCKERFILE}"
+  local _kovri_dockerfile_path="${KOVRI_REPO}/${docker_dir}/Dockerfiles/${KOVRI_DOCKERFILE}"
   read_bool_input "Build Kovri Docker image? [$KOVRI_IMAGE]" KOVRI_BUILD_IMAGE "docker build -t $KOVRI_IMAGE -f $_kovri_dockerfile_path $KOVRI_REPO"
 
   # Select Kovri Webserver Dockerfile
@@ -230,7 +230,7 @@ set_images()
     KOVRI_WEB_DOCKERFILE=${_default_web_dockerfile}
     read_input "Change Dockerfile?: [KOVRI_WEB_DOCKERFILE=${KOVRI_WEB_DOCKERFILE}]" KOVRI_WEB_DOCKERFILE
   fi
-  local _web_dockerfile_path="${KOVRI_REPO}/${docker_dir}/dockerfiles/${KOVRI_WEB_DOCKERFILE}"
+  local _web_dockerfile_path="${KOVRI_REPO}/${docker_dir}/Dockerfiles/${KOVRI_WEB_DOCKERFILE}"
   read_bool_input "Build Web Docker image? [$KOVRI_WEB_IMAGE]" KOVRI_BUILD_WEB_IMAGE "docker build -t $KOVRI_WEB_IMAGE -f $_web_dockerfile_path $KOVRI_REPO"
 
   popd
@@ -414,7 +414,7 @@ create_data_dir()
   catch "Could not set ownership ${pid}:${gid}"
 
   # Create data-dir + copy only what's needed from pkg
-  mkdir -p ${_host_data_dir}/core && cp -r ${KOVRI_REPO}/pkg/{client,config,*.sh} "$_host_data_dir"
+  mkdir -p ${_host_data_dir}/core && cp -r ${KOVRI_REPO}/{pkg/client,pkg/config,contrib/kovri-bash.sh} "$_host_data_dir"
 
   # Set webserver IP
   local _web_host="${network_octets}${web_host_octet}"

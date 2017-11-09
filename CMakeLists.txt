@@ -188,10 +188,30 @@ if(WITH_STATIC)
   endif()
 endif()
 
-# TODO(unassigned): Boost.Python build currently only tested on Arch Linux
+# Get uname output
+function(Uname output pattern)
+  execute_process(
+      COMMAND sh -c "uname -a 2>&1"
+      COMMAND grep "${pattern}"
+      OUTPUT_VARIABLE ${output}
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+  set(${output} "${${output}}" PARENT_SCOPE)
+endfunction(Uname)
+
+# TODO(unassigned): extend Boost.Python build support (confirmed) beyond Arch Linux and Ubuntu
 if (WITH_PYTHON)
-  find_package(Boost 1.58
-    COMPONENTS chrono date_time filesystem log program_options python3 regex system thread REQUIRED)
+  Uname(ARCH_LINUX "ARCH")
+  Uname(UBUNTU "Ubuntu")
+  if (ARCH_LINUX)
+    find_package(Boost 1.58
+      COMPONENTS chrono date_time filesystem log program_options python3 regex system thread REQUIRED)
+  elseif (UBUNTU)
+    find_package(Boost 1.58
+      COMPONENTS chrono date_time filesystem log program_options python-py35 regex system thread REQUIRED)
+  else()
+    message(FATAL_ERROR
+      "Boost.Python package not yet supported for your system. See TODO in root CMake recipe or open a feature request")
+  endif()
 else()
   find_package(Boost 1.58
     COMPONENTS chrono date_time filesystem log program_options regex system thread REQUIRED)

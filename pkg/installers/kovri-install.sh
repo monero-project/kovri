@@ -107,7 +107,7 @@ shift "$(($OPTIND -1))"
 
 # Set default resources if needed
 if [[ -z $resources ]]; then
-  resources="pkg/client pkg/config pkg/kovri-bash.sh build/${bins[0]} build/${bins[1]}"
+  resources="pkg/client pkg/config contrib/utils/kovri-bash.sh build/${bins[0]} build/${bins[1]}"
 fi
 
 # Test if resources are available

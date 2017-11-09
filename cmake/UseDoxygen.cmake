@@ -86,7 +86,7 @@ find_package(Doxygen)
 
 if(DOXYGEN_FOUND)
   find_file(DOXYFILE_IN "Doxyfile.in"
-      PATHS "${CMAKE_CURRENT_SOURCE_DIR}/contrib"
+      PATHS "${CMAKE_CURRENT_SOURCE_DIR}/contrib/utils/doxygen"
       NO_DEFAULT_PATH
       DOC "Path to the doxygen configuration template file")
   set(DOXYFILE "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile")

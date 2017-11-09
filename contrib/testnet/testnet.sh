@@ -414,7 +414,7 @@ create_data_dir()
   catch "Could not set ownership ${pid}:${gid}"
 
   # Create data-dir + copy only what's needed from pkg
-  mkdir -p ${_host_data_dir}/core && cp -r ${KOVRI_REPO}/{pkg/client,pkg/config,contrib/kovri-bash.sh} "$_host_data_dir"
+  mkdir -p ${_host_data_dir}/core && cp -r ${KOVRI_REPO}/{pkg/client,pkg/config,contrib/utils/kovri-bash.sh} "$_host_data_dir"
 
   # Set webserver IP
   local _web_host="${network_octets}${web_host_octet}"

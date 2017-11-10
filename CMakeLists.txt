@@ -198,11 +198,11 @@ function(Uname output pattern)
   set(${output} "${${output}}" PARENT_SCOPE)
 endfunction(Uname)
 
-# TODO(unassigned): extend Boost.Python build support (confirmed) beyond Arch Linux and Ubuntu
+# TODO(unassigned): extend Boost.Python cross-platform build support 
 if (WITH_PYTHON)
   Uname(ARCH_LINUX "ARCH")
   Uname(UBUNTU "Ubuntu")
-  if (ARCH_LINUX)
+  if (APPLE OR ARCH_LINUX)
     find_package(Boost 1.58
       COMPONENTS chrono date_time filesystem log program_options python3 regex system thread REQUIRED)
   elseif (UBUNTU)

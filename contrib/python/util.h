@@ -26,48 +26,27 @@
 // STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "contrib/python/instance.h"
+#ifndef CONTRIB_PYTHON_UTIL_H_
+#define CONTRIB_PYTHON_UTIL_H_
 
 #include <boost/python.hpp>
+#include <boost/tokenizer.hpp>
 
-#include "src/client/instance.h"
+#include <string>
+#include <vector>
 
-namespace py = boost::python;
-
-void test_run()
+/// @brief Utility class
+struct Util
 {
-  kovri::core::Instance core;
-  kovri::client::Instance client(core);
+  Util() {}
+  ~Util() {}
 
-  client.Initialize();
-  client.Start();
-  client.Stop();
-}
+  /// @brief Parse spaces/tabs out of string, store in vector
+  /// @note For convenience if a python list is not desired
+  std::vector<std::string> parse_string(const std::string& string);
 
-void wrapper_test_run()
-{
-  Core core;
-  Client client(core);
+  /// @brief Parse python list, store in vector
+  std::vector<std::string> parse_list(const boost::python::list& list);
+};
 
-  client.init();
-  client.start();
-  client.stop();
-}
-
-// TODO(anonimal): in-tandem API development
-BOOST_PYTHON_MODULE(kovri_python)
-{
-  py::def("test_run", test_run);
-  py::def("wrapper_test_run", wrapper_test_run);
-
-  py::class_<Core>("Core", py::init<std::string>())  // string for convenience
-    .def(py::init<py::list>())
-    .def("init", &Core::init)
-    .def("start", &Core::start)
-    .def("stop", &Core::stop);
-
-  py::class_<Client>("Client", py::init<Core>())
-    .def("init", &Client::init)
-    .def("start", &Client::start)
-    .def("stop", &Client::stop);
-}
+#endif  // CONTRIB_PYTHON_UTIL_H_

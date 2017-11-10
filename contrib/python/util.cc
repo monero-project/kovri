@@ -26,48 +26,30 @@
 // STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "contrib/python/instance.h"
+#include "contrib/python/util.h"
 
 #include <boost/python.hpp>
+#include <boost/tokenizer.hpp>
 
-#include "src/client/instance.h"
+#include <string>
+#include <vector>
 
 namespace py = boost::python;
 
-void test_run()
+std::vector<std::string> Util::parse_string(const std::string& string)
 {
-  kovri::core::Instance core;
-  kovri::client::Instance client(core);
-
-  client.Initialize();
-  client.Start();
-  client.Stop();
+  std::vector<std::string> parsed;
+  boost::char_separator<char> ch("\t ");
+  boost::tokenizer<boost::char_separator<char>> tokens(string, ch);
+  for (auto const& t : tokens)
+    parsed.push_back(t);
+  return parsed;
 }
 
-void wrapper_test_run()
+std::vector<std::string> Util::parse_list(const py::list& list)
 {
-  Core core;
-  Client client(core);
-
-  client.init();
-  client.start();
-  client.stop();
-}
-
-// TODO(anonimal): in-tandem API development
-BOOST_PYTHON_MODULE(kovri_python)
-{
-  py::def("test_run", test_run);
-  py::def("wrapper_test_run", wrapper_test_run);
-
-  py::class_<Core>("Core", py::init<std::string>())  // string for convenience
-    .def(py::init<py::list>())
-    .def("init", &Core::init)
-    .def("start", &Core::start)
-    .def("stop", &Core::stop);
-
-  py::class_<Client>("Client", py::init<Core>())
-    .def("init", &Client::init)
-    .def("start", &Client::start)
-    .def("stop", &Client::stop);
+  std::vector<std::string> parsed;
+  for (auto i = 0; i < py::len(list); ++i)
+    parsed.push_back(py::extract<std::string>(list[i]));
+  return parsed;
 }

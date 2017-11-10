@@ -26,48 +26,77 @@
 // STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "contrib/python/instance.h"
+#ifndef CONTRIB_PYTHON_INSTANCE_H_
+#define CONTRIB_PYTHON_INSTANCE_H_
 
 #include <boost/python.hpp>
 
+#include <string>
+
 #include "src/client/instance.h"
 
-namespace py = boost::python;
+#include "contrib/python/util.h"
 
-void test_run()
+/// @brief Wrapper for libcore instance
+class Core final : public Util
 {
-  kovri::core::Instance core;
-  kovri::client::Instance client(core);
+ public:
+  explicit Core(const std::string& args = std::string())
+      : m_core(parse_string(args))
+  {
+  }
+  explicit Core(const boost::python::list& args) : m_core(parse_list(args)) {}
+  ~Core() {}
 
-  client.Initialize();
-  client.Start();
-  client.Stop();
-}
+  void init()
+  {
+    m_core.Initialize();
+  }
 
-void wrapper_test_run()
+  void start()
+  {
+    m_core.Start();
+  }
+
+  void stop()
+  {
+    m_core.Stop();
+  }
+
+  // TODO(anonimal): upon further API development, we'll most likely want non-const reference
+  const kovri::core::Instance& get() const noexcept
+  {
+    return m_core;
+  }
+
+ private:
+  kovri::core::Instance m_core;
+};
+
+/// @brief Wrapper for libclient instance
+class Client final
 {
-  Core core;
-  Client client(core);
+ public:
+  // TODO(anonimal): upon further API development, we'll most likely want non-const reference
+  explicit Client(const Core& core) : m_client(core.get()) {}
 
-  client.init();
-  client.start();
-  client.stop();
-}
+  void init()
+  {
+    m_client.Initialize();
+  }
 
-// TODO(anonimal): in-tandem API development
-BOOST_PYTHON_MODULE(kovri_python)
-{
-  py::def("test_run", test_run);
-  py::def("wrapper_test_run", wrapper_test_run);
+  void start()
+  {
+    m_client.Start();
+  }
 
-  py::class_<Core>("Core", py::init<std::string>())  // string for convenience
-    .def(py::init<py::list>())
-    .def("init", &Core::init)
-    .def("start", &Core::start)
-    .def("stop", &Core::stop);
+  void stop()
+  {
+    m_client.Stop();
+  }
 
-  py::class_<Client>("Client", py::init<Core>())
-    .def("init", &Client::init)
-    .def("start", &Client::start)
-    .def("stop", &Client::stop);
-}
+ private:
+  kovri::client::Instance m_client;
+};
+
+#endif  // CONTRIB_PYTHON_INSTANCE_H_

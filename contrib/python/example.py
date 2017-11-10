@@ -1,4 +1,5 @@
-#
+#!/usr/bin/env python
+
 # Copyright (c) 2015-2017, The Kovri I2P Router Project
 #
 # All rights reserved.
@@ -26,19 +27,27 @@
 # INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
 # STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
 
-include_directories("${CMAKE_SOURCE_DIR}" "${CMAKE_SOURCE_DIR}/src")
+root = "../../"
+args = "--log-level 5 --enable-ssu 0"
 
-set(PYTHON_SRC
-  "kovri.cc"
-  "util.cc")
+# Ensure kovri data dir is available
+import subprocess
 
-add_library(${PYTHON_NAME} SHARED ${PYTHON_SRC})
+p = subprocess.Popen(['make', 'install'], cwd=root)
+p.wait()
 
-target_link_libraries(
-  ${PYTHON_NAME}
-  ${Boost_LIBRARIES} ${PYTHON_LIBRARIES}
-  ${CORE_NAME} ${CLIENT_NAME})
+# Use built kovri python object
+import sys
 
-set_target_properties(${PYTHON_NAME} PROPERTIES PREFIX "")
+sys.path.insert(0, root + "/build")
+
+# Run kovri
+import kovri_python as kovri
+
+core = kovri.Core(args)
+client = kovri.Client(core)
+
+client.init()
+client.start()
+client.stop()

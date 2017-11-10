@@ -53,7 +53,8 @@ namespace client
 class Instance
 {
  public:
-  explicit Instance(std::unique_ptr<core::Instance> core);
+  // TODO(anonimal): upon further API development, we'll most likely want non-const reference
+  explicit Instance(const core::Instance& core);
 
   // TODO(anonimal): overload ctor
   ~Instance();
@@ -96,7 +97,7 @@ class Instance
   core::Exception m_Exception;
 
   /// @brief Core instance
-  std::unique_ptr<core::Instance> m_Core;
+  core::Instance m_Core;
 
   /// @brief Client configuration implementation
   /// @note Must be initialized with core configuration

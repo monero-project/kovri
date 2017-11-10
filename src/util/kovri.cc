@@ -98,8 +98,8 @@ bool KovriCommand::Impl(
   try
     {
       // Create instances
-      auto core = std::make_unique<kovri::core::Instance>(args);
-      m_Client = std::make_unique<kovri::client::Instance>(std::move(core));
+      kovri::core::Instance core(args);
+      m_Client = std::make_unique<kovri::client::Instance>(core);
 
       // TODO(anonimal): we want true RAII. See TODOs.
       // Initialize core/client

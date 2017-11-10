@@ -60,15 +60,15 @@ bool DaemonSingleton::Configure(const std::vector<std::string>& args)
       //  In essence, the core and client Instance objects are essentially a preliminary API.
 
       // Create/configure core instance
-      auto core = std::make_unique<core::Instance>(args);
+      core::Instance core(args);
 
       // Set daemon mode (if applicable)
-      m_IsDaemon = core->GetConfig().GetMap().at("daemon").as<bool>();
+      m_IsDaemon = core.GetConfig().GetMap().at("daemon").as<bool>();
 #ifdef _WIN32
-      m_Service = core->GetConfig().GetMap().at("service").as<std::string>();
+      m_Service = core.GetConfig().GetMap().at("service").as<std::string>();
 #endif
       // Create/configure client instance
-      m_Client = std::make_unique<client::Instance>(std::move(core));
+      m_Client = std::make_unique<client::Instance>(core);
     }
   catch (...)
     {

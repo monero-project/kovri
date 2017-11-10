@@ -28,9 +28,11 @@
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include_directories(${CMAKE_SOURCE_DIR}/src)
+include_directories("${CMAKE_SOURCE_DIR}" "${CMAKE_SOURCE_DIR}/src")
 
-set(PYTHON_SRC "kovri.cc")
+set(PYTHON_SRC
+  "kovri.cc"
+  "util.cc")
 
 add_library(${PYTHON_NAME} SHARED ${PYTHON_SRC})
 

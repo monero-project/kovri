@@ -44,10 +44,10 @@ namespace kovri
 {
 namespace client
 {
-Instance::Instance(std::unique_ptr<core::Instance> core) try
+Instance::Instance(const core::Instance& core) try
     : m_Exception(__func__),
-      m_Core(std::move(core)),  // TODO(anonimal): leave null check to caller?
-      m_Config(m_Core->GetConfig()),
+      m_Core(core),
+      m_Config(m_Core.GetConfig()),
       m_IsReloading(false)
   {
   }
@@ -63,7 +63,7 @@ Instance::~Instance() {}
 void Instance::Initialize()
 {
   // Initialize core
-  m_Core->Initialize();
+  m_Core.Initialize();
 
   LOG(debug) << "Instance: initializing client";
   // TODO(unassigned): a useful shutdown handler but needs to callback to daemon
@@ -214,7 +214,7 @@ void Instance::Start()
   try
     {
       LOG(debug) << "Instance: starting core";
-      m_Core->Start();
+      m_Core.Start();
 
       LOG(debug) << "Instance: starting client";
       context.Start();
@@ -236,7 +236,7 @@ void Instance::Stop()
       context.Stop();
 
       LOG(debug) << "Instance: stopping core";
-      m_Core->Stop();
+      m_Core.Stop();
     }
   catch (...)
     {

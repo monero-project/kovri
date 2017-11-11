@@ -69,7 +69,7 @@ class Reseed {
  public:
   /// @brief Constructs stream from string
   explicit Reseed(
-      const std::string& stream = kovri::context.GetOptionReseedFrom())
+      const std::string& stream = core::context.GetOptionReseedFrom())
       : m_Stream(stream) {}
 
   /// @brief Reseed implementation

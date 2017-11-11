@@ -254,7 +254,7 @@ TunnelConfig::TunnelConfig(
       m_FirstHop->SetIsGateway(false);
       m_LastHop->SetReplyHop(reply_tunnel_config->GetFirstHop());
     } else {  // inbound
-      m_LastHop->SetNextRouter(kovri::context.GetSharedRouterInfo());
+      m_LastHop->SetNextRouter(context.GetSharedRouterInfo());
     }
   }
 }

@@ -239,7 +239,7 @@ bool Reseed::FetchStream(
  */
 bool SU3::SU3Impl()
 {
-  if (kovri::context.GetOptionDisableSU3Verification())
+  if (core::context.GetOptionDisableSU3Verification())
     {
       LOG(warning) << "SU3: verification disabled !";
       // TODO(unassigned): detection and implemention of other formats

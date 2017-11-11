@@ -322,11 +322,11 @@ void NTCPSession::CreateAESKey(
 void NTCPSession::SendPhase3() {
   LOG(debug)
     << "NTCPSession:" << GetFormattedSessionInfo() << "*** Phase3, preparing";
-  auto keys = kovri::context.GetPrivateKeys();
+  auto keys = context.GetPrivateKeys();
   std::uint8_t* buf = m_ReceiveBuffer;
   htobe16buf(buf, keys.GetPublic().GetFullLen());
   buf += NTCPSize::Phase3AliceRI;
-  buf += kovri::context.GetIdentity().ToBuffer(buf, NTCPSize::Buffer);
+  buf += context.GetIdentity().ToBuffer(buf, NTCPSize::Buffer);
   std::uint32_t ts_A = htobe32(kovri::core::GetSecondsSinceEpoch());
   htobuf32(buf, ts_A);
   buf += NTCPSize::Phase3AliceTS;
@@ -437,7 +437,7 @@ void NTCPSession::HandlePhase4Received(
   SignedData s;
   s.Insert(m_Establisher->phase1.pub_key.data(), NTCPSize::PubKey);  // x
   s.Insert(m_Establisher->phase2.pub_key.data(), NTCPSize::PubKey);  // y
-  s.Insert(kovri::context.GetRouterInfo().GetIdentHash(), NTCPSize::Hash);
+  s.Insert(context.GetRouterInfo().GetIdentHash(), NTCPSize::Hash);
   s.Insert(ts_A);  // Timestamp Alice
   s.Insert(m_Establisher->phase2.encrypted.timestamp);  // Timestamp Bob
   if (!s.Verify(m_RemoteIdentity, m_ReceiveBuffer)) {
@@ -523,7 +523,7 @@ void NTCPSession::HandlePhase1Received(
     // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
     throw;
   }
-  const std::uint8_t* ident = kovri::context.GetRouterInfo().GetIdentHash();
+  const std::uint8_t* ident = context.GetRouterInfo().GetIdentHash();
   for (std::size_t i = 0; i < NTCPSize::Hash; i++) {
     if ((m_Establisher->phase1.HXxorHI.at(i) ^ ident[i]) != digest.at(i)) {
       LOG(error)
@@ -752,7 +752,7 @@ void NTCPSession::HandlePhase3(
   SignedData s;
   s.Insert(m_Establisher->phase1.pub_key.data(), NTCPSize::PubKey);  // X
   s.Insert(m_Establisher->phase2.pub_key.data(), NTCPSize::PubKey);  // Y
-  s.Insert(kovri::context.GetRouterInfo().GetIdentHash(), NTCPSize::Hash);
+  s.Insert(context.GetRouterInfo().GetIdentHash(), NTCPSize::Hash);
   s.Insert(ts_A);
   s.Insert(ts_B);
   if (!s.Verify(m_RemoteIdentity, buf)) {
@@ -782,7 +782,7 @@ void NTCPSession::SendPhase4(
   s.Insert(m_RemoteIdentity.GetIdentHash(), NTCPSize::Hash);
   s.Insert(ts_A);
   s.Insert(ts_B);
-  auto keys = kovri::context.GetPrivateKeys();
+  auto keys = context.GetPrivateKeys();
   auto signature_len = keys.GetPublic().GetSignatureLen();
   s.Sign(keys, m_ReceiveBuffer);
   std::size_t padding_size = signature_len & 0x0F;  // %16

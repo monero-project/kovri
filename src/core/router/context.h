@@ -46,9 +46,10 @@
 #include "core/router/identity.h"
 #include "core/router/info.h"
 
-namespace kovri {
-// TODO(anonimal): this belongs in core namespace
-
+namespace kovri
+{
+namespace core
+{
 const char ROUTER_INFO[] = "router.info";
 const char ROUTER_KEYS[] = "router.keys";
 const int ROUTER_INFO_UPDATE_INTERVAL = 1800;  // 30 minutes
@@ -336,6 +337,7 @@ class RouterContext : public kovri::core::GarlicDestination {
 
 extern RouterContext context;
 
+}  // namespace core
 }  // namespace kovri
 
 #endif  // SRC_CORE_ROUTER_CONTEXT_H_

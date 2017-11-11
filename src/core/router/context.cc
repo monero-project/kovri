@@ -45,9 +45,10 @@
 
 #include "version.h"
 
-namespace kovri {
-// TODO(anonimal): this belongs in core namespace
-
+namespace kovri
+{
+namespace core
+{
 // Simply instantiating in namespace scope ties into, and is limited by, the current singleton design
 // TODO(unassigned): refactoring this requires global work but will help to remove the singleton
 RouterContext context;
@@ -385,4 +386,5 @@ std::uint32_t RouterContext::GetUptime() const {
   return kovri::core::GetSecondsSinceEpoch () - m_StartupTime;
 }
 
+}  // namespace core
 }  // namespace kovri

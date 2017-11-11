@@ -196,7 +196,7 @@ void SSUSession::ProcessNextMessage(
       if (!validated)
         {
           // try own intro key
-          auto address = kovri::context.GetRouterInfo().GetSSUAddress();
+          auto address = context.GetRouterInfo().GetSSUAddress();
           if (!address)
             {
               LOG(error) << "SSUSession: " << __func__
@@ -342,7 +342,7 @@ void SSUSession::SendSessionRequest() {
   packet.SetDhX(m_DHKeysPair->public_key.data());
   // Fill extended options
   std::array<std::uint8_t, 2> extended_data {{ 0x00, 0x00 }};
-  if (kovri::context.GetStatus() == eRouterStatusOK) {  // we don't need relays
+  if (context.GetStatus() == eRouterStatusOK) {  // we don't need relays
     packet.GetHeader()->SetExtendedOptions(true);
     packet.GetHeader()->SetExtendedOptionsData(extended_data.data(), 2);
   }
@@ -401,7 +401,7 @@ void SSUSession::ProcessSessionCreated(
     << "SSUSession:" << GetFormattedSessionInfo()
     << __func__ << ": our external address is "
     << our_IP.to_string() << ":" << packet->GetPort();
-  kovri::context.UpdateAddress(our_IP);
+  context.UpdateAddress(our_IP);
   if (GetRemoteEndpoint().address().is_v4()) {
     // remote IP v4
     s.Insert(GetRemoteEndpoint().address().to_v4().to_bytes().data(), 4);
@@ -451,8 +451,8 @@ void SSUSession::SendSessionCreated(
     const std::uint8_t* x) {
   auto intro_key = GetIntroKey();
   auto address = IsV6() ?
-    kovri::context.GetRouterInfo().GetSSUAddress(true) :
-    kovri::context.GetRouterInfo().GetSSUAddress();  // v4 only
+    context.GetRouterInfo().GetSSUAddress(true) :
+    context.GetRouterInfo().GetSSUAddress();  // v4 only
   if (!intro_key || !address) {
     LOG(error)
       << "SSUSession:" << GetFormattedSessionInfo()
@@ -482,7 +482,7 @@ void SSUSession::SendSessionCreated(
   s.Insert<std::uint16_t> (htobe16(address->port));  // our port
 
   std::uint32_t relay_tag = 0;
-  if (kovri::context.GetRouterInfo().HasCap(RouterInfo::Cap::SSUIntroducer)) {
+  if (context.GetRouterInfo().HasCap(RouterInfo::Cap::SSUIntroducer)) {
     relay_tag = kovri::core::Rand<std::uint32_t>();
     if (!relay_tag)
       relay_tag = 1;
@@ -496,14 +496,14 @@ void SSUSession::SendSessionCreated(
   m_SessionConfirmData = std::make_unique<SignedData>(s);
 
   // Set signature size to compute the required padding size 
-  std::size_t signature_size = kovri::context.GetIdentity().GetSignatureLen();
+  std::size_t signature_size = context.GetIdentity().GetSignatureLen();
   packet.SetSignature(nullptr, signature_size);
   const std::size_t sig_padding = SSUPacketBuilder::GetPaddingSize(
       packet.GetSize());
   // Set signature with correct size and fill the padding
   auto signature_buf = std::make_unique<std::uint8_t[]>(
       signature_size + sig_padding);
-  s.Sign(kovri::context.GetPrivateKeys(), signature_buf.get());
+  s.Sign(context.GetPrivateKeys(), signature_buf.get());
   kovri::core::RandBytes(signature_buf.get() + signature_size, sig_padding);
   packet.SetSignature(signature_buf.get(), signature_size + sig_padding);
 
@@ -571,10 +571,10 @@ void SSUSession::SendSessionConfirmed(
   std::array<std::uint8_t, GetType(SSUSize::IV)> iv;
   kovri::core::RandBytes(iv.data(), iv.size());
   packet.GetHeader()->SetIV(iv.data());
-  packet.SetRemoteRouterIdentity(kovri::context.GetIdentity());
+  packet.SetRemoteRouterIdentity(context.GetIdentity());
   packet.SetSignedOnTime(kovri::core::GetSecondsSinceEpoch());
   auto signature_buf = std::make_unique<std::uint8_t[]>(
-      kovri::context.GetIdentity().GetSignatureLen());
+      context.GetIdentity().GetSignatureLen());
   // signature
   // x,y, our IP, our port, remote IP, remote port,
   // relay_tag, our signed on time
@@ -591,7 +591,7 @@ void SSUSession::SendSessionConfirmed(
   s.Insert<std::uint16_t>(htobe16(GetRemoteEndpoint().port()));  // remote port
   s.Insert(htobe32(m_RelayTag));
   s.Insert(htobe32(packet.GetSignedOnTime()));
-  s.Sign(kovri::context.GetPrivateKeys(), signature_buf.get());
+  s.Sign(context.GetPrivateKeys(), signature_buf.get());
   packet.SetSignature(signature_buf.get());
   const std::size_t packet_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
   const std::size_t buffer_size = packet_size + GetType(SSUSize::BufferMargin);
@@ -624,7 +624,7 @@ void SSUSession::ProcessRelayRequest(
 void SSUSession::SendRelayRequest(
     std::uint32_t introducer_tag,
     const std::uint8_t* introducer_key) {
-  auto address = kovri::context.GetRouterInfo().GetSSUAddress();
+  auto address = context.GetRouterInfo().GetSSUAddress();
   if (!address) {
     LOG(error)
       << "SSUSession:" << GetFormattedSessionInfo()
@@ -696,7 +696,7 @@ void SSUSession::ProcessRelayResponse(SSUPacket* pkt) {
     << "SSUSession:" << GetFormattedSessionInfo()
     << __func__ << ": our external address is "
     << our_IP.to_string() << ":" << packet->GetPortAlice();
-  kovri::context.UpdateAddress(our_IP);
+  context.UpdateAddress(our_IP);
 }
 
 void SSUSession::SendRelayResponse(
@@ -873,13 +873,13 @@ void SSUSession::ProcessPeerTest(
         LOG(debug)
           << "SSUSession:" << GetFormattedSessionInfo()
           << "PeerTest from Bob. We are Alice";
-        if (kovri::context.GetStatus() == eRouterStatusTesting)  // still not OK
-          kovri::context.SetStatus(eRouterStatusFirewalled);
+        if (context.GetStatus() == eRouterStatusTesting)  // still not OK
+          context.SetStatus(eRouterStatusFirewalled);
       } else {
         LOG(debug)
           << "SSUSession:" << GetFormattedSessionInfo()
           << "first PeerTest from Charlie. We are Alice";
-        kovri::context.SetStatus(eRouterStatusOK);
+        context.SetStatus(eRouterStatusOK);
         m_Server.UpdatePeerTest(
             packet->GetNonce(),
             PeerTestParticipant::Alice2);
@@ -903,7 +903,7 @@ void SSUSession::ProcessPeerTest(
         LOG(debug)
           << "SSUSession:" << GetFormattedSessionInfo()
           << "second PeerTest from Charlie. We are Alice";
-        kovri::context.SetStatus(eRouterStatusOK);
+        context.SetStatus(eRouterStatusOK);
         m_Server.RemovePeerTest(packet->GetNonce());
       }
       break;
@@ -1005,7 +1005,7 @@ void SSUSession::SendPeerTest(
   // intro key
   if (to_address) {
     // send our intro key to address instead it's own
-    auto addr = kovri::context.GetRouterInfo().GetSSUAddress();
+    auto addr = context.GetRouterInfo().GetSSUAddress();
     if (addr)
       memcpy(payload, addr->key, 32);  // intro key
     else
@@ -1045,7 +1045,7 @@ void SSUSession::SendPeerTest(
 void SSUSession::SendPeerTest() {
   // we are Alice
   LOG(debug) << "SSUSession: <--" << GetFormattedSessionInfo() << "sending PeerTest";
-  auto address = kovri::context.GetRouterInfo().GetSSUAddress();
+  auto address = context.GetRouterInfo().GetSSUAddress();
   if (!address) {
     LOG(error)
       << "SSUSession:" << GetFormattedSessionInfo()
@@ -1457,7 +1457,7 @@ const std::uint8_t* SSUSession::GetIntroKey() const {
     return address ? (const std::uint8_t *)address->key : nullptr;
   } else {
     // we are server
-    auto address = kovri::context.GetRouterInfo().GetSSUAddress();
+    auto address = context.GetRouterInfo().GetSSUAddress();
     return address ? (const std::uint8_t *)address->key : nullptr;
   }
 }

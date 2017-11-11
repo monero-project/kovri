@@ -95,7 +95,6 @@ void Instance::Initialize()
           : map["port"].as<int>();
   LOG(info) << "Instance: listening on port " << port;
 
-  // TODO(unassigned): context should be in core namespace (see TODO in router context)
   context.Init(host, port);
   context.UpdatePort(port);
 

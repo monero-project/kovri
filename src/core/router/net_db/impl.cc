@@ -403,9 +403,9 @@ void NetDb::SaveUpdated() {
         // if the router count is greater than the threshold check, and the router
         // is no longer starting up, then continue to check for unreachable routers
       } else if (total > Size::RouterUnreachableThreshold
-          && ts > (kovri::context.GetStartupTime()
+          && ts > (context.GetStartupTime()
             + Time::RouterStartupPeriod) * 1000LL) {
-        if (kovri::context.IsFloodfill()) {
+        if (context.IsFloodfill()) {
           if (ts > it.second->GetTimestamp()
               + Time::RouterExpiration) {
             it.second->SetUnreachable(true);
@@ -833,7 +833,7 @@ void NetDb::Publish() {
   std::set<IdentHash> excluded;  // TODO(unassigned): fill up later
   for (std::uint8_t i = 0; i < 2; i++) {  // TODO(anonimal): enumerate
     auto floodfill = GetClosestFloodfill(
-        kovri::context.GetRouterInfo().GetIdentHash(),
+        context.GetRouterInfo().GetIdentHash(),
         excluded);
     if (floodfill) {
       std::uint32_t reply_token = kovri::core::Rand<std::uint32_t>();
@@ -844,7 +844,7 @@ void NetDb::Publish() {
       kovri::core::transports.SendMessage(
           floodfill->GetIdentHash(),
           CreateDatabaseStoreMsg(
-              kovri::context.GetSharedRouterInfo(),
+              context.GetSharedRouterInfo(),
               reply_token));
       excluded.insert(floodfill->GetIdentHash());
     }

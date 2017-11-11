@@ -241,7 +241,7 @@ std::shared_ptr<I2NPMessage> CreateDatabaseSearchReply(
     memcpy(buf + len, it, 32);
     len += 32;
   }
-  memcpy(buf + len, kovri::context.GetRouterInfo().GetIdentHash(), 32);
+  memcpy(buf + len, context.GetRouterInfo().GetIdentHash(), 32);
   len += 32;
   m->len += len;
   m->FillI2NPMessageHeader(I2NPDatabaseSearchReply);
@@ -346,12 +346,12 @@ bool HandleBuildRequestRecords(
       // Test if current hop's router identity is ours
       if (!memcmp(
               record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET,
-              (const std::uint8_t *)kovri::context.GetRouterInfo().GetIdentHash(),
+              (const std::uint8_t *)context.GetRouterInfo().GetIdentHash(),
               16)) {
         LOG(debug) << "I2NPMessage: record " << i << " is ours";
         // Get session key from encrypted block
         kovri::core::ElGamalDecrypt(
-            kovri::context.GetEncryptionPrivateKey(),
+            context.GetEncryptionPrivateKey(),
             record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET,
             clear_text);
         /**
@@ -362,7 +362,7 @@ bool HandleBuildRequestRecords(
          * participate in the tunnel, and higher values meaning
          * higher levels of rejection.
          */
-        if (kovri::context.AcceptsTunnels() &&
+        if (context.AcceptsTunnels() &&
             kovri::core::tunnels.GetTransitTunnels().size() <=
             MAX_NUM_TRANSIT_TUNNELS &&
             !kovri::core::transports.IsBandwidthExceeded()) {
@@ -704,7 +704,7 @@ void HandleI2NPMessage(
             LOG(debug)
               << "I2NPMessage: local destination for garlic doesn't exist anymore";
         } else {
-          kovri::context.ProcessGarlicMessage(msg);
+          context.ProcessGarlicMessage(msg);
         }
         break;
       }
@@ -719,7 +719,7 @@ void HandleI2NPMessage(
         if (msg->from && msg->from->GetTunnelPool())
           msg->from->GetTunnelPool()->ProcessDeliveryStatus(msg);
         else
-          kovri::context.ProcessDeliveryStatusMessage(msg);
+          context.ProcessDeliveryStatusMessage(msg);
         break;
       }
       case I2NPVariableTunnelBuild:

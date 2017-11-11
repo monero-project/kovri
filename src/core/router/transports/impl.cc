@@ -270,7 +270,7 @@ bool Transports::IsBandwidthExceeded() const {
     LOG(debug) << "Transports: bandwidth has been exceeded";
     return true;
   }
-  if (kovri::context.GetRouterInfo().HasCap(RouterInfo::Cap::HighBandwidth))
+  if (context.GetRouterInfo().HasCap(RouterInfo::Cap::HighBandwidth))
     LOG(debug) << "Transports: bandwidth has not been exceeded";
   return false;
 }
@@ -299,7 +299,7 @@ void Transports::PostMessages(
     kovri::core::IdentHash ident,
     std::vector<std::shared_ptr<kovri::core::I2NPMessage>> msgs) {
   LOG(debug) << "Transports: posting messages";
-  if (ident == kovri::context.GetRouterInfo().GetIdentHash()) {
+  if (ident == context.GetRouterInfo().GetIdentHash()) {
     // we send it to ourself
     for (auto msg : msgs)
       kovri::core::HandleI2NPMessage(msg);
@@ -524,7 +524,7 @@ void Transports::DetectExternalIP() {
     LOG(error) << "Transports: can't detect external IP, SSU is not available";
     return;
   }
-  kovri::context.SetStatus(eRouterStatusTesting);
+  context.SetStatus(eRouterStatusTesting);
   // TODO(unassigned): Why 5 times? (make constant)
   for (int i = 0; i < 5; i++) {
     auto router = kovri::core::netdb.GetRandomPeerTestRouter();
@@ -620,7 +620,7 @@ void Transports::HandlePeerCleanupTimer(
     }
     UpdateBandwidth();  // TODO(unassigned): use separate timer(s) for it
     // if still testing, repeat peer test
-    if (kovri::context.GetStatus() == eRouterStatusTesting)
+    if (context.GetStatus() == eRouterStatusTesting)
       DetectExternalIP();
     m_PeerCleanupTimer.expires_from_now(
         boost::posix_time::seconds(

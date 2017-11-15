@@ -82,46 +82,9 @@ Instance::~Instance() {}
 // Note: we'd love Instance RAII but singleton needs to be daemonized (if applicable) before initialization
 void Instance::Initialize()
 {
-  // TODO(unassigned): see TODO's for router context and singleton
   LOG(debug) << "Instance: initializing core";
-  auto const& map = m_Config.GetMap();
-  auto host = map["host"].as<std::string>();
-
-  // Random generated port if none is supplied via CLI or config
-  // See: i2p.i2p/router/java/src/net/i2p/router/transport/udp/UDPEndpoint.java
-  auto const port =
-      map["port"].defaulted()
-          ? RandInRange32(RouterInfo::MinPort, RouterInfo::MaxPort)
-          : map["port"].as<int>();
-  LOG(info) << "Instance: listening on port " << port;
-
-  context.Init(host, port);
-  context.UpdatePort(port);
-
-  context.UpdateAddress(boost::asio::ip::address::from_string(host));
-  context.SetSupportsV6(map["v6"].as<bool>());
-  context.SetFloodfill(map["floodfill"].as<bool>());
-
-  auto const bandwidth = map["bandwidth"].as<std::string>();
-  if (!bandwidth.empty())
-    {
-      if (bandwidth[0] > 'L')
-        context.SetHighBandwidth();
-      else
-        context.SetLowBandwidth();
-    }
-
-  // Set reseed options
-  context.SetOptionReseedFrom(map["reseed-from"].as<std::string>());
-  context.SetOptionDisableSU3Verification(
-      map["disable-su3-verification"].as<bool>());
-
-  // Set transport options
-  context.SetSupportsNTCP(map["enable-ntcp"].as<bool>());
-  context.SetSupportsSSU(map["enable-ssu"].as<bool>());
-
-  // Set SSL option
-  context.SetOptionEnableSSL(map["enable-ssl"].as<bool>());
+  // TODO(unassigned): see TODOs for router context and singleton
+  context.Initialize(m_Config.GetMap());
 }
 
 void Instance::Start()

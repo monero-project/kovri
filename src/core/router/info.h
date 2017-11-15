@@ -69,6 +69,7 @@ struct RouterInfoTraits
 
   /// @enum PortRange
   /// @brief Min and Max public port
+  /// @note See i2p.i2p/router/java/src/net/i2p/router/transport/udp/UDPEndpoint.java
   enum PortRange : std::uint16_t
   {
     MinPort = 9111,

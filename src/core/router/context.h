@@ -35,6 +35,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/program_options.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -67,12 +68,9 @@ class RouterContext : public kovri::core::GarlicDestination {
  public:
   RouterContext();
 
-  /// Initializes the router context, must be called before use
-  /// @param host The external address of this router
-  /// @param port The external port of this router
-  void Init(
-      const std::string& host,
-      std::uint16_t port);
+  /// @brief Initializes the router context, must be called before further context use
+  /// @param map Variable map used to initialize context options
+  void Initialize(const boost::program_options::variables_map& map);
 
   // @return This RouterContext's RouterInfo
   kovri::core::RouterInfo& GetRouterInfo() {
@@ -311,11 +309,7 @@ class RouterContext : public kovri::core::GarlicDestination {
   }
 
  private:
-  void CreateNewRouter();
-  void NewRouterInfo();
   void UpdateRouterInfo();
-  bool Load();
-  void SaveKeys();
   void RemoveTransport(core::RouterInfo::Transport transport);
 
  private:

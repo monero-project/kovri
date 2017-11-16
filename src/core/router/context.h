@@ -86,7 +86,7 @@ class RouterContext : public kovri::core::GarlicDestination {
   }
 
   // @return How long this RouterContext has been online in seconds since epoch
-  std::uint32_t GetUptime() const;
+  std::uint64_t GetUptime() const;
 
   // @return Time that this RouterContext started in seconds since epoch
   std::uint32_t GetStartupTime() const {

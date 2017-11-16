@@ -389,9 +389,9 @@ void RouterContext::ProcessDeliveryStatusMessage(
   kovri::core::GarlicDestination::ProcessDeliveryStatusMessage(msg);
 }
 
-// TODO(anonimal): uint64_t
-std::uint32_t RouterContext::GetUptime() const {
-  return kovri::core::GetSecondsSinceEpoch () - m_StartupTime;
+std::uint64_t RouterContext::GetUptime() const
+{
+  return core::GetSecondsSinceEpoch () - m_StartupTime;
 }
 
 }  // namespace core

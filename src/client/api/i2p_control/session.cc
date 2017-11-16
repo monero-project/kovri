@@ -248,7 +248,8 @@ void I2PControlSession::HandleRouterInfo(
           case RouterInfo::Uptime:
             response->SetParam(
                 pair.first,
-                static_cast<std::size_t>(core::context.GetUptime()) * 1000);
+                // TODO(unassigned): do not downcast from uint64_t! Requires interface work.
+                static_cast<std::size_t>(core::context.GetUptime()) * 1000);  // TODO(unassigned): multiplying will not bode well for the distant future...
             break;
 
           case RouterInfo::Version:

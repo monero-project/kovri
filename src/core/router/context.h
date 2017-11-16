@@ -51,6 +51,7 @@ namespace kovri
 {
 namespace core
 {
+// TODO(anonimal): refactoring
 const char ROUTER_INFO[] = "router.info";
 const char ROUTER_KEYS[] = "router.keys";
 const int ROUTER_INFO_UPDATE_INTERVAL = 1800;  // 30 minutes
@@ -149,24 +150,10 @@ class RouterContext : public kovri::core::GarlicDestination {
   void SetReachable();
 
   // @return true if we are a floodfill router otherwise false
-  bool IsFloodfill() const {
-    return m_IsFloodfill;
+  bool IsFloodfill() const
+  {
+    return m_Opts["floodfill"].as<bool>();
   }
-
-  // Set if we are a floodfill router, rebuild RouterInfo.
-  // @param floodfill true if we want to become floodfill, false if we don't
-  void SetFloodfill(
-      bool floodfill);
-
-  // Mark ourselves as having high bandwidth.
-  // Changes caps flags.
-  // Rebuilds RouterInfo.
-  void SetHighBandwidth();
-
-  // Mark ourselves as having low (aka NOT high) Bandwidth.
-  // Changes Capacity Flags.
-  // Rebuilds RouterInfo.
-  void SetLowBandwidth();
 
   // @return true if we are going to accept tunnels right now.
   bool AcceptsTunnels() const {
@@ -184,30 +171,6 @@ class RouterContext : public kovri::core::GarlicDestination {
   bool SupportsV6() const {
     return m_RouterInfo.HasV6();
   }
-
-  /// @return true if we support the NTCP transport, false otherwise
-  bool SupportsNTCP() const {
-    return m_SupportsNTCP;
-  }
-
-  /// @return true if we support the SSU transport, false otherwise
-  bool SupportsSSU() const {
-    return m_SupportsSSU;
-  }
-
-  // Set if we support IPv6 connectivity.
-  // Rebuilds RouterInfo.
-  // @param supportsV6 true if we support IPv6, false if we don't
-  void SetSupportsV6(
-      bool supportsV6);
-
-  /// @brief Sets whether or not this router supports the NTCP transport
-  /// @param supportsNTCP true if NTCP is supported, false otherwise
-  void SetSupportsNTCP(bool supportsNTCP);
-
-  /// @brief Sets whether or not this router supports the SSU transport
-  /// @param supportsNTCP true if SSU is supported, false otherwise
-  void SetSupportsSSU(bool supportsSSU);
 
   // Called From NTCPSession.
   // Update our NTCP IPv6 address.
@@ -254,46 +217,10 @@ class RouterContext : public kovri::core::GarlicDestination {
   void ProcessDeliveryStatusMessage(
       std::shared_ptr<kovri::core::I2NPMessage> msg);
 
-  /**
-   * Note: these reseed functions are not ideal but
-   * they fit into our current design. We need to initialize
-   * here because we cannot (should not/don't need to) link
-   * unit-tests to executables (src/app) so, without these,
-   * current reseed tests won't compile.
-   */
-
-  /// @brief Sets user-supplied reseed stream
-  void SetOptionReseedFrom(
-      const std::string& stream) {
-    m_ReseedFrom = stream;
-  }
-
-  /// @return User-supplied reseed stream
-  std::string GetOptionReseedFrom() const {
-    return m_ReseedFrom;
-  }
-
-  /// @brief Sets user-supplied reseed SSL option
-  void SetOptionEnableSSL(
-      bool option) {
-    m_EnableSSL = option;
-  }
-
-  /// @return User-supplied option to skip SSL
-  bool GetOptionEnableSSL() const {
-    return m_EnableSSL;
-  }
-
-  /// @brief Sets user-supplied disable SU3 verification option
-  void SetOptionDisableSU3Verification(bool option)
+  /// @brief Core router traits/options
+  const boost::program_options::variables_map& GetOpts() const
   {
-    m_DisableSU3Verification = option;
-  }
-
-  /// @return User-supplied option to disable SU3 verification
-  bool GetOptionDisableSU3Verification() const
-  {
-    return m_DisableSU3Verification;
+    return m_Opts;
   }
 
   /// @return root directory path
@@ -316,17 +243,12 @@ class RouterContext : public kovri::core::GarlicDestination {
   kovri::core::RouterInfo m_RouterInfo;
   kovri::core::PrivateKeys m_Keys;
   std::uint64_t m_LastUpdateTime;
-  bool m_AcceptsTunnels, m_IsFloodfill;
+  bool m_AcceptsTunnels;
   std::uint64_t m_StartupTime;  // in seconds since epoch
   RouterStatus m_Status;
   std::mutex m_GarlicMutex;
-  std::string m_Host;
-  std::uint16_t m_Port;
-  std::string m_ReseedFrom;
-  bool m_EnableSSL;
-  bool m_DisableSU3Verification;
-  bool m_SupportsNTCP, m_SupportsSSU;
   std::string m_CustomDataDir;
+  boost::program_options::variables_map m_Opts;
 };
 
 extern RouterContext context;

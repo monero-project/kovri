@@ -1006,18 +1006,16 @@ const std::string RouterInfo::GetDescription(
      << address.date << terminator
 
      << tabs << "\t" << GetTrait(Trait::Cost) << delimiter
-     << static_cast<std::uint16_t>(address.cost) << terminator
-
-     // TODO(anonimal): initialization order is brittle: if SSU is not parsed before NTCP,
-     //  GetDescription will log base64 of zero-initialized address key memory.
-     //  Only log key if transport is SSU.
-     << tabs << "\t" << GetTrait(Trait::Key) << delimiter
-     << address.key.ToBase64() << terminator;
+     << static_cast<std::uint16_t>(address.cost) << terminator;
 
   if (address.transport == Transport::SSU)
     {
-      ss << tabs << "\n\tIntroducers(" << address.introducers.size() << ")"
+      ss << tabs << "\t" << GetTrait(Trait::Key) << delimiter
+         << address.key.ToBase64() << terminator
+
+         << tabs << "\n\tIntroducers(" << address.introducers.size() << ")"
          << std::endl;
+
       for (const Introducer& introducer : address.introducers)
         ss << GetDescription(introducer, tabs + "\t\t") << std::endl;
     }

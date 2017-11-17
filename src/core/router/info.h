@@ -56,6 +56,10 @@ namespace core {
 
 struct RouterInfoTraits
 {
+  /// @enum Interval
+  /// @brief RI intervals
+  enum Interval { Update = 1800 };  // 30 minutes
+
   /// @enum Size
   /// @brief Router Info size constants
   enum Size : std::uint16_t
@@ -133,6 +137,17 @@ struct RouterInfoTraits
   /// @brief RI traits
   enum struct Trait : std::uint8_t
   {
+    // File-specific
+    InfoFile,
+    KeyFile,
+
+    // Option-specific
+    RouterVersion,
+    CoreVersion,
+    LeaseSets,
+    Routers,
+    NetID,
+
     // Address-specific
     NTCP,
     SSU,
@@ -164,6 +179,29 @@ struct RouterInfoTraits
   {
     switch (trait)
       {
+        // File names
+        case Trait::InfoFile:
+          return "router.info";
+
+        case Trait::KeyFile:
+          return "router.key";
+
+        // Option-specific
+        case Trait::RouterVersion:
+          return "router.version";
+
+        case Trait::CoreVersion:
+          return "coreVersion";
+
+        case Trait::LeaseSets:
+          return "netdb.knownLeaseSets";
+
+        case Trait::Routers:
+          return "netdb.knownRouters";
+
+        case Trait::NetID:
+          return "netId";
+
         // Address-specific
         case Trait::NTCP:
           return "NTCP";

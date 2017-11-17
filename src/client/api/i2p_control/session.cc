@@ -274,7 +274,7 @@ void I2PControlSession::HandleRouterInfo(
           case RouterInfo::NetStatus:
             response->SetParam(
                 pair.first,
-                static_cast<std::size_t>(core::context.GetStatus()));
+                static_cast<std::size_t>(core::context.GetState()));
             break;
 
           case RouterInfo::TunnelsParticipating:

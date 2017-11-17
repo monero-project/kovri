@@ -524,7 +524,7 @@ void Transports::DetectExternalIP() {
     LOG(error) << "Transports: can't detect external IP, SSU is not available";
     return;
   }
-  context.SetStatus(eRouterStatusTesting);
+  context.SetState(RouterState::Testing);
   // TODO(unassigned): Why 5 times? (make constant)
   for (int i = 0; i < 5; i++) {
     auto router = kovri::core::netdb.GetRandomPeerTestRouter();
@@ -620,7 +620,7 @@ void Transports::HandlePeerCleanupTimer(
     }
     UpdateBandwidth();  // TODO(unassigned): use separate timer(s) for it
     // if still testing, repeat peer test
-    if (context.GetStatus() == eRouterStatusTesting)
+    if (context.GetState() == RouterState::Testing)
       DetectExternalIP();
     m_PeerCleanupTimer.expires_from_now(
         boost::posix_time::seconds(

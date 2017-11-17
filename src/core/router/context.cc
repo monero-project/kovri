@@ -38,6 +38,7 @@
 #include <fstream>
 
 #include "core/router/i2np.h"
+#include "core/router/info.h"
 #include "core/router/net_db/impl.h"
 
 #include "core/util/filesystem.h"
@@ -58,7 +59,7 @@ RouterContext::RouterContext()
     : m_LastUpdateTime(0),
       m_AcceptsTunnels(true),
       m_StartupTime(0),
-      m_Status(eRouterStatusOK) {}
+      m_State(RouterState::OK) {}
 
 // TODO(anonimal): review context's RI initialization options
 // TODO(anonimal): determine which functions are truly context and which are RI
@@ -69,8 +70,8 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
 
   // Set paths
   auto path = core::EnsurePath(core::GetCorePath());
-  auto keys_path = (path / ROUTER_KEYS).string();
-  auto info_path = (path / ROUTER_INFO).string();
+  auto keys_path = (path / GetTrait(Trait::KeyFile)).string();
+  auto info_path = (path / GetTrait(Trait::InfoFile)).string();
 
   // Set host/port for RI creation/updating
   // Note: host/port sanity checks done during configuration construction
@@ -142,8 +143,8 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
         }
 
       // Update RI options (in case RI was older than these version)
-      router.SetOption("coreVersion", I2P_VERSION);
-      router.SetOption("router.version", I2P_VERSION);
+      router.SetOption(GetTrait(Trait::CoreVersion), I2P_VERSION);
+      router.SetOption(GetTrait(Trait::RouterVersion), I2P_VERSION);
 
       // Update context RI
       m_RouterInfo.Update(router.GetBuffer(), router.GetBufferLen());
@@ -176,8 +177,8 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
       m_RouterInfo.SetCaps(
           m_RouterInfo.GetCaps() & ~core::RouterInfo::Cap::Floodfill);
       // we don't publish number of routers and leaseset for non-floodfill
-      m_RouterInfo.GetOptions().erase(ROUTER_INFO_OPTION_LEASESETS);
-      m_RouterInfo.GetOptions().erase(ROUTER_INFO_OPTION_ROUTERS);
+      m_RouterInfo.GetOptions().erase(GetTrait(Trait::LeaseSets));
+      m_RouterInfo.GetOptions().erase(GetTrait(Trait::Routers));
     }
 
   // Bandcaps
@@ -197,6 +198,7 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
         }
     }
 
+  // TODO(anonimal): we don't want to update twice when once at the right time will suffice
   // Update RI/commit to disk
   UpdateRouterInfo();
 }
@@ -204,7 +206,8 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
 void RouterContext::UpdateRouterInfo() {
   LOG(debug) << "RouterContext: updating RI, saving to file";
   m_RouterInfo.CreateBuffer(m_Keys);
-  m_RouterInfo.SaveToFile((kovri::core::GetCorePath() / ROUTER_INFO).string());
+  m_RouterInfo.SaveToFile(
+      (core::GetCorePath() / GetTrait(Trait::InfoFile)).string());
   m_LastUpdateTime = kovri::core::GetSecondsSinceEpoch();
 }
 
@@ -218,7 +221,7 @@ void RouterContext::UpdateAddress(
     }
   }
   auto ts = kovri::core::GetSecondsSinceEpoch();
-  if (updated || ts > m_LastUpdateTime + ROUTER_INFO_UPDATE_INTERVAL)
+  if (updated || ts > m_LastUpdateTime + Interval::Update)
     UpdateRouterInfo();
 }
 
@@ -326,10 +329,10 @@ void RouterContext::UpdateStats() {
   if (IsFloodfill()) {
     // update routers and leasesets
     m_RouterInfo.SetOption(
-        ROUTER_INFO_OPTION_LEASESETS,
+        GetTrait(Trait::LeaseSets),
         boost::lexical_cast<std::string>(kovri::core::netdb.GetNumLeaseSets()));
     m_RouterInfo.SetOption(
-        ROUTER_INFO_OPTION_ROUTERS,
+        GetTrait(Trait::Routers),
         boost::lexical_cast<std::string>(kovri::core::netdb.GetNumRouters()));
     UpdateRouterInfo();
   }

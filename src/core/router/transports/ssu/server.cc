@@ -483,12 +483,12 @@ void SSUServer::HandleIntroducersUpdateTimer(
   LOG(debug) << "SSUServer: handling introducers update timer";
   if (ecode != boost::asio::error::operation_aborted) {
     // timeout expired
-    if (context.GetStatus() == eRouterStatusTesting) {
+    if (context.GetState() == RouterState::Testing) {
       // we still don't know if we need introducers
       ScheduleIntroducersUpdateTimer();
       return;
     }
-    if (context.GetStatus () == eRouterStatusOK)
+    if (context.GetState () == RouterState::OK)
       return;  // we don't need introducers anymore
     // we are firewalled
     if (!context.IsUnreachable()) context.SetUnreachable();

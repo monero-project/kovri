@@ -342,7 +342,7 @@ void SSUSession::SendSessionRequest() {
   packet.SetDhX(m_DHKeysPair->public_key.data());
   // Fill extended options
   std::array<std::uint8_t, 2> extended_data {{ 0x00, 0x00 }};
-  if (context.GetStatus() == eRouterStatusOK) {  // we don't need relays
+  if (context.GetState() == RouterState::OK) {  // we don't need relays
     packet.GetHeader()->SetExtendedOptions(true);
     packet.GetHeader()->SetExtendedOptionsData(extended_data.data(), 2);
   }
@@ -873,13 +873,13 @@ void SSUSession::ProcessPeerTest(
         LOG(debug)
           << "SSUSession:" << GetFormattedSessionInfo()
           << "PeerTest from Bob. We are Alice";
-        if (context.GetStatus() == eRouterStatusTesting)  // still not OK
-          context.SetStatus(eRouterStatusFirewalled);
+        if (context.GetState() == RouterState::Testing)  // still not OK
+          context.SetState(RouterState::Firewalled);
       } else {
         LOG(debug)
           << "SSUSession:" << GetFormattedSessionInfo()
           << "first PeerTest from Charlie. We are Alice";
-        context.SetStatus(eRouterStatusOK);
+        context.SetState(RouterState::OK);
         m_Server.UpdatePeerTest(
             packet->GetNonce(),
             PeerTestParticipant::Alice2);
@@ -903,7 +903,7 @@ void SSUSession::ProcessPeerTest(
         LOG(debug)
           << "SSUSession:" << GetFormattedSessionInfo()
           << "second PeerTest from Charlie. We are Alice";
-        context.SetStatus(eRouterStatusOK);
+        context.SetState(RouterState::OK);
         m_Server.RemovePeerTest(packet->GetNonce());
       }
       break;

@@ -51,21 +51,20 @@ namespace kovri
 {
 namespace core
 {
-// TODO(anonimal): refactoring
-const char ROUTER_INFO[] = "router.info";
-const char ROUTER_KEYS[] = "router.keys";
-const int ROUTER_INFO_UPDATE_INTERVAL = 1800;  // 30 minutes
 
-const char ROUTER_INFO_OPTION_LEASESETS[] = "netdb.knownLeaseSets";
-const char ROUTER_INFO_OPTION_ROUTERS[] = "netdb.knownRouters";
+enum struct RouterState : std::uint8_t
+{
+  /// @brief Context is fully port forwarded
+  OK,
 
-enum RouterStatus {
-  eRouterStatusOK = 0,
-  eRouterStatusTesting = 1,
-  eRouterStatusFirewalled = 2
+  /// @brief Context is testing connectivity
+  Testing,
+
+  /// @brief Context detects being firewalled
+  Firewalled,
 };
 
-class RouterContext : public kovri::core::GarlicDestination {
+class RouterContext : public RouterInfoTraits, public GarlicDestination {
  public:
   RouterContext();
 
@@ -98,26 +97,18 @@ class RouterContext : public kovri::core::GarlicDestination {
     return m_LastUpdateTime;
   }
 
-  // @return
-  // eRouterStatusOk - if the RouterContext is fully port forwarded,
-  // eRouterStatusTesting - if the RouterContext is testing connectivity
-  // eRouterStatusFirewalled - if the RouterContext detects being firewalled
-  RouterStatus GetStatus() const {
-    return m_Status;
+  /// @return Router state
+  RouterState GetState() const noexcept
+  {
+    return m_State;
   }
 
-  // Set RouterContext's Status
-  // @see GetStatus
-  // @param status the new status this RouterContext will have
-  void SetStatus(
-      RouterStatus status) {
-    m_Status = status;
+  /// @brief Set context state
+  // @param status the new state this context will have
+  void SetState(RouterState state) noexcept
+  {
+    m_State = state;
   }
-
-  // Called from Daemon, updates this RouterContext's Port.
-  // Rebuilds RouterInfo
-  // @param port port number
-  void UpdatePort(std::uint16_t port);
 
   // Called From SSU or Daemon.
   // Update Our IP Address, external IP Address if behind NAT.
@@ -245,7 +236,7 @@ class RouterContext : public kovri::core::GarlicDestination {
   std::uint64_t m_LastUpdateTime;
   bool m_AcceptsTunnels;
   std::uint64_t m_StartupTime;  // in seconds since epoch
-  RouterStatus m_Status;
+  RouterState m_State;
   std::mutex m_GarlicMutex;
   std::string m_CustomDataDir;
   boost::program_options::variables_map m_Opts;

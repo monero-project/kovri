@@ -87,8 +87,8 @@ RouterInfo::RouterInfo(
     }
 
   // Set default options
-  SetOption("netId", std::to_string(I2P_NETWORK_ID));
-  SetOption("router.version", I2P_VERSION);
+  SetOption(GetTrait(Trait::NetID), std::to_string(I2P_NETWORK_ID));
+  SetOption(GetTrait(Trait::RouterVersion), I2P_VERSION);
 
   // Set RI buffer + create RI
   CreateBuffer(keys);

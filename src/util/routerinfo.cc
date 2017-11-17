@@ -117,6 +117,7 @@ bool RouterInfoCommand::Impl(
                                                    core::RouterInfo::MaxPort)
                                              : vm["port"].as<int>();
 
+          // TODO(unassigned): refactor according to new RI ctor interface
           // Generate private key
           core::PrivateKeys keys = core::PrivateKeys::CreateRandomKeys(
               core::DEFAULT_ROUTER_SIGNING_KEY_TYPE);
@@ -141,7 +142,7 @@ bool RouterInfoCommand::Impl(
             routerInfo.SetCaps(
                 routerInfo.GetCaps() | core::RouterInfo::Cap::HighBandwidth);
           // Set options
-          routerInfo.SetOption("netId", std::to_string(vm["netid"].as<int>()));
+          routerInfo.SetOption("netId", std::to_string(vm["netid"].as<int>()));  // TODO(unassigned): changing netId is (and may always be) unecessary
           routerInfo.SetOption("router.version", I2P_VERSION);
           routerInfo.CreateBuffer(keys);
 

@@ -185,6 +185,7 @@ void Configuration::ParseConfigFile(
   bpo::store(bpo::parse_config_file(filename, options), var_map);
   bpo::notify(var_map);
 
+  // TODO(anonimal): move to sanity check function for namespace use
   // Check host syntax
   boost::system::error_code ec;
   boost::asio::ip::address::from_string(m_Map["host"].as<std::string>(), ec);

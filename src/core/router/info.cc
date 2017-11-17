@@ -45,32 +45,68 @@
 #include "core/util/log.h"
 #include "core/util/timestamp.h"
 
+#include "version.h"
+
 namespace kovri
 {
 namespace core
 {
 
-RouterInfo::RouterInfo() : m_Buffer(nullptr), m_Exception(__func__)  // TODO(anonimal): buffer refactor
+RouterInfo::RouterInfo() : m_Exception(__func__), m_Buffer(nullptr)  // TODO(anonimal): buffer refactor
 {
 }
 
-RouterInfo::~RouterInfo()
+RouterInfo::RouterInfo(
+    const core::PrivateKeys& keys,
+    const std::pair<std::string, std::uint16_t>& point,
+    const std::pair<bool, bool>& has_transport,
+    const std::uint8_t caps)
+    : m_Exception(__func__), m_RouterIdentity(keys.GetPublic())
 {
+  // TODO(anonimal): in core config, we guarantee validity of host and port but
+  //  we don't guarantee here without said caller in place.
+
+  // Log our identity
+  const IdentHash& hash = m_RouterIdentity.GetIdentHash();
+  LOG(info) << "RouterInfo: our router's ident: " << m_RouterIdentity.ToBase64();
+  LOG(info) << "RouterInfo: our router's ident hash: " << hash.ToBase64();
+
+  // Set default caps
+  SetCaps(caps);
+
+  // Set default transports
+  if (has_transport.first)
+    AddNTCPAddress(point.first, point.second);
+
+  if (has_transport.second)
+    {
+      AddSSUAddress(point.first, point.second, hash);
+      SetCaps(
+          m_Caps | core::RouterInfo::Cap::SSUTesting
+          | core::RouterInfo::Cap::SSUIntroducer);
+    }
+
+  // Set default options
+  SetOption("netId", std::to_string(I2P_NETWORK_ID));
+  SetOption("router.version", I2P_VERSION);
+
+  // Set RI buffer + create RI
+  CreateBuffer(keys);
 }
 
 RouterInfo::RouterInfo(const std::string& path)
-    : m_Path(path),
-      m_Buffer(std::make_unique<std::uint8_t[]>(Size::MaxBuffer)),  // TODO(anonimal): buffer refactor
-      m_Exception(__func__)
+    : m_Exception(__func__),
+      m_Path(path),
+      m_Buffer(std::make_unique<std::uint8_t[]>(Size::MaxBuffer))  // TODO(anonimal): buffer refactor
 {
   ReadFromFile();
   ReadFromBuffer(false);
 }
 
 RouterInfo::RouterInfo(const std::uint8_t* buf, std::uint16_t len)
-    : m_Buffer(std::make_unique<std::uint8_t[]>(Size::MaxBuffer)),  // TODO(anonimal): buffer refactor
-      m_BufferLen(len),
-      m_Exception(__func__)
+    : m_Exception(__func__),
+      m_Buffer(std::make_unique<std::uint8_t[]>(Size::MaxBuffer)),  // TODO(anonimal): buffer refactor
+      m_BufferLen(len)
 {
   if (!buf)
     throw std::invalid_argument("RouterInfo: null buffer");
@@ -79,6 +115,10 @@ RouterInfo::RouterInfo(const std::uint8_t* buf, std::uint16_t len)
   std::memcpy(m_Buffer.get(), buf, len);
   ReadFromBuffer(true);
   m_IsUpdated = true;
+}
+
+RouterInfo::~RouterInfo()
+{
 }
 
 void RouterInfo::ReadFromFile()
@@ -277,6 +317,7 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
                 address.mtu = boost::lexical_cast<std::uint16_t>(value);
                 break;
               case Trait::Key:
+                // Our intro key as introducer
                 kovri::core::Base64ToByteStream(
                     value.c_str(), value.size(), address.key, 32);
                 break;
@@ -476,6 +517,7 @@ const std::string RouterInfo::GetCapsFlags() const
   return flags;
 }
 
+// TODO(unassigned): remove. This is only used for unrefactored kovri-util RI creation
 void RouterInfo::SetRouterIdentity(const IdentityEx& identity)
 {
   m_RouterIdentity = identity;
@@ -664,6 +706,7 @@ void RouterInfo::CreateRouterInfo(
     core::StringStream& router_info,
     const PrivateKeys& private_keys)
 {
+  // TODO(anonimal): more useful logging
   LOG(debug) << "RouterInfo: " << __func__;
 
   // Write ident
@@ -965,6 +1008,9 @@ const std::string RouterInfo::GetDescription(
      << tabs << "\t" << GetTrait(Trait::Cost) << delimiter
      << static_cast<std::uint16_t>(address.cost) << terminator
 
+     // TODO(anonimal): initialization order is brittle: if SSU is not parsed before NTCP,
+     //  GetDescription will log base64 of zero-initialized address key memory.
+     //  Only log key if transport is SSU.
      << tabs << "\t" << GetTrait(Trait::Key) << delimiter
      << address.key.ToBase64() << terminator;
 

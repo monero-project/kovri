@@ -398,6 +398,17 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
   RouterInfo();
   ~RouterInfo();
 
+  /// @brief Create RI with standard defaults
+  /// @param point Local hostname/ip address + port
+  /// @param has_transport Supports NTCP, SSU
+  /// @param keys Privkeys which generate identity
+  /// @param caps RI capabilities
+  RouterInfo(
+      const core::PrivateKeys& keys,
+      const std::pair<std::string, std::uint16_t>& point,
+      const std::pair<bool, bool>& has_transport,  // TODO(anonimal): refactor as bitwise SupportedTransport?
+      const std::uint8_t caps = core::RouterInfo::Cap::Reachable);
+
   /// @brief Create RI from file
   /// @param path Full path to RI file
   RouterInfo(const std::string& path);
@@ -426,7 +437,7 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
     std::uint64_t date{};
     std::uint8_t cost{};
     // SSU only
-    Tag<32> key;  // intro key for SSU
+    Tag<32> key{};  // Our intro key for SSU
     std::vector<Introducer> introducers;
     bool HasCompatibleHost(const boost::asio::ip::address& other) const noexcept
     {
@@ -434,8 +445,12 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
     }
   };
 
+  // TODO(unassigned): remove. This is only used for unrefactored kovri-util RI creation
   /// @brief Set RI identity and current timestamp
   void SetRouterIdentity(const IdentityEx& identity);
+
+
+  // TODO(anonimal): template address adder
 
   /// @brief Adds SSU address to RI
   /// @details Sets RI members appropriately, saves address object
@@ -485,10 +500,12 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
   /// @param path Full RI path of file to save to
   void SaveToFile(const std::string& path);
 
-  // TODO(anonimal): not an ideal getter
   /// @brief Get RI profile
   /// @detail If profile does not exist, creates it
+  // TODO(anonimal): not an ideal getter because of detail
   std::shared_ptr<RouterProfile> GetProfile() const;
+
+  // TODO(anonimal): template address getter
 
   /// @return Address object capable of NTCP
   /// @param has_v6 Address should have v6 capability
@@ -755,6 +772,7 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
   const RouterInfo::Address* GetAddress(const std::uint8_t transports) const;
 
  private:
+  core::Exception m_Exception;
   std::string m_Path;
   IdentityEx m_RouterIdentity;
   std::unique_ptr<std::uint8_t[]> m_Buffer;
@@ -765,7 +783,6 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
   bool m_IsUpdated = false, m_IsUnreachable = false;
   std::uint8_t m_SupportedTransports{}, m_Caps{};
   mutable std::shared_ptr<RouterProfile> m_Profile;
-  core::Exception m_Exception;
 };
 
 }  // namespace core

@@ -73,10 +73,15 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
   auto info_path = (path / ROUTER_INFO).string();
 
   // Set host/port for RI creation/updating
+  // Note: host/port sanity checks done during configuration construction
   auto host = m_Opts["host"].as<std::string>();  // TODO(anonimal): fix default host
   auto port = m_Opts["port"].defaulted()
                   ? RandInRange32(RouterInfo::MinPort, RouterInfo::MaxPort)
                   : m_Opts["port"].as<int>();
+
+  // Set available transports
+  bool has_ntcp = m_Opts["enable-ntcp"].as<bool>();
+  bool has_ssu = m_Opts["enable-ssu"].as<bool>();
 
   // Set startup time
   m_StartupTime = core::GetSecondsSinceEpoch();
@@ -98,34 +103,13 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
       m_Keys.ToBuffer(buf.data(), buf.size());
       keys.Write(buf.data(), buf.size());
 
-      LOG(debug) << "RouterContext: preparing RI creation";
-      core::RouterInfo router;
-
-      const IdentityEx& ident = m_Keys.GetPublic();
-      const IdentHash& hash = ident.GetIdentHash();
-
-      LOG(debug) << "RouterContext: using ident: " << ident.ToBase64();
-      LOG(debug) << "RouterContext: ident hash: " << hash.ToBase64();
-
-      // TODO(anonimal): new ctor, remove setters
-      router.SetRouterIdentity(ident);
-
-      // TODO(anonimal): no point in adding if we're to remove later via bpo
-      router.AddSSUAddress(host, port, hash);
-      router.AddNTCPAddress(host, port);
-
-      router.SetCaps(
-          core::RouterInfo::Cap::Reachable
-          // TODO(anonimal): but what if we've disabled run-time SSU...
-          | core::RouterInfo::Cap::SSUTesting
-          | core::RouterInfo::Cap::SSUIntroducer);
-
-      // Set options
-      router.SetOption("netId", std::to_string(I2P_NETWORK_ID));
-      router.SetOption("router.version", I2P_VERSION);
-
       LOG(debug) << "RouterContext: creating RI from in-memory keys";
-      router.CreateBuffer(m_Keys);
+      core::RouterInfo router(
+          m_Keys,
+          std::make_pair(host, port),
+          std::make_pair(has_ntcp, has_ssu));  // TODO(anonimal): brittle, see TODO in header
+
+      // Update context RI
       m_RouterInfo.Update(router.GetBuffer(), router.GetBufferLen());
     }
   else  // Keys (and RI should also) exist
@@ -138,17 +122,26 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
       LOG(debug) << "RouterContext: updating existing RI " << info_path;
       core::RouterInfo router(info_path);
 
-      // Update address/port
-      const auto address = boost::asio::ip::address::from_string(host);
-      for (auto& router : m_RouterInfo.GetAddresses())
+      // NTCP
+      if (has_ntcp && !router.GetNTCPAddress())
+        router.AddNTCPAddress(host, port);
+      if (!has_ntcp)
+        RemoveTransport(core::RouterInfo::Transport::NTCP);
+
+      // SSU
+      if (has_ssu && !router.GetSSUAddress())
+        router.AddSSUAddress(host, port, router.GetIdentHash());
+      if (!has_ssu)
         {
-          if (router.host != address && router.HasCompatibleHost(address))
-            router.host = address;
-          if (router.port != port)
-            router.port = port;
+          RemoveTransport(core::RouterInfo::Transport::SSU);
+
+          // Remove constructed SSU capabilities
+          router.SetCaps(
+              router.GetCaps() & ~core::RouterInfo::Cap::SSUTesting
+              & ~core::RouterInfo::Cap::SSUIntroducer);
         }
 
-      // Set RI options
+      // Update RI options (in case RI was older than these version)
       router.SetOption("coreVersion", I2P_VERSION);
       router.SetOption("router.version", I2P_VERSION);
 
@@ -203,25 +196,6 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
             m_RouterInfo.SetCaps(m_RouterInfo.GetCaps() & ~cap);
         }
     }
-
-  // NTCP
-  bool ntcp = m_Opts["enable-ntcp"].as<bool>();
-  if (ntcp && !m_RouterInfo.GetNTCPAddress())
-    m_RouterInfo.AddNTCPAddress(host, port);
-  if (!ntcp)
-    RemoveTransport(core::RouterInfo::Transport::NTCP);
-
-  // SSU
-  bool ssu = m_Opts["enable-ssu"].as<bool>();
-  if (ssu && !m_RouterInfo.GetSSUAddress())
-    m_RouterInfo.AddSSUAddress(host, port, m_RouterInfo.GetIdentHash());
-  if (!ssu)
-    RemoveTransport(core::RouterInfo::Transport::SSU);
-
-  // Remove SSU-related flags
-  m_RouterInfo.SetCaps(
-      m_RouterInfo.GetCaps() & ~core::RouterInfo::Cap::SSUTesting
-      & ~core::RouterInfo::Cap::SSUIntroducer);
 
   // Update RI/commit to disk
   UpdateRouterInfo();
@@ -289,7 +263,7 @@ void RouterContext::SetReachable() {
   std::uint8_t caps = m_RouterInfo.GetCaps();
   caps &= ~core::RouterInfo::Cap::Unreachable;
   caps |= core::RouterInfo::Cap::Reachable;
-  caps |= core::RouterInfo::Cap::SSUIntroducer;
+  caps |= core::RouterInfo::Cap::SSUIntroducer;  // TODO(anonimal): but if SSU is disabled?...
   if (IsFloodfill())
     caps |= core::RouterInfo::Cap::Floodfill;
   m_RouterInfo.SetCaps(caps);
@@ -299,7 +273,7 @@ void RouterContext::SetReachable() {
   for (std::size_t i = 0; i < addresses.size(); i++) {
     if (addresses[i].transport == core::RouterInfo::Transport::SSU) {
       // insert NTCP address with host/port form SSU
-      m_RouterInfo.AddNTCPAddress(
+      m_RouterInfo.AddNTCPAddress(  // TODO(anonimal): but if NTCP is disabled?...
           addresses[i].host.to_string().c_str(),
           addresses[i].port);
       break;
@@ -308,8 +282,10 @@ void RouterContext::SetReachable() {
   // delete previous introducers
   for (auto& addr : addresses)
     addr.introducers.clear();
-  // update
-  UpdateRouterInfo();
+
+  // TODO(anonimal): if we continue to use these setters (or a single template setter),
+  //  we'll need to ensure router info is updated after setting (either through context
+  //  or other means).
 }
 
 void RouterContext::UpdateNTCPV6Address(
@@ -368,6 +344,11 @@ void RouterContext::RemoveTransport(
       break;
     }
   }
+  // Remove SSU capabilities
+  if (transport == core::RouterInfo::Transport::SSU)
+    m_RouterInfo.SetCaps(
+        m_RouterInfo.GetCaps() & ~core::RouterInfo::Cap::SSUTesting
+        & ~core::RouterInfo::Cap::SSUIntroducer);
 }
 
 std::shared_ptr<kovri::core::TunnelPool> RouterContext::GetTunnelPool() const {

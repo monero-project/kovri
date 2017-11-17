@@ -101,9 +101,19 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
       LOG(debug) << "RouterContext: preparing RI creation";
       core::RouterInfo router;
 
-      router.SetRouterIdentity(GetIdentity());
-      router.AddSSUAddress(host, port, router.GetIdentHash());
+      const IdentityEx& ident = m_Keys.GetPublic();
+      const IdentHash& hash = ident.GetIdentHash();
+
+      LOG(debug) << "RouterContext: using ident: " << ident.ToBase64();
+      LOG(debug) << "RouterContext: ident hash: " << hash.ToBase64();
+
+      // TODO(anonimal): new ctor, remove setters
+      router.SetRouterIdentity(ident);
+
+      // TODO(anonimal): no point in adding if we're to remove later via bpo
+      router.AddSSUAddress(host, port, hash);
       router.AddNTCPAddress(host, port);
+
       router.SetCaps(
           core::RouterInfo::Cap::Reachable
           // TODO(anonimal): but what if we've disabled run-time SSU...

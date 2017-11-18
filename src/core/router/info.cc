@@ -89,8 +89,7 @@ RouterInfo::RouterInfo(
     }
 
   // Set default options
-  SetOption(GetTrait(Trait::NetID), std::to_string(I2P_NETWORK_ID));
-  SetOption(GetTrait(Trait::RouterVersion), I2P_VERSION);
+  SetDefaultOptions();
 
   // Set RI buffer + create RI
   CreateBuffer(keys);
@@ -432,6 +431,15 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
       // TODO(anonimal): ensure this doesn't add router info to NetDb
       SetUnreachable(true);
     }
+}
+
+void RouterInfo::SetDefaultOptions()
+{
+  SetOption(GetTrait(Trait::NetID), std::to_string(I2P_NETWORK_ID));
+  SetOption(GetTrait(Trait::RouterVersion), I2P_VERSION);
+  // TODO(anonimal): implement known lease-sets and known routers.
+  //   We current only set default options when starting/creating RI *before*
+  //   netdb starts. We'll need to ensure the 'known' opts are set *after* netdb starts.
 }
 
 void RouterInfo::SetCaps(const std::string& caps)
@@ -871,7 +879,10 @@ void RouterInfo::CreateRouterInfo(
 
   // Write remaining options
   for (const auto& opt : GetOptions())
-    options.WriteKeyPair(opt.first, opt.second);
+    {
+      LOG(debug) << "RouterInfo: writing: " << opt.first << "=" << opt.second;
+      options.WriteKeyPair(opt.first, opt.second);
+    }
 
   // Write size of remaining options
   std::uint16_t size = htobe16(options.Str().size());

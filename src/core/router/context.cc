@@ -46,8 +46,6 @@
 #include "core/util/mtu.h"
 #include "core/util/timestamp.h"
 
-#include "version.h"
-
 namespace kovri
 {
 namespace core
@@ -145,8 +143,7 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
         }
 
       // Update RI options (in case RI was older than these version)
-      router.SetOption(GetTrait(Trait::CoreVersion), I2P_VERSION);
-      router.SetOption(GetTrait(Trait::RouterVersion), I2P_VERSION);
+      router.SetDefaultOptions();
 
       // Update context RI
       m_RouterInfo.Update(router.GetBuffer(), router.GetBufferLen());

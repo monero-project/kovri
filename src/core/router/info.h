@@ -144,7 +144,6 @@ struct RouterInfoTraits
 
     // Option-specific
     RouterVersion,
-    CoreVersion,
     LeaseSets,
     Routers,
     NetID,
@@ -190,9 +189,6 @@ struct RouterInfoTraits
         // Option-specific
         case Trait::RouterVersion:
           return "router.version";
-
-        case Trait::CoreVersion:
-          return "coreVersion";
 
         case Trait::LeaseSets:
           return "netdb.knownLeaseSets";
@@ -624,6 +620,9 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
   {
     m_Options[key] = value;
   }
+
+  /// @brief Set essential (non-caps) default options for new RIs and when updating RIs
+  void SetDefaultOptions();
 
   /// @return Mutable RI options
   std::map<std::string, std::string>& GetOptions() noexcept

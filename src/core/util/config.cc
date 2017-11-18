@@ -129,8 +129,8 @@ void Configuration::ParseConfig()
       "reseed-from,r", bpo::value<std::string>()->default_value(""))(
       "enable-ssl",
       bpo::value<bool>()->default_value(true)->value_name("bool"))(
-      "disable-su3-verification",
-      bpo::value<bool>()->default_value(false)->value_name("bool"));
+      "enable-su3-verification",
+      bpo::value<bool>()->default_value(true)->value_name("bool"));
 
   bpo::options_description client("\nclient");
   client.add_options()("httpproxyport", bpo::value<int>()->default_value(4446))(

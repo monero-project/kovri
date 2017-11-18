@@ -147,10 +147,10 @@ class SU3 {
  public:
   SU3(const std::string& su3,
       std::map<std::string, kovri::core::PublicKey>& keys,
-      bool disable_verification = false)
+      bool verify = true)
       : m_Stream(su3),
         m_SigningKeys(keys),
-        m_DisableVerification(disable_verification),
+        m_Verify(verify),
         m_Data(std::make_unique<Data>()) {}
 
   // Extracted RI's (map of router info files)
@@ -283,8 +283,8 @@ class SU3 {
   // X.509 signing keys for SU3 verification
   std::map<std::string, kovri::core::PublicKey> m_SigningKeys;
 
-  /// @brief Disable SU3 verification?
-  bool m_DisableVerification;
+  /// @brief Enable SU3 verification?
+  bool m_Verify;
 
   // Spec-defined data
   std::unique_ptr<Data> m_Data;

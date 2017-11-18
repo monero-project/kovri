@@ -91,7 +91,7 @@ bool Reseed::Start() {
   SU3 su3(
       m_Stream,
       m_SigningKeys,
-      core::context.GetOpts()["disable-su3-verification"].as<bool>());
+      core::context.GetOpts()["enable-su3-verification"].as<bool>());
   if (!su3.SU3Impl()) {
     LOG(error) << "Reseed: SU3 implementation failed";
     return false;
@@ -242,7 +242,7 @@ bool Reseed::FetchStream(
  */
 bool SU3::SU3Impl()
 {
-  if (m_DisableVerification)
+  if (!m_Verify)
     {
       LOG(warning) << "SU3: verification disabled !";
       // TODO(unassigned): detection and implemention of other formats

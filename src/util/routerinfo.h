@@ -37,12 +37,14 @@
 #include <vector>
 #include "util/command.h"
 
+#include "core/router/info.h"
+
 /**
  * @class RouterInfoCommand
  * @brief base class for routerinfo
  */
 
-class RouterInfoCommand : public Command
+class RouterInfoCommand : public Command, public kovri::core::RouterInfoTraits
 {
  public:
   RouterInfoCommand();

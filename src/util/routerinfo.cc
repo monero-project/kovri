@@ -31,6 +31,7 @@
 #include "util/routerinfo.h"
 #include <assert.h>
 #include <memory>
+#include <tuple>
 
 #include "core/crypto/rand.h"
 #include "core/router/info.h"
@@ -124,8 +125,10 @@ bool RouterInfoCommand::Impl(
           // Set router info attributes
           core::RouterInfo routerInfo;
           routerInfo.SetRouterIdentity(keys.GetPublic());
-          routerInfo.AddSSUAddress(host, port, routerInfo.GetIdentHash());
-          routerInfo.AddNTCPAddress(host, port);
+          routerInfo.AddAddress(std::make_tuple(Transport::NTCP, host, port));
+          routerInfo.AddAddress(
+              std::make_tuple(Transport::SSU, host, port),
+              routerInfo.GetIdentHash());
           // Set capabilities
           routerInfo.SetCaps(core::RouterInfo::Cap::Reachable);
           if (vm["ssuintroducer"].as<bool>())

@@ -41,6 +41,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <vector>
 
 #include "core/crypto/signature.h"
@@ -487,20 +488,14 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
   /// @brief Set RI identity and current timestamp
   void SetRouterIdentity(const IdentityEx& identity);
 
-
-  // TODO(anonimal): template address adder
-
-  /// @brief Adds SSU address to RI
-  /// @details Sets RI members appropriately, saves address object
-  void AddNTCPAddress(const std::string& host, std::uint16_t port);
-
-  /// @brief Adds SSU address to RI
-  /// @details Sets RI members appropriately, saves address object
-  void AddSSUAddress(
-      const std::string& host,
-      std::uint16_t port,
-      const std::uint8_t* key,
-      std::uint16_t mtu = 0);
+  /// @brief Adds/saves address + sets appropriate RI members
+  /// @param point Supported transport / Host string / Port integral
+  /// @param key Our intoducer key
+  /// @param mtu Address MTU
+  void AddAddress(
+      const std::tuple<Transport, std::string, std::uint16_t>& point,
+      const std::uint8_t* key = nullptr,
+      const std::uint16_t mtu = 0);
 
   /// @brief Adds introducer to RI using SSU capable address object
   /// @param address SSU capable address

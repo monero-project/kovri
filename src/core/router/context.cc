@@ -36,6 +36,7 @@
 #include <boost/program_options.hpp>
 
 #include <fstream>
+#include <tuple>
 
 #include "core/router/i2np.h"
 #include "core/router/info.h"
@@ -125,13 +126,14 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
 
       // NTCP
       if (has_ntcp && !router.GetNTCPAddress())
-        router.AddNTCPAddress(host, port);
+        router.AddAddress(std::make_tuple(Transport::NTCP, host, port));
       if (!has_ntcp)
         RemoveTransport(core::RouterInfo::Transport::NTCP);
 
       // SSU
       if (has_ssu && !router.GetSSUAddress())
-        router.AddSSUAddress(host, port, router.GetIdentHash());
+        router.AddAddress(
+            std::make_tuple(Transport::SSU, host, port), router.GetIdentHash());
       if (!has_ssu)
         {
           RemoveTransport(core::RouterInfo::Transport::SSU);
@@ -276,9 +278,11 @@ void RouterContext::SetReachable() {
   for (std::size_t i = 0; i < addresses.size(); i++) {
     if (addresses[i].transport == core::RouterInfo::Transport::SSU) {
       // insert NTCP address with host/port form SSU
-      m_RouterInfo.AddNTCPAddress(  // TODO(anonimal): but if NTCP is disabled?...
-          addresses[i].host.to_string().c_str(),
-          addresses[i].port);
+      m_RouterInfo.AddAddress(  // TODO(anonimal): but if NTCP is disabled?...
+          std::make_tuple(
+              Transport::NTCP,
+              addresses[i].host.to_string(),
+              addresses[i].port));
       break;
     }
   }
@@ -311,14 +315,12 @@ void RouterContext::UpdateNTCPV6Address(
   }
   if (!found) {
     // create new address
-    m_RouterInfo.AddNTCPAddress(
-        host.to_string().c_str(),
-        port);
-    m_RouterInfo.AddSSUAddress(
-        host.to_string().c_str(),
-        port,
+    m_RouterInfo.AddAddress(
+        std::make_tuple(Transport::NTCP, host.to_string(), port));
+    m_RouterInfo.AddAddress(
+        std::make_tuple(Transport::SSU, host.to_string(), port),
         GetIdentHash(),
-        kovri::core::GetMTU(host));
+        core::GetMTU(host));
     updated = true;
   }
   if (updated)

@@ -36,6 +36,7 @@
 
 #include <cstring>
 #include <fstream>
+#include <tuple>
 
 #include "core/router/context.h"
 
@@ -76,11 +77,12 @@ RouterInfo::RouterInfo(
 
   // Set default transports
   if (has_transport.first)
-    AddNTCPAddress(point.first, point.second);
+    AddAddress(std::make_tuple(Transport::NTCP, point.first, point.second));
 
   if (has_transport.second)
     {
-      AddSSUAddress(point.first, point.second, hash);
+      AddAddress(
+          std::make_tuple(Transport::SSU, point.first, point.second), hash);
       SetCaps(
           m_Caps | core::RouterInfo::Cap::SSUTesting
           | core::RouterInfo::Cap::SSUIntroducer);
@@ -524,39 +526,53 @@ void RouterInfo::SetRouterIdentity(const IdentityEx& identity)
   m_Timestamp = kovri::core::GetMillisecondsSinceEpoch();
 }
 
-void RouterInfo::AddNTCPAddress(const std::string& host, std::uint16_t port)
-{
-  Address addr;
-  addr.host = boost::asio::ip::address::from_string(host);
-  addr.port = port;
-  addr.transport = Transport::NTCP;
-  addr.cost = Size::NTCPCost;
-  addr.date = 0;
-  addr.mtu = 0;
-  m_Addresses.push_back(addr);
-  m_SupportedTransports |= addr.host.is_v6() ? SupportedTransport::NTCPv6
-                                             : SupportedTransport::NTCPv4;
-}
-
-void RouterInfo::AddSSUAddress(
-    const std::string& host,
-    std::uint16_t port,
+void RouterInfo::AddAddress(
+    const std::tuple<Transport, std::string, std::uint16_t>& point,
     const std::uint8_t* key,
-    std::uint16_t mtu)
+    const std::uint16_t mtu)
 {
   Address addr;
-  addr.host = boost::asio::ip::address::from_string(host);
-  addr.port = port;
-  addr.transport = Transport::SSU;
-  addr.cost = Size::SSUCost;
-  addr.date = 0;
-  addr.mtu = mtu;
-  std::memcpy(addr.key, key, 32);
+  addr.transport = std::get<0>(point);
+  addr.host = boost::asio::ip::address::from_string(std::get<1>(point));
+  addr.port = std::get<2>(point);
+  addr.date = 0;  // TODO(anonimal): ?...
+
+  // Set transport-specific
+  switch (addr.transport)
+    {
+      case Transport::NTCP:
+        {
+          addr.cost = Size::NTCPCost;
+          addr.mtu = 0;  // TODO(anonimal): ?...
+          m_SupportedTransports |= addr.host.is_v6()
+                                       ? SupportedTransport::NTCPv6
+                                       : SupportedTransport::NTCPv4;
+        }
+        break;
+
+      case Transport::SSU:
+        {
+          addr.cost = Size::SSUCost;
+          addr.mtu = mtu;
+          if (!key)
+            throw std::runtime_error("RouterInfo: null SSU intro key");
+          addr.key = key;
+          m_SupportedTransports |= addr.host.is_v6()
+                                       ? SupportedTransport::SSUv6
+                                       : SupportedTransport::SSUv4;
+          // Set our caps
+          m_Caps |= Cap::SSUTesting | Cap::SSUIntroducer;
+        }
+        break;
+
+      default:
+        throw std::runtime_error(
+            "RouterInfo: " + std::string(__func__) + ": unsupported transport");
+        break;
+    }
+
+  // Save address
   m_Addresses.push_back(addr);
-  m_SupportedTransports |=
-      addr.host.is_v6() ? SupportedTransport::SSUv6 : SupportedTransport::SSUv4;
-  m_Caps |= Cap::SSUTesting;
-  m_Caps |= Cap::SSUIntroducer;
 }
 
 bool RouterInfo::AddIntroducer(const Address* address, std::uint32_t tag)

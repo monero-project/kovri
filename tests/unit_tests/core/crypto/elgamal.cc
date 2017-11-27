@@ -37,12 +37,24 @@
 #include "core/crypto/elgamal.h"
 #include "core/crypto/rand.h"
 
+void InitKeyInfo(uint8_t* priv, uint8_t* pub, uint8_t* seed) {
+  for (size_t i = 0; i < 256; i++) {
+    seed[i] = 0x01;
+    priv[i] = 0x09;
+    pub[i]  = 0x0a;
+  }
+}
+
 BOOST_AUTO_TEST_SUITE(ElgamalTests)
+
 
 struct ElgamalFixture {
   ElgamalFixture() {
-    // TODO(unassigned): use static keys
-    kovri::core::GenerateElGamalKeyPair(private_key, public_key);
+    // Initialize elements needed for deterministic keys
+    uint8_t seed[256];
+    InitKeyInfo(private_key, public_key, seed);
+    // Derive private and public keys from seed
+    kovri::core::GenerateDeterministicElGamalKeyPair(private_key, public_key, seed);
     enc = std::make_unique<kovri::core::ElGamalEncryption>(public_key);
   }
   uint8_t private_key[256], public_key[256];
@@ -112,6 +124,25 @@ BOOST_FIXTURE_TEST_CASE(ElgamalEncryptDecryptZeroPadSmallMessageSuccess, Elgamal
   BOOST_CHECK_EQUAL_COLLECTIONS(
     plaintext, plaintext + key_message_len - key_smaller,
     result, result + key_message_len - key_smaller);
+}
+
+BOOST_FIXTURE_TEST_CASE(ElgamalDeterministicKeyGenerationUniqueKeysBySeed, ElgamalFixture) {
+  uint8_t tstseed[256],
+          tstpriv[256],
+          tstpub[256];
+
+  InitKeyInfo(tstpriv, tstpub, tstseed); 
+  kovri::core::GenerateDeterministicElGamalKeyPair(tstpriv, tstpub, tstseed);
+
+  BOOST_TEST_MESSAGE("Test private key: " << tstpriv << "\n" 
+                     << "Private key: " << private_key << "\n\n"
+                     << "Test public key: " << tstpub << "\n"
+                     << "Public key: " << public_key << "\n");
+
+  for (size_t i = 0; i < 256; i++) {
+    BOOST_CHECK_EQUAL(tstpriv[i], private_key[i]);
+    BOOST_CHECK_EQUAL(tstpub[i], public_key[i]);
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

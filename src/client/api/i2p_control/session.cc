@@ -248,7 +248,8 @@ void I2PControlSession::HandleRouterInfo(
           case RouterInfo::Uptime:
             response->SetParam(
                 pair.first,
-                static_cast<std::size_t>(kovri::context.GetUptime()) * 1000);
+                // TODO(unassigned): do not downcast from uint64_t! Requires interface work.
+                static_cast<std::size_t>(core::context.GetUptime()) * 1000);  // TODO(unassigned): multiplying will not bode well for the distant future...
             break;
 
           case RouterInfo::Version:
@@ -273,7 +274,7 @@ void I2PControlSession::HandleRouterInfo(
           case RouterInfo::NetStatus:
             response->SetParam(
                 pair.first,
-                static_cast<std::size_t>(kovri::context.GetStatus()));
+                static_cast<std::size_t>(core::context.GetState()));
             break;
 
           case RouterInfo::TunnelsParticipating:
@@ -393,7 +394,7 @@ void I2PControlSession::HandleShutdown(Response* response)
 void I2PControlSession::HandleShutdownGraceful(Response* response)
 {
   // Stop accepting tunnels
-  kovri::context.SetAcceptsTunnels(false);
+  core::context.SetAcceptsTunnels(false);
   // Get tunnel expiry time
   std::uint64_t timeout = kovri::core::tunnels.GetTransitTunnelsExpirationTimeout();
   LOG(info)

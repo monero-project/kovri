@@ -252,7 +252,7 @@ void UPnP::Discover() {
     } else {
       if (m_externalIPAddress[0]) {
         LOG(debug) << "UPnP: external IP address: " << m_externalIPAddress;
-        kovri::context.UpdateAddress(
+        context.UpdateAddress(
             boost::asio::ip::address::from_string(
               m_externalIPAddress));
         return;

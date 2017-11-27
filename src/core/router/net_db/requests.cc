@@ -58,7 +58,7 @@ std::shared_ptr<I2NPMessage> RequestedDestination::CreateRequestMessage(
     const IdentHash& floodfill) {
   auto msg = kovri::core::CreateRouterInfoDatabaseLookupMsg(
       m_Destination,
-      kovri::context.GetRouterInfo().GetIdentHash(),
+      context.GetRouterInfo().GetIdentHash(),
       0,
       false,
       &m_ExcludedPeers);

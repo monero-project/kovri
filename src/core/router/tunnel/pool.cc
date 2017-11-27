@@ -331,7 +331,7 @@ void TunnelPool::ProcessDeliveryStatus(
 std::shared_ptr<const kovri::core::RouterInfo> TunnelPool::SelectNextHop(
     std::shared_ptr<const kovri::core::RouterInfo> prev_hop) const {
   // TODO(unassigned): implement it better
-  bool is_exploratory = (m_LocalDestination == &kovri::context);
+  bool is_exploratory = (m_LocalDestination == &context);
   auto hop = is_exploratory ?
     kovri::core::netdb.GetRandomRouter(prev_hop) :
     kovri::core::netdb.GetHighBandwidthRandomRouter(prev_hop);
@@ -345,7 +345,7 @@ bool TunnelPool::SelectPeers(
     bool is_inbound) {
   if (m_ExplicitPeers)
     return SelectExplicitPeers(hops, is_inbound);
-  auto prev_hop = kovri::context.GetSharedRouterInfo();
+  auto prev_hop = context.GetSharedRouterInfo();
   int num_hops = is_inbound ?
     m_NumInboundHops :
     m_NumOutboundHops;

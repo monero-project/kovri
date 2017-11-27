@@ -33,21 +33,23 @@
 #include "core/router/context.h"
 
 #include <boost/lexical_cast.hpp>
+#include <boost/program_options.hpp>
 
 #include <fstream>
+#include <tuple>
 
 #include "core/router/i2np.h"
+#include "core/router/info.h"
 #include "core/router/net_db/impl.h"
 
 #include "core/util/filesystem.h"
 #include "core/util/mtu.h"
 #include "core/util/timestamp.h"
 
-#include "version.h"
-
-namespace kovri {
-// TODO(anonimal): this belongs in core namespace
-
+namespace kovri
+{
+namespace core
+{
 // Simply instantiating in namespace scope ties into, and is limited by, the current singleton design
 // TODO(unassigned): refactoring this requires global work but will help to remove the singleton
 RouterContext context;
@@ -55,68 +57,157 @@ RouterContext context;
 RouterContext::RouterContext()
     : m_LastUpdateTime(0),
       m_AcceptsTunnels(true),
-      m_IsFloodfill(false),
       m_StartupTime(0),
-      m_Status(eRouterStatusOK),
-      m_Port(0),
-      m_EnableSSL(true),
-      m_DisableSU3Verification(false),
-      m_SupportsNTCP(true),
-      m_SupportsSSU(true) {}
+      m_State(RouterState::OK) {}
 
-void RouterContext::Init(
-    const std::string& host,
-    std::uint16_t port) {
-  m_Host = host;
-  m_Port = port;
-  m_StartupTime = kovri::core::GetSecondsSinceEpoch();
-  if (!Load())
-    CreateNewRouter();
+// TODO(anonimal): review context's RI initialization options
+// TODO(anonimal): determine which functions are truly context and which are RI
+void RouterContext::Initialize(const boost::program_options::variables_map& map)
+{
+  // TODO(anonimal): we want context ctor initialization with non-bpo object
+  m_Opts = map;
+
+  // Set paths
+  auto path = core::EnsurePath(core::GetCorePath());
+  auto keys_path = (path / GetTrait(Trait::KeyFile)).string();
+  auto info_path = (path / GetTrait(Trait::InfoFile)).string();
+
+  // Set host/port for RI creation/updating
+  // Note: host/port sanity checks done during configuration construction
+  auto host = m_Opts["host"].as<std::string>();  // TODO(anonimal): fix default host
+  auto port = m_Opts["port"].defaulted()
+                  ? RandInRange32(RouterInfo::MinPort, RouterInfo::MaxPort)
+                  : m_Opts["port"].as<int>();
+
+  // Set available transports
+  bool has_ntcp = m_Opts["enable-ntcp"].as<bool>();
+  bool has_ssu = m_Opts["enable-ssu"].as<bool>();
+
+  // Set startup time
+  m_StartupTime = core::GetSecondsSinceEpoch();
+
+  //  Load keys for RI creation
+  LOG(debug) << "RouterContext: attempting to use keys " << keys_path;
+  core::InputFileStream keys(keys_path, std::ifstream::binary);
+
+  // If key does not exist, create - then create RI
+  if (keys.Fail())
+    {
+      LOG(debug) << "RouterContext: creating router keys";
+      m_Keys = core::PrivateKeys::CreateRandomKeys(
+          core::DEFAULT_ROUTER_SIGNING_KEY_TYPE);
+
+      LOG(debug) << "RouterContext: writing router keys";
+      core::OutputFileStream keys(keys_path, std::ofstream::binary);
+      std::vector<std::uint8_t> buf(m_Keys.GetFullLen());
+      m_Keys.ToBuffer(buf.data(), buf.size());
+      keys.Write(buf.data(), buf.size());
+
+      LOG(debug) << "RouterContext: creating RI from in-memory keys";
+      core::RouterInfo router(
+          m_Keys,
+          std::make_pair(host, port),
+          std::make_pair(has_ntcp, has_ssu));  // TODO(anonimal): brittle, see TODO in header
+
+      // Update context RI
+      m_RouterInfo.Update(router.GetBuffer(), router.GetBufferLen());
+    }
+  else  // Keys (and RI should also) exist
+    {
+      LOG(debug) << "RouterContext: reading existing keys into memory";
+      std::vector<std::uint8_t> buf = keys.ReadAll();
+      // Note: over/underflow checks done in callee
+      m_Keys.FromBuffer(buf.data(), buf.size());
+
+      LOG(debug) << "RouterContext: updating existing RI " << info_path;
+      core::RouterInfo router(info_path);
+
+      // NTCP
+      if (has_ntcp && !router.GetNTCPAddress())
+        router.AddAddress(std::make_tuple(Transport::NTCP, host, port));
+      if (!has_ntcp)
+        RemoveTransport(core::RouterInfo::Transport::NTCP);
+
+      // SSU
+      if (has_ssu && !router.GetSSUAddress())
+        router.AddAddress(
+            std::make_tuple(Transport::SSU, host, port), router.GetIdentHash());
+      if (!has_ssu)
+        {
+          RemoveTransport(core::RouterInfo::Transport::SSU);
+
+          // Remove constructed SSU capabilities
+          router.SetCaps(
+              router.GetCaps() & ~core::RouterInfo::Cap::SSUTesting
+              & ~core::RouterInfo::Cap::SSUIntroducer);
+        }
+
+      // Update RI options (in case RI was older than these version)
+      router.SetDefaultOptions();
+
+      // Update context RI
+      m_RouterInfo.Update(router.GetBuffer(), router.GetBufferLen());
+
+      // Test for reachability of context's RI
+      if (IsUnreachable())
+        // we assume reachable until we discover firewall through peer tests
+        SetReachable();
+    }
+
+  LOG(info) << "RouterContext: will listen on host " << host;
+  LOG(info) << "RouterContext: will listen on port " << port;
+
+  // TODO(anonimal): we don't want a flurry of micro-managed setter functions
+  //  but we also don't want to re-initialize context just to update certain RI
+  //  traits! Note: updating RI traits doesn't update server sockets
+  LOG(debug) << "RouterContext: setting context RI traits";
+
+  // IPv6
+  m_Opts["v6"].as<bool>() ? m_RouterInfo.EnableV6() : m_RouterInfo.DisableV6();
+
+  // Floodfill
+  if (m_Opts["floodfill"].as<bool>())
+    {
+      m_RouterInfo.SetCaps(
+          m_RouterInfo.GetCaps() | core::RouterInfo::Cap::Floodfill);
+    }
+  else
+    {
+      m_RouterInfo.SetCaps(
+          m_RouterInfo.GetCaps() & ~core::RouterInfo::Cap::Floodfill);
+      // we don't publish number of routers and leaseset for non-floodfill
+      m_RouterInfo.GetOptions().erase(GetTrait(Trait::LeaseSets));
+      m_RouterInfo.GetOptions().erase(GetTrait(Trait::Routers));
+    }
+
+  // Bandcaps
+  auto const bandwidth = m_Opts["bandwidth"].as<std::string>();
+  if (!bandwidth.empty())
+    {
+      auto const cap = core::RouterInfo::Cap::HighBandwidth;
+      if (bandwidth[0] > 'L')  // TODO(anonimal): refine
+        {
+          if (!m_RouterInfo.HasCap(cap))
+            m_RouterInfo.SetCaps(m_RouterInfo.GetCaps() | cap);
+        }
+      else
+        {
+          if (m_RouterInfo.HasCap(cap))
+            m_RouterInfo.SetCaps(m_RouterInfo.GetCaps() & ~cap);
+        }
+    }
+
+  // TODO(anonimal): we don't want to update twice when once at the right time will suffice
+  // Update RI/commit to disk
   UpdateRouterInfo();
 }
 
-void RouterContext::CreateNewRouter() {
-  m_Keys = kovri::core::PrivateKeys::CreateRandomKeys(
-      kovri::core::DEFAULT_ROUTER_SIGNING_KEY_TYPE);
-  SaveKeys();
-  NewRouterInfo();
-}
-
-void RouterContext::NewRouterInfo() {
-  kovri::core::RouterInfo routerInfo;
-  routerInfo.SetRouterIdentity(
-      GetIdentity());
-  routerInfo.AddSSUAddress(m_Host, m_Port, routerInfo.GetIdentHash());
-  routerInfo.AddNTCPAddress(m_Host, m_Port);
-  routerInfo.SetCaps(
-    core::RouterInfo::Cap::Reachable |
-    core::RouterInfo::Cap::SSUTesting |  // TODO(anonimal): if we've disabled run-time SSU...
-    core::RouterInfo::Cap::SSUIntroducer);
-  routerInfo.SetOption("netId", std::to_string(I2P_NETWORK_ID));
-  routerInfo.SetOption("router.version", I2P_VERSION);
-  routerInfo.CreateBuffer(m_Keys);
-  m_RouterInfo.Update(
-      routerInfo.GetBuffer(),
-      routerInfo.GetBufferLen());
-}
-
 void RouterContext::UpdateRouterInfo() {
+  LOG(debug) << "RouterContext: updating RI, saving to file";
   m_RouterInfo.CreateBuffer(m_Keys);
-  m_RouterInfo.SaveToFile((kovri::core::GetCorePath() / ROUTER_INFO).string());
+  m_RouterInfo.SaveToFile(
+      (core::GetCorePath() / GetTrait(Trait::InfoFile)).string());
   m_LastUpdateTime = kovri::core::GetSecondsSinceEpoch();
-}
-
-void RouterContext::UpdatePort(
-    std::uint16_t port) {
-  bool updated = false;
-  for (auto& address : m_RouterInfo.GetAddresses()) {
-    if (address.port != port) {
-      address.port = port;
-      updated = true;
-    }
-  }
-  if (updated)
-    UpdateRouterInfo();
 }
 
 void RouterContext::UpdateAddress(
@@ -129,7 +220,7 @@ void RouterContext::UpdateAddress(
     }
   }
   auto ts = kovri::core::GetSecondsSinceEpoch();
-  if (updated || ts > m_LastUpdateTime + ROUTER_INFO_UPDATE_INTERVAL)
+  if (updated || ts > m_LastUpdateTime + Interval::Update)
     UpdateRouterInfo();
 }
 
@@ -150,38 +241,6 @@ void RouterContext::RemoveIntroducer(
     const boost::asio::ip::udp::endpoint& e) {
   if (m_RouterInfo.RemoveIntroducer(e))
     UpdateRouterInfo();
-}
-
-void RouterContext::SetFloodfill(
-    bool floodfill) {
-  m_IsFloodfill = floodfill;
-  if (floodfill) {
-    m_RouterInfo.SetCaps(
-        m_RouterInfo.GetCaps() | core::RouterInfo::Cap::Floodfill);
-  } else {
-    m_RouterInfo.SetCaps(
-        m_RouterInfo.GetCaps() & ~core::RouterInfo::Cap::Floodfill);
-    // we don't publish number of routers and leaseset for non-floodfill
-    m_RouterInfo.GetOptions().erase(ROUTER_INFO_OPTION_LEASESETS);
-    m_RouterInfo.GetOptions().erase(ROUTER_INFO_OPTION_ROUTERS);
-  }
-  UpdateRouterInfo();
-}
-
-void RouterContext::SetHighBandwidth() {
-  auto cap = core::RouterInfo::Cap::HighBandwidth;
-  if (!m_RouterInfo.HasCap(cap)) {
-    m_RouterInfo.SetCaps(m_RouterInfo.GetCaps() | cap);
-    UpdateRouterInfo();
-  }
-}
-
-void RouterContext::SetLowBandwidth() {
-  auto cap = core::RouterInfo::Cap::HighBandwidth;
-  if (m_RouterInfo.HasCap(cap)) {
-    m_RouterInfo.SetCaps(m_RouterInfo.GetCaps() & ~cap);
-    UpdateRouterInfo();
-  }
 }
 
 bool RouterContext::IsUnreachable() const {
@@ -206,8 +265,8 @@ void RouterContext::SetReachable() {
   std::uint8_t caps = m_RouterInfo.GetCaps();
   caps &= ~core::RouterInfo::Cap::Unreachable;
   caps |= core::RouterInfo::Cap::Reachable;
-  caps |= core::RouterInfo::Cap::SSUIntroducer;
-  if (m_IsFloodfill)
+  caps |= core::RouterInfo::Cap::SSUIntroducer;  // TODO(anonimal): but if SSU is disabled?...
+  if (IsFloodfill())
     caps |= core::RouterInfo::Cap::Floodfill;
   m_RouterInfo.SetCaps(caps);
 
@@ -216,49 +275,21 @@ void RouterContext::SetReachable() {
   for (std::size_t i = 0; i < addresses.size(); i++) {
     if (addresses[i].transport == core::RouterInfo::Transport::SSU) {
       // insert NTCP address with host/port form SSU
-      m_RouterInfo.AddNTCPAddress(
-          addresses[i].host.to_string().c_str(),
-          addresses[i].port);
+      m_RouterInfo.AddAddress(  // TODO(anonimal): but if NTCP is disabled?...
+          std::make_tuple(
+              Transport::NTCP,
+              addresses[i].host.to_string(),
+              addresses[i].port));
       break;
     }
   }
   // delete previous introducers
   for (auto& addr : addresses)
     addr.introducers.clear();
-  // update
-  UpdateRouterInfo();
-}
 
-void RouterContext::SetSupportsV6(
-    bool supportsV6) {
-  if (supportsV6)
-    m_RouterInfo.EnableV6();
-  else
-    m_RouterInfo.DisableV6();  // TODO(anonimal): unused (we disable by default)
-  UpdateRouterInfo();
-}
-
-void RouterContext::SetSupportsNTCP(bool supportsNTCP) {
-  m_SupportsNTCP = supportsNTCP;
-  if(supportsNTCP && !m_RouterInfo.GetNTCPAddress())
-    m_RouterInfo.AddNTCPAddress(m_Host, m_Port);
-  if(!supportsNTCP)
-    RemoveTransport(core::RouterInfo::Transport::NTCP);
-  UpdateRouterInfo();
-}
-
-void RouterContext::SetSupportsSSU(bool supportsSSU) {
-  m_SupportsSSU = supportsSSU;
-  if(supportsSSU && !m_RouterInfo.GetSSUAddress())
-    m_RouterInfo.AddSSUAddress(m_Host, m_Port, m_RouterInfo.GetIdentHash());
-  if(!supportsSSU)
-    RemoveTransport(core::RouterInfo::Transport::SSU);
-  // Remove SSU-related flags
-  m_RouterInfo.SetCaps(m_RouterInfo.GetCaps()
-      & ~core::RouterInfo::Cap::SSUTesting
-      & ~core::RouterInfo::Cap::SSUIntroducer);
-
-  UpdateRouterInfo();
+  // TODO(anonimal): if we continue to use these setters (or a single template setter),
+  //  we'll need to ensure router info is updated after setting (either through context
+  //  or other means).
 }
 
 void RouterContext::UpdateNTCPV6Address(
@@ -281,14 +312,12 @@ void RouterContext::UpdateNTCPV6Address(
   }
   if (!found) {
     // create new address
-    m_RouterInfo.AddNTCPAddress(
-        host.to_string().c_str(),
-        port);
-    m_RouterInfo.AddSSUAddress(
-        host.to_string().c_str(),
-        port,
+    m_RouterInfo.AddAddress(
+        std::make_tuple(Transport::NTCP, host.to_string(), port));
+    m_RouterInfo.AddAddress(
+        std::make_tuple(Transport::SSU, host.to_string(), port),
         GetIdentHash(),
-        kovri::core::GetMTU(host));
+        core::GetMTU(host));
     updated = true;
   }
   if (updated)
@@ -296,51 +325,16 @@ void RouterContext::UpdateNTCPV6Address(
 }
 
 void RouterContext::UpdateStats() {
-  if (m_IsFloodfill) {
+  if (IsFloodfill()) {
     // update routers and leasesets
     m_RouterInfo.SetOption(
-        ROUTER_INFO_OPTION_LEASESETS,
+        GetTrait(Trait::LeaseSets),
         boost::lexical_cast<std::string>(kovri::core::netdb.GetNumLeaseSets()));
     m_RouterInfo.SetOption(
-        ROUTER_INFO_OPTION_ROUTERS,
+        GetTrait(Trait::Routers),
         boost::lexical_cast<std::string>(kovri::core::netdb.GetNumRouters()));
     UpdateRouterInfo();
   }
-}
-
-bool RouterContext::Load() {
-  auto path = kovri::core::EnsurePath(kovri::core::GetCorePath());
-  std::ifstream fk((path / ROUTER_KEYS).string(), std::ifstream::binary);
-  // If key does not exist, create
-  if (!fk.is_open())
-    return false;
-  fk.seekg(0, std::ios::end);
-  const std::size_t len = fk.tellg();
-  fk.seekg(0, std::ios::beg);
-  std::unique_ptr<std::uint8_t[]> buf(std::make_unique<std::uint8_t[]>(len));
-  fk.read(reinterpret_cast<char*>(buf.get()), len);
-  m_Keys.FromBuffer(buf.get(), len);
-  kovri::core::RouterInfo router_info(
-      (kovri::core::GetCorePath() / ROUTER_INFO).string());
-  m_RouterInfo.Update(
-      router_info.GetBuffer(),
-      router_info.GetBufferLen());
-  m_RouterInfo.SetOption("coreVersion", I2P_VERSION);
-  m_RouterInfo.SetOption("router.version", I2P_VERSION);
-  if (IsUnreachable())
-    // we assume reachable until we discover firewall through peer tests
-    SetReachable();
-  return true;
-}
-
-void RouterContext::SaveKeys() {
-  std::ofstream fk(
-      (kovri::core::GetCorePath() / ROUTER_KEYS).string(),
-      std::ofstream::binary);
-  const std::size_t len = m_Keys.GetFullLen();
-  std::unique_ptr<std::uint8_t[]> buf(std::make_unique<std::uint8_t[]>(len));
-  m_Keys.ToBuffer(buf.get(), len);
-  fk.write(reinterpret_cast<char*>(buf.get()), len);
 }
 
 void RouterContext::RemoveTransport(
@@ -352,11 +346,18 @@ void RouterContext::RemoveTransport(
       break;
     }
   }
+  // Remove SSU capabilities
+  if (transport == core::RouterInfo::Transport::SSU)
+    m_RouterInfo.SetCaps(
+        m_RouterInfo.GetCaps() & ~core::RouterInfo::Cap::SSUTesting
+        & ~core::RouterInfo::Cap::SSUIntroducer);
 }
 
 std::shared_ptr<kovri::core::TunnelPool> RouterContext::GetTunnelPool() const {
   return kovri::core::tunnels.GetExploratoryPool();
 }
+
+// TODO(anonimal): no real reason to have message handling here, despite inheritance
 
 void RouterContext::HandleI2NPMessage(
     const std::uint8_t* buf,
@@ -381,8 +382,10 @@ void RouterContext::ProcessDeliveryStatusMessage(
   kovri::core::GarlicDestination::ProcessDeliveryStatusMessage(msg);
 }
 
-std::uint32_t RouterContext::GetUptime() const {
-  return kovri::core::GetSecondsSinceEpoch () - m_StartupTime;
+std::uint64_t RouterContext::GetUptime() const
+{
+  return core::GetSecondsSinceEpoch () - m_StartupTime;
 }
 
+}  // namespace core
 }  // namespace kovri

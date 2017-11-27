@@ -35,6 +35,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/program_options.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -46,32 +47,30 @@
 #include "core/router/identity.h"
 #include "core/router/info.h"
 
-namespace kovri {
-// TODO(anonimal): this belongs in core namespace
+namespace kovri
+{
+namespace core
+{
 
-const char ROUTER_INFO[] = "router.info";
-const char ROUTER_KEYS[] = "router.keys";
-const int ROUTER_INFO_UPDATE_INTERVAL = 1800;  // 30 minutes
+enum struct RouterState : std::uint8_t
+{
+  /// @brief Context is fully port forwarded
+  OK,
 
-const char ROUTER_INFO_OPTION_LEASESETS[] = "netdb.knownLeaseSets";
-const char ROUTER_INFO_OPTION_ROUTERS[] = "netdb.knownRouters";
+  /// @brief Context is testing connectivity
+  Testing,
 
-enum RouterStatus {
-  eRouterStatusOK = 0,
-  eRouterStatusTesting = 1,
-  eRouterStatusFirewalled = 2
+  /// @brief Context detects being firewalled
+  Firewalled,
 };
 
-class RouterContext : public kovri::core::GarlicDestination {
+class RouterContext : public RouterInfoTraits, public GarlicDestination {
  public:
   RouterContext();
 
-  /// Initializes the router context, must be called before use
-  /// @param host The external address of this router
-  /// @param port The external port of this router
-  void Init(
-      const std::string& host,
-      std::uint16_t port);
+  /// @brief Initializes the router context, must be called before further context use
+  /// @param map Variable map used to initialize context options
+  void Initialize(const boost::program_options::variables_map& map);
 
   // @return This RouterContext's RouterInfo
   kovri::core::RouterInfo& GetRouterInfo() {
@@ -86,7 +85,7 @@ class RouterContext : public kovri::core::GarlicDestination {
   }
 
   // @return How long this RouterContext has been online in seconds since epoch
-  std::uint32_t GetUptime() const;
+  std::uint64_t GetUptime() const;
 
   // @return Time that this RouterContext started in seconds since epoch
   std::uint32_t GetStartupTime() const {
@@ -98,26 +97,18 @@ class RouterContext : public kovri::core::GarlicDestination {
     return m_LastUpdateTime;
   }
 
-  // @return
-  // eRouterStatusOk - if the RouterContext is fully port forwarded,
-  // eRouterStatusTesting - if the RouterContext is testing connectivity
-  // eRouterStatusFirewalled - if the RouterContext detects being firewalled
-  RouterStatus GetStatus() const {
-    return m_Status;
+  /// @return Router state
+  RouterState GetState() const noexcept
+  {
+    return m_State;
   }
 
-  // Set RouterContext's Status
-  // @see GetStatus
-  // @param status the new status this RouterContext will have
-  void SetStatus(
-      RouterStatus status) {
-    m_Status = status;
+  /// @brief Set context state
+  // @param status the new state this context will have
+  void SetState(RouterState state) noexcept
+  {
+    m_State = state;
   }
-
-  // Called from Daemon, updates this RouterContext's Port.
-  // Rebuilds RouterInfo
-  // @param port port number
-  void UpdatePort(std::uint16_t port);
 
   // Called From SSU or Daemon.
   // Update Our IP Address, external IP Address if behind NAT.
@@ -150,24 +141,10 @@ class RouterContext : public kovri::core::GarlicDestination {
   void SetReachable();
 
   // @return true if we are a floodfill router otherwise false
-  bool IsFloodfill() const {
-    return m_IsFloodfill;
+  bool IsFloodfill() const
+  {
+    return m_Opts["floodfill"].as<bool>();
   }
-
-  // Set if we are a floodfill router, rebuild RouterInfo.
-  // @param floodfill true if we want to become floodfill, false if we don't
-  void SetFloodfill(
-      bool floodfill);
-
-  // Mark ourselves as having high bandwidth.
-  // Changes caps flags.
-  // Rebuilds RouterInfo.
-  void SetHighBandwidth();
-
-  // Mark ourselves as having low (aka NOT high) Bandwidth.
-  // Changes Capacity Flags.
-  // Rebuilds RouterInfo.
-  void SetLowBandwidth();
 
   // @return true if we are going to accept tunnels right now.
   bool AcceptsTunnels() const {
@@ -185,30 +162,6 @@ class RouterContext : public kovri::core::GarlicDestination {
   bool SupportsV6() const {
     return m_RouterInfo.HasV6();
   }
-
-  /// @return true if we support the NTCP transport, false otherwise
-  bool SupportsNTCP() const {
-    return m_SupportsNTCP;
-  }
-
-  /// @return true if we support the SSU transport, false otherwise
-  bool SupportsSSU() const {
-    return m_SupportsSSU;
-  }
-
-  // Set if we support IPv6 connectivity.
-  // Rebuilds RouterInfo.
-  // @param supportsV6 true if we support IPv6, false if we don't
-  void SetSupportsV6(
-      bool supportsV6);
-
-  /// @brief Sets whether or not this router supports the NTCP transport
-  /// @param supportsNTCP true if NTCP is supported, false otherwise
-  void SetSupportsNTCP(bool supportsNTCP);
-
-  /// @brief Sets whether or not this router supports the SSU transport
-  /// @param supportsNTCP true if SSU is supported, false otherwise
-  void SetSupportsSSU(bool supportsSSU);
 
   // Called From NTCPSession.
   // Update our NTCP IPv6 address.
@@ -255,46 +208,10 @@ class RouterContext : public kovri::core::GarlicDestination {
   void ProcessDeliveryStatusMessage(
       std::shared_ptr<kovri::core::I2NPMessage> msg);
 
-  /**
-   * Note: these reseed functions are not ideal but
-   * they fit into our current design. We need to initialize
-   * here because we cannot (should not/don't need to) link
-   * unit-tests to executables (src/app) so, without these,
-   * current reseed tests won't compile.
-   */
-
-  /// @brief Sets user-supplied reseed stream
-  void SetOptionReseedFrom(
-      const std::string& stream) {
-    m_ReseedFrom = stream;
-  }
-
-  /// @return User-supplied reseed stream
-  std::string GetOptionReseedFrom() const {
-    return m_ReseedFrom;
-  }
-
-  /// @brief Sets user-supplied reseed SSL option
-  void SetOptionEnableSSL(
-      bool option) {
-    m_EnableSSL = option;
-  }
-
-  /// @return User-supplied option to skip SSL
-  bool GetOptionEnableSSL() const {
-    return m_EnableSSL;
-  }
-
-  /// @brief Sets user-supplied disable SU3 verification option
-  void SetOptionDisableSU3Verification(bool option)
+  /// @brief Core router traits/options
+  const boost::program_options::variables_map& GetOpts() const
   {
-    m_DisableSU3Verification = option;
-  }
-
-  /// @return User-supplied option to disable SU3 verification
-  bool GetOptionDisableSU3Verification() const
-  {
-    return m_DisableSU3Verification;
+    return m_Opts;
   }
 
   /// @return root directory path
@@ -310,32 +227,24 @@ class RouterContext : public kovri::core::GarlicDestination {
   }
 
  private:
-  void CreateNewRouter();
-  void NewRouterInfo();
   void UpdateRouterInfo();
-  bool Load();
-  void SaveKeys();
   void RemoveTransport(core::RouterInfo::Transport transport);
 
  private:
   kovri::core::RouterInfo m_RouterInfo;
   kovri::core::PrivateKeys m_Keys;
   std::uint64_t m_LastUpdateTime;
-  bool m_AcceptsTunnels, m_IsFloodfill;
+  bool m_AcceptsTunnels;
   std::uint64_t m_StartupTime;  // in seconds since epoch
-  RouterStatus m_Status;
+  RouterState m_State;
   std::mutex m_GarlicMutex;
-  std::string m_Host;
-  std::uint16_t m_Port;
-  std::string m_ReseedFrom;
-  bool m_EnableSSL;
-  bool m_DisableSU3Verification;
-  bool m_SupportsNTCP, m_SupportsSSU;
   std::string m_CustomDataDir;
+  boost::program_options::variables_map m_Opts;
 };
 
 extern RouterContext context;
 
+}  // namespace core
 }  // namespace kovri
 
 #endif  // SRC_CORE_ROUTER_CONTEXT_H_

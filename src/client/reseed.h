@@ -69,8 +69,11 @@ class Reseed {
  public:
   /// @brief Constructs stream from string
   explicit Reseed(
-      const std::string& stream = kovri::context.GetOptionReseedFrom())
-      : m_Stream(stream) {}
+      const std::string& stream =
+          core::context.GetOpts()["reseed-from"].as<std::string>())
+      : m_Stream(stream)
+  {
+  }
 
   /// @brief Reseed implementation
   /// @details Oversees fetching and processing of SU3
@@ -136,14 +139,18 @@ class Reseed {
 /**
  * @class SU3
  * @brief SU3 implementation
- * @param String of bytes that *must* be an SU3
+ * @param su3 String of bytes that *must* be an SU3
+ * @param keys Pubkeys to verify with
+ * @param disable_verification Disable signed SU3 verification?
  */
 class SU3 {
  public:
   SU3(const std::string& su3,
-      std::map<std::string, kovri::core::PublicKey>& keys)
+      std::map<std::string, kovri::core::PublicKey>& keys,
+      bool disable_verification = false)
       : m_Stream(su3),
         m_SigningKeys(keys),
+        m_DisableVerification(disable_verification),
         m_Data(std::make_unique<Data>()) {}
 
   // Extracted RI's (map of router info files)
@@ -275,6 +282,9 @@ class SU3 {
 
   // X.509 signing keys for SU3 verification
   std::map<std::string, kovri::core::PublicKey> m_SigningKeys;
+
+  /// @brief Disable SU3 verification?
+  bool m_DisableVerification;
 
   // Spec-defined data
   std::unique_ptr<Data> m_Data;

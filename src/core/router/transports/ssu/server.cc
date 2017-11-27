@@ -375,7 +375,7 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
               << introducer->host << ":" << introducer->port;
             session->WaitForIntroduction();
             // if we are unreachable
-            if (kovri::context.GetRouterInfo().UsesIntroducer()) {
+            if (context.GetRouterInfo().UsesIntroducer()) {
               std::array<std::uint8_t, 1> buf {{}};
               Send(buf.data(), 0, remote_endpoint);  // send HolePunch
             }
@@ -483,15 +483,15 @@ void SSUServer::HandleIntroducersUpdateTimer(
   LOG(debug) << "SSUServer: handling introducers update timer";
   if (ecode != boost::asio::error::operation_aborted) {
     // timeout expired
-    if (kovri::context.GetStatus() == eRouterStatusTesting) {
+    if (context.GetState() == RouterState::Testing) {
       // we still don't know if we need introducers
       ScheduleIntroducersUpdateTimer();
       return;
     }
-    if (kovri::context.GetStatus () == eRouterStatusOK)
+    if (context.GetState () == RouterState::OK)
       return;  // we don't need introducers anymore
     // we are firewalled
-    if (!kovri::context.IsUnreachable()) kovri::context.SetUnreachable();
+    if (!context.IsUnreachable()) context.SetUnreachable();
     std::list<boost::asio::ip::udp::endpoint> new_list;
     std::size_t num_introducers = 0;
     std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();  // Timestamp
@@ -504,7 +504,7 @@ void SSUServer::HandleIntroducersUpdateTimer(
         new_list.push_back(introducer);
         num_introducers++;
       } else {
-        kovri::context.RemoveIntroducer(introducer);
+        context.RemoveIntroducer(introducer);
       }
     }
     auto max_introducers = GetType(SSUSize::MaxIntroducers);
@@ -515,7 +515,7 @@ void SSUServer::HandleIntroducersUpdateTimer(
         for (auto it : introducers) {
           auto router = it->GetRemoteRouter();
           if (router &&
-              kovri::context.AddIntroducer(*router, it->GetRelayTag())) {
+              context.AddIntroducer(*router, it->GetRelayTag())) {
             new_list.push_back(it->GetRemoteEndpoint());
             if (new_list.size() >= max_introducers)
               break;

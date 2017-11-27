@@ -41,6 +41,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <vector>
 
 #include "core/crypto/signature.h"
@@ -56,6 +57,10 @@ namespace core {
 
 struct RouterInfoTraits
 {
+  /// @enum Interval
+  /// @brief RI intervals
+  enum Interval { Update = 1800 };  // 30 minutes
+
   /// @enum Size
   /// @brief Router Info size constants
   enum Size : std::uint16_t
@@ -69,6 +74,7 @@ struct RouterInfoTraits
 
   /// @enum PortRange
   /// @brief Min and Max public port
+  /// @note See i2p.i2p/router/java/src/net/i2p/router/transport/udp/UDPEndpoint.java
   enum PortRange : std::uint16_t
   {
     MinPort = 9111,
@@ -132,6 +138,16 @@ struct RouterInfoTraits
   /// @brief RI traits
   enum struct Trait : std::uint8_t
   {
+    // File-specific
+    InfoFile,
+    KeyFile,
+
+    // Option-specific
+    RouterVersion,
+    LeaseSets,
+    Routers,
+    NetID,
+
     // Address-specific
     NTCP,
     SSU,
@@ -163,6 +179,26 @@ struct RouterInfoTraits
   {
     switch (trait)
       {
+        // File names
+        case Trait::InfoFile:
+          return "router.info";
+
+        case Trait::KeyFile:
+          return "router.key";
+
+        // Option-specific
+        case Trait::RouterVersion:
+          return "router.version";
+
+        case Trait::LeaseSets:
+          return "netdb.knownLeaseSets";
+
+        case Trait::Routers:
+          return "netdb.knownRouters";
+
+        case Trait::NetID:
+          return "netId";
+
         // Address-specific
         case Trait::NTCP:
           return "NTCP";
@@ -397,6 +433,17 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
   RouterInfo();
   ~RouterInfo();
 
+  /// @brief Create RI with standard defaults
+  /// @param point Local hostname/ip address + port
+  /// @param has_transport Supports NTCP, SSU
+  /// @param keys Privkeys which generate identity
+  /// @param caps RI capabilities
+  RouterInfo(
+      const core::PrivateKeys& keys,
+      const std::pair<std::string, std::uint16_t>& point,
+      const std::pair<bool, bool>& has_transport,  // TODO(anonimal): refactor as bitwise SupportedTransport?
+      const std::uint8_t caps = core::RouterInfo::Cap::Reachable);
+
   /// @brief Create RI from file
   /// @param path Full path to RI file
   RouterInfo(const std::string& path);
@@ -425,7 +472,7 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
     std::uint64_t date{};
     std::uint8_t cost{};
     // SSU only
-    Tag<32> key;  // intro key for SSU
+    Tag<32> key{};  // Our intro key for SSU
     std::vector<Introducer> introducers;
     bool HasCompatibleHost(const boost::asio::ip::address& other) const noexcept
     {
@@ -433,20 +480,18 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
     }
   };
 
+  // TODO(unassigned): remove. This is only used for unrefactored kovri-util RI creation
   /// @brief Set RI identity and current timestamp
   void SetRouterIdentity(const IdentityEx& identity);
 
-  /// @brief Adds SSU address to RI
-  /// @details Sets RI members appropriately, saves address object
-  void AddNTCPAddress(const std::string& host, std::uint16_t port);
-
-  /// @brief Adds SSU address to RI
-  /// @details Sets RI members appropriately, saves address object
-  void AddSSUAddress(
-      const std::string& host,
-      std::uint16_t port,
-      const std::uint8_t* key,
-      std::uint16_t mtu = 0);
+  /// @brief Adds/saves address + sets appropriate RI members
+  /// @param point Supported transport / Host string / Port integral
+  /// @param key Our intoducer key
+  /// @param mtu Address MTU
+  void AddAddress(
+      const std::tuple<Transport, std::string, std::uint16_t>& point,
+      const std::uint8_t* key = nullptr,
+      const std::uint16_t mtu = 0);
 
   /// @brief Adds introducer to RI using SSU capable address object
   /// @param address SSU capable address
@@ -484,10 +529,12 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
   /// @param path Full RI path of file to save to
   void SaveToFile(const std::string& path);
 
-  // TODO(anonimal): not an ideal getter
   /// @brief Get RI profile
   /// @detail If profile does not exist, creates it
+  // TODO(anonimal): not an ideal getter because of detail
   std::shared_ptr<RouterProfile> GetProfile() const;
+
+  // TODO(anonimal): template address getter
 
   /// @return Address object capable of NTCP
   /// @param has_v6 Address should have v6 capability
@@ -573,6 +620,9 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
   {
     m_Options[key] = value;
   }
+
+  /// @brief Set essential (non-caps) default options for new RIs and when updating RIs
+  void SetDefaultOptions();
 
   /// @return Mutable RI options
   std::map<std::string, std::string>& GetOptions() noexcept
@@ -754,6 +804,7 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
   const RouterInfo::Address* GetAddress(const std::uint8_t transports) const;
 
  private:
+  core::Exception m_Exception;
   std::string m_Path;
   IdentityEx m_RouterIdentity;
   std::unique_ptr<std::uint8_t[]> m_Buffer;
@@ -764,7 +815,6 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
   bool m_IsUpdated = false, m_IsUnreachable = false;
   std::uint8_t m_SupportedTransports{}, m_Caps{};
   mutable std::shared_ptr<RouterProfile> m_Profile;
-  core::Exception m_Exception;
 };
 
 }  // namespace core

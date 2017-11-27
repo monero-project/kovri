@@ -204,6 +204,26 @@ class FileStream {
     return buf;
   }
 
+  std::vector<std::uint8_t> ReadAll()
+  {
+    Seekg(0, std::ios::end);
+    if (Fail())
+      throw std::runtime_error("FileStream: input does not support seekg");
+
+    const auto len = Tellg();
+    LOG(trace) << "FileStream: input length " << len;
+    if (!len)
+      throw std::runtime_error("FileStream: empty input");
+
+    Seekg(0, std::ios::beg);
+
+    std::vector<std::uint8_t> buf(len);
+    if (!Read(buf.data(), buf.size()))
+      throw std::runtime_error("FileStream: Failed to read input");
+
+    return buf;
+  }
+
   /// @brief Write to stream
   /// @param buf : buffer to write to
   /// @param size : number of byte to write

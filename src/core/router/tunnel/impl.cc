@@ -651,7 +651,7 @@ void Tunnels::ManageInboundTunnels() {
     if (!m_ExploratoryPool)
       m_ExploratoryPool =
         // 2-hop exploratory, 5 tunnels
-        CreateTunnelPool(&kovri::context, 2, 2, 5, 5);
+        CreateTunnelPool(&context, 2, 2, 5, 5);
     return;
   }
   if (m_OutboundTunnels.empty() || m_InboundTunnels.size() < 5) {
@@ -756,7 +756,7 @@ void Tunnels::CreateZeroHopsInboundTunnel() {
   CreateTunnel<InboundTunnel> (
       std::make_shared<TunnelConfig> (
         std::vector<std::shared_ptr<const kovri::core::RouterInfo> > {
-        kovri::context.GetSharedRouterInfo()
+        context.GetSharedRouterInfo()
       }));
 }
 

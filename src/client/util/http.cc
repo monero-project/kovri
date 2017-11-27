@@ -117,7 +117,7 @@ bool HTTP::DownloadViaClearnet() {
   LOG(debug) << "HTTP: Download Clearnet with timeout : "
              << kovri::core::GetType(Timeout::Request);
   // Ensure that we only download from explicit SSL-enabled hosts
-  if (kovri::context.GetOptionEnableSSL()) {
+  if (core::context.GetOpts()["enable-ssl"].as<bool>()) {
     const std::string cert = uri.host() + ".crt";
     const boost::filesystem::path cert_path = kovri::core::GetSSLCertsPath() / cert;
     if (!boost::filesystem::exists(cert_path)) {

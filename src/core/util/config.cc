@@ -82,7 +82,7 @@ void Configuration::ParseConfig()
   // Map options values from command-line and config
   bpo::options_description system("\nsystem");
   system.add_options()(
-      "host", bpo::value<std::string>()->default_value("127.0.0.1"))(
+      "host", bpo::value<std::string>()->default_value("127.0.0.1"))(  // TODO(anonimal): fix default host
       "port,p", bpo::value<int>()->default_value(0))(
       "data-dir",
       bpo::value<std::string>()
@@ -121,7 +121,7 @@ void Configuration::ParseConfig()
       "v6,6", bpo::value<bool>()->default_value(false)->value_name("bool"))(
       "floodfill,f",
       bpo::value<bool>()->default_value(false)->value_name("bool"))(
-      "bandwidth,b", bpo::value<std::string>()->default_value("L"))(
+      "bandwidth,b", bpo::value<std::string>()->default_value("L"))(  // TODO(anonimal): refine + update packaged default config file
       "enable-ssu",
       bpo::value<bool>()->default_value(true)->value_name("bool"))(
       "enable-ntcp",
@@ -185,6 +185,7 @@ void Configuration::ParseConfigFile(
   bpo::store(bpo::parse_config_file(filename, options), var_map);
   bpo::notify(var_map);
 
+  // TODO(anonimal): move to sanity check function for namespace use
   // Check host syntax
   boost::system::error_code ec;
   boost::asio::ip::address::from_string(m_Map["host"].as<std::string>(), ec);

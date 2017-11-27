@@ -31,6 +31,7 @@
 #include "util/routerinfo.h"
 #include <assert.h>
 #include <memory>
+#include <tuple>
 
 #include "core/crypto/rand.h"
 #include "core/router/info.h"
@@ -117,14 +118,17 @@ bool RouterInfoCommand::Impl(
                                                    core::RouterInfo::MaxPort)
                                              : vm["port"].as<int>();
 
+          // TODO(unassigned): refactor according to new RI ctor interface
           // Generate private key
           core::PrivateKeys keys = core::PrivateKeys::CreateRandomKeys(
               core::DEFAULT_ROUTER_SIGNING_KEY_TYPE);
           // Set router info attributes
           core::RouterInfo routerInfo;
           routerInfo.SetRouterIdentity(keys.GetPublic());
-          routerInfo.AddSSUAddress(host, port, routerInfo.GetIdentHash());
-          routerInfo.AddNTCPAddress(host, port);
+          routerInfo.AddAddress(std::make_tuple(Transport::NTCP, host, port));
+          routerInfo.AddAddress(
+              std::make_tuple(Transport::SSU, host, port),
+              routerInfo.GetIdentHash());
           // Set capabilities
           routerInfo.SetCaps(core::RouterInfo::Cap::Reachable);
           if (vm["ssuintroducer"].as<bool>())
@@ -141,7 +145,7 @@ bool RouterInfoCommand::Impl(
             routerInfo.SetCaps(
                 routerInfo.GetCaps() | core::RouterInfo::Cap::HighBandwidth);
           // Set options
-          routerInfo.SetOption("netId", std::to_string(vm["netid"].as<int>()));
+          routerInfo.SetOption("netId", std::to_string(vm["netid"].as<int>()));  // TODO(unassigned): changing netId is (and may always be) unecessary
           routerInfo.SetOption("router.version", I2P_VERSION);
           routerInfo.CreateBuffer(keys);
 

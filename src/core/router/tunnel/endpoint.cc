@@ -302,7 +302,7 @@ void TunnelEndpoint::HandleNextMessage(
     break;
     case e_DeliveryTypeRouter:
       // check if message is sent to us
-      if (msg.hash == kovri::context.GetRouterInfo().GetIdentHash()) {
+      if (msg.hash == context.GetRouterInfo().GetIdentHash()) {
         kovri::core::HandleI2NPMessage(msg.data);
       } else {
         // to somebody else

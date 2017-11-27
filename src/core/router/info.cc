@@ -36,6 +36,7 @@
 
 #include <cstring>
 #include <fstream>
+#include <tuple>
 
 #include "core/router/context.h"
 
@@ -45,32 +46,68 @@
 #include "core/util/log.h"
 #include "core/util/timestamp.h"
 
+#include "version.h"
+
 namespace kovri
 {
 namespace core
 {
 
-RouterInfo::RouterInfo() : m_Buffer(nullptr), m_Exception(__func__)  // TODO(anonimal): buffer refactor
+RouterInfo::RouterInfo() : m_Exception(__func__), m_Buffer(nullptr)  // TODO(anonimal): buffer refactor
 {
 }
 
-RouterInfo::~RouterInfo()
+RouterInfo::RouterInfo(
+    const core::PrivateKeys& keys,
+    const std::pair<std::string, std::uint16_t>& point,
+    const std::pair<bool, bool>& has_transport,
+    const std::uint8_t caps)
+    : m_Exception(__func__), m_RouterIdentity(keys.GetPublic())
 {
+  // TODO(anonimal): in core config, we guarantee validity of host and port but
+  //  we don't guarantee here without said caller in place.
+
+  // Log our identity
+  const IdentHash& hash = m_RouterIdentity.GetIdentHash();
+  LOG(info) << "RouterInfo: our router's ident: " << m_RouterIdentity.ToBase64();
+  LOG(info) << "RouterInfo: our router's ident hash: " << hash.ToBase64();
+
+  // Set default caps
+  SetCaps(caps);
+
+  // Set default transports
+  if (has_transport.first)
+    AddAddress(std::make_tuple(Transport::NTCP, point.first, point.second));
+
+  if (has_transport.second)
+    {
+      AddAddress(
+          std::make_tuple(Transport::SSU, point.first, point.second), hash);
+      SetCaps(
+          m_Caps | core::RouterInfo::Cap::SSUTesting
+          | core::RouterInfo::Cap::SSUIntroducer);
+    }
+
+  // Set default options
+  SetDefaultOptions();
+
+  // Set RI buffer + create RI
+  CreateBuffer(keys);
 }
 
 RouterInfo::RouterInfo(const std::string& path)
-    : m_Path(path),
-      m_Buffer(std::make_unique<std::uint8_t[]>(Size::MaxBuffer)),  // TODO(anonimal): buffer refactor
-      m_Exception(__func__)
+    : m_Exception(__func__),
+      m_Path(path),
+      m_Buffer(std::make_unique<std::uint8_t[]>(Size::MaxBuffer))  // TODO(anonimal): buffer refactor
 {
   ReadFromFile();
   ReadFromBuffer(false);
 }
 
 RouterInfo::RouterInfo(const std::uint8_t* buf, std::uint16_t len)
-    : m_Buffer(std::make_unique<std::uint8_t[]>(Size::MaxBuffer)),  // TODO(anonimal): buffer refactor
-      m_BufferLen(len),
-      m_Exception(__func__)
+    : m_Exception(__func__),
+      m_Buffer(std::make_unique<std::uint8_t[]>(Size::MaxBuffer)),  // TODO(anonimal): buffer refactor
+      m_BufferLen(len)
 {
   if (!buf)
     throw std::invalid_argument("RouterInfo: null buffer");
@@ -79,6 +116,10 @@ RouterInfo::RouterInfo(const std::uint8_t* buf, std::uint16_t len)
   std::memcpy(m_Buffer.get(), buf, len);
   ReadFromBuffer(true);
   m_IsUpdated = true;
+}
+
+RouterInfo::~RouterInfo()
+{
 }
 
 void RouterInfo::ReadFromFile()
@@ -277,6 +318,7 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
                 address.mtu = boost::lexical_cast<std::uint16_t>(value);
                 break;
               case Trait::Key:
+                // Our intro key as introducer
                 kovri::core::Base64ToByteStream(
                     value.c_str(), value.size(), address.key, 32);
                 break;
@@ -391,6 +433,15 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
     }
 }
 
+void RouterInfo::SetDefaultOptions()
+{
+  SetOption(GetTrait(Trait::NetID), std::to_string(I2P_NETWORK_ID));
+  SetOption(GetTrait(Trait::RouterVersion), I2P_VERSION);
+  // TODO(anonimal): implement known lease-sets and known routers.
+  //   We current only set default options when starting/creating RI *before*
+  //   netdb starts. We'll need to ensure the 'known' opts are set *after* netdb starts.
+}
+
 void RouterInfo::SetCaps(const std::string& caps)
 {
   LOG(debug) << "RouterInfo: " << __func__ << ": setting caps " << caps;
@@ -476,45 +527,60 @@ const std::string RouterInfo::GetCapsFlags() const
   return flags;
 }
 
+// TODO(unassigned): remove. This is only used for unrefactored kovri-util RI creation
 void RouterInfo::SetRouterIdentity(const IdentityEx& identity)
 {
   m_RouterIdentity = identity;
   m_Timestamp = kovri::core::GetMillisecondsSinceEpoch();
 }
 
-void RouterInfo::AddNTCPAddress(const std::string& host, std::uint16_t port)
-{
-  Address addr;
-  addr.host = boost::asio::ip::address::from_string(host);
-  addr.port = port;
-  addr.transport = Transport::NTCP;
-  addr.cost = Size::NTCPCost;
-  addr.date = 0;
-  addr.mtu = 0;
-  m_Addresses.push_back(addr);
-  m_SupportedTransports |= addr.host.is_v6() ? SupportedTransport::NTCPv6
-                                             : SupportedTransport::NTCPv4;
-}
-
-void RouterInfo::AddSSUAddress(
-    const std::string& host,
-    std::uint16_t port,
+void RouterInfo::AddAddress(
+    const std::tuple<Transport, std::string, std::uint16_t>& point,
     const std::uint8_t* key,
-    std::uint16_t mtu)
+    const std::uint16_t mtu)
 {
   Address addr;
-  addr.host = boost::asio::ip::address::from_string(host);
-  addr.port = port;
-  addr.transport = Transport::SSU;
-  addr.cost = Size::SSUCost;
-  addr.date = 0;
-  addr.mtu = mtu;
-  std::memcpy(addr.key, key, 32);
+  addr.transport = std::get<0>(point);
+  addr.host = boost::asio::ip::address::from_string(std::get<1>(point));
+  addr.port = std::get<2>(point);
+  addr.date = 0;  // TODO(anonimal): ?...
+
+  // Set transport-specific
+  switch (addr.transport)
+    {
+      case Transport::NTCP:
+        {
+          addr.cost = Size::NTCPCost;
+          addr.mtu = 0;  // TODO(anonimal): ?...
+          m_SupportedTransports |= addr.host.is_v6()
+                                       ? SupportedTransport::NTCPv6
+                                       : SupportedTransport::NTCPv4;
+        }
+        break;
+
+      case Transport::SSU:
+        {
+          addr.cost = Size::SSUCost;
+          addr.mtu = mtu;
+          if (!key)
+            throw std::runtime_error("RouterInfo: null SSU intro key");
+          addr.key = key;
+          m_SupportedTransports |= addr.host.is_v6()
+                                       ? SupportedTransport::SSUv6
+                                       : SupportedTransport::SSUv4;
+          // Set our caps
+          m_Caps |= Cap::SSUTesting | Cap::SSUIntroducer;
+        }
+        break;
+
+      default:
+        throw std::runtime_error(
+            "RouterInfo: " + std::string(__func__) + ": unsupported transport");
+        break;
+    }
+
+  // Save address
   m_Addresses.push_back(addr);
-  m_SupportedTransports |=
-      addr.host.is_v6() ? SupportedTransport::SSUv6 : SupportedTransport::SSUv4;
-  m_Caps |= Cap::SSUTesting;
-  m_Caps |= Cap::SSUIntroducer;
 }
 
 bool RouterInfo::AddIntroducer(const Address* address, std::uint32_t tag)
@@ -664,6 +730,7 @@ void RouterInfo::CreateRouterInfo(
     core::StringStream& router_info,
     const PrivateKeys& private_keys)
 {
+  // TODO(anonimal): more useful logging
   LOG(debug) << "RouterInfo: " << __func__;
 
   // Write ident
@@ -812,7 +879,10 @@ void RouterInfo::CreateRouterInfo(
 
   // Write remaining options
   for (const auto& opt : GetOptions())
-    options.WriteKeyPair(opt.first, opt.second);
+    {
+      LOG(debug) << "RouterInfo: writing: " << opt.first << "=" << opt.second;
+      options.WriteKeyPair(opt.first, opt.second);
+    }
 
   // Write size of remaining options
   std::uint16_t size = htobe16(options.Str().size());
@@ -963,15 +1033,16 @@ const std::string RouterInfo::GetDescription(
      << address.date << terminator
 
      << tabs << "\t" << GetTrait(Trait::Cost) << delimiter
-     << static_cast<std::uint16_t>(address.cost) << terminator
-
-     << tabs << "\t" << GetTrait(Trait::Key) << delimiter
-     << address.key.ToBase64() << terminator;
+     << static_cast<std::uint16_t>(address.cost) << terminator;
 
   if (address.transport == Transport::SSU)
     {
-      ss << tabs << "\n\tIntroducers(" << address.introducers.size() << ")"
+      ss << tabs << "\t" << GetTrait(Trait::Key) << delimiter
+         << address.key.ToBase64() << terminator
+
+         << tabs << "\n\tIntroducers(" << address.introducers.size() << ")"
          << std::endl;
+
       for (const Introducer& introducer : address.introducers)
         ss << GetDescription(introducer, tabs + "\t\t") << std::endl;
     }

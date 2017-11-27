@@ -67,6 +67,11 @@ void GenerateElGamalKeyPair(
     std::uint8_t* priv,
     std::uint8_t* pub);
 
+void GenerateDeterministicElGamalKeyPair(
+    std::uint8_t* priv,
+    std::uint8_t* pub,
+    std::uint8_t* seed);
+
 }  // namespace core
 }  // namespace kovri
 

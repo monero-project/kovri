@@ -31,6 +31,7 @@
  */
 
 #include "core/crypto/elgamal.h"
+#include "core/crypto/hash.h"
 
 #include <cryptopp/integer.h>
 #include <cryptopp/osrng.h>
@@ -154,6 +155,26 @@ void GenerateElGamalKeyPair(
     std::uint8_t* pub) {
 #if defined(__x86_64__) || defined(__i386__) || defined(_MSC_VER)
   RandBytes(priv, 256);
+  a_exp_b_mod_c(
+      elgg,
+      CryptoPP::Integer(priv, 256),
+      elgp).Encode(pub, 256);
+#else
+    DiffieHellman().GenerateKeyPair(priv, pub);
+#endif
+}
+
+// Create deterministic keypair
+void GenerateDeterministicElGamalKeyPair(
+    std::uint8_t* priv,
+    std::uint8_t* pub,
+    std::uint8_t* seed) {
+#if defined(__x86_64__) || defined(__i386__) || defined(_MSC_VER)
+  // Calculate sha256(seed), store result in private key
+  kovri::core::SHA256().CalculateDigest(
+      priv,
+      seed,
+      256);
   a_exp_b_mod_c(
       elgg,
       CryptoPP::Integer(priv, 256),

@@ -542,7 +542,7 @@ create_webserver_instance()
   local _cmd="sed -i -e 's/#ServerName .*/ServerName ${_web_host}:80/' ${web_system_dir}/${web_conf_dir}/${web_conf} && httpd-foreground"
 
   # Start publisher instance
-  docker run -dit --rm --network=${KOVRI_NETWORK} --ip=${_web_host} --name $web_name \
+  docker create -it --rm --network=${KOVRI_NETWORK} --ip=${_web_host} --name $web_name \
     $_entrypoint \
     -v ${_dest_dir}/${web_root_dir}/:${web_system_dir}/${web_root_dir}/ \
     $KOVRI_WEB_IMAGE \
@@ -553,6 +553,7 @@ create_webserver_instance()
 
 Start()
 {
+  echo -n "Starting web server... " && docker start $web_name
   # Start testnet
   for _seq in $($sequence); do
     local _container_name="${docker_base_name}${_seq}"
@@ -574,6 +575,7 @@ Stop()
   local _stop="docker stop -t $KOVRI_STOP_TIMEOUT"
 
   # Stop testnet
+  echo -n "Stopping web server... " && $_stop $web_name
   for _seq in $($sequence); do
     local _container_name="${docker_base_name}${_seq}"
     echo -n "Stopping... " && $_stop $_container_name
@@ -599,6 +601,7 @@ Destroy()
 
   Stop
 
+  echo -n "Removing web server... " && docker rm -v $web_name
   for _seq in $($sequence); do
     local _container_name="${docker_base_name}${_seq}"
     echo -n "Removing... " && docker rm -v $_container_name

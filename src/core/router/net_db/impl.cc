@@ -576,7 +576,8 @@ void NetDb::HandleDatabaseSearchReplyMsg(
   std::array<char, 48> key {{}};
   core::ByteStreamToBase64(buf, 32, key.data(), key.size());
   std::uint8_t num = buf[32];  // num
-  LOG(debug) << "NetDb: DatabaseSearchReply for " << std::string(key.data()) << " num=" << num;
+  LOG(debug) << "NetDb: DatabaseSearchReply for " << std::string(key.data())
+             << " num=" << static_cast<std::uint16_t>(num);
   IdentHash ident(buf);
   auto dest = m_Requests.FindRequest(ident);
   if (dest) {
@@ -643,7 +644,8 @@ void NetDb::HandleDatabaseSearchReplyMsg(
     const std::uint8_t* router = buf + 33 + i * 32;
     std::array<char, 48> peer_hash {{}};
     core::ByteStreamToBase64(router, 32, peer_hash.data(), peer_hash.size());
-    LOG(debug) << "NetDb: " << i << ": " << peer_hash.data();
+    LOG(debug) << "NetDb: " << static_cast<std::uint16_t>(i) << ": "
+               << peer_hash.data();
     auto r = FindRouter(router);
     if (!r || kovri::core::GetMillisecondsSinceEpoch() >
         r->GetTimestamp() + Time::RouterExpiration)  {

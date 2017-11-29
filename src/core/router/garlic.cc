@@ -264,7 +264,7 @@ std::size_t GarlicRoutingSession::CreateAESBlock(
   block_size += len;
   std::size_t rem = block_size % 16;
   if (rem)
-    block_size += (16-rem);  // padding
+    block_size += (16-rem);  // TODO(anonimal): MUST BE RANDOM PADDING!
   // TODO(anonimal): this try block should be larger or handled entirely by caller
   try {
     m_Encryption.Encrypt(buf, block_size, buf);
@@ -571,11 +571,49 @@ void GarlicDestination::HandleAESBlock(
   }
 }
 
+// TODO(anonimal): this may be the only caller that checks received garlic message payload length
 void GarlicDestination::HandleGarlicPayload(
     std::uint8_t* buf,
     std::size_t len,
-    std::shared_ptr<kovri::core::InboundTunnel> from) {
+    std::shared_ptr<kovri::core::InboundTunnel> from)
+{
+  LOG(trace) << "GarlicDestination: " << __func__
+             << ": inbound tunnel ID: " << from->GetTunnelID()
+             << ": purported length: " << len << GetFormattedHex(buf, len);
+
+  // Save state
   const std::uint8_t* buf1 = buf;
+
+  // Payload offset after I2NP message
+  enum Clove : std::uint8_t
+  {
+    ID = 4,
+    Date = 8,
+    Cert = 3
+  };
+
+  // Validate clove length after processing but before creating message / sending through tunnel
+  auto check_clove_len = [buf1, len](std::uint8_t*& buf, bool increment) {
+    // I2NP length
+    const std::uint16_t msg_len = GetI2NPMessageLength(buf);
+    LOG(debug) << "GarlicDestination: I2NP message len=" << msg_len;
+
+    const std::uint16_t offset =
+        msg_len + Clove::ID + Clove::Date + Clove::Cert;
+    LOG(debug) << "GarlicDestination: garlic payload offset=" << offset;
+
+    // Sanity test
+    if ((buf + offset) - buf1 > static_cast<int>(len))
+      // TODO(anonimal): in this case, do we want to throw out the entire payload? If not, don't throw.
+      throw std::runtime_error("GarlicDestination: clove is too long");
+
+    // Increment to ensure all given cloves are checked
+    if (increment)
+      buf += offset;
+
+    return msg_len;
+  };
+
   std::size_t num_cloves = buf[0];
   LOG(debug) << "GarlicDestination: " << num_cloves << " cloves";
   buf++;
@@ -609,13 +647,8 @@ void GarlicDestination::HandleGarlicPayload(
         std::shared_ptr<kovri::core::OutboundTunnel> tunnel;
         if (from && from->GetTunnelPool())
           tunnel = from->GetTunnelPool()->GetNextOutboundTunnel();
-        // TODO(anonimal): apply my refactored + documented patch from H1 #291489
-        if (buf + kovri::core::GetI2NPMessageLength(buf) + 4 + 8 + 3 - buf1  > static_cast<int>(len)) {
-          LOG(error) << "GarlicDestination: clove is too long";
-          break;
-        }
-        if (tunnel) {  // we have send it through an outbound tunnel
-          auto msg = CreateI2NPMessage(buf, kovri::core::GetI2NPMessageLength(buf), from);
+        if (tunnel) {  // we must send it through an outbound tunnel
+          auto msg = CreateI2NPMessage(buf, check_clove_len(buf, false), from);
           tunnel->SendTunnelDataMsg(gateway_hash, gateway_tunnel, msg);
         } else {
           LOG(debug)
@@ -631,15 +664,9 @@ void GarlicDestination::HandleGarlicPayload(
         LOG(error)
           << "GarlicDestination: unknown garlic delivery type "
           << static_cast<int>(delivery_type);
+        // TODO(anonimal): we should throw, pending responsible callers
     }
-    buf += kovri::core::GetI2NPMessageLength(buf);  // I2NP
-    buf += 4;  // CloveID
-    buf += 8;  // Date
-    buf += 3;  // Certificate
-    if (buf - buf1  > static_cast<int>(len)) {
-      LOG(error) << "GarlicDestination: clove is too long";
-      break;
-    }
+    check_clove_len(buf, true);
   }
 }
 
@@ -696,6 +723,7 @@ void GarlicDestination::DeliveryStatusSent(
   m_CreatedSessions[msg_ID] = session;
 }
 
+// TODO(anonimal): at worst, the message isn't ACKd
 void GarlicDestination::HandleDeliveryStatusMessage(
     std::shared_ptr<I2NPMessage> msg) {
     std::uint32_t msg_ID = bufbe32toh(msg->GetPayload()); {

@@ -107,14 +107,25 @@ std::unique_ptr<I2NPMessage> CreateI2NPMessage(
     msg->len += len;
   } else {
     LOG(error) << "I2NPMessage: message length " << len << " exceeds max length";
+    // TODO(anonimal): ...then don't return the message...
   }
   msg->FillI2NPMessageHeader(msg_type, reply_msg_ID);
   return msg;
 }
 
+// TDDO(anonimal):
+//   Theoretically, and despite the signed type, len passed has the potential to be 64k (value given in 2 bytes 0xffff)
+//   but, because of I2NP fragmentation + alignment, the max should be no more than 62708 bytes (61.2k for tunnel delivery mode).
+//
+//   Now, msg->max_len is at a minimum 4k ("short" message) or at most 32k depending on message type.
+//   The below sanity test ensures that passed len is < (4k || 32k) *BUT* that still leaves potential for copying over
+//   ((msg->max_len - 1) - len) amount of memory (memory after payload, potentially uninitialized) into the message buffer
+//   which is then sent through the tunnel.  TODO(anonimal): ensure callers never send incorrect length to begin with.
+//
+//   Note: NTCP limits message size to to 16378 bytes and SSU limits (should) to 32k.
 std::shared_ptr<I2NPMessage> CreateI2NPMessage(
     const std::uint8_t* buf,
-    int len,
+    int len,  // TODO(anonimal): uint16_t, and caller should ensure no overflow
     std::shared_ptr<kovri::core::InboundTunnel> from) {
   std::unique_ptr<I2NPMessage> msg = NewI2NPMessage();
   if (msg->offset + len < msg->max_len) {
@@ -123,6 +134,7 @@ std::shared_ptr<I2NPMessage> CreateI2NPMessage(
     msg->from = from;
   } else {
     LOG(error) << "I2NPMessage: message length " << len << " exceeds max length";
+    // TODO(anonimal): now why would we want to send an empty message?!...
   }
   return ToSharedI2NPMessage(std::move(msg));
 }
@@ -644,6 +656,7 @@ std::unique_ptr<I2NPMessage> CreateTunnelGatewayMsg(
   return msg;
 }
 
+// TODO(anonimal): s/size_t/uint16_t/
 std::size_t GetI2NPMessageLength(
     const std::uint8_t* msg) {
   return bufbe16toh(msg + I2NP_HEADER_SIZE_OFFSET) + I2NP_HEADER_SIZE;

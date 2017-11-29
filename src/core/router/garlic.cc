@@ -609,6 +609,11 @@ void GarlicDestination::HandleGarlicPayload(
         std::shared_ptr<kovri::core::OutboundTunnel> tunnel;
         if (from && from->GetTunnelPool())
           tunnel = from->GetTunnelPool()->GetNextOutboundTunnel();
+        // TODO(anonimal): apply my refactored + documented patch from H1 #291489
+        if (buf + kovri::core::GetI2NPMessageLength(buf) + 4 + 8 + 3 - buf1  > static_cast<int>(len)) {
+          LOG(error) << "GarlicDestination: clove is too long";
+          break;
+        }
         if (tunnel) {  // we have send it through an outbound tunnel
           auto msg = CreateI2NPMessage(buf, kovri::core::GetI2NPMessageLength(buf), from);
           tunnel->SendTunnelDataMsg(gateway_hash, gateway_tunnel, msg);

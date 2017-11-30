@@ -46,8 +46,6 @@ Alpha release coming soon
 - [repo.getmonero.org](https://repo.getmonero.org/monero-project/kovri) or monero-repo.i2p are alternatives to GitHub for non-push repository access
 
 ## Vulnerability Response
-**We will pay hackers in Monero ([XMR](https://coinmarketcap.com/currencies/monero/)) to exploit Kovri responsibly!**
-
 - Our [Vulnerability Response Process](https://github.com/monero-project/meta/blob/master/VULNERABILITY_RESPONSE_PROCESS.md) encourages responsible disclosure
 - We are also available via [HackerOne](https://hackerone.com/monero)
 

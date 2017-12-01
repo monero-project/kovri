@@ -161,7 +161,7 @@ void Configuration::ParseConfig()
   // Help options
   if (m_Map.count("help"))
     {
-      std::cout << config_options << std::endl;
+      LOG(info) << config_options;
       throw std::runtime_error(
           "for more details, see user-guide or config file");
     }

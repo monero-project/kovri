@@ -944,7 +944,7 @@ void SSUSession::ProcessPeerTest(
           SendPeerTest(  // to Alice with her address received from Bob
               packet->GetNonce(),
               be32toh(packet->GetIPAddress()),
-              be16toh(packet->GetPort()),
+              packet->GetPort(),
               packet->GetIntroKey());
         } else {
           LOG(debug)

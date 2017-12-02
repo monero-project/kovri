@@ -898,7 +898,6 @@ void SSUSession::ProcessPeerTest(
           << "SSUSession:" << GetFormattedSessionInfo()
           << "second PeerTest from Charlie. We are Alice";
         context.SetState(RouterState::OK);
-        m_Server.RemovePeerTest(packet->GetNonce());
       }
       break;
     }

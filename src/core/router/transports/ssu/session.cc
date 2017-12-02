@@ -172,14 +172,8 @@ void SSUSession::ProcessNextMessage(
     if (m_State == SessionState::Established)
       ScheduleTermination();
     // Try session key first
-    if (m_IsSessionKey)
+    if (m_IsSessionKey && Validate(buf, len, m_MACKey))
       {
-        if (!Validate(buf, len, m_MACKey))
-          {
-            LOG(error) << "SSUSession:" << GetFormattedSessionInfo()
-                       << ": validation failed with stored SessionKey";
-            return;
-          }
         DecryptSessionKey(buf, len);
     } else {
       // try intro key depending on side

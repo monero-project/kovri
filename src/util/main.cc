@@ -103,7 +103,6 @@ int main(int argc, const char* argv[])
   bpo::options_description general_desc("General options");
   // See src/app/config.cc for log options
   general_desc.add_options()("help,h", "produce this help message")(
-      "all,a", "print all options")(
       "log-to-console",
       bpo::value<bool>()->default_value(true)->value_name("bool"))(
       "log-to-file",
@@ -154,14 +153,6 @@ int main(int argc, const char* argv[])
 
   if (vm.count("help"))
     {
-      if (vm.count("all"))
-        {
-          PrintUsage(argv[0], general_desc, list_cmd);
-          for (const auto& cmd : list_cmd)
-            cmd.second->PrintUsage(std::string(argv[0]) + " " + cmd.first);
-          return EXIT_SUCCESS;
-        }
-
       if (!args.empty())
         {
           const auto& c = list_cmd.find(args.front());

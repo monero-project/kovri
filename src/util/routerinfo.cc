@@ -54,7 +54,6 @@ RouterInfoCommand::RouterInfoCommand()
       "create,c", bpo::bool_switch()->default_value(false))(
       "host", bpo::value<std::string>()->default_value("127.0.0.1"))(
       "port", bpo::value<int>()->default_value(0))(
-      "netid", bpo::value<int>()->default_value(I2P_NETWORK_ID))(
       "floodfill,f",
       bpo::value<bool>()->default_value(false)->value_name("bool"))(
       "bandwidth,b", bpo::value<std::string>()->default_value("L"))(
@@ -145,7 +144,7 @@ bool RouterInfoCommand::Impl(
             routerInfo.SetCaps(
                 routerInfo.GetCaps() | core::RouterInfo::Cap::HighBandwidth);
           // Set options
-          routerInfo.SetOption("netId", std::to_string(vm["netid"].as<int>()));  // TODO(unassigned): changing netId is (and may always be) unecessary
+          routerInfo.SetOption("netId", std::to_string(I2P_NETWORK_ID));
           routerInfo.SetOption("router.version", I2P_VERSION);
           routerInfo.CreateBuffer(keys);
 

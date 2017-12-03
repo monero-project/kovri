@@ -110,11 +110,12 @@ PrintUsage()
   echo "KOVRI_USE_REPO_BINS     = use repo-built binaries"
   echo "KOVRI_BUILD_REPO_BINS   = build repo binaries from *within* the container"
   echo "KOVRI_CLEANUP           = cleanup/destroy previous testnet"
+  echo "KOVRI_USE_NAMED_PIPES   = use named pipes for logging"
   echo ""
   echo "Log monitoring"
   echo "--------------"
   echo ""
-  echo "Every kovri instance will provide real-time logging via named pipes."
+  echo "Every kovri instance will provide real-time logging via named pipes (unless disabled)."
   echo "These pipes are located in their respective directories."
   echo ""
   echo "  Example: /tmp/testnet/kovri_010/log_pipe"
@@ -153,6 +154,7 @@ Prepare()
   set_workspace
   set_args
   set_network
+  read_bool_input "Use named pipes for logging?" KOVRI_USE_NAMED_PIPES ""
 }
 
 cleanup_testnet()
@@ -490,8 +492,13 @@ create_instance()
   # Create named pipe for logging
   local _pipe="${KOVRI_WORKSPACE}/${kovri_base_name}${_seq}/${pipe_base_name}"
 
-  mkfifo "$_pipe"
-  catch "Could not create named pipe $_pipe"
+  if [[ $KOVRI_USE_NAMED_PIPES = false ]]; then
+    touch "$_pipe"
+    catch "Could not create file $_pipe"
+  else
+    mkfifo "$_pipe"
+    catch "Could not create named pipe $_pipe"
+  fi
 
   # Set container options
   local _container_name="${docker_base_name}${_seq}"

@@ -358,7 +358,7 @@ Create()
 
     ## Put RI + key in correct location
     cp $(ls ${router_base_name}${_seq}/routerInfo*.dat) "${_base_dir}/core/router.info"
-    cp $(ls ${router_base_name}${_seq}/routerInfo*.key) "${_base_dir}/core/router.keys"
+    cp $(ls ${router_base_name}${_seq}/routerInfo*.key) "${_base_dir}/core/router.key"
     catch "Could not copy RI and key"
 
     chown -R ${pid}:${gid} ${_base_dir}

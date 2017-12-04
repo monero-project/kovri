@@ -480,10 +480,6 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
     }
   };
 
-  // TODO(unassigned): remove. This is only used for unrefactored kovri-util RI creation
-  /// @brief Set RI identity and current timestamp
-  void SetRouterIdentity(const IdentityEx& identity);
-
   /// @brief Adds/saves address + sets appropriate RI members
   /// @param point Supported transport / Host string / Port integral
   /// @param key Our intoducer key

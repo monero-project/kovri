@@ -578,7 +578,7 @@ void GarlicDestination::HandleGarlicPayload(
     std::shared_ptr<kovri::core::InboundTunnel> from)
 {
   LOG(trace) << "GarlicDestination: " << __func__
-             << ": inbound tunnel ID: " << from->GetTunnelID()
+             << ": inbound tunnel ID: " << (from ? from->GetTunnelID() : 0)
              << ": purported length: " << len << GetFormattedHex(buf, len);
 
   // Save state

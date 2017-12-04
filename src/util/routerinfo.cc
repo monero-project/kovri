@@ -32,6 +32,7 @@
 #include <assert.h>
 #include <memory>
 #include <tuple>
+#include <utility>
 
 #include "core/crypto/rand.h"
 #include "core/router/info.h"
@@ -54,7 +55,6 @@ RouterInfoCommand::RouterInfoCommand()
       "create,c", bpo::bool_switch()->default_value(false))(
       "host", bpo::value<std::string>()->default_value("127.0.0.1"))(
       "port", bpo::value<int>()->default_value(0))(
-      "netid", bpo::value<int>()->default_value(I2P_NETWORK_ID))(
       "floodfill,f",
       bpo::value<bool>()->default_value(false)->value_name("bool"))(
       "bandwidth,b", bpo::value<std::string>()->default_value("L"))(
@@ -118,36 +118,26 @@ bool RouterInfoCommand::Impl(
                                                    core::RouterInfo::MaxPort)
                                              : vm["port"].as<int>();
 
-          // TODO(unassigned): refactor according to new RI ctor interface
+          std::uint8_t caps(core::RouterInfo::Cap::Reachable);
           // Generate private key
           core::PrivateKeys keys = core::PrivateKeys::CreateRandomKeys(
               core::DEFAULT_ROUTER_SIGNING_KEY_TYPE);
-          // Set router info attributes
-          core::RouterInfo routerInfo;
-          routerInfo.SetRouterIdentity(keys.GetPublic());
-          routerInfo.AddAddress(std::make_tuple(Transport::NTCP, host, port));
-          routerInfo.AddAddress(
-              std::make_tuple(Transport::SSU, host, port),
-              routerInfo.GetIdentHash());
-          // Set capabilities
-          routerInfo.SetCaps(core::RouterInfo::Cap::Reachable);
+          // Create router info
+          core::RouterInfo routerInfo(
+              keys,
+              std::make_pair(host, port),
+              std::make_pair(true, true),
+              caps);
+          // Set capabilities after creation to allow for disabling
           if (vm["ssuintroducer"].as<bool>())
-            routerInfo.SetCaps(
-                routerInfo.GetCaps() | core::RouterInfo::Cap::SSUIntroducer);
+            caps |= core::RouterInfo::Cap::SSUIntroducer;
           if (vm["ssutesting"].as<bool>())
-            routerInfo.SetCaps(
-                routerInfo.GetCaps() | core::RouterInfo::Cap::SSUTesting);
+            caps |= core::RouterInfo::Cap::SSUTesting;
           if (vm["floodfill"].as<bool>())
-            routerInfo.SetCaps(
-                routerInfo.GetCaps() | core::RouterInfo::Cap::Floodfill);
+            caps |= core::RouterInfo::Cap::Floodfill;
           auto bandwidth = vm["bandwidth"].as<std::string>();
           if (!bandwidth.empty() && (bandwidth[0] > 'L'))
-            routerInfo.SetCaps(
-                routerInfo.GetCaps() | core::RouterInfo::Cap::HighBandwidth);
-          // Set options
-          routerInfo.SetOption("netId", std::to_string(vm["netid"].as<int>()));  // TODO(unassigned): changing netId is (and may always be) unecessary
-          routerInfo.SetOption("router.version", I2P_VERSION);
-          routerInfo.CreateBuffer(keys);
+            caps |= core::RouterInfo::Cap::HighBandwidth;
 
           // Set filename if none provided
           if (filename.empty())

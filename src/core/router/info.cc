@@ -527,13 +527,6 @@ const std::string RouterInfo::GetCapsFlags() const
   return flags;
 }
 
-// TODO(unassigned): remove. This is only used for unrefactored kovri-util RI creation
-void RouterInfo::SetRouterIdentity(const IdentityEx& identity)
-{
-  m_RouterIdentity = identity;
-  m_Timestamp = kovri::core::GetMillisecondsSinceEpoch();
-}
-
 void RouterInfo::AddAddress(
     const std::tuple<Transport, std::string, std::uint16_t>& point,
     const std::uint8_t* key,

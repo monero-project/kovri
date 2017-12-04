@@ -105,6 +105,7 @@ void I2PControlCommand::PrintUsage(const std::string& name) const
   LOG(info) << "\treseed";
   LOG(info) << "\tshutdown";
   LOG(info) << "\tforce-shutdown";
+  LOG(info) << "\tstats";
 }
 
 bool I2PControlCommand::Impl(
@@ -212,6 +213,21 @@ void I2PControlCommand::ProcessConfig(
     {
       request->SetMethod(Method::RouterManager);
       request->SetParam(RouterManager::Shutdown, std::string());
+      return;
+    }
+  else if (m_Command == "stats")
+    {
+      request->SetMethod(Method::RouterInfo);
+      std::string empty;
+      request->SetParam(RouterInfo::BWIn1S, empty);
+      request->SetParam(RouterInfo::BWOut1S, empty);
+      request->SetParam(RouterInfo::NetStatus, empty);
+      request->SetParam(RouterInfo::TunnelsParticipating, empty);
+      request->SetParam(RouterInfo::ActivePeers, empty);
+      request->SetParam(RouterInfo::KnownPeers, empty);
+      request->SetParam(RouterInfo::Floodfills, empty);
+      request->SetParam(RouterInfo::LeaseSets, empty);
+      request->SetParam(RouterInfo::TunnelsCreationSuccessRate, empty);
       return;
     }
   else if (!m_Command.empty())
@@ -329,7 +345,7 @@ void I2PControlCommand::HandleResponse(
       return ProcessRouterManager(
           *response, m_Command, RouterManager::Shutdown);
     }
-  else if (!m_Command.empty())
+  else if ((m_Command != "stats") && !m_Command.empty())
     {
       throw std::runtime_error("Missing implementation");
     }

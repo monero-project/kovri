@@ -172,14 +172,8 @@ void SSUSession::ProcessNextMessage(
     if (m_State == SessionState::Established)
       ScheduleTermination();
     // Try session key first
-    if (m_IsSessionKey)
+    if (m_IsSessionKey && Validate(buf, len, m_MACKey))
       {
-        if (!Validate(buf, len, m_MACKey))
-          {
-            LOG(error) << "SSUSession:" << GetFormattedSessionInfo()
-                       << ": validation failed with stored SessionKey";
-            return;
-          }
         DecryptSessionKey(buf, len);
     } else {
       // try intro key depending on side
@@ -869,7 +863,7 @@ void SSUSession::ProcessPeerTest(
   switch (m_Server.GetPeerTestParticipant(packet->GetNonce())) {
     // existing test
     case PeerTestParticipant::Alice1: {
-      if (m_State == SessionState::Established) {
+      if (m_Server.GetPeerTestSession(packet->GetNonce()) == shared_from_this()) {
         LOG(debug)
           << "SSUSession:" << GetFormattedSessionInfo()
           << "PeerTest from Bob. We are Alice";
@@ -894,7 +888,7 @@ void SSUSession::ProcessPeerTest(
       break;
     }
     case PeerTestParticipant::Alice2: {
-      if (m_State == SessionState::Established) {
+      if (m_Server.GetPeerTestSession(packet->GetNonce()) == shared_from_this()) {
         LOG(debug)
           << "SSUSession:" << GetFormattedSessionInfo()
           << "PeerTest from Bob. We are Alice";
@@ -904,7 +898,6 @@ void SSUSession::ProcessPeerTest(
           << "SSUSession:" << GetFormattedSessionInfo()
           << "second PeerTest from Charlie. We are Alice";
         context.SetState(RouterState::OK);
-        m_Server.RemovePeerTest(packet->GetNonce());
       }
       break;
     }
@@ -950,7 +943,7 @@ void SSUSession::ProcessPeerTest(
           SendPeerTest(  // to Alice with her address received from Bob
               packet->GetNonce(),
               be32toh(packet->GetIPAddress()),
-              be16toh(packet->GetPort()),
+              packet->GetPort(),
               packet->GetIntroKey());
         } else {
           LOG(debug)
@@ -1056,7 +1049,7 @@ void SSUSession::SendPeerTest() {
   if (!nonce)
     nonce = 1;
   m_PeerTest = false;
-  m_Server.NewPeerTest(nonce, PeerTestParticipant::Alice1);
+  m_Server.NewPeerTest(nonce, PeerTestParticipant::Alice1, shared_from_this());
   SendPeerTest(
       nonce,
       0,  // address and port always zero for Alice

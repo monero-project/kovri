@@ -855,44 +855,54 @@ void NetDb::Publish() {
 
 // TODO(anonimal): refactor these getters into fewer functions
 std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter() const {
-  return GetRandomRouter(
-      [](std::shared_ptr<const RouterInfo> router)->bool {
-      return !router->HasCap(RouterInfo::Cap::Hidden);
-    });
+  return GetRandomRouter([](std::shared_ptr<const RouterInfo> router) -> bool {
+    return !router->HasCap(RouterInfo::Cap::Hidden)
+           && (router->GetIdentHash()
+               != core::context.GetRouterInfo().GetIdentHash());
+  });
 }
 
 std::shared_ptr<const RouterInfo> NetDb::GetRandomRouter(
     std::shared_ptr<const RouterInfo> compatible_with) const {
   return GetRandomRouter(
-      [compatible_with](std::shared_ptr<const RouterInfo> router)->bool {
-      return !router->HasCap(RouterInfo::Cap::Hidden) && router != compatible_with &&
-        router->HasCompatibleTransports(*compatible_with);
-    });
+      [compatible_with](std::shared_ptr<const RouterInfo> router) -> bool {
+        return !router->HasCap(RouterInfo::Cap::Hidden)
+               && router != compatible_with
+               && router->HasCompatibleTransports(*compatible_with)
+               && (router->GetIdentHash()
+                   != core::context.GetRouterInfo().GetIdentHash());
+      });
 }
 
 std::shared_ptr<const RouterInfo> NetDb::GetRandomPeerTestRouter() const {
-  return GetRandomRouter(
-    [](std::shared_ptr<const RouterInfo> router)->bool {
-      return !router->HasCap(RouterInfo::Cap::Hidden) && router->HasCap(RouterInfo::Cap::SSUTesting);
-    });
+  return GetRandomRouter([](std::shared_ptr<const RouterInfo> router) -> bool {
+    return !router->HasCap(RouterInfo::Cap::Hidden)
+           && router->HasCap(RouterInfo::Cap::SSUTesting)
+           && (router->GetIdentHash()
+               != core::context.GetRouterInfo().GetIdentHash());
+  });
 }
 
 std::shared_ptr<const RouterInfo> NetDb::GetRandomIntroducer() const {
-  return GetRandomRouter(
-      [](std::shared_ptr<const RouterInfo> router)->bool {
-      return !router->HasCap(RouterInfo::Cap::Hidden) && router->HasCap(RouterInfo::Cap::SSUIntroducer);
-    });
+  return GetRandomRouter([](std::shared_ptr<const RouterInfo> router) -> bool {
+    return !router->HasCap(RouterInfo::Cap::Hidden)
+           && router->HasCap(RouterInfo::Cap::SSUIntroducer)
+           && (router->GetIdentHash()
+               != core::context.GetRouterInfo().GetIdentHash());
+  });
 }
 
 std::shared_ptr<const RouterInfo> NetDb::GetHighBandwidthRandomRouter(
     std::shared_ptr<const RouterInfo> compatible_with) const {
   return GetRandomRouter(
-    [compatible_with](std::shared_ptr<const RouterInfo> router)->bool {
-      return !router->HasCap(RouterInfo::Cap::Hidden) &&
-      router != compatible_with &&
-      router->HasCompatibleTransports(*compatible_with) &&
-      (router->GetCaps() & RouterInfo::Cap::HighBandwidth);
-    });
+      [compatible_with](std::shared_ptr<const RouterInfo> router) -> bool {
+        return !router->HasCap(RouterInfo::Cap::Hidden)
+               && router != compatible_with
+               && router->HasCompatibleTransports(*compatible_with)
+               && (router->GetCaps() & RouterInfo::Cap::HighBandwidth)
+               && (router->GetIdentHash()
+                   != core::context.GetRouterInfo().GetIdentHash());
+      });
 }
 
 template<typename Filter>

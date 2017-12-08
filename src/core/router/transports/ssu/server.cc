@@ -247,8 +247,11 @@ void SSUServer::HandleReceivedPackets(
           session->FlushData();
         auto session_it = m_Sessions.find(pkt->from);
         if (session_it != m_Sessions.end())
-          session = session_it->second;
-        if (!session) {
+          {
+            session = session_it->second;
+          }
+        else
+          {
           session = std::make_shared<SSUSession>(*this, pkt->from);
           session->WaitForConnect(); {
             std::unique_lock<std::mutex> l(m_SessionsMutex);

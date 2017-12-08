@@ -268,20 +268,24 @@ void Stream::ProcessPacket(
   }
   if (flags & PACKET_FLAG_SIGNATURE_INCLUDED) {
     LOG(debug) << "Stream: signature";
-    std::uint8_t signature[256];
-    auto signature_len = m_RemoteIdentity.GetSignatureLen();
-    memcpy(signature, option_data, signature_len);
-    memset(const_cast<std::uint8_t *>(option_data), 0, signature_len);
+    // TODO(unassigned): ensure option data isn't overwritten if sig length > 256.
+    //   Note: not relevant once #498 / #755 is resolved (first check if they are resolved).
+    std::vector<std::uint8_t> signature(m_RemoteIdentity.GetSignatureLen());
+    memcpy(signature.data(), option_data, signature.size());
+    memset(const_cast<std::uint8_t*>(option_data), 0, signature.size());
     if (!m_RemoteIdentity.Verify(
           packet->GetBuffer(),
           packet->GetLength(),
-          signature)) {
+          signature.data())) {
       LOG(error) << "Stream: signature verification failed";
       Close();
       flags |= PACKET_FLAG_CLOSE;
     }
-    memcpy(const_cast<std::uint8_t *>(option_data), signature, signature_len);
-    option_data += signature_len;
+    memcpy(
+        const_cast<std::uint8_t*>(option_data),
+        signature.data(),
+        signature.size());
+    option_data += signature.size();
   }
   packet->offset = packet->GetPayload() - packet->buf;
   if (packet->GetLength() > 0) {

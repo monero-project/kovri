@@ -31,14 +31,24 @@ Name: "en"; MessagesFile: "compiler:Default.isl"
 
 
 [Files]
-Source: "{#RootDir}\build\kovri.exe";      DestDir: "{app}"; Flags: comparetimestamp
-Source: "{#RootDir}\build\kovri-util.exe"; DestDir: "{app}"; Flags: comparetimestamp
-Source: "Kovri.ico";                          DestDir: "{app}"; Flags: comparetimestamp
-Source: "ReadMe.htm";                         DestDir: "{app}"; Flags: comparetimestamp
+; The use of the flag "ignoreversion" for the following entries leads to the following behaviour:
+; When updating / upgrading an existing installation ALL existing files are replaced with the files in this
+; installer, regardless of file dates, version info within the files, or type of file (textual file or
+; .exe/.dll file possibly with version info).
+;
+; This is far more robust than relying on version info or on file dates (flag "comparetimestamp").
+;
+; Note that it would be very dangerous to use "ignoreversion" on files that may be shared with other
+; applications somehow. Luckily this is no issue here because ALL files are "private" to Kovri.
 
-; Install new "client" files: Any new versions of "hosts.txt" and "publishers" in "\client\address_book"
+Source: "{#RootDir}\build\kovri.exe";      DestDir: "{app}"; Flags: ignoreversion
+Source: "{#RootDir}\build\kovri-util.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "Kovri.ico";                          DestDir: "{app}"; Flags: ignoreversion
+Source: "ReadMe.htm";                         DestDir: "{app}"; Flags: ignoreversion
+
+; Install/overwrite "client" files: "hosts.txt" and "publishers" in "\client\address_book"
 ; plus certificates in "\client\certificates"
-Source: "{#RootDir}\pkg\client\*"; DestDir: "{userappdata}\Kovri\client"; Flags: recursesubdirs comparetimestamp
+Source: "{#RootDir}\pkg\client\*"; DestDir: "{userappdata}\Kovri\client"; Flags: recursesubdirs ignoreversion
 
 ; Backup any existing user config files, as we will overwrite "kovri.conf" and "tunnels.conf" unconditionally
 ; Note that Inno Setup goes through the "[Files]" entries strictly in the order given here,

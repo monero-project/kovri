@@ -32,6 +32,8 @@
 #define SRC_CORE_UTIL_BYTESTREAM_H_
 
 #include <boost/asio.hpp>
+#include <boost/endian/conversion.hpp>
+
 #include <cstddef>
 #include <cstdint>
 #include <ios>
@@ -78,28 +80,20 @@ class InputByteStream {
   std::uint8_t* ReadBytes(
       std::size_t amount);
 
-  /// @brief Reads a std::uint64_t, i.e. a 8 byte unsigned integer
-  /// @return the newly read std::uint64_t
-  /// @throw std::length_error if less than 8 bytes are available for reading
-  /// @note The integer is converted from big endian to the host format.
-  std::uint64_t ReadUInt64();
+  /// @brief Reads unsigned integral value from stream byte(s)
+  /// @note Converts from big endian to host order (when applicable)
+  /// @return Size value read from byte(s)
+  template <typename UInt>
+  UInt Read()
+  {
+    static_assert(
+        std::is_integral<UInt>::value || std::is_signed<UInt>(),
+        "InputByteStream: invalid type (unsigned integral only)");
 
-  /// @brief Reads a std::uint32_t, i.e. a 4 byte unsigned integer
-  /// @return the newly read std::uint32_t
-  /// @throw std::length_error if less than 4 bytes are available for reading
-  /// @note The integer is converted from big endian to the host format.
-  std::uint32_t ReadUInt32();
-
-  /// @brief Reads a std::uint16_t, i.e. a 2 byte unsigned integer
-  /// @return the newly read std::uint16_t
-  /// @throw std::length_error if less than 2 bytes are available for reading
-  /// @note The integer is converted from big endian to the host format.
-  std::uint16_t ReadUInt16();
-
-  /// @brief Reads a std::uint8_t, i.e. a single byte
-  /// @return the newly read byte as a std::uint8_t
-  /// @throw std::length_error if no bytes are available for reading
-  std::uint8_t ReadUInt8();
+    UInt size;
+    std::memcpy(&size, ReadBytes(sizeof(UInt)), sizeof(UInt));
+    return boost::endian::big_to_native(size);
+  }
 
  protected:
   std::uint8_t* m_Data; ///< Pointer to first unparsed byte of the stream
@@ -130,27 +124,23 @@ class OutputByteStream {
   /// @param len Length of data
   void WriteData(const std::uint8_t* data, std::size_t len);
 
-  /// @brief Writes an 8-bit unsigned integer type into buffer
-  /// @note Increments buffer pointer position after writing data
-  void WriteUInt8(std::uint8_t data);
-
-  /// @brief Writes a 16-bit unsigned integer type into buffer
-  /// @note Converts bytes from host to big-endian order
+  /// @brief Writes an unsigned integral value into buffer
+  /// @note Converts data from host order to big endian (when applicable)
   /// @note Increments buffer pointer position after writing data
   /// @param data Data to write
-  void WriteUInt16(std::uint16_t data);
+  template <typename UInt>
+  void Write(UInt data)
+  {
+    static_assert(
+        std::is_integral<UInt>::value || std::is_signed<UInt>(),
+        "InputByteStream: invalid type (unsigned integral only)");
 
-  /// @brief Writes a 32-bit unsigned integer type into buffer
-  /// @note Converts bytes from host to big-endian order
-  /// @note Increments buffer pointer position after writing data
-  /// @param data Data to write
-  void WriteUInt32(std::uint32_t data);
+    std::uint8_t buf[sizeof(data)] = {};
+    const UInt value = boost::endian::native_to_big(data);
 
-  /// @brief Writes a 64-bit unsigned integer type into buffer
-  /// @note Converts bytes from host to big-endian order
-  /// @note Increments buffer pointer position after writing data
-  /// @param data Data to write
-  void WriteUInt64(std::uint64_t data);
+    std::memcpy(buf, &value, sizeof(value));
+    WriteData(buf, sizeof(value));
+  }
 
   // TODO(unassigned): see comments in #510
 

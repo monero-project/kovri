@@ -173,14 +173,14 @@ void TunnelHopConfig::CreateBuildRequestRecord(
   auto stream = std::make_unique<OutputByteStream>(clear_text.data(), clear_text.size());
 
   // Tunnel ID to receive messages as
-  stream->WriteUInt32(GetTunnelID());
+  stream->Write<std::uint32_t>(GetTunnelID());
 
   // Local ident hash
   auto& local_ident = GetCurrentRouter()->GetIdentHash();
   stream->WriteData(local_ident, sizeof(local_ident));
 
   // Next tunnel ID
-  stream->WriteUInt32(GetNextTunnelID());
+  stream->Write<std::uint32_t>(GetNextTunnelID());
 
   // Next ident hash
   auto& next_ident = GetNextRouter()->GetIdentHash();
@@ -199,13 +199,13 @@ void TunnelHopConfig::CreateBuildRequestRecord(
     flag |= 0x80;
   if (IsEndpoint())
     flag |= 0x40;
-  stream->WriteUInt8(flag);
+  stream->Write<std::uint8_t>(flag);
 
   // Request time
-  stream->WriteUInt32(GetHoursSinceEpoch());  // TODO(unassigned): should we/does boost "round down"?
+  stream->Write<std::uint32_t>(GetHoursSinceEpoch());  // TODO(unassigned): should we/does boost "round down"?
 
   // Next message ID
-  stream->WriteUInt32(reply_msg_ID);
+  stream->Write<std::uint32_t>(reply_msg_ID);
 
   // Uninterpreted / Random padding
   std::array<std::uint8_t, BUILD_REQUEST_RECORD_RAND_PAD_SIZE> padding;

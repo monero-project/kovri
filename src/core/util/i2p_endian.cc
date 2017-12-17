@@ -32,6 +32,8 @@
 
 #include "core/util/i2p_endian.h"
 
+// TODO(unassigned): implement with Boost.Endian
+
 // http://habrahabr.ru/post/121811/
 // http://codepad.org/2ycmkz2y
 

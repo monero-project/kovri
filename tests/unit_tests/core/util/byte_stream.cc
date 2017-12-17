@@ -58,26 +58,26 @@ BOOST_AUTO_TEST_CASE(StreamsEmpty)
   core::OutputByteStream output;
   BOOST_CHECK_NO_THROW(output.ProduceData(0));
   BOOST_CHECK_THROW(output.ProduceData(1), std::length_error);
-  BOOST_CHECK_THROW(output.WriteUInt8(1), std::length_error);
-  BOOST_CHECK_THROW(output.WriteUInt16(1), std::length_error);
-  BOOST_CHECK_THROW(output.WriteUInt32(1), std::length_error);
-  BOOST_CHECK_THROW(output.WriteUInt64(1), std::length_error);
+  BOOST_CHECK_THROW(output.Write<std::uint8_t>(1), std::length_error);
+  BOOST_CHECK_THROW(output.Write<std::uint16_t>(1), std::length_error);
+  BOOST_CHECK_THROW(output.Write<std::uint32_t>(1), std::length_error);
+  BOOST_CHECK_THROW(output.Write<std::uint64_t>(1), std::length_error);
 
   core::InputByteStream input;
   BOOST_CHECK_NO_THROW(input.ConsumeData(0));
   BOOST_CHECK_THROW(input.ConsumeData(1), std::length_error);
   BOOST_CHECK_THROW(input.ReadBytes(1), std::length_error);
-  BOOST_CHECK_THROW(input.ReadUInt8(), std::length_error);
-  BOOST_CHECK_THROW(input.ReadUInt16(), std::length_error);
-  BOOST_CHECK_THROW(input.ReadUInt32(), std::length_error);
-  BOOST_CHECK_THROW(input.ReadUInt64(), std::length_error);
+  BOOST_CHECK_THROW(input.Read<std::uint8_t>(), std::length_error);
+  BOOST_CHECK_THROW(input.Read<std::uint16_t>(), std::length_error);
+  BOOST_CHECK_THROW(input.Read<std::uint32_t>(), std::length_error);
+  BOOST_CHECK_THROW(input.Read<std::uint64_t>(), std::length_error);
 }
 
 BOOST_AUTO_TEST_CASE(InputByteStream)
 {
   core::InputByteStream input(m_IPv4Array.data(), m_IPv4Array.size());
   BOOST_CHECK_NO_THROW(input.ConsumeData(0));
-  BOOST_CHECK_EQUAL(input.ReadUInt8(), m_IPv4Array.at(0));
+  BOOST_CHECK_EQUAL(input.Read<std::uint8_t>(), m_IPv4Array.at(0));
   BOOST_CHECK_EQUAL(input.ReadBytes(3), &m_IPv4Array.at(1));
   BOOST_CHECK_THROW(input.ConsumeData(1), std::length_error);
 }
@@ -89,13 +89,13 @@ BOOST_AUTO_TEST_CASE(OutputByteStream)
   BOOST_CHECK_NO_THROW(output.WriteData(nullptr, 0));
   BOOST_CHECK_NO_THROW(output.WriteData(buffer.data(), 0));
   BOOST_CHECK_THROW(output.WriteData(nullptr, 1), std::runtime_error);
-  BOOST_CHECK_NO_THROW(output.WriteUInt8(m_IPv4Array.at(0)));
+  BOOST_CHECK_NO_THROW(output.Write<std::uint8_t>(m_IPv4Array.at(0)));
   BOOST_CHECK_EQUAL(output.GetSize(), buffer.size());
   BOOST_CHECK_EQUAL(output.GetData(), buffer.data());
   BOOST_CHECK_EQUAL(output.GetPosition(), buffer.data() + 1);
   BOOST_CHECK_NO_THROW(output.WriteData(&m_IPv4Array.at(1), 3));
   BOOST_CHECK_EQUAL(output.GetPosition(), buffer.data() + buffer.size());
-  BOOST_CHECK_THROW(output.WriteUInt8(1), std::length_error);
+  BOOST_CHECK_THROW(output.Write<std::uint8_t>(1), std::length_error);
   BOOST_CHECK_EQUAL_COLLECTIONS(
       buffer.data(),
       buffer.data() + buffer.size(),
@@ -109,12 +109,12 @@ BOOST_AUTO_TEST_CASE(Bits16Test)
   std::uint16_t value = std::numeric_limits<std::uint16_t>::max();
 
   core::OutputByteStream output(buffer.data(), buffer.size());
-  BOOST_CHECK_NO_THROW(output.WriteUInt16(value));
-  BOOST_CHECK_THROW(output.WriteUInt8(0), std::length_error);
+  BOOST_CHECK_NO_THROW(output.Write<std::uint16_t>(value));
+  BOOST_CHECK_THROW(output.Write<std::uint8_t>(0), std::length_error);
 
   core::InputByteStream input(buffer.data(), buffer.size());
-  BOOST_CHECK_EQUAL(input.ReadUInt16(), value);
-  BOOST_CHECK_THROW(input.ReadUInt8(), std::length_error);
+  BOOST_CHECK_EQUAL(input.Read<std::uint16_t>(), value);
+  BOOST_CHECK_THROW(input.Read<std::uint8_t>(), std::length_error);
 }
 
 BOOST_AUTO_TEST_CASE(Bits32Test)
@@ -123,12 +123,12 @@ BOOST_AUTO_TEST_CASE(Bits32Test)
   std::uint32_t value = std::numeric_limits<std::uint32_t>::max();
 
   core::OutputByteStream output(buffer.data(), buffer.size());
-  BOOST_CHECK_NO_THROW(output.WriteUInt32(value));
-  BOOST_CHECK_THROW(output.WriteUInt8(0), std::length_error);
+  BOOST_CHECK_NO_THROW(output.Write<std::uint32_t>(value));
+  BOOST_CHECK_THROW(output.Write<std::uint8_t>(0), std::length_error);
 
   core::InputByteStream input(buffer.data(), buffer.size());
-  BOOST_CHECK_EQUAL(input.ReadUInt32(), value);
-  BOOST_CHECK_THROW(input.ReadUInt8(), std::length_error);
+  BOOST_CHECK_EQUAL(input.Read<std::uint32_t>(), value);
+  BOOST_CHECK_THROW(input.Read<std::uint8_t>(), std::length_error);
 }
 
 BOOST_AUTO_TEST_CASE(Bits64Test)
@@ -137,12 +137,12 @@ BOOST_AUTO_TEST_CASE(Bits64Test)
   std::uint64_t value = std::numeric_limits<std::uint64_t>::max();
 
   core::OutputByteStream output(buffer.data(), buffer.size());
-  BOOST_CHECK_NO_THROW(output.WriteUInt64(value));
-  BOOST_CHECK_THROW(output.WriteUInt8(0), std::length_error);
+  BOOST_CHECK_NO_THROW(output.Write<std::uint64_t>(value));
+  BOOST_CHECK_THROW(output.Write<std::uint8_t>(0), std::length_error);
 
   core::InputByteStream input(buffer.data(), buffer.size());
-  BOOST_CHECK_EQUAL(input.ReadUInt64(), value);
-  BOOST_CHECK_THROW(input.ReadUInt8(), std::length_error);
+  BOOST_CHECK_EQUAL(input.Read<std::uint64_t>(), value);
+  BOOST_CHECK_THROW(input.Read<std::uint8_t>(), std::length_error);
 }
 
 BOOST_AUTO_TEST_CASE(AddressToByteVectorIPv4)

@@ -33,6 +33,8 @@
 #ifndef SRC_CORE_UTIL_I2P_ENDIAN_H_
 #define SRC_CORE_UTIL_I2P_ENDIAN_H_
 
+// TODO(unassigned): implement with Boost.Endian
+
 #include <string.h>
 
 #if defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__OpenBSD__)

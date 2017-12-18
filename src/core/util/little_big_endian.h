@@ -36,6 +36,8 @@
 #ifndef SRC_CORE_UTIL_LITTLE_BIG_ENDIAN_H_
 #define SRC_CORE_UTIL_LITTLE_BIG_ENDIAN_H_
 
+// TODO(unassigned): implement with Boost.Endian
+
 // Determine Little-Endian or Big-Endian
 
 #define CURRENT_BYTE_ORDER       (*(int *)"\x01\x02\x03\x04")

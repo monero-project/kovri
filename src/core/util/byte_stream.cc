@@ -66,22 +66,6 @@ std::uint8_t* InputByteStream::ReadBytes(
   return ptr;
 }
 
-std::uint64_t InputByteStream::ReadUInt64() {
-  return bufbe64toh(ReadBytes(sizeof(std::uint64_t)));
-}
-
-std::uint32_t InputByteStream::ReadUInt32() {
-  return bufbe32toh(ReadBytes(sizeof(std::uint32_t)));
-}
-
-std::uint16_t InputByteStream::ReadUInt16() {
-  return bufbe16toh(ReadBytes(sizeof(std::uint16_t)));
-}
-
-std::uint8_t InputByteStream::ReadUInt8() {
-  return *ReadBytes(sizeof(std::uint8_t));
-}
-
 /// Output
 
 OutputByteStream::OutputByteStream(
@@ -111,28 +95,6 @@ void OutputByteStream::WriteData(const std::uint8_t* data, std::size_t len) {
   std::uint8_t* ptr = m_Data; 
   ProduceData(len);
   std::memcpy(ptr, data, len);
-}
-
-void OutputByteStream::WriteUInt8(std::uint8_t data) {
-  WriteData(&data, sizeof(std::uint8_t));
-}
-
-void OutputByteStream::WriteUInt16(std::uint16_t data) {
-  std::uint8_t buf[sizeof(std::uint16_t)] = {};
-  htobe16buf(buf, data);
-  WriteData(buf, sizeof(buf));
-}
-
-void OutputByteStream::WriteUInt32(std::uint32_t data) {
-  std::uint8_t buf[sizeof(std::uint32_t)] = {};
-  htobe32buf(buf, data);
-  WriteData(buf, sizeof(buf));
-}
-
-void OutputByteStream::WriteUInt64(std::uint64_t data) {
-  std::uint8_t buf[sizeof(std::uint64_t)] = {};
-  htobe64buf(buf, data);
-  WriteData(buf, sizeof(buf));
 }
 
 // TODO(unassigned): see comments in #510

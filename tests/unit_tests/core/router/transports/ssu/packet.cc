@@ -60,20 +60,20 @@ struct SSUTestVectorsFixture : public IdentityExFixture
         session_confirmed.data() + header_plain.size(),
         session_confirmed.size() - header_plain.size());
     // 1 byte info
-    output.WriteUInt8(0x01);
+    output.Write<std::uint8_t>(0x01);
     // 2 byte identity size (0x01, 0x87)
-    output.WriteUInt16(m_AliceIdentity.size());
+    output.Write<std::uint16_t>(m_AliceIdentity.size());
     // Append identity
     output.WriteData(m_AliceIdentity.data(), m_AliceIdentity.size());
     // Signed on time (0x57, 0x69, 0x04, 0xAA)
-    output.WriteUInt32(m_SignedOnTime);
+    output.Write<std::uint32_t>(m_SignedOnTime);
     // Padding to reach multiple of 16 bytes
     // 13 = 16 - (37(header_plain) + 1 + 2 + (387+4) + 4(time) + 64(sig len)) % 16)
     output.ProduceData(13);
     // Signature (non-realistic example)
     // 64 bytes (EDDSA_SHA512_ED25519)
     for(std::uint8_t i(0); i< 64; i++)
-      output.WriteUInt8(i);
+      output.Write<std::uint8_t>(i);
   }
 
   // Signed on time (0x57, 0x69, 0x04, 0xAA)

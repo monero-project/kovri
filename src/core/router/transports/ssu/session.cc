@@ -1179,7 +1179,7 @@ void SSUSession::WriteAndEncrypt(
     stream.WriteData(
         packet->GetHeader()->GetIV(),
         GetType(SSUSize::IV));
-    stream.WriteUInt16(encrypted_len);
+    stream.Write<std::uint16_t>(encrypted_len);
     kovri::core::HMACMD5Digest(
         encrypted,
         encrypted_len + GetType(SSUSize::BufferMargin),

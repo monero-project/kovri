@@ -122,8 +122,8 @@ Uninstall()
 {
   # MSYS users should use our Inno Setup scripts/instructions
   if [[ $is_windows == true ]]; then
-    false
-    catch "this option is unsupported on this platform"
+    echo "Warning: uninstall from Windows Control Panel"
+    return
   fi
 
   # Backup existing installation
@@ -171,10 +171,12 @@ Uninstall()
 
 Install()
 {
-  # MSYS users should use our Inno Setup scripts/instructions
+  # Build then run InnoSetup installer on windows
   if [[ $is_windows == true ]]; then
-    false
-    catch "this option is unsupported on this platform"
+    package_option=true
+    CreatePackage
+    exec "$package_file"
+    return
   fi
 
   # Ensure paths for new install
@@ -351,7 +353,9 @@ elif [[ $uninstall_option == true ]]; then
 else
   Uninstall
   Install
-  echo "Data directory is $kovri_data_dir"
-  echo "Binaries are located in $bin_path"
-  echo "${green}Installation success!${normal}"
+  if [[ $is_windows != true ]]; then
+    echo "Data directory is $kovri_data_dir"
+    echo "Binaries are located in $bin_path"
+    echo "${green}Installation success!${normal}"
+  fi
 fi

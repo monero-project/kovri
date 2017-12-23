@@ -6,6 +6,15 @@
 ## Disclaimer
 - Currently **pre-alpha** software; under heavy development (and not yet integrated with monero)
 
+## Quickstart
+
+- Non-technical users should download the binaries/installer from the Downloads section below
+- Do *not* use the zip file from github: do a recursive clone only
+
+1. Install dependencies as described in the [documentation](https://github.com/monero-project/kovri-docs/tree/master/i18n)
+2. `$ git clone --recursive https://github.com/monero-project/kovri && cd kovri/ && make && make install`
+3. [Read the user-guide](https://github.com/monero-project/kovri-docs/tree/master/i18n) in your language of choice
+
 ## Downloads
 
 ### Releases

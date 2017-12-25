@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Copyright (c) 2015-2017, The Kovri I2P Router Project
 #
 # All rights reserved.
@@ -26,27 +28,34 @@
 # STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-FROM alpine:3.6
 
-RUN apk add --update --no-cache \
-      binutils \
-      boost \
-      boost-date_time \
-      boost-dev \
-      boost-program_options \
-      boost-system \
-      boost-unit_test_framework \
-      cmake \
-      g++ \
-      libressl-dev \
-      make \
-      iptables \
-      gdb \
-      bash \
-      coreutils \
-      curl \
-      && \ 
-      adduser -D kovri && \
-      chown -R kovri:kovri /home/kovri
+import argparse
+import json
+import os
+import requests
+import sys
 
-USER kovri
+# Configuration
+parser = argparse.ArgumentParser(description='Backup current grafana dashboards.')
+parser.add_argument('--dir', default=os.path.dirname(os.path.realpath(__file__)), 
+                    help='Directory to store the dashboards (%(default)s)')
+parser.add_argument('--uri', default='http://admin:kovri@127.0.0.1:3030',
+                    help='URI to access grafana with credentials (%(default)s)')
+
+args = parser.parse_args()
+uri = args.uri
+directory = args.dir
+
+# List dashboards
+req = requests.get(uri + '/api/search').json()
+
+for r in req:
+    print("Backuping... " + r['uri'])
+    # Get dashboard
+    dashboard = requests.get(uri + '/api/dashboards/' + r['uri']).json()
+    # Change id with 'null' so that it can be imported
+    dashboard['dashboard']['id'] = None
+    # Save to file
+    with open(directory + '/' + r['uri'][3:] + '.json', 'w') as output:
+        output.write(json.dumps(dashboard, indent=4, sort_keys=True, separators=(',', ': ')))
+

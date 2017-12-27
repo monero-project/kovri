@@ -127,7 +127,7 @@ void Configuration::ParseConfig()
       "enable-ntcp",
       bpo::value<bool>()->default_value(true)->value_name("bool"))(
       "reseed-from,r", bpo::value<std::string>()->default_value(""))(
-      "enable-ssl",
+      "enable-https",
       bpo::value<bool>()->default_value(true)->value_name("bool"))(
       "enable-su3-verification",
       bpo::value<bool>()->default_value(true)->value_name("bool"));

@@ -116,10 +116,10 @@ bool HTTP::DownloadViaClearnet() {
   options.timeout(static_cast<std::uint8_t>(Timeout::Request));
   LOG(debug) << "HTTP: Download Clearnet with timeout : "
              << kovri::core::GetType(Timeout::Request);
-  // Ensure that we only download from explicit SSL-enabled hosts
-  if (core::context.GetOpts()["enable-ssl"].as<bool>()) {
+  // Ensure that we only download from explicit TLS-enabled hosts
+  if (core::context.GetOpts()["enable-https"].as<bool>()) {
     const std::string cert = uri.host() + ".crt";
-    const boost::filesystem::path cert_path = kovri::core::GetSSLCertsPath() / cert;
+    const boost::filesystem::path cert_path = kovri::core::GetTLSCertsPath() / cert;
     if (!boost::filesystem::exists(cert_path)) {
       LOG(error) << "HTTP: certificate unavailable: " << cert_path;
       return false;
@@ -143,7 +143,7 @@ bool HTTP::DownloadViaClearnet() {
   }
   else
     {
-      LOG(debug) << "HTTP: Skipped Reseed SSL checking ";
+      LOG(warning) << "HTTP: not using HTTPS";
     }
 
   // Create client with options

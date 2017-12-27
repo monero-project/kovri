@@ -158,7 +158,7 @@ const boost::filesystem::path GetSU3CertsPath() {
   return GetClientPath() / "certificates" / "su3";
 }
 
-const boost::filesystem::path GetSSLCertsPath() {
+const boost::filesystem::path GetTLSCertsPath() {
   return GetClientPath() / "certificates" / "ssl";
 }
 

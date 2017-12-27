@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright (c) 2015-2017, The Kovri I2P Router Project
 #
 # All rights reserved.
@@ -26,27 +28,36 @@
 # STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-FROM alpine:3.6
+sequence=$1
+network_octets=$2
+db_uri=$3
+db_name=$4
+docker_base_name=$5
 
-RUN apk add --update --no-cache \
-      binutils \
-      boost \
-      boost-date_time \
-      boost-dev \
-      boost-program_options \
-      boost-system \
-      boost-unit_test_framework \
-      cmake \
-      g++ \
-      libressl-dev \
-      make \
-      iptables \
-      gdb \
-      bash \
-      coreutils \
-      curl \
-      && \ 
-      adduser -D kovri && \
-      chown -R kovri:kovri /home/kovri
+while true; do
+  sleep 15
+  data=""
+  for _seq in $($sequence); do
+    _host="${network_octets}.$((10#${_seq}))"
+    _container_name="${docker_base_name}${_seq}"
+    IFS=$'\n'
 
-USER kovri
+    # Get statistics from kovri instances
+    stats=$(/usr/bin/kovri-util control stats --host $_host --log-to-console 0)
+    if [[ $? -ne 0 ]]; then
+        echo "Instance $_seq is not accessible"
+        continue
+    fi
+
+    # Format results
+    for stat in $stats;do
+      IFS=$' '
+      stat=($stat)
+      data=${data}$'\n'${stat[4]}",instance="${_container_name}" value="${stat[6]}
+    done
+    unset IFS
+
+    # Persist data in database
+    curl -s -i -XPOST http://${db_uri}/write?db=${db_name} --data-binary "$data" > /dev/null
+  done
+done

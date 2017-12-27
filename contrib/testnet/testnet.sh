@@ -35,6 +35,28 @@ router_base_name="router_"
 kovri_base_name="kovri_"
 pipe_base_name="log_pipe"
 
+# Monitoring Database
+db_image="influxdb:latest"
+db_container_name="kovri-influxdb"
+db_host_octet=".3"
+db_name="kovri"
+
+# Monitoring: Container stats collector
+stats_container_image="google/cadvisor:latest"
+stats_container_name="kovri-cadvisor"
+stats_container_host_octet=".4"
+
+# Monitoring: Kovri stats collector
+stats_kovri_name="kovri-collector"
+stats_kovri_host_octet=".5"
+
+# Monitoring UI
+grafana_image="grafana/grafana"
+grafana_base_name="kovri-grafana"
+grafana_host_octet=".6"
+grafana_host_port="3030"
+grafana_password="kovri"
+
 # Docker mount
 mount="/home/kovri"
 mount_testnet="${mount}/testnet"
@@ -110,11 +132,13 @@ PrintUsage()
   echo "KOVRI_USE_REPO_BINS     = use repo-built binaries"
   echo "KOVRI_BUILD_REPO_BINS   = build repo binaries from *within* the container"
   echo "KOVRI_CLEANUP           = cleanup/destroy previous testnet"
+  echo "KOVRI_USE_NAMED_PIPES   = use named pipes for logging"
+  echo "KOVRI_DISABLE_MONITORING= disable logging"
   echo ""
   echo "Log monitoring"
   echo "--------------"
   echo ""
-  echo "Every kovri instance will provide real-time logging via named pipes."
+  echo "Every kovri instance will provide real-time logging via named pipes (unless disabled)."
   echo "These pipes are located in their respective directories."
   echo ""
   echo "  Example: /tmp/testnet/kovri_010/log_pipe"
@@ -153,6 +177,7 @@ Prepare()
   set_workspace
   set_args
   set_network
+  read_bool_input "Use named pipes for logging?" KOVRI_USE_NAMED_PIPES ""
 }
 
 cleanup_testnet()
@@ -364,6 +389,8 @@ Create()
     chown -R ${pid}:${gid} ${_base_dir}
     catch "Could not set ownership ${pid}:${gid}"
   done
+
+  create_monitoring
   popd
 }
 
@@ -490,8 +517,13 @@ create_instance()
   # Create named pipe for logging
   local _pipe="${KOVRI_WORKSPACE}/${kovri_base_name}${_seq}/${pipe_base_name}"
 
-  mkfifo "$_pipe"
-  catch "Could not create named pipe $_pipe"
+  if [[ $KOVRI_USE_NAMED_PIPES = false ]]; then
+    touch "$_pipe"
+    catch "Could not create file $_pipe"
+  else
+    mkfifo "$_pipe"
+    catch "Could not create named pipe $_pipe"
+  fi
 
   # Set container options
   local _container_name="${docker_base_name}${_seq}"
@@ -542,13 +574,99 @@ create_webserver_instance()
   local _cmd="sed -i -e 's/#ServerName .*/ServerName ${_web_host}:80/' ${web_system_dir}/${web_conf_dir}/${web_conf} && httpd-foreground"
 
   # Start publisher instance
-  docker create -it --rm --network=${KOVRI_NETWORK} --ip=${_web_host} --name $web_name \
+  docker create -it --network=${KOVRI_NETWORK} --ip=${_web_host} --name $web_name \
     $_entrypoint \
     -v ${_dest_dir}/${web_root_dir}/:${web_system_dir}/${web_root_dir}/ \
     $KOVRI_WEB_IMAGE \
     "$_cmd"
 
   catch "Docker could not run webserver"
+}
+
+create_monitoring()
+{
+  read_bool_input "Disable monitoring?" KOVRI_DISABLE_MONITORING ""
+  if [[ $KOVRI_DISABLE_MONITORING = false ]]; then
+    # Set db IP
+    local _db_host="${network_octets}${db_host_octet}"
+    local _db_uri="${_db_host}:8086"
+
+    # Create DB container
+    docker create -it --name ${db_container_name} --network=${KOVRI_NETWORK} --ip=${_db_host} \
+      ${db_image}
+    catch "Could not create $db_container_name"
+
+    # Create database ${db_name}
+    echo -n "Starting... " && docker start ${db_container_name}
+    catch "Could not start $db_container_name"
+
+    echo "Wait 3s for db to start... " && sleep 3
+    echo "Create database kovri"
+    curl -i -XPOST http://${_db_uri}/query --data-urlencode "q=CREATE DATABASE ${db_name}"
+    catch "Could not create database ${db_name}"
+
+    echo -n "Stopping... " && docker stop ${db_container_name}
+    catch "Could not stop $db_container_name"
+
+    # Create container stats collector
+    local _stats_container_host="${network_octets}${stats_container_host_octet}"
+    docker create --name ${stats_container_name} --network=${KOVRI_NETWORK} --ip=${_stats_container_host} \
+      --volume=/:/rootfs:ro --volume=/var/run:/var/run:rw --volume=/sys:/sys:ro \
+      --volume=/var/lib/docker/:/var/lib/docker:ro \
+      --volume=/dev/disk/:/dev/disk:ro \
+      ${stats_container_image} -storage_driver=influxdb -storage_driver_host=${_db_uri} -storage_driver_db=${db_name}
+    catch "Could not create $stats_container_name"
+    echo "Created container stats collector ${stats_container_name}"
+
+    # Create kovri stats collector
+    local _collector_host="${network_octets}${stats_kovri_host_octet}"
+    docker create -it  --name ${stats_kovri_name} --network=${KOVRI_NETWORK} --ip=${_collector_host} \
+      -v ${KOVRI_REPO}/${docker_dir}/monitoring/collect.sh:/collect.sh \
+      $mount_repo_bins \
+      $KOVRI_IMAGE \
+      /collect.sh "${sequence}" "${network_octets}" "${_db_uri}" "${db_name}" "${docker_base_name}"
+    catch "Could not create $stats_kovri_name"
+    echo "Created kovri stats collector ${stats_kovri_name}"
+
+    # Create UI container
+    local _grafana_host="${network_octets}${grafana_host_octet}"
+    local _grafana_uri="http://admin:${grafana_password}@${_grafana_host}:3000"
+    docker run -d --name ${grafana_base_name} --network=${KOVRI_NETWORK} --ip=${_grafana_host} \
+      -p ${grafana_host_port}:3000 -e "GF_SECURITY_ADMIN_PASSWORD=${grafana_password}" ${grafana_image}
+    catch "Could not create ${grafana_base_name}"
+    echo "Created monitoring UI ${stats_kovri_name}"
+
+    # Grafana: add ${db_container_name} as a "data source"
+    echo "Wait 10s for container to start... " && sleep 10
+
+    curl "${_grafana_uri}/api/datasources" \
+      -X POST -H 'Content-Type: application/json;charset=UTF-8' \
+      --data-binary \
+      '{"name":"InfluxDB","type":"influxdb","url":"http://'${_db_host}':8086","access":"proxy","isDefault":true,"database":"'${db_name}'"}'
+    catch "Could not configure default datasource"
+    echo "Grafana: Created datasource ${_db_host}:8086"
+
+    # Grafana: Create API token
+    local _apiKey=$(curl -X POST -H "Content-Type: application/json" -d '{"name":"apikeycurl", "role": "Admin"}' ${_grafana_uri}/api/auth/keys | python -c "import sys, json; print json.load(sys.stdin)['key']")
+    catch "Grafana: Could not create API key"
+    echo "Grafana: Created api key $_apiKey"
+
+    # Grafana: add dashboards
+    for dashboard in ${KOVRI_REPO}/contrib/testnet/monitoring/dashboards/*.json; do
+      echo "Importing dashboard ${dashboard}... " && curl -X POST --insecure \
+        -H "Authorization: Bearer $_apiKey" \
+        -H "Content-Type: application/json" \
+        -d @${dashboard} \
+        ${_grafana_uri}/api/dashboards/db && echo ""
+      catch "Grafana: failed to add dashboard $dashboard"
+    done
+
+    # Stop grafana
+    echo -n "Stopping... " && docker stop ${grafana_base_name}
+    catch "Could not stop ${grafana_base_name}"
+
+    echo "Monitoring interface is accessibe at: http://127.0.0.1:${grafana_host_port} with credentials admin:${grafana_password}"
+  fi
 }
 
 Start()
@@ -560,6 +678,13 @@ Start()
     echo -n "Starting... " && docker start $_container_name
     catch "Could not start docker: $_seq"
   done
+
+  if [[ $KOVRI_DISABLE_MONITORING = false ]]; then
+    echo -n "Starting monitoring database... " && docker start $db_container_name
+    echo -n "Starting container stats collector... " && docker start $stats_container_name
+    echo -n "Starting kovri stats collector... " && docker start $stats_kovri_name
+    echo -n "Starting monitoring UI... " && docker start $grafana_base_name
+  fi
 }
 
 Stop()
@@ -575,6 +700,13 @@ Stop()
   local _stop="docker stop -t $KOVRI_STOP_TIMEOUT"
 
   # Stop testnet
+  if [[ $KOVRI_DISABLE_MONITORING = false ]]; then
+    echo -n "Stopping monitoring collector " && $_stop $stats_kovri_name
+    echo -n "Stopping container stats collector... " && $_stop $stats_container_name
+    echo -n "Stopping monitoring database... " && $_stop $db_container_name
+    echo -n "Stopping monitoring UI... " && $_stop $grafana_base_name
+  fi
+
   echo -n "Stopping web server... " && $_stop $web_name
   for _seq in $($sequence); do
     local _container_name="${docker_base_name}${_seq}"
@@ -600,6 +732,13 @@ Destroy()
   fi
 
   Stop
+
+  if [[ $KOVRI_DISABLE_MONITORING = false ]]; then
+    echo -n "Removing monitoring collector... " && docker rm -v $stats_kovri_name
+    echo -n "Removing container stats collector... " && docker rm -v $stats_container_name
+    echo -n "Removing monitoring database... " && docker rm -v $db_container_name
+    echo -n "Removing monitoring UI... " && docker rm -v $grafana_base_name
+  fi
 
   echo -n "Removing web server... " && docker rm -v $web_name
   for _seq in $($sequence); do

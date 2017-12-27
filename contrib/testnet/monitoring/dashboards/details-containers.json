@@ -1,0 +1,722 @@
+{
+    "dashboard": {
+        "annotations": {
+            "list": [
+                {
+                    "builtIn": 1,
+                    "datasource": "-- Grafana --",
+                    "enable": true,
+                    "hide": true,
+                    "iconColor": "rgba(0, 211, 255, 1)",
+                    "name": "Annotations & Alerts",
+                    "type": "dashboard"
+                }
+            ]
+        },
+        "editable": true,
+        "gnetId": null,
+        "graphTooltip": 0,
+        "hideControls": false,
+        "id": null,
+        "links": [],
+        "refresh": "10s",
+        "rows": [
+            {
+                "collapse": false,
+                "height": 308,
+                "panels": [
+                    {
+                        "aliasColors": {
+                            "cpu_usage_system.mean {container_name: /}": "#7EB26D"
+                        },
+                        "bars": false,
+                        "dashLength": 10,
+                        "dashes": false,
+                        "datasource": null,
+                        "editable": true,
+                        "error": false,
+                        "fill": 1,
+                        "grid": {},
+                        "id": 2,
+                        "legend": {
+                            "alignAsTable": true,
+                            "avg": true,
+                            "current": true,
+                            "max": true,
+                            "min": false,
+                            "rightSide": true,
+                            "show": true,
+                            "total": false,
+                            "values": true
+                        },
+                        "lines": true,
+                        "linewidth": 2,
+                        "links": [],
+                        "minSpan": 3,
+                        "nullPointMode": "null as zero",
+                        "percentage": false,
+                        "pointradius": 5,
+                        "points": false,
+                        "renderer": "flot",
+                        "seriesOverrides": [
+                            {
+                                "alias": "cpu_usage_system.mean {container_name: /}",
+                                "legend": false
+                            },
+                            {
+                                "alias": "cpu_usage_system.mean {container_name: /docker}",
+                                "legend": false
+                            },
+                            {
+                                "alias": "cpu_usage_system.mean {container_name: /user/0.user}",
+                                "legend": false
+                            },
+                            {
+                                "alias": "cpu_usage_system.mean {container_name: /user/0.user}",
+                                "legend": false
+                            },
+                            {
+                                "alias": "cpu_usage_system.mean {container_name: /user/0.user}",
+                                "legend": false
+                            },
+                            {
+                                "alias": "cpu_usage_system.mean {container_name: /user/0.user/1.session}",
+                                "legend": false
+                            },
+                            {
+                                "alias": "cpu_usage_system.mean {container_name: /user/0.user/2.session}",
+                                "legend": false
+                            },
+                            {
+                                "alias": "cpu_usage_system.mean {container_name: /user}",
+                                "legend": false
+                            },
+                            {
+                                "alias": "cpu_usage_system.mean {container_name: 5fe5b1b0-d62c-4991-a0b6-07dcd7aab760}",
+                                "legend": false
+                            }
+                        ],
+                        "spaceLength": 10,
+                        "span": 12,
+                        "stack": false,
+                        "steppedLine": false,
+                        "targets": [
+                            {
+                                "dsType": "influxdb",
+                                "groupBy": [
+                                    {
+                                        "params": [
+                                            "$interval"
+                                        ],
+                                        "type": "time"
+                                    },
+                                    {
+                                        "params": [
+                                            "container_name"
+                                        ],
+                                        "type": "tag"
+                                    },
+                                    {
+                                        "params": [
+                                            "null"
+                                        ],
+                                        "type": "fill"
+                                    }
+                                ],
+                                "hide": false,
+                                "measurement": "cpu_usage_system",
+                                "orderByTime": "ASC",
+                                "policy": "default",
+                                "query": "SELECT derivative(mean(\"value\"), 1s)/1000000000 FROM \"cpu_usage_total\" WHERE  $timeFilter and container_name =~ /$container_name_filter/ GROUP BY time($interval), \"container_name\" fill(null)",
+                                "rawQuery": true,
+                                "refId": "A",
+                                "resultFormat": "time_series",
+                                "select": [
+                                    [
+                                        {
+                                            "params": [
+                                                "value"
+                                            ],
+                                            "type": "field"
+                                        },
+                                        {
+                                            "params": [],
+                                            "type": "mean"
+                                        }
+                                    ]
+                                ],
+                                "tags": [
+                                    {
+                                        "key": "container_name",
+                                        "operator": "!=",
+                                        "value": "/"
+                                    }
+                                ]
+                            }
+                        ],
+                        "thresholds": [],
+                        "timeFrom": null,
+                        "timeShift": null,
+                        "title": "CPU Usage",
+                        "tooltip": {
+                            "shared": true,
+                            "sort": 0,
+                            "value_type": "individual"
+                        },
+                        "type": "graph",
+                        "xaxis": {
+                            "buckets": null,
+                            "mode": "time",
+                            "name": null,
+                            "show": false,
+                            "values": []
+                        },
+                        "yaxes": [
+                            {
+                                "format": "percentunit",
+                                "logBase": 1,
+                                "max": null,
+                                "min": null,
+                                "show": true
+                            },
+                            {
+                                "format": "hertz",
+                                "logBase": 1,
+                                "max": null,
+                                "min": null,
+                                "show": true
+                            }
+                        ]
+                    }
+                ],
+                "repeat": null,
+                "repeatIteration": null,
+                "repeatRowId": null,
+                "showTitle": false,
+                "title": "Row",
+                "titleSize": "h6"
+            },
+            {
+                "collapse": false,
+                "height": 250,
+                "panels": [
+                    {
+                        "aliasColors": {},
+                        "bars": false,
+                        "dashLength": 10,
+                        "dashes": false,
+                        "datasource": null,
+                        "editable": true,
+                        "error": false,
+                        "fill": 1,
+                        "grid": {},
+                        "id": 3,
+                        "legend": {
+                            "alignAsTable": true,
+                            "avg": true,
+                            "current": true,
+                            "max": true,
+                            "min": false,
+                            "rightSide": true,
+                            "show": true,
+                            "total": false,
+                            "values": true
+                        },
+                        "lines": true,
+                        "linewidth": 2,
+                        "links": [],
+                        "nullPointMode": "connected",
+                        "percentage": false,
+                        "pointradius": 5,
+                        "points": false,
+                        "renderer": "png",
+                        "seriesOverrides": [
+                            {
+                                "alias": "memory_usage.mean {container_name: /}",
+                                "legend": false
+                            },
+                            {
+                                "alias": "memory_usage.mean {container_name: /docker}",
+                                "legend": false
+                            },
+                            {
+                                "alias": "memory_usage.mean {container_name: /user}",
+                                "legend": false
+                            },
+                            {
+                                "alias": "memory_usage.mean {container_name: /user/0.user}",
+                                "legend": false
+                            },
+                            {
+                                "alias": "memory_usage.mean {container_name: /user/0.user}",
+                                "legend": false
+                            },
+                            {
+                                "alias": "memory_usage.mean {container_name: /user/0.user/1.session}",
+                                "legend": false
+                            },
+                            {
+                                "alias": "memory_usage.mean {container_name: /user/0.user/2.session}",
+                                "legend": false
+                            },
+                            {
+                                "alias": "memory_usage.mean {container_name: 5fe5b1b0-d62c-4991-a0b6-07dcd7aab760}",
+                                "legend": false
+                            }
+                        ],
+                        "spaceLength": 10,
+                        "span": 12,
+                        "stack": false,
+                        "steppedLine": false,
+                        "targets": [
+                            {
+                                "dsType": "influxdb",
+                                "groupBy": [
+                                    {
+                                        "params": [
+                                            "$interval"
+                                        ],
+                                        "type": "time"
+                                    },
+                                    {
+                                        "params": [
+                                            "container_name"
+                                        ],
+                                        "type": "tag"
+                                    },
+                                    {
+                                        "params": [
+                                            "null"
+                                        ],
+                                        "type": "fill"
+                                    }
+                                ],
+                                "measurement": "memory_usage",
+                                "orderByTime": "ASC",
+                                "policy": "default",
+                                "query": "SELECT mean(\"value\") FROM \"memory_usage\" WHERE $timeFilter and container_name =~ /$container_name_filter/ GROUP BY time($interval), \"container_name\" fill(null)",
+                                "rawQuery": true,
+                                "refId": "A",
+                                "resultFormat": "time_series",
+                                "select": [
+                                    [
+                                        {
+                                            "params": [
+                                                "value"
+                                            ],
+                                            "type": "field"
+                                        },
+                                        {
+                                            "params": [],
+                                            "type": "mean"
+                                        }
+                                    ]
+                                ],
+                                "tags": []
+                            }
+                        ],
+                        "thresholds": [],
+                        "timeFrom": null,
+                        "timeShift": null,
+                        "title": "Memory Usage",
+                        "tooltip": {
+                            "shared": true,
+                            "sort": 0,
+                            "value_type": "cumulative"
+                        },
+                        "type": "graph",
+                        "xaxis": {
+                            "buckets": null,
+                            "mode": "time",
+                            "name": null,
+                            "show": true,
+                            "values": []
+                        },
+                        "yaxes": [
+                            {
+                                "format": "bytes",
+                                "logBase": 1,
+                                "max": null,
+                                "min": null,
+                                "show": true
+                            },
+                            {
+                                "format": "bytes",
+                                "logBase": 1,
+                                "max": null,
+                                "min": null,
+                                "show": true
+                            }
+                        ]
+                    }
+                ],
+                "repeat": null,
+                "repeatIteration": null,
+                "repeatRowId": null,
+                "showTitle": false,
+                "title": "Dashboard Row",
+                "titleSize": "h6"
+            },
+            {
+                "collapse": false,
+                "height": 250,
+                "panels": [
+                    {
+                        "aliasColors": {
+                            "rx_bytes.mean": "#E5AC0E",
+                            "tx_bytes.mean": "#1F78C1"
+                        },
+                        "bars": false,
+                        "dashLength": 10,
+                        "dashes": false,
+                        "datasource": null,
+                        "editable": true,
+                        "error": false,
+                        "fill": 1,
+                        "grid": {},
+                        "id": 5,
+                        "legend": {
+                            "alignAsTable": true,
+                            "avg": true,
+                            "current": true,
+                            "max": true,
+                            "min": false,
+                            "rightSide": true,
+                            "show": true,
+                            "total": false,
+                            "values": true
+                        },
+                        "lines": true,
+                        "linewidth": 2,
+                        "links": [],
+                        "nullPointMode": "connected",
+                        "percentage": false,
+                        "pointradius": 5,
+                        "points": false,
+                        "renderer": "png",
+                        "seriesOverrides": [],
+                        "spaceLength": 10,
+                        "span": 12,
+                        "stack": true,
+                        "steppedLine": false,
+                        "targets": [
+                            {
+                                "dsType": "influxdb",
+                                "groupBy": [
+                                    {
+                                        "params": [
+                                            "$interval"
+                                        ],
+                                        "type": "time"
+                                    },
+                                    {
+                                        "params": [
+                                            "null"
+                                        ],
+                                        "type": "fill"
+                                    }
+                                ],
+                                "measurement": "rx_bytes",
+                                "orderByTime": "ASC",
+                                "policy": "default",
+                                "query": "SELECT derivative(mean(\"value\"), 1s) FROM \"rx_bytes\" WHERE $timeFilter and container_name =~ /$container_name_filter/ GROUP BY time($interval) , \"container_name\"  fill(null)",
+                                "rawQuery": true,
+                                "refId": "A",
+                                "resultFormat": "time_series",
+                                "select": [
+                                    [
+                                        {
+                                            "params": [
+                                                "value"
+                                            ],
+                                            "type": "field"
+                                        },
+                                        {
+                                            "params": [],
+                                            "type": "mean"
+                                        }
+                                    ]
+                                ],
+                                "tags": []
+                            }
+                        ],
+                        "thresholds": [],
+                        "timeFrom": null,
+                        "timeShift": null,
+                        "title": "Network Receive",
+                        "tooltip": {
+                            "shared": true,
+                            "sort": 0,
+                            "value_type": "cumulative"
+                        },
+                        "transparent": false,
+                        "type": "graph",
+                        "xaxis": {
+                            "buckets": null,
+                            "mode": "time",
+                            "name": null,
+                            "show": true,
+                            "values": []
+                        },
+                        "yaxes": [
+                            {
+                                "format": "Bps",
+                                "logBase": 1,
+                                "max": null,
+                                "min": null,
+                                "show": true
+                            },
+                            {
+                                "format": "Bps",
+                                "logBase": 1,
+                                "max": null,
+                                "min": null,
+                                "show": true
+                            }
+                        ]
+                    }
+                ],
+                "repeat": null,
+                "repeatIteration": null,
+                "repeatRowId": null,
+                "showTitle": false,
+                "title": "Dashboard Row",
+                "titleSize": "h6"
+            },
+            {
+                "collapse": false,
+                "height": 250,
+                "panels": [
+                    {
+                        "aliasColors": {
+                            "rx_bytes.mean": "#E5AC0E",
+                            "tx_bytes.mean": "#1F78C1"
+                        },
+                        "bars": false,
+                        "dashLength": 10,
+                        "dashes": false,
+                        "datasource": null,
+                        "editable": true,
+                        "error": false,
+                        "fill": 1,
+                        "grid": {},
+                        "id": 4,
+                        "legend": {
+                            "alignAsTable": true,
+                            "avg": true,
+                            "current": true,
+                            "max": true,
+                            "min": false,
+                            "rightSide": true,
+                            "show": true,
+                            "total": false,
+                            "values": true
+                        },
+                        "lines": true,
+                        "linewidth": 2,
+                        "links": [],
+                        "nullPointMode": "connected",
+                        "percentage": false,
+                        "pointradius": 5,
+                        "points": false,
+                        "renderer": "png",
+                        "seriesOverrides": [],
+                        "spaceLength": 10,
+                        "span": 12,
+                        "stack": true,
+                        "steppedLine": false,
+                        "targets": [
+                            {
+                                "dsType": "influxdb",
+                                "groupBy": [
+                                    {
+                                        "params": [
+                                            "$interval"
+                                        ],
+                                        "type": "time"
+                                    },
+                                    {
+                                        "params": [
+                                            "null"
+                                        ],
+                                        "type": "fill"
+                                    }
+                                ],
+                                "hide": false,
+                                "measurement": "tx_bytes",
+                                "orderByTime": "ASC",
+                                "policy": "default",
+                                "query": "SELECT derivative(mean(\"value\"), 1s) FROM \"tx_bytes\" WHERE $timeFilter and container_name =~ /$container_name_filter/ GROUP BY time($interval) , \"container_name\"  fill(null)",
+                                "rawQuery": true,
+                                "refId": "B",
+                                "resultFormat": "time_series",
+                                "select": [
+                                    [
+                                        {
+                                            "params": [
+                                                "value"
+                                            ],
+                                            "type": "field"
+                                        },
+                                        {
+                                            "params": [],
+                                            "type": "mean"
+                                        }
+                                    ]
+                                ],
+                                "tags": []
+                            }
+                        ],
+                        "thresholds": [],
+                        "timeFrom": null,
+                        "timeShift": null,
+                        "title": "Network Transmit",
+                        "tooltip": {
+                            "shared": true,
+                            "sort": 0,
+                            "value_type": "cumulative"
+                        },
+                        "transparent": false,
+                        "type": "graph",
+                        "xaxis": {
+                            "buckets": null,
+                            "mode": "time",
+                            "name": null,
+                            "show": true,
+                            "values": []
+                        },
+                        "yaxes": [
+                            {
+                                "format": "Bps",
+                                "logBase": 1,
+                                "max": null,
+                                "min": null,
+                                "show": true
+                            },
+                            {
+                                "format": "Bps",
+                                "logBase": 1,
+                                "max": null,
+                                "min": null,
+                                "show": true
+                            }
+                        ]
+                    }
+                ],
+                "repeat": null,
+                "repeatIteration": null,
+                "repeatRowId": null,
+                "showTitle": false,
+                "title": "Dashboard Row",
+                "titleSize": "h6"
+            }
+        ],
+        "schemaVersion": 14,
+        "style": "dark",
+        "tags": [],
+        "templating": {
+            "list": [
+                {
+                    "allValue": null,
+                    "current": {
+                        "text": "kovri_testnet_01[0-4]",
+                        "value": "kovri_testnet_01[0-4]"
+                    },
+                    "datasource": "InfluxDB",
+                    "hide": 0,
+                    "includeAll": false,
+                    "label": "Container name filter",
+                    "multi": false,
+                    "name": "container_name_filter",
+                    "options": [
+                        {
+                            "selected": true,
+                            "text": "kovri_testnet_01[0-4]",
+                            "value": "kovri_testnet_01[0-4]"
+                        },
+                        {
+                            "selected": false,
+                            "text": "kovri_testnet_02[5-9]",
+                            "value": "kovri_testnet_02[5-9]"
+                        },
+                        {
+                            "selected": false,
+                            "text": "kovri_testnet_01.*",
+                            "value": "kovri_testnet_01.*"
+                        },
+                        {
+                            "selected": false,
+                            "text": "kovri_testnet_02.*",
+                            "value": "kovri_testnet_02.*"
+                        },
+                        {
+                            "selected": false,
+                            "text": "kovri_testnet.*",
+                            "value": "kovri_testnet.*"
+                        },
+                        {
+                            "selected": false,
+                            "text": "kovri.*",
+                            "value": "kovri.*"
+                        }
+                    ],
+                    "query": "SHOW TAG VALUES WITH KEY = \"container_name\"",
+                    "refresh": 0,
+                    "regex": "",
+                    "sort": 0,
+                    "tagValuesQuery": "",
+                    "tags": [],
+                    "tagsQuery": "",
+                    "type": "query",
+                    "useTags": false
+                }
+            ]
+        },
+        "time": {
+            "from": "now-1h",
+            "to": "now"
+        },
+        "timepicker": {
+            "now": true,
+            "refresh_intervals": [
+                "5s",
+                "10s",
+                "30s",
+                "1m",
+                "5m",
+                "15m",
+                "30m",
+                "1h",
+                "2h",
+                "1d"
+            ],
+            "time_options": [
+                "5m",
+                "15m",
+                "1h",
+                "6h",
+                "12h",
+                "24h",
+                "2d",
+                "7d",
+                "30d"
+            ]
+        },
+        "timezone": "browser",
+        "title": "Details Containers",
+        "version": 1
+    },
+    "meta": {
+        "canEdit": true,
+        "canSave": true,
+        "canStar": true,
+        "created": "2017-12-25T04:22:25Z",
+        "createdBy": "Anonymous",
+        "expires": "0001-01-01T00:00:00Z",
+        "slug": "details-containers",
+        "type": "db",
+        "updated": "2017-12-25T04:22:25Z",
+        "updatedBy": "Anonymous",
+        "version": 1
+    }
+}

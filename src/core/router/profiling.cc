@@ -100,7 +100,7 @@ void RouterProfile::Save() {
   // TODO(unassigned): this entire block is a patch for #519 until we implement a database in #385
   try
     {
-      auto directory = kovri::core::GetProfilesPath();
+      auto directory = core::GetPath(core::Path::Profiles);
       std::string sub_dir;
       if (!boost::filesystem::exists(directory))
         {
@@ -143,7 +143,7 @@ void RouterProfile::Save() {
 
 void RouterProfile::Load() {
   std::string base64 = m_IdentHash.ToBase64();
-  auto directory = kovri::core::GetProfilesPath();
+  auto directory = core::GetPath(core::Path::Profiles);
   // TODO(unassigned): this is a patch for #519 until we implement a database in #385
   std::string sub_dir;
 #if defined(_WIN32) || defined(__APPLE__)
@@ -251,7 +251,7 @@ std::shared_ptr<RouterProfile> GetRouterProfile(
 
 void DeleteObsoleteProfiles()
 {
-  boost::filesystem::path path(kovri::core::GetProfilesPath());
+  boost::filesystem::path path(core::GetPath(core::Path::Profiles));
   std::size_t num_profiles = 0;
   auto RemoveProfiles = [&](const boost::filesystem::path& path) {
     auto timestamp = boost::posix_time::second_clock::local_time();

@@ -181,7 +181,7 @@ void SetupLogging(const boost::program_options::variables_map& kovri_config)
   auto file_backend = boost::make_shared<sinks::text_file_backend>(
       keywords::file_name =
           kovri_config["log-file-name"].defaulted()
-              ? ((kovri::core::GetLogsPath() / "kovri_%Y-%m-%d.log").string())
+              ? ((core::GetPath(core::Path::Logs) / "kovri_%Y-%m-%d.log").string())
               : kovri_config["log-file-name"].as<std::string>(),
       keywords::time_based_rotation =
           sinks::file::rotation_at_time_point(0, 0, 0));  // Rotate at midnight

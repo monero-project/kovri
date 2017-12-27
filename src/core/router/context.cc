@@ -68,7 +68,7 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
   m_Opts = map;
 
   // Set paths
-  auto path = core::EnsurePath(core::GetCorePath());
+  auto path = core::EnsurePath(core::GetPath(core::Path::Core));
   auto keys_path = (path / GetTrait(Trait::KeyFile)).string();
   auto info_path = (path / GetTrait(Trait::InfoFile)).string();
 
@@ -206,7 +206,7 @@ void RouterContext::UpdateRouterInfo() {
   LOG(debug) << "RouterContext: updating RI, saving to file";
   m_RouterInfo.CreateBuffer(m_Keys);
   m_RouterInfo.SaveToFile(
-      (core::GetCorePath() / GetTrait(Trait::InfoFile)).string());
+      (core::GetPath(core::Path::Core) / GetTrait(Trait::InfoFile)).string());
   m_LastUpdateTime = kovri::core::GetSecondsSinceEpoch();
 }
 

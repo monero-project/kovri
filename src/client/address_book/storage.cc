@@ -92,7 +92,7 @@ void AddressBookStorage::RemoveAddress(
 std::size_t AddressBookStorage::Load(
     std::map<std::string, kovri::core::IdentHash>& addresses) {
   std::size_t num = 0;
-  auto filename = kovri::core::GetAddressBookPath() / GetDefaultAddressesFilename();
+  auto filename = core::GetPath(core::Path::AddressBook) / GetDefaultAddressesFilename();
   std::ifstream file(filename.string());
   if (!file) {
     LOG(warning) << "AddressBookStorage: " << filename << " not found";
@@ -122,7 +122,7 @@ std::size_t AddressBookStorage::Load(
 std::size_t AddressBookStorage::Save(
     const std::map<std::string, kovri::core::IdentHash>& addresses) {
   std::size_t num = 0;
-  auto filename = kovri::core::GetAddressBookPath() / GetDefaultAddressesFilename();
+  auto filename = core::GetPath(core::Path::AddressBook)/ GetDefaultAddressesFilename();
   std::ofstream file(filename.string(), std::ofstream::out);
   if (!file) {
     LOG(error) << "AddressBookStorage: can't open file " << filename;

@@ -86,7 +86,7 @@ void Configuration::ParseConfig()
       "port,p", bpo::value<int>()->default_value(0))(
       "data-dir",
       bpo::value<std::string>()
-          ->default_value(GetDefaultDataPath().string())
+          ->default_value(core::GetPath(core::Path::DefaultData).string())
           ->value_name("path"))(
       "daemon,d", bpo::value<bool>()->default_value(false)->value_name("bool"))(
       "service,s", bpo::value<std::string>()->default_value(""))(
@@ -207,8 +207,9 @@ void Configuration::ParseConfigFile(
 void Configuration::SetupGlobalPath()
 {
   context.SetCustomDataDir(
-      m_Map["data-dir"].defaulted() ? GetDefaultDataPath().string()
-                                    : m_Map["data-dir"].as<std::string>());
+      m_Map["data-dir"].defaulted()
+          ? core::GetPath(core::Path::DefaultData).string()
+          : m_Map["data-dir"].as<std::string>());
 }
 
 void Configuration::SetupAESNI()

@@ -315,7 +315,7 @@ bool NetDb::CreateNetDb(boost::filesystem::path directory)
 bool NetDb::Load()
 {
   // Create NetDb if it does not exist
-  const auto& path = core::GetNetDbPath();
+  const auto& path = core::GetPath(core::Path::NetDb);
   if (!CreateNetDb(path))
     return false;
   // Cleanup the database from previous attempts
@@ -383,7 +383,7 @@ void NetDb::SaveUpdated() {
 #endif
     return directory / sub_dir / (std::string("r") + base64[0]) / ("router_info_" + base64 + ".dat");
   };
-  boost::filesystem::path full_directory(kovri::core::GetNetDbPath());
+  boost::filesystem::path full_directory(core::GetPath(core::Path::NetDb));
   std::size_t count{}, deleted_count{}, total = GetNumRouters();
   std::uint64_t ts = kovri::core::GetMillisecondsSinceEpoch();
   for (auto it : m_RouterInfos) {

@@ -119,7 +119,7 @@ bool HTTP::DownloadViaClearnet() {
   // Ensure that we only download from explicit TLS-enabled hosts
   if (core::context.GetOpts()["enable-https"].as<bool>()) {
     const std::string cert = uri.host() + ".crt";
-    const boost::filesystem::path cert_path = kovri::core::GetTLSCertsPath() / cert;
+    const boost::filesystem::path cert_path = core::GetPath(core::Path::TLS) / cert;
     if (!boost::filesystem::exists(cert_path)) {
       LOG(error) << "HTTP: certificate unavailable: " << cert_path;
       return false;

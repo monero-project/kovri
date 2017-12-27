@@ -64,7 +64,7 @@ namespace client {
 bool Reseed::Start() {
   // Load SU3 (not SSL) certificates
   LOG(debug) << "Reseed: processing certificates...";
-  if (!ProcessCerts(&m_SigningKeys, kovri::core::GetSU3CertsPath()))
+  if (!ProcessCerts(&m_SigningKeys, core::GetPath(core::Path::SU3)))
     {
       LOG(error) << "Reseed: failed to load certificates";
       return false;

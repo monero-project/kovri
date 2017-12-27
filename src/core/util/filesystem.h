@@ -314,57 +314,56 @@ class OutputFileStream : public FileStream<std::ostream, std::ofstream> {
 /// @brief Tests existence of path / creates if it does not exist
 /// @param Boost.Filesystem path
 /// @return Created path
-const boost::filesystem::path EnsurePath(
-    const boost::filesystem::path& path);
+const boost::filesystem::path EnsurePath(const boost::filesystem::path& path);
 
-/// TODO(anonimal): we can refactor all path getter functions, consolidate with key
+/// @brief Key for directory paths
+enum struct Path : std::uint8_t
+{
+  /// @brief Kovri default data directory
+  DefaultData,
 
-/// Client paths
+  /// @brief Kovri data directory
+  Data,
 
-/// @return Path to certificates for SU3 verification
-const boost::filesystem::path GetSU3CertsPath();
+  /// @brief Core data directory
+  Core,
 
-/// @return Path to X.509 certificates for TLS negotiation
-const boost::filesystem::path GetTLSCertsPath();
+  /// @brief Client data directory
+  Client,
 
-/// @return Address book related path
-const boost::filesystem::path GetAddressBookPath();
+  /// @brief Configuration files
+  Config,
 
-/// @return Path to client (tunnel) keys
-const boost::filesystem::path GetClientKeysPath();
+  /// @brief Log storage
+  Logs,
 
+  /// @brief Network Database
+  NetDb,
 
-/// Core paths
+  /// @brief Peer Profiles
+  Profiles,
 
-/// @return Path to network database
-const boost::filesystem::path GetNetDbPath();
+  /// @brief X.509 certificates for TLS negotiation
+  TLS,
 
-/// @return Path to peer profiles
-const boost::filesystem::path GetProfilesPath();
+  /// @brief X.509 certificates for SU3 verification
+  SU3,
 
+  /// @brief Address book related
+  AddressBook,
 
-/// Data paths
+  /// @brief Client (tunnel) keys
+  ClientKeys,
+};
 
-/// @return the path to log storage
-const boost::filesystem::path GetLogsPath();
-
-/// @return Path to configuration files
-const boost::filesystem::path GetConfigPath();
-
-/// @return Path to core section
-const boost::filesystem::path GetCorePath();
-
-/// @return Path to client section
-const boost::filesystem::path GetClientPath();
-
-
-/// Root data directory
-
-/// @return the path of the kovri directory
-const boost::filesystem::path& GetDataPath();
-
-/// @return the default directory for app data
-boost::filesystem::path GetDefaultDataPath();
+/// @return Filesystem paths
+/// @param path Key of which path to return
+/// @notes On custom path, or default path:
+///   Windows < Vista: C:\Documents and Settings\Username\Application Data\Kovri
+///   Windows >= Vista: C:\Users\Username\AppData\Roaming\Kovri
+///   OS X: ~/Library/Application Support/Kovri
+///   *nix: ~/.kovri
+boost::filesystem::path GetPath(Path path);
 
 }  // namespace core
 }  // namespace kovri

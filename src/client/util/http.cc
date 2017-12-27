@@ -143,7 +143,7 @@ bool HTTP::DownloadViaClearnet() {
   }
   else
     {
-      LOG(debug) << "HTTP: Skipped Reseed SSL checking ";
+      LOG(warning) << "HTTP: not using HTTPS";
     }
 
   // Create client with options

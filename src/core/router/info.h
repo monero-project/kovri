@@ -65,7 +65,7 @@ struct RouterInfoTraits
   /// @brief Router Info size constants
   enum Size : std::uint16_t
   {
-    MinBuffer = core::DSA_SIGNATURE_LENGTH,  // TODO(unassigned): see #498
+    MinBuffer = core::EDDSA25519_SIGNATURE_LENGTH,  // TODO(unassigned): see #498
     MaxBuffer = 2048,  // TODO(anonimal): review if arbitrary
     // TODO(unassigned): algorithm to dynamically determine cost
     NTCPCost = 10,  // NTCP *should* have priority over SSU

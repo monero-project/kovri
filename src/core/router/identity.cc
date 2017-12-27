@@ -102,107 +102,41 @@ IdentityEx::IdentityEx(
         m_StandardIdentity.public_key,
         public_key,
         sizeof(m_StandardIdentity.public_key));
-    if (type != SIGNING_KEY_TYPE_DSA_SHA1) {
-      std::size_t excess_len = 0;
-      std::unique_ptr<std::uint8_t[]> excess_buf;
-      switch (type) {
-        case SIGNING_KEY_TYPE_ECDSA_SHA256_P256: {
-          std::size_t padding =
-            128 - kovri::core::ECDSAP256_KEY_LENGTH;  // 64 = 128 - 64
-          kovri::core::RandBytes(
-              m_StandardIdentity.signing_key,
-              padding);
-          memcpy(
-              m_StandardIdentity.signing_key + padding,
-              signing_key,
-              kovri::core::ECDSAP256_KEY_LENGTH);
-          break;
-        }
-        case SIGNING_KEY_TYPE_ECDSA_SHA384_P384: {
-          std::size_t padding =
-            128 - kovri::core::ECDSAP384_KEY_LENGTH;  // 32 = 128 - 96
-          kovri::core::RandBytes(
-              m_StandardIdentity.signing_key,
-              padding);
-          memcpy(
-              m_StandardIdentity.signing_key + padding,
-              signing_key,
-              kovri::core::ECDSAP384_KEY_LENGTH);
-          break;
-        }
-        case SIGNING_KEY_TYPE_ECDSA_SHA512_P521: {
-          memcpy(m_StandardIdentity.signing_key, signing_key, 128);
-          excess_len = kovri::core::ECDSAP521_KEY_LENGTH - 128;  // 4 = 132 - 128
-          excess_buf = std::make_unique<std::uint8_t[]>(excess_len);
-          memcpy(excess_buf.get(), signing_key + 128, excess_len);
-          break;
-        }
-        case SIGNING_KEY_TYPE_RSA_SHA256_2048: {
-          memcpy(m_StandardIdentity.signing_key, signing_key, 128);
-          excess_len = kovri::core::RSASHA2562048_KEY_LENGTH - 128;  // 128 = 256 - 128
-          excess_buf = std::make_unique<std::uint8_t[]>(excess_len);
-          memcpy(excess_buf.get(), signing_key + 128, excess_len);
-          break;
-        }
-        case SIGNING_KEY_TYPE_RSA_SHA384_3072: {
-          memcpy(m_StandardIdentity.signing_key, signing_key, 128);
-          excess_len = kovri::core::RSASHA3843072_KEY_LENGTH - 128;  // 256 = 384 - 128
-          excess_buf = std::make_unique<std::uint8_t[]>(excess_len);
-          memcpy(excess_buf.get(), signing_key + 128, excess_len);
-          break;
-        }
-        case SIGNING_KEY_TYPE_RSA_SHA512_4096: {
-          memcpy(m_StandardIdentity.signing_key, signing_key, 128);
-          excess_len = kovri::core::RSASHA5124096_KEY_LENGTH - 128;  // 384 = 512 - 128
-          excess_buf = std::make_unique<std::uint8_t[]>(excess_len);
-          memcpy(excess_buf.get(), signing_key + 128, excess_len);
-          break;
-        }
-        case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519: {
-          std::size_t padding =
-            128 - kovri::core::EDDSA25519_PUBLIC_KEY_LENGTH;  // 96 = 128 - 32
-          kovri::core::RandBytes(
-              m_StandardIdentity.signing_key,
-              padding);
-          memcpy(
-              m_StandardIdentity.signing_key + padding,
-              signing_key,
-              kovri::core::EDDSA25519_PUBLIC_KEY_LENGTH);
-          break;
-        }
-        default:
-          LOG(warning)
-            << "IdentityEx: signing key type "
-            << static_cast<int>(type) << " is not supported";
+    std::size_t excess_len = 0;
+    std::unique_ptr<std::uint8_t[]> excess_buf;
+    switch (type) {
+      case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519: {
+        std::size_t padding =
+          128 - kovri::core::EDDSA25519_PUBLIC_KEY_LENGTH;  // 96 = 128 - 32
+        kovri::core::RandBytes(
+            m_StandardIdentity.signing_key,
+            padding);
+        memcpy(
+            m_StandardIdentity.signing_key + padding,
+            signing_key,
+            kovri::core::EDDSA25519_PUBLIC_KEY_LENGTH);
+        break;
       }
-      m_ExtendedLen = 4 + excess_len;  // 4 bytes extra + excess length
-      // fill certificate
-      m_StandardIdentity.certificate.type = CERTIFICATE_TYPE_KEY;
-      m_StandardIdentity.certificate.length = htobe16(m_ExtendedLen);
-      // fill extended buffer
-      m_ExtendedBuffer = std::make_unique<std::uint8_t[]>(m_ExtendedLen);
-      htobe16buf(m_ExtendedBuffer.get(), type);
-      htobe16buf(m_ExtendedBuffer.get() + 2, CRYPTO_KEY_TYPE_ELGAMAL);
-      if (excess_len && excess_buf) {
-        memcpy(m_ExtendedBuffer.get() + 4, excess_buf.get(), excess_len);
-      }
-      // calculate ident hash
-      auto buf = std::make_unique<std::uint8_t[]>(GetFullLen());
-      ToBuffer(buf.get(), GetFullLen());
-      kovri::core::SHA256().CalculateDigest(m_IdentHash, buf.get(), GetFullLen());
-    } else {  // DSA-SHA1
-      memcpy(
-          m_StandardIdentity.signing_key,
-          signing_key,
-          sizeof(m_StandardIdentity.signing_key));
-      memset(
-          &m_StandardIdentity.certificate,
-          0,
-          sizeof(m_StandardIdentity.certificate));
-      m_IdentHash = m_StandardIdentity.Hash();
-      m_ExtendedLen = 0;
-      m_ExtendedBuffer.reset(nullptr);
+      default:
+        LOG(warning)
+          << "IdentityEx: signing key type "
+          << static_cast<int>(type) << " is not supported";
     }
+    m_ExtendedLen = 4 + excess_len;  // 4 bytes extra + excess length
+    // fill certificate
+    m_StandardIdentity.certificate.type = CERTIFICATE_TYPE_KEY;
+    m_StandardIdentity.certificate.length = htobe16(m_ExtendedLen);
+    // fill extended buffer
+    m_ExtendedBuffer = std::make_unique<std::uint8_t[]>(m_ExtendedLen);
+    htobe16buf(m_ExtendedBuffer.get(), type);
+    htobe16buf(m_ExtendedBuffer.get() + 2, CRYPTO_KEY_TYPE_ELGAMAL);
+    if (excess_len && excess_buf) {
+      memcpy(m_ExtendedBuffer.get() + 4, excess_buf.get(), excess_len);
+    }
+    // calculate ident hash
+    auto buf = std::make_unique<std::uint8_t[]>(GetFullLen());
+    ToBuffer(buf.get(), GetFullLen());
+    kovri::core::SHA256().CalculateDigest(m_IdentHash, buf.get(), GetFullLen());
     CreateVerifier();
   } catch (...) {
     m_Exception.Dispatch(__func__);
@@ -355,21 +289,6 @@ std::string IdentityEx::GetDescription(const std::string& tabs) const
      << tabs << "\t\t";
   switch (GetSigningKeyType())
     {
-      case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:  // 64 = 128 - 64
-        ss << "Padding: " << (128 - kovri::core::ECDSAP256_KEY_LENGTH);
-        break;
-      case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:  // 32 = 128 - 96
-        ss << "Padding: " << (128 - kovri::core::ECDSAP384_KEY_LENGTH);
-        break;
-      case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:  // 4 = 132 - 128
-        ss << "Excess: " << (kovri::core::ECDSAP521_KEY_LENGTH - 128);
-        break;
-      case SIGNING_KEY_TYPE_RSA_SHA256_2048:  // 128 = 256 - 128
-        ss << "Excess: " << (kovri::core::RSASHA2562048_KEY_LENGTH - 128);
-        break;
-      case SIGNING_KEY_TYPE_RSA_SHA384_3072:  // 256 = 384 - 128
-        ss << "Excess: " << (kovri::core::RSASHA3843072_KEY_LENGTH - 128);
-        break;
       case SIGNING_KEY_TYPE_RSA_SHA512_4096:  // 384 = 512 - 128
         ss << "Excess: " << (kovri::core::RSASHA5124096_KEY_LENGTH - 128);
         break;
@@ -408,7 +327,7 @@ std::size_t IdentityEx::GetSignatureLen() const {
     CreateVerifier();
   if (m_Verifier)
     return m_Verifier->GetSignatureLen();
-  return kovri::core::DSA_SIGNATURE_LENGTH;
+  return kovri::core::EDDSA25519_SIGNATURE_LENGTH;
 }
 
 bool IdentityEx::Verify(
@@ -442,53 +361,12 @@ CryptoKeyType IdentityEx::GetCryptoKeyType() const {
   if (m_StandardIdentity.certificate.type ==
       CERTIFICATE_TYPE_KEY && m_ExtendedBuffer)
     return bufbe16toh(m_ExtendedBuffer.get() + 2);  // crypto key
-  return CRYPTO_KEY_TYPE_ELGAMAL;
+  return CRYPTO_KEY_TYPE_ELGAMAL; 
 }
 
 void IdentityEx::CreateVerifier() const  {
   auto key_type = GetSigningKeyType();
   switch (key_type) {
-    case SIGNING_KEY_TYPE_DSA_SHA1:
-      m_Verifier = std::make_unique<kovri::core::DSAVerifier>(m_StandardIdentity.signing_key);
-    break;
-    case SIGNING_KEY_TYPE_ECDSA_SHA256_P256: {
-      std::size_t padding = 128 - kovri::core::ECDSAP256_KEY_LENGTH;  // 64 = 128 - 64
-      m_Verifier =
-        std::make_unique<kovri::core::ECDSAP256Verifier>(
-            m_StandardIdentity.signing_key + padding);
-      break;
-    }
-    case SIGNING_KEY_TYPE_ECDSA_SHA384_P384: {
-      std::size_t padding = 128 - kovri::core::ECDSAP384_KEY_LENGTH;  // 32 = 128 - 96
-      m_Verifier =
-        std::make_unique<kovri::core::ECDSAP384Verifier>(
-            m_StandardIdentity.signing_key + padding);
-      break;
-    }
-    case SIGNING_KEY_TYPE_ECDSA_SHA512_P521: {
-      std::uint8_t signing_key[kovri::core::ECDSAP521_KEY_LENGTH];
-      memcpy(signing_key, m_StandardIdentity.signing_key, 128);
-      std::size_t excess_len = kovri::core::ECDSAP521_KEY_LENGTH - 128;  // 4 = 132- 128
-      memcpy(signing_key + 128, m_ExtendedBuffer.get() + 4, excess_len);  // right after signing and crypto key types
-      m_Verifier = std::make_unique<kovri::core::ECDSAP521Verifier>(signing_key);
-      break;
-    }
-    case SIGNING_KEY_TYPE_RSA_SHA256_2048: {
-      std::uint8_t signing_key[kovri::core::RSASHA2562048_KEY_LENGTH];
-      memcpy(signing_key, m_StandardIdentity.signing_key, 128);
-      std::size_t excess_len = kovri::core::RSASHA2562048_KEY_LENGTH - 128;  // 128 = 256- 128
-      memcpy(signing_key + 128, m_ExtendedBuffer.get() + 4, excess_len);
-      m_Verifier = std::make_unique<kovri::core::RSASHA2562048Verifier>(signing_key);
-      break;
-    }
-    case SIGNING_KEY_TYPE_RSA_SHA384_3072: {
-      std::uint8_t signing_key[kovri::core::RSASHA3843072_KEY_LENGTH];
-      memcpy(signing_key, m_StandardIdentity.signing_key, 128);
-      std::size_t excess_len = kovri::core::RSASHA3843072_KEY_LENGTH - 128;  // 256 = 384- 128
-      memcpy(signing_key + 128, m_ExtendedBuffer.get() + 4, excess_len);
-      m_Verifier = std::make_unique<kovri::core::RSASHA3843072Verifier>(signing_key);
-      break;
-    }
     case SIGNING_KEY_TYPE_RSA_SHA512_4096: {
       std::uint8_t signing_key[kovri::core::RSASHA5124096_KEY_LENGTH];
       memcpy(signing_key, m_StandardIdentity.signing_key, 128);
@@ -614,27 +492,6 @@ void PrivateKeys::Sign(
 
 void PrivateKeys::CreateSigner() {
   switch (m_Public.GetSigningKeyType()) {
-    case SIGNING_KEY_TYPE_DSA_SHA1:
-      m_Signer = std::make_unique<kovri::core::DSASigner>(m_SigningPrivateKey);
-    break;
-    case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
-      m_Signer = std::make_unique<kovri::core::ECDSAP256Signer>(m_SigningPrivateKey);
-    break;
-    case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
-      m_Signer = std::make_unique<kovri::core::ECDSAP384Signer>(m_SigningPrivateKey);
-    break;
-    case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
-      m_Signer = std::make_unique<kovri::core::ECDSAP521Signer>(m_SigningPrivateKey);
-    break;
-    case SIGNING_KEY_TYPE_RSA_SHA256_2048:
-      m_Signer = std::make_unique<kovri::core::RSASHA2562048Signer>(m_SigningPrivateKey);
-    break;
-    case SIGNING_KEY_TYPE_RSA_SHA384_3072:
-      m_Signer = std::make_unique<kovri::core::RSASHA3843072Signer>(m_SigningPrivateKey);
-    break;
-    case SIGNING_KEY_TYPE_RSA_SHA512_4096:
-      m_Signer = std::make_unique<kovri::core::RSASHA5124096Signer>(m_SigningPrivateKey);
-    break;
     case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
       m_Signer = std::make_unique<kovri::core::EDDSA25519Signer>(m_SigningPrivateKey);
     break;
@@ -653,33 +510,6 @@ PrivateKeys PrivateKeys::CreateRandomKeys(SigningKeyType type) {
     // signature
     std::uint8_t signing_public_key[512];  // signing public key is 512 bytes max
     switch (type) {
-      case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
-        kovri::core::CreateECDSAP256RandomKeys(
-            keys.m_SigningPrivateKey,
-            signing_public_key);
-      break;
-      case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
-        kovri::core::CreateECDSAP384RandomKeys(
-            keys.m_SigningPrivateKey,
-            signing_public_key);
-      break;
-      case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
-        kovri::core::CreateECDSAP521RandomKeys(
-            keys.m_SigningPrivateKey,
-            signing_public_key);
-      break;
-      case SIGNING_KEY_TYPE_RSA_SHA256_2048:
-        kovri::core::CreateRSARandomKeys(
-            kovri::core::RSASHA2562048_KEY_LENGTH,
-            keys.m_SigningPrivateKey,
-            signing_public_key);
-      break;
-      case SIGNING_KEY_TYPE_RSA_SHA384_3072:
-        kovri::core::CreateRSARandomKeys(
-            kovri::core::RSASHA3843072_KEY_LENGTH,
-            keys.m_SigningPrivateKey,
-            signing_public_key);
-      break;
       case SIGNING_KEY_TYPE_RSA_SHA512_4096:
         kovri::core::CreateRSARandomKeys(
             kovri::core::RSASHA5124096_KEY_LENGTH,
@@ -694,10 +524,11 @@ PrivateKeys PrivateKeys::CreateRandomKeys(SigningKeyType type) {
       default:
         LOG(warning)
           << "IdentityEx: Signing key type "
-          << static_cast<int>(type) << " is not supported, creating DSA-SHA1";
+          << static_cast<int>(type) << " is not supported, creating EDDSA_SHA512_ED25519";
         // fall-through
-      case SIGNING_KEY_TYPE_DSA_SHA1:
-        return PrivateKeys(kovri::core::CreateRandomKeys());  // DSA-SHA1
+        kovri::core::CreateEDDSARandomKeys(
+            keys.m_SigningPrivateKey,
+            signing_public_key);
     }
     // encryption
     std::uint8_t public_key[256];
@@ -723,7 +554,7 @@ Keys CreateRandomKeys() {
         keys.private_key,
         keys.public_key);
     // signing
-    kovri::core::CreateDSARandomKeys(
+    kovri::core::CreateEDDSARandomKeys(
         keys.signing_private_key,
         keys.signing_key);
   } catch (...) {
@@ -789,18 +620,6 @@ const std::string GetSigningKeyTypeName(const std::uint16_t key)
 {
   switch (key)
     {
-      case SIGNING_KEY_TYPE_DSA_SHA1:
-        return "DSA_SHA1";
-      case SIGNING_KEY_TYPE_ECDSA_SHA256_P256:
-        return "ECDSA_SHA256_P256";
-      case SIGNING_KEY_TYPE_ECDSA_SHA384_P384:
-        return "ECDSA_SHA384_P384";
-      case SIGNING_KEY_TYPE_ECDSA_SHA512_P521:
-        return "ECDSA_SHA512_P521";
-      case SIGNING_KEY_TYPE_RSA_SHA256_2048:
-        return "RSA_SHA256_2048";
-      case SIGNING_KEY_TYPE_RSA_SHA384_3072:
-        return "RSA_SHA384_3072";
       case SIGNING_KEY_TYPE_RSA_SHA512_4096:
         return "RSA_SHA512_4096";
       case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:

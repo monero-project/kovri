@@ -134,10 +134,6 @@ void StringStream::WriteByteAndString(const std::string& string)
   m_Stream.write(string.c_str(), len);
 }
 
-/// @var g_AppName
-/// @brief Global name for data directory on all platforms
-std::string g_AppName("kovri");
-
 const boost::filesystem::path EnsurePath(
     const boost::filesystem::path& path) {
   if (!boost::filesystem::exists(path)) {
@@ -150,108 +146,107 @@ const boost::filesystem::path EnsurePath(
   return path;
 }
 
-/// TODO(anonimal): we can refactor all path getter functions, consolidate with key
+boost::filesystem::path GetPath(Path path)
+{
+  auto get_data_path = [](bool const is_default = false) {
 
-/// Client paths
-
-const boost::filesystem::path GetSU3CertsPath() {
-  return GetClientPath() / "certificates" / "su3";
-}
-
-const boost::filesystem::path GetTLSCertsPath() {
-  return GetClientPath() / "certificates" / "ssl";
-}
-
-const boost::filesystem::path GetAddressBookPath() {
-  return GetClientPath() / "address_book";
-}
-
-const boost::filesystem::path GetClientKeysPath() {
-  return GetClientPath() / "keys";
-}
-
-/// Core paths
-
-const boost::filesystem::path GetNetDbPath() {
-  return GetCorePath() / "network_database";
-}
-
-const boost::filesystem::path GetProfilesPath() {
-  return GetCorePath() / "peer_profiles";
-}
-
-/// Data paths
-
-const boost::filesystem::path GetLogsPath() {
-  return GetDataPath() / "logs";
-}
-
-const boost::filesystem::path GetConfigPath() {
-  return GetDataPath() / "config";
-}
-
-const boost::filesystem::path GetCorePath() {
-  return GetDataPath() / "core";
-}
-
-const boost::filesystem::path GetClientPath() {
-  return GetDataPath() / "client";
-}
-
-/// Root data directory
-
-const boost::filesystem::path& GetDataPath() {
-  static boost::filesystem::path path =
-      context.GetCustomDataDir().empty()
-          ? GetDefaultDataPath()
-          : boost::filesystem::path(context.GetCustomDataDir());
-  if (!boost::filesystem::exists(path)) {
-    // Create data directory
-    if (!boost::filesystem::create_directory(path)) {
-      LOG(error) << "Filesystem: failed to create data directory!";
-      path = "";
-      return path;
-    }
-  }
-  if (!boost::filesystem::is_directory(path))
-    path = context.GetCustomDataDir().empty()
-               ? GetDefaultDataPath()
-               : boost::filesystem::path(context.GetCustomDataDir());
-  return path;
-}
-
-boost::filesystem::path GetDefaultDataPath() {
-  // Custom path, or default path:
-  // Windows < Vista: C:\Documents and Settings\Username\Application Data\Kovri
-  // Windows >= Vista: C:\Users\Username\AppData\Roaming\Kovri
-  // Mac: ~/Library/Application Support/Kovri
-  // Unix: ~/.kovri
+    auto get_default_data_path = []() {
+      static std::string data_dir("kovri");
 #ifdef KOVRI_CUSTOM_DATA_PATH
-  return boost::filesystem::path(std::string(KOVRI_CUSTOM_DATA_PATH));
+      return boost::filesystem::path(std::string(KOVRI_CUSTOM_DATA_PATH));
 #else
 #ifdef _WIN32
-  // Windows
-  char local_app_data[MAX_PATH];
-  SHGetFolderPath(NULL, CSIDL_APPDATA, 0, NULL, local_app_data);
-  return boost::filesystem::path(std::string(local_app_data) + "\\" + g_AppName);
+      char local_app_data[MAX_PATH];
+      SHGetFolderPath(NULL, CSIDL_APPDATA, 0, NULL, local_app_data);
+      return boost::filesystem::path(std::string(local_app_data) + "\\" + data_dir);
 #else
-  boost::filesystem::path path_ret;
-  char* home = getenv("HOME");
-  if (home == NULL || strlen(home) == 0)
-      path_ret = boost::filesystem::path("/");
-  else
-      path_ret = boost::filesystem::path(home);
+      boost::filesystem::path path_ret;
+      char* home = getenv("HOME");
+      if (home == NULL || strlen(home) == 0)
+        path_ret = boost::filesystem::path("/");
+      else
+        path_ret = boost::filesystem::path(home);
 #ifdef __APPLE__
-  // Mac
-  path_ret /= "Library/Application Support";
-  create_directory(path_ret);
-  return path_ret / g_AppName;
+      path_ret /= "Library/Application Support";
+      create_directory(path_ret);
+      return path_ret / data_dir;
 #else
-  // Unix
-  return path_ret / (std::string(".") + g_AppName);
+      return path_ret / (std::string(".") + data_dir);
 #endif
 #endif
 #endif
+    };
+
+    // Return default if set
+    if (is_default)
+      return get_default_data_path();
+
+    // Create data directory
+    static boost::filesystem::path path =
+        context.GetCustomDataDir().empty()
+            ? get_default_data_path()
+            : boost::filesystem::path(context.GetCustomDataDir());
+
+    if (!boost::filesystem::exists(path))
+      {
+        if (!boost::filesystem::create_directory(path))
+          {
+            LOG(error) << "Filesystem: failed to create data directory!";
+            path = "";
+            return path;
+          }
+      }
+
+    if (!boost::filesystem::is_directory(path))
+      path = context.GetCustomDataDir().empty()
+                 ? get_default_data_path()
+                 : boost::filesystem::path(context.GetCustomDataDir());
+
+    return path;
+  };
+
+  // Return specific data paths
+  switch (path)
+    {
+      case Path::DefaultData:
+        return get_data_path(true);
+
+      case Path::Data:
+        return get_data_path();
+
+      case Path::Core:
+        return get_data_path() / "core";
+
+      case Path::Client:
+        return get_data_path() / "client";
+
+      case Path::Config:
+        return get_data_path() / "config";
+
+      case Path::Logs:
+        return get_data_path() / "logs";
+
+      case Path::NetDb:
+        return GetPath(Path::Core) / "network_database";
+
+      case Path::Profiles:
+        return GetPath(Path::Core) / "peer_profiles";
+
+      case Path::TLS:
+        return GetPath(Path::Client) / "certificates" / "tls";
+
+      case Path::SU3:
+        return GetPath(Path::Client) / "certificates" / "su3";
+
+      case Path::AddressBook:
+        return GetPath(Path::Client) / "address_book";
+
+      case Path::ClientKeys:
+        return GetPath(Path::Client) / "keys";
+
+      default:
+        throw std::invalid_argument("Filesystem: invalid path");
+    }
 }
 
 }  // namespace core

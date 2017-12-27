@@ -139,7 +139,7 @@ void AddressBook::LoadPublishers() {
   }
   auto publishers = GetDefaultPublishersFilename();
   LOG(info) << "AddressBook: loading publisher file " << publishers;
-  std::ifstream file((kovri::core::GetAddressBookPath() / publishers).string());
+  std::ifstream file((core::GetPath(core::Path::AddressBook) / publishers).string());
   if (file) {
     // Publisher URI
     std::string publisher;
@@ -205,7 +205,7 @@ void AddressBook::LoadSubscriptionFromPublisher() {
   }
   // If available, load default subscription from file
   auto filename = GetDefaultSubscriptionFilename();
-  std::ifstream file((kovri::core::GetAddressBookPath() / filename).string());
+  std::ifstream file((core::GetPath(core::Path::AddressBook) / filename).string());
   LOG(info) << "AddressBook: loading subscription " << filename;
   if (file) {  // Open subscription, validate, and save to storage
     if (!SaveSubscription(file))
@@ -296,7 +296,7 @@ bool AddressBook::SaveSubscription(
       // Stream may be a file or downloaded stream.
       // Regardless, we want to write/overwrite the subscription file.
       if (file_name.empty())  // Use default filename if none given.
-        file_name = (kovri::core::GetAddressBookPath() / GetDefaultSubscriptionFilename()).string();
+        file_name = (core::GetPath(core::Path::AddressBook) / GetDefaultSubscriptionFilename()).string();
       LOG(debug) << "AddressBook: opening subscription file " << file_name;
       // TODO(anonimal): move file saving to storage class?
       std::ofstream file;

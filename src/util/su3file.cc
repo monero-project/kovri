@@ -146,7 +146,7 @@ bool SU3FileCommand::Impl(
       boost::filesystem::path cert_dir_path =
           vm.count("cert-dir")
               ? boost::filesystem::path(vm["cert-dir"].as<std::string>())
-              : kovri::core::GetSU3CertsPath();
+              : kovri::core::GetPath(kovri::core::Path::SU3);
       LOG(debug) << "su3file: Using certificates path " << cert_dir_path;
       if (!kovri::client::Reseed::ProcessCerts(&keys, cert_dir_path))
         {

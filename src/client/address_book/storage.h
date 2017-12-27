@@ -150,7 +150,7 @@ class AddressBookStorage : public AddressBookDefaults {
  private:
   /// @return Address book path with appended addresses location
   boost::filesystem::path GetAddressesPath() const {
-    return kovri::core::GetAddressBookPath() / "addresses";
+    return core::GetPath(core::Path::AddressBook) / "addresses";
   }
 };
 

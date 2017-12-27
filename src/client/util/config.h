@@ -135,7 +135,7 @@ class Configuration
             : m_CoreConfig.GetMap()["tunnelsconf"].as<std::string>();
     boost::filesystem::path file(tunnels_config);
     if (!file.is_complete())
-      file = core::GetConfigPath() / file;
+      file = core::GetPath(core::Path::Config) / file;
     return file;
   }
 

@@ -78,7 +78,7 @@ class Configuration
                                    : m_Map["kovriconf"].as<std::string>();
     boost::filesystem::path file(kovri_config);
     if (!file.is_complete())
-      file = core::GetConfigPath() / file;
+      file = core::GetPath(core::Path::Config) / file;
     return file;
   }
 

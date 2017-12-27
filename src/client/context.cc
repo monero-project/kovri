@@ -134,7 +134,7 @@ kovri::core::PrivateKeys ClientContext::LoadPrivateKeys(
     const std::string& filename) {
   kovri::core::PrivateKeys keys;
   try {
-    auto file_path = (kovri::core::GetClientKeysPath() / filename).string();
+    auto file_path = (kovri::core::GetPath(kovri::core::Path::ClientKeys) / filename).string();
     std::ifstream file(file_path, std::ifstream::binary);
     if (!file) {
       LOG(debug)
@@ -162,7 +162,7 @@ kovri::core::PrivateKeys ClientContext::LoadPrivateKeys(
 
 kovri::core::PrivateKeys ClientContext::CreatePrivateKeys(
     const std::string& filename) {
-  auto path = kovri::core::EnsurePath(kovri::core::GetClientKeysPath());
+  auto path = core::EnsurePath(core::GetPath(core::Path::ClientKeys));
   auto file_path = (path / filename).string();
   // Create binary keys file
   std::ofstream file(file_path, std::ofstream::binary);
@@ -184,7 +184,7 @@ kovri::core::PrivateKeys ClientContext::CreatePrivateKeys(
 void ClientContext::CreateBaseAddressTextFile(
     const kovri::core::PrivateKeys& keys,
     const std::string& filename) {
-  auto path = kovri::core::EnsurePath(kovri::core::GetClientKeysPath());
+  auto path = core::EnsurePath(core::GetPath(core::Path::ClientKeys));
   auto file_path = (path / filename).string() + ".txt";
   // Create binary keys file
   std::ofstream file(file_path);

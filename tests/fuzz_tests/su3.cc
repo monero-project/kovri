@@ -40,7 +40,7 @@ namespace fuzz
 {
 int SU3::Initialize(int*, char***)
 {
-  boost::filesystem::path cert_dir_path = kovri::core::GetSU3CertsPath();
+  boost::filesystem::path cert_dir_path = core::GetPath(core::Path::SU3);
   if (!kovri::client::Reseed::ProcessCerts(&m_Keys, cert_dir_path))
     {
       LOG(error) << "su3file: Failed to get trusted certificates !";

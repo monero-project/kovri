@@ -292,7 +292,7 @@ void I2PControlSession::HandleRouterInfo(
 
           // Extra pair.firsts
           case RouterInfo::DataPath:
-            response->SetParam(pair.first, core::GetCorePath().string());
+            response->SetParam(pair.first, core::GetPath(core::Path::Core).string());
             break;
 
           case RouterInfo::Floodfills:

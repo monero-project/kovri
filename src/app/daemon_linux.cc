@@ -83,8 +83,8 @@ bool DaemonLinux::Configure(
 }
 
 bool DaemonLinux::Initialize() {
-  m_PIDPath = kovri::core::GetDataPath().string();
-  m_PIDFile = (kovri::core::GetDataPath() / "kovri.pid").string();
+  m_PIDPath = core::GetPath(core::Path::Data).string();
+  m_PIDFile = (core::GetPath(core::Path::Data) / "kovri.pid").string();
 
   if (m_IsDaemon) {
     // Parent

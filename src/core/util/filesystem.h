@@ -324,8 +324,8 @@ const boost::filesystem::path EnsurePath(
 /// @return Path to certificates for SU3 verification
 const boost::filesystem::path GetSU3CertsPath();
 
-/// @return Path to SSL certificates for TLS/SSL negotiation
-const boost::filesystem::path GetSSLCertsPath();
+/// @return Path to X.509 certificates for TLS negotiation
+const boost::filesystem::path GetTLSCertsPath();
 
 /// @return Address book related path
 const boost::filesystem::path GetAddressBookPath();

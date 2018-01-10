@@ -357,12 +357,18 @@ AddressBook::ValidateSubscription(std::istream& stream) {
         const std::string host = line.substr(0, pos++);
         const std::string addr = line.substr(pos);
         // Ensure only valid lines
-        if (host.empty() || addr.empty()
-            || !std::regex_search(host, regex)
-            || !ident.FromBase64(addr)) {
-          LOG(warning) << "AddressBook: malformed address, skipping";
-          continue;
-        }
+        try
+          {
+            if (host.empty() || !std::regex_search(host, regex))
+              throw std::runtime_error("AddressBook: invalid hostname");
+            ident.FromBase64(addr);
+          }
+        catch (...)
+          {
+            m_Exception.Dispatch(__func__);
+            LOG(warning) << "AddressBook: malformed address, skipping";
+            continue;
+          }
         addresses[host] = ident;  // Host is valid, save
       }
     }
@@ -380,13 +386,21 @@ bool AddressBook::CheckAddressIdentHashFound(
     const std::string& address,
     kovri::core::IdentHash& ident) {
   auto pos = address.find(".b32.i2p");
-  if (pos != std::string::npos) {
-    if (!kovri::core::Base32ToByteStream(address.c_str(), pos, ident, 32)) {
-      LOG(error) << "AddressBook: invalid base32 address";
-      return false;
+  if (pos != std::string::npos)
+    {
+      try
+        {
+          ident.FromBase32(address);
+        }
+      catch (...)
+        {
+          core::Exception ex;
+          ex.Dispatch("AddressBook: invalid Base32 address");
+          return false;
+        }
+      return true;
     }
-    return true;
-  } else {
+  else {
     pos = address.find(".i2p");
     if (pos != std::string::npos) {
       auto ident_hash = GetLoadedAddressIdentHash(address);
@@ -400,8 +414,15 @@ bool AddressBook::CheckAddressIdentHashFound(
   }
   // If not .b32, test for full base64 address
   kovri::core::IdentityEx dest;
-  if (!dest.FromBase64(address))
-    return false;  // Invalid base64 address
+  try
+    {
+      dest.FromBase64(address);
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      return false;
+    }
   ident = dest.GetIdentHash();
   return true;
 }
@@ -425,7 +446,15 @@ void AddressBook::InsertAddressIntoStorage(
     const std::string& address,
     const std::string& base64) {
   kovri::core::IdentityEx ident;
-  ident.FromBase64(base64);
+  try
+    {
+      ident.FromBase64(base64);
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      return;
+    }
   if (!m_Storage)
     m_Storage = GetNewStorageInstance();
   m_Storage->AddAddress(ident);

@@ -51,7 +51,7 @@
 #include "core/router/identity.h"
 #include "core/router/context.h"
 
-#include "core/util/base64.h"
+#include "core/util/exception.h"
 #include "core/util/filesystem.h"
 #include "core/util/log.h"
 
@@ -65,7 +65,8 @@ class AddressBook : public AddressBookDefaults {
  public:
   /// @brief Initializes defaults for address book implementation
   AddressBook()
-      : m_SharedLocalDestination(nullptr),
+      : m_Exception(__func__),
+        m_SharedLocalDestination(nullptr),
         m_Storage(nullptr),
         m_SubscriberUpdateTimer(nullptr),
         m_SubscriptionIsLoaded(false),
@@ -200,6 +201,9 @@ class AddressBook : public AddressBookDefaults {
   void StopSubscribing();
 
  private:
+  /// @brief Exception handler
+  core::Exception m_Exception;
+
   /// @var m_SharedLocalDestination
   /// @brief Shared pointer to client destination instance
   /// @notes Needed for fetching subscriptions in-net

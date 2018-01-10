@@ -154,6 +154,8 @@ class StringStream {
 template <typename StreamType, typename FileStreamType>
 class FileStream {
  public:
+  // TODO(anonimal): fix documentation
+
   /// @brief Read from stream
   /// @param buf : buffer to read from
   /// @param size : number of byte to read

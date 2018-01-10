@@ -109,9 +109,12 @@ std::size_t AddressBookStorage::Load(
         std::string name = host.substr(0, pos++);
         std::string addr = host.substr(pos);
         kovri::core::IdentHash ident;
-        ident.FromBase32(addr);
-        addresses[name] = ident;
-        num++;
+        if (!addr.empty())
+          {
+            ident.FromBase32(addr);
+            addresses[name] = ident;
+            num++;
+          }
       }
     }
     LOG(debug) << "AddressBookStorage: " << num << " addresses loaded";

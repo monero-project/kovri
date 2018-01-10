@@ -38,9 +38,10 @@
 #include <fstream>
 #include <tuple>
 
+#include "core/crypto/radix.h"
+
 #include "core/router/context.h"
 
-#include "core/util/base64.h"
 #include "core/util/filesystem.h"
 #include "core/util/i2p_endian.h"
 #include "core/util/log.h"
@@ -318,10 +319,23 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
                 address.mtu = boost::lexical_cast<std::uint16_t>(value);
                 break;
               case Trait::Key:
-                // Our intro key as introducer
-                kovri::core::Base64ToByteStream(
-                    value.c_str(), value.size(), address.key, 32);
-                break;
+                {
+                  // Our intro key as introducer
+                  std::vector<std::uint8_t> key;
+                  try
+                    {
+                      key = core::Base64::Decode(value.c_str(), value.size());
+                    }
+                  catch (...)
+                    {
+                      m_Exception.Dispatch("RouterInfo: invalid intro key trait");
+                      is_valid_address = false;
+                    }
+
+                  //TODO(anonimal): let's try to avoid a memcpy
+                  std::memcpy(address.key, key.data(), sizeof(address.key));
+                  break;
+                }
               case Trait::Caps:
                 SetCaps(value);
                 break;
@@ -372,11 +386,17 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
                               boost::lexical_cast<std::uint32_t>(value);
                           break;
                         case Trait::IntroKey:
-                          kovri::core::Base64ToByteStream(
-                              value.c_str(),
-                              value.size(),
-                              introducer.key,
-                              sizeof(introducer.key));
+                          {
+                            std::vector<std::uint8_t> const decoded(
+                                core::Base64::Decode(
+                                    value.c_str(), value.size()));
+
+                            //TODO(anonimal): let's try to avoid a memcpy
+                            std::memcpy(
+                                introducer.key,
+                                decoded.data(),
+                                sizeof(introducer.key));
+                          }
                           break;
                         default:
                           LOG(error) << "RouterInfo: invalid introducer trait";
@@ -811,15 +831,9 @@ void RouterInfo::CreateRouterInfo(
                       introducer.host.to_string());
 
                   // Write introducer key
-                  std::array<char, 64> key {{}};
-                  core::ByteStreamToBase64(
-                      introducer.key,
-                      sizeof(introducer.key),
-                      key.data(),
-                      key.size());
-
-                  options.WriteKeyPair(
-                      GetTrait(Trait::IntroKey) + num, key.data());
+                  std::string const key(core::Base64::Encode(
+                      introducer.key, sizeof(introducer.key)));
+                  options.WriteKeyPair(GetTrait(Trait::IntroKey) + num, key);
 
                   // Write introducer port
                   options.WriteKeyPair(
@@ -836,11 +850,9 @@ void RouterInfo::CreateRouterInfo(
             }
 
           // Write key
-          std::array<char, 64> value {{}};
-          core::ByteStreamToBase64(
-              address.key, sizeof(address.key), value.data(), value.size());
-
-          options.WriteKeyPair(GetTrait(Trait::Key), value.data());
+          std::string const value(
+              core::Base64::Encode(address.key, sizeof(address.key)));
+          options.WriteKeyPair(GetTrait(Trait::Key), value);
 
           // Write MTU
           if (address.mtu)

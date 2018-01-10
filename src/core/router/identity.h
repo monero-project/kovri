@@ -37,13 +37,14 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <memory>
 #include <string>
 
 #include "core/crypto/elgamal.h"
+#include "core/crypto/radix.h"
 #include "core/crypto/signature_base.h"
 
-#include "core/util/base64.h"
 #include "core/util/exception.h"
 
 namespace kovri {
@@ -105,28 +106,36 @@ class Tag {
     return true;
   }
 
-  std::string ToBase64() const {
-    char str[Size * 2];
-    int l = kovri::core::ByteStreamToBase64(m_Buf, Size, str, Size * 2);
-    str[l] = 0;
-    return std::string(str);
+  std::string ToBase64() const
+  {
+    return core::Base64::Encode(m_Buf, Size);
   }
 
-  std::string ToBase32() const {
-    char str[Size * 2];
-    int l = kovri::core::ByteStreamToBase32(m_Buf, Size, str, Size * 2);
-    str[l] = 0;
-    return std::string(str);
+  std::string ToBase32() const
+  {
+    return core::Base32::Encode(m_Buf, Size);
   }
 
-  void FromBase32(
-      const std::string& s) {
-    kovri::core::Base32ToByteStream(s.c_str(), s.length(), m_Buf, Size);
+  void FromBase32(const std::string& encoded)
+  {
+    std::vector<std::uint8_t> const decoded =
+        core::Base32::Decode(encoded.c_str(), encoded.length());
+
+    if (decoded.size() > Size)
+      throw std::length_error("Tag: decoded base32 size too large");
+
+    std::memcpy(m_Buf, decoded.data(), decoded.size());
   }
 
-  void FromBase64(
-      const std::string& s) {
-    kovri::core::Base64ToByteStream(s.c_str(), s.length(), m_Buf, Size);
+  void FromBase64(const std::string& encoded)
+  {
+    std::vector<std::uint8_t> const decoded =
+        core::Base64::Decode(encoded.c_str(), encoded.length());
+
+    if (decoded.size() > Size)
+      throw std::length_error("Tag: decoded base64 size too large");
+
+    std::memcpy(m_Buf, decoded.data(), decoded.size());
   }
 
  private:
@@ -242,8 +251,7 @@ class IdentityEx {
       std::uint8_t* buf,
       std::size_t len) const;
 
-  std::size_t FromBase64(
-      const std::string& s);
+  void FromBase64(const std::string& s);
 
   std::string ToBase64() const;
 
@@ -342,11 +350,6 @@ class PrivateKeys {  // for eepsites
   std::size_t ToBuffer(
       std::uint8_t* buf,
       std::size_t len) const;
-
-  std::size_t FromBase64(
-      const std::string& s);
-
-  std::string ToBase64() const;
 
   static PrivateKeys CreateRandomKeys(
       SigningKeyType type = DEFAULT_CLIENT_SIGNING_KEY_TYPE);

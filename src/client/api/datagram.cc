@@ -114,14 +114,7 @@ void DatagramDestination::SendDatagramTo(
     std::uint8_t* buf1 = signature + signature_len;
     std::size_t header_len = identity_len + signature_len;
     memcpy(buf1, payload, len);
-    if (m_Owner.GetIdentity().GetSigningKeyType()
-        == kovri::core::SIGNING_KEY_TYPE_DSA_SHA1) {
-      std::uint8_t hash[32];
-      kovri::core::SHA256().CalculateDigest(hash, buf1, len);
-      m_Owner.Sign(hash, 32, signature);
-    } else {
-      m_Owner.Sign(buf1, len, signature);
-    }
+    m_Owner.Sign(buf1, len, signature);
     std::unique_ptr<kovri::core::I2NPMessage> msg
         = CreateDataMessage(buf, len + header_len, from_port, to_port);
     std::shared_ptr<const kovri::core::LeaseSet> remote
@@ -192,16 +185,7 @@ void DatagramDestination::HandleDatagram(
     std::size_t identity_len = identity.FromBuffer(buf, len);
     const std::uint8_t* signature = buf + identity_len;
     std::size_t header_len = identity_len + identity.GetSignatureLen();
-    bool verified = false;
-    if (identity.GetSigningKeyType() == kovri::core::SIGNING_KEY_TYPE_DSA_SHA1) {
-      std::uint8_t hash[32];
-      kovri::core::SHA256().CalculateDigest(hash, buf + header_len, len - header_len);
-      verified = identity.Verify(hash, 32, signature);
-    } else {
-      verified =
-        identity.Verify(buf + header_len, len - header_len, signature);
-    }
-    if (verified) {
+    if (identity.Verify(buf + header_len, len - header_len, signature)) {
       auto it = m_ReceiversByPorts.find(to_port);
       if (it != m_ReceiversByPorts.end())
           it->second(

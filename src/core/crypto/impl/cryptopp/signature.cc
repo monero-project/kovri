@@ -32,12 +32,7 @@
 
 #include "core/crypto/signature.h"
 
-#include <cryptopp/asn.h>
-#include <cryptopp/dsa.h>
-#include <cryptopp/eccrypto.h>
 #include <cryptopp/integer.h>
-#include <cryptopp/oids.h>
-#include <cryptopp/osrng.h>
 #include <cryptopp/rsa.h>
 
 #include <array>

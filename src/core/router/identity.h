@@ -150,11 +150,14 @@ struct Keys {
   std::uint8_t signing_key[128];
 };
 
+// TODO(unassigned): un-implemented
 const std::uint8_t CERTIFICATE_TYPE_NULL = 0;
 const std::uint8_t CERTIFICATE_TYPE_HASHCASH = 1;
 const std::uint8_t CERTIFICATE_TYPE_HIDDEN = 2;
 const std::uint8_t CERTIFICATE_TYPE_SIGNED = 3;
 const std::uint8_t CERTIFICATE_TYPE_MULTIPLE = 4;
+//
+
 const std::uint8_t CERTIFICATE_TYPE_KEY = 5;
 
 /// @brief Human readable description of this struct
@@ -192,16 +195,11 @@ Keys CreateRandomKeys();
 const std::size_t DEFAULT_IDENTITY_SIZE = sizeof(Identity);  // 387 bytes
 
 const std::uint16_t CRYPTO_KEY_TYPE_ELGAMAL = 0;
-const std::uint16_t SIGNING_KEY_TYPE_DSA_SHA1 = 0;
-const std::uint16_t SIGNING_KEY_TYPE_ECDSA_SHA256_P256 = 1;
-const std::uint16_t SIGNING_KEY_TYPE_ECDSA_SHA384_P384 = 2;
-const std::uint16_t SIGNING_KEY_TYPE_ECDSA_SHA512_P521 = 3;
 const std::uint16_t SIGNING_KEY_TYPE_RSA_SHA512_4096 = 6;
 const std::uint16_t SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519 = 7;
 
-// TODO(anonimal): review/implement to bump client type to EdDSA-SHA512-Ed25519
-const std::uint16_t DEFAULT_CLIENT_SIGNING_KEY_TYPE = SIGNING_KEY_TYPE_ECDSA_SHA256_P256;
 const std::uint16_t DEFAULT_ROUTER_SIGNING_KEY_TYPE = SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519;
+const std::uint16_t DEFAULT_CLIENT_SIGNING_KEY_TYPE = DEFAULT_ROUTER_SIGNING_KEY_TYPE;
 
 typedef std::uint16_t SigningKeyType;
 typedef std::uint16_t CryptoKeyType;
@@ -219,7 +217,7 @@ class IdentityEx {
   IdentityEx(
       const std::uint8_t* public_key,
       const std::uint8_t* signing_key,
-      SigningKeyType type = SIGNING_KEY_TYPE_DSA_SHA1);
+      SigningKeyType type = SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
 
   IdentityEx(
       const std::uint8_t* buf,

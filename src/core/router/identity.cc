@@ -351,14 +351,14 @@ SigningKeyType IdentityEx::GetSigningKeyType() const {
   if (m_StandardIdentity.certificate.type ==
       CERTIFICATE_TYPE_KEY && m_ExtendedBuffer)
     return bufbe16toh(m_ExtendedBuffer.get());  // signing key
-  return SIGNING_KEY_TYPE_DSA_SHA1;
+  return SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519;
 }
 
 CryptoKeyType IdentityEx::GetCryptoKeyType() const {
   if (m_StandardIdentity.certificate.type ==
       CERTIFICATE_TYPE_KEY && m_ExtendedBuffer)
     return bufbe16toh(m_ExtendedBuffer.get() + 2);  // crypto key
-  return CRYPTO_KEY_TYPE_ELGAMAL; 
+  return CRYPTO_KEY_TYPE_ELGAMAL;  // should always be ElGamal until specs determine otherwise
 }
 
 void IdentityEx::CreateVerifier() const  {

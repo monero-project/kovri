@@ -41,47 +41,7 @@
 namespace kovri {
 namespace core {
 
-/**
- *
- * RSASHA5124096
- *
- */
-
 const std::size_t RSASHA5124096_KEY_LENGTH = 512;
-
-/// @class RSASHA5124096Verifier
-class RSASHA5124096Verifier : public Verifier {
- public:
-  explicit RSASHA5124096Verifier(
-      const std::uint8_t* signing_key);
-  ~RSASHA5124096Verifier();
-
-  std::size_t GetPublicKeyLen() const {
-    return RSASHA5124096_KEY_LENGTH;
-  }
-
-  std::size_t GetSignatureLen() const {
-    return RSASHA5124096_KEY_LENGTH;
-  }
-
-  std::size_t GetPrivateKeyLen() const {
-    return RSASHA5124096_KEY_LENGTH * 2;
-  }
-
-  bool Verify(
-      const std::uint8_t* buf,
-      std::size_t len,
-      const std::uint8_t* signature) const;
-
- private:
-  class RSASHA5124096VerifierImpl;
-  std::unique_ptr<RSASHA5124096VerifierImpl> m_RSASHA5124096VerifierPimpl;
-};
-
-void CreateRSARandomKeys(
-    std::size_t public_key_length,
-    std::uint8_t* private_signing_key,
-    std::uint8_t* public_signing_key);
 
 /**
  *

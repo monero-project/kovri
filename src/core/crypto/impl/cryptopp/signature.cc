@@ -92,59 +92,6 @@ class RSAVerifier {
   CryptoPP::RSA::PublicKey m_PublicKey;
 };
 
-
-// Create keys
-void CreateRSARandomKeys(
-    std::size_t public_key_length,
-    std::uint8_t* private_signing_key,
-    std::uint8_t* public_signing_key) {
-  CryptoPP::RSA::PrivateKey private_key;
-  CryptoPP::AutoSeededRandomPool prng;
-  private_key.Initialize(
-      prng,
-      public_key_length * 8,
-      rsae);
-  private_key.GetModulus().Encode(
-      private_signing_key,
-      public_key_length);
-  private_key.GetPrivateExponent().Encode(
-      private_signing_key + public_key_length,
-      public_key_length);
-  private_key.GetModulus().Encode(
-      public_signing_key,
-      public_key_length);
-}
-
-/**
- *
- * RSASHA5124096
- *
- */
-
-/// @class RSASHA5124096VerifierImpl
-/// @brief RSASHA5124096 verifier implementation
-class RSASHA5124096Verifier::RSASHA5124096VerifierImpl
-    : public RSAVerifier<CryptoPP::SHA512, RSASHA5124096_KEY_LENGTH> {
- public:
-  RSASHA5124096VerifierImpl(
-      const std::uint8_t* public_key)
-      : RSAVerifier<CryptoPP::SHA512, RSASHA5124096_KEY_LENGTH>(public_key) {}
-};
-
-RSASHA5124096Verifier::RSASHA5124096Verifier(
-    const std::uint8_t* pubKey)
-    : m_RSASHA5124096VerifierPimpl(
-        std::make_unique<RSASHA5124096VerifierImpl>(pubKey)) {}
-
-RSASHA5124096Verifier::~RSASHA5124096Verifier() {}
-
-bool RSASHA5124096Verifier::Verify(
-    const std::uint8_t* buf,
-    std::size_t len,
-    const std::uint8_t* signature) const {
-  return m_RSASHA5124096VerifierPimpl->Verify(buf, len, signature);
-}
-
 /**
  *
  * RSARaw

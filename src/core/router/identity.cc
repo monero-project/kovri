@@ -289,9 +289,6 @@ std::string IdentityEx::GetDescription(const std::string& tabs) const
      << tabs << "\t\t";
   switch (GetSigningKeyType())
     {
-      case SIGNING_KEY_TYPE_RSA_SHA512_4096:  // 384 = 512 - 128
-        ss << "Excess: " << (kovri::core::RSASHA5124096_KEY_LENGTH - 128);
-        break;
       case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:  // 96 = 128 - 32
         ss << "Padding: " << (128 - kovri::core::EDDSA25519_PUBLIC_KEY_LENGTH);
         break;
@@ -367,14 +364,6 @@ CryptoKeyType IdentityEx::GetCryptoKeyType() const {
 void IdentityEx::CreateVerifier() const  {
   auto key_type = GetSigningKeyType();
   switch (key_type) {
-    case SIGNING_KEY_TYPE_RSA_SHA512_4096: {
-      std::uint8_t signing_key[kovri::core::RSASHA5124096_KEY_LENGTH];
-      memcpy(signing_key, m_StandardIdentity.signing_key, 128);
-      std::size_t excess_len = kovri::core::RSASHA5124096_KEY_LENGTH - 128;  // 384 = 512- 128
-      memcpy(signing_key + 128, m_ExtendedBuffer.get() + 4, excess_len);
-      m_Verifier = std::make_unique<kovri::core::RSASHA5124096Verifier>(signing_key);
-      break;
-    }
     case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519: {
       std::size_t padding = 128 - kovri::core::EDDSA25519_PUBLIC_KEY_LENGTH;  // 96 = 128 - 32
       m_Verifier =
@@ -510,12 +499,6 @@ PrivateKeys PrivateKeys::CreateRandomKeys(SigningKeyType type) {
     // signature
     std::uint8_t signing_public_key[512];  // signing public key is 512 bytes max
     switch (type) {
-      case SIGNING_KEY_TYPE_RSA_SHA512_4096:
-        kovri::core::CreateRSARandomKeys(
-            kovri::core::RSASHA5124096_KEY_LENGTH,
-            keys.m_SigningPrivateKey,
-            signing_public_key);
-      break;
       case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
         kovri::core::CreateEDDSARandomKeys(
             keys.m_SigningPrivateKey,
@@ -620,8 +603,6 @@ const std::string GetSigningKeyTypeName(const std::uint16_t key)
 {
   switch (key)
     {
-      case SIGNING_KEY_TYPE_RSA_SHA512_4096:
-        return "RSA_SHA512_4096";
       case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
         return "EDDSA_SHA512_ED25519";
       default:

@@ -59,6 +59,7 @@ cmake-release = $(cmake) -D CMAKE_BUILD_TYPE=Release
 
 # TODO(unassigned): cmake-release when we're out of alpha
 cmake-kovri = $(cmake-debug)
+cmake-kovri-util = -D WITH_KOVRI_UTIL=ON
 
 # Current off-by-default Kovri build options
 cmake-upnp       = -D WITH_UPNP=ON
@@ -156,6 +157,7 @@ static: deps
 
 release: release-deps
 	# TODO(unassigned): cmake release flags + optimizations/hardening when we're out of alpha
+	$(eval cmake-kovri += $(cmake-kovri-util))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
 #--------------------------------------------------------------#
@@ -164,11 +166,11 @@ release: release-deps
 
 release-static: release-static-deps
         # TODO(unassigned): cmake release flags + optimizations/hardening when we're out of alpha
-	$(eval cmake-kovri += $(cmake-static))
+	$(eval cmake-kovri += $(cmake-static) $(cmake-kovri-util))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
 release-static-android: release-static-deps
-	$(eval cmake-kovri += $(cmake-static) $(cmake-android))
+	$(eval cmake-kovri += $(cmake-static) $(cmake-android) $(cmake-kovri-util))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
 # TODO(unassigned): static UPnP once our UPnP implementation is release-ready
@@ -176,6 +178,11 @@ release-static-android: release-static-deps
 #-----------------#
 # Optional builds #
 #-----------------#
+
+# Utility binary
+util: deps
+	$(eval cmake-kovri += $(cmake-kovri-util))
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
 # For API/testnet development
 python: shared-deps
@@ -189,7 +196,7 @@ upnp: deps
 
 # Produce optimized, hardened binary *with* UPnP
 all-options: deps
-	$(eval cmake-kovri += $(cmake-optimize) $(cmake-hardening) $(cmake-upnp))
+	$(eval cmake-kovri += $(cmake-optimize) $(cmake-hardening) $(cmake-upnp) $(cmake-kovri-util))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
 # Produce optimized, hardened binary *without* UPnP. Note: we need (or very much should have) optimizations with hardening
@@ -204,7 +211,7 @@ optimized-hardened-tests: deps
 
 # Produce build with coverage. Note: leaving out hardening because of need for optimizations
 coverage: deps
-	$(eval cmake-kovri += $(cmake-coverage) $(cmake-upnp))
+	$(eval cmake-kovri += $(cmake-coverage) $(cmake-upnp) $(cmake-kovri-util))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
 
 # Produce unit-tests with coverage

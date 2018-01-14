@@ -38,7 +38,8 @@ include_directories("${CMAKE_BINARY_DIR}")
 
 # Configurable options
 option(KOVRI_DATA_PATH "The path to the kovri data folder")
-option(WITH_BINARY     "Build binary" ON)
+option(WITH_BINARY     "Build kovri binary" ON)
+option(WITH_KOVRI_UTIL "Build kovri utility binary" OFF)
 option(WITH_COVERAGE   "Build with coverage" OFF)
 option(WITH_CRYPTOPP   "Build with Crypto++" ON)  # Default ON unless we switch libraries
 option(WITH_CPPNETLIB  "Build with cpp-netlib" ON)
@@ -343,6 +344,7 @@ message(STATUS "Install prefix:    : ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "Kovri data directory: ${KOVRI_DATA_DIR}")
 message(STATUS "Options:")
 message(STATUS "  BINARY           : ${WITH_BINARY}")
+message(STATUS "  KOVRI UTIL       : ${WITH_KOVRI_UTIL}")
 message(STATUS "  COVERAGE         : ${WITH_COVERAGE}")
 message(STATUS "  CRYPTOPP         : ${WITH_CRYPTOPP}")
 message(STATUS "  DOXYGEN          : ${WITH_DOXYGEN}")

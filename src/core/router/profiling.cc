@@ -39,7 +39,6 @@
 #include <cctype>
 #include <string>
 
-#include "core/util/base64.h"
 #include "core/util/filesystem.h"
 #include "core/util/log.h"
 
@@ -110,15 +109,13 @@ void RouterProfile::Save() {
           core::EnsurePath(directory / "uppercase");
           core::EnsurePath(directory / "lowercase");
 #endif
-          // 64 bytes
-          const char* chars = kovri::core::GetBase64SubstitutionTable();
-          for (int i = 0; i < 64; i++)
+          for (const auto& ch : core::Base64::GetAlphabet())
             {
 #if defined(_WIN32) || defined(__APPLE__)
-              sub_dir = std::isupper(chars[i]) ? "uppercase" : "lowercase";
+              sub_dir = std::isupper(ch) ? "uppercase" : "lowercase";
 #endif
               const auto& path =
-                  directory / sub_dir / (std::string("p") + chars[i]);
+                  directory / sub_dir / (std::string("p") + ch);
               LOG(debug) << "RouterProfile: ensuring " << path;
               core::EnsurePath(path);
             }

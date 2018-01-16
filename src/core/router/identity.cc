@@ -299,20 +299,21 @@ std::size_t IdentityEx::ToBuffer(
   return GetFullLen();
 }
 
-std::size_t IdentityEx::FromBase64(
-    const std::string& s) {
-  std::uint8_t buf[1024];
-  auto len = kovri::core::Base64ToByteStream(s.c_str(), s.length(), buf, 1024);
-  return FromBuffer(buf, len);
+void IdentityEx::FromBase64(const std::string& encoded)
+{
+  auto const decoded = core::Base64::Decode(encoded.c_str(), encoded.length());
+  if (!FromBuffer(
+          decoded.data(),
+          decoded.size()))
+    throw std::runtime_error("IdentityEx: could not decode from base64");
 }
 
-std::string IdentityEx::ToBase64() const {
-  std::uint8_t buf[1024];
-  char str[1536];
-  std::size_t l = ToBuffer(buf, 1024);
-  std::size_t l1 = kovri::core::ByteStreamToBase64(buf, l, str, 1536);
-  str[l1] = 0;
-  return std::string(str);
+std::string IdentityEx::ToBase64() const
+{
+  std::array<std::uint8_t, 1024> buf{{}};
+  std::size_t len = ToBuffer(buf.data(), buf.size());
+  std::string const encoded(core::Base64::Encode(buf.data(), len));
+  return encoded;
 }
 
 std::string GetCertificateTypeName(std::uint8_t type)
@@ -571,28 +572,6 @@ std::size_t PrivateKeys::ToBuffer(
   std::size_t signing_private_key_size = m_Public.GetSigningPrivateKeyLen();
   memcpy(buf + ret, m_SigningPrivateKey, signing_private_key_size);
   ret += signing_private_key_size;
-  return ret;
-}
-
-std::size_t PrivateKeys::FromBase64(
-    const std::string& s) {
-  auto buf = std::make_unique<std::uint8_t[]>(s.length());
-  std::size_t l = kovri::core::Base64ToByteStream(
-      s.c_str(),
-      s.length(),
-      buf.get(),
-      s.length());
-  std::size_t ret = FromBuffer(buf.get(), l);
-  return ret;
-}
-
-std::string PrivateKeys::ToBase64() const {
-  auto buf = std::make_unique<std::uint8_t[]>(GetFullLen());
-  auto str = std::make_unique<char[]>(GetFullLen() * 2);
-  std::size_t l = ToBuffer(buf.get(), GetFullLen());
-  std::size_t l1 = kovri::core::ByteStreamToBase64(buf.get(), l, str.get(), GetFullLen() * 2);
-  str[l1] = 0;
-  std::string ret(str.get());
   return ret;
 }
 

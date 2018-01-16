@@ -37,6 +37,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include "core/util/log.h"
+#include "core/util/exception.h"
 
 namespace kovri {
 namespace client {
@@ -50,8 +51,16 @@ const std::set<kovri::core::IdentHash> ParseACL(const std::string list)
   for (auto const& p : parsed)
     {
       kovri::core::IdentHash ident;
-      ident.FromBase32(p);
-      idents.insert(ident);
+      try
+        {
+          ident.FromBase32(p);
+          idents.insert(ident);
+        }
+      catch (...)
+        {
+          core::Exception ex;
+          ex.Dispatch("ParseACL: could not parse ident");
+        }
     }
   return idents;
 }

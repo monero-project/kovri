@@ -29,20 +29,20 @@
  */
 
 #include "util/base.h"
-#include <assert.h>
+
+#include <algorithm>
+#include <cassert>
+#include <cstdint>
+#include <iterator>
 #include <memory>
-#include "core/util/base64.h"
+#include <vector>
+
+#include "core/crypto/radix.h"
+
 #include "core/util/exception.h"
 #include "core/util/log.h"
 
 namespace bpo = boost::program_options;
-
-static_assert(
-    Base32Command::m_BufferSize % 40 == 0,
-    "Invalid BASE32 buffer size");
-static_assert(
-    Base64Command::m_BufferSize % 12 == 0,
-    "Invalid BASE64 buffer size");
 
 BaseCommand::BaseCommand() : m_Desc("General options")
 {
@@ -62,47 +62,60 @@ void BaseCommand::PrintUsage(const std::string& name) const
   LOG(info) << "or    : " << name << " decode <inFile> <outfile>";
 }
 
-template <typename ToBase, typename ToByte, typename SizeConst>
+template <typename Encoder, typename Decoder>
 bool process(
-    ToBase ByteStreamToBase,
-    ToByte BaseToByteStream,
-    SizeConst Size,
+    Encoder encoder,
+    Decoder decoder,
     bool encode,
     kovri::core::InputFileStream* input,
     kovri::core::OutputFileStream* output)
 {
-  std::uint8_t in_buffer[Size + 1];
-  std::uint8_t out_buffer[Size * 2 + 1];
-  std::size_t ret(0);
-  memset(in_buffer, 0, sizeof(in_buffer));
-  memset(out_buffer, 0, sizeof(out_buffer));
+  std::vector<std::uint8_t> in_buffer;
+  std::vector<std::uint8_t> out_buffer;
+
   do
     {
-      if (!input->Read(in_buffer, Size))
+      input->Seekg(0, std::ios::end);
+      in_buffer.resize(input->Tellg());
+      input->Seekg(0, std::ios::beg);
+
+      if (!input->Read(in_buffer.data(), in_buffer.size()))
         return false;
 
-      if (encode)
-        ret = ByteStreamToBase(
-            in_buffer,
-            input->Count(),
-            reinterpret_cast<char*>(out_buffer),
-            Size * 2);
-      else
-        ret = BaseToByteStream(
-            reinterpret_cast<char*>(in_buffer),
-            input->Count(),
-            out_buffer,
-            Size * 2);
+      try
+        {
+          if (encode)
+            {
+              std::string const encoded =
+                  encoder(in_buffer.data(), in_buffer.size());
+              out_buffer.resize(encoded.size());
+              std::copy(encoded.begin(), encoded.end(), out_buffer.begin());
+            }
+          else
+            {
+              out_buffer = decoder(
+                  reinterpret_cast<const char*>(in_buffer.data()),
+                  in_buffer.size());
+            }
+        }
+      catch (...)
+        {
+          kovri::core::Exception ex;
+          ex.Dispatch(__func__);
+          return false;
+        }
 
-      if (input->Count() && !ret)
+      if (input->Count() && out_buffer.empty())
         {
           LOG(error) << "Error : Stream processing failed !";
           return false;
         }
 
-      if (!output->Write(out_buffer, ret))
+      if (!output->Write(out_buffer.data(), out_buffer.size()))
         return false;
-    } while (input->Good());
+    }
+  while (input->Good() && out_buffer.empty());
+
   return true;
 }
 
@@ -127,6 +140,7 @@ bool BaseCommand::Impl(
       return false;
     }
 
+  // TODO(anonimal): fix args size
   if (vm.count("help") || (args.size() < 1) || (args.size() > 3))
     {
       if (args.size() < 2)
@@ -185,9 +199,8 @@ bool Base32Command::do_process(
     kovri::core::OutputFileStream* output)
 {
   return process(
-      kovri::core::ByteStreamToBase32,
-      kovri::core::Base32ToByteStream,
-      m_BufferSize,
+      kovri::core::Base32::Encode,
+      kovri::core::Base32::Decode,
       encode,
       input,
       output);
@@ -199,9 +212,8 @@ bool Base64Command::do_process(
     kovri::core::OutputFileStream* output)
 {
   return process(
-      kovri::core::ByteStreamToBase64,
-      kovri::core::Base64ToByteStream,
-      m_BufferSize,
+      kovri::core::Base64::Encode,
+      kovri::core::Base64::Decode,
       encode,
       input,
       output);

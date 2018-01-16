@@ -39,6 +39,7 @@
 #include <cctype>
 #include <fstream>
 
+#include "core/crypto/radix.h"
 #include "core/crypto/rand.h"
 #include "core/crypto/util/compression.h"
 
@@ -46,7 +47,6 @@
 #include "core/router/garlic.h"
 #include "core/router/transports/impl.h"
 
-#include "core/util/base64.h"
 #include "core/util/filesystem.h"
 #include "core/util/i2p_endian.h"
 #include "core/util/log.h"
@@ -285,19 +285,18 @@ bool NetDb::CreateNetDb(boost::filesystem::path directory)
       core::EnsurePath(directory / "lowercase");
 #endif
     // list of chars might appear in base64 string
-    const char* chars = kovri::core::GetBase64SubstitutionTable();  // 64 bytes
     boost::filesystem::path suffix;
-    for (std::uint8_t i = 0; i < 64; i++)
+    for (auto const& ch : core::Base64::GetAlphabet())
       {
 #ifdef _WIN32
-        suffix = std::string("\\r") + chars[i];
+        suffix = std::string("\\r") + ch;
 #else
-        suffix = std::string("/r") + chars[i];
+        suffix = std::string("/r") + ch;
 #endif
         // TODO(unassigned): this is a patch for #520 until we implement a database in #385
         std::string sub_dir;
 #if defined(_WIN32) || defined(__APPLE__)
-        sub_dir = std::isupper(chars[i]) ? "uppercase" : "lowercase";
+        sub_dir = std::isupper(ch) ? "uppercase" : "lowercase";
 #endif
         const auto& path = directory / sub_dir / suffix;
         LOG(debug) << "NetDb: ensuring " << path;
@@ -573,10 +572,9 @@ void NetDb::HandleDatabaseStoreMsg(
 void NetDb::HandleDatabaseSearchReplyMsg(
     std::shared_ptr<const I2NPMessage> msg) {
   const std::uint8_t* buf = msg->GetPayload();
-  std::array<char, 48> key {{}};
-  core::ByteStreamToBase64(buf, 32, key.data(), key.size());
+  std::string const key(core::Base64::Encode(buf, sizeof(IdentHash)));
   std::uint8_t num = buf[32];  // num
-  LOG(debug) << "NetDb: DatabaseSearchReply for " << std::string(key.data())
+  LOG(debug) << "NetDb: DatabaseSearchReply for " << key
              << " num=" << static_cast<std::uint16_t>(num);
   IdentHash ident(buf);
   auto dest = m_Requests.FindRequest(ident);
@@ -607,7 +605,7 @@ void NetDb::HandleDatabaseSearchReplyMsg(
                   });
               // request destination
               LOG(debug)
-                << "NetDb: trying " << std::string(key.data())
+                << "NetDb: trying " << key
                 << " at " << count
                 << " floodfill " << next_floodfill->GetIdentHash().ToBase64();
               auto msg = dest->CreateRequestMessage(next_floodfill, inbound);
@@ -622,7 +620,7 @@ void NetDb::HandleDatabaseSearchReplyMsg(
             }
           } else {
             LOG(warning)
-              << "NetDb: " << std::string(key.data()) << " was not found in "
+              << "NetDb: " << key << " was not found in "
               << static_cast<std::size_t>(max_ff) << " floodfills";
           }
           if (!msgs.empty())
@@ -637,15 +635,14 @@ void NetDb::HandleDatabaseSearchReplyMsg(
       m_Requests.RequestComplete(ident, nullptr);
     }
   } else {
-    LOG(warning) << "NetDb: requested destination for " << key.data() << " not found";
+    LOG(warning) << "NetDb: requested destination for " << key << " not found";
   }
   // try responses
   for (std::uint8_t i = 0; i < num; i++) {
     const std::uint8_t* router = buf + 33 + i * 32;
-    std::array<char, 48> peer_hash {{}};
-    core::ByteStreamToBase64(router, 32, peer_hash.data(), peer_hash.size());
+    std::string const peer_hash(core::Base64::Encode(router, sizeof(IdentHash)));
     LOG(debug) << "NetDb: " << static_cast<std::uint16_t>(i) << ": "
-               << peer_hash.data();
+               << peer_hash;
     auto r = FindRouter(router);
     if (!r || kovri::core::GetMillisecondsSinceEpoch() >
         r->GetTimestamp() + Time::RouterExpiration)  {
@@ -666,11 +663,10 @@ void NetDb::HandleDatabaseLookupMsg(
     LOG(error) << "NetDb: DatabaseLookup for zero ident. Ignored";
     return;
   }
-  std::array<char, 48> key {{}};
-  core::ByteStreamToBase64(buf, 32, key.data(), key.size());
+  std::string const key(core::Base64::Encode(buf, sizeof(IdentHash)));
   std::uint8_t flag = buf[64];
   LOG(debug)
-    << "NetDb: DatabaseLookup for " << key.data()
+    << "NetDb: DatabaseLookup for " << key
     << " received flags=" << static_cast<int>(flag);
   std::uint8_t lookup_type = flag & DATABASE_LOOKUP_TYPE_FLAGS_MASK;
   const std::uint8_t* excluded = buf + 65;
@@ -689,7 +685,7 @@ void NetDb::HandleDatabaseLookupMsg(
   std::shared_ptr<I2NPMessage> reply_msg;
   if (lookup_type == DATABASE_LOOKUP_TYPE_EXPLORATORY_LOOKUP) {
     LOG(debug)
-      << "NetDb: exploratory close to  " << key.data()
+      << "NetDb: exploratory close to  " << key
       << " " << num_excluded << " excluded";
     std::set<IdentHash> excluded_routers;
     for (std::uint16_t i = 0; i < num_excluded; i++) {
@@ -710,7 +706,7 @@ void NetDb::HandleDatabaseLookupMsg(
         lookup_type == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP) {
       auto router = FindRouter(ident);
       if (router) {
-        LOG(debug) << "NetDb: requested RouterInfo " << key.data() << " found";
+        LOG(debug) << "NetDb: requested RouterInfo " << key << " found";
         router->LoadBuffer();
         if (router->GetBuffer())
           reply_msg = CreateDatabaseStoreMsg(router);
@@ -720,13 +716,13 @@ void NetDb::HandleDatabaseLookupMsg(
           lookup_type == DATABASE_LOOKUP_TYPE_NORMAL_LOOKUP)) {
       auto lease_set = FindLeaseSet(ident);
       if (lease_set) {  // we don't send back our LeaseSets
-        LOG(debug) << "NetDb: requested LeaseSet " << key.data() << " found";
+        LOG(debug) << "NetDb: requested LeaseSet " << key << " found";
         reply_msg = CreateDatabaseStoreMsg(lease_set);
       }
     }
     if (!reply_msg) {
       LOG(debug)
-        << "NetDb: requested " << key.data() << " not found. "
+        << "NetDb: requested " << key << " not found. "
         << num_excluded << " were excluded";
       std::set<IdentHash> excluded_routers;
       for (std::uint16_t i = 0; i < num_excluded; i++) {

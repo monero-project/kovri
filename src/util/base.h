@@ -77,8 +77,6 @@ class Base32Command : public BaseCommand
     return "base32";
   }
 
-  static constexpr std::size_t m_BufferSize = 400;
-
  protected:
   bool do_process(
       bool encode,
@@ -101,8 +99,6 @@ class Base64Command : public BaseCommand
   {
     return "base64";
   }
-
-  static constexpr std::size_t m_BufferSize = 120;
 
  protected:
   bool do_process(

@@ -292,10 +292,18 @@ std::size_t IdentityEx::FromBuffer(
 
 std::size_t IdentityEx::ToBuffer(
     std::uint8_t* buf,
-    std::size_t) const {
+    std::size_t buflen) const {
+  if (buflen < DEFAULT_IDENTITY_SIZE)
+    throw std::length_error("IdentityEx: supplied buffer is too small");
+
   memcpy(buf, &m_StandardIdentity, DEFAULT_IDENTITY_SIZE);
   if (m_ExtendedLen > 0 && m_ExtendedBuffer)
+  {
+    if (buflen < DEFAULT_IDENTITY_SIZE + m_ExtendedLen)
+      throw std::length_error("IdentityEx: supplied buffer is too small"); 
+
     memcpy(buf + DEFAULT_IDENTITY_SIZE, m_ExtendedBuffer.get(), m_ExtendedLen);
+  }
   return GetFullLen();
 }
 

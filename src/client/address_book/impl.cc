@@ -390,7 +390,7 @@ bool AddressBook::CheckAddressIdentHashFound(
     {
       try
         {
-          ident.FromBase32(address);
+          ident.FromBase32(address.substr(0, pos));
         }
       catch (...)
         {

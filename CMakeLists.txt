@@ -59,8 +59,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -DNDEBUG")
+
 # Default build is Debug
-# TODO(anonimal): currently, there are no release-specific flags (fix this when we're out of alpha)
+# TODO(anonimal): currently, there are no other release-specific flags (fix this when we release)
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug)
 endif()

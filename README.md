@@ -44,35 +44,26 @@ Alpha release coming soon
 | Coveralls | [![Coveralls Status](https://coveralls.io/repos/github/monero-project/kovri/badge.svg?branch=master)](https://coveralls.io/github/monero-project/kovri?branch=master)
 | License   | [![License](https://img.shields.io/badge/license-BSD3-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
-## Documentation
-- Build instructions, User Guide, and more can be found in your language within the [kovri-docs](https://github.com/monero-project/kovri-docs/) repository
+## Documentation and Contributing
+- Various guides like how to build, how to contribe, style, etc., can be found in your language within the [kovri-docs](https://github.com/monero-project/kovri-docs/) repository (please review before submitting a pull request)
 - [Moneropedia](https://getmonero.org/knowledge-base/moneropedia/kovri) is recommended for all users and developers
-
-## Developers
-- Various guides (contributing, style, etc.) can be found in your language within the [kovri-docs](https://github.com/monero-project/kovri-docs/) repository (please review before submitting a pull request)
 - [Forum Funding System](https://forum.getmonero.org/8/funding-required) to get funded for your work, [submit a proposal](https://forum.getmonero.org/7/open-tasks/2379/forum-funding-system-ffs-sticky)
 - [build.getmonero.org](https://build.getmonero.org/) or monero-build.i2p for detailed build information
 - [repo.getmonero.org](https://repo.getmonero.org/monero-project/kovri) or monero-repo.i2p are alternatives to GitHub for non-push repository access
+- See also [kovri-site](https://github.com/monero-project/kovri-site) and [monero/kovri meta](https://github.com/monero-project/meta)
 
 ## Vulnerability Response
 - Our [Vulnerability Response Process](https://github.com/monero-project/meta/blob/master/VULNERABILITY_RESPONSE_PROCESS.md) encourages responsible disclosure
 - We are also available via [HackerOne](https://hackerone.com/monero)
 
-## Repositories
-- [Kovri](https://github.com/monero-project/kovri)
-- [Kovri Docs](https://github.com/monero-project/kovri-docs)
-- [Kovri Website](https://github.com/monero-project/kovri-site)
-- [Monero/Kovri meta](https://github.com/monero-project/meta)
-
-## Support
-- IRC: [Freenode](https://webchat.freenode.net/) | [OFTC](https://webchat.oftc.net/) | Irc2P with Kovri
+## Contact and Support
+- IRC: [Freenode](https://webchat.freenode.net/) | Irc2P with Kovri
   - `#kovri` | Community & Support Channel
   - `#kovri-dev` | Development Channel
-- [Reddit /r/Kovri](https://www.reddit.com/r/Kovri/)
-- [Monero StackExchange](https://monero.stackexchange.com/)
+- [Monero Mattermost](https://mattermost.getmonero.org/)
 - [Monero Slack](https://monero.slack.com/) (ask for an invite on IRC or email anonimal)
-
-## Contact
+- [Monero StackExchange](https://monero.stackexchange.com/)
+- [Reddit /r/Kovri](https://www.reddit.com/r/Kovri/)
 - Twitter: [@getkovri](https://twitter.com/getkovri)
 - Email:
   - General Purpose / Media Contact

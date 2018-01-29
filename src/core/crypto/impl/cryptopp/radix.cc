@@ -74,11 +74,7 @@ std::vector<std::uint8_t> Base32::Decode(
 
   CryptoPP::AlgorithmParameters const params(CryptoPP::MakeParameters(
       CryptoPP::Name::DecodingLookupArray(),
-#if defined(__FreeBSD__)  // See #788
-      reinterpret_cast<const int*>(lookup), false));
-#else
       reinterpret_cast<const int*>(lookup)));
-#endif
 
   // Decode
   return Radix::Decode<CryptoPP::Base32Decoder>(params, in, len);

@@ -64,15 +64,14 @@ Alpha release coming soon
 - [Kovri Website](https://github.com/monero-project/kovri-site)
 - [Monero/Kovri meta](https://github.com/monero-project/meta)
 
-## Support
-- IRC: [Freenode](https://webchat.freenode.net/) | [OFTC](https://webchat.oftc.net/) | Irc2P with Kovri
+## Contact and Support
+- IRC: [Freenode](https://webchat.freenode.net/) | Irc2P with Kovri
   - `#kovri` | Community & Support Channel
   - `#kovri-dev` | Development Channel
-- [Reddit /r/Kovri](https://www.reddit.com/r/Kovri/)
-- [Monero StackExchange](https://monero.stackexchange.com/)
+- [Monero Mattermost](https://mattermost.getmonero.org/)
 - [Monero Slack](https://monero.slack.com/) (ask for an invite on IRC or email anonimal)
-
-## Contact
+- [Monero StackExchange](https://monero.stackexchange.com/)
+- [Reddit /r/Kovri](https://www.reddit.com/r/Kovri/)
 - Twitter: [@getkovri](https://twitter.com/getkovri)
 - Email:
   - General Purpose / Media Contact

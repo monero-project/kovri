@@ -122,7 +122,7 @@ class Radix : public RadixBase
 
     const CryptoPP::word64 size = decoder.MaxRetrievable();
     if (!size || size > SIZE_MAX)
-      throw std::runtime_error("Radix: invalid decoded size");
+      throw std::length_error("Radix: invalid decoded size");
 
     std::vector<std::uint8_t> out(size);
     decoder.Get(reinterpret_cast<CryptoPP::byte*>(&out[0]), out.size());

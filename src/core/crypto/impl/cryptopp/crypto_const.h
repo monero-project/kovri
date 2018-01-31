@@ -42,11 +42,6 @@ struct CryptoConstants {
   // ElGamal/Diffie-Hellman
   const CryptoPP::Integer elgp;
   const CryptoPP::Integer elgg;
-
-  // DSA
-  const CryptoPP::Integer dsap;
-  const CryptoPP::Integer dsaq;
-  const CryptoPP::Integer dsag;
 };
 
 const CryptoConstants& GetCryptoConstants();
@@ -54,11 +49,6 @@ const CryptoConstants& GetCryptoConstants();
 // ElGamal/Diffie-Hellman
 #define elgp GetCryptoConstants().elgp
 #define elgg GetCryptoConstants().elgg
-
-// DSA
-#define dsap GetCryptoConstants().dsap
-#define dsaq GetCryptoConstants().dsaq
-#define dsag GetCryptoConstants().dsag
 
 // RSA
 const int rsae = 65537;

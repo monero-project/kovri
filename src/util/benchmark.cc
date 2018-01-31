@@ -39,50 +39,6 @@ namespace bpo = boost::program_options;
 /// @brief perfrom all benchmark tests
 void Benchmark::PerformTests()
 {
-  uint8_t private_key_DSA[kovri::core::DSA_PRIVATE_KEY_LENGTH];
-  uint8_t public_key_DSA[kovri::core::DSA_PUBLIC_KEY_LENGTH];
-  uint8_t output_DSA[kovri::core::DSA_SIGNATURE_LENGTH];
-  LOG(info) << "--------DSA---------";
-  BenchmarkTest<kovri::core::DSAVerifier, kovri::core::DSASigner>(
-      Benchmark::BenchmarkCount,
-      private_key_DSA,
-      public_key_DSA,
-      output_DSA,
-      kovri::core::CreateDSARandomKeys);
-
-  uint8_t private_key_ECDSAP256[kovri::core::ECDSAP256_KEY_LENGTH];
-  uint8_t public_key_ECDSAP256[kovri::core::ECDSAP256_KEY_LENGTH/ 2];
-  uint8_t output_ECDSAP256[kovri::core::ECDSAP256_KEY_LENGTH];
-  LOG(info) << "-----ECDSAP256------";
-  BenchmarkTest<kovri::core::ECDSAP256Verifier, kovri::core::ECDSAP256Signer>(
-      Benchmark::BenchmarkCount,
-      private_key_ECDSAP256,
-      public_key_ECDSAP256,
-      output_ECDSAP256,
-      kovri::core::CreateECDSAP256RandomKeys);
-
-  LOG(info) << "-----ECDSAP384------";
-  uint8_t private_key_ECDSAP384[kovri::core::ECDSAP384_KEY_LENGTH];
-  uint8_t public_key_ECDSAP384[kovri::core::ECDSAP384_KEY_LENGTH / 2];
-  uint8_t output_ECDSAP384[kovri::core::ECDSAP384_KEY_LENGTH];
-  BenchmarkTest<kovri::core::ECDSAP384Verifier, kovri::core::ECDSAP384Signer>(
-      Benchmark::BenchmarkCount,
-      private_key_ECDSAP384,
-      public_key_ECDSAP384,
-      output_ECDSAP384,
-      kovri::core::CreateECDSAP384RandomKeys);
-
-  LOG(info) << "-----ECDSAP521------";
-  uint8_t private_key_ECDSAP521[kovri::core::ECDSAP521_KEY_LENGTH];
-  uint8_t public_key_ECDSAP521[kovri::core::ECDSAP521_KEY_LENGTH / 2];
-  uint8_t output_ECDSAP521[kovri::core::ECDSAP521_KEY_LENGTH];
-  BenchmarkTest<kovri::core::ECDSAP521Verifier, kovri::core::ECDSAP521Signer>(
-      Benchmark::BenchmarkCount,
-      private_key_ECDSAP521,
-      public_key_ECDSAP521,
-      output_ECDSAP521,
-      kovri::core::CreateECDSAP521RandomKeys);
-
   LOG(info) << "-----EDDSA25519-----";
   uint8_t private_key_EDDSA25519[kovri::core::EDDSA25519_PRIVATE_KEY_LENGTH];
   uint8_t public_key_EDDSA25519[kovri::core::EDDSA25519_PUBLIC_KEY_LENGTH];

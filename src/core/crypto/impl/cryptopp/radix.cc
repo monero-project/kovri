@@ -108,8 +108,8 @@ std::vector<std::uint8_t> Base32::Decode(
     const std::uint64_t len)
 {
   // Prepare decoder
-  CryptoPP::AlgorithmParameters const params(CryptoPP::MakeParameters(
-      CryptoPP::Name::DecodingLookupArray(), s_Base32Table, false));
+  CryptoPP::AlgorithmParameters static const params(CryptoPP::MakeParameters(
+      CryptoPP::Name::DecodingLookupArray(), static_cast<const int*>(s_Base32Table), false));
 
   // Decode
   return Radix::Decode<CryptoPP::Base32Decoder>(params, in, len);
@@ -140,8 +140,8 @@ std::vector<std::uint8_t> Base64::Decode(
     const std::uint64_t len)
 {
   // Prepare decoder
-  CryptoPP::AlgorithmParameters const params(CryptoPP::MakeParameters(
-      CryptoPP::Name::DecodingLookupArray(), s_Base64Table, false));
+  CryptoPP::AlgorithmParameters static const params(CryptoPP::MakeParameters(
+      CryptoPP::Name::DecodingLookupArray(), static_cast<const int*>(s_Base64Table), false));
 
   // Decode
   return Radix::Decode<CryptoPP::Base64Decoder>(params, in, len);

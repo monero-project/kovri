@@ -31,6 +31,7 @@
 #ifndef SRC_CORE_CRYPTO_RADIX_H_
 #define SRC_CORE_CRYPTO_RADIX_H_
 
+#include <array>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -85,6 +86,7 @@ class Radix : public RadixBase
 
  protected:
   static std::string m_Base32Alphabet, m_Base64Alphabet;
+  static std::array<const int, 256> m_Base32Table, m_Base64Table;
 
   template <typename Base_N>
   static std::string Encode(

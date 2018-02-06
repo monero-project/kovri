@@ -83,9 +83,37 @@ class InputByteStream
     return boost::endian::big_to_native(size);
   }
 
+  /// @brief Get the first unconsumed byte in the stream
+  /// @return Pointer to the first byte
+  const std::uint8_t* Data() const noexcept
+  {
+    return m_Data - m_Counter;
+  }
+
+  /// @brief Total size of stream given at initialization
+  /// @return Total size
+  std::size_t Size() const noexcept
+  {
+    return m_Size;
+  }
+
+  /// @brief Get the current position in the stream
+  /// @return Pointer to current byte position
+  const std::uint8_t* Tellp() const noexcept
+  {
+    return m_Data;
+  }
+
+  /// @brief Remaining length of the stream after consumption
+  std::size_t Gcount() const noexcept
+  {
+    return m_Length;
+  }
+
  protected:
-  std::uint8_t* m_Data;  ///< Pointer to first unparsed byte of the stream
-  std::size_t m_Length{};  ///< Remaining length of the stream
+  std::uint8_t* m_Data;
+  std::size_t m_Size, m_Length;
+  std::size_t m_Counter{};  ///< Counter for amount of incremented data
 };
 
 /// @class OutputByteStream

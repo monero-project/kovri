@@ -44,7 +44,7 @@ namespace core
 /// Input
 
 InputByteStream::InputByteStream(std::uint8_t* data, std::size_t len)
-    : m_Data(data), m_Length(len)
+    : m_Data(data), m_Size(len), m_Counter{}, m_Length(len)
 {
 }
 
@@ -53,6 +53,7 @@ void InputByteStream::ConsumeData(std::size_t amount)
   if (amount > m_Length)
     throw std::length_error("InputByteStream: too many bytes to consume.");
   m_Data += amount;
+  m_Counter += amount;
   m_Length -= amount;
 }
 

@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -493,20 +493,27 @@ void ClientDestination::HandlePublishConfirmationTimer(
   }
 }
 
-void ClientDestination::HandleDataMessage(
-    const std::uint8_t* buf,
-    std::size_t) {
-  std::uint32_t length = bufbe32toh(buf);
-  buf += 4;
-  // we assume I2CP payload
-  std::uint16_t from_port = bufbe16toh(buf + 4),  // source
-    to_port = bufbe16toh(buf + 6);  // destination
-  switch (buf[9]) {
+void ClientDestination::HandleDataMessage(const std::uint8_t* buf, std::size_t)
+{
+  // Get I2NP Data message payload size
+  std::uint32_t const size = core::InputByteStream::Read<std::uint32_t>(buf);
+
+  // Create payload stream - TODO(anonimal): remove const_cast, see bytestream TODO
+  core::InputByteStream payload(const_cast<std::uint8_t*>(buf + 4), size);
+
+  // Assume I2CP payload - TODO(unassigned): don't assume
+  payload.ReadBytes(4);
+  std::uint16_t const source_port = payload.Read<std::uint16_t>();
+  std::uint16_t const dest_port = payload.Read<std::uint16_t>();
+  payload.ReadBytes(1);
+  std::uint8_t const protocol = payload.Read<std::uint8_t>();
+
+  switch (protocol) {
     case PROTOCOL_TYPE_STREAMING: {
       // streaming protocol
-      auto dest = GetStreamingDestination(to_port);
+      auto dest = GetStreamingDestination(dest_port);
       if (dest)
-        dest->HandleDataMessagePayload(buf, length);
+        dest->HandleDataMessagePayload(payload.Data(), payload.Size());
       else
         LOG(warning) << "ClientDestination: missing streaming destination";
     }
@@ -515,17 +522,17 @@ void ClientDestination::HandleDataMessage(
       // datagram protocol
       if (m_DatagramDestination)
         m_DatagramDestination->HandleDataMessagePayload(
-            from_port,
-            to_port,
-            buf,
-            length);
+            source_port,
+            dest_port,
+            payload.Data(),
+            payload.Size());
       else
         LOG(warning) << "ClientDestination: missing streaming destination";
     break;
     default:
-      LOG(warning)
-        << "ClientDestination: " << __func__
-        << ": unexpected protocol " << buf[9];  // TODO(unassigned): refactor
+      LOG(warning) << "ClientDestination: " << __func__
+                   << ": unexpected protocol "
+                   << static_cast<std::uint16_t>(protocol);
   }
 }
 

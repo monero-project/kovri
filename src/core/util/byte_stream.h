@@ -74,12 +74,18 @@ class InputByteStream
   template <typename UInt>
   UInt Read()
   {
+    return Read<UInt>(ReadBytes(sizeof(UInt)));
+  }
+
+  template <typename UInt>
+  static UInt Read(const std::uint8_t* buf)
+  {
     static_assert(
         std::is_integral<UInt>::value || std::is_signed<UInt>(),
         "InputByteStream: invalid type (unsigned integral only)");
 
     UInt size;
-    std::memcpy(&size, ReadBytes(sizeof(UInt)), sizeof(UInt));
+    std::memcpy(&size, buf, sizeof(size));
     return boost::endian::big_to_native(size);
   }
 

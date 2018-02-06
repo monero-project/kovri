@@ -31,33 +31,33 @@
 #include "core/util/byte_stream.h"
 
 #include <cstring>
-#include <stdexcept>
-#include <sstream>
 #include <iomanip>
+#include <sstream>
+#include <stdexcept>
 
 #include "core/util/log.h"
 
-namespace kovri {
-namespace core {
-
+namespace kovri
+{
+namespace core
+{
 /// Input
 
-InputByteStream::InputByteStream(
-    std::uint8_t* data,
-    std::size_t len)
-    : m_Data(data),
-      m_Length(len) {}
+InputByteStream::InputByteStream(std::uint8_t* data, std::size_t len)
+    : m_Data(data), m_Length(len)
+{
+}
 
-void InputByteStream::ConsumeData(
-    std::size_t amount) {
+void InputByteStream::ConsumeData(std::size_t amount)
+{
   if (amount > m_Length)
     throw std::length_error("InputByteStream: too many bytes to consume.");
   m_Data += amount;
   m_Length -= amount;
 }
 
-std::uint8_t* InputByteStream::ReadBytes(
-    std::size_t amount) {
+std::uint8_t* InputByteStream::ReadBytes(std::size_t amount)
+{
   std::uint8_t* ptr = m_Data;
   ConsumeData(amount);
   return ptr;
@@ -65,15 +65,13 @@ std::uint8_t* InputByteStream::ReadBytes(
 
 /// Output
 
-OutputByteStream::OutputByteStream(
-  std::uint8_t* data,
-  std::size_t len)
-  : m_Data(data),
-    m_Length(len),
-    m_Counter(0),
-    m_Size(len) {}
+OutputByteStream::OutputByteStream(std::uint8_t* data, std::size_t len)
+    : m_Data(data), m_Length(len), m_Counter{}, m_Size(len)
+{
+}
 
-void OutputByteStream::ProduceData(std::size_t amount) {
+void OutputByteStream::ProduceData(std::size_t amount)
+{
   if (amount > m_Length)
     throw std::length_error("OutputByteStream: too many bytes to produce.");
   m_Data += amount;
@@ -81,7 +79,8 @@ void OutputByteStream::ProduceData(std::size_t amount) {
   m_Counter += amount;
 }
 
-void OutputByteStream::WriteData(const std::uint8_t* data, std::size_t len) {
+void OutputByteStream::WriteData(const std::uint8_t* data, std::size_t len)
+{
   if (!len)
     {
       LOG(debug) << "OutputByteStream: skip empty data";
@@ -89,22 +88,25 @@ void OutputByteStream::WriteData(const std::uint8_t* data, std::size_t len) {
     }
   if (!data)
     throw std::runtime_error("OutputByteStream: null data");
-  std::uint8_t* ptr = m_Data; 
+  std::uint8_t* ptr = m_Data;
   ProduceData(len);
   std::memcpy(ptr, data, len);
 }
 
 // TODO(unassigned): see comments in #510
 
-std::uint8_t* OutputByteStream::GetPosition() const {
+std::uint8_t* OutputByteStream::GetPosition() const
+{
   return m_Data;
 }
 
-std::uint8_t* OutputByteStream::GetData() const {
+std::uint8_t* OutputByteStream::GetData() const
+{
   return m_Data - m_Counter;
 }
 
-std::size_t OutputByteStream::GetSize() const {
+std::size_t OutputByteStream::GetSize() const
+{
   return m_Size;
 }
 
@@ -113,7 +115,8 @@ std::size_t OutputByteStream::GetSize() const {
 const std::string GetFormattedHex(const std::uint8_t* data, std::size_t size)
 {
   std::ostringstream hex;
-  hex << "\n\t" << " |  ";
+  hex << "\n\t"
+      << " |  ";
   std::size_t count{}, sub_count{};
   for (std::size_t i = 0; i < size; i++)
     {
@@ -122,7 +125,8 @@ const std::string GetFormattedHex(const std::uint8_t* data, std::size_t size)
       count++;
       if (count == 32 || (i == size - 1))
         {
-          hex << " |" << "\n\t";
+          hex << " |"
+              << "\n\t";
           count = 0;
         }
       sub_count++;
@@ -148,5 +152,5 @@ std::unique_ptr<std::vector<std::uint8_t>> AddressToByteVector(
   return data;
 }
 
-} // namespace core
-} // namespace kovri
+}  // namespace core
+}  // namespace kovri

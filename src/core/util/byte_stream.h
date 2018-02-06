@@ -28,8 +28,8 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#ifndef SRC_CORE_UTIL_BYTESTREAM_H_
-#define SRC_CORE_UTIL_BYTESTREAM_H_
+#ifndef SRC_CORE_UTIL_BYTE_STREAM_H_
+#define SRC_CORE_UTIL_BYTE_STREAM_H_
 
 #include <boost/asio.hpp>
 #include <boost/endian/conversion.hpp>
@@ -38,47 +38,35 @@
 #include <cstdint>
 #include <ios>
 #include <memory>
+#include <string>
 #include <type_traits>
+#include <vector>
 
-namespace kovri {
-namespace core {
-
-namespace {
-/// @brief Return underlying type (for enumerators)
-/// @param type Enumerator
-/// @warning Should be used with enumerations only
-/// @notes  C++14 required, courtesy of Scott Meyers (2014)
-template <typename T>
-constexpr auto GetType(T type) noexcept {
-  return static_cast<std::underlying_type_t<T>>(type);
-}
-}  // namespace
-
+namespace kovri
+{
+namespace core
+{
 /// @class InputByteStream
 /// @brief Wraps an array of bytes to provide stream-like functionality.
-class InputByteStream {
+class InputByteStream
+{
  public:
   InputByteStream() = default;
 
-  /// @brief Constructs the byte stream from a given array of bytes 
-  /// @param data Pointer to the array of bytes 
-  /// @param len Length of the array of bytes 
-  InputByteStream(
-      std::uint8_t* data,
-      std::size_t len);
+  /// @brief Constructs the byte stream from a given array of bytes
+  /// @param data Pointer to the array of bytes
+  /// @param len Length of the array of bytes
+  InputByteStream(std::uint8_t* data, std::size_t len);
 
   /// @brief Advances the internal data pointer by the given amount
   /// @param amount the amount by which to advance the data pointer
   /// @throw std::length_error if amount exceeds the remaining data length
-  void ConsumeData(
-      std::size_t amount);
+  void ConsumeData(std::size_t amount);
 
-  /// @brief Consume a given amount of bytes, and return a pointer to first consumed
-  ///   byte.
+  /// @brief Consume a given amount of bytes + return a pointer to first consumed byte
   /// @return a pointer to the first byte that was consumed (m_Data + amount)
   /// @throw std::length_error if amount exceeds the remaining data length
-  std::uint8_t* ReadBytes(
-      std::size_t amount);
+  std::uint8_t* ReadBytes(std::size_t amount);
 
   /// @brief Reads unsigned integral value from stream byte(s)
   /// @note Converts from big endian to host order (when applicable)
@@ -96,27 +84,27 @@ class InputByteStream {
   }
 
  protected:
-  std::uint8_t* m_Data; ///< Pointer to first unparsed byte of the stream
+  std::uint8_t* m_Data;  ///< Pointer to first unparsed byte of the stream
   std::size_t m_Length{};  ///< Remaining length of the stream
 };
 
 /// @class OutputByteStream
 /// @brief Wraps an array of bytes to provide stream-like functionality.
-class OutputByteStream {
+class OutputByteStream
+{
  public:
   OutputByteStream() = default;
 
-  /// @brief Constructs the byte stream from a given array of bytes 
-  /// @param data Pointer to the array of bytes 
-  /// @param len Length of the array of bytes 
-  OutputByteStream(
-      std::uint8_t* data,
-      std::size_t len);
+  /// @brief Constructs the byte stream from a given array of bytes
+  /// @param data Pointer to the array of bytes
+  /// @param len Length of the array of bytes
+  OutputByteStream(std::uint8_t* data, std::size_t len);
 
   /// @brief Advances the internal data pointer by the given amount
-  /// @param amount the amount by which to advance the data pointer
+  /// @param amount The amount by which to advance the data pointer
   /// @throw std::length_error if amount exceeds the remaining buffer length
-  void ProduceData(std::size_t amount);  // TODO(unassigned): rename to something less confusing
+  // TODO(unassigned): rename to something less confusing
+  void ProduceData(std::size_t amount);
 
   /// @brief Writes data into buffer
   /// @note Increments buffer pointer position after writing data
@@ -154,7 +142,7 @@ class OutputByteStream {
   std::size_t GetSize() const;
 
  protected:
-  std::uint8_t* m_Data; ///< Pointer to the first unwritten byte
+  std::uint8_t* m_Data;  ///< Pointer to the first unwritten byte
   std::size_t m_Length{};  ///< Remaining length of the stream
   std::size_t m_Counter{};  ///< Counter for amount of incremented data
   std::size_t m_Size{};  ///< Total size of stream given at initialization
@@ -170,7 +158,21 @@ const std::string GetFormattedHex(const std::uint8_t* data, std::size_t size);
 std::unique_ptr<std::vector<std::uint8_t>> AddressToByteVector(
     const boost::asio::ip::address& address);
 
-} // namespace core
-} // namespace kovri
+// TODO(anonimal): remove from global namespace
+namespace
+{
+/// @brief Return underlying type (for enumerators)
+/// @param type Enumerator
+/// @warning Should be used with enumerations only
+/// @notes  C++14 required, courtesy of Scott Meyers (2014)
+template <typename T>
+constexpr auto GetType(T type) noexcept
+{
+  return static_cast<std::underlying_type_t<T>>(type);
+}
+}  // namespace
 
-#endif  // SRC_CORE_UTIL_BYTESTREAM_H_
+}  // namespace core
+}  // namespace kovri
+
+#endif  // SRC_CORE_UTIL_BYTE_STREAM_H_

@@ -41,10 +41,13 @@ namespace kovri
 {
 namespace core
 {
-/// Input
+ByteStream::ByteStream(std::uint8_t* data, std::size_t len)
+    : m_Data(data), m_Size(len), m_Length(len), m_Counter{}
+{
+}
 
 InputByteStream::InputByteStream(std::uint8_t* data, std::size_t len)
-    : m_Data(data), m_Size(len), m_Counter{}, m_Length(len)
+    : ByteStream(data, len)
 {
 }
 
@@ -64,10 +67,8 @@ std::uint8_t* InputByteStream::ReadBytes(std::size_t amount)
   return ptr;
 }
 
-/// Output
-
 OutputByteStream::OutputByteStream(std::uint8_t* data, std::size_t len)
-    : m_Data(data), m_Length(len), m_Counter{}, m_Size(len)
+    : ByteStream(data, len)
 {
 }
 
@@ -76,8 +77,8 @@ void OutputByteStream::ProduceData(std::size_t amount)
   if (amount > m_Length)
     throw std::length_error("OutputByteStream: too many bytes to produce.");
   m_Data += amount;
-  m_Length -= amount;
   m_Counter += amount;
+  m_Length -= amount;
 }
 
 void OutputByteStream::WriteData(const std::uint8_t* data, std::size_t len)
@@ -93,25 +94,6 @@ void OutputByteStream::WriteData(const std::uint8_t* data, std::size_t len)
   ProduceData(len);
   std::memcpy(ptr, data, len);
 }
-
-// TODO(unassigned): see comments in #510
-
-std::uint8_t* OutputByteStream::GetPosition() const
-{
-  return m_Data;
-}
-
-std::uint8_t* OutputByteStream::GetData() const
-{
-  return m_Data - m_Counter;
-}
-
-std::size_t OutputByteStream::GetSize() const
-{
-  return m_Size;
-}
-
-// Hex
 
 const std::string GetFormattedHex(const std::uint8_t* data, std::size_t size)
 {
@@ -140,6 +122,7 @@ const std::string GetFormattedHex(const std::uint8_t* data, std::size_t size)
   return hex.str() + "\n";
 }
 
+// TODO(anonimal): simplify
 std::unique_ptr<std::vector<std::uint8_t>> AddressToByteVector(
     const boost::asio::ip::address& address)
 {

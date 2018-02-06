@@ -953,7 +953,7 @@ void SSUPacketBuilder::WriteRelayResponse(
 void SSUPacketBuilder::WriteRelayIntro(
     SSURelayIntroPacket* /*packet*/) {}
 
-void SSUPacketBuilder::WriteData(
+void SSUPacketBuilder::WriteDataMessage(
     SSUDataPacket* /*packet*/) {}
 
 void SSUPacketBuilder::WritePeerTest(
@@ -983,7 +983,7 @@ void SSUPacketBuilder::WritePacket(SSUPacket* packet) {
       WriteRelayIntro(static_cast<SSURelayIntroPacket*>(packet));
       break;
     case SSUPayloadType::Data:
-      WriteData(static_cast<SSUDataPacket*>(packet));
+      WriteDataMessage(static_cast<SSUDataPacket*>(packet));
       break;
     case SSUPayloadType::PeerTest:
       WritePeerTest(static_cast<SSUPeerTestPacket*>(packet));

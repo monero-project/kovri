@@ -1165,11 +1165,13 @@ void SSUSession::WriteAndEncrypt(
       buffer
       + GetType(SSUSize::IV)
       + GetType(SSUSize::MAC);
-    auto encrypted_len = builder.GetPosition() - encrypted;
+    auto encrypted_len = builder.Tellp() - encrypted;
     // Add padding
-    const std::size_t padding_size = SSUPacketBuilder::GetPaddingSize(encrypted_len);
-    kovri::core::RandBytes(builder.GetPosition(), padding_size);
-    encrypted_len += padding_size;
+    std::vector<std::uint8_t> padding(
+        SSUPacketBuilder::GetPaddingSize(encrypted_len));
+    kovri::core::RandBytes(padding.data(), padding.size());
+    builder.WriteData(padding.data(), padding.size());
+    encrypted_len += padding.size();
     kovri::core::CBCEncryption encryption(aes_key, packet->GetHeader()->GetIV());
     encryption.Encrypt(encrypted, encrypted_len, encrypted);
     // Compute HMAC of encryptedPayload + IV + (payloadLength ^ protocolVersion)

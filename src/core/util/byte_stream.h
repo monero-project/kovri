@@ -46,17 +46,60 @@ namespace kovri
 {
 namespace core
 {
-/// @class InputByteStream
-/// @brief Wraps an array of bytes to provide stream-like functionality.
-class InputByteStream
+
+// TODO(anonimal): our interfaces should use const pointer - but doing so will break
+//   our current SSU implementation. Finish the SSU rewrite and use const correctness!
+class ByteStream
 {
  public:
-  InputByteStream() = default;
+  // TODO(anonimal): assert/throw nulls
+  explicit ByteStream(std::uint8_t* data, std::size_t len);
+  virtual ~ByteStream() = default;
 
+  /// @brief Get the first unconsumed/unwritten byte in the stream
+  /// @return Pointer to the first byte
+  const std::uint8_t* Data() const noexcept
+  {
+    return m_Data - m_Counter;
+  }
+
+  /// @brief Total size of stream given at initialization
+  /// @return Total size
+  std::size_t Size() const noexcept
+  {
+    return m_Size;
+  }
+
+  /// @brief Get the current position in the stream
+  /// @return Pointer to current byte position
+  const std::uint8_t* Tellp() const noexcept
+  {
+    return m_Data;
+  }
+
+  /// @brief Remaining length of the stream after consumption/production
+  std::size_t Gcount() const noexcept
+  {
+    return m_Length;
+  }
+
+ protected:
+  std::uint8_t* m_Data;
+  std::size_t m_Size, m_Length;
+  std::size_t m_Counter;  ///< Counter for amount of incremented data
+};
+
+/// @class InputByteStream
+/// @brief Wraps an array of bytes to provide stream-like functionality.
+class InputByteStream : public ByteStream
+{
+ public:
   /// @brief Constructs the byte stream from a given array of bytes
   /// @param data Pointer to the array of bytes
   /// @param len Length of the array of bytes
   InputByteStream(std::uint8_t* data, std::size_t len);
+
+  // TODO(anonimal): safe destruction
 
   /// @brief Advances the internal data pointer by the given amount
   /// @param amount the amount by which to advance the data pointer
@@ -88,51 +131,19 @@ class InputByteStream
     std::memcpy(&size, buf, sizeof(size));
     return boost::endian::big_to_native(size);
   }
-
-  /// @brief Get the first unconsumed byte in the stream
-  /// @return Pointer to the first byte
-  const std::uint8_t* Data() const noexcept
-  {
-    return m_Data - m_Counter;
-  }
-
-  /// @brief Total size of stream given at initialization
-  /// @return Total size
-  std::size_t Size() const noexcept
-  {
-    return m_Size;
-  }
-
-  /// @brief Get the current position in the stream
-  /// @return Pointer to current byte position
-  const std::uint8_t* Tellp() const noexcept
-  {
-    return m_Data;
-  }
-
-  /// @brief Remaining length of the stream after consumption
-  std::size_t Gcount() const noexcept
-  {
-    return m_Length;
-  }
-
- protected:
-  std::uint8_t* m_Data;
-  std::size_t m_Size, m_Length;
-  std::size_t m_Counter{};  ///< Counter for amount of incremented data
 };
 
 /// @class OutputByteStream
 /// @brief Wraps an array of bytes to provide stream-like functionality.
-class OutputByteStream
+class OutputByteStream : public ByteStream
 {
  public:
-  OutputByteStream() = default;
-
   /// @brief Constructs the byte stream from a given array of bytes
   /// @param data Pointer to the array of bytes
   /// @param len Length of the array of bytes
   OutputByteStream(std::uint8_t* data, std::size_t len);
+
+  // TODO(anonimal): safe destruction
 
   /// @brief Advances the internal data pointer by the given amount
   /// @param amount The amount by which to advance the data pointer
@@ -163,23 +174,6 @@ class OutputByteStream
     std::memcpy(buf, &value, sizeof(value));
     WriteData(buf, sizeof(value));
   }
-
-  // TODO(unassigned): see comments in #510
-
-  /// @brief Get current pointer position of written data
-  std::uint8_t* GetPosition() const;
-
-  /// @brief Gets pointer to beginning of written data
-  std::uint8_t* GetData() const;
-
-  /// @brief Gets total stream size given during construction
-  std::size_t GetSize() const;
-
- protected:
-  std::uint8_t* m_Data;  ///< Pointer to the first unwritten byte
-  std::size_t m_Length{};  ///< Remaining length of the stream
-  std::size_t m_Counter{};  ///< Counter for amount of incremented data
-  std::size_t m_Size{};  ///< Total size of stream given at initialization
 };
 
 /// @brief Returns hex encoding of given data

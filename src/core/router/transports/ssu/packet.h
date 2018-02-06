@@ -790,11 +790,8 @@ class SSUPacketParser : private kovri::core::InputByteStream {
 
 /// @class SSUPacketBuilder
 /// @brief Constitutes SSU packet building
-class SSUPacketBuilder : private kovri::core::OutputByteStream {
-  using kovri::core::OutputByteStream::WriteData; // Overload resolution
+class SSUPacketBuilder final : public kovri::core::OutputByteStream {
  public:
-  using kovri::core::OutputByteStream::GetPosition; // Make public 
-
   SSUPacketBuilder() = default;
 
   /// @brief Constructs packet builder with a given buffer
@@ -849,7 +846,7 @@ class SSUPacketBuilder : private kovri::core::OutputByteStream {
 
   /// @brief Writes Data message
   /// @param packet Data packet to write
-  void WriteData(SSUDataPacket* packet);
+  void WriteDataMessage(SSUDataPacket* packet);
 
   /// @brief Writes PeerTest message
   /// @param packet PeerTest packet to write

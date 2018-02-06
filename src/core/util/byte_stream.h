@@ -97,9 +97,9 @@ class InputByteStream : public ByteStream
   /// @brief Constructs the byte stream from a given array of bytes
   /// @param data Pointer to the array of bytes
   /// @param len Length of the array of bytes
-  InputByteStream(std::uint8_t* data, std::size_t len);
+  explicit InputByteStream(std::uint8_t* data, std::size_t len);
 
-  // TODO(anonimal): safe destruction
+  virtual ~InputByteStream() = default;
 
   /// @brief Advances the internal data pointer by the given amount
   /// @param amount the amount by which to advance the data pointer
@@ -141,9 +141,9 @@ class OutputByteStream : public ByteStream
   /// @brief Constructs the byte stream from a given array of bytes
   /// @param data Pointer to the array of bytes
   /// @param len Length of the array of bytes
-  OutputByteStream(std::uint8_t* data, std::size_t len);
+  explicit OutputByteStream(std::uint8_t* data, std::size_t len);
 
-  // TODO(anonimal): safe destruction
+  virtual ~OutputByteStream() = default;
 
   /// @brief Advances the internal data pointer by the given amount
   /// @param amount The amount by which to advance the data pointer

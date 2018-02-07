@@ -111,6 +111,8 @@ class InputByteStream : public ByteStream
   /// @throw std::length_error if amount exceeds the remaining data length
   std::uint8_t* ReadBytes(std::size_t amount);
 
+  // TODO(anonimal): optional endian conversion
+
   /// @brief Reads unsigned integral value from stream byte(s)
   /// @note Converts from big endian to host order (when applicable)
   /// @return Size value read from byte(s)
@@ -157,22 +159,32 @@ class OutputByteStream : public ByteStream
   /// @param len Length of data
   void WriteData(const std::uint8_t* data, std::size_t len);
 
-  /// @brief Writes an unsigned integral value into buffer
+  // TODO(anonimal): optional endian conversion
+
+  /// @brief Writes an unsigned integral value into given buffer
   /// @note Converts data from host order to big endian (when applicable)
+  /// @param buf Buffer to write to
+  /// @param data Data to write
+  template <typename UInt>
+  static void Write(std::uint8_t* buf, UInt data)
+  {
+    static_assert(
+        std::is_integral<UInt>::value || std::is_signed<UInt>(),
+        "OutputByteStream: invalid type (unsigned integral only)");
+
+    const UInt value = boost::endian::native_to_big(data);
+    std::memcpy(buf, &value, sizeof(value));
+  }
+
+  /// @brief Writes an unsigned integral value into member 'stream'
   /// @note Increments buffer pointer position after writing data
   /// @param data Data to write
   template <typename UInt>
   void Write(UInt data)
   {
-    static_assert(
-        std::is_integral<UInt>::value || std::is_signed<UInt>(),
-        "InputByteStream: invalid type (unsigned integral only)");
-
-    std::uint8_t buf[sizeof(data)] = {};
-    const UInt value = boost::endian::native_to_big(data);
-
-    std::memcpy(buf, &value, sizeof(value));
-    WriteData(buf, sizeof(value));
+    std::uint8_t buf[sizeof(data)]{};
+    Write(buf, data);  // Write to buffer
+    WriteData(buf, sizeof(buf));  // Write buffer to stream
   }
 };
 

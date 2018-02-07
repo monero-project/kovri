@@ -183,7 +183,7 @@ const std::string GetFormattedHex(const std::uint8_t* data, std::size_t size);
 
 /// @brief Returns vector of bytes representing address
 /// @param address IP v4 or v6 address
-std::unique_ptr<std::vector<std::uint8_t>> AddressToByteVector(
+std::vector<std::uint8_t> AddressToByteVector(
     const boost::asio::ip::address& address);
 
 // TODO(anonimal): remove from global namespace

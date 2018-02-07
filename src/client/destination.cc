@@ -50,6 +50,8 @@
 namespace kovri {
 namespace client {
 
+// TODO(anonimal): bytestream refactor
+
 ClientDestination::ClientDestination(
     const kovri::core::PrivateKeys& keys,
     bool is_public,
@@ -285,9 +287,10 @@ void ClientDestination::HandleI2NPMessage(
     case kovri::core::I2NPData:
       HandleDataMessage(
           buf + kovri::core::I2NP_HEADER_SIZE,
-          bufbe16toh(
+          // TODO(unassigned): unused
+          core::InputByteStream::Read<std::uint16_t>(
               buf + kovri::core::I2NP_HEADER_SIZE_OFFSET));
-    break;
+      break;
     case kovri::core::I2NPDeliveryStatus:
       // we assume tunnel tests non-encrypted
       HandleDeliveryStatusMessage(
@@ -299,13 +302,13 @@ void ClientDestination::HandleI2NPMessage(
     case kovri::core::I2NPDatabaseStore:
       HandleDatabaseStoreMessage(
           buf + kovri::core::I2NP_HEADER_SIZE,
-          bufbe16toh(
+          core::InputByteStream::Read<std::uint16_t>(
               buf + kovri::core::I2NP_HEADER_SIZE_OFFSET));
     break;
     case kovri::core::I2NPDatabaseSearchReply:
       HandleDatabaseSearchReplyMessage(
           buf + kovri::core::I2NP_HEADER_SIZE,
-          bufbe16toh(
+          core::InputByteStream::Read<std::uint16_t>(
               buf + kovri::core::I2NP_HEADER_SIZE_OFFSET));
     break;
     default:
@@ -320,7 +323,8 @@ void ClientDestination::HandleI2NPMessage(
 void ClientDestination::HandleDatabaseStoreMessage(
     const std::uint8_t* buf,
     std::size_t len) {
-  std::uint32_t reply_token = bufbe32toh(buf + kovri::core::DATABASE_STORE_REPLY_TOKEN_OFFSET);
+  std::uint32_t const reply_token = core::InputByteStream::Read<std::uint32_t>(
+      buf + core::DATABASE_STORE_REPLY_TOKEN_OFFSET);
   std::size_t offset = kovri::core::DATABASE_STORE_HEADER_SIZE;
   if (reply_token) {
     LOG(debug) << "ClientDestination: reply token is ignored for DatabaseStore";
@@ -416,8 +420,8 @@ void ClientDestination::HandleDatabaseSearchReplyMessage(
 
 void ClientDestination::HandleDeliveryStatusMessage(
     std::shared_ptr<kovri::core::I2NPMessage> msg) {
-  std::uint32_t msg_ID =
-    bufbe32toh(msg->GetPayload() + kovri::core::DELIVERY_STATUS_MSGID_OFFSET);
+  std::uint32_t const msg_ID = core::InputByteStream::Read<std::uint32_t>(
+      msg->GetPayload() + kovri::core::DELIVERY_STATUS_MSGID_OFFSET);
   if (msg_ID == m_PublishReplyToken) {
     LOG(debug) << "ClientDestination: publishing confirmed";
     m_ExcludedFloodfills.clear();

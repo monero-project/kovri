@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -46,6 +46,8 @@
 
 namespace kovri {
 namespace core {
+
+// TODO(anonimal): bytestream refactor
 
 GarlicRoutingSession::GarlicRoutingSession(
     GarlicDestination* owner,
@@ -442,7 +444,7 @@ void GarlicDestination::HandleGarlicMessage(
   // TODO(anonimal): this try block should be handled entirely by caller
   try {
     std::uint8_t* buf = msg->GetPayload();
-    std::uint32_t length = bufbe32toh(buf);
+    std::uint32_t length = core::InputByteStream::Read<std::uint32_t>(buf);
     if (length > msg->GetLength()) {
       LOG(error)
         << "GarlicDestination: message length " << length
@@ -530,7 +532,8 @@ void GarlicDestination::HandleAESBlock(
     std::shared_ptr<kovri::core::InboundTunnel> from) {
   // TODO(anonimal): this try block should be handled entirely by caller
   try {
-    std::uint16_t tag_count = bufbe16toh(buf);
+    std::uint16_t const tag_count =
+          core::InputByteStream::Read<std::uint16_t>(buf);
     buf += 2;
     len -= 2;
     if (tag_count > 0) {
@@ -546,7 +549,8 @@ void GarlicDestination::HandleAESBlock(
     }
     buf += tag_count * 32;
     len -= tag_count * 32;
-    std::uint32_t payload_size = bufbe32toh(buf);
+    std::uint32_t const payload_size =
+        core::InputByteStream::Read<std::uint32_t>(buf);
     if (payload_size > len) {
       LOG(error) << "GarlicDestination: unexpected payload size " << payload_size;
       return;
@@ -642,7 +646,8 @@ void GarlicDestination::HandleGarlicPayload(
         // gateway_hash and gateway_tunnel sequence is reverted
         std::uint8_t* gateway_hash = buf;
         buf += 32;
-        std::uint32_t gateway_tunnel = bufbe32toh(buf);
+        std::uint32_t const gateway_tunnel =
+            core::InputByteStream::Read<std::uint32_t>(buf);
         buf += 4;
         std::shared_ptr<kovri::core::OutboundTunnel> tunnel;
         if (from && from->GetTunnelPool())
@@ -726,7 +731,7 @@ void GarlicDestination::DeliveryStatusSent(
 // TODO(anonimal): at worst, the message isn't ACKd
 void GarlicDestination::HandleDeliveryStatusMessage(
     std::shared_ptr<I2NPMessage> msg) {
-    std::uint32_t msg_ID = bufbe32toh(msg->GetPayload()); {
+    std::uint32_t const msg_ID = core::InputByteStream::Read<std::uint32_t>(msg->GetPayload()); {
     auto it = m_CreatedSessions.find(msg_ID);
     if (it != m_CreatedSessions.end()) {
       it->second->MessageConfirmed(msg_ID);

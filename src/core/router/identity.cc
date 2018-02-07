@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -443,14 +443,16 @@ bool IdentityEx::Verify(
 SigningKeyType IdentityEx::GetSigningKeyType() const {
   if (m_StandardIdentity.certificate.type ==
       CERTIFICATE_TYPE_KEY && m_ExtendedBuffer)
-    return bufbe16toh(m_ExtendedBuffer.get());  // signing key
+    return core::InputByteStream::Read<std::uint16_t>(
+        m_ExtendedBuffer.get());  // signing key
   return SIGNING_KEY_TYPE_DSA_SHA1;
 }
 
 CryptoKeyType IdentityEx::GetCryptoKeyType() const {
   if (m_StandardIdentity.certificate.type ==
       CERTIFICATE_TYPE_KEY && m_ExtendedBuffer)
-    return bufbe16toh(m_ExtendedBuffer.get() + 2);  // crypto key
+    return core::InputByteStream::Read<std::uint16_t>(
+        m_ExtendedBuffer.get() + 2);  // crypto key
   return CRYPTO_KEY_TYPE_ELGAMAL;
 }
 

@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -262,7 +262,8 @@ void Stream::ProcessPacket(
         << m_RemoteIdentity.GetIdentHash().ToBase64();
   }
   if (flags & PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED) {
-    std::uint16_t max_packet_size = bufbe16toh(option_data);
+    std::uint16_t const max_packet_size =
+        core::InputByteStream::Read<std::uint16_t>(option_data);
     LOG(debug) << "Stream: max packet size " << max_packet_size;
     option_data += 2;
   }

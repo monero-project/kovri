@@ -57,24 +57,6 @@ std::uint64_t htobe64(
   BigEndian<std::uint64_t> u64(int64);
   return u64.raw_value;
 }
-
-std::uint16_t be16toh(
-    std::uint16_t big16) {
-  LittleEndian<std::uint16_t> u16(big16);
-  return u16.raw_value;
-}
-
-std::uint32_t be32toh(
-    std::uint32_t big32) {
-  LittleEndian<std::uint32_t> u32(big32);
-  return u32.raw_value;
-}
-
-std::uint64_t be64toh(
-    std::uint64_t big64) {
-  LittleEndian<std::uint64_t> u64(big64);
-  return u64.raw_value;
-}
 #endif
 
 /* it can be used in Windows 8

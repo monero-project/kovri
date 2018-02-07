@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -48,6 +48,8 @@
 
 namespace kovri {
 namespace core {
+
+// TODO(anonimal): bytestream refactor
 
 std::uint8_t* SSUSessionPacket::MAC() const {
   return data;
@@ -771,8 +773,11 @@ void SSUSession::SendRelayResponse(
 
 void SSUSession::ProcessRelayIntro(SSUPacket* pkt) {
   auto packet = static_cast<SSURelayIntroPacket*>(pkt);
-  if (packet->GetIPAddressSize() == 4) {
-    boost::asio::ip::address_v4 address(bufbe32toh(packet->GetIPAddress()));
+  std::uint32_t const size = packet->GetIPAddressSize();
+  if (size == 4) {
+    std::uint32_t const addr =
+        core::InputByteStream::Read<std::uint32_t>(packet->GetIPAddress());
+    boost::asio::ip::address_v4 address(addr);
     // send hole punch of 1 byte
     m_Server.Send(
         {},
@@ -783,8 +788,7 @@ void SSUSession::ProcessRelayIntro(SSUPacket* pkt) {
   } else {
     LOG(warning)
       << "SSUSession:" << GetFormattedSessionInfo()
-      << __func__ << ": address size " << packet->GetIPAddressSize()
-      << " is not supported";
+      << __func__ << ": address size " << size << " is not supported";
   }
 }
 

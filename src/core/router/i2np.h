@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -150,6 +150,7 @@ enum I2NPMessageType {
 class InboundTunnel;
 class TunnelPool;
 
+// TODO(anonimal): bytestream refactor
 struct I2NPMessage {
   std::uint8_t* buf;
   std::size_t len, offset, max_len;
@@ -185,7 +186,8 @@ struct I2NPMessage {
   }
 
   std::uint32_t GetMsgID() const {
-    return bufbe32toh(GetHeader() + I2NP_HEADER_MSGID_OFFSET);
+    return core::InputByteStream::Read<std::uint32_t>(
+        GetHeader() + I2NP_HEADER_MSGID_OFFSET);
   }
 
   void SetExpiration(std::uint64_t expiration) {
@@ -193,7 +195,8 @@ struct I2NPMessage {
   }
 
   std::uint64_t GetExpiration() const {
-    return bufbe64toh(GetHeader() + I2NP_HEADER_EXPIRATION_OFFSET);
+    return core::InputByteStream::Read<std::uint64_t>(
+        GetHeader() + I2NP_HEADER_EXPIRATION_OFFSET);
   }
 
   void SetSize(std::uint16_t size) {
@@ -201,7 +204,8 @@ struct I2NPMessage {
   }
 
   std::uint16_t GetSize() const {
-    return bufbe16toh(GetHeader () + I2NP_HEADER_SIZE_OFFSET);
+    return core::InputByteStream::Read<std::uint16_t>(
+        GetHeader() + I2NP_HEADER_SIZE_OFFSET);
   }
 
   void UpdateSize() {
@@ -277,8 +281,9 @@ struct I2NPMessage {
       ssu[I2NP_SHORT_HEADER_TYPEID_OFFSET];  // typeid
     SetMsgID(msg_ID);
     SetExpiration(
-        bufbe32toh(
-          ssu + I2NP_SHORT_HEADER_EXPIRATION_OFFSET) * 1000LL);
+        core::InputByteStream::Read<std::uint32_t>(
+            ssu + I2NP_SHORT_HEADER_EXPIRATION_OFFSET)
+        * 1000LL);
     SetSize(len - offset - I2NP_HEADER_SIZE);
     SetChks(0);
   }
@@ -292,11 +297,13 @@ struct I2NPMessage {
       header[I2NP_HEADER_TYPEID_OFFSET];  // typeid
     htobe32buf(
         ssu + I2NP_SHORT_HEADER_EXPIRATION_OFFSET,
-        bufbe64toh(
-          header + I2NP_HEADER_EXPIRATION_OFFSET) / 1000LL);
-    len = offset + I2NP_SHORT_HEADER_SIZE + bufbe16toh(
-        header + I2NP_HEADER_SIZE_OFFSET);
-    return bufbe32toh(header + I2NP_HEADER_MSGID_OFFSET);
+        core::InputByteStream::Read<std::uint64_t>(
+            header + I2NP_HEADER_EXPIRATION_OFFSET) / 1000LL);
+    len = offset + I2NP_SHORT_HEADER_SIZE
+          + core::InputByteStream::Read<std::uint16_t>(
+                header + I2NP_HEADER_SIZE_OFFSET);
+    return core::InputByteStream::Read<std::uint32_t>(
+        header + I2NP_HEADER_MSGID_OFFSET);
   }
 
   void FillI2NPMessageHeader(

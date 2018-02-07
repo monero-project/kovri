@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -137,9 +137,9 @@ void LeaseSet::ReadFromBuffer() {
     Lease lease;
     lease.tunnel_gateway = leases;
     leases += 32;  // gateway
-    lease.tunnel_ID = bufbe32toh(leases);
+    lease.tunnel_ID = core::InputByteStream::Read<std::uint32_t>(leases);
     leases += 4;  // tunnel ID
-    lease.end_date = bufbe64toh(leases);
+    lease.end_date = core::InputByteStream::Read<std::uint64_t>(leases);
     leases += 8;  // end date
     m_Leases.push_back(lease);
     // check if lease's gateway is in our netDb

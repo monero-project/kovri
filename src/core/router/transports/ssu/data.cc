@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -42,6 +42,8 @@
 
 namespace kovri {
 namespace core {
+
+// TODO(anonimal): bytestream refactor
 
 void IncompleteMessage::AttachNextFragment(
     const std::uint8_t* fragment,
@@ -153,7 +155,8 @@ void SSUData::ProcessACKs(
     auto num_ACKs = *buf;
     buf++;
     for (auto i = 0; i < num_ACKs; i++)
-      ProcessSentMessageACK(bufbe32toh(buf+i*4));
+      ProcessSentMessageACK(
+          core::InputByteStream::Read<std::uint32_t>(buf + i * 4));
     buf += num_ACKs * 4;
   }
   if (flag & GetType(SSUFlag::DataACKBitfieldsIncluded)) {
@@ -161,7 +164,7 @@ void SSUData::ProcessACKs(
     auto num_bitfields = *buf;
     buf++;
     for (auto i = 0; i < num_bitfields; i++) {
-      auto msg_id = bufbe32toh(buf);
+      auto const msg_id = core::InputByteStream::Read<std::uint32_t>(buf);
       buf += 4;  // message ID
       auto it = m_SentMessages.find(msg_id);
       // process individual ACK bitfields
@@ -199,13 +202,14 @@ void SSUData::ProcessFragments(
   auto num_fragments = *buf;  // number of fragments
   buf++;
   for (auto i = 0; i < num_fragments; i++) {
-    auto msg_id = bufbe32toh(buf);  // message ID
+    auto const msg_id = core::InputByteStream::Read<std::uint32_t>(buf);
     buf += 4;
     std::array<std::uint8_t, 4> frag;
     frag.at(0) = 0;
     memcpy(frag.data() + 1, buf, 3);
     buf += 3;
-    auto fragment_info = bufbe32toh(frag.data());  // fragment info
+    auto const fragment_info =
+        core::InputByteStream::Read<std::uint32_t>(frag.data());
     auto fragment_size = fragment_info & 0x3FFF;  // bits 0 - 13
     bool is_last = fragment_info & 0x010000;  // bit 16
     std::uint8_t fragment_num = fragment_info >> 17;  // bits 23 - 17

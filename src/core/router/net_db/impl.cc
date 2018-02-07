@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -492,6 +492,8 @@ void NetDb::RequestDestination(
   }
 }
 
+// TODO(anonimal): bytestream refactor
+
 void NetDb::HandleDatabaseStoreMsg(
     std::shared_ptr<const I2NPMessage> m) {
   const std::uint8_t* buf = m->GetPayload();
@@ -501,11 +503,13 @@ void NetDb::HandleDatabaseStoreMsg(
     LOG(error) << "NetDb: database store with zero ident, dropped";
     return;
   }
-  std::uint32_t reply_token = bufbe32toh(buf + DATABASE_STORE_REPLY_TOKEN_OFFSET);
+  std::uint32_t const reply_token = core::InputByteStream::Read<std::uint32_t>(
+      buf + DATABASE_STORE_REPLY_TOKEN_OFFSET);
   std::uint8_t offset = DATABASE_STORE_HEADER_SIZE;
   if (reply_token) {
     auto delivery_status = CreateDeliveryStatusMsg(reply_token);
-    std::uint32_t tunnel_ID = bufbe32toh(buf + offset);
+    std::uint32_t const tunnel_ID =
+        core::InputByteStream::Read<std::uint32_t>(buf + offset);
     offset += 4;
     if (!tunnel_ID) {  // send response directly
       kovri::core::transports.SendMessage(buf + offset, delivery_status);
@@ -543,7 +547,8 @@ void NetDb::HandleDatabaseStoreMsg(
     AddLeaseSet(ident, buf + offset, len - offset, m->from);
   } else {
     LOG(debug) << "NetDb: RouterInfo";
-    std::uint16_t size = bufbe16toh(buf + offset);
+    std::uint16_t const size =
+        core::InputByteStream::Read<std::uint16_t>(buf + offset);
     offset += 2;
     if (size > RouterInfo::Size::MaxBuffer || size > len - offset) {
       LOG(error)
@@ -672,10 +677,11 @@ void NetDb::HandleDatabaseLookupMsg(
   const std::uint8_t* excluded = buf + 65;
   std::uint32_t reply_tunnel_ID = 0;
   if (flag & DATABASE_LOOKUP_DELIVERY_FLAG) {  // reply to tunnel
-    reply_tunnel_ID = bufbe32toh(buf + 64);
+    reply_tunnel_ID = core::InputByteStream::Read<std::uint32_t>(buf + 64);
     excluded += 4;
   }
-  std::uint16_t num_excluded = bufbe16toh(excluded);
+  std::uint16_t num_excluded =
+      core::InputByteStream::Read<std::uint16_t>(excluded);
   excluded += 2;
   if (num_excluded > Size::MaxExcludedPeers) {
     LOG(warning)

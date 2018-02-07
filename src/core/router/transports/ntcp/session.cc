@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -671,7 +671,7 @@ void NTCPSession::HandlePhase3Received(
     throw;
   }
   std::uint8_t* buf = m_ReceiveBuffer;
-  std::uint16_t size = bufbe16toh(buf);
+  std::uint16_t const size = core::InputByteStream::Read<std::uint16_t>(buf);
   m_RemoteIdentity.FromBuffer(buf + NTCPSize::Phase3AliceRI, size);
   if (m_Server.FindNTCPSession(m_RemoteIdentity.GetIdentHash())) {
     LOG(error)
@@ -745,7 +745,7 @@ void NTCPSession::HandlePhase3(
   std::uint8_t* buf = m_ReceiveBuffer
     + m_RemoteIdentity.GetFullLen()
     + NTCPSize::Phase3AliceRI;
-  std::uint32_t ts_A = buf32toh(buf);
+  std::uint32_t const ts_A = core::InputByteStream::Read<std::uint32_t>(buf);
   buf += NTCPSize::Phase3AliceTS;
   buf += padding_len;
   SignedData s;
@@ -1055,7 +1055,8 @@ bool NTCPSession::DecryptNextBlock(
       // Decrypt header and extract length
       std::array<std::uint8_t, NTCPSize::IV> buf;
       m_Decryption.Decrypt(encrypted, buf.data());
-      std::uint16_t data_size = bufbe16toh(buf.data());
+      std::uint16_t const data_size =
+          core::InputByteStream::Read<std::uint16_t>(buf.data());
       if (data_size) {
         // New message
         if (data_size > NTCPSize::MaxMessage) {

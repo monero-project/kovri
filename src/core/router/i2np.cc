@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -53,6 +53,8 @@
 
 namespace kovri {
 namespace core {
+
+// TODO(anonimal): bytestream refactor
 
 std::unique_ptr<I2NPMessage> NewI2NPMessage() {
   return std::make_unique<I2NPMessageBuffer<I2NP_MAX_MESSAGE_SIZE>>();
@@ -380,9 +382,9 @@ bool HandleBuildRequestRecords(
             !kovri::core::transports.IsBandwidthExceeded()) {
           kovri::core::TransitTunnel* transit_tunnel =
             kovri::core::CreateTransitTunnel(
-                bufbe32toh(clear_text + BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
+                core::InputByteStream::Read<std::uint32_t>(clear_text + BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
                 clear_text + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
-                bufbe32toh(clear_text + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
+                core::InputByteStream::Read<std::uint32_t>(clear_text + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
                 clear_text + BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET,
                 clear_text + BUILD_REQUEST_RECORD_IV_KEY_OFFSET,
                 clear_text[BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x80,
@@ -489,12 +491,12 @@ void HandleVariableTunnelBuildMsg(
             clear_text + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
             ToSharedI2NPMessage(
                 CreateTunnelGatewayMsg(
-                    bufbe32toh(
+                    core::InputByteStream::Read<std::uint32_t>(
                         clear_text + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
                     I2NPVariableTunnelBuildReply,
                     buf,
                     len,
-                    bufbe32toh(
+                    core::InputByteStream::Read<std::uint32_t>(
                         clear_text + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET))));
       } else {
         kovri::core::transports.SendMessage(
@@ -504,7 +506,7 @@ void HandleVariableTunnelBuildMsg(
                     I2NPVariableTunnelBuild,
                     buf,
                     len,
-                    bufbe32toh(
+                    core::InputByteStream::Read<std::uint32_t>(
                         clear_text + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET))));
       }
     }
@@ -523,12 +525,12 @@ void HandleTunnelBuildMsg(
           clear_text + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
           ToSharedI2NPMessage(
               CreateTunnelGatewayMsg(
-                  bufbe32toh(
+                  core::InputByteStream::Read<std::uint32_t>(
                       clear_text + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
                   I2NPTunnelBuildReply,
                   buf,
                   len,
-                  bufbe32toh(
+                  core::InputByteStream::Read<std::uint32_t>(
                       clear_text + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET))));
     } else {
       kovri::core::transports.SendMessage(
@@ -538,7 +540,7 @@ void HandleTunnelBuildMsg(
                   I2NPTunnelBuild,
                   buf,
                   len,
-                  bufbe32toh(
+                  core::InputByteStream::Read<std::uint32_t>(
                       clear_text + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET))));
     }
   }
@@ -659,20 +661,24 @@ std::unique_ptr<I2NPMessage> CreateTunnelGatewayMsg(
 // TODO(anonimal): s/size_t/uint16_t/
 std::size_t GetI2NPMessageLength(
     const std::uint8_t* msg) {
-  return bufbe16toh(msg + I2NP_HEADER_SIZE_OFFSET) + I2NP_HEADER_SIZE;
+  return core::InputByteStream::Read<std::uint16_t>(
+             msg + I2NP_HEADER_SIZE_OFFSET)
+         + I2NP_HEADER_SIZE;
 }
 
 void HandleI2NPMessage(
     std::uint8_t* msg,
     std::size_t len) {
   std::uint8_t type_ID = msg[I2NP_HEADER_TYPEID_OFFSET];
-  std::uint32_t msg_ID = bufbe32toh(msg + I2NP_HEADER_MSGID_OFFSET);
+  std::uint32_t const msg_ID = core::InputByteStream::Read<std::uint32_t>(
+      msg + I2NP_HEADER_MSGID_OFFSET);
   LOG(debug)
     << "I2NPMessage: msg received len=" << len
     << ", type=" << static_cast<int>(type_ID)
-    << ", msg_ID=" << (unsigned int)msg_ID;
+    << ", msg_ID=" << msg_ID;
   std::uint8_t* buf = msg + I2NP_HEADER_SIZE;
-  int size = bufbe16toh(msg + I2NP_HEADER_SIZE_OFFSET);
+  std::uint16_t const size =
+      core::InputByteStream::Read<std::uint16_t>(msg + I2NP_HEADER_SIZE_OFFSET);
   switch (type_ID) {
     case I2NPVariableTunnelBuild:
       LOG(debug) << "I2NPMessage: VariableTunnelBuild";

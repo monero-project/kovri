@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2017, The Kovri I2P Router Project
+ * Copyright (c) 2015-2018, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -662,7 +662,7 @@ SSUFragment SSUPacketParser::ParseFragment() {
   // TODO(EinMByte): clean this up
   std::array<std::uint8_t, 4> info_buf {{}};
   memcpy(info_buf.data() + 1, ReadBytes(3), 3);
-  const std::uint32_t fragment_info = bufbe32toh(info_buf.data());
+  const std::uint32_t fragment_info = Read<std::uint32_t>(info_buf.data());
   fragment.SetSize(fragment_info & 0x3FFF);  // bits 0 - 13
   // bits 15-14: unused, set to 0 for compatibility with future uses
   fragment.SetIsLast(fragment_info & 0x010000);  // bit 16
@@ -851,8 +851,11 @@ std::unique_ptr<SSUDataPacket> SSUPacketParser::ParseData() {
 std::unique_ptr<SSUPeerTestPacket> SSUPacketParser::ParsePeerTest() {
   auto packet = std::make_unique<SSUPeerTestPacket>();
   packet->SetNonce(Read<std::uint32_t>());
-  // TODO(EinMByte): Handle other address sizes, or deal with the errors.
-  packet->SetIPAddress(buf32toh(ReadBytes((Read<std::uint8_t>() == 4) ? 4 : 0)));
+  // TODO(anonimal): handle other address sizes
+  if (Read<std::uint8_t>() != 4)
+    throw std::length_error(
+        "SSUPacketParser: invalid peer test packet address size");
+  packet->SetIPAddress(Read<std::uint32_t>());
   packet->SetPort(Read<std::uint16_t>());
   packet->SetIntroKey(ReadBytes(GetType(SSUSize::IntroKey)));
   return packet;

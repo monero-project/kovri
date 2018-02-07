@@ -46,7 +46,6 @@ namespace kovri
 {
 namespace core
 {
-
 // TODO(anonimal): our interfaces should use const pointer - but doing so will break
 //   our current SSU implementation. Finish the SSU rewrite and use const correctness!
 class ByteStream
@@ -113,15 +112,10 @@ class InputByteStream : public ByteStream
 
   // TODO(anonimal): optional endian conversion
 
-  /// @brief Reads unsigned integral value from stream byte(s)
+  /// @brief Reads unsigned integral value from given buffer
+  /// @param buf Buffer to read from
+  /// @return Unsigned integral value read from byte(s)
   /// @note Converts from big endian to host order (when applicable)
-  /// @return Size value read from byte(s)
-  template <typename UInt>
-  UInt Read()
-  {
-    return Read<UInt>(ReadBytes(sizeof(UInt)));
-  }
-
   template <typename UInt>
   static UInt Read(const std::uint8_t* buf)
   {
@@ -132,6 +126,14 @@ class InputByteStream : public ByteStream
     UInt size;
     std::memcpy(&size, buf, sizeof(size));
     return boost::endian::big_to_native(size);
+  }
+
+  /// @brief Reads unsigned integral value from stream byte(s)
+  /// @return Unsigned integral value read from byte(s)
+  template <typename UInt>
+  UInt Read()
+  {
+    return Read<UInt>(ReadBytes(sizeof(UInt)));
   }
 };
 

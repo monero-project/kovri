@@ -386,6 +386,7 @@ void Stream::AsyncSend(
   Send(buf, len);
 }
 
+// TODO(anonimal): bytestream refactor
 void Stream::SendBuffer() {
   int num_msgs = m_WindowSize - m_SentPackets.size();
   if (num_msgs <= 0)
@@ -399,16 +400,16 @@ void Stream::SendBuffer() {
       std::uint8_t* packet = p->GetBuffer();
       // TODO(unassigned): implement setters
       std::size_t size = 0;
-      htobe32buf(packet + size, m_SendStreamID);
+      core::OutputByteStream::Write<std::uint32_t>(packet + size, m_SendStreamID);
       size += 4;  // sendStreamID
-      htobe32buf(packet + size, m_RecvStreamID);
+      core::OutputByteStream::Write<std::uint32_t>(packet + size, m_RecvStreamID);
       size += 4;  // receiveStreamID
-      htobe32buf(packet + size, m_SequenceNumber++);
+      core::OutputByteStream::Write<std::uint32_t>(packet + size, m_SequenceNumber++);
       size += 4;  // sequenceNum
       if (is_no_ack)
-        htobe32buf(packet + size, m_LastReceivedSequenceNumber);
+        core::OutputByteStream::Write<std::uint32_t>(packet + size, m_LastReceivedSequenceNumber);
       else
-        htobuf32(packet + size, 0);
+        core::OutputByteStream::Write<std::uint32_t>(packet + size, 0, false);
       size += 4;  // ack Through
       packet[size] = 0;
       size++;  // NACK count
@@ -422,19 +423,21 @@ void Stream::SendBuffer() {
           PACKET_FLAG_SIGNATURE_INCLUDED | PACKET_FLAG_MAX_PACKET_SIZE_INCLUDED;
         if (is_no_ack)
           flags |= PACKET_FLAG_NO_ACK;
-        htobe16buf(packet + size, flags);
+        core::OutputByteStream::Write<std::uint16_t>(packet + size, flags);
         size += 2;  // flags
         std::size_t identity_len =
           m_LocalDestination.GetOwner().GetIdentity().GetFullLen();
         std::size_t signature_len =
           m_LocalDestination.GetOwner().GetIdentity().GetSignatureLen();
         // identity + signature + packet size
-        htobe16buf(packet + size, identity_len + signature_len + 2);
+        core::OutputByteStream::Write<std::uint16_t>(
+            packet + size, identity_len + signature_len + 2);
         size += 2;  // options size
         m_LocalDestination.GetOwner().GetIdentity().ToBuffer(
             packet + size, identity_len);
         size += identity_len;  // from
-        htobe16buf(packet + size, STREAMING_MTU);
+        core::OutputByteStream::Write<std::uint16_t>(
+            packet + size, STREAMING_MTU);
         size += 2;  // max packet size
         std::uint8_t* signature = packet + size;  // set it later
         // zeroes for now
@@ -450,10 +453,10 @@ void Stream::SendBuffer() {
             signature);
       } else {
         // follow on packet
-        htobuf16(packet + size, 0);
+	core::OutputByteStream::Write<std::uint16_t>(packet + size, 0, false);
         size += 2;  // flags
         // no options
-        htobuf16(packet + size, 0);
+	core::OutputByteStream::Write<std::uint16_t>(packet + size, 0, false);
         size += 2;  // options size
         m_SendBuffer.read(
             reinterpret_cast<char *>(packet + size),
@@ -500,14 +503,14 @@ void Stream::SendQuickAck() {
   Packet p;
   std::uint8_t* packet = p.GetBuffer();
   std::size_t size = 0;
-  htobe32buf(packet + size, m_SendStreamID);
+  core::OutputByteStream::Write<std::uint32_t>(packet + size, m_SendStreamID);
   size += 4;  // sendStreamID
-  htobe32buf(packet + size, m_RecvStreamID);
+  core::OutputByteStream::Write<std::uint32_t>(packet + size, m_RecvStreamID);
   size += 4;  // receiveStreamID
   // this is plain Ack message
-  htobuf32(packet + size, 0);
+  core::OutputByteStream::Write<std::uint32_t>(packet + size, 0, false);
   size += 4;  // sequenceNum
-  htobe32buf(packet + size, last_received_seqn);
+  core::OutputByteStream::Write<std::uint32_t>(packet + size, last_received_seqn);
   size += 4;  // ack Through
   std::uint8_t num_nacks = 0;
   if (last_received_seqn > m_LastReceivedSequenceNumber) {
@@ -520,11 +523,11 @@ void Stream::SendQuickAck() {
         LOG(error)
           << "Stream: number of NACKs exceeds 256. seqn="
           << seqn << " next_seqn=" << next_seqn;
-        htobe32buf(packet + 12, next_seqn);  // change ack Through
+        core::OutputByteStream::Write<std::uint32_t>(packet + 12, next_seqn);  // change ack Through
         break;
       }
       for (std::uint32_t i = next_seqn; i < seqn; i++) {
-        htobe32buf(nacks, i);
+        core::OutputByteStream::Write<std::uint32_t>(nacks, i);
         nacks += 4;
         num_nacks++;
       }
@@ -540,10 +543,10 @@ void Stream::SendQuickAck() {
   }
   size++;  // resend delay
   // no flags set
-  htobuf16(packet + size, 0);
+  core::OutputByteStream::Write<std::uint16_t>(packet + size, 0, false);
   size += 2;  // flags
   // no options
-  htobuf16(packet + size, 0);
+  core::OutputByteStream::Write<std::uint16_t>(packet + size, 0, false);
   size += 2;  // options size
   p.len = size;
   SendPackets(std::vector<Packet *> { &p });
@@ -582,37 +585,38 @@ void Stream::Close() {
   }
 }
 
+// TODO(anonimal): bytestream refactor
 void Stream::SendClose() {
   Packet* p = new Packet();
   std::uint8_t* packet = p->GetBuffer();
   std::size_t size = 0;
-  htobe32buf(
+  core::OutputByteStream::Write<std::uint32_t>(
       packet + size,
       m_SendStreamID);
   size += 4;  // sendStreamID
-  htobe32buf(
+  core::OutputByteStream::Write<std::uint32_t>(
       packet + size,
       m_RecvStreamID);
   size += 4;  // receiveStreamID
-  htobe32buf(
+  core::OutputByteStream::Write<std::uint32_t>(
       packet + size,
       m_SequenceNumber++);
   size += 4;  // sequenceNum
-  htobe32buf(
+  core::OutputByteStream::Write<std::uint32_t>(
       packet + size,
       m_LastReceivedSequenceNumber);
   size += 4;  // ack Through
   packet[size] = 0;
   size++;  // NACK count
   size++;  // resend delay
-  htobe16buf(
+  core::OutputByteStream::Write<std::uint16_t>(
       packet + size,
       PACKET_FLAG_CLOSE | PACKET_FLAG_SIGNATURE_INCLUDED);
   size += 2;  // flags
   std::size_t signature_len =
     m_LocalDestination.GetOwner().GetIdentity().GetSignatureLen();
   // signature only
-  htobe16buf(packet + size, signature_len);
+  core::OutputByteStream::Write<std::uint16_t>(packet + size, signature_len);
   size += 2;  // options size
   std::uint8_t* signature = packet + size;
   memset(packet + size, 0, signature_len);
@@ -867,13 +871,14 @@ std::shared_ptr<kovri::core::I2NPMessage> Stream::CreateDataMessage(
     int size = compressor.MaxRetrievable();
     std::uint8_t* buf = msg->GetPayload();
     // length
-    htobe32buf(buf, size);
+    core::OutputByteStream::Write<std::uint32_t>(buf, size);
     buf += 4;
     compressor.Get(buf, size);
     // source port
-    htobe16buf(buf + 4, m_LocalDestination.GetLocalPort());
+    core::OutputByteStream::Write<std::uint16_t>(
+        buf + 4, m_LocalDestination.GetLocalPort());
     // destination port
-    htobe16buf(buf + 6, m_Port);
+    core::OutputByteStream::Write<std::uint16_t>(buf + 6, m_Port);
     // streaming protocol
     buf[9] = kovri::client::PROTOCOL_TYPE_STREAMING;
     msg->len += size + 4;

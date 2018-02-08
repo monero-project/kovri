@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -46,6 +46,8 @@
 namespace kovri {
 namespace core {
 
+// TODO(anonimal): bytestream refactor
+
 TunnelGatewayBuffer::TunnelGatewayBuffer(
     std::uint32_t tunnel_ID)
     : m_TunnelID(tunnel_ID),
@@ -74,7 +76,7 @@ void TunnelGatewayBuffer::PutI2NPMsg(
   std::size_t di_len = 1;  // flag
   if (block.delivery_type != e_DeliveryTypeLocal) {  // tunnel or router
     if (block.delivery_type == e_DeliveryTypeTunnel) {
-      htobe32buf(di + di_len, block.tunnel_ID);
+      core::OutputByteStream::Write<std::uint32_t>(di + di_len, block.tunnel_ID);
       di_len += 4;  // tunnel_ID
     }
     memcpy(di + di_len, block.hash, 32);
@@ -88,7 +90,7 @@ void TunnelGatewayBuffer::PutI2NPMsg(
   auto full_msg_len = di_len + msg->GetLength() + 2;
   if (full_msg_len <= m_RemainingSize) {
     // message fits. First and last fragment
-    htobe16buf(di + di_len, msg->GetLength());
+    core::OutputByteStream::Write<std::uint16_t>(di + di_len, msg->GetLength());
     di_len += 2;  // size
     memcpy(
         m_CurrentTunnelDataMsg->buf + m_CurrentTunnelDataMsg->len,
@@ -126,9 +128,9 @@ void TunnelGatewayBuffer::PutI2NPMsg(
       std::size_t size = m_RemainingSize - di_len - 6;
       // first fragment
       di[0] |= 0x08;  // fragmented
-      htobuf32(di + di_len, msg_ID);
+      core::OutputByteStream::Write<std::uint32_t>(di + di_len, msg_ID, false);
       di_len += 4;  // Message ID
-      htobe16buf(di + di_len, size);
+      core::OutputByteStream::Write<std::uint16_t>(di + di_len, size);
       di_len += 2;  // size
       memcpy(
           m_CurrentTunnelDataMsg->buf + m_CurrentTunnelDataMsg->len,
@@ -154,8 +156,8 @@ void TunnelGatewayBuffer::PutI2NPMsg(
           buf[0] |= 0x01;
           is_last_fragment = true;
         }
-        htobuf32(buf + 1, msg_ID);  // Message ID
-        htobe16buf(buf + 5, s);  // size
+        core::OutputByteStream::Write<std::uint32_t>(buf + 1, msg_ID, false);
+        core::OutputByteStream::Write<std::uint16_t>(buf + 5, s);  // size
         memcpy(buf + 7, msg->GetBuffer() + size, s);
         m_CurrentTunnelDataMsg->len += s+7;
         if (is_last_fragment) {
@@ -200,7 +202,7 @@ void TunnelGatewayBuffer::CompleteCurrentTunnelDataMessage() {
     m_CurrentTunnelDataMsg->offset =
       m_CurrentTunnelDataMsg->len - TUNNEL_DATA_MSG_SIZE - I2NP_HEADER_SIZE;
     std::uint8_t* buf = m_CurrentTunnelDataMsg->GetPayload();
-    htobe32buf(buf, m_TunnelID);
+    core::OutputByteStream::Write<std::uint32_t>(buf, m_TunnelID);
     kovri::core::RandBytes(buf + 4, 16);  // original IV
     memcpy(payload + size, buf + 4, 16);  // copy IV for checksum
     std::uint8_t hash[32];

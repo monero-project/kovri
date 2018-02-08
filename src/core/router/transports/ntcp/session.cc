@@ -36,6 +36,7 @@
 #include <string.h>
 
 #include <vector>
+#include <boost/endian/conversion.hpp>
 
 #include "core/crypto/diffie_hellman.h"
 #include "core/crypto/hash.h"
@@ -318,16 +319,19 @@ void NTCPSession::CreateAESKey(
 
 // Phase3: SessionConfirm A
 
+// TODO(anonimal): bytestream refactor
 void NTCPSession::SendPhase3() {
   LOG(debug)
     << "NTCPSession:" << GetFormattedSessionInfo() << "*** Phase3, preparing";
   auto keys = context.GetPrivateKeys();
   std::uint8_t* buf = m_ReceiveBuffer;
-  htobe16buf(buf, keys.GetPublic().GetFullLen());
+  core::OutputByteStream::Write<std::uint16_t>(
+      buf, keys.GetPublic().GetFullLen());
   buf += NTCPSize::Phase3AliceRI;
   buf += context.GetIdentity().ToBuffer(buf, NTCPSize::Buffer);
-  std::uint32_t ts_A = htobe32(kovri::core::GetSecondsSinceEpoch());
-  htobuf32(buf, ts_A);
+  std::uint32_t ts_A = core::GetSecondsSinceEpoch();  // TODO(anonimal): returns std::uint64_t
+  boost::endian::native_to_big_inplace(ts_A);
+  core::OutputByteStream::Write<std::uint32_t>(buf, ts_A, false);
   buf += NTCPSize::Phase3AliceTS;
   std::size_t signature_len = keys.GetPublic().GetSignatureLen();
   std::size_t len = (buf - m_ReceiveBuffer) + signature_len;
@@ -941,13 +945,14 @@ boost::asio::const_buffers_1 NTCPSession::CreateMsgBuffer(
       }
       send_buffer = msg->GetBuffer() - NTCPSize::Phase3AliceRI;
       len = msg->GetLength();
-      htobe16buf(send_buffer, len);
+      core::OutputByteStream::Write<std::uint16_t>(send_buffer, len);
     } else {
       // Prepare timestamp
       send_buffer = m_TimeSyncBuffer;
       len = NTCPSize::Phase3AliceTS;
-      htobuf16(send_buffer, 0);
-      htobe32buf(send_buffer + NTCPSize::Phase3AliceTS, time(0));
+      core::OutputByteStream::Write<std::uint16_t>(send_buffer, 0, false);
+      core::OutputByteStream::Write<std::uint32_t>(
+          send_buffer + NTCPSize::Phase3AliceTS, time(0));
     }
     int rem = (len + 6) & 0x0F;  // %16
     int padding = 0;

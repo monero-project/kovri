@@ -528,7 +528,8 @@ void NetDb::HandleDatabaseStoreMsg(
       std::uint8_t* payload = flood_msg->GetPayload();
       memcpy(payload, buf, 33);  // key + type
       // zero reply token
-      htobe32buf(payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0);
+      core::OutputByteStream::Write<std::uint32_t>(
+          payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0);
       memcpy(payload + DATABASE_STORE_HEADER_SIZE, buf + offset, len - offset);
       flood_msg->len += DATABASE_STORE_HEADER_SIZE + len -offset;
       flood_msg->FillI2NPMessageHeader(I2NPDatabaseStore);

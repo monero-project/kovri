@@ -45,64 +45,13 @@
 
 #include <libkern/OSByteOrder.h>
 
-#define htobe16(x) OSSwapHostToBigInt16(x)
-#define htole16(x) OSSwapHostToLittleInt16(x)
-
-#define htobe32(x) OSSwapHostToBigInt32(x)
-#define htole32(x) OSSwapHostToLittleInt32(x)
-
-#define htobe64(x) OSSwapHostToBigInt64(x)
-#define htole64(x) OSSwapHostToLittleInt64(x)
-
 #else
 #define NEEDS_LOCAL_ENDIAN
 #include <cstddef>
 #include <cstdint>
-std::uint16_t htobe16(std::uint16_t int16);
-std::uint32_t htobe32(std::uint32_t int32);
-std::uint64_t htobe64(std::uint64_t int64);
 
 // assume LittleEndine
-#define htole16
-#define htole32
-#define htole64
 
 #endif
-
-inline void htobuf16(
-    void* buf,
-    std::uint16_t b16) {
-  memcpy(buf, &b16, sizeof(std::uint16_t));
-}
-
-inline void htobuf32(
-    void* buf,
-    std::uint32_t b32) {
-  memcpy(buf, &b32, sizeof(std::uint32_t));
-}
-
-inline void htobuf64(
-    void* buf,
-    std::uint64_t b64) {
-  memcpy(buf, &b64, sizeof(std::uint64_t));
-}
-
-inline void htobe16buf(
-    void* buf,
-    std::uint16_t big16) {
-  htobuf16(buf, htobe16(big16));
-}
-
-inline void htobe32buf(
-    void* buf,
-    std::uint32_t big32) {
-  htobuf32(buf, htobe32(big32));
-}
-
-inline void htobe64buf(
-    void* buf,
-    std::uint64_t big64) {
-  htobuf64(buf, htobe64(big64));
-}
 
 #endif  // SRC_CORE_UTIL_I2P_ENDIAN_H_

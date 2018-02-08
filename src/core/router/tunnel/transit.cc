@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -83,7 +83,8 @@ void TransitTunnelParticipant::HandleTunnelDataMsg(
   auto new_msg = CreateEmptyTunnelDataMsg();
   EncryptTunnelMsg(tunnel_msg, new_msg);
   m_NumTransmittedBytes += tunnel_msg->GetLength();
-  htobe32buf(new_msg->GetPayload(), GetNextTunnelID());
+  core::OutputByteStream::Write<std::uint32_t>(
+      new_msg->GetPayload(), GetNextTunnelID());
   new_msg->FillI2NPMessageHeader(I2NPTunnelData);
   m_TunnelDataMsgs.push_back(new_msg);
 }

@@ -371,6 +371,7 @@ void SSUData::ProcessMessage(
   ProcessFragments(buf);
 }
 
+// TODO(anonimal): bytestream refactor
 void SSUData::Send(
     std::shared_ptr<kovri::core::I2NPMessage> msg) {
   LOG(debug)
@@ -412,7 +413,7 @@ void SSUData::Send(
     payload++;
     *payload = 1;  // always 1 message fragment per message
     payload++;
-    htobe32buf(payload, msg_id);
+    core::OutputByteStream::Write<std::uint32_t>(payload, msg_id);
     payload += 4;
     bool is_last = (len <= payload_size);
     auto size = is_last ? len : payload_size;

@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -247,6 +247,7 @@ void DatagramDestination::HandleDataMessagePayload(
   }
 }
 
+// TODO(anonimal): bytestream refactor
 std::unique_ptr<kovri::core::I2NPMessage> DatagramDestination::CreateDataMessage(
     const std::uint8_t* payload,
     std::size_t len,
@@ -258,11 +259,11 @@ std::unique_ptr<kovri::core::I2NPMessage> DatagramDestination::CreateDataMessage
     compressor.Put(payload, len);
     std::size_t size = compressor.MaxRetrievable();
     std::uint8_t* buf = msg->GetPayload();
-    htobe32buf(buf, size);  // length
+    core::OutputByteStream::Write<std::uint32_t>(buf, size);  // length
     buf += 4;
     compressor.Get(buf, size);
-    htobe16buf(buf + 4, from_port);  // source port
-    htobe16buf(buf + 6, to_port);  // destination port
+    core::OutputByteStream::Write<std::uint16_t>(buf + 4, from_port);  // source port
+    core::OutputByteStream::Write<std::uint16_t>(buf + 6, to_port);  // destination port
     buf[9] = kovri::client::PROTOCOL_TYPE_DATAGRAM;  // datagram protocol
     msg->len += size + 4;
     msg->FillI2NPMessageHeader(kovri::core::I2NPData);

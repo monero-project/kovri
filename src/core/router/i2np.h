@@ -182,7 +182,8 @@ struct I2NPMessage {
   }
 
   void SetMsgID(std::uint32_t msg_ID) {
-    htobe32buf(GetHeader() + I2NP_HEADER_MSGID_OFFSET, msg_ID);
+    core::OutputByteStream::Write<std::uint32_t>(
+        GetHeader() + I2NP_HEADER_MSGID_OFFSET, msg_ID);
   }
 
   std::uint32_t GetMsgID() const {
@@ -191,7 +192,8 @@ struct I2NPMessage {
   }
 
   void SetExpiration(std::uint64_t expiration) {
-    htobe64buf(GetHeader() + I2NP_HEADER_EXPIRATION_OFFSET, expiration);
+    core::OutputByteStream::Write<std::uint64_t>(
+        GetHeader() + I2NP_HEADER_EXPIRATION_OFFSET, expiration);
   }
 
   std::uint64_t GetExpiration() const {
@@ -200,7 +202,8 @@ struct I2NPMessage {
   }
 
   void SetSize(std::uint16_t size) {
-    htobe16buf(GetHeader() + I2NP_HEADER_SIZE_OFFSET, size);
+    core::OutputByteStream::Write<std::uint16_t>(
+        GetHeader() + I2NP_HEADER_SIZE_OFFSET, size);
   }
 
   std::uint16_t GetSize() const {
@@ -288,6 +291,7 @@ struct I2NPMessage {
     SetChks(0);
   }
 
+  // TODO(anonimal): bytestream refactor
   // return msg_ID
   std::uint32_t ToSSU() {
     std::uint8_t header[I2NP_HEADER_SIZE];
@@ -295,7 +299,7 @@ struct I2NPMessage {
     std::uint8_t * ssu = GetSSUHeader();
     ssu[I2NP_SHORT_HEADER_TYPEID_OFFSET] =
       header[I2NP_HEADER_TYPEID_OFFSET];  // typeid
-    htobe32buf(
+    core::OutputByteStream::Write<std::uint32_t>(
         ssu + I2NP_SHORT_HEADER_EXPIRATION_OFFSET,
         core::InputByteStream::Read<std::uint64_t>(
             header + I2NP_HEADER_EXPIRATION_OFFSET) / 1000LL);

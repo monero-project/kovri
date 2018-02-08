@@ -40,6 +40,7 @@
 #include "core/router/tunnel/pool.h"
 #include "core/router/tunnel/impl.h"
 
+#include "core/util/byte_stream.h"
 #include "core/util/i2p_endian.h"
 #include "core/util/log.h"
 #include "core/util/timestamp.h"
@@ -226,7 +227,7 @@ std::shared_ptr<I2NPMessage> GarlicRoutingSession::WrapSingleMessage(
     }
     // AES block
     len += CreateAESBlock(buf, msg);
-    htobe32buf(m->GetPayload(), len);
+    core::OutputByteStream::Write<std::uint32_t>(m->GetPayload(), len);
     m->len += len + 4;
     m->FillI2NPMessageHeader(I2NPGarlic);
   } catch (...) {
@@ -237,6 +238,7 @@ std::shared_ptr<I2NPMessage> GarlicRoutingSession::WrapSingleMessage(
   return m;
 }
 
+// TODO(anonimal): bytestream refactor
 std::size_t GarlicRoutingSession::CreateAESBlock(
     std::uint8_t* buf,
     std::shared_ptr<const I2NPMessage> msg) {
@@ -246,7 +248,8 @@ std::size_t GarlicRoutingSession::CreateAESBlock(
     m_NumTags &&
     (static_cast<int>(m_SessionTags.size()) <= m_NumTags * 2 / 3);
   UnconfirmedTags* new_tags = create_new_tags ? GenerateSessionTags() : nullptr;
-  htobuf16(buf, new_tags ? htobe16(new_tags->num_tags) : 0);  // tag count
+  core::OutputByteStream::Write<std::uint16_t>(
+      buf, new_tags ? new_tags->num_tags : 0);  // tag count
   block_size += 2;
   if (new_tags) {  // session tags recreated
     for (int i = 0; i < new_tags->num_tags; i++) {
@@ -254,14 +257,14 @@ std::size_t GarlicRoutingSession::CreateAESBlock(
       block_size += 32;
     }
   }
-  std::uint32_t* payload_size = reinterpret_cast<std::uint32_t *>((buf + block_size));
+  std::uint8_t* payload_size = buf + block_size;
   block_size += 4;
   std::uint8_t* payload_hash = buf + block_size;
   block_size += 32;
   buf[block_size] = 0;  // flag
   block_size++;
   std::size_t len = CreateGarlicPayload(buf + block_size, msg, new_tags);
-  htobe32buf(payload_size, len);
+  core::OutputByteStream::Write<std::uint32_t>(payload_size, len);
   kovri::core::SHA256().CalculateDigest(payload_hash, buf + block_size, len);
   block_size += len;
   std::size_t rem = block_size % 16;
@@ -330,13 +333,14 @@ std::size_t GarlicRoutingSession::CreateGarlicPayload(
   }
   memset(payload + size, 0, 3);  // certificate of message
   size += 3;
-  htobe32buf(payload + size, msg_ID);  // MessageID
+  core::OutputByteStream::Write<std::uint32_t>(payload + size, msg_ID);
   size += 4;
-  htobe64buf(payload + size, ts);  // Expiration of message
+  core::OutputByteStream::Write<std::uint64_t>(payload + size, ts);  // Expiration of message
   size += 8;
   return size;
 }
 
+// TODO(anonimal): bytestream refactor
 std::size_t GarlicRoutingSession::CreateGarlicClove(
     std::uint8_t* buf,
     std::shared_ptr<const I2NPMessage> msg,
@@ -356,15 +360,16 @@ std::size_t GarlicRoutingSession::CreateGarlicClove(
   memcpy(buf + size, msg->GetBuffer(), msg->GetLength());
   size += msg->GetLength();
   // CloveID
-  htobe32buf(buf + size, kovri::core::Rand<std::uint32_t>());
+  core::OutputByteStream::Write<std::uint32_t>(buf + size, kovri::core::Rand<std::uint32_t>());
   size += 4;
-  htobe64buf(buf + size, ts);  // Expiration of clove
+  core::OutputByteStream::Write<std::uint64_t>(buf + size, ts);  // Expiration of clove
   size += 8;
   memset(buf + size, 0, 3);  // certificate of clove
   size += 3;
   return size;
 }
 
+// TODO(anonimal): bytestream refactor
 std::size_t GarlicRoutingSession::CreateDeliveryStatusClove(
     std::uint8_t* buf,
     std::uint32_t msg_ID) {
@@ -378,7 +383,8 @@ std::size_t GarlicRoutingSession::CreateDeliveryStatusClove(
       // hash and tunnelID sequence is reversed for Garlic
       memcpy(buf + size, inbound_tunnel->GetNextIdentHash(), 32);  // To Hash
       size += 32;
-      htobe32buf(buf + size, inbound_tunnel->GetNextTunnelID());  // tunnelID
+      core::OutputByteStream::Write<std::uint32_t>(
+          buf + size, inbound_tunnel->GetNextTunnelID());  // tunnelID
       size += 4;
       // create msg
       auto msg = CreateDeliveryStatusMsg(msg_ID);
@@ -396,9 +402,10 @@ std::size_t GarlicRoutingSession::CreateDeliveryStatusClove(
       // fill clove
       std::uint64_t ts = kovri::core::GetMillisecondsSinceEpoch() + 5000;  // 5 sec
       // CloveID
-      htobe32buf(buf + size, kovri::core::Rand<std::uint32_t>());
+      core::OutputByteStream::Write<std::uint32_t>(
+          buf + size, core::Rand<std::uint32_t>());
       size += 4;
-      htobe64buf(buf + size, ts);  // Expiration of clove
+      core::OutputByteStream::Write<std::uint64_t>(buf + size, ts);  // Expiration of clove
       size += 8;
       memset(buf + size, 0, 3);  // certificate of clove
       size += 3;

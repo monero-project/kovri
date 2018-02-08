@@ -181,8 +181,10 @@ IdentityEx::IdentityEx(
       m_StandardIdentity.certificate.length = htobe16(m_ExtendedLen);
       // fill extended buffer
       m_ExtendedBuffer = std::make_unique<std::uint8_t[]>(m_ExtendedLen);
-      htobe16buf(m_ExtendedBuffer.get(), type);
-      htobe16buf(m_ExtendedBuffer.get() + 2, CRYPTO_KEY_TYPE_ELGAMAL);
+      core::OutputByteStream::Write<std::uint16_t>(
+          m_ExtendedBuffer.get(), type);
+      core::OutputByteStream::Write<std::uint16_t>(
+          m_ExtendedBuffer.get() + 2, CRYPTO_KEY_TYPE_ELGAMAL);
       if (excess_len && excess_buf) {
         memcpy(m_ExtendedBuffer.get() + 4, excess_buf.get(), excess_len);
       }

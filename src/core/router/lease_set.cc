@@ -87,7 +87,8 @@ LeaseSet::LeaseSet(
   for (auto it : tunnels) {
     memcpy(m_Buffer.get() + m_BufferLen, it->GetNextIdentHash(), 32);
     m_BufferLen += 32;  // gateway id
-    htobe32buf(m_Buffer.get() + m_BufferLen, it->GetNextTunnelID());
+    core::OutputByteStream::Write<std::uint32_t>(
+        m_Buffer.get() + m_BufferLen, it->GetNextTunnelID());
     m_BufferLen += 4;  // tunnel id
     std::uint64_t ts =
       it->GetCreationTime() +
@@ -95,7 +96,8 @@ LeaseSet::LeaseSet(
       kovri::core::TUNNEL_EXPIRATION_THRESHOLD;  // 1 minute before expiration
     ts *= 1000;  // in milliseconds
     ts += kovri::core::RandInRange32(0, 5);  // + random milliseconds
-    htobe64buf(m_Buffer.get() + m_BufferLen, ts);
+    core::OutputByteStream::Write<std::uint64_t>(
+        m_Buffer.get() + m_BufferLen, ts);
     m_BufferLen += 8;  // end date
   }
   // signature

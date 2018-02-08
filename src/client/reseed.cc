@@ -33,6 +33,7 @@
 #include "client/reseed.h"
 
 #include <boost/filesystem.hpp>
+#include <boost/endian/conversion.hpp>
 
 #include <fstream>
 #include <regex>
@@ -284,14 +285,14 @@ bool SU3::PrepareStream() {
     m_Stream.Seekg(Offset::version, std::ios::cur);
     // Prepare signature type
     m_Stream.Read(&m_Data->signature_type, Size::signature_type);
-    m_Data->signature_type = be16toh(m_Data->signature_type);
+    boost::endian::big_to_native_inplace(m_Data->signature_type);
     if (m_Data->signature_type != kovri::core::SIGNING_KEY_TYPE_RSA_SHA512_4096) {  // Temporary (see #160)
       LOG(error) << "SU3: signature type not supported";
       return false;
     }
     // Prepare signature length
     m_Stream.Read(&m_Data->signature_length, Size::signature_length);
-    m_Data->signature_length = be16toh(m_Data->signature_length);
+    boost::endian::big_to_native_inplace(m_Data->signature_length);
     if (m_Data->signature_length != sizeof(kovri::core::PublicKey)) {  // Temporary (see #160)
       LOG(error) << "SU3: invalid signature length";
       return false;
@@ -315,7 +316,7 @@ bool SU3::PrepareStream() {
     }
     // Prepare content length
     m_Stream.Read(&m_Data->content_length, Size::content_length);
-    m_Data->content_length = be64toh(m_Data->content_length);
+    boost::endian::big_to_native_inplace(m_Data->content_length);
     if (!m_Data->content_length) {
       LOG(error) << "SU3: invalid content length";
       return false;

@@ -33,6 +33,7 @@
 #include "core/router/transports/ssu/session.h"
 
 #include <boost/bind.hpp>
+#include <boost/endian/conversion.hpp>
 
 #include "core/crypto/diffie_hellman.h"
 #include "core/crypto/hash.h"
@@ -393,7 +394,7 @@ void SSUSession::ProcessSessionCreated(
     our_IP = boost::asio::ip::address_v6(bytes);
   }
   s.Insert(packet->GetIPAddress(), packet->GetIPAddressSize());  // our IP
-  s.Insert<std::uint16_t>(htobe16(packet->GetPort()));  // our port
+  s.Insert<std::uint16_t>(boost::endian::native_to_big(packet->GetPort()));  // our port
   LOG(debug)
     << "SSUSession:" << GetFormattedSessionInfo()
     << __func__ << ": our external address is "
@@ -406,10 +407,10 @@ void SSUSession::ProcessSessionCreated(
     // remote IP v6
     s.Insert(GetRemoteEndpoint().address().to_v6().to_bytes().data(), 16);
   }
-  s.Insert<std::uint16_t>(htobe16(GetRemoteEndpoint().port()));  // remote port
+  s.Insert<std::uint16_t>(boost::endian::native_to_big(GetRemoteEndpoint().port()));  // remote port
   m_RelayTag = packet->GetRelayTag();
-  s.Insert<std::uint32_t>(htobe32(m_RelayTag));  // relay tag
-  s.Insert<std::uint32_t>(htobe32(packet->GetSignedOnTime()));  // signed on time
+  s.Insert<std::uint32_t>(boost::endian::native_to_big(m_RelayTag));  // relay tag
+  s.Insert<std::uint32_t>(boost::endian::native_to_big(packet->GetSignedOnTime()));  // signed on time
   // decrypt signature
   auto signature_len = m_RemoteIdentity.GetSignatureLen();
   auto padding_size = signature_len & 0x0F;  // %16
@@ -472,12 +473,12 @@ void SSUSession::SendSessionCreated(
   // TODO(unassigned): remove const_cast, see bytestream TODO
   packet.SetIPAddress(const_cast<std::uint8_t*>(remote_ip.data()), remote_ip.size());
   s.Insert(remote_ip.data(), remote_ip.size());  // remote ip
-  s.Insert<std::uint16_t>(htobe16(packet.GetPort()));  // remote port
+  s.Insert<std::uint16_t>(boost::endian::native_to_big(packet.GetPort()));  // remote port
   if (address->host.is_v4())
     s.Insert(address->host.to_v4().to_bytes().data(), 4);  // our IP V4
   else
     s.Insert(address->host.to_v6().to_bytes().data(), 16);  // our IP V6
-  s.Insert<std::uint16_t> (htobe16(address->port));  // our port
+  s.Insert<std::uint16_t> (boost::endian::native_to_big(address->port));  // our port
 
   std::uint32_t relay_tag = 0;
   if (context.GetRouterInfo().HasCap(RouterInfo::Cap::SSUIntroducer)) {
@@ -488,8 +489,8 @@ void SSUSession::SendSessionCreated(
   }
   packet.SetRelayTag(relay_tag);
   packet.SetSignedOnTime(kovri::core::GetSecondsSinceEpoch());
-  s.Insert<std::uint32_t>(htobe32(relay_tag));
-  s.Insert<std::uint32_t>(htobe32(packet.GetSignedOnTime()));
+  s.Insert<std::uint32_t>(boost::endian::native_to_big(relay_tag));
+  s.Insert<std::uint32_t>(boost::endian::native_to_big(packet.GetSignedOnTime()));
   // store for session confirmation
   m_SessionConfirmData = std::make_unique<SignedData>(s);
 
@@ -548,7 +549,7 @@ void SSUSession::ProcessSessionConfirmed(SSUPacket* pkt) {
   m_Data.UpdatePacketSize(m_RemoteIdentity.GetIdentHash());
   // signature time : replace with last value
   m_SessionConfirmData->Insert<std::uint32_t>(
-      std::ios_base::end, -4, htobe32(packet->GetSignedOnTime()));
+      std::ios_base::end, -4, boost::endian::native_to_big(packet->GetSignedOnTime()));
   if (m_SessionConfirmData->Verify(m_RemoteIdentity, packet->GetSignature())) {
     // verified
     Established();
@@ -580,15 +581,15 @@ void SSUSession::SendSessionConfirmed(
   s.Insert(m_DHKeysPair->public_key.data(), 256);  // x
   s.Insert(y, 256);  // y
   s.Insert(our_address, our_address_len);
-  s.Insert<std::uint16_t>(htobe16(our_port));
+  s.Insert<std::uint16_t>(boost::endian::native_to_big(our_port));
   auto const address = GetRemoteEndpoint().address();
   if (address.is_v4())  // remote IP V4
     s.Insert(address.to_v4().to_bytes().data(), 4);
   else  // remote IP V6
     s.Insert(address.to_v6().to_bytes().data(), 16);
-  s.Insert<std::uint16_t>(htobe16(GetRemoteEndpoint().port()));  // remote port
-  s.Insert(htobe32(m_RelayTag));
-  s.Insert(htobe32(packet.GetSignedOnTime()));
+  s.Insert<std::uint16_t>(boost::endian::native_to_big(GetRemoteEndpoint().port()));  // remote port
+  s.Insert(boost::endian::native_to_big(m_RelayTag));
+  s.Insert(boost::endian::native_to_big(packet.GetSignedOnTime()));
   s.Sign(context.GetPrivateKeys(), signature_buf.get());
   packet.SetSignature(signature_buf.get());
   const std::size_t packet_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
@@ -954,8 +955,8 @@ void SSUSession::ProcessPeerTest(
               packet->m_RawDataLength);
           SendPeerTest(  // to Alice with her address received from Bob
               packet->GetNonce(),
-              be32toh(packet->GetIPAddress()),
-              packet->GetPort(),
+              boost::endian::big_to_native(packet->GetIPAddress()),  // TODO(anonimal): native / big endian?
+              packet->GetPort(),  // TODO(anonimal): native / big endian?
               packet->GetIntroKey());
         } else {
           LOG(debug)

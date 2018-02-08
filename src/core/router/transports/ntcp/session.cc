@@ -581,7 +581,7 @@ void NTCPSession::SendPhase2() {
         xy.data(),
         NTCPSize::PubKey * 2);
     // Set timestamp B
-    ts_B = htobe32(kovri::core::GetSecondsSinceEpoch());
+    ts_B = boost::endian::native_to_big(core::GetSecondsSinceEpoch());
     m_Establisher->phase2.encrypted.timestamp = ts_B;
     // Random padding
     kovri::core::RandBytes(

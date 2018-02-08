@@ -32,6 +32,8 @@
 
 #include "core/router/identity.h"
 
+#include <boost/endian/conversion.hpp>
+
 #include <stdio.h>
 #include <time.h>
 
@@ -177,7 +179,7 @@ IdentityEx::IdentityEx(
       m_ExtendedLen = 4 + excess_len;  // 4 bytes extra + excess length
       // fill certificate
       m_StandardIdentity.certificate.type = CERTIFICATE_TYPE_KEY;
-      m_StandardIdentity.certificate.length = htobe16(m_ExtendedLen);
+      m_StandardIdentity.certificate.length = boost::endian::native_to_big(m_ExtendedLen);
       // fill extended buffer
       m_ExtendedBuffer = std::make_unique<std::uint8_t[]>(m_ExtendedLen);
       core::OutputByteStream::Write<std::uint16_t>(
@@ -268,7 +270,7 @@ std::size_t IdentityEx::FromBuffer(
   m_ExtendedBuffer.reset(nullptr);
   memcpy(&m_StandardIdentity, buf, DEFAULT_IDENTITY_SIZE);
   if (m_StandardIdentity.certificate.length) {
-    m_ExtendedLen = be16toh(m_StandardIdentity.certificate.length);
+    m_ExtendedLen = boost::endian::big_to_native(m_StandardIdentity.certificate.length);
     if (m_ExtendedLen + DEFAULT_IDENTITY_SIZE <= len) {
       m_ExtendedBuffer = std::make_unique<std::uint8_t[]>(m_ExtendedLen);
       memcpy(m_ExtendedBuffer.get(), buf + DEFAULT_IDENTITY_SIZE, m_ExtendedLen);

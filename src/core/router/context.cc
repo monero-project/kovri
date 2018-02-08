@@ -159,7 +159,7 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
 
   // TODO(anonimal): we don't want a flurry of micro-managed setter functions
   //  but we also don't want to re-initialize context just to update certain RI
-  //  traits! Note: updating RI traits doesn't update server sockets
+  //  traits! Note: updating RI traits won't update server sockets
   LOG(debug) << "RouterContext: setting context RI traits";
 
   // IPv6

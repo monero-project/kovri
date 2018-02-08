@@ -33,6 +33,7 @@
 #include "core/router/transports/ssu/data.h"
 
 #include <boost/bind.hpp>
+#include <boost/endian/conversion.hpp>
 
 #include "core/router/net_db/impl.h"
 #include "core/router/transports/ssu/server.h"
@@ -417,11 +418,11 @@ void SSUData::Send(
     payload += 4;
     bool is_last = (len <= payload_size);
     auto size = is_last ? len : payload_size;
-    auto fragment_info = (fragment_num << 17);
+    std::uint32_t fragment_info = (fragment_num << 17);
     if (is_last)
       fragment_info |= 0x010000;
     fragment_info |= size;
-    fragment_info = htobe32(fragment_info);
+    boost::endian::native_to_big_inplace(fragment_info);
     memcpy(payload, reinterpret_cast<std::uint8_t *>((&fragment_info)) + 1, 3);
     payload += 3;
     memcpy(payload, msg_buf, size);
@@ -461,7 +462,7 @@ void SSUData::SendMsgACK(
   payload++;
   *payload = 1;  // number of ACKs
   payload++;
-  *(reinterpret_cast<std::uint32_t *>(payload)) = htobe32(msg_id);  // msg_id
+  *(reinterpret_cast<std::uint32_t *>(payload)) = boost::endian::native_to_big(msg_id);  // msg_id
   payload += 4;
   *payload = 0;  // number of fragments
   // encrypt message with session key
@@ -488,7 +489,7 @@ void SSUData::SendFragmentACK(
   *payload = 1;  // number of ACK bitfields
   payload++;
   // one ack
-  *(reinterpret_cast<std::uint32_t *>(payload)) = htobe32(msg_id);  // msg_id
+  *(reinterpret_cast<std::uint32_t *>(payload)) = boost::endian::native_to_big(msg_id);  // msg_id
   payload += 4;
   div_t d = div(fragment_num, 7);
   memset(payload, 0x80, d.quot);  // 0x80 means non-last

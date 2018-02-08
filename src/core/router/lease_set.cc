@@ -39,7 +39,6 @@
 #include "core/router/net_db/impl.h"
 #include "core/router/tunnel/pool.h"
 
-#include "core/util/i2p_endian.h"
 #include "core/util/log.h"
 #include "core/util/timestamp.h"
 

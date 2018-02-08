@@ -43,7 +43,6 @@
 
 #include "core/router/identity.h"
 
-#include "core/util/i2p_endian.h"
 
 namespace kovri {
 namespace client {

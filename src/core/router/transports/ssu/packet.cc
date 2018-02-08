@@ -36,7 +36,6 @@
 
 #include "core/router/transports/ssu/data.h"
 
-#include "core/util/i2p_endian.h"
 #include "core/util/log.h"
 #include "core/util/timestamp.h"
 

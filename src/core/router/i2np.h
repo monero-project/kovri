@@ -47,7 +47,6 @@
 #include "core/router/lease_set.h"
 
 #include "core/util/exception.h"
-#include "core/util/i2p_endian.h"
 
 namespace kovri {
 namespace core {

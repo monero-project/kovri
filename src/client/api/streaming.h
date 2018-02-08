@@ -54,7 +54,6 @@
 #include "core/router/tunnel/impl.h"
 
 #include "core/util/exception.h"
-#include "core/util/i2p_endian.h"
 
 namespace kovri {
 namespace client {

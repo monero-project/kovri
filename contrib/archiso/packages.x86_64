@@ -1,0 +1,30 @@
+# Monero & Kovri build dependencies
+base-devel
+boost
+cmake
+expat
+git
+libunwind
+openssl
+readline
+unbound
+xz
+zeromq
+
+# Optional dependencies
+clang
+doxygen
+graphviz
+gtest
+ldns
+miniupnpc
+
+# Kovri testnet
+docker
+zip
+
+# Utilities
+cryptsetup
+gdb
+tmux
+vim

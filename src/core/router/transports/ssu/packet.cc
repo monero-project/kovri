@@ -689,7 +689,7 @@ std::unique_ptr<SSUHeader> SSUPacketParser::ParseHeader() {
     // TODO(EinMByte): Actually do something with the data
     // TODO(EinMByte): See issue #119, for some reason some rekey options
     //                 are sometimes set?
-    ConsumeData(SSUSize::KeyingMaterial);
+    Advance(SSUSize::KeyingMaterial);
   }
   if (header->HasExtendedOptions()) {
     const std::size_t options_size = Read<std::uint8_t>();
@@ -765,7 +765,7 @@ std::unique_ptr<SSUSessionCreatedPacket> SSUPacketParser::ParseSessionCreated() 
 std::unique_ptr<SSUSessionConfirmedPacket> SSUPacketParser::ParseSessionConfirmed() {
   const std::size_t init_length = m_Length;
   auto packet = std::make_unique<SSUSessionConfirmedPacket>();
-  ConsumeData(1);  // Skip info byte
+  Advance(1);  // Skip info byte
   std::uint16_t identity_size = Read<std::uint16_t>();
   kovri::core::IdentityEx identity;
   if (!identity.FromBuffer(ReadBytes(identity_size), identity_size))
@@ -775,7 +775,7 @@ std::unique_ptr<SSUSessionConfirmedPacket> SSUPacketParser::ParseSessionConfirme
   const std::size_t padding_size = SSUPacketBuilder::GetPaddingSize(
       m_Header->GetSize() + init_length - m_Length
       + identity.GetSignatureLen());
-  ConsumeData(padding_size);  // Skip padding
+  Advance(padding_size);  // Skip padding
   packet->SetSignature(m_Data);
   return packet;
 }
@@ -890,7 +890,7 @@ void SSUPacketBuilder::WriteHeader(SSUHeader* header) {
   if (header->GetMAC())
     WriteData(header->GetMAC(), SSUSize::MAC);
   else
-    ProduceData(SSUSize::MAC);  // Write MAC later
+    Advance(SSUSize::MAC);  // Write MAC later
   WriteData(header->GetIV(), SSUSize::IV);
   const std::uint8_t flag =
       (header->GetPayloadType() << 4) +
@@ -931,7 +931,7 @@ void SSUPacketBuilder::WriteSessionConfirmed(
   const std::size_t identity_size = packet->GetRemoteRouterIdentity().GetFullLen();
   Write<std::uint16_t>(identity_size);
   std::uint8_t* const identity = m_Data;
-  ProduceData(identity_size);
+  Advance(identity_size);
   packet->GetRemoteRouterIdentity().ToBuffer(identity, identity_size);
 
   Write<std::uint32_t>(packet->GetSignedOnTime());
@@ -941,7 +941,7 @@ void SSUPacketBuilder::WriteSessionConfirmed(
   const std::size_t padding_size = GetPaddingSize(
       packet->GetHeader()->GetSize() + m_Data - begin + signature_size);
   std::uint8_t* const padding = m_Data;
-  ProduceData(padding_size);
+  Advance(padding_size);
   kovri::core::RandBytes(padding, padding_size);
   WriteData(packet->GetSignature(), signature_size);
 }

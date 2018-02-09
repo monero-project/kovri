@@ -103,7 +103,7 @@ class InputByteStream : public ByteStream
   /// @brief Advances the internal data pointer by the given amount
   /// @param amount the amount by which to advance the data pointer
   /// @throw std::length_error if amount exceeds the remaining data length
-  void ConsumeData(std::size_t amount);
+  void Advance(std::size_t amount);
 
   /// @brief Consume a given amount of bytes + return a pointer to first consumed byte
   /// @return a pointer to the first byte that was consumed (m_Data + amount)
@@ -152,8 +152,7 @@ class OutputByteStream : public ByteStream
   /// @brief Advances the internal data pointer by the given amount
   /// @param amount The amount by which to advance the data pointer
   /// @throw std::length_error if amount exceeds the remaining buffer length
-  // TODO(unassigned): rename to something less confusing
-  void ProduceData(std::size_t amount);
+  void Advance(std::size_t amount);
 
   /// @brief Writes data into buffer
   /// @note Increments buffer pointer position after writing data

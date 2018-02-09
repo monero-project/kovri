@@ -51,7 +51,7 @@ InputByteStream::InputByteStream(std::uint8_t* data, std::size_t len)
 {
 }
 
-void InputByteStream::ConsumeData(std::size_t amount)
+void InputByteStream::Advance(std::size_t amount)
 {
   if (amount > m_Length)
     throw std::length_error("InputByteStream: too many bytes to consume.");
@@ -63,7 +63,7 @@ void InputByteStream::ConsumeData(std::size_t amount)
 std::uint8_t* InputByteStream::ReadBytes(std::size_t amount)
 {
   std::uint8_t* ptr = m_Data;
-  ConsumeData(amount);
+  Advance(amount);
   return ptr;
 }
 
@@ -72,7 +72,7 @@ OutputByteStream::OutputByteStream(std::uint8_t* data, std::size_t len)
 {
 }
 
-void OutputByteStream::ProduceData(std::size_t amount)
+void OutputByteStream::Advance(std::size_t amount)
 {
   if (amount > m_Length)
     throw std::length_error("OutputByteStream: too many bytes to produce.");
@@ -91,7 +91,7 @@ void OutputByteStream::WriteData(const std::uint8_t* data, std::size_t len)
   if (!data)
     throw std::runtime_error("OutputByteStream: null data");
   std::uint8_t* ptr = m_Data;
-  ProduceData(len);
+  Advance(len);
   std::memcpy(ptr, data, len);
 }
 

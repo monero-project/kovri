@@ -42,11 +42,10 @@
 
 namespace kovri {
 namespace core {
-
 /// @enum SSUSize
-/// @brief Constants used to represent sizes in SSU including
-///   packet, crypto, and implementation
-enum struct SSUSize : std::uint16_t {
+/// @brief Constants used to represent sizes in SSU
+enum SSUSize : std::uint16_t
+{
   MTUv4 = 1484,
   MTUv6 = 1472,
   HeaderIPv4 = 20,
@@ -71,7 +70,8 @@ enum struct SSUSize : std::uint16_t {
 
 /// @enum SSUFlag
 /// @brief Constants used to represent flags used at the packet level
-enum struct SSUFlag : std::uint8_t {
+enum SSUFlag : std::uint8_t
+{
   ExtendedOptions = 0x04,
   Rekey = 0x08,
   DataExtendedIncluded = 0x02,
@@ -86,7 +86,8 @@ enum struct SSUFlag : std::uint8_t {
 /// @enum SSUPayloadType
 /// @brief SSU payload types assigned with spec-specific value
 /// @note 4 bits
-enum struct SSUPayloadType : std::uint8_t {
+enum SSUPayloadType : std::uint8_t
+{
   SessionRequest = 0,
   SessionCreated,
   SessionConfirmed,

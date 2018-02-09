@@ -53,7 +53,8 @@ namespace core {
 /// @enum SSUDuration
 /// @brief Constants used to represent various aspects
 ///   of duration used during SSU activity
-enum struct SSUDuration : std::uint16_t {
+enum SSUDuration : std::uint16_t
+{
   ResendInterval = 3,  // Seconds
   MaxResends = 5,
   DecayInterval = 20,  // Number of message IDs we store for duplicates check

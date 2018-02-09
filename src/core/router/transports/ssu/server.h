@@ -57,7 +57,7 @@ namespace kovri {
 namespace core {
 
 struct RawSSUPacket {
-  kovri::core::AESAlignedBuffer<GetType(SSUSize::RawPacketBuffer)> buf;
+  kovri::core::AESAlignedBuffer<SSUSize::RawPacketBuffer> buf;
   boost::asio::ip::udp::endpoint from;
   std::size_t len;
 };

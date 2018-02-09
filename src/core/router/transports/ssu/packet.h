@@ -199,6 +199,9 @@ class SSUHeader {
   bool m_Rekey, m_Extended;
   std::uint32_t m_Time;
   SSUPayloadType m_PayloadType;
+  // TODO(anonimal):
+  //   If the extended options flag is set, a one byte option size value is appended,
+  //   followed by that many extended option bytes
   std::size_t m_ExtendedOptionsSize;
 };
 

@@ -55,7 +55,7 @@ struct SSUTestVectorsFixture : public IdentityExFixture
         session_confirmed.data(), header_plain.data(), header_plain.size());
     // Set header flag to payload SessionConfirmed
     session_confirmed[32] = std::uint8_t(
-        core::GetType(core::SSUPayloadType::SessionConfirmed) << 4);
+        core::SSUPayloadType::SessionConfirmed << 4);
     core::OutputByteStream output(
         session_confirmed.data() + header_plain.size(),
         session_confirmed.size() - header_plain.size());
@@ -610,7 +610,7 @@ BOOST_AUTO_TEST_CASE(SessionConfirmedPlain)
   core::SSUPacketParser parser(header_plain.data(), header_plain.size());
   std::unique_ptr<core::SSUHeader> header;
   BOOST_CHECK_NO_THROW(header = parser.ParseHeader());
-  header->SetPayloadType(core::GetType(core::SSUPayloadType::SessionConfirmed));
+  header->SetPayloadType(core::SSUPayloadType::SessionConfirmed);
   // Packet + attributes
   core::SSUSessionConfirmedPacket packet;
   packet.SetHeader(std::move(header));

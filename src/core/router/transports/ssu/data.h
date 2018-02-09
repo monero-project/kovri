@@ -82,7 +82,7 @@ struct Fragment {
 
   std::size_t fragment_num, len;
   bool is_last;
-  std::array<std::uint8_t, GetType(SSUSize::FragmentBuffer)> buffer;
+  std::array<std::uint8_t, SSUSize::FragmentBuffer> buffer;
 };
 
 struct FragmentCmp {

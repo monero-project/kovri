@@ -48,11 +48,15 @@ namespace core
 {
 // TODO(anonimal): our interfaces should use const pointer - but doing so will break
 //   our current SSU implementation. Finish the SSU rewrite and use const correctness!
+/// @class ByteStream
+/// @brief Base class for I/O byte streaming
 class ByteStream
 {
  public:
   // TODO(anonimal): assert/throw nulls
   explicit ByteStream(std::uint8_t* data, std::size_t len);
+  explicit ByteStream(std::size_t len);
+
   virtual ~ByteStream() = default;
 
   /// @brief Get the first unconsumed/unwritten byte in the stream
@@ -146,6 +150,10 @@ class OutputByteStream : public ByteStream
   /// @param data Pointer to the array of bytes
   /// @param len Length of the array of bytes
   explicit OutputByteStream(std::uint8_t* data, std::size_t len);
+
+  /// @brief Constructs the byte stream with a given number of bytes
+  /// @param len Length of bytes to construct
+  explicit OutputByteStream(std::size_t len);
 
   virtual ~OutputByteStream() = default;
 

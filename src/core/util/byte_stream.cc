@@ -32,6 +32,7 @@
 
 #include <cstring>
 #include <iomanip>
+#include <memory>
 #include <sstream>
 #include <stdexcept>
 
@@ -45,6 +46,18 @@ ByteStream::ByteStream(std::uint8_t* data, std::size_t len)
     : m_Data(data), m_Size(len), m_Length(len), m_Counter{}
 {
 }
+
+// TODO(anonimal): consider refactoring ByteStream use-cases with a vector in mind
+// TODO(anonimal): though make_unique will always value/zero-initialize upon construction,
+//   assigning a raw pointer will not guarantee that the raw pointer points to initialized memory.
+ByteStream::ByteStream(std::size_t len)
+    : m_Size(len), m_Length(len), m_Counter{}
+{
+  auto data = std::make_unique<std::uint8_t[]>(len);
+  m_Data = data.get();
+}
+
+// Input
 
 InputByteStream::InputByteStream(std::uint8_t* data, std::size_t len)
     : ByteStream(data, len)
@@ -67,10 +80,14 @@ std::uint8_t* InputByteStream::ReadBytes(std::size_t amount)
   return ptr;
 }
 
+// Output
+
 OutputByteStream::OutputByteStream(std::uint8_t* data, std::size_t len)
     : ByteStream(data, len)
 {
 }
+
+OutputByteStream::OutputByteStream(std::size_t len) : ByteStream(len) {}
 
 void OutputByteStream::Advance(std::size_t amount)
 {
@@ -94,6 +111,8 @@ void OutputByteStream::WriteData(const std::uint8_t* data, std::size_t len)
   Advance(len);
   std::memcpy(ptr, data, len);
 }
+
+// Misc
 
 const std::string GetFormattedHex(const std::uint8_t* data, std::size_t size)
 {

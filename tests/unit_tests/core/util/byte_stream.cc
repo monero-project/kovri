@@ -35,6 +35,7 @@
 
 #include <array>
 #include <limits>
+#include <cstring>
 
 #include "core/util/byte_stream.h"
 
@@ -102,6 +103,31 @@ BOOST_AUTO_TEST_CASE(OutputByteStream)
       buffer.data() + buffer.size(),
       m_IPv4Array.data(),
       m_IPv4Array.data() + m_IPv4Array.size());
+}
+
+BOOST_AUTO_TEST_CASE(NoBufferOutputByteStream)
+{
+ // Write output
+ core::OutputByteStream output(4);
+
+ BOOST_CHECK_NO_THROW(output.Write<std::uint16_t>(65535));
+ BOOST_CHECK_NO_THROW(output.Write<std::uint8_t>(0));
+ BOOST_CHECK_NO_THROW(output.Write<std::uint8_t>(255));
+ BOOST_CHECK_THROW(output.Write<std::uint8_t>(1), std::length_error);
+ BOOST_CHECK_THROW(output.Advance(1), std::length_error);
+ BOOST_CHECK_EQUAL(output.Size(), 4);
+
+ // Test output
+ core::InputByteStream input(
+     const_cast<std::uint8_t*>(output.Data()),  // TODO(anonimal): remove const_cast
+     output.Size());
+ BOOST_CHECK_EQUAL(input.Read<std::uint16_t>(), 65535);
+ BOOST_CHECK_EQUAL(input.Read<std::uint8_t>(), 0);
+ BOOST_CHECK_EQUAL(input.Read<std::uint8_t>(), 255);
+ BOOST_CHECK_THROW(input.ReadBytes(1), std::length_error);
+ BOOST_CHECK_EQUAL(input.Size(), 4);
+
+ BOOST_CHECK_EQUAL(std::memcmp(input.Data(), output.Data(), output.Size()), 0);
 }
 
 BOOST_AUTO_TEST_CASE(Bits16Test)

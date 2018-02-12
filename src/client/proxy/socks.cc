@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -43,7 +43,6 @@
 
 #include "core/router/identity.h"
 
-#include "core/util/i2p_endian.h"
 
 namespace kovri {
 namespace client {
@@ -380,6 +379,7 @@ void SOCKSHandler::Terminate() {
   Done(shared_from_this());
 }
 
+// TODO(anonimal): bytestream refactor
 boost::asio::const_buffers_1 SOCKSHandler::GenerateSOCKS4Response(
     SOCKSHandler::ErrorTypes error,
     std::uint32_t ip,
@@ -387,8 +387,8 @@ boost::asio::const_buffers_1 SOCKSHandler::GenerateSOCKS4Response(
   assert(error >= SOCKS4Success);
   m_Response[0] = '\x00';         // Version
   m_Response[1] = error;          // Response code
-  htobe16buf(m_Response + 2, port);  // Port
-  htobe32buf(m_Response + 4, ip);    // IP
+  core::OutputByteStream::Write<std::uint16_t>(m_Response + 2, port);  // Port
+  core::OutputByteStream::Write<std::uint32_t>(m_Response + 4, ip);    // IP
   return boost::asio::const_buffers_1(m_Response, 8);
 }
 
@@ -406,7 +406,7 @@ boost::asio::const_buffers_1 SOCKSHandler::GenerateSOCKS5Response(
   switch (type) {
     case IPv4:
       size = 10;
-      htobe32buf(m_Response + 4, address.ip);
+      core::OutputByteStream::Write<std::uint32_t>(m_Response + 4, address.ip);
       break;
     case IPv6:
       size = 22;
@@ -418,7 +418,7 @@ boost::asio::const_buffers_1 SOCKSHandler::GenerateSOCKS5Response(
       memcpy(m_Response + 5, address.dns.value, address.dns.size);
       break;
   }
-  htobe16buf(m_Response + size - 2, port);  // Port
+  core::OutputByteStream::Write<std::uint16_t>(m_Response + size - 2, port);  // Port
   return boost::asio::const_buffers_1(m_Response, size);
 }
 

@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -40,12 +40,13 @@
 #include "core/router/transports/impl.h"
 #include "core/router/tunnel/impl.h"
 
-#include "core/util/i2p_endian.h"
 #include "core/util/log.h"
 #include "core/util/timestamp.h"
 
 namespace kovri {
 namespace core {
+
+// TODO(anonimal): bytestream refactor
 
 TunnelPool::TunnelPool(
     kovri::core::GarlicDestination* local_destination,
@@ -305,9 +306,10 @@ void TunnelPool::ProcessGarlicMessage(
 void TunnelPool::ProcessDeliveryStatus(
     std::shared_ptr<I2NPMessage> msg) {
   const std::uint8_t* buf = msg->GetPayload();
-  std::uint32_t msg_ID = bufbe32toh(buf);
+  std::uint32_t const msg_ID = core::InputByteStream::Read<std::uint32_t>(buf);
   buf += 4;
-  std::uint64_t timestamp = bufbe64toh(buf);
+  std::uint64_t const timestamp =
+      core::InputByteStream::Read<std::uint64_t>(buf);
   auto it = m_Tests.find(msg_ID);
   if (it != m_Tests.end()) {
     // restore from test failed state if any

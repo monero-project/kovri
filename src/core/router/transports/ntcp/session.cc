@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -36,6 +36,7 @@
 #include <string.h>
 
 #include <vector>
+#include <boost/endian/conversion.hpp>
 
 #include "core/crypto/diffie_hellman.h"
 #include "core/crypto/hash.h"
@@ -48,7 +49,6 @@
 #include "core/router/transports/impl.h"
 
 #include "core/util/byte_stream.h"
-#include "core/util/i2p_endian.h"
 #include "core/util/log.h"
 #include "core/util/timestamp.h"
 
@@ -318,16 +318,19 @@ void NTCPSession::CreateAESKey(
 
 // Phase3: SessionConfirm A
 
+// TODO(anonimal): bytestream refactor
 void NTCPSession::SendPhase3() {
   LOG(debug)
     << "NTCPSession:" << GetFormattedSessionInfo() << "*** Phase3, preparing";
   auto keys = context.GetPrivateKeys();
   std::uint8_t* buf = m_ReceiveBuffer;
-  htobe16buf(buf, keys.GetPublic().GetFullLen());
+  core::OutputByteStream::Write<std::uint16_t>(
+      buf, keys.GetPublic().GetFullLen());
   buf += NTCPSize::Phase3AliceRI;
   buf += context.GetIdentity().ToBuffer(buf, NTCPSize::Buffer);
-  std::uint32_t ts_A = htobe32(kovri::core::GetSecondsSinceEpoch());
-  htobuf32(buf, ts_A);
+  std::uint32_t ts_A = core::GetSecondsSinceEpoch();  // TODO(anonimal): returns std::uint64_t
+  boost::endian::native_to_big_inplace(ts_A);
+  core::OutputByteStream::Write<std::uint32_t>(buf, ts_A, false);
   buf += NTCPSize::Phase3AliceTS;
   std::size_t signature_len = keys.GetPublic().GetSignatureLen();
   std::size_t len = (buf - m_ReceiveBuffer) + signature_len;
@@ -578,7 +581,7 @@ void NTCPSession::SendPhase2() {
         xy.data(),
         NTCPSize::PubKey * 2);
     // Set timestamp B
-    ts_B = htobe32(kovri::core::GetSecondsSinceEpoch());
+    ts_B = boost::endian::native_to_big(core::GetSecondsSinceEpoch());
     m_Establisher->phase2.encrypted.timestamp = ts_B;
     // Random padding
     kovri::core::RandBytes(
@@ -671,7 +674,7 @@ void NTCPSession::HandlePhase3Received(
     throw;
   }
   std::uint8_t* buf = m_ReceiveBuffer;
-  std::uint16_t size = bufbe16toh(buf);
+  std::uint16_t const size = core::InputByteStream::Read<std::uint16_t>(buf);
   m_RemoteIdentity.FromBuffer(buf + NTCPSize::Phase3AliceRI, size);
   if (m_Server.FindNTCPSession(m_RemoteIdentity.GetIdentHash())) {
     LOG(error)
@@ -745,7 +748,7 @@ void NTCPSession::HandlePhase3(
   std::uint8_t* buf = m_ReceiveBuffer
     + m_RemoteIdentity.GetFullLen()
     + NTCPSize::Phase3AliceRI;
-  std::uint32_t ts_A = buf32toh(buf);
+  std::uint32_t const ts_A = core::InputByteStream::Read<std::uint32_t>(buf);
   buf += NTCPSize::Phase3AliceTS;
   buf += padding_len;
   SignedData s;
@@ -941,13 +944,14 @@ boost::asio::const_buffers_1 NTCPSession::CreateMsgBuffer(
       }
       send_buffer = msg->GetBuffer() - NTCPSize::Phase3AliceRI;
       len = msg->GetLength();
-      htobe16buf(send_buffer, len);
+      core::OutputByteStream::Write<std::uint16_t>(send_buffer, len);
     } else {
       // Prepare timestamp
       send_buffer = m_TimeSyncBuffer;
       len = NTCPSize::Phase3AliceTS;
-      htobuf16(send_buffer, 0);
-      htobe32buf(send_buffer + NTCPSize::Phase3AliceTS, time(0));
+      core::OutputByteStream::Write<std::uint16_t>(send_buffer, 0, false);
+      core::OutputByteStream::Write<std::uint32_t>(
+          send_buffer + NTCPSize::Phase3AliceTS, time(0));
     }
     int rem = (len + 6) & 0x0F;  // %16
     int padding = 0;
@@ -1055,7 +1059,8 @@ bool NTCPSession::DecryptNextBlock(
       // Decrypt header and extract length
       std::array<std::uint8_t, NTCPSize::IV> buf;
       m_Decryption.Decrypt(encrypted, buf.data());
-      std::uint16_t data_size = bufbe16toh(buf.data());
+      std::uint16_t const data_size =
+          core::InputByteStream::Read<std::uint16_t>(buf.data());
       if (data_size) {
         // New message
         if (data_size > NTCPSize::MaxMessage) {

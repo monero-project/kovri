@@ -32,10 +32,6 @@ set(CORE_SRC
   "util/log.cc"
   "util/mtu.cc")
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-  list(APPEND CORE_SRC "util/i2p_endian.cc")
-endif()
-
 if(ANDROID)
   list(APPEND CORE_SRC "../../deps/webrtc/base/ifaddrs-android.cc")
   set_source_files_properties(../../deps/webrtc/base/ifaddrs-android.cc PROPERTIES COMPILE_FLAGS -DWEBRTC_ANDROID)

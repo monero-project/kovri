@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -33,6 +33,7 @@
 #include "core/router/transports/ssu/session.h"
 
 #include <boost/bind.hpp>
+#include <boost/endian/conversion.hpp>
 
 #include "core/crypto/diffie_hellman.h"
 #include "core/crypto/hash.h"
@@ -49,6 +50,8 @@
 namespace kovri {
 namespace core {
 
+// TODO(anonimal): bytestream refactor
+
 std::uint8_t* SSUSessionPacket::MAC() const {
   return data;
 }
@@ -64,7 +67,7 @@ void SSUSessionPacket::PutFlag(
 
 void SSUSessionPacket::PutTime(
     std::uint32_t time) const {
-  return htobe32buf(&data[33], time);
+  return core::OutputByteStream::Write<std::uint32_t>(&data[33], time);
 }
 
 std::uint8_t* SSUSessionPacket::Encrypted() const {
@@ -341,7 +344,8 @@ void SSUSession::SendSessionRequest() {
     packet.GetHeader()->SetExtendedOptionsData(extended_data.data(), 2);
   }
   auto const remote_ip(core::AddressToByteVector(GetRemoteEndpoint().address()));
-  packet.SetIPAddress(remote_ip->data(), remote_ip->size());
+  // TODO(unassigned): remove const_cast, see bytestream TODO
+  packet.SetIPAddress(const_cast<std::uint8_t*>(remote_ip.data()), remote_ip.size());
   const std::size_t packet_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
   const std::size_t buffer_size = packet_size + GetType(SSUSize::BufferMargin);
   // Buffer has SSUSize::BufferMargin extra bytes for computing the HMAC
@@ -390,7 +394,7 @@ void SSUSession::ProcessSessionCreated(
     our_IP = boost::asio::ip::address_v6(bytes);
   }
   s.Insert(packet->GetIPAddress(), packet->GetIPAddressSize());  // our IP
-  s.Insert<std::uint16_t>(htobe16(packet->GetPort()));  // our port
+  s.Insert<std::uint16_t>(boost::endian::native_to_big(packet->GetPort()));  // our port
   LOG(debug)
     << "SSUSession:" << GetFormattedSessionInfo()
     << __func__ << ": our external address is "
@@ -403,10 +407,10 @@ void SSUSession::ProcessSessionCreated(
     // remote IP v6
     s.Insert(GetRemoteEndpoint().address().to_v6().to_bytes().data(), 16);
   }
-  s.Insert<std::uint16_t>(htobe16(GetRemoteEndpoint().port()));  // remote port
+  s.Insert<std::uint16_t>(boost::endian::native_to_big(GetRemoteEndpoint().port()));  // remote port
   m_RelayTag = packet->GetRelayTag();
-  s.Insert<std::uint32_t>(htobe32(m_RelayTag));  // relay tag
-  s.Insert<std::uint32_t>(htobe32(packet->GetSignedOnTime()));  // signed on time
+  s.Insert<std::uint32_t>(boost::endian::native_to_big(m_RelayTag));  // relay tag
+  s.Insert<std::uint32_t>(boost::endian::native_to_big(packet->GetSignedOnTime()));  // signed on time
   // decrypt signature
   auto signature_len = m_RemoteIdentity.GetSignatureLen();
   auto padding_size = signature_len & 0x0F;  // %16
@@ -466,14 +470,15 @@ void SSUSession::SendSessionCreated(
   s.Insert(x, 256);  // x
   s.Insert(packet.GetDhY(), 256);  // y
   auto const remote_ip(core::AddressToByteVector(GetRemoteEndpoint().address()));
-  packet.SetIPAddress(remote_ip->data(), remote_ip->size());
-  s.Insert(remote_ip->data(), remote_ip->size());  // remote ip
-  s.Insert<std::uint16_t>(htobe16(packet.GetPort()));  // remote port
+  // TODO(unassigned): remove const_cast, see bytestream TODO
+  packet.SetIPAddress(const_cast<std::uint8_t*>(remote_ip.data()), remote_ip.size());
+  s.Insert(remote_ip.data(), remote_ip.size());  // remote ip
+  s.Insert<std::uint16_t>(boost::endian::native_to_big(packet.GetPort()));  // remote port
   if (address->host.is_v4())
     s.Insert(address->host.to_v4().to_bytes().data(), 4);  // our IP V4
   else
     s.Insert(address->host.to_v6().to_bytes().data(), 16);  // our IP V6
-  s.Insert<std::uint16_t> (htobe16(address->port));  // our port
+  s.Insert<std::uint16_t> (boost::endian::native_to_big(address->port));  // our port
 
   std::uint32_t relay_tag = 0;
   if (context.GetRouterInfo().HasCap(RouterInfo::Cap::SSUIntroducer)) {
@@ -484,8 +489,8 @@ void SSUSession::SendSessionCreated(
   }
   packet.SetRelayTag(relay_tag);
   packet.SetSignedOnTime(kovri::core::GetSecondsSinceEpoch());
-  s.Insert<std::uint32_t>(htobe32(relay_tag));
-  s.Insert<std::uint32_t>(htobe32(packet.GetSignedOnTime()));
+  s.Insert<std::uint32_t>(boost::endian::native_to_big(relay_tag));
+  s.Insert<std::uint32_t>(boost::endian::native_to_big(packet.GetSignedOnTime()));
   // store for session confirmation
   m_SessionConfirmData = std::make_unique<SignedData>(s);
 
@@ -544,7 +549,7 @@ void SSUSession::ProcessSessionConfirmed(SSUPacket* pkt) {
   m_Data.UpdatePacketSize(m_RemoteIdentity.GetIdentHash());
   // signature time : replace with last value
   m_SessionConfirmData->Insert<std::uint32_t>(
-      std::ios_base::end, -4, htobe32(packet->GetSignedOnTime()));
+      std::ios_base::end, -4, boost::endian::native_to_big(packet->GetSignedOnTime()));
   if (m_SessionConfirmData->Verify(m_RemoteIdentity, packet->GetSignature())) {
     // verified
     Established();
@@ -576,15 +581,15 @@ void SSUSession::SendSessionConfirmed(
   s.Insert(m_DHKeysPair->public_key.data(), 256);  // x
   s.Insert(y, 256);  // y
   s.Insert(our_address, our_address_len);
-  s.Insert<std::uint16_t>(htobe16(our_port));
+  s.Insert<std::uint16_t>(boost::endian::native_to_big(our_port));
   auto const address = GetRemoteEndpoint().address();
   if (address.is_v4())  // remote IP V4
     s.Insert(address.to_v4().to_bytes().data(), 4);
   else  // remote IP V6
     s.Insert(address.to_v6().to_bytes().data(), 16);
-  s.Insert<std::uint16_t>(htobe16(GetRemoteEndpoint().port()));  // remote port
-  s.Insert(htobe32(m_RelayTag));
-  s.Insert(htobe32(packet.GetSignedOnTime()));
+  s.Insert<std::uint16_t>(boost::endian::native_to_big(GetRemoteEndpoint().port()));  // remote port
+  s.Insert(boost::endian::native_to_big(m_RelayTag));
+  s.Insert(boost::endian::native_to_big(packet.GetSignedOnTime()));
   s.Sign(context.GetPrivateKeys(), signature_buf.get());
   packet.SetSignature(signature_buf.get());
   const std::size_t packet_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
@@ -615,6 +620,7 @@ void SSUSession::ProcessRelayRequest(
   SendRelayIntro(session.get(), from);
 }
 
+// TODO(anonimal): bytestream refactor
 void SSUSession::SendRelayRequest(
     std::uint32_t introducer_tag,
     const std::uint8_t* introducer_key) {
@@ -628,17 +634,18 @@ void SSUSession::SendRelayRequest(
   std::array<std::uint8_t, 96 + GetType(SSUSize::BufferMargin)> buf{
       {}};  // TODO(unassigned): document size values
   auto payload = buf.data() + GetType(SSUSize::HeaderMin);
-  htobe32buf(payload, introducer_tag);
+  core::OutputByteStream::Write<std::uint32_t>(payload, introducer_tag);
   payload += 4;
   *payload = 0;  // no address
   payload++;
-  htobuf16(payload, 0);  // port = 0
+  core::OutputByteStream::Write<std::uint16_t>(payload, 0, false);  // port = 0
   payload += 2;
   *payload = 0;  // challenge
   payload++;
   memcpy(payload, (const std::uint8_t *)address->key, 32);
   payload += 32;
-  htobe32buf(payload, kovri::core::Rand<std::uint32_t>());  // nonce
+  core::OutputByteStream::Write<std::uint32_t>(
+      payload, core::Rand<std::uint32_t>());  // nonce
   std::array<std::uint8_t, GetType(SSUSize::IV)> iv;
   kovri::core::RandBytes(iv.data(), iv.size());
   auto relay_request = GetType(SSUPayloadType::RelayRequest);
@@ -693,6 +700,7 @@ void SSUSession::ProcessRelayResponse(SSUPacket* pkt) {
   context.UpdateAddress(our_IP);
 }
 
+// TODO(anonimal): bytestream refactor
 void SSUSession::SendRelayResponse(
     std::uint32_t nonce,
     const boost::asio::ip::udp::endpoint& from,
@@ -710,9 +718,10 @@ void SSUSession::SendRelayResponse(
   }
   *payload = 4;
   payload++;  // size
-  htobe32buf(payload, to.address().to_v4().to_ulong());  // Charlie's IP
+  core::OutputByteStream::Write<std::uint32_t>(
+      payload, to.address().to_v4().to_ulong());  // Charlie's IP
   payload += 4;  // address
-  htobe16buf(payload, to.port());  // Charlie's port
+  core::OutputByteStream::Write<std::uint16_t>(payload, to.port());  // Charlie's port
   payload += 2;  // port
   // Alice
   auto is_IPv4 = from.address().is_v4();  // Alice's
@@ -729,9 +738,9 @@ void SSUSession::SendRelayResponse(
     memcpy(payload, from.address().to_v6().to_bytes().data(), 16);
     payload += 16;  // address
   }
-  htobe16buf(payload, from.port());  // Alice's port
+  core::OutputByteStream::Write<std::uint16_t>(payload, from.port());  // Alice's port
   payload += 2;  // port
-  htobe32buf(payload, nonce);
+  core::OutputByteStream::Write<std::uint32_t>(payload, nonce);
   auto relay_response = GetType(SSUPayloadType::RelayResponse);
   if (m_State == SessionState::Established) {
     // encrypt with session key
@@ -769,8 +778,11 @@ void SSUSession::SendRelayResponse(
 
 void SSUSession::ProcessRelayIntro(SSUPacket* pkt) {
   auto packet = static_cast<SSURelayIntroPacket*>(pkt);
-  if (packet->GetIPAddressSize() == 4) {
-    boost::asio::ip::address_v4 address(bufbe32toh(packet->GetIPAddress()));
+  std::uint32_t const size = packet->GetIPAddressSize();
+  if (size == 4) {
+    std::uint32_t const addr =
+        core::InputByteStream::Read<std::uint32_t>(packet->GetIPAddress());
+    boost::asio::ip::address_v4 address(addr);
     // send hole punch of 1 byte
     m_Server.Send(
         {},
@@ -781,11 +793,11 @@ void SSUSession::ProcessRelayIntro(SSUPacket* pkt) {
   } else {
     LOG(warning)
       << "SSUSession:" << GetFormattedSessionInfo()
-      << __func__ << ": address size " << packet->GetIPAddressSize()
-      << " is not supported";
+      << __func__ << ": address size " << size << " is not supported";
   }
 }
 
+// TODO(anonimal): bytestream refactor
 void SSUSession::SendRelayIntro(
     SSUSession* session,
     const boost::asio::ip::udp::endpoint& from) {
@@ -802,9 +814,10 @@ void SSUSession::SendRelayIntro(
   auto payload = buf.data() + GetType(SSUSize::HeaderMin);
   *payload = 4;
   payload++;  // size
-  htobe32buf(payload, from.address().to_v4().to_ulong());  // Alice's IP
+  core::OutputByteStream::Write<std::uint32_t>(
+      payload, from.address().to_v4().to_ulong());  // Alice's IP
   payload += 4;  // address
-  htobe16buf(payload, from.port());  // Alice's port
+  core::OutputByteStream::Write<std::uint16_t>(payload, from.port());  // Alice's port
   payload += 2;  // port
   *payload = 0;  // challenge size
   std::array<std::uint8_t, GetType(SSUSize::IV)> iv;
@@ -942,8 +955,8 @@ void SSUSession::ProcessPeerTest(
               packet->m_RawDataLength);
           SendPeerTest(  // to Alice with her address received from Bob
               packet->GetNonce(),
-              be32toh(packet->GetIPAddress()),
-              packet->GetPort(),
+              boost::endian::big_to_native(packet->GetIPAddress()),  // TODO(anonimal): native / big endian?
+              packet->GetPort(),  // TODO(anonimal): native / big endian?
               packet->GetIntroKey());
         } else {
           LOG(debug)
@@ -972,6 +985,8 @@ void SSUSession::ProcessPeerTest(
   }
 }
 
+// TODO(anonimal): bytestream refactor
+// TODO(anonimal): pass reference to structure, not SIX arguments!
 void SSUSession::SendPeerTest(
     std::uint32_t nonce,
     std::uint32_t address,
@@ -981,19 +996,19 @@ void SSUSession::SendPeerTest(
     bool send_address) {  // is false if message comes from Alice
   std::array<std::uint8_t, 80 + GetType(SSUSize::BufferMargin)> buf{{}};
   auto payload = buf.data() + GetType(SSUSize::HeaderMin);
-  htobe32buf(payload, nonce);
+  core::OutputByteStream::Write<std::uint32_t>(payload, nonce);
   payload += 4;  // nonce
   // address and port
   if (send_address && address) {
     *payload = 4;
     payload++;  // size
-    htobe32buf(payload, address);
+    core::OutputByteStream::Write<std::uint32_t>(payload, address);
     payload += 4;  // address
   } else {
     *payload = 0;
     payload++;  // size
   }
-  htobe16buf(payload, port);
+  core::OutputByteStream::Write<std::uint16_t>(payload, port);
   payload += 2;  // port
   // intro key
   if (to_address) {
@@ -1104,6 +1119,7 @@ void SSUSession::SendKeepAlive() {
   }
 }
 
+// TODO(anonimal): pass reference to structure, not SEVEN arguments!
 void SSUSession::FillHeaderAndEncrypt(
     std::uint8_t payload_type,
     std::uint8_t* buf,
@@ -1133,7 +1149,8 @@ void SSUSession::FillHeaderAndEncrypt(
         encrypted);
     // assume actual buffer size is 18 (16 + 2) bytes more
     memcpy(buf + len, iv, GetType(SSUSize::IV));
-    htobe16buf(buf + len + GetType(SSUSize::IV), encrypted_len);
+    core::OutputByteStream::Write<std::uint16_t>(
+        buf + len + GetType(SSUSize::IV), encrypted_len);
     kovri::core::HMACMD5Digest(
         encrypted,
         encrypted_len + GetType(SSUSize::BufferMargin),
@@ -1165,11 +1182,13 @@ void SSUSession::WriteAndEncrypt(
       buffer
       + GetType(SSUSize::IV)
       + GetType(SSUSize::MAC);
-    auto encrypted_len = builder.GetPosition() - encrypted;
+    auto encrypted_len = builder.Tellp() - encrypted;
     // Add padding
-    const std::size_t padding_size = SSUPacketBuilder::GetPaddingSize(encrypted_len);
-    kovri::core::RandBytes(builder.GetPosition(), padding_size);
-    encrypted_len += padding_size;
+    std::vector<std::uint8_t> padding(
+        SSUPacketBuilder::GetPaddingSize(encrypted_len));
+    kovri::core::RandBytes(padding.data(), padding.size());
+    builder.WriteData(padding.data(), padding.size());
+    encrypted_len += padding.size();
     kovri::core::CBCEncryption encryption(aes_key, packet->GetHeader()->GetIV());
     encryption.Encrypt(encrypted, encrypted_len, encrypted);
     // Compute HMAC of encryptedPayload + IV + (payloadLength ^ protocolVersion)
@@ -1217,7 +1236,8 @@ void SSUSession::FillHeaderAndEncrypt(
         encrypted);
     // assume actual buffer size is 18 (16 + 2) bytes more
     memcpy(buf + len, pkt.IV(), GetType(SSUSize::IV));
-    htobe16buf(buf + len + GetType(SSUSize::IV), encrypted_len);
+    core::OutputByteStream::Write<std::uint16_t>(
+        buf + len + GetType(SSUSize::IV), encrypted_len);
     kovri::core::HMACMD5Digest(
         encrypted,
         encrypted_len + GetType(SSUSize::BufferMargin),
@@ -1299,7 +1319,8 @@ bool SSUSession::Validate(
   auto encrypted_len = len - (encrypted - buf);
   // assume actual buffer size is 18 (16 + 2) bytes more (SSUSize::RawPacketBuffer)
   memcpy(buf + len, pkt.IV(), GetType(SSUSize::IV));
-  htobe16buf(buf + len + GetType(SSUSize::IV), encrypted_len);
+  core::OutputByteStream::Write<std::uint16_t>(
+      buf + len + GetType(SSUSize::IV), encrypted_len);
   std::array<std::uint8_t, 16> digest;
   kovri::core::HMACMD5Digest(
       encrypted,

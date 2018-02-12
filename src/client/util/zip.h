@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -135,6 +135,7 @@ class ZIP {
     ri_filename_length = 59,
   };
 
+  // TODO(anonimal): consider boost.endian native arithmetic types over conversion functions
   struct Data {
     std::size_t content_position;
     std::uint64_t content_length;

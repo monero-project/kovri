@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -32,6 +32,8 @@
 
 #include "core/router/identity.h"
 
+#include <boost/endian/conversion.hpp>
+
 #include <stdio.h>
 #include <time.h>
 
@@ -41,7 +43,6 @@
 
 #include "core/router/context.h"
 
-#include "core/util/i2p_endian.h"
 #include "core/util/log.h"
 
 namespace kovri {
@@ -178,11 +179,13 @@ IdentityEx::IdentityEx(
       m_ExtendedLen = 4 + excess_len;  // 4 bytes extra + excess length
       // fill certificate
       m_StandardIdentity.certificate.type = CERTIFICATE_TYPE_KEY;
-      m_StandardIdentity.certificate.length = htobe16(m_ExtendedLen);
+      m_StandardIdentity.certificate.length = boost::endian::native_to_big(m_ExtendedLen);
       // fill extended buffer
       m_ExtendedBuffer = std::make_unique<std::uint8_t[]>(m_ExtendedLen);
-      htobe16buf(m_ExtendedBuffer.get(), type);
-      htobe16buf(m_ExtendedBuffer.get() + 2, CRYPTO_KEY_TYPE_ELGAMAL);
+      core::OutputByteStream::Write<std::uint16_t>(
+          m_ExtendedBuffer.get(), type);
+      core::OutputByteStream::Write<std::uint16_t>(
+          m_ExtendedBuffer.get() + 2, CRYPTO_KEY_TYPE_ELGAMAL);
       if (excess_len && excess_buf) {
         memcpy(m_ExtendedBuffer.get() + 4, excess_buf.get(), excess_len);
       }
@@ -267,7 +270,7 @@ std::size_t IdentityEx::FromBuffer(
   m_ExtendedBuffer.reset(nullptr);
   memcpy(&m_StandardIdentity, buf, DEFAULT_IDENTITY_SIZE);
   if (m_StandardIdentity.certificate.length) {
-    m_ExtendedLen = be16toh(m_StandardIdentity.certificate.length);
+    m_ExtendedLen = boost::endian::big_to_native(m_StandardIdentity.certificate.length);
     if (m_ExtendedLen + DEFAULT_IDENTITY_SIZE <= len) {
       m_ExtendedBuffer = std::make_unique<std::uint8_t[]>(m_ExtendedLen);
       memcpy(m_ExtendedBuffer.get(), buf + DEFAULT_IDENTITY_SIZE, m_ExtendedLen);
@@ -443,14 +446,16 @@ bool IdentityEx::Verify(
 SigningKeyType IdentityEx::GetSigningKeyType() const {
   if (m_StandardIdentity.certificate.type ==
       CERTIFICATE_TYPE_KEY && m_ExtendedBuffer)
-    return bufbe16toh(m_ExtendedBuffer.get());  // signing key
+    return core::InputByteStream::Read<std::uint16_t>(
+        m_ExtendedBuffer.get());  // signing key
   return SIGNING_KEY_TYPE_DSA_SHA1;
 }
 
 CryptoKeyType IdentityEx::GetCryptoKeyType() const {
   if (m_StandardIdentity.certificate.type ==
       CERTIFICATE_TYPE_KEY && m_ExtendedBuffer)
-    return bufbe16toh(m_ExtendedBuffer.get() + 2);  // crypto key
+    return core::InputByteStream::Read<std::uint16_t>(
+        m_ExtendedBuffer.get() + 2);  // crypto key
   return CRYPTO_KEY_TYPE_ELGAMAL;
 }
 

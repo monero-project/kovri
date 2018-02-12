@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -49,6 +49,8 @@
 
 namespace kovri {
 namespace client {
+
+// TODO(anonimal): bytestream refactor
 
 ClientDestination::ClientDestination(
     const kovri::core::PrivateKeys& keys,
@@ -285,9 +287,10 @@ void ClientDestination::HandleI2NPMessage(
     case kovri::core::I2NPData:
       HandleDataMessage(
           buf + kovri::core::I2NP_HEADER_SIZE,
-          bufbe16toh(
+          // TODO(unassigned): unused
+          core::InputByteStream::Read<std::uint16_t>(
               buf + kovri::core::I2NP_HEADER_SIZE_OFFSET));
-    break;
+      break;
     case kovri::core::I2NPDeliveryStatus:
       // we assume tunnel tests non-encrypted
       HandleDeliveryStatusMessage(
@@ -299,13 +302,13 @@ void ClientDestination::HandleI2NPMessage(
     case kovri::core::I2NPDatabaseStore:
       HandleDatabaseStoreMessage(
           buf + kovri::core::I2NP_HEADER_SIZE,
-          bufbe16toh(
+          core::InputByteStream::Read<std::uint16_t>(
               buf + kovri::core::I2NP_HEADER_SIZE_OFFSET));
     break;
     case kovri::core::I2NPDatabaseSearchReply:
       HandleDatabaseSearchReplyMessage(
           buf + kovri::core::I2NP_HEADER_SIZE,
-          bufbe16toh(
+          core::InputByteStream::Read<std::uint16_t>(
               buf + kovri::core::I2NP_HEADER_SIZE_OFFSET));
     break;
     default:
@@ -320,7 +323,8 @@ void ClientDestination::HandleI2NPMessage(
 void ClientDestination::HandleDatabaseStoreMessage(
     const std::uint8_t* buf,
     std::size_t len) {
-  std::uint32_t reply_token = bufbe32toh(buf + kovri::core::DATABASE_STORE_REPLY_TOKEN_OFFSET);
+  std::uint32_t const reply_token = core::InputByteStream::Read<std::uint32_t>(
+      buf + core::DATABASE_STORE_REPLY_TOKEN_OFFSET);
   std::size_t offset = kovri::core::DATABASE_STORE_HEADER_SIZE;
   if (reply_token) {
     LOG(debug) << "ClientDestination: reply token is ignored for DatabaseStore";
@@ -416,8 +420,8 @@ void ClientDestination::HandleDatabaseSearchReplyMessage(
 
 void ClientDestination::HandleDeliveryStatusMessage(
     std::shared_ptr<kovri::core::I2NPMessage> msg) {
-  std::uint32_t msg_ID =
-    bufbe32toh(msg->GetPayload() + kovri::core::DELIVERY_STATUS_MSGID_OFFSET);
+  std::uint32_t const msg_ID = core::InputByteStream::Read<std::uint32_t>(
+      msg->GetPayload() + kovri::core::DELIVERY_STATUS_MSGID_OFFSET);
   if (msg_ID == m_PublishReplyToken) {
     LOG(debug) << "ClientDestination: publishing confirmed";
     m_ExcludedFloodfills.clear();
@@ -493,20 +497,27 @@ void ClientDestination::HandlePublishConfirmationTimer(
   }
 }
 
-void ClientDestination::HandleDataMessage(
-    const std::uint8_t* buf,
-    std::size_t) {
-  std::uint32_t length = bufbe32toh(buf);
-  buf += 4;
-  // we assume I2CP payload
-  std::uint16_t from_port = bufbe16toh(buf + 4),  // source
-    to_port = bufbe16toh(buf + 6);  // destination
-  switch (buf[9]) {
+void ClientDestination::HandleDataMessage(const std::uint8_t* buf, std::size_t)
+{
+  // Get I2NP Data message payload size
+  std::uint32_t const size = core::InputByteStream::Read<std::uint32_t>(buf);
+
+  // Create payload stream - TODO(anonimal): remove const_cast, see bytestream TODO
+  core::InputByteStream payload(const_cast<std::uint8_t*>(buf + 4), size);
+
+  // Assume I2CP payload - TODO(unassigned): don't assume
+  payload.ReadBytes(4);
+  std::uint16_t const source_port = payload.Read<std::uint16_t>();
+  std::uint16_t const dest_port = payload.Read<std::uint16_t>();
+  payload.ReadBytes(1);
+  std::uint8_t const protocol = payload.Read<std::uint8_t>();
+
+  switch (protocol) {
     case PROTOCOL_TYPE_STREAMING: {
       // streaming protocol
-      auto dest = GetStreamingDestination(to_port);
+      auto dest = GetStreamingDestination(dest_port);
       if (dest)
-        dest->HandleDataMessagePayload(buf, length);
+        dest->HandleDataMessagePayload(payload.Data(), payload.Size());
       else
         LOG(warning) << "ClientDestination: missing streaming destination";
     }
@@ -515,17 +526,17 @@ void ClientDestination::HandleDataMessage(
       // datagram protocol
       if (m_DatagramDestination)
         m_DatagramDestination->HandleDataMessagePayload(
-            from_port,
-            to_port,
-            buf,
-            length);
+            source_port,
+            dest_port,
+            payload.Data(),
+            payload.Size());
       else
         LOG(warning) << "ClientDestination: missing streaming destination";
     break;
     default:
-      LOG(warning)
-        << "ClientDestination: " << __func__
-        << ": unexpected protocol " << buf[9];  // TODO(unassigned): refactor
+      LOG(warning) << "ClientDestination: " << __func__
+                   << ": unexpected protocol "
+                   << static_cast<std::uint16_t>(protocol);
   }
 }
 

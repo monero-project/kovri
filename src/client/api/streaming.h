@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -54,7 +54,6 @@
 #include "core/router/tunnel/impl.h"
 
 #include "core/util/exception.h"
-#include "core/util/i2p_endian.h"
 
 namespace kovri {
 namespace client {
@@ -84,9 +83,10 @@ const int MAX_WINDOW_SIZE = 128;
 const int INITIAL_RTT = 8000;  // in milliseconds
 const int INITIAL_RTO = 9000;  // in milliseconds
 
+// TODO(anonimal): bytestream refactor
 struct Packet {
   std::size_t len, offset;
-  std::uint8_t buf[MAX_PACKET_SIZE];
+  std::uint8_t buf[MAX_PACKET_SIZE];  // TODO(anonimal): zero-initialize
   std::uint64_t send_time;
 
   Packet()
@@ -102,20 +102,22 @@ struct Packet {
     return len - offset;
   }
 
+  // TODO(anonimal): the excessive amount of static member calls will be replaced by the bytestream refactor
+
   std::uint32_t GetSendStreamID() const {
-    return bufbe32toh(buf);
+    return core::InputByteStream::Read<std::uint32_t>(buf);
   }
 
   std::uint32_t GetReceiveStreamID() const {
-    return bufbe32toh(buf + 4);
+    return core::InputByteStream::Read<std::uint32_t>(buf + 4);
   }
 
   std::uint32_t GetSeqn() const {
-    return bufbe32toh(buf + 8);
+    return core::InputByteStream::Read<std::uint32_t>(buf + 8);
   }
 
   std::uint32_t GetAckThrough() const {
-    return bufbe32toh(buf + 12);
+    return core::InputByteStream::Read<std::uint32_t>(buf + 12);
   }
 
   std::uint8_t GetNACKCount() const {
@@ -123,7 +125,7 @@ struct Packet {
   }
 
   std::uint32_t GetNACK(int i) const {
-    return bufbe32toh(buf + 17 + 4 * i);
+    return core::InputByteStream::Read<std::uint32_t>(buf + 17 + 4 * i);
   }
 
   const std::uint8_t* GetOption() const {
@@ -131,10 +133,10 @@ struct Packet {
   }  // 3 = resendDelay + flags
 
   std::uint16_t GetFlags() const {
-    return bufbe16toh(GetOption() - 2);
+    return core::InputByteStream::Read<std::uint16_t>(GetOption() - 2);
   }
   std::uint16_t GetOptionSize() const {
-    return bufbe16toh(GetOption ());
+    return core::InputByteStream::Read<std::uint16_t>(GetOption());
   }
   const std::uint8_t* GetOptionData() const {
     return GetOption() + 2;

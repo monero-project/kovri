@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -53,6 +53,8 @@
 
 namespace kovri {
 namespace core {
+
+// TODO(anonimal): bytestream refactor
 
 std::unique_ptr<I2NPMessage> NewI2NPMessage() {
   return std::make_unique<I2NPMessageBuffer<I2NP_MAX_MESSAGE_SIZE>>();
@@ -139,19 +141,22 @@ std::shared_ptr<I2NPMessage> CreateI2NPMessage(
   return ToSharedI2NPMessage(std::move(msg));
 }
 
+// TODO(anonimal): bytestream refactor
 std::shared_ptr<I2NPMessage> CreateDeliveryStatusMsg(
     std::uint32_t msg_ID) {
   std::unique_ptr<I2NPMessage> m = NewI2NPShortMessage();
   std::uint8_t* buf = m->GetPayload();
   if (msg_ID) {
-    htobe32buf(buf + DELIVERY_STATUS_MSGID_OFFSET, msg_ID);
-    htobe64buf(buf + DELIVERY_STATUS_TIMESTAMP_OFFSET,
-        kovri::core::GetMillisecondsSinceEpoch());
+      core::OutputByteStream::Write<std::uint32_t>(
+          buf + DELIVERY_STATUS_MSGID_OFFSET, msg_ID);
+      core::OutputByteStream::Write<std::uint64_t>(
+          buf + DELIVERY_STATUS_TIMESTAMP_OFFSET,
+          core::GetMillisecondsSinceEpoch());
   } else {  // for SSU establishment
-    htobe32buf(
+    core::OutputByteStream::Write<std::uint32_t>(
         buf + DELIVERY_STATUS_MSGID_OFFSET,
         kovri::core::Rand<std::uint32_t>());
-    htobe64buf(
+    core::OutputByteStream::Write<std::uint64_t>(
         buf + DELIVERY_STATUS_TIMESTAMP_OFFSET,
         I2P_NETWORK_ID);
   }
@@ -177,7 +182,7 @@ std::shared_ptr<I2NPMessage> CreateRouterInfoDatabaseLookupMsg(
     DATABASE_LOOKUP_TYPE_ROUTERINFO_LOOKUP;
   if (reply_tunnel_ID) {
     *buf = flag | DATABASE_LOOKUP_DELIVERY_FLAG;  // set delivery flag
-    htobe32buf(buf + 1, reply_tunnel_ID);
+    core::OutputByteStream::Write<std::uint32_t>(buf + 1, reply_tunnel_ID);
     buf += 5;
   } else {
     *buf = flag;  // flag
@@ -185,7 +190,7 @@ std::shared_ptr<I2NPMessage> CreateRouterInfoDatabaseLookupMsg(
   }
   if (excluded_peers) {
     int cnt = excluded_peers->size();
-    htobe16buf(buf, cnt);
+    core::OutputByteStream::Write<std::uint16_t>(buf, cnt);
     buf += 2;
     for (auto& it : *excluded_peers) {
       memcpy(buf, it, 32);
@@ -193,7 +198,7 @@ std::shared_ptr<I2NPMessage> CreateRouterInfoDatabaseLookupMsg(
     }
   } else {
     // nothing to exclude
-    htobuf16(buf, 0);
+    core::OutputByteStream::Write<std::uint16_t>(buf, 0, false);
     buf += 2;
   }
   m->len += (buf - m->GetPayload());
@@ -201,6 +206,8 @@ std::shared_ptr<I2NPMessage> CreateRouterInfoDatabaseLookupMsg(
   return m;
 }
 
+// TODO(anonimal: bytestream refactor
+// TODO(anonimal): pass reference to structure, not FIVE arguments!
 std::shared_ptr<I2NPMessage> CreateLeaseSetDatabaseLookupMsg(
     const kovri::core::IdentHash& dest,
     const std::set<kovri::core::IdentHash>& excluded_floodfills,
@@ -218,10 +225,11 @@ std::shared_ptr<I2NPMessage> CreateLeaseSetDatabaseLookupMsg(
   *buf = DATABASE_LOOKUP_DELIVERY_FLAG |
          DATABASE_LOOKUP_ENCYPTION_FLAG |
          DATABASE_LOOKUP_TYPE_LEASESET_LOOKUP;  // flags
-  htobe32buf(buf + 1, reply_tunnel->GetNextTunnelID());  // reply tunnel ID
+  core::OutputByteStream::Write<std::uint32_t>(
+      buf + 1, reply_tunnel->GetNextTunnelID());  // reply tunnel ID
   buf += 5;
   // excluded
-  htobe16buf(buf, cnt);
+  core::OutputByteStream::Write<std::uint16_t>(buf, cnt);
   buf += 2;
   if (cnt > 0) {
     for (auto& it : excluded_floodfills) {
@@ -260,6 +268,7 @@ std::shared_ptr<I2NPMessage> CreateDatabaseSearchReply(
   return m;
 }
 
+// TODO(anonimal): bytestream refactor
 std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg(
     std::shared_ptr<const kovri::core::RouterInfo> router,
     std::uint32_t reply_token) {
@@ -270,7 +279,8 @@ std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg(
     std::uint8_t* payload = m->GetPayload();
     memcpy(payload + DATABASE_STORE_KEY_OFFSET, router->GetIdentHash(), 32);
     payload[DATABASE_STORE_TYPE_OFFSET] = 0;  // RouterInfo
-    htobe32buf(payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, reply_token);
+    core::OutputByteStream::Write<std::uint32_t>(
+        payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, reply_token);
     std::uint8_t* buf = payload + DATABASE_STORE_HEADER_SIZE;
     if (reply_token) {
       memset(buf, 0, 4);  // zero tunnel_ID means direct reply
@@ -281,7 +291,7 @@ std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg(
     kovri::core::Gzip compressor;
     compressor.Put(router->GetBuffer(), router->GetBufferLen());
     auto size = compressor.MaxRetrievable();
-    htobe16buf(buf, size);  // size
+    core::OutputByteStream::Write<std::uint16_t>(buf, size);  // size
     buf += 2;
     m->len += (buf - payload);  // payload size
     if (m->len + size > m->max_len) {
@@ -304,6 +314,7 @@ std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg(
   return m;
 }
 
+// TODO(anonimal): bytestream refactor
 std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg(
     std::shared_ptr<const kovri::core::LeaseSet> lease_set,
     std::uint32_t reply_token) {
@@ -313,17 +324,17 @@ std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg(
   std::uint8_t* payload = m->GetPayload();
   memcpy(payload + DATABASE_STORE_KEY_OFFSET, lease_set->GetIdentHash(), 32);
   payload[DATABASE_STORE_TYPE_OFFSET] = 1;  // LeaseSet
-  htobe32buf(payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, reply_token);
+  core::OutputByteStream::Write<std::uint32_t>(payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, reply_token);
   std::size_t size = DATABASE_STORE_HEADER_SIZE;
   if (reply_token) {
     auto leases = lease_set->GetNonExpiredLeases();
     if (leases.size() > 0) {
-      htobe32buf(payload + size, leases[0].tunnel_ID);
+      core::OutputByteStream::Write<std::uint32_t>(payload + size, leases[0].tunnel_ID);
       size += 4;  // reply tunnel_ID
       memcpy(payload + size, leases[0].tunnel_gateway, 32);
       size += 32;  // reply tunnel gateway
     } else {
-      htobe32buf(payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0);
+      core::OutputByteStream::Write<std::uint32_t>(payload + DATABASE_STORE_REPLY_TOKEN_OFFSET, 0);
     }
   }
   memcpy(payload + size, lease_set->GetBuffer(), lease_set->GetBufferLen());
@@ -380,9 +391,9 @@ bool HandleBuildRequestRecords(
             !kovri::core::transports.IsBandwidthExceeded()) {
           kovri::core::TransitTunnel* transit_tunnel =
             kovri::core::CreateTransitTunnel(
-                bufbe32toh(clear_text + BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
+                core::InputByteStream::Read<std::uint32_t>(clear_text + BUILD_REQUEST_RECORD_RECEIVE_TUNNEL_OFFSET),
                 clear_text + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
-                bufbe32toh(clear_text + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
+                core::InputByteStream::Read<std::uint32_t>(clear_text + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
                 clear_text + BUILD_REQUEST_RECORD_LAYER_KEY_OFFSET,
                 clear_text + BUILD_REQUEST_RECORD_IV_KEY_OFFSET,
                 clear_text[BUILD_REQUEST_RECORD_FLAG_OFFSET] & 0x80,
@@ -489,12 +500,12 @@ void HandleVariableTunnelBuildMsg(
             clear_text + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
             ToSharedI2NPMessage(
                 CreateTunnelGatewayMsg(
-                    bufbe32toh(
+                    core::InputByteStream::Read<std::uint32_t>(
                         clear_text + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
                     I2NPVariableTunnelBuildReply,
                     buf,
                     len,
-                    bufbe32toh(
+                    core::InputByteStream::Read<std::uint32_t>(
                         clear_text + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET))));
       } else {
         kovri::core::transports.SendMessage(
@@ -504,7 +515,7 @@ void HandleVariableTunnelBuildMsg(
                     I2NPVariableTunnelBuild,
                     buf,
                     len,
-                    bufbe32toh(
+                    core::InputByteStream::Read<std::uint32_t>(
                         clear_text + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET))));
       }
     }
@@ -523,12 +534,12 @@ void HandleTunnelBuildMsg(
           clear_text + BUILD_REQUEST_RECORD_NEXT_IDENT_OFFSET,
           ToSharedI2NPMessage(
               CreateTunnelGatewayMsg(
-                  bufbe32toh(
+                  core::InputByteStream::Read<std::uint32_t>(
                       clear_text + BUILD_REQUEST_RECORD_NEXT_TUNNEL_OFFSET),
                   I2NPTunnelBuildReply,
                   buf,
                   len,
-                  bufbe32toh(
+                  core::InputByteStream::Read<std::uint32_t>(
                       clear_text + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET))));
     } else {
       kovri::core::transports.SendMessage(
@@ -538,7 +549,7 @@ void HandleTunnelBuildMsg(
                   I2NPTunnelBuild,
                   buf,
                   len,
-                  bufbe32toh(
+                  core::InputByteStream::Read<std::uint32_t>(
                       clear_text + BUILD_REQUEST_RECORD_SEND_MSG_ID_OFFSET))));
     }
   }
@@ -586,7 +597,7 @@ std::unique_ptr<I2NPMessage> CreateTunnelDataMsg(
     const std::uint8_t* payload) {
   std::unique_ptr<I2NPMessage> msg = NewI2NPShortMessage();
   memcpy(msg->GetPayload() + 4, payload, kovri::core::TUNNEL_DATA_MSG_SIZE - 4);
-  htobe32buf(msg->GetPayload(), tunnel_ID);
+  core::OutputByteStream::Write<std::uint32_t>(msg->GetPayload(), tunnel_ID);
   msg->len += kovri::core::TUNNEL_DATA_MSG_SIZE;
   msg->FillI2NPMessageHeader(I2NPTunnelData);
   return msg;
@@ -598,14 +609,17 @@ std::shared_ptr<I2NPMessage> CreateEmptyTunnelDataMsg() {
   return ToSharedI2NPMessage(std::move(msg));
 }
 
+// TODO(anonimal): bytestream refactor
 std::unique_ptr<I2NPMessage> CreateTunnelGatewayMsg(
     std::uint32_t tunnel_ID,
     const std::uint8_t* buf,
     std::size_t len) {
   std::unique_ptr<I2NPMessage> msg = NewI2NPMessage(len);
   std::uint8_t* payload = msg->GetPayload();
-  htobe32buf(payload + TUNNEL_GATEWAY_HEADER_TUNNELID_OFFSET, tunnel_ID);
-  htobe16buf(payload + TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET, len);
+  core::OutputByteStream::Write<std::uint32_t>(
+      payload + TUNNEL_GATEWAY_HEADER_TUNNELID_OFFSET, tunnel_ID);
+  core::OutputByteStream::Write<std::uint16_t>(
+      payload + TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET, len);
   memcpy(payload + TUNNEL_GATEWAY_HEADER_SIZE, buf, len);
   msg->len += TUNNEL_GATEWAY_HEADER_SIZE + len;
   msg->FillI2NPMessageHeader(I2NPTunnelGateway);
@@ -618,9 +632,11 @@ std::shared_ptr<I2NPMessage> CreateTunnelGatewayMsg(
   if (msg->offset >= I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE) {
     // message is capable to be used without copying
     std::uint8_t* payload = msg->GetBuffer() - TUNNEL_GATEWAY_HEADER_SIZE;
-    htobe32buf(payload + TUNNEL_GATEWAY_HEADER_TUNNELID_OFFSET, tunnel_ID);
+    core::OutputByteStream::Write<std::uint32_t>(
+        payload + TUNNEL_GATEWAY_HEADER_TUNNELID_OFFSET, tunnel_ID);
     int len = msg->GetLength();
-    htobe16buf(payload + TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET, len);
+    core::OutputByteStream::Write<std::uint16_t>(
+        payload + TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET, len);
     msg->offset -= (I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE);
     msg->len = msg->offset + I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE +len;
     msg->FillI2NPMessageHeader(I2NPTunnelGateway);
@@ -650,8 +666,10 @@ std::unique_ptr<I2NPMessage> CreateTunnelGatewayMsg(
   len = msg->GetLength();
   msg->offset -= gateway_msg_offset;
   std::uint8_t* payload = msg->GetPayload();
-  htobe32buf(payload + TUNNEL_GATEWAY_HEADER_TUNNELID_OFFSET, tunnel_ID);
-  htobe16buf(payload + TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET, len);
+  core::OutputByteStream::Write<std::uint32_t>(
+      payload + TUNNEL_GATEWAY_HEADER_TUNNELID_OFFSET, tunnel_ID);
+  core::OutputByteStream::Write<std::uint16_t>(
+      payload + TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET, len);
   msg->FillI2NPMessageHeader(I2NPTunnelGateway);  // gateway message
   return msg;
 }
@@ -659,20 +677,24 @@ std::unique_ptr<I2NPMessage> CreateTunnelGatewayMsg(
 // TODO(anonimal): s/size_t/uint16_t/
 std::size_t GetI2NPMessageLength(
     const std::uint8_t* msg) {
-  return bufbe16toh(msg + I2NP_HEADER_SIZE_OFFSET) + I2NP_HEADER_SIZE;
+  return core::InputByteStream::Read<std::uint16_t>(
+             msg + I2NP_HEADER_SIZE_OFFSET)
+         + I2NP_HEADER_SIZE;
 }
 
 void HandleI2NPMessage(
     std::uint8_t* msg,
     std::size_t len) {
   std::uint8_t type_ID = msg[I2NP_HEADER_TYPEID_OFFSET];
-  std::uint32_t msg_ID = bufbe32toh(msg + I2NP_HEADER_MSGID_OFFSET);
+  std::uint32_t const msg_ID = core::InputByteStream::Read<std::uint32_t>(
+      msg + I2NP_HEADER_MSGID_OFFSET);
   LOG(debug)
     << "I2NPMessage: msg received len=" << len
     << ", type=" << static_cast<int>(type_ID)
-    << ", msg_ID=" << (unsigned int)msg_ID;
+    << ", msg_ID=" << msg_ID;
   std::uint8_t* buf = msg + I2NP_HEADER_SIZE;
-  int size = bufbe16toh(msg + I2NP_HEADER_SIZE_OFFSET);
+  std::uint16_t const size =
+      core::InputByteStream::Read<std::uint16_t>(msg + I2NP_HEADER_SIZE_OFFSET);
   switch (type_ID) {
     case I2NPVariableTunnelBuild:
       LOG(debug) << "I2NPMessage: VariableTunnelBuild";

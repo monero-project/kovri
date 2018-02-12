@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -39,7 +39,6 @@
 #include "core/router/net_db/impl.h"
 #include "core/router/tunnel/pool.h"
 
-#include "core/util/i2p_endian.h"
 #include "core/util/log.h"
 #include "core/util/timestamp.h"
 
@@ -87,7 +86,8 @@ LeaseSet::LeaseSet(
   for (auto it : tunnels) {
     memcpy(m_Buffer.get() + m_BufferLen, it->GetNextIdentHash(), 32);
     m_BufferLen += 32;  // gateway id
-    htobe32buf(m_Buffer.get() + m_BufferLen, it->GetNextTunnelID());
+    core::OutputByteStream::Write<std::uint32_t>(
+        m_Buffer.get() + m_BufferLen, it->GetNextTunnelID());
     m_BufferLen += 4;  // tunnel id
     std::uint64_t ts =
       it->GetCreationTime() +
@@ -95,7 +95,8 @@ LeaseSet::LeaseSet(
       kovri::core::TUNNEL_EXPIRATION_THRESHOLD;  // 1 minute before expiration
     ts *= 1000;  // in milliseconds
     ts += kovri::core::RandInRange32(0, 5);  // + random milliseconds
-    htobe64buf(m_Buffer.get() + m_BufferLen, ts);
+    core::OutputByteStream::Write<std::uint64_t>(
+        m_Buffer.get() + m_BufferLen, ts);
     m_BufferLen += 8;  // end date
   }
   // signature
@@ -137,9 +138,9 @@ void LeaseSet::ReadFromBuffer() {
     Lease lease;
     lease.tunnel_gateway = leases;
     leases += 32;  // gateway
-    lease.tunnel_ID = bufbe32toh(leases);
+    lease.tunnel_ID = core::InputByteStream::Read<std::uint32_t>(leases);
     leases += 4;  // tunnel ID
-    lease.end_date = bufbe64toh(leases);
+    lease.end_date = core::InputByteStream::Read<std::uint64_t>(leases);
     leases += 8;  // end date
     m_Leases.push_back(lease);
     // check if lease's gateway is in our netDb

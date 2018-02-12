@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -33,6 +33,7 @@
 #include "core/router/info.h"
 
 #include <boost/lexical_cast.hpp>
+#include <boost/endian/conversion.hpp>
 
 #include <cstring>
 #include <fstream>
@@ -43,7 +44,6 @@
 #include "core/router/context.h"
 
 #include "core/util/filesystem.h"
-#include "core/util/i2p_endian.h"
 #include "core/util/log.h"
 #include "core/util/timestamp.h"
 
@@ -213,7 +213,7 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
 
   // Get timestamp
   stream.Read(&m_Timestamp, sizeof(m_Timestamp));
-  m_Timestamp = be64toh(m_Timestamp);
+  boost::endian::big_to_native_inplace(m_Timestamp);
   LOG(debug) << "RouterInfo: timestamp = " << m_Timestamp;
 
   // Get number of IP addresses
@@ -249,7 +249,7 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
 
       // Get the given size of remaining chunk
       stream.Read(&given_size, sizeof(given_size));
-      given_size = be16toh(given_size);
+      boost::endian::big_to_native_inplace(given_size);
 
       // Reset remaining size
       remaining_size = 0;
@@ -423,7 +423,7 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
 
   // Read remaining options
   stream.Read(&given_size, sizeof(given_size));
-  given_size = be16toh(given_size);
+  boost::endian::big_to_native_inplace(given_size);
 
   // Reset remaining size
   remaining_size = 0;
@@ -757,7 +757,7 @@ void RouterInfo::CreateRouterInfo(
   SetTimestamp(core::GetMillisecondsSinceEpoch());
 
   // Write published timestamp
-  std::uint64_t timestamp = htobe64(GetTimestamp());
+  std::uint64_t timestamp = boost::endian::native_to_big(GetTimestamp());
   router_info.Write(&timestamp, sizeof(timestamp));
 
   // Write number of addresses to follow
@@ -867,7 +867,9 @@ void RouterInfo::CreateRouterInfo(
           boost::lexical_cast<std::string>(address.port));
 
       // Write size of populated options
-      std::uint16_t size = htobe16(options.Str().size());
+      // TODO(anonimal): there is no spec-defined size limit, but we need 2 bytes...
+      std::uint16_t size = options.Str().size();
+      boost::endian::native_to_big_inplace(size);
       router_info.Write(&size, sizeof(size));
 
       // Write options to RI
@@ -890,7 +892,9 @@ void RouterInfo::CreateRouterInfo(
     }
 
   // Write size of remaining options
-  std::uint16_t size = htobe16(options.Str().size());
+  // TODO(anonimal): there is no spec-defined size limit, but we need 2 bytes...
+  std::uint16_t size = options.Str().size();
+  boost::endian::native_to_big_inplace(size);
   router_info.Write(&size, sizeof(size));
 
   // Write remaining options to RI

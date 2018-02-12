@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -40,12 +40,13 @@
 #include "core/router/net_db/impl.h"
 #include "core/router/transports/impl.h"
 
-#include "core/util/i2p_endian.h"
 #include "core/util/log.h"
 #include "core/util/timestamp.h"
 
 namespace kovri {
 namespace core {
+
+// TODO(anonimal): bytestream refactor
 
 Tunnel::Tunnel(
     std::shared_ptr<const TunnelConfig> config)
@@ -438,7 +439,7 @@ void Tunnels::Run() {
           switch (type_ID) {
             case I2NPTunnelData:
             case I2NPTunnelGateway: {
-              tunnel_ID = bufbe32toh(msg->GetPayload());
+              tunnel_ID = core::InputByteStream::Read<std::uint32_t>(msg->GetPayload());
               if (tunnel_ID == prev_tunnel_ID)
                 tunnel = prev_tunnel;
               else if (prev_tunnel)
@@ -497,13 +498,14 @@ void Tunnels::HandleTunnelGatewayMsg(
     return;
   }
   const std::uint8_t* payload = msg->GetPayload();
-  std::uint16_t len = bufbe16toh(payload + TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET);
+  std::uint16_t const len = core::InputByteStream::Read<std::uint16_t>(
+      payload + TUNNEL_GATEWAY_HEADER_LENGTH_OFFSET);
   // we make payload as new I2NP message to send
   msg->offset += I2NP_HEADER_SIZE + TUNNEL_GATEWAY_HEADER_SIZE;
   msg->len = msg->offset + len;
   auto type_ID = msg->GetTypeID();
   LOG(debug)
-    << "Tunnels: TunnelGateway of " << static_cast<int>(len)
+    << "Tunnels: TunnelGateway of " << len
     << " bytes for tunnel " << tunnel->GetTunnelID()
     << ". Msg type " << static_cast<int>(type_ID);
   if (type_ID == I2NPDatabaseStore || type_ID == I2NPDatabaseSearchReply)

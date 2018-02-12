@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -296,7 +296,7 @@ class IdentityEx {
   Identity m_StandardIdentity;
   IdentHash m_IdentHash;
   mutable std::unique_ptr<kovri::core::Verifier> m_Verifier;
-  std::size_t m_ExtendedLen;
+  std::uint16_t m_ExtendedLen;
   std::unique_ptr<std::uint8_t[]> m_ExtendedBuffer;
   core::Exception m_Exception;
 };

@@ -53,9 +53,10 @@ struct ByteStreamFixture
 
 BOOST_FIXTURE_TEST_SUITE(ByteStreamTests, ByteStreamFixture)
 
+// TODO(anonimal): decouple null input/output from null sizes
 BOOST_AUTO_TEST_CASE(StreamsEmpty)
 {
-  core::OutputByteStream output;
+  core::OutputByteStream output(nullptr, 0);
   BOOST_CHECK_NO_THROW(output.ProduceData(0));
   BOOST_CHECK_THROW(output.ProduceData(1), std::length_error);
   BOOST_CHECK_THROW(output.Write<std::uint8_t>(1), std::length_error);
@@ -63,7 +64,7 @@ BOOST_AUTO_TEST_CASE(StreamsEmpty)
   BOOST_CHECK_THROW(output.Write<std::uint32_t>(1), std::length_error);
   BOOST_CHECK_THROW(output.Write<std::uint64_t>(1), std::length_error);
 
-  core::InputByteStream input;
+  core::InputByteStream input(nullptr, 0);
   BOOST_CHECK_NO_THROW(input.ConsumeData(0));
   BOOST_CHECK_THROW(input.ConsumeData(1), std::length_error);
   BOOST_CHECK_THROW(input.ReadBytes(1), std::length_error);
@@ -90,11 +91,11 @@ BOOST_AUTO_TEST_CASE(OutputByteStream)
   BOOST_CHECK_NO_THROW(output.WriteData(buffer.data(), 0));
   BOOST_CHECK_THROW(output.WriteData(nullptr, 1), std::runtime_error);
   BOOST_CHECK_NO_THROW(output.Write<std::uint8_t>(m_IPv4Array.at(0)));
-  BOOST_CHECK_EQUAL(output.GetSize(), buffer.size());
-  BOOST_CHECK_EQUAL(output.GetData(), buffer.data());
-  BOOST_CHECK_EQUAL(output.GetPosition(), buffer.data() + 1);
+  BOOST_CHECK_EQUAL(output.Size(), buffer.size());
+  BOOST_CHECK_EQUAL(output.Data(), buffer.data());
+  BOOST_CHECK_EQUAL(output.Tellp(), buffer.data() + 1);
   BOOST_CHECK_NO_THROW(output.WriteData(&m_IPv4Array.at(1), 3));
-  BOOST_CHECK_EQUAL(output.GetPosition(), buffer.data() + buffer.size());
+  BOOST_CHECK_EQUAL(output.Tellp(), buffer.data() + buffer.size());
   BOOST_CHECK_THROW(output.Write<std::uint8_t>(1), std::length_error);
   BOOST_CHECK_EQUAL_COLLECTIONS(
       buffer.data(),
@@ -151,15 +152,15 @@ BOOST_AUTO_TEST_CASE(AddressToByteVectorIPv4)
   BOOST_CHECK_NO_THROW(
       address = boost::asio::ip::address::from_string(m_IPv4String));
   auto const ip = core::AddressToByteVector(address);
-  BOOST_CHECK_EQUAL(ip->size(), address.to_v4().to_bytes().size());
+  BOOST_CHECK_EQUAL(ip.size(), address.to_v4().to_bytes().size());
   BOOST_CHECK_EQUAL_COLLECTIONS(
-      ip->data(),
-      ip->data() + ip->size(),
+      ip.data(),
+      ip.data() + ip.size(),
       m_IPv4Array.data(),
       m_IPv4Array.data() + m_IPv4Array.size());
   // Reconstruct a new address and check with original
   boost::asio::ip::address_v4::bytes_type bytes;
-  std::memcpy(bytes.data(), ip->data(), address.to_v4().to_bytes().size());
+  std::memcpy(bytes.data(), ip.data(), address.to_v4().to_bytes().size());
   BOOST_CHECK_EQUAL(boost::asio::ip::address_v4(bytes), address.to_v4());
 }
 
@@ -169,15 +170,15 @@ BOOST_AUTO_TEST_CASE(AddressToByteVectorIPv6)
   BOOST_CHECK_NO_THROW(
       address = boost::asio::ip::address::from_string(m_IPv6String));
   auto const ip = core::AddressToByteVector(address);
-  BOOST_CHECK_EQUAL(ip->size(), address.to_v6().to_bytes().size());
+  BOOST_CHECK_EQUAL(ip.size(), address.to_v6().to_bytes().size());
   BOOST_CHECK_EQUAL_COLLECTIONS(
-      ip->data(),
-      ip->data() + ip->size(),
+      ip.data(),
+      ip.data() + ip.size(),
       m_IPv6Array.data(),
       m_IPv6Array.data() + m_IPv6Array.size());
   // Reconstruct a new address and check with original
   boost::asio::ip::address_v6::bytes_type bytes;
-  std::memcpy(bytes.data(), ip->data(), address.to_v6().to_bytes().size());
+  std::memcpy(bytes.data(), ip.data(), address.to_v6().to_bytes().size());
   BOOST_CHECK_EQUAL(boost::asio::ip::address_v6(bytes), address.to_v6());
 }
 

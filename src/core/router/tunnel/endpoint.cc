@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -42,11 +42,12 @@
 #include "core/router/net_db/impl.h"
 #include "core/router/transports/impl.h"
 
-#include "core/util/i2p_endian.h"
 #include "core/util/log.h"
 
 namespace kovri {
 namespace core {
+
+// TODO(anonimal): bytestream refactor
 
 TunnelEndpoint::~TunnelEndpoint() {}
 
@@ -102,7 +103,7 @@ void TunnelEndpoint::HandleDecryptedTunnelDataMsg(
           case e_DeliveryTypeLocal:  // 0
           break;
           case e_DeliveryTypeTunnel:  // 1
-            m.tunnel_ID = bufbe32toh(fragment);
+            m.tunnel_ID = core::InputByteStream::Read<std::uint32_t>(fragment);
             fragment += 4;  // tunnel_ID
             m.hash = kovri::core::IdentHash(fragment);
             fragment += 32;  // hash
@@ -116,18 +117,18 @@ void TunnelEndpoint::HandleDecryptedTunnelDataMsg(
         bool is_fragmented = flag & 0x08;
         if (is_fragmented) {
           // Message ID
-          msg_ID = bufbe32toh(fragment);
+          msg_ID = core::InputByteStream::Read<std::uint32_t>(fragment);
           fragment += 4;
           is_last_fragment = false;
         }
       } else {
         // follow on
-        msg_ID = bufbe32toh(fragment);  // MessageID
+        msg_ID = core::InputByteStream::Read<std::uint32_t>(fragment);  // MessageID
         fragment += 4;
         fragment_num = (flag >> 1) & 0x3F;  // 6 bits
         is_last_fragment = flag & 0x01;
       }
-      std::uint16_t size = bufbe16toh(fragment);
+      std::uint16_t size = core::InputByteStream::Read<std::uint16_t>(fragment);
       fragment += 2;
       msg->offset = fragment - msg->buf;
       msg->len = msg->offset + size;

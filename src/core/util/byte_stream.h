@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2015-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -28,8 +28,8 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#ifndef SRC_CORE_UTIL_BYTESTREAM_H_
-#define SRC_CORE_UTIL_BYTESTREAM_H_
+#ifndef SRC_CORE_UTIL_BYTE_STREAM_H_
+#define SRC_CORE_UTIL_BYTE_STREAM_H_
 
 #include <boost/asio.hpp>
 #include <boost/endian/conversion.hpp>
@@ -38,85 +38,122 @@
 #include <cstdint>
 #include <ios>
 #include <memory>
+#include <string>
 #include <type_traits>
+#include <vector>
 
-namespace kovri {
-namespace core {
+namespace kovri
+{
+namespace core
+{
+// TODO(anonimal): our interfaces should use const pointer - but doing so will break
+//   our current SSU implementation. Finish the SSU rewrite and use const correctness!
+class ByteStream
+{
+ public:
+  // TODO(anonimal): assert/throw nulls
+  explicit ByteStream(std::uint8_t* data, std::size_t len);
+  virtual ~ByteStream() = default;
 
-namespace {
-/// @brief Return underlying type (for enumerators)
-/// @param type Enumerator
-/// @warning Should be used with enumerations only
-/// @notes  C++14 required, courtesy of Scott Meyers (2014)
-template <typename T>
-constexpr auto GetType(T type) noexcept {
-  return static_cast<std::underlying_type_t<T>>(type);
-}
-}  // namespace
+  /// @brief Get the first unconsumed/unwritten byte in the stream
+  /// @return Pointer to the first byte
+  const std::uint8_t* Data() const noexcept
+  {
+    return m_Data - m_Counter;
+  }
+
+  /// @brief Total size of stream given at initialization
+  /// @return Total size
+  std::size_t Size() const noexcept
+  {
+    return m_Size;
+  }
+
+  /// @brief Get the current position in the stream
+  /// @return Pointer to current byte position
+  const std::uint8_t* Tellp() const noexcept
+  {
+    return m_Data;
+  }
+
+  /// @brief Remaining length of the stream after consumption/production
+  std::size_t Gcount() const noexcept
+  {
+    return m_Length;
+  }
+
+ protected:
+  std::uint8_t* m_Data;
+  std::size_t m_Size, m_Length;
+  std::size_t m_Counter;  ///< Counter for amount of incremented data
+};
 
 /// @class InputByteStream
 /// @brief Wraps an array of bytes to provide stream-like functionality.
-class InputByteStream {
+class InputByteStream : public ByteStream
+{
  public:
-  InputByteStream() = default;
+  /// @brief Constructs the byte stream from a given array of bytes
+  /// @param data Pointer to the array of bytes
+  /// @param len Length of the array of bytes
+  explicit InputByteStream(std::uint8_t* data, std::size_t len);
 
-  /// @brief Constructs the byte stream from a given array of bytes 
-  /// @param data Pointer to the array of bytes 
-  /// @param len Length of the array of bytes 
-  InputByteStream(
-      std::uint8_t* data,
-      std::size_t len);
+  virtual ~InputByteStream() = default;
 
   /// @brief Advances the internal data pointer by the given amount
   /// @param amount the amount by which to advance the data pointer
   /// @throw std::length_error if amount exceeds the remaining data length
-  void ConsumeData(
-      std::size_t amount);
+  void ConsumeData(std::size_t amount);
 
-  /// @brief Consume a given amount of bytes, and return a pointer to first consumed
-  ///   byte.
+  /// @brief Consume a given amount of bytes + return a pointer to first consumed byte
   /// @return a pointer to the first byte that was consumed (m_Data + amount)
   /// @throw std::length_error if amount exceeds the remaining data length
-  std::uint8_t* ReadBytes(
-      std::size_t amount);
+  std::uint8_t* ReadBytes(std::size_t amount);
 
-  /// @brief Reads unsigned integral value from stream byte(s)
-  /// @note Converts from big endian to host order (when applicable)
-  /// @return Size value read from byte(s)
+  /// @brief Reads unsigned integral value from given buffer
+  /// @param buf Buffer to read from
+  /// @return Unsigned integral value read from byte(s)
+  /// @param big_to_native Endian conversion from big endian to host endian
   template <typename UInt>
-  UInt Read()
+  static UInt Read(const std::uint8_t* buf, const bool big_to_native = true)
   {
     static_assert(
         std::is_integral<UInt>::value || std::is_signed<UInt>(),
         "InputByteStream: invalid type (unsigned integral only)");
 
     UInt size;
-    std::memcpy(&size, ReadBytes(sizeof(UInt)), sizeof(UInt));
-    return boost::endian::big_to_native(size);
+    std::memcpy(&size, buf, sizeof(size));
+    if (big_to_native)
+      boost::endian::big_to_native_inplace(size);
+    return size;
   }
 
- protected:
-  std::uint8_t* m_Data; ///< Pointer to first unparsed byte of the stream
-  std::size_t m_Length{};  ///< Remaining length of the stream
+  /// @brief Reads unsigned integral value from stream byte(s)
+  /// @return Unsigned integral value read from byte(s)
+  template <typename UInt>
+  UInt Read(const bool big_to_native = true)
+  {
+    return Read<UInt>(ReadBytes(sizeof(UInt)), big_to_native);
+  }
 };
 
 /// @class OutputByteStream
 /// @brief Wraps an array of bytes to provide stream-like functionality.
-class OutputByteStream {
+class OutputByteStream : public ByteStream
+{
  public:
-  OutputByteStream() = default;
+  /// @brief Constructs the byte stream from a given array of bytes
+  /// @param data Pointer to the array of bytes
+  /// @param len Length of the array of bytes
+  explicit OutputByteStream(std::uint8_t* data, std::size_t len);
 
-  /// @brief Constructs the byte stream from a given array of bytes 
-  /// @param data Pointer to the array of bytes 
-  /// @param len Length of the array of bytes 
-  OutputByteStream(
-      std::uint8_t* data,
-      std::size_t len);
+  virtual ~OutputByteStream() = default;
 
   /// @brief Advances the internal data pointer by the given amount
-  /// @param amount the amount by which to advance the data pointer
+  /// @param amount The amount by which to advance the data pointer
   /// @throw std::length_error if amount exceeds the remaining buffer length
-  void ProduceData(std::size_t amount);  // TODO(unassigned): rename to something less confusing
+  // TODO(unassigned): rename to something less confusing
+  void ProduceData(std::size_t amount);
 
   /// @brief Writes data into buffer
   /// @note Increments buffer pointer position after writing data
@@ -124,40 +161,34 @@ class OutputByteStream {
   /// @param len Length of data
   void WriteData(const std::uint8_t* data, std::size_t len);
 
-  /// @brief Writes an unsigned integral value into buffer
+  /// @brief Writes an unsigned integral value into given buffer
   /// @note Converts data from host order to big endian (when applicable)
-  /// @note Increments buffer pointer position after writing data
+  /// @param buf Buffer to write to
   /// @param data Data to write
+  /// @param native_to_big Endian conversion from host endian to big endian
   template <typename UInt>
-  void Write(UInt data)
+  static void
+  Write(std::uint8_t* buf, UInt data, const bool native_to_big = true)
   {
     static_assert(
         std::is_integral<UInt>::value || std::is_signed<UInt>(),
-        "InputByteStream: invalid type (unsigned integral only)");
+        "OutputByteStream: invalid type (unsigned integral only)");
 
-    std::uint8_t buf[sizeof(data)] = {};
-    const UInt value = boost::endian::native_to_big(data);
-
-    std::memcpy(buf, &value, sizeof(value));
-    WriteData(buf, sizeof(value));
+    if (native_to_big)
+      boost::endian::native_to_big_inplace(data);
+    std::memcpy(buf, &data, sizeof(data));
   }
 
-  // TODO(unassigned): see comments in #510
-
-  /// @brief Get current pointer position of written data
-  std::uint8_t* GetPosition() const;
-
-  /// @brief Gets pointer to beginning of written data
-  std::uint8_t* GetData() const;
-
-  /// @brief Gets total stream size given during construction
-  std::size_t GetSize() const;
-
- protected:
-  std::uint8_t* m_Data; ///< Pointer to the first unwritten byte
-  std::size_t m_Length{};  ///< Remaining length of the stream
-  std::size_t m_Counter{};  ///< Counter for amount of incremented data
-  std::size_t m_Size{};  ///< Total size of stream given at initialization
+  /// @brief Writes an unsigned integral value into member 'stream'
+  /// @note Increments buffer pointer position after writing data
+  /// @param data Data to write
+  template <typename UInt>
+  void Write(UInt data, const bool native_to_big = true)
+  {
+    std::uint8_t buf[sizeof(data)]{};
+    Write(buf, data, native_to_big);  // Write to buffer
+    WriteData(buf, sizeof(buf));  // Write buffer to stream
+  }
 };
 
 /// @brief Returns hex encoding of given data
@@ -167,10 +198,24 @@ const std::string GetFormattedHex(const std::uint8_t* data, std::size_t size);
 
 /// @brief Returns vector of bytes representing address
 /// @param address IP v4 or v6 address
-std::unique_ptr<std::vector<std::uint8_t>> AddressToByteVector(
+std::vector<std::uint8_t> AddressToByteVector(
     const boost::asio::ip::address& address);
 
-} // namespace core
-} // namespace kovri
+// TODO(anonimal): remove from global namespace
+namespace
+{
+/// @brief Return underlying type (for enumerators)
+/// @param type Enumerator
+/// @warning Should be used with enumerations only
+/// @notes  C++14 required, courtesy of Scott Meyers (2014)
+template <typename T>
+constexpr auto GetType(T type) noexcept
+{
+  return static_cast<std::underlying_type_t<T>>(type);
+}
+}  // namespace
 
-#endif  // SRC_CORE_UTIL_BYTESTREAM_H_
+}  // namespace core
+}  // namespace kovri
+
+#endif  // SRC_CORE_UTIL_BYTE_STREAM_H_

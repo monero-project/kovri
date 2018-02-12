@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2015-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -26,65 +26,63 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,          //
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF    //
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
- *                                                                                            //
- * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
 #include "core/util/byte_stream.h"
 
 #include <cstring>
-#include <stdexcept>
-#include <sstream>
 #include <iomanip>
+#include <sstream>
+#include <stdexcept>
 
-#include "core/util/i2p_endian.h"
 #include "core/util/log.h"
 
-namespace kovri {
-namespace core {
+namespace kovri
+{
+namespace core
+{
+ByteStream::ByteStream(std::uint8_t* data, std::size_t len)
+    : m_Data(data), m_Size(len), m_Length(len), m_Counter{}
+{
+}
 
-/// Input
+InputByteStream::InputByteStream(std::uint8_t* data, std::size_t len)
+    : ByteStream(data, len)
+{
+}
 
-InputByteStream::InputByteStream(
-    std::uint8_t* data,
-    std::size_t len)
-    : m_Data(data),
-      m_Length(len) {}
-
-void InputByteStream::ConsumeData(
-    std::size_t amount) {
+void InputByteStream::ConsumeData(std::size_t amount)
+{
   if (amount > m_Length)
     throw std::length_error("InputByteStream: too many bytes to consume.");
   m_Data += amount;
+  m_Counter += amount;
   m_Length -= amount;
 }
 
-std::uint8_t* InputByteStream::ReadBytes(
-    std::size_t amount) {
+std::uint8_t* InputByteStream::ReadBytes(std::size_t amount)
+{
   std::uint8_t* ptr = m_Data;
   ConsumeData(amount);
   return ptr;
 }
 
-/// Output
+OutputByteStream::OutputByteStream(std::uint8_t* data, std::size_t len)
+    : ByteStream(data, len)
+{
+}
 
-OutputByteStream::OutputByteStream(
-  std::uint8_t* data,
-  std::size_t len)
-  : m_Data(data),
-    m_Length(len),
-    m_Counter(0),
-    m_Size(len) {}
-
-void OutputByteStream::ProduceData(std::size_t amount) {
+void OutputByteStream::ProduceData(std::size_t amount)
+{
   if (amount > m_Length)
     throw std::length_error("OutputByteStream: too many bytes to produce.");
   m_Data += amount;
-  m_Length -= amount;
   m_Counter += amount;
+  m_Length -= amount;
 }
 
-void OutputByteStream::WriteData(const std::uint8_t* data, std::size_t len) {
+void OutputByteStream::WriteData(const std::uint8_t* data, std::size_t len)
+{
   if (!len)
     {
       LOG(debug) << "OutputByteStream: skip empty data";
@@ -92,31 +90,16 @@ void OutputByteStream::WriteData(const std::uint8_t* data, std::size_t len) {
     }
   if (!data)
     throw std::runtime_error("OutputByteStream: null data");
-  std::uint8_t* ptr = m_Data; 
+  std::uint8_t* ptr = m_Data;
   ProduceData(len);
   std::memcpy(ptr, data, len);
 }
 
-// TODO(unassigned): see comments in #510
-
-std::uint8_t* OutputByteStream::GetPosition() const {
-  return m_Data;
-}
-
-std::uint8_t* OutputByteStream::GetData() const {
-  return m_Data - m_Counter;
-}
-
-std::size_t OutputByteStream::GetSize() const {
-  return m_Size;
-}
-
-// Hex
-
 const std::string GetFormattedHex(const std::uint8_t* data, std::size_t size)
 {
   std::ostringstream hex;
-  hex << "\n\t" << " |  ";
+  hex << "\n\t"
+      << " |  ";
   std::size_t count{}, sub_count{};
   for (std::size_t i = 0; i < size; i++)
     {
@@ -125,7 +108,8 @@ const std::string GetFormattedHex(const std::uint8_t* data, std::size_t size)
       count++;
       if (count == 32 || (i == size - 1))
         {
-          hex << " |" << "\n\t";
+          hex << " |"
+              << "\n\t";
           count = 0;
         }
       sub_count++;
@@ -138,18 +122,18 @@ const std::string GetFormattedHex(const std::uint8_t* data, std::size_t size)
   return hex.str() + "\n";
 }
 
-std::unique_ptr<std::vector<std::uint8_t>> AddressToByteVector(
+std::vector<std::uint8_t> AddressToByteVector(
     const boost::asio::ip::address& address)
 {
   bool is_v4(address.is_v4());
-  auto data = std::make_unique<std::vector<std::uint8_t>>(is_v4 ? 4 : 16);
+  std::vector<std::uint8_t> data(is_v4 ? 4 : 16);
   std::memcpy(
-      data->data(),
+      data.data(),
       is_v4 ? address.to_v4().to_bytes().data()
             : address.to_v6().to_bytes().data(),
-      data->size());
+      data.size());
   return data;
 }
 
-} // namespace core
-} // namespace kovri
+}  // namespace core
+}  // namespace kovri

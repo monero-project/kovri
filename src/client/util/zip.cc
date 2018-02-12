@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -32,11 +32,12 @@
 
 #include "client/util/zip.h"
 
+#include <boost/endian/conversion.hpp>
+
 #include <istream>
 
 #include "core/crypto/util/compression.h"
 
-#include "core/util/i2p_endian.h"
 #include "core/util/log.h"
 
 namespace kovri {
@@ -61,7 +62,7 @@ bool ZIP::Unzip() {
     while (!m_Stream.EndOfFile()) {
       // Validate local file's header signature
       m_Stream.Read(&m_Data->header_signature, Size::header_signature);
-      m_Data->header_signature = le32toh(m_Data->header_signature);
+      boost::endian::little_to_native_inplace(m_Data->header_signature);
       if (m_Data->header_signature ==
           static_cast<std::size_t>(Signature::header)) {
         LOG(debug) << "ZIP: preparing local file...";
@@ -100,10 +101,10 @@ bool ZIP::PrepareLocalFile() {
     m_Stream.Seekg(Offset::version, std::ios::cur);
     // Prepare bit flag
     m_Stream.Read(&m_Data->bit_flag, Size::bit_flag);
-    m_Data->bit_flag = le16toh(m_Data->bit_flag);
+    boost::endian::little_to_native_inplace(m_Data->bit_flag);
     // Prepare compression method (sanity test done later)
     m_Stream.Read(&m_Data->compression_method, Size::compression_method);
-    m_Data->compression_method = le16toh(m_Data->compression_method);
+    boost::endian::little_to_native_inplace(m_Data->compression_method);
     // Unused offset
     m_Stream.Seekg(Offset::last_mod, std::ios::cur);
     // Get CRC-32 checksum
@@ -114,15 +115,15 @@ bool ZIP::PrepareLocalFile() {
     }
     // Prepare compressed file size
     m_Stream.Read(&m_Data->compressed_size, Size::compressed_size);
-    m_Data->compressed_size = le32toh(m_Data->compressed_size);
+    boost::endian::little_to_native_inplace(m_Data->compressed_size);
     if (!m_Data->compressed_size)
       LOG(warning) << "ZIP: compressed file size was null";
     // Prepare uncompressed file size
     m_Stream.Read(&m_Data->uncompressed_size, Size::uncompressed_size);
-    m_Data->uncompressed_size = le32toh(m_Data->uncompressed_size);
+    boost::endian::little_to_native_inplace(m_Data->uncompressed_size);
     // Prepare local filename length
     m_Stream.Read(&m_Data->local_filename_length, Size::local_filename_length);
-    m_Data->local_filename_length = le16toh(m_Data->local_filename_length);
+    boost::endian::little_to_native_inplace(m_Data->local_filename_length);
     // If we expand ZIP beyond SU3, we'll have to remove this check
     if ((m_Data->local_filename_length !=
         static_cast<std::size_t>(Size::ri_filename_length))) {
@@ -133,7 +134,7 @@ bool ZIP::PrepareLocalFile() {
     }
     // Prepare extra field length
     m_Stream.Read(&m_Data->extra_field_length, Size::extra_field_length);
-    m_Data->extra_field_length = le16toh(m_Data->extra_field_length);
+    boost::endian::little_to_native_inplace(m_Data->extra_field_length);
     // Get local filename
     // TODO(unassigned): we don't check if filename is base64 standard
     // ex., 'routerInfo-asdfj23kjf2lk3nfnakjlsnfjklsdnfln23f.dat' (as defined in SU3 spec).

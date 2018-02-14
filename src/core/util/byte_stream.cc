@@ -38,6 +38,9 @@
 
 #include "core/util/log.h"
 
+// TODO(anonimal): a secure bytestream implementation that ensures wiped memory when needed.
+//   Otherwise, and preferably, use existing standard library containers with crypto++.
+
 namespace kovri
 {
 namespace core
@@ -57,6 +60,15 @@ ByteStream::ByteStream(std::size_t len)
   m_Data = data.get();
 }
 
+void ByteStream::Advance(std::size_t len)
+{
+  if (len > m_Length)
+    throw std::length_error("ByteStream: too many bytes to process");
+  m_Data += len;
+  m_Counter += len;
+  m_Length -= len;
+}
+
 // Input
 
 InputByteStream::InputByteStream(std::uint8_t* data, std::size_t len)
@@ -64,20 +76,16 @@ InputByteStream::InputByteStream(std::uint8_t* data, std::size_t len)
 {
 }
 
-void InputByteStream::Advance(std::size_t amount)
-{
-  if (amount > m_Length)
-    throw std::length_error("InputByteStream: too many bytes to consume.");
-  m_Data += amount;
-  m_Counter += amount;
-  m_Length -= amount;
-}
-
-std::uint8_t* InputByteStream::ReadBytes(std::size_t amount)
+std::uint8_t* InputByteStream::ReadBytes(std::size_t len)
 {
   std::uint8_t* ptr = m_Data;
-  Advance(amount);
+  Advance(len);
   return ptr;
+}
+
+void InputByteStream::SkipBytes(std::size_t len)
+{
+  Advance(len);
 }
 
 // Output
@@ -89,27 +97,30 @@ OutputByteStream::OutputByteStream(std::uint8_t* data, std::size_t len)
 
 OutputByteStream::OutputByteStream(std::size_t len) : ByteStream(len) {}
 
-void OutputByteStream::Advance(std::size_t amount)
+void OutputByteStream::WriteData(
+    const std::uint8_t* data,
+    const std::size_t len,
+    const bool allow_null_data)
 {
-  if (amount > m_Length)
-    throw std::length_error("OutputByteStream: too many bytes to produce.");
-  m_Data += amount;
-  m_Counter += amount;
-  m_Length -= amount;
-}
-
-void OutputByteStream::WriteData(const std::uint8_t* data, std::size_t len)
-{
+  // TODO(anonimal): don't allow null length
   if (!len)
     {
       LOG(debug) << "OutputByteStream: skip empty data";
       return;
     }
-  if (!data)
+  if (!data && !allow_null_data)
     throw std::runtime_error("OutputByteStream: null data");
   std::uint8_t* ptr = m_Data;
   Advance(len);
-  std::memcpy(ptr, data, len);
+  if (!data)
+    std::memset(ptr, 0, len);
+  else
+    std::memcpy(ptr, data, len);
+}
+
+void OutputByteStream::SkipBytes(std::size_t len)
+{
+  WriteData(nullptr, len, true);
 }
 
 // Misc

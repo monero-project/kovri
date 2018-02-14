@@ -59,6 +59,8 @@ class ByteStream
 
   virtual ~ByteStream() = default;
 
+  virtual void SkipBytes(std::size_t len) = 0;
+
   /// @brief Get the first unconsumed/unwritten byte in the stream
   /// @return Pointer to the first byte
   const std::uint8_t* Data() const noexcept
@@ -90,6 +92,11 @@ class ByteStream
   std::uint8_t* m_Data;
   std::size_t m_Size, m_Length;
   std::size_t m_Counter;  ///< Counter for amount of incremented data
+
+  /// @brief Advances the internal data pointer by the given amount
+  /// @param len The amount by which to advance the data pointer
+  /// @throw std::length_error if amount exceeds the remaining data length
+  void Advance(std::size_t len);
 };
 
 /// @class InputByteStream
@@ -104,10 +111,9 @@ class InputByteStream : public ByteStream
 
   virtual ~InputByteStream() = default;
 
-  /// @brief Advances the internal data pointer by the given amount
-  /// @param amount the amount by which to advance the data pointer
-  /// @throw std::length_error if amount exceeds the remaining data length
-  void Advance(std::size_t amount);
+  /// @brief Advances internal pointer
+  /// @param len Number of bytes to skip
+  virtual void SkipBytes(std::size_t len);
 
   /// @brief Consume a given amount of bytes + return a pointer to first consumed byte
   /// @return a pointer to the first byte that was consumed (m_Data + amount)
@@ -157,16 +163,19 @@ class OutputByteStream : public ByteStream
 
   virtual ~OutputByteStream() = default;
 
-  /// @brief Advances the internal data pointer by the given amount
-  /// @param amount The amount by which to advance the data pointer
-  /// @throw std::length_error if amount exceeds the remaining buffer length
-  void Advance(std::size_t amount);
+  /// @brief Advances internal pointer after writing zero-initialized memory
+  /// @param len Number of bytes to "skip"
+  virtual void SkipBytes(std::size_t len);
 
-  /// @brief Writes data into buffer
+  /// @brief Writes data into data member buffer
   /// @note Increments buffer pointer position after writing data
   /// @param data Pointer to data to write
   /// @param len Length of data
-  void WriteData(const std::uint8_t* data, std::size_t len);
+  /// @param allow_null_data Allow setting data member buffer with len constant byte 0
+  void WriteData(
+      const std::uint8_t* data,
+      const std::size_t len,
+      const bool allow_null_data = false);
 
   /// @brief Writes an unsigned integral value into given buffer
   /// @note Converts data from host order to big endian (when applicable)

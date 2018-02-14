@@ -58,16 +58,17 @@ BOOST_FIXTURE_TEST_SUITE(ByteStreamTests, ByteStreamFixture)
 BOOST_AUTO_TEST_CASE(StreamsEmpty)
 {
   core::OutputByteStream output(nullptr, 0);
-  BOOST_CHECK_NO_THROW(output.Advance(0));
-  BOOST_CHECK_THROW(output.Advance(1), std::length_error);
+  BOOST_CHECK_NO_THROW(output.SkipBytes(0));
+  BOOST_CHECK_THROW(output.SkipBytes(1), std::length_error);
+  BOOST_CHECK_THROW(output.WriteData(0, 1), std::runtime_error);
   BOOST_CHECK_THROW(output.Write<std::uint8_t>(1), std::length_error);
   BOOST_CHECK_THROW(output.Write<std::uint16_t>(1), std::length_error);
   BOOST_CHECK_THROW(output.Write<std::uint32_t>(1), std::length_error);
   BOOST_CHECK_THROW(output.Write<std::uint64_t>(1), std::length_error);
 
   core::InputByteStream input(nullptr, 0);
-  BOOST_CHECK_NO_THROW(input.Advance(0));
-  BOOST_CHECK_THROW(input.Advance(1), std::length_error);
+  BOOST_CHECK_NO_THROW(input.SkipBytes(0));
+  BOOST_CHECK_THROW(input.SkipBytes(1), std::length_error);
   BOOST_CHECK_THROW(input.ReadBytes(1), std::length_error);
   BOOST_CHECK_THROW(input.Read<std::uint8_t>(), std::length_error);
   BOOST_CHECK_THROW(input.Read<std::uint16_t>(), std::length_error);
@@ -78,10 +79,10 @@ BOOST_AUTO_TEST_CASE(StreamsEmpty)
 BOOST_AUTO_TEST_CASE(InputByteStream)
 {
   core::InputByteStream input(m_IPv4Array.data(), m_IPv4Array.size());
-  BOOST_CHECK_NO_THROW(input.Advance(0));
+  BOOST_CHECK_NO_THROW(input.SkipBytes(0));
   BOOST_CHECK_EQUAL(input.Read<std::uint8_t>(), m_IPv4Array.at(0));
   BOOST_CHECK_EQUAL(input.ReadBytes(3), &m_IPv4Array.at(1));
-  BOOST_CHECK_THROW(input.Advance(1), std::length_error);
+  BOOST_CHECK_THROW(input.SkipBytes(1), std::length_error);
 }
 
 BOOST_AUTO_TEST_CASE(OutputByteStream)
@@ -111,10 +112,10 @@ BOOST_AUTO_TEST_CASE(NoBufferOutputByteStream)
  core::OutputByteStream output(4);
 
  BOOST_CHECK_NO_THROW(output.Write<std::uint16_t>(65535));
- BOOST_CHECK_NO_THROW(output.Write<std::uint8_t>(0));
+ BOOST_CHECK_NO_THROW(output.SkipBytes(1));
  BOOST_CHECK_NO_THROW(output.Write<std::uint8_t>(255));
  BOOST_CHECK_THROW(output.Write<std::uint8_t>(1), std::length_error);
- BOOST_CHECK_THROW(output.Advance(1), std::length_error);
+ BOOST_CHECK_THROW(output.SkipBytes(1), std::length_error);
  BOOST_CHECK_EQUAL(output.Size(), 4);
 
  // Test output

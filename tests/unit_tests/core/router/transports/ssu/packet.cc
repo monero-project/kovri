@@ -69,7 +69,7 @@ struct SSUTestVectorsFixture : public IdentityExFixture
     output.Write<std::uint32_t>(m_SignedOnTime);
     // Padding to reach multiple of 16 bytes
     // 13 = 16 - (37(header_plain) + 1 + 2 + (387+4) + 4(time) + 64(sig len)) % 16)
-    output.Advance(13);
+    output.SkipBytes(13);
     // Signature (non-realistic example)
     // 64 bytes (EDDSA_SHA512_ED25519)
     for(std::uint8_t i(0); i< 64; i++)

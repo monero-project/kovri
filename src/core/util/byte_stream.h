@@ -53,8 +53,13 @@ namespace core
 class ByteStream
 {
  public:
-  // TODO(anonimal): assert/throw nulls
+  /// @brief Create stream from/to data buffer
+  /// @param data Buffer to use
+  /// @param len Length to use
   explicit ByteStream(std::uint8_t* data, std::size_t len);
+
+  /// @brief Create stream from/to internal data buffer
+  /// @param len Length to use
   explicit ByteStream(std::size_t len);
 
   virtual ~ByteStream() = default;
@@ -82,7 +87,7 @@ class ByteStream
     return m_Data;
   }
 
-  /// @brief Remaining length of the stream after consumption/production
+  /// @brief Remaining length of the stream after advancement
   std::size_t Gcount() const noexcept
   {
     return m_Length;

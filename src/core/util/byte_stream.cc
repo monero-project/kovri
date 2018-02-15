@@ -31,6 +31,7 @@
 #include "core/util/byte_stream.h"
 
 #include <cstring>
+#include <cassert>
 #include <iomanip>
 #include <memory>
 #include <sstream>
@@ -48,6 +49,12 @@ namespace core
 ByteStream::ByteStream(std::uint8_t* data, std::size_t len)
     : m_Data(data), m_Size(len), m_Length(len), m_Counter{}
 {
+  assert(data || len);
+
+  if (!data)
+    throw std::invalid_argument("ByteStream: null data");
+  if (!len)
+    throw std::length_error("ByteStream: null length");
 }
 
 // TODO(anonimal): consider refactoring ByteStream use-cases with a vector in mind
@@ -56,14 +63,22 @@ ByteStream::ByteStream(std::uint8_t* data, std::size_t len)
 ByteStream::ByteStream(std::size_t len)
     : m_Size(len), m_Length(len), m_Counter{}
 {
+  assert(len);
+
+  if (!len)
+    throw std::length_error("ByteStream: null length");
+
   auto data = std::make_unique<std::uint8_t[]>(len);
   m_Data = data.get();
 }
 
 void ByteStream::Advance(std::size_t len)
 {
-  if (len > m_Length)
-    throw std::length_error("ByteStream: too many bytes to process");
+  assert(len && len <= m_Length);
+
+  if (!len || len > m_Length)
+    throw std::length_error("ByteStream: invalid length advancement");
+
   m_Data += len;
   m_Counter += len;
   m_Length -= len;
@@ -102,16 +117,16 @@ void OutputByteStream::WriteData(
     const std::size_t len,
     const bool allow_null_data)
 {
-  // TODO(anonimal): don't allow null length
-  if (!len)
-    {
-      LOG(debug) << "OutputByteStream: skip empty data";
-      return;
-    }
+  assert((data && allow_null_data) || len);
+
   if (!data && !allow_null_data)
-    throw std::runtime_error("OutputByteStream: null data");
+    throw std::invalid_argument("OutputByteStream: null data");
+  if (!len)
+    throw std::length_error("OutputByteStream: null length");
+
   std::uint8_t* ptr = m_Data;
   Advance(len);
+
   if (!data)
     std::memset(ptr, 0, len);
   else

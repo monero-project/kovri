@@ -30,8 +30,8 @@
 
 #include "core/util/byte_stream.h"
 
-#include <cstring>
 #include <cassert>
+#include <cstring>
 #include <iomanip>
 #include <memory>
 #include <sstream>
@@ -46,11 +46,10 @@ namespace kovri
 {
 namespace core
 {
-
 // Input
 ByteStream::ByteStream(const std::uint8_t* data, std::size_t len)
-    : m_DataPtr(const_cast<std::uint8_t*>(data)), m_Size(len), m_Length(len), m_Counter{}
-      // TODO(anonimal): remove const cast!
+    : m_DataPtr(const_cast<std::uint8_t*>(data)), m_Length(len), m_Counter{}
+// TODO(anonimal): remove const cast!
 {
   assert(data || len);
 
@@ -62,7 +61,7 @@ ByteStream::ByteStream(const std::uint8_t* data, std::size_t len)
 
 // Output
 ByteStream::ByteStream(std::uint8_t* data, std::size_t len)
-    : m_DataPtr(data), m_Size(len), m_Length(len), m_Counter{}
+    : m_DataPtr(data), m_Length(len), m_Counter{}
 {
   assert(data || len);
 
@@ -72,8 +71,7 @@ ByteStream::ByteStream(std::uint8_t* data, std::size_t len)
     throw std::length_error("ByteStream: null length");
 }
 
-ByteStream::ByteStream(std::size_t len)
-    : m_Size(len), m_Length(len), m_Counter{}
+ByteStream::ByteStream(std::size_t len) : m_Length(len), m_Counter{}
 {
   assert(len);
 

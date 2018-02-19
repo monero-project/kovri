@@ -80,7 +80,7 @@ class ByteStream
   /// @return Total size
   std::size_t Size() const noexcept
   {
-    return m_Size;
+    return m_Length + m_Counter;
   }
 
   /// @brief Get the current position in the stream

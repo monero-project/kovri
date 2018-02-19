@@ -46,16 +46,19 @@ namespace kovri
 {
 namespace core
 {
-// TODO(anonimal): our interfaces should use const pointer - but doing so will break
-//   our current SSU implementation. Finish the SSU rewrite and use const correctness!
 /// @class ByteStream
 /// @brief Base class for I/O byte streaming
 class ByteStream
 {
  public:
-  /// @brief Create stream from/to data buffer
-  /// @param data Buffer to use
-  /// @param len Length to use
+  /// @brief For read-only bytestream
+  /// @param data Buffer to read from
+  /// @param len Total length of buffer
+  explicit ByteStream(const std::uint8_t* data, std::size_t len);
+
+  /// @brief For write-only bytestream
+  /// @param data Buffer to write to
+  /// @param len Total length of buffer
   explicit ByteStream(std::uint8_t* data, std::size_t len);
 
   /// @brief Create stream from/to internal data buffer
@@ -70,7 +73,7 @@ class ByteStream
   /// @return Pointer to the first byte
   const std::uint8_t* Data() const noexcept
   {
-    return m_Data - m_Counter;
+    return m_DataPtr - m_Counter;
   }
 
   /// @brief Total size of stream given at initialization
@@ -84,7 +87,7 @@ class ByteStream
   /// @return Pointer to current byte position
   const std::uint8_t* Tellp() const noexcept
   {
-    return m_Data;
+    return m_DataPtr;
   }
 
   /// @brief Remaining length of the stream after advancement
@@ -94,7 +97,7 @@ class ByteStream
   }
 
  protected:
-  std::uint8_t* m_Data;
+  std::uint8_t* m_DataPtr;  ///< Pointer to existing buffer, external or internal
   std::size_t m_Size, m_Length;
   std::size_t m_Counter;  ///< Counter for amount of incremented data
 
@@ -102,6 +105,9 @@ class ByteStream
   /// @param len The amount by which to advance the data pointer
   /// @throw std::length_error if amount exceeds the remaining data length
   void Advance(std::size_t len);
+
+ private:
+  std::vector<std::uint8_t> m_Data;  ///< Internal buffer if no buffer supplied
 };
 
 /// @class InputByteStream
@@ -112,7 +118,7 @@ class InputByteStream : public ByteStream
   /// @brief Constructs the byte stream from a given array of bytes
   /// @param data Pointer to the array of bytes
   /// @param len Length of the array of bytes
-  explicit InputByteStream(std::uint8_t* data, std::size_t len);
+  explicit InputByteStream(const std::uint8_t* data, std::size_t len);
 
   virtual ~InputByteStream() = default;
 
@@ -157,12 +163,13 @@ class InputByteStream : public ByteStream
 class OutputByteStream : public ByteStream
 {
  public:
-  /// @brief Constructs the byte stream from a given array of bytes
+  /// @brief Constructs the byte stream into a given array of bytes
   /// @param data Pointer to the array of bytes
   /// @param len Length of the array of bytes
   explicit OutputByteStream(std::uint8_t* data, std::size_t len);
 
-  /// @brief Constructs the byte stream with a given number of bytes
+  /// @brief Constructs the byte stream using an internal buffer
+  ///   with a given number of bytes
   /// @param len Length of bytes to construct
   explicit OutputByteStream(std::size_t len);
 

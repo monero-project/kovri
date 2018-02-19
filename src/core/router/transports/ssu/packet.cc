@@ -701,7 +701,7 @@ std::unique_ptr<SSUHeader> SSUPacketParser::ParseHeader() {
 std::unique_ptr<SSUPacket> SSUPacketParser::ParsePacket() {
   m_Header = ParseHeader();
   std::unique_ptr<SSUPacket> packet;
-  std::uint8_t* const old_data = m_Data;
+  std::uint8_t* const old_data = m_DataPtr;
   const std::size_t old_length = m_Length;
   switch (m_Header->GetPayloadType()) {
     case SSUPayloadType::SessionRequest:
@@ -758,7 +758,7 @@ std::unique_ptr<SSUSessionCreatedPacket> SSUPacketParser::ParseSessionCreated() 
   packet->SetPort(Read<std::uint16_t>());
   packet->SetRelayTag(Read<std::uint32_t>());
   packet->SetSignedOnTime(Read<std::uint32_t>());
-  packet->SetSignature(m_Data, m_Length);
+  packet->SetSignature(m_DataPtr, m_Length);
   return packet;
 }
 
@@ -776,7 +776,7 @@ std::unique_ptr<SSUSessionConfirmedPacket> SSUPacketParser::ParseSessionConfirme
       m_Header->GetSize() + init_length - m_Length
       + identity.GetSignatureLen());
   SkipBytes(padding_size);  // Padding
-  packet->SetSignature(m_Data);
+  packet->SetSignature(m_DataPtr);
   return packet;
 }
 
@@ -926,11 +926,11 @@ void SSUPacketBuilder::WriteSessionCreated(SSUSessionCreatedPacket* packet) {
 
 void SSUPacketBuilder::WriteSessionConfirmed(
     SSUSessionConfirmedPacket* packet) {
-  std::uint8_t* const begin = m_Data;
+  std::uint8_t* const begin = m_DataPtr;
   Write<std::uint8_t>(0x01);  // 1 byte info, with 1 fragment
   const std::size_t identity_size = packet->GetRemoteRouterIdentity().GetFullLen();
   Write<std::uint16_t>(identity_size);
-  std::uint8_t* const identity = m_Data;
+  std::uint8_t* const identity = m_DataPtr;
   SkipBytes(identity_size);
   packet->GetRemoteRouterIdentity().ToBuffer(identity, identity_size);
 
@@ -939,8 +939,8 @@ void SSUPacketBuilder::WriteSessionConfirmed(
   // message
   const std::size_t signature_size = packet->GetRemoteRouterIdentity().GetSignatureLen();
   const std::size_t padding_size = GetPaddingSize(
-      packet->GetHeader()->GetSize() + m_Data - begin + signature_size);
-  std::uint8_t* const padding = m_Data;
+      packet->GetHeader()->GetSize() + m_DataPtr - begin + signature_size);
+  std::uint8_t* const padding = m_DataPtr;
   SkipBytes(padding_size);
   kovri::core::RandBytes(padding, padding_size);
   WriteData(packet->GetSignature(), signature_size);

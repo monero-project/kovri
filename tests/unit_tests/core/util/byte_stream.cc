@@ -80,6 +80,12 @@ BOOST_AUTO_TEST_CASE(InputByteStream)
   BOOST_CHECK_EQUAL(input.Read<std::uint8_t>(), m_IPv4Array.at(0));
   BOOST_CHECK_EQUAL(input.ReadBytes(3), &m_IPv4Array.at(1));
   BOOST_CHECK_THROW(input.SkipBytes(1), std::length_error);
+
+  BOOST_CHECK_EQUAL_COLLECTIONS(
+      input.Data(),
+      input.Data() + input.Size(),
+      m_IPv4Array.data(),
+      m_IPv4Array.data() + m_IPv4Array.size());
 }
 
 BOOST_AUTO_TEST_CASE(OutputByteStream)

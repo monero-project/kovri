@@ -46,8 +46,11 @@ namespace kovri
 {
 namespace core
 {
-ByteStream::ByteStream(std::uint8_t* data, std::size_t len)
-    : m_Data(data), m_Size(len), m_Length(len), m_Counter{}
+
+// Input
+ByteStream::ByteStream(const std::uint8_t* data, std::size_t len)
+    : m_DataPtr(const_cast<std::uint8_t*>(data)), m_Size(len), m_Length(len), m_Counter{}
+      // TODO(anonimal): remove const cast!
 {
   assert(data || len);
 
@@ -57,9 +60,18 @@ ByteStream::ByteStream(std::uint8_t* data, std::size_t len)
     throw std::length_error("ByteStream: null length");
 }
 
-// TODO(anonimal): consider refactoring ByteStream use-cases with a vector in mind
-// TODO(anonimal): though make_unique will always value/zero-initialize upon construction,
-//   assigning a raw pointer will not guarantee that the raw pointer points to initialized memory.
+// Output
+ByteStream::ByteStream(std::uint8_t* data, std::size_t len)
+    : m_DataPtr(data), m_Size(len), m_Length(len), m_Counter{}
+{
+  assert(data || len);
+
+  if (!data)
+    throw std::invalid_argument("ByteStream: null data");
+  if (!len)
+    throw std::length_error("ByteStream: null length");
+}
+
 ByteStream::ByteStream(std::size_t len)
     : m_Size(len), m_Length(len), m_Counter{}
 {
@@ -68,8 +80,8 @@ ByteStream::ByteStream(std::size_t len)
   if (!len)
     throw std::length_error("ByteStream: null length");
 
-  auto data = std::make_unique<std::uint8_t[]>(len);
-  m_Data = data.get();
+  m_Data.reserve(len);
+  m_DataPtr = m_Data.data();
 }
 
 void ByteStream::Advance(std::size_t len)
@@ -79,21 +91,21 @@ void ByteStream::Advance(std::size_t len)
   if (!len || len > m_Length)
     throw std::length_error("ByteStream: invalid length advancement");
 
-  m_Data += len;
+  m_DataPtr += len;
   m_Counter += len;
   m_Length -= len;
 }
 
 // Input
 
-InputByteStream::InputByteStream(std::uint8_t* data, std::size_t len)
+InputByteStream::InputByteStream(const std::uint8_t* data, std::size_t len)
     : ByteStream(data, len)
 {
 }
 
 std::uint8_t* InputByteStream::ReadBytes(std::size_t len)
 {
-  std::uint8_t* ptr = m_Data;
+  std::uint8_t* ptr = m_DataPtr;
   Advance(len);
   return ptr;
 }
@@ -124,7 +136,7 @@ void OutputByteStream::WriteData(
   if (!len)
     throw std::length_error("OutputByteStream: null length");
 
-  std::uint8_t* ptr = m_Data;
+  std::uint8_t* ptr = m_DataPtr;
   Advance(len);
 
   if (!data)

@@ -502,14 +502,12 @@ void ClientDestination::HandleDataMessage(const std::uint8_t* buf, std::size_t)
   // Get I2NP Data message payload size
   std::uint32_t const size = core::InputByteStream::Read<std::uint32_t>(buf);
 
-  // Create payload stream - TODO(anonimal): remove const_cast, see bytestream TODO
-  core::InputByteStream payload(const_cast<std::uint8_t*>(buf + 4), size);
-
   // Assume I2CP payload - TODO(unassigned): don't assume
-  payload.ReadBytes(4);
+  core::InputByteStream payload(buf + 4, size);
+  payload.SkipBytes(4);
   std::uint16_t const source_port = payload.Read<std::uint16_t>();
   std::uint16_t const dest_port = payload.Read<std::uint16_t>();
-  payload.ReadBytes(1);
+  payload.SkipBytes(1);
   std::uint8_t const protocol = payload.Read<std::uint8_t>();
 
   switch (protocol) {

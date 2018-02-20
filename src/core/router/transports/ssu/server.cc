@@ -139,7 +139,7 @@ void SSUServer::Receive() {
   m_Socket.async_receive_from(
       boost::asio::buffer(
           packet->buf,
-          GetType(SSUSize::MTUv4)),
+          SSUSize::MTUv4),
       packet->from,
       std::bind(
           &SSUServer::HandleReceivedFrom,
@@ -155,7 +155,7 @@ void SSUServer::ReceiveV6() {
   m_SocketV6.async_receive_from(
       boost::asio::buffer(
           packet->buf,
-          GetType(SSUSize::MTUv6)),
+          SSUSize::MTUv6),
       packet->from,
       std::bind(
           &SSUServer::HandleReceivedFromV6,
@@ -182,7 +182,7 @@ void SSUServer::HandleReceivedFrom(
       packet->len = m_Socket.receive_from(
           boost::asio::buffer(
               packet->buf,
-              GetType(SSUSize::MTUv4)),
+              SSUSize::MTUv4),
           packet->from);
       packets.push_back(packet);
       more_bytes = m_Socket.available();
@@ -216,7 +216,7 @@ void SSUServer::HandleReceivedFromV6(
       packet->len = m_SocketV6.receive_from(
           boost::asio::buffer(
               packet->buf,
-              GetType(SSUSize::MTUv6)),
+              SSUSize::MTUv6),
           packet->from);
       packets.push_back(packet);
       more_bytes = m_SocketV6.available();
@@ -460,7 +460,7 @@ std::set<SSUSession *> SSUServer::FindIntroducers(
           !ret.count(session.get()) &&
           session->GetState() == SessionState::Established &&
           ts < session->GetCreationTime()
-               + GetType(SSUDuration::ToIntroducerSessionDuration); });
+               + SSUDuration::ToIntroducerSessionDuration; });
     if (session) {
       ret.insert(session.get());
       break;
@@ -473,7 +473,7 @@ void SSUServer::ScheduleIntroducersUpdateTimer() {
   LOG(debug) << "SSUServer: scheduling introducers update timer";
   m_IntroducersUpdateTimer.expires_from_now(
       boost::posix_time::seconds(
-          GetType(SSUDuration::KeepAliveInterval)));
+          SSUDuration::KeepAliveInterval));
   m_IntroducersUpdateTimer.async_wait(
       std::bind(
           &SSUServer::HandleIntroducersUpdateTimer,
@@ -502,7 +502,7 @@ void SSUServer::HandleIntroducersUpdateTimer(
       auto session = FindSession(introducer);
       if (session &&
           ts < session->GetCreationTime()
-             + GetType(SSUDuration::ToIntroducerSessionDuration)) {
+             + SSUDuration::ToIntroducerSessionDuration) {
         session->SendKeepAlive();
         new_list.push_back(introducer);
         num_introducers++;
@@ -510,7 +510,7 @@ void SSUServer::HandleIntroducersUpdateTimer(
         context.RemoveIntroducer(introducer);
       }
     }
-    auto max_introducers = GetType(SSUSize::MaxIntroducers);
+    auto max_introducers = SSUSize::MaxIntroducers;
     if (num_introducers < max_introducers) {
       // create new
       auto introducers = FindIntroducers(max_introducers);
@@ -587,7 +587,7 @@ void SSUServer::SchedulePeerTestsCleanupTimer() {
   LOG(debug) << "SSUServer: scheduling PeerTests cleanup timer";
   m_PeerTestsCleanupTimer.expires_from_now(
       boost::posix_time::seconds(
-          GetType(SSUDuration::PeerTestTimeout)));
+          SSUDuration::PeerTestTimeout));
   m_PeerTestsCleanupTimer.async_wait(
       std::bind(
           &SSUServer::HandlePeerTestsCleanupTimer,
@@ -603,7 +603,7 @@ void SSUServer::HandlePeerTestsCleanupTimer(
     std::uint64_t ts = kovri::core::GetMillisecondsSinceEpoch();
     for (auto it = m_PeerTests.begin(); it != m_PeerTests.end();) {
       if (ts > it->second.creationTime
-               + GetType(SSUDuration::PeerTestTimeout)
+               + SSUDuration::PeerTestTimeout
                * 1000LL) {
         num_deleted++;
         it = m_PeerTests.erase(it);

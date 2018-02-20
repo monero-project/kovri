@@ -333,7 +333,7 @@ void SSUSession::SendSessionRequest() {
   }
   SSUSessionRequestPacket packet;
   packet.SetHeader(std::make_unique<SSUHeader>(SSUPayloadType::SessionRequest));
-  std::array<std::uint8_t, GetType(SSUSize::IV)> iv;
+  std::array<std::uint8_t, SSUSize::IV> iv;
   kovri::core::RandBytes(iv.data(), iv.size());
   packet.GetHeader()->SetIV(iv.data());
   packet.SetDhX(m_DHKeysPair->public_key.data());
@@ -347,7 +347,7 @@ void SSUSession::SendSessionRequest() {
   // TODO(unassigned): remove const_cast, see bytestream TODO
   packet.SetIPAddress(const_cast<std::uint8_t*>(remote_ip.data()), remote_ip.size());
   const std::size_t packet_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
-  const std::size_t buffer_size = packet_size + GetType(SSUSize::BufferMargin);
+  const std::size_t buffer_size = packet_size + SSUSize::BufferMargin;
   // Buffer has SSUSize::BufferMargin extra bytes for computing the HMAC
   auto buffer = std::make_unique<std::uint8_t[]>(buffer_size);
   WriteAndEncrypt(&packet, buffer.get(), buffer_size, intro_key, intro_key);
@@ -459,7 +459,7 @@ void SSUSession::SendSessionCreated(
   }
   SSUSessionCreatedPacket packet;
   packet.SetHeader(std::make_unique<SSUHeader>(SSUPayloadType::SessionCreated));
-  std::array<std::uint8_t, GetType(SSUSize::IV)> iv;
+  std::array<std::uint8_t, SSUSize::IV> iv;
   kovri::core::RandBytes(iv.data(), iv.size());
   packet.GetHeader()->SetIV(iv.data());
   packet.SetDhY(m_DHKeysPair->public_key.data());
@@ -520,9 +520,9 @@ void SSUSession::SendSessionCreated(
     throw;
   }
   const std::size_t packet_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
-  const std::size_t buffer_size = packet_size + GetType(SSUSize::BufferMargin);
+  const std::size_t buffer_size = packet_size + SSUSize::BufferMargin;
   // TODO(EinMByte): Deal with large messages in a better way
-  if (packet_size <= GetType(SSUSize::MTUv4)) {
+  if (packet_size <= SSUSize::MTUv4) {
     auto buffer = std::make_unique<std::uint8_t[]>(buffer_size);
     WriteAndEncrypt(&packet, buffer.get(), buffer_size, intro_key, intro_key);
     Send(buffer.get(), packet_size);
@@ -567,7 +567,7 @@ void SSUSession::SendSessionConfirmed(
     std::uint16_t our_port) {
   SSUSessionConfirmedPacket packet;
   packet.SetHeader(std::make_unique<SSUHeader>(SSUPayloadType::SessionConfirmed));
-  std::array<std::uint8_t, GetType(SSUSize::IV)> iv;
+  std::array<std::uint8_t, SSUSize::IV> iv;
   kovri::core::RandBytes(iv.data(), iv.size());
   packet.GetHeader()->SetIV(iv.data());
   packet.SetRemoteRouterIdentity(context.GetIdentity());
@@ -593,7 +593,7 @@ void SSUSession::SendSessionConfirmed(
   s.Sign(context.GetPrivateKeys(), signature_buf.get());
   packet.SetSignature(signature_buf.get());
   const std::size_t packet_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
-  const std::size_t buffer_size = packet_size + GetType(SSUSize::BufferMargin);
+  const std::size_t buffer_size = packet_size + SSUSize::BufferMargin;
   auto buffer = std::make_unique<std::uint8_t[]>(buffer_size);
   WriteAndEncrypt(&packet, buffer.get(), buffer_size, m_SessionKey, m_MACKey);
   Send(buffer.get(), packet_size);
@@ -631,9 +631,9 @@ void SSUSession::SendRelayRequest(
       << __func__ << ": SSU is not supported";
     return;
   }
-  std::array<std::uint8_t, 96 + GetType(SSUSize::BufferMargin)> buf{
+  std::array<std::uint8_t, 96 + SSUSize::BufferMargin> buf{
       {}};  // TODO(unassigned): document size values
-  auto payload = buf.data() + GetType(SSUSize::HeaderMin);
+  auto payload = buf.data() + SSUSize::HeaderMin;
   core::OutputByteStream::Write<std::uint32_t>(payload, introducer_tag);
   payload += 4;
   *payload = 0;  // no address
@@ -646,9 +646,9 @@ void SSUSession::SendRelayRequest(
   payload += 32;
   core::OutputByteStream::Write<std::uint32_t>(
       payload, core::Rand<std::uint32_t>());  // nonce
-  std::array<std::uint8_t, GetType(SSUSize::IV)> iv;
+  std::array<std::uint8_t, SSUSize::IV> iv;
   kovri::core::RandBytes(iv.data(), iv.size());
-  auto relay_request = GetType(SSUPayloadType::RelayRequest);
+  auto relay_request = SSUPayloadType::RelayRequest;
   if (m_State == SessionState::Established) {
     FillHeaderAndEncrypt(
         relay_request,
@@ -706,9 +706,9 @@ void SSUSession::SendRelayResponse(
     const boost::asio::ip::udp::endpoint& from,
     const std::uint8_t* intro_key,
     const boost::asio::ip::udp::endpoint& to) {
-  std::array<std::uint8_t, 80 + GetType(SSUSize::BufferMargin)> buf{
+  std::array<std::uint8_t, 80 + SSUSize::BufferMargin> buf{
       {}};  // 64 Alice's ipv4 and 80 Alice's ipv6
-  auto payload = buf.data() + GetType(SSUSize::HeaderMin);
+  auto payload = buf.data() + SSUSize::HeaderMin;
   // Charlie's address always v4
   if (!to.address().is_v4()) {
     LOG(error)
@@ -741,7 +741,7 @@ void SSUSession::SendRelayResponse(
   core::OutputByteStream::Write<std::uint16_t>(payload, from.port());  // Alice's port
   payload += 2;  // port
   core::OutputByteStream::Write<std::uint32_t>(payload, nonce);
-  auto relay_response = GetType(SSUPayloadType::RelayResponse);
+  auto relay_response = SSUPayloadType::RelayResponse;
   if (m_State == SessionState::Established) {
     // encrypt with session key
     FillHeaderAndEncrypt(
@@ -753,7 +753,7 @@ void SSUSession::SendRelayResponse(
         is_IPv4 ? 64 : 80);
   } else {
     // encrypt with Alice's intro key
-    std::array<std::uint8_t, GetType(SSUSize::IV)> iv;
+    std::array<std::uint8_t, SSUSize::IV> iv;
     kovri::core::RandBytes(iv.data(), iv.size());
     FillHeaderAndEncrypt(
         relay_response,
@@ -810,8 +810,8 @@ void SSUSession::SendRelayIntro(
       << __func__ << ": Alice's IP must be V4";
     return;
   }
-  std::array<std::uint8_t, 48 + GetType(SSUSize::BufferMargin)> buf{{}};
-  auto payload = buf.data() + GetType(SSUSize::HeaderMin);
+  std::array<std::uint8_t, 48 + SSUSize::BufferMargin> buf{{}};
+  auto payload = buf.data() + SSUSize::HeaderMin;
   *payload = 4;
   payload++;  // size
   core::OutputByteStream::Write<std::uint32_t>(
@@ -820,10 +820,10 @@ void SSUSession::SendRelayIntro(
   core::OutputByteStream::Write<std::uint16_t>(payload, from.port());  // Alice's port
   payload += 2;  // port
   *payload = 0;  // challenge size
-  std::array<std::uint8_t, GetType(SSUSize::IV)> iv;
+  std::array<std::uint8_t, SSUSize::IV> iv;
   kovri::core::RandBytes(iv.data(), iv.size());  // random iv
   FillHeaderAndEncrypt(
-      GetType(SSUPayloadType::RelayIntro),
+      SSUPayloadType::RelayIntro,
       buf.data(),
       48,
       session->m_SessionKey,
@@ -872,7 +872,7 @@ void SSUSession::ProcessPeerTest(
       << " bytes not supported";
     return;
   }
-  auto peer_test = GetType(SSUPayloadType::PeerTest);
+  auto peer_test = SSUPayloadType::PeerTest;
   switch (m_Server.GetPeerTestParticipant(packet->GetNonce())) {
     // existing test
     case PeerTestParticipant::Alice1: {
@@ -994,8 +994,8 @@ void SSUSession::SendPeerTest(
     const std::uint8_t* intro_key,
     bool to_address,  // is true for Alice<->Charlie communications only
     bool send_address) {  // is false if message comes from Alice
-  std::array<std::uint8_t, 80 + GetType(SSUSize::BufferMargin)> buf{{}};
-  auto payload = buf.data() + GetType(SSUSize::HeaderMin);
+  std::array<std::uint8_t, 80 + SSUSize::BufferMargin> buf{{}};
+  auto payload = buf.data() + SSUSize::HeaderMin;
   core::OutputByteStream::Write<std::uint32_t>(payload, nonce);
   payload += 4;  // nonce
   // address and port
@@ -1024,9 +1024,9 @@ void SSUSession::SendPeerTest(
     memcpy(payload, intro_key, 32);  // intro key
   }
   // send
-  std::array<std::uint8_t, GetType(SSUSize::IV)> iv;
+  std::array<std::uint8_t, SSUSize::IV> iv;
   kovri::core::RandBytes(iv.data(), iv.size());
-  auto peer_test = GetType(SSUPayloadType::PeerTest);
+  auto peer_test = SSUPayloadType::PeerTest;
   if (to_address) {
     // encrypt message with specified intro key
     FillHeaderAndEncrypt(
@@ -1082,10 +1082,10 @@ void SSUSession::SendPeerTest() {
 
 void SSUSession::SendSesionDestroyed() {
   if (m_IsSessionKey) {
-    std::array<std::uint8_t, 48 + GetType(SSUSize::BufferMargin)> buf {{}};
+    std::array<std::uint8_t, 48 + SSUSize::BufferMargin> buf {{}};
     // encrypt message with session key
     FillHeaderAndEncrypt(
-        GetType(SSUPayloadType::SessionDestroyed),
+        SSUPayloadType::SessionDestroyed,
         buf.data(),
         48);
     try {
@@ -1102,14 +1102,14 @@ void SSUSession::SendSesionDestroyed() {
 
 void SSUSession::SendKeepAlive() {
   if (m_State == SessionState::Established) {
-    std::array<std::uint8_t, 48 + GetType(SSUSize::BufferMargin)> buf {{}};  // TODO(unassigned): document values
-    auto payload = buf.data() + GetType(SSUSize::HeaderMin);
+    std::array<std::uint8_t, 48 + SSUSize::BufferMargin> buf {{}};  // TODO(unassigned): document values
+    auto payload = buf.data() + SSUSize::HeaderMin;
     *payload = 0;  // flags
     payload++;
     *payload = 0;  // num fragments
     // encrypt message with session key
     FillHeaderAndEncrypt(
-        GetType(SSUPayloadType::Data),
+        SSUPayloadType::Data,
         buf.data(),
         48);
     Send(buf.data(), 48);
@@ -1130,14 +1130,14 @@ void SSUSession::FillHeaderAndEncrypt(
     std::uint8_t flag) {
   // TODO(anonimal): this try block should be handled entirely by caller
   try {
-    if (len < GetType(SSUSize::HeaderMin)) {
+    if (len < SSUSize::HeaderMin) {
       LOG(error)
         << "SSUSession:" << GetFormattedSessionInfo()
         << "unexpected SSU packet length " << len;
       return;
     }
     SSUSessionPacket pkt(buf, len);
-    memcpy(pkt.IV(), iv, GetType(SSUSize::IV));
+    memcpy(pkt.IV(), iv, SSUSize::IV);
     pkt.PutFlag(flag | (payload_type << 4));  // MSB is 0
     pkt.PutTime(kovri::core::GetSecondsSinceEpoch());
     auto encrypted = pkt.Encrypted();
@@ -1148,12 +1148,12 @@ void SSUSession::FillHeaderAndEncrypt(
         encrypted_len,
         encrypted);
     // assume actual buffer size is 18 (16 + 2) bytes more
-    memcpy(buf + len, iv, GetType(SSUSize::IV));
+    memcpy(buf + len, iv, SSUSize::IV);
     core::OutputByteStream::Write<std::uint16_t>(
-        buf + len + GetType(SSUSize::IV), encrypted_len);
+        buf + len + SSUSize::IV, encrypted_len);
     kovri::core::HMACMD5Digest(
         encrypted,
-        encrypted_len + GetType(SSUSize::BufferMargin),
+        encrypted_len + SSUSize::BufferMargin,
         mac_key,
         pkt.MAC());
   } catch (...) {
@@ -1180,15 +1180,19 @@ void SSUSession::WriteAndEncrypt(
     // Encrypt everything after the MAC and IV
     std::uint8_t* encrypted =
       buffer
-      + GetType(SSUSize::IV)
-      + GetType(SSUSize::MAC);
+      + SSUSize::IV
+      + SSUSize::MAC;
     auto encrypted_len = builder.Tellp() - encrypted;
     // Add padding
-    std::vector<std::uint8_t> padding(
-        SSUPacketBuilder::GetPaddingSize(encrypted_len));
-    kovri::core::RandBytes(padding.data(), padding.size());
-    builder.WriteData(padding.data(), padding.size());
-    encrypted_len += padding.size();
+    std::size_t const padding_size =
+        SSUPacketBuilder::GetPaddingSize(encrypted_len);
+    if (padding_size)
+      {
+        std::vector<std::uint8_t> padding(padding_size);
+        core::RandBytes(padding.data(), padding.size());
+        builder.WriteData(padding.data(), padding.size());
+        encrypted_len += padding.size();
+      }
     kovri::core::CBCEncryption encryption(aes_key, packet->GetHeader()->GetIV());
     encryption.Encrypt(encrypted, encrypted_len, encrypted);
     // Compute HMAC of encryptedPayload + IV + (payloadLength ^ protocolVersion)
@@ -1197,11 +1201,11 @@ void SSUSession::WriteAndEncrypt(
         encrypted + encrypted_len, buffer_size - (encrypted - buffer));
     stream.WriteData(
         packet->GetHeader()->GetIV(),
-        GetType(SSUSize::IV));
+        SSUSize::IV);
     stream.Write<std::uint16_t>(encrypted_len);
     kovri::core::HMACMD5Digest(
         encrypted,
-        encrypted_len + GetType(SSUSize::BufferMargin),
+        encrypted_len + SSUSize::BufferMargin,
         mac_key,
         buffer);
   } catch (...) {
@@ -1217,14 +1221,14 @@ void SSUSession::FillHeaderAndEncrypt(
     std::size_t len) {
   // TODO(anonimal): this try block should be handled entirely by caller
   try {
-    if (len < GetType(SSUSize::HeaderMin)) {
+    if (len < SSUSize::HeaderMin) {
       LOG(error)
         << "SSUSession:" << GetFormattedSessionInfo()
         << "unexpected SSU packet length " << len;
       return;
     }
     SSUSessionPacket pkt(buf, len);
-    kovri::core::RandBytes(pkt.IV(), GetType(SSUSize::IV));  // random iv
+    kovri::core::RandBytes(pkt.IV(), SSUSize::IV);  // random iv
     m_SessionKeyEncryption.SetIV(pkt.IV());
     pkt.PutFlag(payload_type << 4);  // MSB is 0
     pkt.PutTime(kovri::core::GetSecondsSinceEpoch());
@@ -1235,12 +1239,12 @@ void SSUSession::FillHeaderAndEncrypt(
         encrypted_len,
         encrypted);
     // assume actual buffer size is 18 (16 + 2) bytes more
-    memcpy(buf + len, pkt.IV(), GetType(SSUSize::IV));
+    memcpy(buf + len, pkt.IV(), SSUSize::IV);
     core::OutputByteStream::Write<std::uint16_t>(
-        buf + len + GetType(SSUSize::IV), encrypted_len);
+        buf + len + SSUSize::IV, encrypted_len);
     kovri::core::HMACMD5Digest(
         encrypted,
-        encrypted_len + GetType(SSUSize::BufferMargin),
+        encrypted_len + SSUSize::BufferMargin,
         m_MACKey,
         pkt.MAC());
   } catch (...) {
@@ -1256,7 +1260,7 @@ void SSUSession::Decrypt(
     const std::uint8_t* aes_key) {
   // TODO(anonimal): this try block should be handled entirely by caller
   try {
-    if (len < GetType(SSUSize::HeaderMin)) {
+    if (len < SSUSize::HeaderMin) {
       LOG(error)
         << "SSUSession:" << GetFormattedSessionInfo()
         << __func__ << ": unexpected SSU packet length " << len;
@@ -1282,7 +1286,7 @@ void SSUSession::Decrypt(
 void SSUSession::DecryptSessionKey(
     std::uint8_t* buf,
     std::size_t len) {
-  if (len < GetType(SSUSize::HeaderMin)) {
+  if (len < SSUSize::HeaderMin) {
     LOG(error)
       << "SSUSession:" << GetFormattedSessionInfo()
       << __func__ << ": unexpected SSU packet length " << len;
@@ -1308,7 +1312,7 @@ bool SSUSession::Validate(
     std::uint8_t* buf,
     std::size_t len,
     const std::uint8_t* mac_key) {
-  if (len < GetType(SSUSize::HeaderMin)) {
+  if (len < SSUSize::HeaderMin) {
     LOG(error)
       << "SSUSession:" << GetFormattedSessionInfo()
       << __func__ << ": unexpected SSU packet length " << len;
@@ -1318,13 +1322,13 @@ bool SSUSession::Validate(
   auto encrypted = pkt.Encrypted();
   auto encrypted_len = len - (encrypted - buf);
   // assume actual buffer size is 18 (16 + 2) bytes more (SSUSize::RawPacketBuffer)
-  memcpy(buf + len, pkt.IV(), GetType(SSUSize::IV));
+  memcpy(buf + len, pkt.IV(), SSUSize::IV);
   core::OutputByteStream::Write<std::uint16_t>(
-      buf + len + GetType(SSUSize::IV), encrypted_len);
+      buf + len + SSUSize::IV, encrypted_len);
   std::array<std::uint8_t, 16> digest;
   kovri::core::HMACMD5Digest(
       encrypted,
-      encrypted_len + GetType(SSUSize::BufferMargin),
+      encrypted_len + SSUSize::BufferMargin,
       mac_key,
       digest.data());
   return !memcmp(pkt.MAC(), digest.data(), digest.size());
@@ -1352,7 +1356,7 @@ void SSUSession::ScheduleConnectTimer() {
   m_Timer.cancel();
   m_Timer.expires_from_now(
       boost::posix_time::seconds(
-          GetType(SSUDuration::ConnectTimeout)));
+          SSUDuration::ConnectTimeout));
   m_Timer.async_wait(
       std::bind(
           &SSUSession::HandleConnectTimer,
@@ -1379,7 +1383,7 @@ void SSUSession::Introduce(
     // set connect timer
     m_Timer.expires_from_now(
         boost::posix_time::seconds(
-            GetType(SSUDuration::ConnectTimeout)));
+            SSUDuration::ConnectTimeout));
     m_Timer.async_wait(
         std::bind(
           &SSUSession::HandleConnectTimer,
@@ -1394,7 +1398,7 @@ void SSUSession::WaitForIntroduction() {
   // set connect timer
   m_Timer.expires_from_now(
       boost::posix_time::seconds(
-          GetType(SSUDuration::ConnectTimeout)));
+          SSUDuration::ConnectTimeout));
   m_Timer.async_wait(
       std::bind(
         &SSUSession::HandleConnectTimer,
@@ -1446,7 +1450,7 @@ void SSUSession::ScheduleTermination() {
   m_Timer.cancel();
   m_Timer.expires_from_now(
       boost::posix_time::seconds(
-          GetType(SSUDuration::TerminationTimeout)));
+          SSUDuration::TerminationTimeout));
   m_Timer.async_wait(
       std::bind(
           &SSUSession::HandleTerminationTimer,
@@ -1498,18 +1502,18 @@ void SSUSession::Send(
     std::uint8_t type,
     const std::uint8_t* payload,
     std::size_t len) {
-  std::array<std::uint8_t, GetType(SSUSize::RawPacketBuffer)> buf{{}};
-  auto msg_size = len + GetType(SSUSize::HeaderMin);
+  std::array<std::uint8_t, SSUSize::RawPacketBuffer> buf{{}};
+  auto msg_size = len + SSUSize::HeaderMin;
   auto padding_size = msg_size & 0x0F;  // %16
   if (padding_size > 0)
     msg_size += (16 - padding_size);
-  if (msg_size > GetType(SSUSize::MTUv4)) {
+  if (msg_size > SSUSize::MTUv4) {
     LOG(warning)
       << "SSUSession:" << GetFormattedSessionInfo()
       << "<-- payload size " << msg_size << " exceeds MTU";
     return;
   }
-  memcpy(buf.data() + GetType(SSUSize::HeaderMin), payload, len);
+  memcpy(buf.data() + SSUSize::HeaderMin, payload, len);
   // encrypt message with session key
   FillHeaderAndEncrypt(type, buf.data(), msg_size);
   Send(buf.data(), msg_size);

@@ -30,70 +30,125 @@
 
 #include "core/util/byte_stream.h"
 
+#include <cassert>
 #include <cstring>
 #include <iomanip>
+#include <memory>
 #include <sstream>
 #include <stdexcept>
 
 #include "core/util/log.h"
 
+// TODO(anonimal): a secure bytestream implementation that ensures wiped memory when needed.
+//   Otherwise, and preferably, use existing standard library containers with crypto++.
+
 namespace kovri
 {
 namespace core
 {
-ByteStream::ByteStream(std::uint8_t* data, std::size_t len)
-    : m_Data(data), m_Size(len), m_Length(len), m_Counter{}
+// Input
+ByteStream::ByteStream(const std::uint8_t* data, std::size_t len)
+    : m_DataPtr(const_cast<std::uint8_t*>(data)), m_Length(len), m_Counter{}
+// TODO(anonimal): remove const cast!
 {
+  assert(data || len);
+
+  if (!data)
+    throw std::invalid_argument("ByteStream: null data");
+  if (!len)
+    throw std::length_error("ByteStream: null length");
 }
 
-InputByteStream::InputByteStream(std::uint8_t* data, std::size_t len)
+// Output
+ByteStream::ByteStream(std::uint8_t* data, std::size_t len)
+    : m_DataPtr(data), m_Length(len), m_Counter{}
+{
+  assert(data || len);
+
+  if (!data)
+    throw std::invalid_argument("ByteStream: null data");
+  if (!len)
+    throw std::length_error("ByteStream: null length");
+}
+
+ByteStream::ByteStream(std::size_t len) : m_Length(len), m_Counter{}
+{
+  assert(len);
+
+  if (!len)
+    throw std::length_error("ByteStream: null length");
+
+  m_Data.reserve(len);
+  m_DataPtr = m_Data.data();
+}
+
+void ByteStream::Advance(std::size_t len)
+{
+  assert(len && len <= m_Length);
+
+  if (!len || len > m_Length)
+    throw std::length_error("ByteStream: invalid length advancement");
+
+  m_DataPtr += len;
+  m_Counter += len;
+  m_Length -= len;
+}
+
+// Input
+
+InputByteStream::InputByteStream(const std::uint8_t* data, std::size_t len)
     : ByteStream(data, len)
 {
 }
 
-void InputByteStream::ConsumeData(std::size_t amount)
+std::uint8_t* InputByteStream::ReadBytes(std::size_t len)
 {
-  if (amount > m_Length)
-    throw std::length_error("InputByteStream: too many bytes to consume.");
-  m_Data += amount;
-  m_Counter += amount;
-  m_Length -= amount;
-}
-
-std::uint8_t* InputByteStream::ReadBytes(std::size_t amount)
-{
-  std::uint8_t* ptr = m_Data;
-  ConsumeData(amount);
+  std::uint8_t* ptr = m_DataPtr;
+  Advance(len);
   return ptr;
 }
+
+void InputByteStream::SkipBytes(std::size_t len)
+{
+  Advance(len);
+}
+
+// Output
 
 OutputByteStream::OutputByteStream(std::uint8_t* data, std::size_t len)
     : ByteStream(data, len)
 {
 }
 
-void OutputByteStream::ProduceData(std::size_t amount)
+OutputByteStream::OutputByteStream(std::size_t len) : ByteStream(len) {}
+
+void OutputByteStream::WriteData(
+    const std::uint8_t* data,
+    const std::size_t len,
+    const bool allow_null_data)
 {
-  if (amount > m_Length)
-    throw std::length_error("OutputByteStream: too many bytes to produce.");
-  m_Data += amount;
-  m_Counter += amount;
-  m_Length -= amount;
+  assert((data && allow_null_data) || len);
+
+  if (!data && !allow_null_data)
+    throw std::invalid_argument("OutputByteStream: null data");
+  if (!len)
+    throw std::length_error("OutputByteStream: null length");
+
+  std::uint8_t* ptr = m_DataPtr;
+  Advance(len);
+
+  if (!data)
+    std::memset(ptr, 0, len);
+  else
+    std::memcpy(ptr, data, len);
 }
 
-void OutputByteStream::WriteData(const std::uint8_t* data, std::size_t len)
+void OutputByteStream::SkipBytes(std::size_t len)
 {
-  if (!len)
-    {
-      LOG(debug) << "OutputByteStream: skip empty data";
-      return;
-    }
-  if (!data)
-    throw std::runtime_error("OutputByteStream: null data");
-  std::uint8_t* ptr = m_Data;
-  ProduceData(len);
-  std::memcpy(ptr, data, len);
+  WriteData(nullptr, len, true);
 }
+
+// Misc
 
 const std::string GetFormattedHex(const std::uint8_t* data, std::size_t size)
 {

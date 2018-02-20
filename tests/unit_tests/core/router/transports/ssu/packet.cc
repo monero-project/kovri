@@ -55,7 +55,7 @@ struct SSUTestVectorsFixture : public IdentityExFixture
         session_confirmed.data(), header_plain.data(), header_plain.size());
     // Set header flag to payload SessionConfirmed
     session_confirmed[32] = std::uint8_t(
-        core::GetType(core::SSUPayloadType::SessionConfirmed) << 4);
+        core::SSUPayloadType::SessionConfirmed << 4);
     core::OutputByteStream output(
         session_confirmed.data() + header_plain.size(),
         session_confirmed.size() - header_plain.size());
@@ -69,7 +69,7 @@ struct SSUTestVectorsFixture : public IdentityExFixture
     output.Write<std::uint32_t>(m_SignedOnTime);
     // Padding to reach multiple of 16 bytes
     // 13 = 16 - (37(header_plain) + 1 + 2 + (387+4) + 4(time) + 64(sig len)) % 16)
-    output.ProduceData(13);
+    output.SkipBytes(13);
     // Signature (non-realistic example)
     // 64 bytes (EDDSA_SHA512_ED25519)
     for(std::uint8_t i(0); i< 64; i++)
@@ -610,7 +610,7 @@ BOOST_AUTO_TEST_CASE(SessionConfirmedPlain)
   core::SSUPacketParser parser(header_plain.data(), header_plain.size());
   std::unique_ptr<core::SSUHeader> header;
   BOOST_CHECK_NO_THROW(header = parser.ParseHeader());
-  header->SetPayloadType(core::GetType(core::SSUPayloadType::SessionConfirmed));
+  header->SetPayloadType(core::SSUPayloadType::SessionConfirmed);
   // Packet + attributes
   core::SSUSessionConfirmedPacket packet;
   packet.SetHeader(std::move(header));

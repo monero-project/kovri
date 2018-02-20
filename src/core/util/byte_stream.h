@@ -46,46 +46,68 @@ namespace kovri
 {
 namespace core
 {
-// TODO(anonimal): our interfaces should use const pointer - but doing so will break
-//   our current SSU implementation. Finish the SSU rewrite and use const correctness!
+/// @class ByteStream
+/// @brief Base class for I/O byte streaming
 class ByteStream
 {
  public:
-  // TODO(anonimal): assert/throw nulls
+  /// @brief For read-only bytestream
+  /// @param data Buffer to read from
+  /// @param len Total length of buffer
+  explicit ByteStream(const std::uint8_t* data, std::size_t len);
+
+  /// @brief For write-only bytestream
+  /// @param data Buffer to write to
+  /// @param len Total length of buffer
   explicit ByteStream(std::uint8_t* data, std::size_t len);
+
+  /// @brief Create stream from/to internal data buffer
+  /// @param len Length to use
+  explicit ByteStream(std::size_t len);
+
   virtual ~ByteStream() = default;
+
+  virtual void SkipBytes(std::size_t len) = 0;
 
   /// @brief Get the first unconsumed/unwritten byte in the stream
   /// @return Pointer to the first byte
   const std::uint8_t* Data() const noexcept
   {
-    return m_Data - m_Counter;
+    return m_DataPtr - m_Counter;
   }
 
   /// @brief Total size of stream given at initialization
   /// @return Total size
   std::size_t Size() const noexcept
   {
-    return m_Size;
+    return m_Length + m_Counter;
   }
 
   /// @brief Get the current position in the stream
   /// @return Pointer to current byte position
   const std::uint8_t* Tellp() const noexcept
   {
-    return m_Data;
+    return m_DataPtr;
   }
 
-  /// @brief Remaining length of the stream after consumption/production
+  /// @brief Remaining length of the stream after advancement
   std::size_t Gcount() const noexcept
   {
     return m_Length;
   }
 
  protected:
-  std::uint8_t* m_Data;
+  std::uint8_t* m_DataPtr;  ///< Pointer to existing buffer, external or internal
   std::size_t m_Size, m_Length;
   std::size_t m_Counter;  ///< Counter for amount of incremented data
+
+  /// @brief Advances the internal data pointer by the given amount
+  /// @param len The amount by which to advance the data pointer
+  /// @throw std::length_error if amount exceeds the remaining data length
+  void Advance(std::size_t len);
+
+ private:
+  std::vector<std::uint8_t> m_Data;  ///< Internal buffer if no buffer supplied
 };
 
 /// @class InputByteStream
@@ -96,14 +118,13 @@ class InputByteStream : public ByteStream
   /// @brief Constructs the byte stream from a given array of bytes
   /// @param data Pointer to the array of bytes
   /// @param len Length of the array of bytes
-  explicit InputByteStream(std::uint8_t* data, std::size_t len);
+  explicit InputByteStream(const std::uint8_t* data, std::size_t len);
 
   virtual ~InputByteStream() = default;
 
-  /// @brief Advances the internal data pointer by the given amount
-  /// @param amount the amount by which to advance the data pointer
-  /// @throw std::length_error if amount exceeds the remaining data length
-  void ConsumeData(std::size_t amount);
+  /// @brief Advances internal pointer
+  /// @param len Number of bytes to skip
+  virtual void SkipBytes(std::size_t len);
 
   /// @brief Consume a given amount of bytes + return a pointer to first consumed byte
   /// @return a pointer to the first byte that was consumed (m_Data + amount)
@@ -142,24 +163,31 @@ class InputByteStream : public ByteStream
 class OutputByteStream : public ByteStream
 {
  public:
-  /// @brief Constructs the byte stream from a given array of bytes
+  /// @brief Constructs the byte stream into a given array of bytes
   /// @param data Pointer to the array of bytes
   /// @param len Length of the array of bytes
   explicit OutputByteStream(std::uint8_t* data, std::size_t len);
 
+  /// @brief Constructs the byte stream using an internal buffer
+  ///   with a given number of bytes
+  /// @param len Length of bytes to construct
+  explicit OutputByteStream(std::size_t len);
+
   virtual ~OutputByteStream() = default;
 
-  /// @brief Advances the internal data pointer by the given amount
-  /// @param amount The amount by which to advance the data pointer
-  /// @throw std::length_error if amount exceeds the remaining buffer length
-  // TODO(unassigned): rename to something less confusing
-  void ProduceData(std::size_t amount);
+  /// @brief Advances internal pointer after writing zero-initialized memory
+  /// @param len Number of bytes to "skip"
+  virtual void SkipBytes(std::size_t len);
 
-  /// @brief Writes data into buffer
+  /// @brief Writes data into data member buffer
   /// @note Increments buffer pointer position after writing data
   /// @param data Pointer to data to write
   /// @param len Length of data
-  void WriteData(const std::uint8_t* data, std::size_t len);
+  /// @param allow_null_data Allow setting data member buffer with len constant byte 0
+  void WriteData(
+      const std::uint8_t* data,
+      const std::size_t len,
+      const bool allow_null_data = false);
 
   /// @brief Writes an unsigned integral value into given buffer
   /// @note Converts data from host order to big endian (when applicable)

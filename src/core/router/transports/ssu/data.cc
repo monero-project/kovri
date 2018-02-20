@@ -69,8 +69,8 @@ SSUData::SSUData(
       m_DecayTimer(session.GetService()),
       m_IncompleteMessagesCleanupTimer(session.GetService()) {
   m_MaxPacketSize = session.IsV6()
-    ? GetType(SSUSize::PacketMaxIPv6)
-    : GetType(SSUSize::PacketMaxIPv4);
+    ? SSUSize::PacketMaxIPv6
+    : SSUSize::PacketMaxIPv4;
   m_PacketSize = m_MaxPacketSize;
   auto remote_router = session.GetRemoteRouter();
   if (remote_router)
@@ -99,13 +99,13 @@ void SSUData::AdjustPacketSize(
     if (m_Session.IsV6 ())
       m_PacketSize =
         ssu_address->mtu
-        - GetType(SSUSize::HeaderIPv6)
-        - GetType(SSUSize::HeaderUDP);
+        - SSUSize::HeaderIPv6
+        - SSUSize::HeaderUDP;
     else
       m_PacketSize =
         ssu_address->mtu
-        - GetType(SSUSize::HeaderIPv4)
-        - GetType(SSUSize::HeaderUDP);
+        - SSUSize::HeaderIPv4
+        - SSUSize::HeaderUDP;
     if (m_PacketSize > 0) {
       // make sure packet size multiple of 16
       m_PacketSize >>= 4;
@@ -151,7 +151,7 @@ void SSUData::ProcessACKs(
     std::uint8_t flag) {
   LOG(debug)
     << "SSUData:" << m_Session.GetFormattedSessionInfo() << "processing ACKs";
-  if (flag & GetType(SSUFlag::DataExplicitACKsIncluded)) {
+  if (flag & SSUFlag::DataExplicitACKsIncluded) {
     // explicit ACKs
     auto num_ACKs = *buf;
     buf++;
@@ -160,7 +160,7 @@ void SSUData::ProcessACKs(
           core::InputByteStream::Read<std::uint32_t>(buf + i * 4));
     buf += num_ACKs * 4;
   }
-  if (flag & GetType(SSUFlag::DataACKBitfieldsIncluded)) {
+  if (flag & SSUFlag::DataACKBitfieldsIncluded) {
     // explicit ACK bitfields
     auto num_bitfields = *buf;
     buf++;
@@ -214,7 +214,7 @@ void SSUData::ProcessFragments(
     auto fragment_size = fragment_info & 0x3FFF;  // bits 0 - 13
     bool is_last = fragment_info & 0x010000;  // bit 16
     std::uint8_t fragment_num = fragment_info >> 17;  // bits 23 - 17
-    if (fragment_size >= GetType(SSUSize::PacketMaxIPv4)) {
+    if (fragment_size >= SSUSize::PacketMaxIPv4) {
       LOG(error)
         << "SSUData:" << m_Session.GetFormattedSessionInfo()
         << "fragment size " << fragment_size << "exceeds max SSU packet size";
@@ -296,7 +296,7 @@ void SSUData::ProcessFragments(
       msg->FromSSU(msg_id);
       if (m_Session.GetState() == SessionState::Established) {
         if (!m_ReceivedMessages.count(msg_id)) {
-          if (m_ReceivedMessages.size() > GetType(SSUSize::MaxReceivedMessages))
+          if (m_ReceivedMessages.size() > SSUSize::MaxReceivedMessages)
             m_ReceivedMessages.clear();
           else
             ScheduleDecay();
@@ -355,11 +355,11 @@ void SSUData::ProcessMessage(
     << " len=" << len;
   // process acks if presented
   if (flag &
-      (GetType(SSUFlag::DataACKBitfieldsIncluded) |
-       GetType(SSUFlag::DataExplicitACKsIncluded)))
+      (SSUFlag::DataACKBitfieldsIncluded |
+       SSUFlag::DataExplicitACKsIncluded))
     ProcessACKs(buf, flag);
   // extended data if presented
-  if (flag & GetType(SSUFlag::DataExtendedIncluded)) {
+  if (flag & SSUFlag::DataExtendedIncluded) {
     std::uint8_t extended_data_size = *buf;
     buf++;  // size
     LOG(debug)
@@ -396,12 +396,12 @@ void SSUData::Send(
   if (ret.second) {
     sent_message->next_resend_time =
       kovri::core::GetSecondsSinceEpoch()
-      + GetType(SSUDuration::ResendInterval);
+      + SSUDuration::ResendInterval;
     sent_message->num_resends = 0;
   }
   auto& fragments = sent_message->fragments;
   // 9 = flag + #frg(1) + messageID(4) + frag info (3)
-  auto payload_size = m_PacketSize - GetType(SSUSize::HeaderMin) - 9;
+  auto payload_size = m_PacketSize - SSUSize::HeaderMin - 9;
   auto len = msg->GetLength();
   auto msg_buf = msg->GetSSUHeader();
   std::size_t fragment_num = 0;
@@ -409,8 +409,8 @@ void SSUData::Send(
     auto fragment = std::make_unique<Fragment>();
     fragment->fragment_num = fragment_num;
     auto buf = fragment->buffer.data();
-    auto payload = buf + GetType(SSUSize::HeaderMin);
-    *payload = GetType(SSUFlag::DataWantReply);  // for compatibility
+    auto payload = buf + SSUSize::HeaderMin;
+    *payload = SSUFlag::DataWantReply;  // for compatibility
     payload++;
     *payload = 1;  // always 1 message fragment per message
     payload++;
@@ -432,7 +432,7 @@ void SSUData::Send(
     fragment->len = size;
     fragments.push_back(std::unique_ptr<Fragment>(std::move(fragment)));
     // encrypt message with session key
-    m_Session.FillHeaderAndEncrypt(GetType(SSUPayloadType::Data), buf, size);
+    m_Session.FillHeaderAndEncrypt(SSUPayloadType::Data, buf, size);
     try {
       m_Session.Send(buf, size);
     } catch (const boost::system::system_error& ec) {
@@ -457,8 +457,8 @@ void SSUData::SendMsgACK(
     << "sending message ACK";
   // actual length is 44 = 37 + 7 but pad it to multiple of 16
   std::array<std::uint8_t, 48 + 18> buf;
-  auto payload = buf.data() + GetType(SSUSize::HeaderMin);
-  *payload = GetType(SSUFlag::DataExplicitACKsIncluded);  // flag
+  auto payload = buf.data() + SSUSize::HeaderMin;
+  *payload = SSUFlag::DataExplicitACKsIncluded;  // flag
   payload++;
   *payload = 1;  // number of ACKs
   payload++;
@@ -466,7 +466,7 @@ void SSUData::SendMsgACK(
   payload += 4;
   *payload = 0;  // number of fragments
   // encrypt message with session key
-  m_Session.FillHeaderAndEncrypt(GetType(SSUPayloadType::Data), buf.data(), 48);
+  m_Session.FillHeaderAndEncrypt(SSUPayloadType::Data, buf.data(), 48);
   m_Session.Send(buf.data(), 48);
 }
 
@@ -483,8 +483,8 @@ void SSUData::SendFragmentACK(
     return;
   }
   std::array<std::uint8_t, 64 + 18> buf;  // TODO(unassigned): document values
-  auto payload = buf.data() + GetType(SSUSize::HeaderMin);
-  *payload = GetType(SSUFlag::DataACKBitfieldsIncluded);  // flag
+  auto payload = buf.data() + SSUSize::HeaderMin;
+  *payload = SSUFlag::DataACKBitfieldsIncluded;  // flag
   payload++;
   *payload = 1;  // number of ACK bitfields
   payload++;
@@ -499,7 +499,7 @@ void SSUData::SendFragmentACK(
   *payload = 0;  // number of fragments
   auto len = d.quot < 4 ? 48 : 64;  // 48 = 37 + 7 + 4 (3+1)
   // encrypt message with session key
-  m_Session.FillHeaderAndEncrypt(GetType(SSUPayloadType::Data), buf.data(), len);
+  m_Session.FillHeaderAndEncrypt(SSUPayloadType::Data, buf.data(), len);
   m_Session.Send(buf.data(), len);
 }
 
@@ -510,7 +510,7 @@ void SSUData::ScheduleResend() {
   m_ResendTimer.cancel();
   m_ResendTimer.expires_from_now(
       boost::posix_time::seconds(
-          GetType(SSUDuration::ResendInterval)));
+          SSUDuration::ResendInterval));
   auto s = m_Session.shared_from_this();
   m_ResendTimer.async_wait(
       [s](const boost::system::error_code& ecode) {
@@ -527,7 +527,7 @@ void SSUData::HandleResendTimer(
     auto ts = kovri::core::GetSecondsSinceEpoch();
     for (auto it = m_SentMessages.begin(); it != m_SentMessages.end();) {
       if (ts >= it->second->next_resend_time) {
-        if (it->second->num_resends < GetType(SSUDuration::MaxResends)) {
+        if (it->second->num_resends < SSUDuration::MaxResends) {
           for (auto& fragment : it->second->fragments)
             if (fragment) {
               try {
@@ -540,7 +540,7 @@ void SSUData::HandleResendTimer(
             }
           it->second->num_resends++;
           it->second->next_resend_time
-             += it->second->num_resends * GetType(SSUDuration::ResendInterval);
+             += it->second->num_resends * SSUDuration::ResendInterval;
           it++;
         } else {
           LOG(error)
@@ -563,7 +563,7 @@ void SSUData::ScheduleDecay() {
   m_DecayTimer.cancel();
   m_DecayTimer.expires_from_now(
       boost::posix_time::seconds(
-          GetType(SSUDuration::DecayInterval)));
+          SSUDuration::DecayInterval));
   auto s = m_Session.shared_from_this();
   m_ResendTimer.async_wait(
       [s](const boost::system::error_code& ecode) {
@@ -587,7 +587,7 @@ void SSUData::ScheduleIncompleteMessagesCleanup() {
   m_IncompleteMessagesCleanupTimer.cancel();
   m_IncompleteMessagesCleanupTimer.expires_from_now(
       boost::posix_time::seconds(
-          GetType(SSUDuration::IncompleteMessagesCleanupTimeout)));
+          SSUDuration::IncompleteMessagesCleanupTimeout));
   auto s = m_Session.shared_from_this();
   m_IncompleteMessagesCleanupTimer.async_wait(
       [s](const boost::system::error_code& ecode) {
@@ -602,7 +602,7 @@ void SSUData::HandleIncompleteMessagesCleanupTimer(
     << "handling incomplete messages cleanup";
   if (ecode != boost::asio::error::operation_aborted) {
     auto ts = kovri::core::GetSecondsSinceEpoch();
-    auto timeout = GetType(SSUDuration::IncompleteMessagesCleanupTimeout);
+    std::uint8_t const timeout = SSUDuration::IncompleteMessagesCleanupTimeout;
     for (auto it = m_IncompleteMessages.begin(); it != m_IncompleteMessages.end();) {
       if (ts > it->second->last_fragment_insert_time + timeout) {
         LOG(error)

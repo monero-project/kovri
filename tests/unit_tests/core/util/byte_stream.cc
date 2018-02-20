@@ -35,6 +35,7 @@
 
 #include <array>
 #include <limits>
+#include <cstring>
 
 #include "core/util/byte_stream.h"
 
@@ -53,43 +54,46 @@ struct ByteStreamFixture
 
 BOOST_FIXTURE_TEST_SUITE(ByteStreamTests, ByteStreamFixture)
 
-// TODO(anonimal): decouple null input/output from null sizes
-BOOST_AUTO_TEST_CASE(StreamsEmpty)
+BOOST_AUTO_TEST_CASE(NullStreams)
 {
-  core::OutputByteStream output(nullptr, 0);
-  BOOST_CHECK_NO_THROW(output.ProduceData(0));
-  BOOST_CHECK_THROW(output.ProduceData(1), std::length_error);
-  BOOST_CHECK_THROW(output.Write<std::uint8_t>(1), std::length_error);
-  BOOST_CHECK_THROW(output.Write<std::uint16_t>(1), std::length_error);
-  BOOST_CHECK_THROW(output.Write<std::uint32_t>(1), std::length_error);
-  BOOST_CHECK_THROW(output.Write<std::uint64_t>(1), std::length_error);
+  std::array<std::uint8_t, 4> buf{{}};
 
-  core::InputByteStream input(nullptr, 0);
-  BOOST_CHECK_NO_THROW(input.ConsumeData(0));
-  BOOST_CHECK_THROW(input.ConsumeData(1), std::length_error);
-  BOOST_CHECK_THROW(input.ReadBytes(1), std::length_error);
-  BOOST_CHECK_THROW(input.Read<std::uint8_t>(), std::length_error);
-  BOOST_CHECK_THROW(input.Read<std::uint16_t>(), std::length_error);
-  BOOST_CHECK_THROW(input.Read<std::uint32_t>(), std::length_error);
-  BOOST_CHECK_THROW(input.Read<std::uint64_t>(), std::length_error);
+  BOOST_CHECK_THROW(
+      core::OutputByteStream output(nullptr, 123), std::invalid_argument);
+
+  BOOST_CHECK_THROW(
+      core::OutputByteStream output(buf.data(), 0), std::length_error);
+
+  BOOST_CHECK_THROW(core::OutputByteStream output(0), std::length_error);
+
+  BOOST_CHECK_THROW(
+      core::InputByteStream input(nullptr, 123), std::invalid_argument);
+
+  BOOST_CHECK_THROW(
+      core::InputByteStream input(buf.data(), 0), std::length_error);
 }
 
 BOOST_AUTO_TEST_CASE(InputByteStream)
 {
   core::InputByteStream input(m_IPv4Array.data(), m_IPv4Array.size());
-  BOOST_CHECK_NO_THROW(input.ConsumeData(0));
+  BOOST_CHECK_THROW(input.SkipBytes(0), std::length_error);
   BOOST_CHECK_EQUAL(input.Read<std::uint8_t>(), m_IPv4Array.at(0));
   BOOST_CHECK_EQUAL(input.ReadBytes(3), &m_IPv4Array.at(1));
-  BOOST_CHECK_THROW(input.ConsumeData(1), std::length_error);
+  BOOST_CHECK_THROW(input.SkipBytes(1), std::length_error);
+
+  BOOST_CHECK_EQUAL_COLLECTIONS(
+      input.Data(),
+      input.Data() + input.Size(),
+      m_IPv4Array.data(),
+      m_IPv4Array.data() + m_IPv4Array.size());
 }
 
 BOOST_AUTO_TEST_CASE(OutputByteStream)
 {
   std::array<std::uint8_t, 4> buffer;
   core::OutputByteStream output(buffer.data(), buffer.size());
-  BOOST_CHECK_NO_THROW(output.WriteData(nullptr, 0));
-  BOOST_CHECK_NO_THROW(output.WriteData(buffer.data(), 0));
-  BOOST_CHECK_THROW(output.WriteData(nullptr, 1), std::runtime_error);
+  BOOST_CHECK_THROW(output.WriteData(nullptr, 0), std::invalid_argument);
+  BOOST_CHECK_THROW(output.WriteData(buffer.data(), 0), std::length_error);
   BOOST_CHECK_NO_THROW(output.Write<std::uint8_t>(m_IPv4Array.at(0)));
   BOOST_CHECK_EQUAL(output.Size(), buffer.size());
   BOOST_CHECK_EQUAL(output.Data(), buffer.data());
@@ -102,6 +106,31 @@ BOOST_AUTO_TEST_CASE(OutputByteStream)
       buffer.data() + buffer.size(),
       m_IPv4Array.data(),
       m_IPv4Array.data() + m_IPv4Array.size());
+}
+
+BOOST_AUTO_TEST_CASE(NoBufferOutputByteStream)
+{
+ // Write output
+ core::OutputByteStream output(4);
+
+ BOOST_CHECK_NO_THROW(output.Write<std::uint16_t>(65535));
+ BOOST_CHECK_NO_THROW(output.SkipBytes(1));
+ BOOST_CHECK_NO_THROW(output.Write<std::uint8_t>(255));
+ BOOST_CHECK_THROW(output.Write<std::uint8_t>(1), std::length_error);
+ BOOST_CHECK_THROW(output.SkipBytes(1), std::length_error);
+ BOOST_CHECK_EQUAL(output.Size(), 4);
+
+ // Test output
+ core::InputByteStream input(
+     const_cast<std::uint8_t*>(output.Data()),  // TODO(anonimal): remove const_cast
+     output.Size());
+ BOOST_CHECK_EQUAL(input.Read<std::uint16_t>(), 65535);
+ BOOST_CHECK_EQUAL(input.Read<std::uint8_t>(), 0);
+ BOOST_CHECK_EQUAL(input.Read<std::uint8_t>(), 255);
+ BOOST_CHECK_THROW(input.ReadBytes(1), std::length_error);
+ BOOST_CHECK_EQUAL(input.Size(), 4);
+
+ BOOST_CHECK_EQUAL(std::memcmp(input.Data(), output.Data(), output.Size()), 0);
 }
 
 BOOST_AUTO_TEST_CASE(Bits16Test)

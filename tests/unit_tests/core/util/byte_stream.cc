@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2015-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2015-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -121,9 +121,7 @@ BOOST_AUTO_TEST_CASE(NoBufferOutputByteStream)
  BOOST_CHECK_EQUAL(output.Size(), 4);
 
  // Test output
- core::InputByteStream input(
-     const_cast<std::uint8_t*>(output.Data()),  // TODO(anonimal): remove const_cast
-     output.Size());
+ core::InputByteStream input(output.Data(), output.Size());
  BOOST_CHECK_EQUAL(input.Read<std::uint16_t>(), 65535);
  BOOST_CHECK_EQUAL(input.Read<std::uint8_t>(), 0);
  BOOST_CHECK_EQUAL(input.Read<std::uint8_t>(), 255);
@@ -131,6 +129,16 @@ BOOST_AUTO_TEST_CASE(NoBufferOutputByteStream)
  BOOST_CHECK_EQUAL(input.Size(), 4);
 
  BOOST_CHECK_EQUAL(std::memcmp(input.Data(), output.Data(), output.Size()), 0);
+}
+
+BOOST_AUTO_TEST_CASE(OutputByteStreamNonConstData)
+{
+  core::OutputByteStream output(1);
+  output.Write<std::uint8_t>(254);
+  std::uint8_t const buf[1]{0xFF};
+  std::memcpy(output.Data(), buf, sizeof(buf));
+  BOOST_CHECK_EQUAL(
+      core::InputByteStream::Read<std::uint8_t>(output.Data()), 255);
 }
 
 BOOST_AUTO_TEST_CASE(Bits16Test)

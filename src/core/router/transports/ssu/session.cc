@@ -44,6 +44,7 @@
 #include "core/router/transports/ssu/server.h"
 #include "core/router/transports/impl.h"
 
+#include "core/util/byte_stream.h"
 #include "core/util/log.h"
 #include "core/util/timestamp.h"
 
@@ -620,56 +621,71 @@ void SSUSession::ProcessRelayRequest(
   SendRelayIntro(session.get(), from);
 }
 
-// TODO(anonimal): bytestream refactor
 void SSUSession::SendRelayRequest(
-    std::uint32_t introducer_tag,
-    const std::uint8_t* introducer_key) {
-  auto address = context.GetRouterInfo().GetSSUAddress();
-  if (!address) {
-    LOG(error)
-      << "SSUSession:" << GetFormattedSessionInfo()
-      << __func__ << ": SSU is not supported";
-    return;
-  }
-  std::array<std::uint8_t, 96 + SSUSize::BufferMargin> buf{
-      {}};  // TODO(unassigned): document size values
-  auto payload = buf.data() + SSUSize::HeaderMin;
-  core::OutputByteStream::Write<std::uint32_t>(payload, introducer_tag);
-  payload += 4;
-  *payload = 0;  // no address
-  payload++;
-  core::OutputByteStream::Write<std::uint16_t>(payload, 0, false);  // port = 0
-  payload += 2;
-  *payload = 0;  // challenge
-  payload++;
-  memcpy(payload, (const std::uint8_t *)address->key, 32);
-  payload += 32;
-  core::OutputByteStream::Write<std::uint32_t>(
-      payload, core::Rand<std::uint32_t>());  // nonce
-  std::array<std::uint8_t, SSUSize::IV> iv;
-  kovri::core::RandBytes(iv.data(), iv.size());
-  auto relay_request = SSUPayloadType::RelayRequest;
-  if (m_State == SessionState::Established) {
-    FillHeaderAndEncrypt(
-        relay_request,
-        buf.data(),
-        96,
-        m_SessionKey,
-        iv.data(),
-        m_MACKey);
-  } else {
-    FillHeaderAndEncrypt(
-        relay_request,
-        buf.data(),
-        96,
-        introducer_key,
-        iv.data(),
-        introducer_key);
-  }
+    const std::uint32_t introducer_tag,
+    const std::uint8_t* introducer_key)
+{
+  auto* const address = context.GetRouterInfo().GetSSUAddress();
+  if (!address)
+    {
+      LOG(error) << "SSUSession:" << GetFormattedSessionInfo() << __func__
+                 << ": SSU is not supported";
+      return;
+    }
+
+  // Create message  // TODO(anonimal): move to packet writer
+  // TODO(unassigned): size if we include Alice's IP (see SSU spec, unimplemented)
+  core::OutputByteStream message(
+      SSUSize::RelayRequestBuffer + SSUSize::BufferMargin);  // TODO(anonimal): review buffer margin
+
+  // TODO(unassigned): Endianness is not spec-defined, assuming BE
+
+  // Skip header (written later)
+  message.SkipBytes(SSUSize::HeaderMin);
+
+  // Intro tag
+  message.Write<std::uint32_t>(introducer_tag);
+
+  // Address, port, and challenge (see SSU spec)
+  message.SkipBytes(4);
+
+  // Key
+  message.Write<std::uint32_t>(
+      core::InputByteStream::Read<std::uint32_t>(address->key));
+
+  // Nonce
+  message.Write<std::uint32_t>(core::Rand<std::uint32_t>());
+
+  // Create header IV
+  // TODO(anonimal): should be done internally during header creation
+  std::array<std::uint8_t, SSUSize::IV> IV;
+  kovri::core::RandBytes(IV.data(), IV.size());
+
+  // Write header and send
+  if (m_State == SessionState::Established)
+    {
+      // Use Alice/Bob session key if session is established
+      FillHeaderAndEncrypt(
+          SSUPayloadType::RelayRequest,
+          message.Data(),
+          SSUSize::RelayRequestBuffer,
+          m_SessionKey,
+          IV.data(),
+          m_MACKey);
+    }
+  else
+    {
+      FillHeaderAndEncrypt(
+          SSUPayloadType::RelayRequest,
+          message.Data(),
+          SSUSize::RelayRequestBuffer,
+          introducer_key,
+          IV.data(),
+          introducer_key);
+    }
+
   m_Server.Send(
-      buf.data(),
-      96,
-      GetRemoteEndpoint());
+      message.Data(), SSUSize::RelayRequestBuffer, GetRemoteEndpoint());
 }
 
 /**
@@ -1148,6 +1164,7 @@ void SSUSession::FillHeaderAndEncrypt(
         encrypted_len,
         encrypted);
     // assume actual buffer size is 18 (16 + 2) bytes more
+    // TODO(unassigned): ^ this is stupid and dangerous to assume that caller is responsible
     memcpy(buf + len, iv, SSUSize::IV);
     core::OutputByteStream::Write<std::uint16_t>(
         buf + len + SSUSize::IV, encrypted_len);

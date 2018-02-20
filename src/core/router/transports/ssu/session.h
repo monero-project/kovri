@@ -263,7 +263,7 @@ class SSUSession
       const boost::asio::ip::udp::endpoint& from);
 
   void SendRelayRequest(
-      std::uint32_t introducer_tag,
+      const std::uint32_t introducer_tag,
       const std::uint8_t* introducer_key);
 
   // Payload type 4: RelayResponse

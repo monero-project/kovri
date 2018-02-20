@@ -66,6 +66,8 @@ enum SSUSize : std::uint16_t
   DHPublic = 256,
   MaxReceivedMessages = 1000,  // TODO(unassigned): research this value
   MaxIntroducers = 3,
+  // Session buffer sizes imply *before* non-mod-16 padding. See SSU spec.
+  RelayRequestBuffer = 96,  ///< 96 bytes (no Alice IP included) or 112 bytes (4-byte Alice IP included)
 };
 
 /// @enum SSUFlag

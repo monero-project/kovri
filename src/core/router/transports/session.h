@@ -48,6 +48,7 @@
 namespace kovri {
 namespace core {
 
+// TODO(anonimal): inherit StringStream, refactor
 class SignedData {
  public:
   SignedData() {}

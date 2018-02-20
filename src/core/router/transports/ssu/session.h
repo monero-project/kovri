@@ -272,7 +272,7 @@ class SSUSession
       SSUPacket* pkt);
 
   void SendRelayResponse(
-      std::uint32_t nonce,
+      const std::uint32_t nonce,
       const boost::asio::ip::udp::endpoint& from,
       const std::uint8_t* intro_key,
       const boost::asio::ip::udp::endpoint& to);

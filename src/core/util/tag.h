@@ -49,23 +49,12 @@ template <int Size>
 class Tag
 {
  public:
+  Tag() = default;
+
   Tag(const std::uint8_t* buf)
   {
     std::memcpy(m_Buf, buf, Size);
   }
-  Tag(const Tag<Size>&) = default;
-
-#ifndef _WIN32
-  Tag(Tag<Size>&&) = default;
-#endif
-
-  Tag() = default;
-
-  Tag<Size>& operator=(const Tag<Size>&) = default;
-
-#ifndef _WIN32
-  Tag<Size>& operator=(Tag<Size>&&) = default;
-#endif
 
   std::uint8_t* operator()()
   {

@@ -49,6 +49,8 @@ template <int Size>
 class Tag
 {
  public:
+  static_assert(Size, "Null tag size not allowed");
+
   Tag() : m_Buf{} {}
 
   Tag(const std::uint8_t* buf)

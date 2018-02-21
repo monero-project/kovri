@@ -49,7 +49,7 @@ template <int Size>
 class Tag
 {
  public:
-  Tag() = default;
+  Tag() : m_Buf{} {}
 
   Tag(const std::uint8_t* buf)
   {

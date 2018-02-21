@@ -45,7 +45,10 @@ namespace kovri
 {
 namespace core
 {
-template <int Size>
+// TODO(anonimal): realistically, we'll never need this large a type.
+//   The only need is for our HMAC impl but that should be re-written
+//   so we don't suffer performance loss everywhere else Tag is used.
+template <std::uint64_t Size>
 class Tag
 {
  public:
@@ -95,7 +98,7 @@ class Tag
 
   bool IsZero() const
   {
-    for (int i = 0; i < Size / 8; i++)
+    for (std::uint64_t i = 0; i < Size / 8; i++)
       if (ll[i])
         return false;
     return true;
@@ -134,9 +137,13 @@ class Tag
   }
 
  private:
+  // TODO(anonimal): unnecessary and error-prone
   union
   {  // 8 bytes alignment
     std::uint8_t m_Buf[Size];
+    // TODO(anonimal): realistically, we'll never need this large a type.
+    //   The only need is for our HMAC impl but that should be re-written
+    //   so we don't suffer performance loss everywhere else Tag is used.
     std::uint64_t ll[Size / 8];
   };
 };

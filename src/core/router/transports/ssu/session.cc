@@ -1177,24 +1177,40 @@ void SSUSession::SendSessionDestroyed()
     }
 }
 
-// TODO(anonimal): bytestream refactor
-void SSUSession::SendKeepAlive() {
-  if (m_State == SessionState::Established) {
-    std::array<std::uint8_t, 48 + SSUSize::BufferMargin> buf {{}};  // TODO(unassigned): document values
-    auto payload = buf.data() + SSUSize::HeaderMin;
-    *payload = 0;  // flags
-    payload++;
-    *payload = 0;  // num fragments
-    // encrypt message with session key
-    FillHeaderAndEncrypt(
-        SSUPayloadType::Data,
-        buf.data(),
-        48);
-    Send(buf.data(), 48);
-    LOG(debug)
-      << "SSUSession:" << GetFormattedSessionInfo() << "keep-alive sent";
-    ScheduleTermination();
-  }
+// TODO(anonimal):
+//   "An ACK packet with no acks", the function of a keep-alive message is currently
+//   undocumented in I2P specifications. The only mention of keepalives in SSU is a
+//   one-line comment under Data message types:
+//     "If the number of fragments is zero, this is an ack-only or keepalive message."
+//   Note: the Java implementation uses keepalives as a way to ping introducers.
+void SSUSession::SendKeepAlive()
+{
+  if (m_State == SessionState::Established)
+    {
+      // TODO(anonimal):
+      //   37 byte min header
+      //   + 5 byte short I2NP header
+      //   + 1 byte flag (zero)
+      //   + 1 byte number of fragments (zero) = 44...
+      core::OutputByteStream message(48 + SSUSize::BufferMargin);
+
+      // Flag (zero) + num fragments (zero)
+      message.SkipBytes(2);
+
+      // Use existing session + send
+      FillHeaderAndEncrypt(
+          SSUPayloadType::Data,
+          message.Data(),
+          message.Size() - SSUSize::BufferMargin);
+
+      LOG(debug) << "SSUSession:" << GetFormattedSessionInfo()
+                 << "sending keep-alive";
+
+      Send(message.Data(), message.Size() - SSUSize::BufferMargin);
+
+      // Ensure session lifetime
+      ScheduleTermination();
+    }
 }
 
 // TODO(anonimal): pass reference to structure, not SEVEN arguments!

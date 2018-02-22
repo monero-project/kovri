@@ -69,6 +69,7 @@ enum SSUSize : std::uint16_t
   // Session buffer sizes imply *before* non-mod-16 padding. See SSU spec.
   RelayRequestBuffer = 96,  ///< 96 bytes (no Alice IP included) or 112 bytes (4-byte Alice IP included)
   RelayResponseBuffer = 80,  ///< 64 (Alice IPv4) or 80 (Alice IPv6) bytes
+  RelayIntroBuffer = 48,
 };
 
 /// @enum SSUFlag

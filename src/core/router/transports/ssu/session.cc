@@ -825,43 +825,63 @@ void SSUSession::ProcessRelayIntro(SSUPacket* pkt) {
   }
 }
 
-// TODO(anonimal): bytestream refactor
 void SSUSession::SendRelayIntro(
-    SSUSession* session,
-    const boost::asio::ip::udp::endpoint& from) {
+    const SSUSession* session,
+    const boost::asio::ip::udp::endpoint& from)
+{
   if (!session)
-    return;
+    {
+      LOG(error) << "SSUSession:" << GetFormattedSessionInfo() << __func__
+                 << ": null session";
+      return;  // TODO(anonimal): assert/throw?!...
+    }
+
   // Alice's address always v4
-  if (!from.address().is_v4()) {
-    LOG(error)
-      << "SSUSession:" << GetFormattedSessionInfo()
-      << __func__ << ": Alice's IP must be V4";
-    return;
-  }
-  std::array<std::uint8_t, 48 + SSUSize::BufferMargin> buf{{}};
-  auto payload = buf.data() + SSUSize::HeaderMin;
-  *payload = 4;
-  payload++;  // size
-  core::OutputByteStream::Write<std::uint32_t>(
-      payload, from.address().to_v4().to_ulong());  // Alice's IP
-  payload += 4;  // address
-  core::OutputByteStream::Write<std::uint16_t>(payload, from.port());  // Alice's port
-  payload += 2;  // port
-  *payload = 0;  // challenge size
-  std::array<std::uint8_t, SSUSize::IV> iv;
-  kovri::core::RandBytes(iv.data(), iv.size());  // random iv
+  if (!from.address().is_v4())
+    {
+      LOG(error) << "SSUSession:" << GetFormattedSessionInfo() << __func__
+                 << ": Alice's address must be IPv4";
+      return;  // TODO(anonimal): assert/throw?!...
+    }
+
+  // Create message
+  core::OutputByteStream message(
+      SSUSize::RelayIntroBuffer + SSUSize::BufferMargin);
+
+  // Skip header (written later)
+  message.SkipBytes(SSUSize::HeaderMin);
+
+  // Alice's IP Size
+  message.Write<std::uint8_t>(4);
+
+  // Alice's IP
+  message.Write<std::uint32_t>(from.address().to_v4().to_ulong());
+
+  // Alice's port
+  message.Write<std::uint16_t>(from.port());
+
+  // Challenge is unimplemented, challenge size is always zero
+  message.SkipBytes(1);
+
+  // Create IV
+  // TODO(anonimal): should be done internally during header creation
+  std::array<std::uint8_t, SSUSize::IV> IV;
+  kovri::core::RandBytes(IV.data(), IV.size());
+
+  // Encrypt with Bob/Charlie keys
   FillHeaderAndEncrypt(
       SSUPayloadType::RelayIntro,
-      buf.data(),
-      48,
+      message.Data(),
+      SSUSize::RelayIntroBuffer,
       session->m_SessionKey,
-      iv.data(),
+      IV.data(),
       session->m_MACKey);
+
+  LOG(debug) << "SSUSession: " << GetFormattedSessionInfo()
+             << "sending RelayIntro";
+
   m_Server.Send(
-      buf.data(),
-      48,
-      session->GetRemoteEndpoint());
-  LOG(debug) << "SSUSession: " << GetFormattedSessionInfo() << "RelayIntro sent";
+      message.Data(), SSUSize::RelayIntroBuffer, session->GetRemoteEndpoint());
 }
 
 /**

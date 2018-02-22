@@ -283,7 +283,7 @@ class SSUSession
       SSUPacket* pkt);
 
   void SendRelayIntro(
-      SSUSession* session,
+      const SSUSession* session,
       const boost::asio::ip::udp::endpoint& from);
 
   // Payload type 6: Data

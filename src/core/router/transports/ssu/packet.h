@@ -70,6 +70,7 @@ enum SSUSize : std::uint16_t
   RelayRequestBuffer = 96,  ///< 96 bytes (no Alice IP included) or 112 bytes (4-byte Alice IP included)
   RelayResponseBuffer = 80,  ///< 64 (Alice IPv4) or 80 (Alice IPv6) bytes
   RelayIntroBuffer = 48,
+  PeerTestBuffer = 80,
 };
 
 /// @enum SSUFlag

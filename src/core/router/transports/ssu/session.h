@@ -298,12 +298,12 @@ class SSUSession
       const boost::asio::ip::udp::endpoint& sender_endpoint);
 
   void SendPeerTest(
-      std::uint32_t nonce,
-      std::uint32_t address,
-      std::uint16_t port,
+      const std::uint32_t nonce,
+      const std::uint32_t address,
+      const std::uint16_t port,
       const std::uint8_t* intro_key,
-      bool to_address = true,
-      bool send_address = true);
+      const bool to_address = true,
+      const bool send_address = true);
 
   // Payload type 8: SessionDestroyed
 

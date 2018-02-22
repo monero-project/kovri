@@ -1033,69 +1033,90 @@ void SSUSession::ProcessPeerTest(
   }
 }
 
-// TODO(anonimal): bytestream refactor
 // TODO(anonimal): pass reference to structure, not SIX arguments!
 void SSUSession::SendPeerTest(
-    std::uint32_t nonce,
-    std::uint32_t address,
-    std::uint16_t port,
+    const std::uint32_t nonce,
+    const std::uint32_t address,
+    const std::uint16_t port,
     const std::uint8_t* intro_key,
-    bool to_address,  // is true for Alice<->Charlie communications only
-    bool send_address) {  // is false if message comes from Alice
-  std::array<std::uint8_t, 80 + SSUSize::BufferMargin> buf{{}};
-  auto payload = buf.data() + SSUSize::HeaderMin;
-  core::OutputByteStream::Write<std::uint32_t>(payload, nonce);
-  payload += 4;  // nonce
-  // address and port
-  if (send_address && address) {
-    *payload = 4;
-    payload++;  // size
-    core::OutputByteStream::Write<std::uint32_t>(payload, address);
-    payload += 4;  // address
-  } else {
-    *payload = 0;
-    payload++;  // size
-  }
-  core::OutputByteStream::Write<std::uint16_t>(payload, port);
-  payload += 2;  // port
-  // intro key
-  if (to_address) {
-    // send our intro key to address instead it's own
-    auto addr = context.GetRouterInfo().GetSSUAddress();
-    if (addr)
-      memcpy(payload, addr->key, 32);  // intro key
-    else
-      LOG(error)
-        << "SSUSession:" << GetFormattedSessionInfo()
-        << "SSU is not supported, can't send PeerTest";
-  } else {
-    memcpy(payload, intro_key, 32);  // intro key
-  }
-  // send
-  std::array<std::uint8_t, SSUSize::IV> iv;
-  kovri::core::RandBytes(iv.data(), iv.size());
-  auto peer_test = SSUPayloadType::PeerTest;
-  if (to_address) {
-    // encrypt message with specified intro key
-    FillHeaderAndEncrypt(
-        peer_test,
-        buf.data(),
-        80,
-        intro_key,
-        iv.data(),
-        intro_key);
-    boost::asio::ip::udp::endpoint ep(
-        boost::asio::ip::address_v4(address),
-        port);
-    m_Server.Send(buf.data(), 80, ep);
-  } else {
-    // encrypt message with session key
-    FillHeaderAndEncrypt(
-        peer_test,
-        buf.data(),
-        80);
-    Send(buf.data(), 80);
-  }
+    const bool to_address,  // is true for Alice<->Charlie communications only
+    const bool send_address)  // is false if message comes from Alice
+{
+  // Create message
+  core::OutputByteStream message(
+      SSUSize::PeerTestBuffer + SSUSize::BufferMargin);
+
+  // Skip header (written later)
+  message.SkipBytes(SSUSize::HeaderMin);
+
+  // Nonce
+  message.Write<std::uint32_t>(nonce);
+
+  // Address
+  if (send_address && address)
+    {
+      message.Write<std::uint8_t>(4);  // Size of address
+      message.Write<std::uint32_t>(address);  // Address
+    }
+  else
+    {
+      message.SkipBytes(1);
+    }
+
+  // Alice's Port
+  message.Write<std::uint16_t>(port);
+
+  // Write introducer key
+  if (to_address)
+    {
+      // Our (Alice's) intro key
+      auto* const addr = context.GetRouterInfo().GetSSUAddress();
+      if (addr)
+        {
+          message.WriteData(addr->key, sizeof(addr->key));
+        }
+      else
+        {
+          LOG(error) << "SSUSession:" << GetFormattedSessionInfo()
+                     << "SSU is not supported, can't send PeerTest";
+          // TODO(anonimal): return/throw/assert
+        }
+    }
+  else
+    {
+      // Charlie's intro key
+      message.WriteData(intro_key, 32);
+    }
+
+  // Write header and send
+  // TODO(anonimal): should be done internally during header creation
+  std::array<std::uint8_t, SSUSize::IV> IV;
+  kovri::core::RandBytes(IV.data(), IV.size());
+
+  if (to_address)
+    {
+      // Encrypts message with given intro key
+      FillHeaderAndEncrypt(
+          SSUPayloadType::PeerTest,
+          message.Data(),
+          SSUSize::PeerTestBuffer,
+          intro_key,
+          IV.data(),
+          intro_key);
+
+      boost::asio::ip::udp::endpoint ep(
+          boost::asio::ip::address_v4(address), port);
+
+      m_Server.Send(message.Data(), SSUSize::PeerTestBuffer, ep);
+    }
+  else
+    {
+      // Encrypts message with existing session key, uses existing session
+      FillHeaderAndEncrypt(
+          SSUPayloadType::PeerTest, message.Data(), SSUSize::PeerTestBuffer);
+
+      Send(message.Data(), SSUSize::PeerTestBuffer);
+    }
 }
 
 void SSUSession::SendPeerTest() {

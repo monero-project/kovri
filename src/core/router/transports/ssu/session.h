@@ -307,7 +307,7 @@ class SSUSession
 
   // Payload type 8: SessionDestroyed
 
-  void SendSesionDestroyed();
+  void SendSessionDestroyed();
 
   // End payload types
 

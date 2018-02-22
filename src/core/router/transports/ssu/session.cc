@@ -1149,26 +1149,35 @@ void SSUSession::SendPeerTest() {
  *
  */
 
-void SSUSession::SendSesionDestroyed() {
-  if (m_IsSessionKey) {
-    std::array<std::uint8_t, 48 + SSUSize::BufferMargin> buf {{}};
-    // encrypt message with session key
-    FillHeaderAndEncrypt(
-        SSUPayloadType::SessionDestroyed,
-        buf.data(),
-        48);
-    try {
-      Send(buf.data(), 48);
-    } catch(const std::exception& ex) {
-      LOG(error)
-        << "SSUSession:" << GetFormattedSessionInfo()
-        << __func__ << ": '" << ex.what() << "'";
+void SSUSession::SendSessionDestroyed()
+{
+  if (m_IsSessionKey)
+    {
+      // This message should not contain any data
+      core::OutputByteStream message(
+          SSUSize::SessionDestroyedBuffer + SSUSize::BufferMargin);
+
+      // Write header and send (existing session)
+      FillHeaderAndEncrypt(
+          SSUPayloadType::SessionDestroyed,
+          message.Data(),
+          SSUSize::SessionDestroyedBuffer);
+      try
+        {
+          LOG(debug) << "SSUSession:" << GetFormattedSessionInfo()
+                     << "sending SessionDestroyed";
+
+          Send(message.Data(), SSUSize::SessionDestroyedBuffer);
+        }
+      catch (const std::exception& ex)
+        {
+          LOG(error) << "SSUSession:" << GetFormattedSessionInfo() << __func__
+                     << ": '" << ex.what() << "'";
+        }
     }
-    LOG(debug)
-      << "SSUSession:" << GetFormattedSessionInfo() << "SessionDestroyed sent";
-  }
 }
 
+// TODO(anonimal): bytestream refactor
 void SSUSession::SendKeepAlive() {
   if (m_State == SessionState::Established) {
     std::array<std::uint8_t, 48 + SSUSize::BufferMargin> buf {{}};  // TODO(unassigned): document values
@@ -1479,7 +1488,7 @@ void SSUSession::WaitForIntroduction() {
 
 void SSUSession::Close() {
   m_State = SessionState::Closed;
-  SendSesionDestroyed();
+  SendSessionDestroyed();
   transports.PeerDisconnected(shared_from_this());
   m_Data.Stop();
   m_Timer.cancel();

@@ -51,6 +51,9 @@
 namespace kovri {
 namespace core {
 
+// TODO(anonimal): session message creation/processing should be separated from
+//  network session implementation and templated where possible.
+
 // TODO(anonimal): bytestream refactor
 
 std::uint8_t* SSUSessionPacket::MAC() const {
@@ -361,89 +364,128 @@ void SSUSession::SendSessionRequest() {
  *
  */
 
-void SSUSession::ProcessSessionCreated(
-    SSUPacket* pkt) {
-  if (!m_RemoteRouter || !m_DHKeysPair) {
-    LOG(warning)
-      << "SSUSession:" << GetFormattedSessionInfo()
-      << "unsolicited SessionCreated message";
-    return;
-  }
-  LOG(debug)
-    << "SSUSession:" << GetFormattedSessionInfo()
-    << "SessionCreated received";
-  m_Timer.cancel();  // connect timer
-  auto packet = static_cast<SSUSessionCreatedPacket*>(pkt);
-  // x, y, our IP, our port, remote IP, remote port, relay tag, signed on time
-  SignedData s;
-  if (!CreateAESandMACKey(packet->GetDhY())) {
-    LOG(error)
-      << "SSUSession:" << GetFormattedSessionInfo()
-      << "invalid DH-Y, not sending SessionConfirmed";
-    return;
-  }
-  s.Insert(m_DHKeysPair->public_key.data(), 256);  // x
-  s.Insert(packet->GetDhY(), 256);  // y
-  boost::asio::ip::address our_IP;
-  if (packet->GetIPAddressSize() == 4) {  // v4
-    boost::asio::ip::address_v4::bytes_type bytes;
-    memcpy(bytes.data(), packet->GetIPAddress(), 4);
-    our_IP = boost::asio::ip::address_v4(bytes);
-  } else {  // v6
-    boost::asio::ip::address_v6::bytes_type bytes;
-    memcpy(bytes.data(), packet->GetIPAddress(), 16);
-    our_IP = boost::asio::ip::address_v6(bytes);
-  }
-  s.Insert(packet->GetIPAddress(), packet->GetIPAddressSize());  // our IP
-  s.Insert<std::uint16_t>(boost::endian::native_to_big(packet->GetPort()));  // our port
-  LOG(debug)
-    << "SSUSession:" << GetFormattedSessionInfo()
-    << __func__ << ": our external address is "
-    << our_IP.to_string() << ":" << packet->GetPort();
-  context.UpdateAddress(our_IP);
-  if (GetRemoteEndpoint().address().is_v4()) {
-    // remote IP v4
-    s.Insert(GetRemoteEndpoint().address().to_v4().to_bytes().data(), 4);
-  } else {
-    // remote IP v6
-    s.Insert(GetRemoteEndpoint().address().to_v6().to_bytes().data(), 16);
-  }
-  s.Insert<std::uint16_t>(boost::endian::native_to_big(GetRemoteEndpoint().port()));  // remote port
-  m_RelayTag = packet->GetRelayTag();
-  s.Insert<std::uint32_t>(boost::endian::native_to_big(m_RelayTag));  // relay tag
-  s.Insert<std::uint32_t>(boost::endian::native_to_big(packet->GetSignedOnTime()));  // signed on time
-  // decrypt signature
-  auto signature_len = m_RemoteIdentity.GetSignatureLen();
-  auto padding_size = signature_len & 0x0F;  // %16
-  if (padding_size > 0)
-    signature_len += (16 - padding_size);
-  // TODO(anonimal): this try block should be larger or handled entirely by caller
-  try {
-    m_SessionKeyDecryption.SetIV(packet->GetHeader()->GetIV());
-    m_SessionKeyDecryption.Decrypt(
-        packet->GetSignature(),
-        signature_len,
-        packet->GetSignature());
-  } catch (...) {
-    m_Exception.Dispatch(__func__);
-    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
-    throw;
-  }
-  // verify
-  if (s.Verify(m_RemoteIdentity, packet->GetSignature())) {
-    SendSessionConfirmed(
-        packet->GetDhY(),
-        packet->GetIPAddress(),
-        packet->GetIPAddressSize(),
-        packet->GetPort());
-  } else {  // invalid signature
-    LOG(error)
-      << "SSUSession:" << GetFormattedSessionInfo()
-      << "SessionCreated signature verification failed";
-    // Reset the session key, Java routers might resent the message if it
-    //  failed the first time
-    m_IsSessionKey = false;
-  }
+void SSUSession::ProcessSessionCreated(const SSUPacket* packet)
+{
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try
+    {
+      LOG(debug) << "SSUSession:" << GetFormattedSessionInfo()
+                 << "SessionCreated received, processing";
+
+      if (!m_RemoteRouter || !m_DHKeysPair)
+        {
+          LOG(warning) << "SSUSession:" << GetFormattedSessionInfo()
+                       << "unsolicited SessionCreated message";
+          return;  // TODO(anonimal): throw/assert?
+        }
+
+      // TODO(anonimal): continue review of timer management. Connect timer is
+      //  canceled when it expires after sending SessionRequest, and is also canceled
+      //  once the session is established - so we should not need to cancel here.
+      //  Note: canceling also does not reset expiration time.
+
+      assert(packet);
+      const auto* message = static_cast<const SSUSessionCreatedPacket*>(packet);
+
+      // Complete SessionRequest DH agreement using Bob's DH Y
+      if (!CreateAESandMACKey(message->GetDhY()))
+        {
+          LOG(error) << "SSUSession:" << GetFormattedSessionInfo()
+                     << "invalid DH-Y, not sending SessionConfirmed";
+          return;  // TODO(anonimal): assert/throw?
+        }
+
+      // Compute exchanged session dataset size
+      bool const is_IPv6 = m_RemoteEndpoint.address().is_v6();
+
+      std::uint16_t const data_size =
+          DHKeySize::PubKey * 2  // DH X+Y
+          + message->GetIPAddressSize()  // Alice's address
+          + 2  // Alice's port
+          + (is_IPv6 ? 16 : 4)  // Bob's address
+          + 2  // Bob's port
+          + 4  // Alice's relay tag
+          + 4;  // Bob's signed-on time
+
+      // Create dataset of exchanged session data (the dataset Bob has signed)
+      core::OutputByteStream data(data_size);
+
+      // Our (Alice's) DH X
+      data.WriteData(m_DHKeysPair->public_key.data(), DHKeySize::PubKey);
+
+      // Bob's DH Y
+      data.WriteData(message->GetDhY(), DHKeySize::PubKey);
+
+      // Our (Alice's) IP and port
+      data.WriteData(message->GetIPAddress(), message->GetIPAddressSize());
+      data.Write<std::uint16_t>(message->GetPort());
+
+      // Bob's IP address
+      data.WriteData(
+          is_IPv6 ? m_RemoteEndpoint.address().to_v6().to_bytes().data()
+                  : m_RemoteEndpoint.address().to_v4().to_bytes().data(),
+          is_IPv6 ? 16 : 4);
+
+      // Bob's port
+      data.Write<std::uint16_t>(m_RemoteEndpoint.port());
+
+      // Our (Alice's) relay tag
+      data.Write<std::uint32_t>(m_RelayTag = message->GetRelayTag());
+
+      // Bob's signed-on time
+      data.Write<std::uint32_t>(message->GetSignedOnTime());
+
+      // Get Bob's padded signature length
+      std::uint8_t const signature_len =
+          SSUPacketBuilder::GetPaddedSize(m_RemoteIdentity.GetSignatureLen());
+
+      // Prepare decrypted-signature buffer
+      std::vector<std::uint8_t> signature(signature_len);
+
+      // Use Bob's IV to decrypt signature using our negotiated session key
+      m_SessionKeyDecryption.SetIV(message->GetHeader()->GetIV());
+
+      // Decrypt signature
+      m_SessionKeyDecryption.Decrypt(
+          message->GetSignature(), signature.size(), signature.data());
+
+      // TODO(anonimal): log debug of encrypted/decrypted sig + message data
+
+      // Verify signed dataset
+      if (!m_RemoteIdentity.Verify(data.Data(), data.Size(), signature.data()))
+        {
+          LOG(error) << "SSUSession:" << GetFormattedSessionInfo()
+                     << "SessionCreated signature verification failed";
+          // TODO(anonimal): review if Java routers resend the message on failure.
+          //   Instead of immediately resetting session key, we can explore ways
+          //   to observe and mitigate potential attacks. Another possible case
+          //   for failure:
+          //     "If Bob's NAT/firewall has mapped his internal port to a
+          //     different external port, and Bob is unaware of it, the
+          //     verification by Alice will fail."
+          m_IsSessionKey = false;
+          return;  // TODO(anonimal): throw/assert?
+        }
+
+      // An SSU'ism: update our external address as perceived by Bob
+      context.UpdateAddress(
+          message->GetIPAddress(),
+          message->GetIPAddressSize(),
+          message->GetPort());
+
+      // Session created, create/send confirmation
+      SendSessionConfirmed(
+          message->GetDhY(),
+          message->GetIPAddress(),
+          message->GetIPAddressSize(),
+          message->GetPort());
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      // TODO(anonimal): ensure exception handling by callers
+      throw;
+    }
 }
 
 void SSUSession::SendSessionCreated(
@@ -699,21 +741,10 @@ void SSUSession::ProcessRelayResponse(SSUPacket* pkt) {
     << "SSUSession:" << GetFormattedSessionInfo() << "RelayResponse received";
   auto packet = static_cast<SSURelayResponsePacket*>(pkt);
   // TODO(EinMByte): Check remote (charlie) address
-  boost::asio::ip::address our_IP;
-  if (packet->GetIPAddressAliceSize() == 4) {
-    boost::asio::ip::address_v4::bytes_type bytes;
-    memcpy(bytes.data(), packet->GetIPAddressAlice(), 4);
-    our_IP = boost::asio::ip::address_v4(bytes);
-  } else {
-    boost::asio::ip::address_v6::bytes_type bytes;
-    memcpy(bytes.data(), packet->GetIPAddressAlice(), 16);
-    our_IP = boost::asio::ip::address_v6(bytes);
-  }
-  LOG(debug)
-    << "SSUSession:" << GetFormattedSessionInfo()
-    << __func__ << ": our external address is "
-    << our_IP.to_string() << ":" << packet->GetPortAlice();
-  context.UpdateAddress(our_IP);
+  context.UpdateAddress(
+      packet->GetIPAddressAlice(),
+      packet->GetIPAddressAliceSize(),
+      packet->GetPortAlice());
 }
 
 void SSUSession::SendRelayResponse(
@@ -1449,7 +1480,7 @@ void SSUSession::WaitForConnect() {
 }
 
 void SSUSession::ScheduleConnectTimer() {
-  m_Timer.cancel();
+  m_Timer.cancel();  // TODO(anonimal): cancel is called within expires_from_now
   m_Timer.expires_from_now(
       boost::posix_time::seconds(
           SSUDuration::ConnectTimeout));

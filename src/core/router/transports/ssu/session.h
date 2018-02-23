@@ -239,8 +239,9 @@ class SSUSession
 
   // Payload type 1: SessionCreated
 
-  void ProcessSessionCreated(
-      SSUPacket* pkt);
+  /// @brief We are Alice, processing Bob's SessionCreated message
+  /// @param packet Bob's message (header + payload)
+  void ProcessSessionCreated(const SSUPacket* packet);
 
   void SendSessionCreated(
       const std::uint8_t* x);

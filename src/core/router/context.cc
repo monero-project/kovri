@@ -211,17 +211,54 @@ void RouterContext::UpdateRouterInfo() {
 }
 
 void RouterContext::UpdateAddress(
-    const boost::asio::ip::address& host) {
+    const std::uint8_t* host,
+    const std::uint8_t size,
+    const std::uint16_t port)
+{
+  // Set new host address as IPv4 or IPv6
+  // TODO(unassigned): move to utility code
+  boost::asio::ip::address new_host;
+  switch (size)
+    {
+      case 4:
+        {
+          boost::asio::ip::address_v4::bytes_type bytes;
+          std::memcpy(bytes.data(), host, size);
+          new_host = boost::asio::ip::address_v4(bytes);
+        }
+        break;
+      case 16:
+        {
+          boost::asio::ip::address_v6::bytes_type bytes;
+          std::memcpy(bytes.data(), host, size);
+          new_host = boost::asio::ip::address_v6(bytes);
+        }
+        break;
+      default:
+        throw std::length_error("invalid address size");
+    };
+
+  // Set new host if applicable
   bool updated = false;
-  for (auto& address : m_RouterInfo.GetAddresses()) {
-    if (address.host != host && address.HasCompatibleHost(host)) {
-      address.host = host;
-      updated = true;
+  for (auto& address : m_RouterInfo.GetAddresses())
+    {
+      if (address.host != new_host && address.HasCompatibleHost(new_host))
+        {
+          // TODO(anonimal): update port? We should already be bound and updating does not imply rebind
+          address.host = new_host;
+          updated = true;
+        }
     }
-  }
-  auto ts = kovri::core::GetSecondsSinceEpoch();
-  if (updated || ts > m_LastUpdateTime + Interval::Update)
-    UpdateRouterInfo();
+
+  // Update RI if applicable
+  auto const timestamp = core::GetSecondsSinceEpoch();
+  if (updated || timestamp > m_LastUpdateTime + Interval::Update)
+    {
+      LOG(debug) << "RouterContext:" << __func__ << ": our external address is "
+                 << new_host.to_string()
+                 << (port ? ": " + std::to_string(port) : "");
+      UpdateRouterInfo();
+    }
 }
 
 bool RouterContext::AddIntroducer(

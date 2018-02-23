@@ -110,12 +110,16 @@ class RouterContext : public RouterInfoTraits, public GarlicDestination {
     m_State = state;
   }
 
-  // Called From SSU or Daemon.
-  // Update Our IP Address, external IP Address if behind NAT.
-  // Rebuilds RouterInfo
-  // @param host the ip address
+  /// @brief Updates our external IP Address
+  /// @param host Our IP address
+  /// @param host_size Our IP address size in bytes
+  /// @param port Our port number
+  /// @notes Default port paramter set for UPnP
+  /// @notes Rebuilds RouterInfo
   void UpdateAddress(
-      const boost::asio::ip::address& host);
+      const std::uint8_t* host,
+      const std::uint8_t host_size,
+      const std::uint16_t port = 0);
 
   // Add an SSU introducer to our RouterInfo.
   // Rebuild RouterInfo.

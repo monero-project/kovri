@@ -488,88 +488,146 @@ void SSUSession::ProcessSessionCreated(const SSUPacket* packet)
     }
 }
 
-void SSUSession::SendSessionCreated(
-    const std::uint8_t* x) {
-  auto intro_key = GetIntroKey();
-  auto address = IsV6() ?
-    context.GetRouterInfo().GetSSUAddress(true) :
-    context.GetRouterInfo().GetSSUAddress();  // v4 only
-  if (!intro_key || !address) {
-    LOG(error)
-      << "SSUSession:" << GetFormattedSessionInfo()
-      << "SendSessionCreated(): SSU is not supported";
-    return;
-  }
-  SSUSessionCreatedPacket packet;
-  packet.SetHeader(std::make_unique<SSUHeader>(SSUPayloadType::SessionCreated));
-  std::array<std::uint8_t, SSUSize::IV> iv;
-  kovri::core::RandBytes(iv.data(), iv.size());
-  packet.GetHeader()->SetIV(iv.data());
-  packet.SetDhY(m_DHKeysPair->public_key.data());
-  packet.SetPort(GetRemoteEndpoint().port());
-  // signature
-  // x,y, remote IP, remote port, our IP, our port, relay tag, signed on time
-  SignedData s;
-  s.Insert(x, 256);  // x
-  s.Insert(packet.GetDhY(), 256);  // y
-  auto const remote_ip(core::AddressToByteVector(GetRemoteEndpoint().address()));
-  // TODO(unassigned): remove const_cast, see bytestream TODO
-  packet.SetIPAddress(const_cast<std::uint8_t*>(remote_ip.data()), remote_ip.size());
-  s.Insert(remote_ip.data(), remote_ip.size());  // remote ip
-  s.Insert<std::uint16_t>(boost::endian::native_to_big(packet.GetPort()));  // remote port
-  if (address->host.is_v4())
-    s.Insert(address->host.to_v4().to_bytes().data(), 4);  // our IP V4
-  else
-    s.Insert(address->host.to_v6().to_bytes().data(), 16);  // our IP V6
-  s.Insert<std::uint16_t> (boost::endian::native_to_big(address->port));  // our port
+// TODO(anonimal): separate message creation / signed data writing from session
+void SSUSession::SendSessionCreated(const std::uint8_t* dh_x)
+{
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try
+    {
+      // Get our (Bob's) intro key and SSU address
+      // TODO(anonimal): we can get/set this sooner. Redesign.
+      const std::uint8_t* intro_key = GetIntroKey();
+      auto* address = m_RemoteEndpoint.address().is_v6()
+                          ? context.GetRouterInfo().GetSSUAddress(true)
+                          : context.GetRouterInfo().GetSSUAddress();
 
-  std::uint32_t relay_tag = 0;
-  if (context.GetRouterInfo().HasCap(RouterInfo::Cap::SSUIntroducer)) {
-    relay_tag = kovri::core::Rand<std::uint32_t>();
-    if (!relay_tag)
-      relay_tag = 1;
-    m_Server.AddRelay(relay_tag, GetRemoteEndpoint());
-  }
-  packet.SetRelayTag(relay_tag);
-  packet.SetSignedOnTime(kovri::core::GetSecondsSinceEpoch());
-  s.Insert<std::uint32_t>(boost::endian::native_to_big(relay_tag));
-  s.Insert<std::uint32_t>(boost::endian::native_to_big(packet.GetSignedOnTime()));
-  // store for session confirmation
-  m_SessionConfirmData = std::make_unique<SignedData>(s);
+      // If we don't support SSU, we shouldn't reach this stage in the session
+      assert(intro_key || address);  // TODO(anonimal): redesign
 
-  // Set signature size to compute the required padding size 
-  std::size_t signature_size = context.GetIdentity().GetSignatureLen();
-  packet.SetSignature(nullptr, signature_size);
-  const std::size_t sig_padding = SSUPacketBuilder::GetPaddingSize(
-      packet.GetSize());
-  // Set signature with correct size and fill the padding
-  auto signature_buf = std::make_unique<std::uint8_t[]>(
-      signature_size + sig_padding);
-  s.Sign(context.GetPrivateKeys(), signature_buf.get());
-  kovri::core::RandBytes(signature_buf.get() + signature_size, sig_padding);
-  packet.SetSignature(signature_buf.get(), signature_size + sig_padding);
+      // Prepare SessionConfirmed message to send to Alice
+      SSUSessionCreatedPacket message;
+      message.SetHeader(
+          std::make_unique<SSUHeader>(SSUPayloadType::SessionCreated));
 
-  // Encrypt signature and padding with newly created session key
-  // TODO(anonimal): this try block should be larger or handled entirely by caller
-  try {
-    m_SessionKeyEncryption.SetIV(packet.GetHeader()->GetIV());
-    m_SessionKeyEncryption.Encrypt(
-        packet.GetSignature(),
-        packet.GetSignatureSize(),
-        packet.GetSignature());
-  } catch (...) {
-    m_Exception.Dispatch(__func__);
-    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
-    throw;
-  }
-  const std::size_t packet_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
-  const std::size_t buffer_size = packet_size + SSUSize::BufferMargin;
-  // TODO(EinMByte): Deal with large messages in a better way
-  if (packet_size <= SSUSize::MTUv4) {
-    auto buffer = std::make_unique<std::uint8_t[]>(buffer_size);
-    WriteAndEncrypt(&packet, buffer.get(), buffer_size, intro_key, intro_key);
-    Send(buffer.get(), packet_size);
-  }
+      // Set IV
+      std::array<std::uint8_t, SSUSize::IV> IV;
+      kovri::core::RandBytes(IV.data(), IV.size());
+      message.GetHeader()->SetIV(IV.data());
+
+      // Set our (Bob's) DH Y
+      message.SetDhY(m_DHKeysPair->public_key.data());
+
+      // Set Alice's IP address size and address
+      auto const alice_ip(
+          core::AddressToByteVector(m_RemoteEndpoint.address()));
+
+      message.SetIPAddress(
+          // TODO(unassigned): remove const_cast, see bytestream TODO
+          const_cast<std::uint8_t*>(alice_ip.data()),
+          alice_ip.size());  // message IP address size must be set internally
+
+      // Set Alice's port
+      message.SetPort(m_RemoteEndpoint.port());
+
+      // Compute exchanged session dataset size
+      // TODO(anonimal): helper function to calculate size
+      // TODO(anonimal): at this point, why would we allow mix-and-match IPv6 to send to IPv4 - or vice versa...
+      bool const is_IPv6 = address->host.is_v6();
+      std::uint16_t const data_size = DHKeySize::PubKey * 2  // DH X+Y
+                                      + alice_ip.size()  // Alice's address
+                                      + 2  // Alice's port
+                                      + (is_IPv6 ? 16 : 4)  // Bob's address
+                                      + 2  // Bob's port
+                                      + 4  // Alice's relay tag
+                                      + 4;  // Bob's signed-on time
+
+      // Prepare dataset of exchanged session data (the dataset we will sign)
+      // TODO(anonimal): assert for bad design. Redesign.
+      assert(!m_SessionConfirmData.size());
+      m_SessionConfirmData.reserve(data_size);
+
+      core::OutputByteStream data(m_SessionConfirmData.data(), data_size);
+
+      // Alice's DH X
+      data.WriteData(dh_x, SSUSize::DHPublic);
+
+      // Our (Bob's) DH Y
+      data.WriteData(message.GetDhY(), SSUSize::DHPublic);
+
+      // Alice's address and port
+      data.WriteData(alice_ip.data(), alice_ip.size());
+      data.Write<std::uint16_t>(message.GetPort());
+
+      // Our (Bob's) address
+      data.WriteData(
+          is_IPv6 ? address->host.to_v6().to_bytes().data()
+                  : address->host.to_v4().to_bytes().data(),
+          is_IPv6 ? 16 : 4);
+
+      // Our (Bob's) port
+      data.Write<std::uint16_t>(address->port);
+
+      // Set Alice's relay tag
+      std::uint32_t relay_tag = 0;
+      if (context.GetRouterInfo().HasCap(RouterInfo::Cap::SSUIntroducer))
+        {
+          // Non-zero = we are offering ourselves to be an introducer
+          relay_tag = core::Rand<std::uint32_t>();
+          if (!relay_tag)
+            {
+              // TODO(anonimal): ...not good if should we have more than one relay
+              //  with tag valued 1. Get existing tags and set appropriately.
+              relay_tag = 1;
+            }
+          m_Server.AddRelay(relay_tag, m_RemoteEndpoint);
+        }
+      message.SetRelayTag(relay_tag);
+      data.Write<std::uint32_t>(relay_tag);
+
+      // Our (Bob's) signed-on time
+      message.SetSignedOnTime(core::GetSecondsSinceEpoch());
+      data.Write<std::uint32_t>(message.GetSignedOnTime());
+
+      // Compute required signature + padding size
+      std::uint8_t signature_size = context.GetIdentity().GetSignatureLen();
+      std::uint8_t const padding =
+          SSUPacketBuilder::GetPaddingSize(message.GetSize() + signature_size);
+
+      // Create the signature + padding
+      std::vector<std::uint8_t> signature(signature_size + padding);
+      context.GetPrivateKeys().Sign(data.Data(), data.Size(), signature.data());
+
+      // Randomize signature padding
+      core::RandBytes(signature.data() + signature_size, padding);
+      message.SetSignature(signature.data(), signature.size());
+
+      // Encrypt signature + padding with session key
+      std::vector<std::uint8_t> encrypted(message.GetSignatureSize());
+
+      m_SessionKeyEncryption.SetIV(message.GetHeader()->GetIV());
+      m_SessionKeyEncryption.Encrypt(
+          message.GetSignature(), encrypted.size(), encrypted.data());
+
+      message.SetSignature(encrypted.data(), encrypted.size());
+
+      // Encrypt message with Alice's intro key and send
+      std::uint16_t const size =
+          SSUPacketBuilder::GetPaddedSize(message.GetSize());
+      // TODO(anonimal): IPv6 MTU...
+      if (size <= SSUSize::MTUv4)
+        {
+          std::vector<std::uint8_t> buf(size + SSUSize::BufferMargin);
+          WriteAndEncrypt(
+              &message, buf.data(), buf.size(), intro_key, intro_key);
+          Send(buf.data(), buf.size() - SSUSize::BufferMargin);
+        }
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      // TODO(anonimal): ensure exception handling by callers
+      throw;
+    }
 }
 
 /**
@@ -579,28 +637,45 @@ void SSUSession::SendSessionCreated(
  */
 
 void SSUSession::ProcessSessionConfirmed(SSUPacket* pkt) {
-  if (m_SessionConfirmData == nullptr) {
-    // No session confirm data
-    LOG(error)
-      << "SSUSession:" << GetFormattedSessionInfo() << "unsolicited SessionConfirmed";
-    return;
-  }
+  if (m_SessionConfirmData.empty())
+    {
+      // No session confirm data
+      LOG(error) << "SSUSession:" << GetFormattedSessionInfo()
+                 << "unsolicited SessionConfirmed";
+      return;  // TODO(anonimal): throw/warn for potential attacks
+    }
+
   LOG(debug)
     << "SSUSession:" << GetFormattedSessionInfo() << "SessionConfirmed received";
   auto packet = static_cast<SSUSessionConfirmedPacket*>(pkt);
   m_RemoteIdentity = packet->GetRemoteRouterIdentity();
   m_Data.UpdatePacketSize(m_RemoteIdentity.GetIdentHash());
-  // signature time : replace with last value
-  m_SessionConfirmData->Insert<std::uint32_t>(
-      std::ios_base::end, -4, boost::endian::native_to_big(packet->GetSignedOnTime()));
-  if (m_SessionConfirmData->Verify(m_RemoteIdentity, packet->GetSignature())) {
-    // verified
-    Established();
-    return;
-  }
-  // bad state or verification failed
-  LOG(error)
-    << "SSUSession:" << GetFormattedSessionInfo() << "SessionConfirmed Failed";
+
+  // Replace unused (spec-unused) signed-on type with Alice's value
+  core::OutputByteStream data(
+      m_SessionConfirmData.data(), m_SessionConfirmData.size());
+
+  // TODO(anonimal): received as BE (at least with kovri). Ensure BE.
+  std::uint32_t const time = packet->GetSignedOnTime();
+  std::memcpy(data.Data() + (data.Size() - 4), &time, 4);
+
+  LOG(trace) << "SSUSession:" << GetFormattedSessionInfo()
+             << "SessionConfirmed data:"
+             << core::GetFormattedHex(data.Data(), data.Size());
+
+  // Verify data with Alice's signature
+  if (!m_RemoteIdentity.Verify(
+          data.Data(), data.Size(), packet->GetSignature()))
+    {
+      LOG(error) << "SSUSession:" << GetFormattedSessionInfo()
+                 << "SessionConfirmed verification failed";
+      return;  // TODO(anonimal): set threshold, throw/warn for potential attacks
+    }
+
+  LOG(debug) << "SSUSession:" << GetFormattedSessionInfo()
+             << "SessionConfirmed success";
+
+  Established();
 }
 
 void SSUSession::SendSessionConfirmed(
@@ -1549,8 +1624,10 @@ void SSUSession::Done() {
 }
 
 void SSUSession::Established() {
-  // clear out session confirmation data
-  m_SessionConfirmData.reset(nullptr);
+  // Remove SessionConfirmed data
+  m_SessionConfirmData.clear();
+  m_SessionConfirmData.shrink_to_fit();
+
   m_State = SessionState::Established;
   if (m_DHKeysPair) {
     m_DHKeysPair.reset(nullptr);

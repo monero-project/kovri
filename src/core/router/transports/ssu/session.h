@@ -243,8 +243,9 @@ class SSUSession
   /// @param packet Bob's message (header + payload)
   void ProcessSessionCreated(const SSUPacket* packet);
 
-  void SendSessionCreated(
-      const std::uint8_t* x);
+  /// @brief We are Bob, creating and sending SessionCreated message
+  /// @param dh_x Diffie-Hellman X as created by Alice
+  void SendSessionCreated(const std::uint8_t* dh_x);
 
   // Payload type 2: SessionConfirmed
 
@@ -390,7 +391,12 @@ class SSUSession
   kovri::core::AESKey m_SessionKey;
   kovri::core::MACKey m_MACKey;
   std::uint32_t m_CreationTime;  // seconds since epoch
-  std::unique_ptr<SignedData> m_SessionConfirmData;
+
+  /// @brief The unsigned SessionCreated data for SessionConfirmed processing
+  // TODO(anonimal): data should be separated from session class
+  // TODO(anonimal): mutex lock if we ever expand member usage across threads (unlikely)
+  std::vector<std::uint8_t> m_SessionConfirmData;
+
   bool m_IsDataReceived;
   kovri::core::Exception m_Exception;
 };

@@ -395,20 +395,11 @@ void SSUSession::ProcessSessionCreated(const SSUPacket* packet)
           return;  // TODO(anonimal): assert/throw?
         }
 
-      // Compute exchanged session dataset size
-      bool const is_IPv6 = m_RemoteEndpoint.address().is_v6();
-
-      std::uint16_t const data_size =
-          DHKeySize::PubKey * 2  // DH X+Y
-          + message->GetIPAddressSize()  // Alice's address
-          + 2  // Alice's port
-          + (is_IPv6 ? 16 : 4)  // Bob's address
-          + 2  // Bob's port
-          + 4  // Alice's relay tag
-          + 4;  // Bob's signed-on time
-
       // Create dataset of exchanged session data (the dataset Bob has signed)
-      core::OutputByteStream data(data_size);
+      // TODO(anonimal): at this point, why would we allow mix-and-match IPv6 to send to IPv4 - or vice versa...
+      bool const is_IPv6 = m_RemoteEndpoint.address().is_v6();
+      core::OutputByteStream data(get_signed_data_size(
+          message->GetIPAddressSize() + (is_IPv6 ? 16 : 4)));
 
       // Our (Alice's) DH X
       data.WriteData(m_DHKeysPair->public_key.data(), DHKeySize::PubKey);
@@ -530,16 +521,10 @@ void SSUSession::SendSessionCreated(const std::uint8_t* dh_x)
       message.SetPort(m_RemoteEndpoint.port());
 
       // Compute exchanged session dataset size
-      // TODO(anonimal): helper function to calculate size
       // TODO(anonimal): at this point, why would we allow mix-and-match IPv6 to send to IPv4 - or vice versa...
       bool const is_IPv6 = address->host.is_v6();
-      std::uint16_t const data_size = DHKeySize::PubKey * 2  // DH X+Y
-                                      + alice_ip.size()  // Alice's address
-                                      + 2  // Alice's port
-                                      + (is_IPv6 ? 16 : 4)  // Bob's address
-                                      + 2  // Bob's port
-                                      + 4  // Alice's relay tag
-                                      + 4;  // Bob's signed-on time
+      std::uint16_t const data_size =
+          get_signed_data_size(alice_ip.size() + (is_IPv6 ? 16 : 4));
 
       // Prepare dataset of exchanged session data (the dataset we will sign)
       // TODO(anonimal): assert for bad design. Redesign.
@@ -701,21 +686,11 @@ void SSUSession::SendSessionConfirmed(
       message.SetRemoteRouterIdentity(context.GetIdentity());
       message.SetSignedOnTime(core::GetSecondsSinceEpoch());
 
-      // Compute exchanged session dataset size
-      // TODO(anonimal): helper function to calculate size
+      // Create message to sign
       // TODO(anonimal): at this point, why would we allow mix-and-match IPv6 to send to IPv4 - or vice versa...
       bool const is_IPv6 = m_RemoteEndpoint.address().is_v6();
-
-      std::uint16_t const data_size = DHKeySize::PubKey * 2  // DH X+Y
-                                      + our_address_len  // Alice's address
-                                      + 2  // Alice's port
-                                      + (is_IPv6 ? 16 : 4)  // Bob's address
-                                      + 2  // Bob's port
-                                      + 4  // Alice's relay tag
-                                      + 4;  // Alice's signed-on time
-
-      // Create message to sign
-      core::OutputByteStream data(data_size);
+      core::OutputByteStream data(
+          get_signed_data_size(our_address_len + (is_IPv6 ? 16 : 4)));
 
       // Our (Alice's) DH X
       data.WriteData(m_DHKeysPair->public_key.data(), SSUSize::DHPublic);

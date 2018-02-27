@@ -381,6 +381,27 @@ class SSUSession
       const boost::system::error_code& ecode);
 
  private:
+  /// @brief Calculates exchanged session dataset size used in
+  ///   SessionRequest/SessionCreated/SessionConfirmed
+  /// @param alice_and_bob Alice + Bob's address sizes in bytes (concatenated size)
+  // TODO(anonimal): this will most likely be removed when sequence containers are implemented
+  // TODO(anonimal): by this point, why would we allow mix-and-match IPv6 to send to IPv4 - or vice versa...
+  std::uint16_t get_signed_data_size(const std::uint8_t alice_and_bob) const
+      noexcept
+  {
+    // TODO(anonimal): this doesn't ensure 4 or 16 byte sizes per host but that
+    //   check should be done elsewhere, in a caller.
+    assert(alice_and_bob <= (16 * 2));  // No larger than 2 IPv6 addresses
+
+    return DHKeySize::PubKey * 2  // DH X+Y
+           + alice_and_bob  // Alice + Bob's address size
+           + 2  // Alice's port
+           + 2  // Bob's port
+           + 4  // Alice's relay tag
+           + 4;  // Alice or Bob's signed-on time
+  }
+
+ private:
   friend class SSUData;  // TODO(unassigned): change in later
   std::string m_RemoteIdentHashAbbreviation;
   SSUServer& m_Server;

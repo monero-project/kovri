@@ -158,65 +158,94 @@ bool SSUSession::CreateAESandMACKey(
  *
  */
 
+// TODO(anonimal): separate message validation / decryption from session
 void SSUSession::ProcessNextMessage(
     std::uint8_t* buf,
     std::size_t len,
-    const boost::asio::ip::udp::endpoint& sender_endpoint) {
-  m_NumReceivedBytes += len;
-  LOG(debug)
-    << "SSUSession:" << GetFormattedSessionInfo()
-    << "--> " << len << " bytes transferred << "
-    << GetNumReceivedBytes() << " total bytes received";
-  kovri::core::transports.UpdateReceivedBytes(len);
-  if (m_State == SessionState::Introduced) {
-    // HolePunch received
-    LOG(debug) << "SSUSession: SSU HolePunch of " << len << " bytes received";
-    m_State = SessionState::Unknown;
-    Connect();
-  } else {
-    if (!len)
-      return;  // ignore zero-length packets
-    if (m_State == SessionState::Established)
-      ScheduleTermination();
-    // Try session key first
-    if (m_IsSessionKey && Validate(buf, len, m_MACKey))
-      {
-        DecryptSessionKey(buf, len);
-    } else {
-      // try intro key depending on side
-      auto intro_key = GetIntroKey();
-      bool validated = false;
-      if (intro_key)
+    const boost::asio::ip::udp::endpoint& sender_endpoint)
+{
+  try
+    {
+      if (!len && m_State != SessionState::Introduced)
         {
-          if (Validate(buf, len, intro_key))
-            {
-              validated = true;
-              Decrypt(buf, len, intro_key);
-            }
+          LOG(warning) << "SSUSession:" << GetFormattedSessionInfo()
+                       << ": ignoring zero-length message";
+          return;  // TODO(anonimal): throw?
         }
-      if (!validated)
+
+      assert(buf);
+      LOG(trace) << "SSUSession:" << GetFormattedSessionInfo() << __func__
+                 << GetFormattedHex(buf, len);
+
+      // Update session received byte count
+      m_NumReceivedBytes += len;
+      LOG(debug) << "SSUSession:" << GetFormattedSessionInfo() << "--> " << len
+                 << " bytes transferred, " << m_NumReceivedBytes
+                 << " total bytes received";
+
+      // Update total received bytes during router run
+      core::transports.UpdateReceivedBytes(len);
+
+      // TODO(anonimal): this particular state design is bad design
+      assert(
+          m_State != SessionState::Closed || m_State != SessionState::Failed);
+      switch (m_State)
         {
-          // try own intro key
-          auto address = context.GetRouterInfo().GetSSUAddress();
-          if (!address)
+          case SessionState::Introduced:
             {
-              LOG(error) << "SSUSession: " << __func__
-                         << ": SSU is not supported";
+              // TODO(anonimal): verify
+              LOG(debug) << "SSUSession: SSU HolePunch received";
+              m_State = SessionState::Unknown;
+              // Proceed to SessionRequest
+              Connect();
               return;
             }
-          if (!Validate(buf, len, address->key))
+            break;
+          case SessionState::Established:
             {
-              LOG(error) << "SSUSession: MAC verification failed " << len
-                         << " bytes from " << sender_endpoint;
-              m_Server.DeleteSession(shared_from_this());
-              return;
+              // No further messages expected from this session
+              ScheduleTermination();
             }
-          Decrypt(buf, len, address->key);
+            break;
+          case SessionState::Unknown:
+            // Continue to message processing
+            break;
+          default:
+            LOG(debug) << "SSUSession:" << GetFormattedSessionInfo() << __func__
+                       << ": session state="
+                       << static_cast<std::uint16_t>(m_State);
+
+            throw std::invalid_argument("SSUSession: invalid session state");
+            break;
         }
+
+      // Validate message using either session key or introducer key
+      const bool is_session(m_IsSessionKey);
+      const std::uint8_t* key = is_session ? m_MACKey() : GetIntroKey();
+      assert(key);
+
+      // HMAC-MD5 validation
+      if (!Validate(buf, len, key))
+        {
+          LOG(trace) << GetFormattedSessionInfo() << __func__
+                     << ": Key=" << GetFormattedHex(key, 32);
+
+          throw std::runtime_error(
+              "SSUSession:" + (is_session ? GetFormattedSessionInfo() : " ")
+              + "MAC verification failed with "
+              + (is_session ? "session key" : "introducer key"));
+        }
+
+      // Decrypt message using given key or existing session keys
+      Decrypt(buf, len, key, is_session);
+      ProcessDecryptedMessage(buf, len, sender_endpoint);
     }
-    // successfully decrypted
-    ProcessDecryptedMessage(buf, len, sender_endpoint);
-  }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      m_Server.DeleteSession(shared_from_this());
+      return;  // TODO(anonimal): throw/warn for potential attacks
+    }
 }
 
 void SSUSession::ProcessDecryptedMessage(
@@ -1480,55 +1509,37 @@ void SSUSession::FillHeaderAndEncrypt(
 void SSUSession::Decrypt(
     std::uint8_t* buf,
     std::size_t len,
-    const std::uint8_t* aes_key) {
-  // TODO(anonimal): this try block should be handled entirely by caller
-  try {
-    if (len < SSUSize::HeaderMin) {
-      LOG(error)
-        << "SSUSession:" << GetFormattedSessionInfo()
-        << __func__ << ": unexpected SSU packet length " << len;
+    const std::uint8_t* aes_key,
+    const bool is_session)
+{
+  if (len < SSUSize::HeaderMin)
+    {
+      throw std::length_error(
+          "SSUSession:" + GetFormattedSessionInfo() + __func__
+          + ": unexpected SSU message length " + std::to_string(len));
+    }
+
+  // Parse message buffer and decrypt
+  SSUSessionPacket message(buf, len);
+
+  std::uint8_t* encrypted = message.Encrypted();
+  // TOOD(anonimal): we should only need 2 bytes
+  std::size_t encrypted_len = len - (encrypted - buf);
+  assert(encrypted_len);
+
+  // Set new key for this message
+  if (!is_session)
+    {
+      core::CBCDecryption decryption;
+      decryption.SetKey(aes_key);
+      decryption.SetIV(message.IV());
+      decryption.Decrypt(encrypted, encrypted_len, encrypted);
       return;
     }
-    SSUSessionPacket pkt(buf, len);
-    auto encrypted = pkt.Encrypted();
-    auto encrypted_len = len - (encrypted - buf);
-    kovri::core::CBCDecryption decryption;
-    decryption.SetKey(aes_key);
-    decryption.SetIV(pkt.IV());
-    decryption.Decrypt(
-        encrypted,
-        encrypted_len,
-        encrypted);
-  } catch (...) {
-    m_Exception.Dispatch(__func__);
-    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
-    throw;
-  }
-}
 
-void SSUSession::DecryptSessionKey(
-    std::uint8_t* buf,
-    std::size_t len) {
-  if (len < SSUSize::HeaderMin) {
-    LOG(error)
-      << "SSUSession:" << GetFormattedSessionInfo()
-      << __func__ << ": unexpected SSU packet length " << len;
-    return;
-  }
-  SSUSessionPacket pkt(buf, len);
-  auto encrypted = pkt.Encrypted();
-  auto encrypted_len = len - (encrypted - buf);
-  if (encrypted_len > 0) {
-    // TODO(anonimal): this try block should be larger or handled entirely by caller
-    try {
-      m_SessionKeyDecryption.SetIV(pkt.IV());
-      m_SessionKeyDecryption.Decrypt(encrypted, encrypted_len, encrypted);
-    } catch (...) {
-      m_Exception.Dispatch(__func__);
-      // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
-      throw;
-    }
-  }
+  // Use existing session's AES and MAC key
+  m_SessionKeyDecryption.SetIV(message.IV());
+  m_SessionKeyDecryption.Decrypt(encrypted, encrypted_len, encrypted);
 }
 
 bool SSUSession::Validate(
@@ -1693,16 +1704,22 @@ void SSUSession::HandleTerminationTimer(
   }
 }
 
-const std::uint8_t* SSUSession::GetIntroKey() const {
-  if (m_RemoteRouter) {
-    // we are client
-    auto address = m_RemoteRouter->GetSSUAddress();
-    return address ? (const std::uint8_t *)address->key : nullptr;
-  } else {
-    // we are server
-    auto address = context.GetRouterInfo().GetSSUAddress();
-    return address ? (const std::uint8_t *)address->key : nullptr;
-  }
+const std::uint8_t* SSUSession::GetIntroKey() const
+{
+  // Use remote key if we are client
+  if (m_RemoteRouter)
+    {
+      LOG(debug) << "SSUSession: " << __func__ << ": using remote's key";
+      auto* address = m_RemoteRouter->GetSSUAddress();
+      assert(address);  // TODO(anonimal): SSU should be guaranteed
+      return address->key;
+    }
+
+  // Use our key if we are server
+  LOG(debug) << "SSUSession: " << __func__ << ": using our key";
+  auto* address = context.GetRouterInfo().GetSSUAddress();
+  assert(address);  // TODO(anonimal): SSU should be guaranteed
+  return address->key;
 }
 
 void SSUSession::SendI2NPMessages(

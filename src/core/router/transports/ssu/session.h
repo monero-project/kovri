@@ -359,14 +359,16 @@ class SSUSession
       std::uint8_t* buf,
       std::size_t len);
 
+  /// @brief Decrypt message
+  /// @param buf Message to decrypt + decrypt to existing buffer
+  /// @param len Message length
+  /// @param key Decrypt with given key (implies not using session's AES key)
+  /// @param is_session Decrypt using session's AES key (implies not using given AES key)
   void Decrypt(
       std::uint8_t* buf,
       std::size_t len,
-      const std::uint8_t* aes_key);
-
-  void DecryptSessionKey(
-      std::uint8_t* buf,
-      std::size_t len);
+      const std::uint8_t* aes_key,
+      const bool is_session = false);
 
   bool Validate(
       std::uint8_t* buf,

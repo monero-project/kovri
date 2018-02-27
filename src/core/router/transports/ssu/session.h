@@ -252,6 +252,11 @@ class SSUSession
   void ProcessSessionConfirmed(
       SSUPacket* pkt);
 
+  /// @brief We are Alice, creating and sending SessionConfirmed message
+  /// @param dh_y Diffie-Hellman Y as created by Bob
+  /// @param our_address Our IP address
+  /// @param our_address Our IP size (4 or 16 bytes)
+  /// @param our_port Our port number
   void SendSessionConfirmed(
       const std::uint8_t* y,
       const std::uint8_t* our_address,

@@ -678,43 +678,89 @@ void SSUSession::ProcessSessionConfirmed(SSUPacket* pkt) {
   Established();
 }
 
+// TODO(anonimal): separate message creation from session
 void SSUSession::SendSessionConfirmed(
-    const std::uint8_t* y,
+    const std::uint8_t* dh_y,
     const std::uint8_t* our_address,
     std::size_t our_address_len,
-    std::uint16_t our_port) {
-  SSUSessionConfirmedPacket packet;
-  packet.SetHeader(std::make_unique<SSUHeader>(SSUPayloadType::SessionConfirmed));
-  std::array<std::uint8_t, SSUSize::IV> iv;
-  kovri::core::RandBytes(iv.data(), iv.size());
-  packet.GetHeader()->SetIV(iv.data());
-  packet.SetRemoteRouterIdentity(context.GetIdentity());
-  packet.SetSignedOnTime(kovri::core::GetSecondsSinceEpoch());
-  auto signature_buf = std::make_unique<std::uint8_t[]>(
-      context.GetIdentity().GetSignatureLen());
-  // signature
-  // x,y, our IP, our port, remote IP, remote port,
-  // relay_tag, our signed on time
-  SignedData s;
-  s.Insert(m_DHKeysPair->public_key.data(), 256);  // x
-  s.Insert(y, 256);  // y
-  s.Insert(our_address, our_address_len);
-  s.Insert<std::uint16_t>(boost::endian::native_to_big(our_port));
-  auto const address = GetRemoteEndpoint().address();
-  if (address.is_v4())  // remote IP V4
-    s.Insert(address.to_v4().to_bytes().data(), 4);
-  else  // remote IP V6
-    s.Insert(address.to_v6().to_bytes().data(), 16);
-  s.Insert<std::uint16_t>(boost::endian::native_to_big(GetRemoteEndpoint().port()));  // remote port
-  s.Insert(boost::endian::native_to_big(m_RelayTag));
-  s.Insert(boost::endian::native_to_big(packet.GetSignedOnTime()));
-  s.Sign(context.GetPrivateKeys(), signature_buf.get());
-  packet.SetSignature(signature_buf.get());
-  const std::size_t packet_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
-  const std::size_t buffer_size = packet_size + SSUSize::BufferMargin;
-  auto buffer = std::make_unique<std::uint8_t[]>(buffer_size);
-  WriteAndEncrypt(&packet, buffer.get(), buffer_size, m_SessionKey, m_MACKey);
-  Send(buffer.get(), packet_size);
+    std::uint16_t our_port)
+{
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try
+    {
+      SSUSessionConfirmedPacket message;
+      message.SetHeader(
+          std::make_unique<SSUHeader>(SSUPayloadType::SessionConfirmed));
+
+      // Create IV
+      std::array<std::uint8_t, SSUSize::IV> IV;
+      core::RandBytes(IV.data(), IV.size());
+      message.GetHeader()->SetIV(IV.data());
+
+      // Set Bob's ident and new signed-on time
+      message.SetRemoteRouterIdentity(context.GetIdentity());
+      message.SetSignedOnTime(core::GetSecondsSinceEpoch());
+
+      // Compute exchanged session dataset size
+      // TODO(anonimal): helper function to calculate size
+      // TODO(anonimal): at this point, why would we allow mix-and-match IPv6 to send to IPv4 - or vice versa...
+      bool const is_IPv6 = m_RemoteEndpoint.address().is_v6();
+
+      std::uint16_t const data_size = DHKeySize::PubKey * 2  // DH X+Y
+                                      + our_address_len  // Alice's address
+                                      + 2  // Alice's port
+                                      + (is_IPv6 ? 16 : 4)  // Bob's address
+                                      + 2  // Bob's port
+                                      + 4  // Alice's relay tag
+                                      + 4;  // Alice's signed-on time
+
+      // Create message to sign
+      core::OutputByteStream data(data_size);
+
+      // Our (Alice's) DH X
+      data.WriteData(m_DHKeysPair->public_key.data(), SSUSize::DHPublic);
+
+      // Bob's DH Y
+      data.WriteData(dh_y, SSUSize::DHPublic);
+
+      // Our (Alice's) address and port
+      data.WriteData(our_address, our_address_len);
+      data.Write<std::uint16_t>(our_port);
+
+      // Bob's address
+      data.WriteData(
+          is_IPv6 ? m_RemoteEndpoint.address().to_v6().to_bytes().data()
+                  : m_RemoteEndpoint.address().to_v4().to_bytes().data(),
+          is_IPv6 ? 16 : 4);
+
+      // Bob's port
+      data.Write<std::uint16_t>(m_RemoteEndpoint.port());
+
+      // Our (Alice's) relay tag
+      data.Write<std::uint32_t>(m_RelayTag);
+
+      // Our's (Alice's) signed-on time
+      data.Write<std::uint32_t>(message.GetSignedOnTime());
+
+      // Sign message
+      std::vector<std::uint8_t> signature(
+          context.GetIdentity().GetSignatureLen());
+      context.GetPrivateKeys().Sign(data.Data(), data.Size(), signature.data());
+      message.SetSignature(signature.data());
+
+      // Encrypt with session + mac keys generated from DH exchange, then send
+      std::vector<std::uint8_t> buf(
+          SSUPacketBuilder::GetPaddedSize(message.GetSize())
+          + SSUSize::BufferMargin);
+      WriteAndEncrypt(&message, buf.data(), buf.size(), m_SessionKey, m_MACKey);
+      Send(buf.data(), buf.size() - SSUSize::BufferMargin);
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      // TODO(anonimal): ensure exception handling by callers
+      throw;
+    }
 }
 
 /**

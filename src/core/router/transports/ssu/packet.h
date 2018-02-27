@@ -816,13 +816,13 @@ class SSUPacketBuilder final : public kovri::core::OutputByteStream {
   ///   Each message must be padded to a 16 byte boundary,
   ///   as required by the AES256 encryption layer
   /// @param size Size of message
-  static std::size_t GetPaddingSize(
-      std::size_t size);
+  // TODO(anonimal): we only need to pass 2 bytes and return 1 byte
+  static std::size_t GetPaddingSize(std::size_t size);
 
   /// @brief Gets padded size of message
   /// @param size Size of message
-  static std::size_t GetPaddedSize(
-      std::size_t size);
+  // TODO(anonimal): we only need to pass 2 bytes and return 2 bytes
+  static std::size_t GetPaddedSize(std::size_t size);
 
   /// @brief Writes an SSU header into a data buffer.
   /// @pre The data buffer must be sufficiently large.

@@ -182,7 +182,11 @@ std::uint8_t const* SSUSessionRequestPacket::GetDhX() const {
 
 void SSUSessionRequestPacket::SetIPAddress(
     std::uint8_t* address,
-    std::size_t size) {
+    const std::uint8_t size)
+{
+  assert(size == 4 || size == 16);
+  if (size != 4 && size != 16)
+    throw std::length_error("invalid IP address size");
   m_IPAddress = address;
   m_IPAddressSize = size;
 }
@@ -191,7 +195,8 @@ std::uint8_t const* SSUSessionRequestPacket::GetIPAddress() const {
   return m_IPAddress;
 }
 
-std::size_t SSUSessionRequestPacket::GetIPAddressSize() const {
+std::uint8_t SSUSessionRequestPacket::GetIPAddressSize() const noexcept
+{
   return m_IPAddressSize;
 }
 
@@ -219,7 +224,11 @@ std::uint8_t const* SSUSessionCreatedPacket::GetDhY() const {
 
 void SSUSessionCreatedPacket::SetIPAddress(
     std::uint8_t* address,
-    std::size_t size) {
+    const std::uint8_t size)
+{
+  assert(size == 4 || size == 16);
+  if (size != 4 && size != 16)
+    throw std::length_error("invalid IP address size");
   m_IPAddress = address;
   m_AddressSize = size;
 }
@@ -228,7 +237,8 @@ std::uint8_t const* SSUSessionCreatedPacket::GetIPAddress() const {
   return m_IPAddress;
 }
 
-std::size_t SSUSessionCreatedPacket::GetIPAddressSize() const {
+std::uint8_t SSUSessionCreatedPacket::GetIPAddressSize() const noexcept
+{
   return m_AddressSize;
 }
 
@@ -342,7 +352,11 @@ std::uint32_t SSURelayRequestPacket::GetRelayTag() const {
 
 void SSURelayRequestPacket::SetIPAddress(
     std::uint8_t* address,
-    std::size_t size) {
+    const std::uint8_t size)
+{
+  assert(!size || size == 4);  // See spec for details
+  if (size && size != 4)
+    throw std::length_error("invalid IP address size");
   m_IPAddress = address;
   m_IPAddressSize = size;
 }
@@ -418,7 +432,11 @@ std::uint32_t SSURelayResponsePacket::GetNonce() const {
 
 void SSURelayResponsePacket::SetIPAddressAlice(
     std::uint8_t* address,
-    std::size_t size) {
+    const std::uint8_t size)
+{
+  assert(size == 4 || size == 16);
+  if (size != 4 && size != 16)
+    throw std::length_error("invalid IP address size");
   m_IPAddressAlice = address;
   m_IPAddressAliceSize = size;
 }
@@ -427,13 +445,19 @@ std::uint8_t const* SSURelayResponsePacket::GetIPAddressAlice() const {
   return m_IPAddressAlice;
 }
 
-std::size_t SSURelayResponsePacket::GetIPAddressAliceSize() const {
+std::uint8_t SSURelayResponsePacket::GetIPAddressAliceSize() const noexcept
+{
   return m_IPAddressAliceSize;
 }
 
 void SSURelayResponsePacket::SetIPAddressCharlie(
     std::uint8_t* address,
-    std::size_t size) {
+    const std::uint8_t size)
+{
+  // Must be IPv4 because Alice will send SessionRequest after HolePunch
+  assert(size == 4);
+  if (size != 4)
+    throw std::length_error("invalid IP address size");
   m_IPAddressCharlie = address;
   m_IPAddressCharlieSize = size;
 }
@@ -479,7 +503,12 @@ std::size_t SSURelayResponsePacket::GetSize() const {
 
 void SSURelayIntroPacket::SetIPAddress(
     std::uint8_t* address,
-    std::size_t size) {
+    const std::uint8_t size)
+{
+  // Alice's is always 4 bytes because she is trying to connect to Charlie via IPv4
+  assert(size == 4);
+  if (size != 4)
+    throw std::length_error("invalid IP address size");
   m_IPAddress = address;
   m_IPAddressSize = size;
 }
@@ -488,7 +517,8 @@ std::uint8_t const* SSURelayIntroPacket::GetIPAddress() const {
   return m_IPAddress;
 }
 
-std::size_t SSURelayIntroPacket::GetIPAddressSize() const {
+std::uint8_t SSURelayIntroPacket::GetIPAddressSize() const noexcept
+{
   return m_IPAddressSize;
 }
 
@@ -755,7 +785,7 @@ std::unique_ptr<SSUPacket> SSUPacketParser::ParsePacket() {
 std::unique_ptr<SSUSessionRequestPacket> SSUPacketParser::ParseSessionRequest() {
   auto packet = std::make_unique<SSUSessionRequestPacket>();
   packet->SetDhX(ReadBytes(SSUSize::DHPublic));
-  std::size_t size = Read<std::uint8_t>();
+  std::uint8_t const size = Read<std::uint8_t>();
   packet->SetIPAddress(ReadBytes(size), size);
   return packet;
 }
@@ -763,7 +793,7 @@ std::unique_ptr<SSUSessionRequestPacket> SSUPacketParser::ParseSessionRequest() 
 std::unique_ptr<SSUSessionCreatedPacket> SSUPacketParser::ParseSessionCreated() {
   auto packet = std::make_unique<SSUSessionCreatedPacket>();
   packet->SetDhY(ReadBytes(SSUSize::DHPublic));
-  std::size_t address_size = Read<std::uint8_t>();
+  std::uint8_t const address_size = Read<std::uint8_t>();
   packet->SetIPAddress(ReadBytes(address_size), address_size);
   packet->SetPort(Read<std::uint16_t>());
   packet->SetRelayTag(Read<std::uint32_t>());
@@ -793,7 +823,7 @@ std::unique_ptr<SSUSessionConfirmedPacket> SSUPacketParser::ParseSessionConfirme
 std::unique_ptr<SSURelayRequestPacket> SSUPacketParser::ParseRelayRequest() {
   auto packet = std::make_unique<SSURelayRequestPacket>();
   packet->SetRelayTag(Read<std::uint32_t>());
-  const std::size_t address_size = Read<std::uint8_t>();
+  std::uint8_t const address_size = Read<std::uint8_t>();
   packet->SetIPAddress(ReadBytes(address_size), address_size);
   packet->SetPort(Read<std::uint16_t>());
   const std::size_t challenge_size = Read<std::uint8_t>();
@@ -805,10 +835,10 @@ std::unique_ptr<SSURelayRequestPacket> SSUPacketParser::ParseRelayRequest() {
 
 std::unique_ptr<SSURelayResponsePacket> SSUPacketParser::ParseRelayResponse() {
   auto packet = std::make_unique<SSURelayResponsePacket>();
-  const std::size_t charlie_address_size = Read<std::uint8_t>();
+  std::uint8_t const charlie_address_size = Read<std::uint8_t>();
   packet->SetIPAddressCharlie(ReadBytes(charlie_address_size), charlie_address_size);
   packet->SetPortCharlie(Read<std::uint16_t>());
-  const std::size_t alice_address_size = Read<std::uint8_t>();
+  std::uint8_t const alice_address_size = Read<std::uint8_t>();
   packet->SetIPAddressAlice(ReadBytes(alice_address_size), alice_address_size);
   packet->SetPortAlice(Read<std::uint16_t>());
   packet->SetNonce(Read<std::uint32_t>());
@@ -817,7 +847,7 @@ std::unique_ptr<SSURelayResponsePacket> SSUPacketParser::ParseRelayResponse() {
 
 std::unique_ptr<SSURelayIntroPacket> SSUPacketParser::ParseRelayIntro() {
   auto packet = std::make_unique<SSURelayIntroPacket>();
-  const std::size_t address_size = Read<std::uint8_t>();
+  std::uint8_t const address_size = Read<std::uint8_t>();
   packet->SetIPAddress(ReadBytes(address_size), address_size);
   packet->SetPort(Read<std::uint16_t>());
   const std::size_t challenge_size = Read<std::uint8_t>();
@@ -924,7 +954,6 @@ void SSUPacketBuilder::WriteSessionRequest(SSUSessionRequestPacket* packet) {
 
 void SSUPacketBuilder::WriteSessionCreated(SSUSessionCreatedPacket* packet) {
   WriteData(packet->GetDhY(), SSUSize::DHPublic);
-  // TODO(EinMByte): Check for overflow
   Write<std::uint8_t>(packet->GetIPAddressSize());
   WriteData(packet->GetIPAddress(), packet->GetIPAddressSize());
   Write<std::uint16_t>(packet->GetPort());

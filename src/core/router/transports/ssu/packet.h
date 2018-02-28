@@ -256,22 +256,20 @@ class SSUSessionRequestPacket : public SSUPacket {
   ///   of Bob's IP address
   /// @note Assumes content is valid (based on position)
   /// @param address Bob's IP address
-  /// @param size Bob's IP address size
-  void SetIPAddress(
-      std::uint8_t* address,
-      std::size_t size);
+  /// @param size Bob's IP address size (in bytes)
+  void SetIPAddress(std::uint8_t* address, const std::uint8_t size);
 
   /// @return Pointer to Bob's IP address that was previously set when parsed
   std::uint8_t const* GetIPAddress() const;
 
   /// @return Bob's IP address size that was previously set when parsed
-  std::size_t GetIPAddressSize() const;
+  std::uint8_t GetIPAddressSize() const noexcept;
 
   /// @return The size (in bytes) of this header + message
   std::size_t GetSize() const;
 
  private:
-  std::size_t m_IPAddressSize;
+  std::uint8_t m_IPAddressSize;
   std::uint8_t* m_DhX, *m_IPAddress;
 };
 
@@ -293,16 +291,14 @@ class SSUSessionCreatedPacket : public SSUPacket {
   ///   of Alice's IP address
   /// @note Assumes content is valid (based on position)
   /// @param address Pointer to Alice's IP address
-  /// @param size Alice's IP address size
-  void SetIPAddress(
-      std::uint8_t* address,
-      std::size_t size);
+  /// @param size Alice's IP address size (in bytes)
+  void SetIPAddress(std::uint8_t* address, const std::uint8_t size);
 
   /// @return Pointer to Alice's IP address that was previously set when parsed
   std::uint8_t const* GetIPAddress() const;
 
   /// @return Alice's IP address size that was previously set when parsed
-  std::size_t GetIPAddressSize() const;
+  std::uint8_t GetIPAddressSize() const noexcept;
 
   /// @brief Sets Alice's 2 byte port number
   /// @note Assumes content is valid (based on position)
@@ -350,7 +346,8 @@ class SSUSessionCreatedPacket : public SSUPacket {
   std::size_t GetSize() const;
 
  private:
-  std::size_t m_AddressSize, m_SignatureSize;
+  std::size_t m_SignatureSize;
+  std::uint8_t m_AddressSize;
   std::uint8_t *m_DhY, *m_Signature, *m_IPAddress;
   std::uint16_t m_Port;
   std::uint32_t m_RelayTag, m_SignedOnTime;
@@ -425,10 +422,8 @@ class SSURelayRequestPacket : public SSUPacket {
   ///   of Alice's IP address
   /// @note Assumes content is valid (based on position)
   /// @param address Pointer to Alice's IP address
-  /// @param size Alice's IP address size
-  void SetIPAddress(
-      std::uint8_t* address,
-      std::size_t size);
+  /// @param size Alice's IP address size (in bytes)
+  void SetIPAddress(std::uint8_t* address, const std::uint8_t size);
 
   /// @return Pointer to Alice's IP address that was previously set when parsed
   std::uint8_t const* GetIPAddress() const;
@@ -480,7 +475,8 @@ class SSURelayRequestPacket : public SSUPacket {
 
  private:
   std::uint32_t m_RelayTag, m_Nonce;
-  std::size_t m_IPAddressSize, m_ChallengeSize;
+  std::size_t m_ChallengeSize;
+  std::uint8_t m_IPAddressSize;
   std::uint8_t* m_IPAddress, *m_Challenge, *m_IntroKey;
   std::uint16_t m_Port;
 };
@@ -494,10 +490,8 @@ class SSURelayResponsePacket : public SSUPacket {
   ///   of Charlie's IP address
   /// @note Assumes content is valid (based on position)
   /// @param address Pointer to Charlie's IP address
-  /// @param size Charlie's IP address size
-  void SetIPAddressCharlie(
-      std::uint8_t* address,
-      std::size_t size);
+  /// @param size Charlie's IP address size (in bytes)
+  void SetIPAddressCharlie(std::uint8_t* address, const std::uint8_t size);
 
   /// @return Pointer to Charlie's IP address that was previously set when parsed
   std::uint8_t const* GetIPAddressCharlie() const;
@@ -515,16 +509,14 @@ class SSURelayResponsePacket : public SSUPacket {
   ///   of Alice's IP address
   /// @note Assumes content is valid (based on position)
   /// @param address Pointer to Alice's IP address
-  /// @param size Alice's IP address size
-  void SetIPAddressAlice(
-      std::uint8_t* address,
-      std::size_t size);
+  /// @param size Alice's IP address size (in bytes)
+  void SetIPAddressAlice(std::uint8_t* address, const std::uint8_t size);
 
   /// @return Pointer to Alice's IP address that was previously set when parsed
   std::uint8_t const* GetIPAddressAlice() const;
 
   /// @return Alice's IP address size that was previously set when parsed
-  std::size_t GetIPAddressAliceSize() const;
+  std::uint8_t GetIPAddressAliceSize() const noexcept;
 
   /// @brief Sets Alices's 2 byte port number
   /// @note Assumes content is valid (based on position)
@@ -547,7 +539,7 @@ class SSURelayResponsePacket : public SSUPacket {
   std::size_t GetSize() const;
 
  private:
-  std::size_t m_IPAddressAliceSize, m_IPAddressCharlieSize;
+  std::uint8_t m_IPAddressAliceSize, m_IPAddressCharlieSize;
   std::uint32_t m_Nonce;
   std::uint8_t* m_IPAddressAlice, *m_IPAddressCharlie;
   std::uint16_t m_PortAlice, m_PortCharlie;
@@ -562,16 +554,14 @@ class SSURelayIntroPacket : public SSUPacket {
   ///   of Alice's IP address
   /// @note Assumes content is valid (based on position)
   /// @param address Pointer to Alice's IP address
-  /// @param size Alice's IP address size
-  void SetIPAddress(
-      std::uint8_t* address,
-      std::size_t size);
+  /// @param size Alice's IP address size (in bytes)
+  void SetIPAddress(std::uint8_t* address, const std::uint8_t size);
 
   /// @return Pointer to Alice's IP address that was previously set when parsed
   std::uint8_t const* GetIPAddress() const;
 
   /// @return Alice's IP address size that was previously set when parsed
-  std::size_t GetIPAddressSize() const;
+  std::uint8_t GetIPAddressSize() const noexcept;
 
   /// @brief Sets Alice's 2 byte port number
   /// @note Assumes content is valid (based on position)
@@ -598,7 +588,8 @@ class SSURelayIntroPacket : public SSUPacket {
   std::size_t GetSize() const;
 
  private:
-  std::size_t m_IPAddressSize, m_ChallengeSize;
+  std::size_t m_ChallengeSize;
+  std::uint8_t m_IPAddressSize;
   std::uint8_t* m_IPAddress, *m_Challenge;
   std::uint16_t m_Port;
 };

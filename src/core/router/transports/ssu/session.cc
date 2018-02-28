@@ -255,19 +255,15 @@ void SSUSession::ProcessDecryptedMessage(
   len -= (len & 0x0F);  // %16, delete extra padding
   SSUPacketParser parser(buf, len);
   std::unique_ptr<SSUPacket> packet;
-  try {
-    packet = parser.ParsePacket();
-  } catch(const std::exception& e) {
-    LOG(error)
-      << "SSUSession: invalid SSU session packet from " << sender_endpoint
-      << " --> " << e.what();
-    return;
-  } catch (...) {
-    LOG(error)
-      << "SSUSession: invalid SSU session packet from " << sender_endpoint
-      << " --> unknown exception";
-    return;
-  }
+  try
+    {
+      packet = parser.ParsePacket();
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      throw;
+    }
   switch (packet->GetHeader()->GetPayloadType()) {
     case SSUPayloadType::Data:
       ProcessData(packet.get());

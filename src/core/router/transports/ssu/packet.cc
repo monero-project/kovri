@@ -104,7 +104,7 @@ void SSUHeader::SetRekey(
 
 void SSUHeader::SetExtendedOptionsData(
     std::uint8_t* data,
-    std::size_t size) {
+    std::uint8_t size) {
   m_ExtendedOptionsSize = size;
   m_ExtendedOptions = data;
 }
@@ -113,7 +113,8 @@ std::uint8_t const* SSUHeader::GetExtendedOptionsData() const {
   return m_ExtendedOptions;
 }
 
-std::size_t SSUHeader::GetExtendedOptionsSize() const {
+std::uint8_t SSUHeader::GetExtendedOptionsSize() const
+{
   return m_ExtendedOptionsSize;
 }
 
@@ -139,12 +140,15 @@ bool SSUHeader::HasExtendedOptions() const {
   return m_Extended;
 }
 
-std::size_t SSUHeader::GetSize() const {
+std::size_t SSUHeader::GetSize() const
+{
   std::uint16_t size = SSUSize::HeaderMin;
   if (HasRekey())
     size += SSUSize::KeyingMaterial;
   if (HasExtendedOptions())
-    size += m_ExtendedOptionsSize + 1;
+    size +=
+        1  // 1 byte value of extended options size followed by that many bytes
+        + m_ExtendedOptionsSize;
   return size;
 }
 
@@ -905,7 +909,6 @@ void SSUPacketBuilder::WriteHeader(SSUHeader* header) {
   Write<std::uint8_t>(flag);
   Write<std::uint32_t>(header->GetTime());
   if (header->HasExtendedOptions()) {
-    // TODO(EinMByte): Check for overflow
     Write<std::uint8_t>(header->GetExtendedOptionsSize());
     WriteData(
         header->GetExtendedOptionsData(),

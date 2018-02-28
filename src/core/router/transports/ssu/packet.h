@@ -183,15 +183,15 @@ class SSUHeader {
 
   /// @brief Sets extended options data from appointed position within header
   /// @note Assumes content is extended options material based on bit being set
-  void SetExtendedOptionsData(
-      std::uint8_t* data,
-      std::size_t size);
+  /// @param data Extended options to write
+  /// @param size Size of extended options (in bytes)
+  void SetExtendedOptionsData(std::uint8_t* data, std::uint8_t size);
 
   /// @return Pointer to extended options data that was previously set when parsed
   std::uint8_t const* GetExtendedOptionsData() const;
 
   /// @return Extended options size that was previously set when parsed
-  std::size_t GetExtendedOptionsSize() const;
+  std::uint8_t GetExtendedOptionsSize() const;
 
   /// @return Extended options bool that was previously set when parsed
   bool HasExtendedOptions() const;
@@ -205,10 +205,12 @@ class SSUHeader {
   bool m_Rekey, m_Extended;
   std::uint32_t m_Time;
   SSUPayloadType m_PayloadType;
-  // TODO(anonimal):
-  //   If the extended options flag is set, a one byte option size value is appended,
-  //   followed by that many extended option bytes
-  std::size_t m_ExtendedOptionsSize;
+
+  /// @brief Size of extended options (in bytes)
+  /// @details "If the extended options flag is set, a one byte option size value is appended,
+  ///  followed by that many extended option bytes." This is 'that many' number of bytes.
+  /// @notes The 1 byte value of size is parsed/written in builder implementation, not here.
+  std::uint8_t m_ExtendedOptionsSize;
 };
 
 /// @class SSUPacket

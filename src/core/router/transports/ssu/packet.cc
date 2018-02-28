@@ -666,7 +666,13 @@ SSUFragment SSUPacketParser::ParseFragment() {
   // bits 15-14: unused, set to 0 for compatibility with future uses
   fragment.SetIsLast(fragment_info & 0x010000);  // bit 16
   fragment.SetNumber(fragment_info >> 17);  // bits 23 - 17
-  // TODO(EinMByte): Check whether the size is correct
+  // End session if fragmented size is greater than buffer size
+  if (fragment.GetSize() > Size())
+    {
+      // TODO(anonimal): invalid size could be an implementation issue rather
+      //   than an attack. Reconsider how we mitigate invalid fragment size.
+      throw std::length_error("SSUPacketParser: invalid fragment size");
+    }
   fragment.SetData(ReadBytes(fragment.GetSize()));
   return fragment;
 }

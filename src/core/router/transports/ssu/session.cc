@@ -354,37 +354,55 @@ void SSUSession::ProcessSessionRequest(
   SendSessionCreated(packet->GetDhX());
 }
 
-void SSUSession::SendSessionRequest() {
-  LOG(debug)
-    << "SSUSession:" << GetFormattedSessionInfo() << "sending SessionRequest";
-  auto intro_key = GetIntroKey();
-  if (!intro_key) {
-    LOG(error)
-      << "SSUSession:" << GetFormattedSessionInfo()
-      << __func__ << ": SSU is not supported";
-    return;
-  }
-  SSUSessionRequestPacket packet;
-  packet.SetHeader(std::make_unique<SSUHeader>(SSUPayloadType::SessionRequest));
-  std::array<std::uint8_t, SSUSize::IV> iv;
-  kovri::core::RandBytes(iv.data(), iv.size());
-  packet.GetHeader()->SetIV(iv.data());
-  packet.SetDhX(m_DHKeysPair->public_key.data());
-  // Fill extended options
-  std::array<std::uint8_t, 2> extended_data {{ 0x00, 0x00 }};
-  if (context.GetState() == RouterState::OK) {  // we don't need relays
-    packet.GetHeader()->SetExtendedOptions(true);
-    packet.GetHeader()->SetExtendedOptionsData(extended_data.data(), 2);
-  }
-  auto const remote_ip(core::AddressToByteVector(GetRemoteEndpoint().address()));
+// TODO(anonimal): separate message creation from session
+void SSUSession::SendSessionRequest()
+{
+  LOG(debug) << "SSUSession:" << GetFormattedSessionInfo()
+             << "sending SessionRequest";
+
+  // Create message
+  SSUSessionRequestPacket message;
+  message.SetHeader(
+      std::make_unique<SSUHeader>(SSUPayloadType::SessionRequest));
+
+  // Set IV
+  std::array<std::uint8_t, SSUSize::IV> IV;
+  core::RandBytes(IV.data(), IV.size());
+  message.GetHeader()->SetIV(IV.data());
+
+  // Set our (Alice's) DH X
+  message.SetDhX(m_DHKeysPair->public_key.data());
+
+  // Set Bob's address size and address
+  auto const remote_ip(core::AddressToByteVector(m_RemoteEndpoint.address()));
+
   // TODO(unassigned): remove const_cast, see bytestream TODO
-  packet.SetIPAddress(const_cast<std::uint8_t*>(remote_ip.data()), remote_ip.size());
-  const std::size_t packet_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
-  const std::size_t buffer_size = packet_size + SSUSize::BufferMargin;
-  // Buffer has SSUSize::BufferMargin extra bytes for computing the HMAC
-  auto buffer = std::make_unique<std::uint8_t[]>(buffer_size);
-  WriteAndEncrypt(&packet, buffer.get(), buffer_size, intro_key, intro_key);
-  m_Server.Send(buffer.get(), packet_size, GetRemoteEndpoint());
+  message.SetIPAddress(
+      const_cast<std::uint8_t*>(remote_ip.data()), remote_ip.size());
+
+  // Fill header extended options
+  // TODO(anonimal): review, implement
+  std::array<std::uint8_t, 2> options{{0x00, 0x00}};
+  if (context.GetState() == RouterState::OK)
+    {  // we don't need relays
+      message.GetHeader()->SetExtendedOptions(true);
+      message.GetHeader()->SetExtendedOptionsData(
+          options.data(), options.size());
+    }
+
+  // Create encrypted message buffer
+  std::vector<std::uint8_t> buf(
+      SSUPacketBuilder::GetPaddedSize(message.GetSize())
+      + SSUSize::BufferMargin);
+
+  // Get Bob's introducer key for AES and MAC
+  const std::uint8_t* intro_key = GetIntroKey();
+  assert(intro_key);
+
+  // Encrypt and send
+  WriteAndEncrypt(&message, buf.data(), buf.size(), intro_key, intro_key);
+  m_Server.Send(
+      buf.data(), buf.size() - SSUSize::BufferMargin, m_RemoteEndpoint);
 }
 
 /**

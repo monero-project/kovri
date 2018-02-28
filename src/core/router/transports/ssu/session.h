@@ -235,6 +235,7 @@ class SSUSession
       SSUPacket* pkt,
       const boost::asio::ip::udp::endpoint& sender_endpoint);
 
+  /// @brief We are Alice, sending Bob a SessionRequest message
   void SendSessionRequest();
 
   // Payload type 1: SessionCreated

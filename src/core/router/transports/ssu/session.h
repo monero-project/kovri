@@ -287,8 +287,9 @@ class SSUSession
 
   // Payload type 5: RelayIntro
 
-  void ProcessRelayIntro(
-      SSUPacket* pkt);
+  /// @brief We are Charlie, receiving Bob's RelayIntro - then sending Alice a RelayResponse
+  /// @param packet Bob's RelayIntro packet containing Alice's IP and port
+  void ProcessRelayIntro(SSUPacket* packet);
 
   void SendRelayIntro(
       const SSUSession* session,

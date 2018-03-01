@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -177,6 +177,8 @@ void SSUServer::HandleReceivedFrom(
     packets.push_back(packet);
     boost::system::error_code ec;
     std::size_t more_bytes = m_Socket.available(ec);
+    // TODO(anonimal): but what about 0 length HolePunch?
+    //   Current handler's null length check done in vain?
     while (more_bytes && packets.size() < 25) {
       packet = new RawSSUPacket();
       packet->len = m_Socket.receive_from(
@@ -255,6 +257,8 @@ void SSUServer::HandleReceivedPackets(
           session = std::make_shared<SSUSession>(*this, pkt->from);
           session->WaitForConnect(); {
             std::unique_lock<std::mutex> l(m_SessionsMutex);
+            // TODO(anonimal): assuming we get this far with 0 length HolePunch,
+            //   why would we add a session with Charlie *before* sending a SessionRequest?
             m_Sessions[pkt->from] = session;
           }
           LOG(debug)

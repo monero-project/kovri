@@ -169,8 +169,8 @@ void SSUSession::ProcessNextMessage(
       if (!len && m_State != SessionState::Introduced)
         {
           LOG(warning) << "SSUSession:" << GetFormattedSessionInfo()
-                       << ": ignoring zero-length message";
-          return;  // TODO(anonimal): throw?
+                       << ": ignoring zero-length message (expecting HolePunch)";
+          return;  // TODO(anonimal): throw/warn for potential attacks
         }
 
       assert(buf);
@@ -974,25 +974,28 @@ void SSUSession::SendRelayResponse(
  *
  */
 
-void SSUSession::ProcessRelayIntro(SSUPacket* pkt) {
-  auto packet = static_cast<SSURelayIntroPacket*>(pkt);
-  std::uint32_t const size = packet->GetIPAddressSize();
-  if (size == 4) {
-    std::uint32_t const addr =
-        core::InputByteStream::Read<std::uint32_t>(packet->GetIPAddress());
-    boost::asio::ip::address_v4 address(addr);
-    // send hole punch of 1 byte
-    m_Server.Send(
-        {},
-        0,
-        boost::asio::ip::udp::endpoint(
-            address,
-            packet->GetPort()));
-  } else {
-    LOG(warning)
-      << "SSUSession:" << GetFormattedSessionInfo()
-      << __func__ << ": address size " << size << " is not supported";
-  }
+void SSUSession::ProcessRelayIntro(SSUPacket* packet)
+{
+  LOG(debug) << "SSUSession:" << GetFormattedSessionInfo()
+             << "RelayIntro received, processing";
+
+  // Get message
+  auto* message = static_cast<SSURelayIntroPacket*>(packet);
+
+  // Get Alice's address
+  boost::asio::ip::address_v4 address(
+      core::InputByteStream::Read<std::uint32_t>(message->GetIPAddress()));
+
+  // Challenge is not implemented
+  assert(!message->GetChallenge());
+
+  // Send an empty HolePunch to Alice for our NAT/firewall traversal
+  // Note: boost.asio allows sending empty buffer + 0 length data (an empty packet)
+  m_Server.Send(
+      {},
+      0,
+      boost::asio::ip::udp::endpoint(
+          address, message->GetPort() /* TODO(anonimal): ensure port is BE */));
 }
 
 void SSUSession::SendRelayIntro(

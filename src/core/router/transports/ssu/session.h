@@ -351,7 +351,6 @@ class SSUSession
       std::uint8_t* buf,
       std::size_t len,
       const std::uint8_t* aes_key,
-      const std::uint8_t* iv,
       const std::uint8_t* mac_key,
       std::uint8_t flag = 0);
 

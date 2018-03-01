@@ -837,11 +837,6 @@ void SSUSession::SendRelayRequest(
   // Nonce
   message.Write<std::uint32_t>(core::Rand<std::uint32_t>());
 
-  // Create header IV
-  // TODO(anonimal): should be done internally during header creation
-  std::array<std::uint8_t, SSUSize::IV> IV;
-  kovri::core::RandBytes(IV.data(), IV.size());
-
   // Write header and send
   if (m_State == SessionState::Established)
     {
@@ -851,7 +846,6 @@ void SSUSession::SendRelayRequest(
           message.Data(),
           SSUSize::RelayRequestBuffer,
           m_SessionKey,
-          IV.data(),
           m_MACKey);
     }
   else
@@ -861,7 +855,6 @@ void SSUSession::SendRelayRequest(
           message.Data(),
           SSUSize::RelayRequestBuffer,
           introducer_key,
-          IV.data(),
           introducer_key);
     }
 
@@ -950,16 +943,11 @@ void SSUSession::SendRelayResponse(
   else
     {
       // Encrypt with Alice's intro key
-      // TODO(anonimal): should be done internally during header creation
-      std::array<std::uint8_t, SSUSize::IV> IV;
-      kovri::core::RandBytes(IV.data(), IV.size());
-
       FillHeaderAndEncrypt(
           SSUPayloadType::RelayResponse,
           message.Data(),
           message_size,
           intro_key,
-          IV.data(),
           intro_key);
 
       m_Server.Send(message.Data(), message_size, from);
@@ -1036,18 +1024,12 @@ void SSUSession::SendRelayIntro(
   // Challenge is unimplemented, challenge size is always zero
   message.SkipBytes(1);
 
-  // Create IV
-  // TODO(anonimal): should be done internally during header creation
-  std::array<std::uint8_t, SSUSize::IV> IV;
-  kovri::core::RandBytes(IV.data(), IV.size());
-
   // Encrypt with Bob/Charlie keys
   FillHeaderAndEncrypt(
       SSUPayloadType::RelayIntro,
       message.Data(),
       SSUSize::RelayIntroBuffer,
       session->m_SessionKey,
-      IV.data(),
       session->m_MACKey);
 
   LOG(debug) << "SSUSession: " << GetFormattedSessionInfo()
@@ -1262,10 +1244,6 @@ void SSUSession::SendPeerTest(
     }
 
   // Write header and send
-  // TODO(anonimal): should be done internally during header creation
-  std::array<std::uint8_t, SSUSize::IV> IV;
-  kovri::core::RandBytes(IV.data(), IV.size());
-
   if (to_address)
     {
       // Encrypts message with given intro key
@@ -1274,7 +1252,6 @@ void SSUSession::SendPeerTest(
           message.Data(),
           SSUSize::PeerTestBuffer,
           intro_key,
-          IV.data(),
           intro_key);
 
       boost::asio::ip::udp::endpoint ep(
@@ -1386,13 +1363,12 @@ void SSUSession::SendKeepAlive()
     }
 }
 
-// TODO(anonimal): pass reference to structure, not SEVEN arguments!
+// TODO(anonimal): refactor
 void SSUSession::FillHeaderAndEncrypt(
     std::uint8_t payload_type,
     std::uint8_t* buf,
     std::size_t len,
     const std::uint8_t* aes_key,
-    const std::uint8_t* iv,
     const std::uint8_t* mac_key,
     std::uint8_t flag) {
   // TODO(anonimal): this try block should be handled entirely by caller
@@ -1404,19 +1380,19 @@ void SSUSession::FillHeaderAndEncrypt(
       return;
     }
     SSUSessionPacket pkt(buf, len);
-    memcpy(pkt.IV(), iv, SSUSize::IV);
+    core::RandBytes(pkt.IV(), SSUSize::IV);
     pkt.PutFlag(flag | (payload_type << 4));  // MSB is 0
     pkt.PutTime(kovri::core::GetSecondsSinceEpoch());
     auto encrypted = pkt.Encrypted();
     auto encrypted_len = len - (encrypted - buf);
-    kovri::core::CBCEncryption encryption(aes_key, iv);
+    kovri::core::CBCEncryption encryption(aes_key, pkt.IV());
     encryption.Encrypt(
         encrypted,
         encrypted_len,
         encrypted);
     // assume actual buffer size is 18 (16 + 2) bytes more
     // TODO(unassigned): ^ this is stupid and dangerous to assume that caller is responsible
-    memcpy(buf + len, iv, SSUSize::IV);
+    memcpy(buf + len, pkt.IV(), SSUSize::IV);
     core::OutputByteStream::Write<std::uint16_t>(
         buf + len + SSUSize::IV, encrypted_len);
     kovri::core::HMACMD5Digest(
@@ -1431,6 +1407,7 @@ void SSUSession::FillHeaderAndEncrypt(
   }
 }
 
+// TODO(anonimal): refactor
 void SSUSession::WriteAndEncrypt(
     SSUPacket* packet,
     std::uint8_t* buffer,
@@ -1483,6 +1460,7 @@ void SSUSession::WriteAndEncrypt(
   }
 }
 
+// TODO(anonimal): refactor
 void SSUSession::FillHeaderAndEncrypt(
     std::uint8_t payload_type,
     std::uint8_t* buf,

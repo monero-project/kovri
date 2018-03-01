@@ -61,7 +61,7 @@ Alpha release coming soon
   - `#kovri` | Community & Support Channel
   - `#kovri-dev` | Development Channel
 - [Monero Mattermost](https://mattermost.getmonero.org/)
-- [Monero Slack](https://monero.slack.com/) (ask for an invite on IRC or email anonimal)
+- [Monero Slack](https://monero.slack.com/) (ask for an invite on IRC)
 - [Monero StackExchange](https://monero.stackexchange.com/)
 - [Reddit /r/Kovri](https://www.reddit.com/r/Kovri/)
 - Twitter: [@getkovri](https://twitter.com/getkovri)
@@ -69,7 +69,7 @@ Alpha release coming soon
   - General Purpose / Media Contact
     - dev [at] getmonero.org
   - All other contact
-    - anonimal [at] i2pmail.org
+    - anonimal [at] getmonero.org
     - PGP Key fingerprint: 1218 6272 CD48 E253 9E2D  D29B 66A7 6ECF 9144 09F1
 
 ## Donations

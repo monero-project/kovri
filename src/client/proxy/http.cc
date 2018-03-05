@@ -313,7 +313,39 @@ bool HTTPMessage::CreateHTTPRequest() {
     // m_ErrorResponse is set in ExtractIncomingRequest
     return false;
   }
-  HandleJumpService();
+
+  if (!IsJumpServiceRequest())
+    {
+      LOG(debug) << "HTTPProxyHandler: not a jump service request";
+    }
+  else  // Handle the jump service request
+    {
+      if (!HandleJumpService())
+        {
+          LOG(error) << "HTTPMessage: invalid jump service request";
+          m_ErrorResponse =
+              HTTPResponse(HTTPResponseCodes::status_t::bad_request);
+          return false;
+        }
+      else  // Requested address found, save to address book
+        {
+          // TODO(oneiric): this is very dangerous and broken
+          // we should prompt the user with an HTTP redirect to a save form
+          // save form should contain:
+          // - host info: short address, base32 address, base64 destination
+          // - save location options
+          // - continue without saving option
+          if (!SaveJumpServiceAddress())
+            {
+              LOG(error)
+                  << "HTTPProxyHandler: failed to save address to address book";
+              m_ErrorResponse = HTTPResponse(
+                  HTTPResponseCodes::status_t::internal_server_error);
+              return false;
+            }
+        }
+    }
+
   // Set method, path, and version
   m_Request = m_Method;
   m_Request.push_back(' ');

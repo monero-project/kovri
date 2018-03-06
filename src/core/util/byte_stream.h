@@ -54,20 +54,20 @@ class ByteStream
   /// @brief For read-only bytestream
   /// @param data Buffer to read from
   /// @param len Total length of buffer
-  explicit ByteStream(const std::uint8_t* data, std::size_t len);
+  explicit ByteStream(const std::uint8_t* data, const std::size_t len);
 
   /// @brief For write-only bytestream
   /// @param data Buffer to write to
   /// @param len Total length of buffer
-  explicit ByteStream(std::uint8_t* data, std::size_t len);
+  explicit ByteStream(std::uint8_t* data, const std::size_t len);
 
   /// @brief Create stream from/to internal data buffer
   /// @param len Length to use
-  explicit ByteStream(std::size_t len);
+  explicit ByteStream(const std::size_t len);
 
   virtual ~ByteStream() = default;
 
-  virtual void SkipBytes(std::size_t len) = 0;
+  virtual void SkipBytes(const std::size_t len) = 0;
 
   /// @brief Get the first unconsumed/unwritten byte in the stream
   /// @return Pointer to the first byte
@@ -98,13 +98,13 @@ class ByteStream
 
  protected:
   std::uint8_t* m_DataPtr;  ///< Pointer to existing buffer, external or internal
-  std::size_t m_Size, m_Length;
+  std::size_t m_Length;  ///< Length of data buffer
   std::size_t m_Counter;  ///< Counter for amount of incremented data
 
   /// @brief Advances the internal data pointer by the given amount
   /// @param len The amount by which to advance the data pointer
   /// @throw std::length_error if amount exceeds the remaining data length
-  void Advance(std::size_t len);
+  void Advance(const std::size_t len);
 
  private:
   std::vector<std::uint8_t> m_Data;  ///< Internal buffer if no buffer supplied
@@ -118,18 +118,18 @@ class InputByteStream : public ByteStream
   /// @brief Constructs the byte stream from a given array of bytes
   /// @param data Pointer to the array of bytes
   /// @param len Length of the array of bytes
-  explicit InputByteStream(const std::uint8_t* data, std::size_t len);
+  explicit InputByteStream(const std::uint8_t* data, const std::size_t len);
 
   virtual ~InputByteStream() = default;
 
   /// @brief Advances internal pointer
   /// @param len Number of bytes to skip
-  virtual void SkipBytes(std::size_t len);
+  virtual void SkipBytes(const std::size_t len);
 
   /// @brief Consume a given amount of bytes + return a pointer to first consumed byte
   /// @return a pointer to the first byte that was consumed (m_Data + amount)
   /// @throw std::length_error if amount exceeds the remaining data length
-  std::uint8_t* ReadBytes(std::size_t amount);
+  std::uint8_t* ReadBytes(const std::size_t amount);
 
   /// @brief Reads unsigned integral value from given buffer
   /// @param buf Buffer to read from
@@ -166,18 +166,18 @@ class OutputByteStream : public ByteStream
   /// @brief Constructs the byte stream into a given array of bytes
   /// @param data Pointer to the array of bytes
   /// @param len Length of the array of bytes
-  explicit OutputByteStream(std::uint8_t* data, std::size_t len);
+  explicit OutputByteStream(std::uint8_t* data, const std::size_t len);
 
   /// @brief Constructs the byte stream using an internal buffer
   ///   with a given number of bytes
   /// @param len Length of bytes to construct
-  explicit OutputByteStream(std::size_t len);
+  explicit OutputByteStream(const std::size_t len);
 
   virtual ~OutputByteStream() = default;
 
   /// @brief Advances internal pointer after writing zero-initialized memory
   /// @param len Number of bytes to "skip"
-  virtual void SkipBytes(std::size_t len);
+  virtual void SkipBytes(const std::size_t len);
 
   /// @brief Writes data into data member buffer
   /// @note Increments buffer pointer position after writing data
@@ -222,7 +222,9 @@ class OutputByteStream : public ByteStream
 /// @brief Returns hex encoding of given data
 /// @param data Pointer to data
 /// @param size Total size of data
-const std::string GetFormattedHex(const std::uint8_t* data, std::size_t size);
+const std::string GetFormattedHex(
+    const std::uint8_t* data,
+    const std::size_t size);
 
 /// @brief Returns vector of bytes representing address
 /// @param address IP v4 or v6 address

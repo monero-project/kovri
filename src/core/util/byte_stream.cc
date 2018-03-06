@@ -47,7 +47,7 @@ namespace kovri
 namespace core
 {
 // Input
-ByteStream::ByteStream(const std::uint8_t* data, std::size_t len)
+ByteStream::ByteStream(const std::uint8_t* data, const std::size_t len)
     : m_DataPtr(const_cast<std::uint8_t*>(data)), m_Length(len), m_Counter{}
 // TODO(anonimal): remove const cast!
 {
@@ -60,7 +60,7 @@ ByteStream::ByteStream(const std::uint8_t* data, std::size_t len)
 }
 
 // Output
-ByteStream::ByteStream(std::uint8_t* data, std::size_t len)
+ByteStream::ByteStream(std::uint8_t* data, const std::size_t len)
     : m_DataPtr(data), m_Length(len), m_Counter{}
 {
   assert(data || len);
@@ -71,7 +71,7 @@ ByteStream::ByteStream(std::uint8_t* data, std::size_t len)
     throw std::length_error("ByteStream: null length");
 }
 
-ByteStream::ByteStream(std::size_t len) : m_Length(len), m_Counter{}
+ByteStream::ByteStream(const std::size_t len) : m_Length(len), m_Counter{}
 {
   assert(len);
 
@@ -82,7 +82,7 @@ ByteStream::ByteStream(std::size_t len) : m_Length(len), m_Counter{}
   m_DataPtr = m_Data.data();
 }
 
-void ByteStream::Advance(std::size_t len)
+void ByteStream::Advance(const std::size_t len)
 {
   assert(len && len <= m_Length);
 
@@ -96,31 +96,33 @@ void ByteStream::Advance(std::size_t len)
 
 // Input
 
-InputByteStream::InputByteStream(const std::uint8_t* data, std::size_t len)
+InputByteStream::InputByteStream(
+    const std::uint8_t* data,
+    const std::size_t len)
     : ByteStream(data, len)
 {
 }
 
-std::uint8_t* InputByteStream::ReadBytes(std::size_t len)
+std::uint8_t* InputByteStream::ReadBytes(const std::size_t len)
 {
   std::uint8_t* ptr = m_DataPtr;
   Advance(len);
   return ptr;
 }
 
-void InputByteStream::SkipBytes(std::size_t len)
+void InputByteStream::SkipBytes(const std::size_t len)
 {
   Advance(len);
 }
 
 // Output
 
-OutputByteStream::OutputByteStream(std::uint8_t* data, std::size_t len)
+OutputByteStream::OutputByteStream(std::uint8_t* data, const std::size_t len)
     : ByteStream(data, len)
 {
 }
 
-OutputByteStream::OutputByteStream(std::size_t len) : ByteStream(len) {}
+OutputByteStream::OutputByteStream(const std::size_t len) : ByteStream(len) {}
 
 void OutputByteStream::WriteData(
     const std::uint8_t* data,
@@ -143,14 +145,16 @@ void OutputByteStream::WriteData(
     std::memcpy(ptr, data, len);
 }
 
-void OutputByteStream::SkipBytes(std::size_t len)
+void OutputByteStream::SkipBytes(const std::size_t len)
 {
   WriteData(nullptr, len, true);
 }
 
 // Misc
 
-const std::string GetFormattedHex(const std::uint8_t* data, std::size_t size)
+const std::string GetFormattedHex(
+    const std::uint8_t* data,
+    const std::size_t size)
 {
   std::ostringstream hex;
   hex << "\n\t"

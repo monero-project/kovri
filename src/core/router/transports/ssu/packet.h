@@ -66,6 +66,12 @@ enum SSUSize : std::uint16_t
   DHPublic = 256,
   MaxReceivedMessages = 1000,  // TODO(unassigned): research this value
   MaxIntroducers = 3,
+  // Session buffer sizes imply *before* non-mod-16 padding. See SSU spec.
+  RelayRequestBuffer = 96,  ///< 96 bytes (no Alice IP included) or 112 bytes (4-byte Alice IP included)
+  RelayResponseBuffer = 80,  ///< 64 (Alice IPv4) or 80 (Alice IPv6) bytes
+  RelayIntroBuffer = 48,
+  PeerTestBuffer = 80,
+  SessionDestroyedBuffer = 48,
 };
 
 /// @enum SSUFlag
@@ -177,15 +183,15 @@ class SSUHeader {
 
   /// @brief Sets extended options data from appointed position within header
   /// @note Assumes content is extended options material based on bit being set
-  void SetExtendedOptionsData(
-      std::uint8_t* data,
-      std::size_t size);
+  /// @param data Extended options to write
+  /// @param size Size of extended options (in bytes)
+  void SetExtendedOptionsData(std::uint8_t* data, std::uint8_t size);
 
   /// @return Pointer to extended options data that was previously set when parsed
   std::uint8_t const* GetExtendedOptionsData() const;
 
   /// @return Extended options size that was previously set when parsed
-  std::size_t GetExtendedOptionsSize() const;
+  std::uint8_t GetExtendedOptionsSize() const;
 
   /// @return Extended options bool that was previously set when parsed
   bool HasExtendedOptions() const;
@@ -199,10 +205,12 @@ class SSUHeader {
   bool m_Rekey, m_Extended;
   std::uint32_t m_Time;
   SSUPayloadType m_PayloadType;
-  // TODO(anonimal):
-  //   If the extended options flag is set, a one byte option size value is appended,
-  //   followed by that many extended option bytes
-  std::size_t m_ExtendedOptionsSize;
+
+  /// @brief Size of extended options (in bytes)
+  /// @details "If the extended options flag is set, a one byte option size value is appended,
+  ///  followed by that many extended option bytes." This is 'that many' number of bytes.
+  /// @notes The 1 byte value of size is parsed/written in builder implementation, not here.
+  std::uint8_t m_ExtendedOptionsSize;
 };
 
 /// @class SSUPacket
@@ -248,22 +256,20 @@ class SSUSessionRequestPacket : public SSUPacket {
   ///   of Bob's IP address
   /// @note Assumes content is valid (based on position)
   /// @param address Bob's IP address
-  /// @param size Bob's IP address size
-  void SetIPAddress(
-      std::uint8_t* address,
-      std::size_t size);
+  /// @param size Bob's IP address size (in bytes)
+  void SetIPAddress(std::uint8_t* address, const std::uint8_t size);
 
   /// @return Pointer to Bob's IP address that was previously set when parsed
   std::uint8_t const* GetIPAddress() const;
 
   /// @return Bob's IP address size that was previously set when parsed
-  std::size_t GetIPAddressSize() const;
+  std::uint8_t GetIPAddressSize() const noexcept;
 
   /// @return The size (in bytes) of this header + message
   std::size_t GetSize() const;
 
  private:
-  std::size_t m_IPAddressSize;
+  std::uint8_t m_IPAddressSize;
   std::uint8_t* m_DhX, *m_IPAddress;
 };
 
@@ -285,16 +291,14 @@ class SSUSessionCreatedPacket : public SSUPacket {
   ///   of Alice's IP address
   /// @note Assumes content is valid (based on position)
   /// @param address Pointer to Alice's IP address
-  /// @param size Alice's IP address size
-  void SetIPAddress(
-      std::uint8_t* address,
-      std::size_t size);
+  /// @param size Alice's IP address size (in bytes)
+  void SetIPAddress(std::uint8_t* address, const std::uint8_t size);
 
   /// @return Pointer to Alice's IP address that was previously set when parsed
   std::uint8_t const* GetIPAddress() const;
 
   /// @return Alice's IP address size that was previously set when parsed
-  std::size_t GetIPAddressSize() const;
+  std::uint8_t GetIPAddressSize() const noexcept;
 
   /// @brief Sets Alice's 2 byte port number
   /// @note Assumes content is valid (based on position)
@@ -342,7 +346,8 @@ class SSUSessionCreatedPacket : public SSUPacket {
   std::size_t GetSize() const;
 
  private:
-  std::size_t m_AddressSize, m_SignatureSize;
+  std::size_t m_SignatureSize;
+  std::uint8_t m_AddressSize;
   std::uint8_t *m_DhY, *m_Signature, *m_IPAddress;
   std::uint16_t m_Port;
   std::uint32_t m_RelayTag, m_SignedOnTime;
@@ -417,10 +422,8 @@ class SSURelayRequestPacket : public SSUPacket {
   ///   of Alice's IP address
   /// @note Assumes content is valid (based on position)
   /// @param address Pointer to Alice's IP address
-  /// @param size Alice's IP address size
-  void SetIPAddress(
-      std::uint8_t* address,
-      std::size_t size);
+  /// @param size Alice's IP address size (in bytes)
+  void SetIPAddress(std::uint8_t* address, const std::uint8_t size);
 
   /// @return Pointer to Alice's IP address that was previously set when parsed
   std::uint8_t const* GetIPAddress() const;
@@ -472,7 +475,8 @@ class SSURelayRequestPacket : public SSUPacket {
 
  private:
   std::uint32_t m_RelayTag, m_Nonce;
-  std::size_t m_IPAddressSize, m_ChallengeSize;
+  std::size_t m_ChallengeSize;
+  std::uint8_t m_IPAddressSize;
   std::uint8_t* m_IPAddress, *m_Challenge, *m_IntroKey;
   std::uint16_t m_Port;
 };
@@ -486,10 +490,8 @@ class SSURelayResponsePacket : public SSUPacket {
   ///   of Charlie's IP address
   /// @note Assumes content is valid (based on position)
   /// @param address Pointer to Charlie's IP address
-  /// @param size Charlie's IP address size
-  void SetIPAddressCharlie(
-      std::uint8_t* address,
-      std::size_t size);
+  /// @param size Charlie's IP address size (in bytes)
+  void SetIPAddressCharlie(std::uint8_t* address, const std::uint8_t size);
 
   /// @return Pointer to Charlie's IP address that was previously set when parsed
   std::uint8_t const* GetIPAddressCharlie() const;
@@ -507,16 +509,14 @@ class SSURelayResponsePacket : public SSUPacket {
   ///   of Alice's IP address
   /// @note Assumes content is valid (based on position)
   /// @param address Pointer to Alice's IP address
-  /// @param size Alice's IP address size
-  void SetIPAddressAlice(
-      std::uint8_t* address,
-      std::size_t size);
+  /// @param size Alice's IP address size (in bytes)
+  void SetIPAddressAlice(std::uint8_t* address, const std::uint8_t size);
 
   /// @return Pointer to Alice's IP address that was previously set when parsed
   std::uint8_t const* GetIPAddressAlice() const;
 
   /// @return Alice's IP address size that was previously set when parsed
-  std::size_t GetIPAddressAliceSize() const;
+  std::uint8_t GetIPAddressAliceSize() const noexcept;
 
   /// @brief Sets Alices's 2 byte port number
   /// @note Assumes content is valid (based on position)
@@ -539,7 +539,7 @@ class SSURelayResponsePacket : public SSUPacket {
   std::size_t GetSize() const;
 
  private:
-  std::size_t m_IPAddressAliceSize, m_IPAddressCharlieSize;
+  std::uint8_t m_IPAddressAliceSize, m_IPAddressCharlieSize;
   std::uint32_t m_Nonce;
   std::uint8_t* m_IPAddressAlice, *m_IPAddressCharlie;
   std::uint16_t m_PortAlice, m_PortCharlie;
@@ -554,16 +554,14 @@ class SSURelayIntroPacket : public SSUPacket {
   ///   of Alice's IP address
   /// @note Assumes content is valid (based on position)
   /// @param address Pointer to Alice's IP address
-  /// @param size Alice's IP address size
-  void SetIPAddress(
-      std::uint8_t* address,
-      std::size_t size);
+  /// @param size Alice's IP address size (in bytes)
+  void SetIPAddress(std::uint8_t* address, const std::uint8_t size);
 
   /// @return Pointer to Alice's IP address that was previously set when parsed
   std::uint8_t const* GetIPAddress() const;
 
   /// @return Alice's IP address size that was previously set when parsed
-  std::size_t GetIPAddressSize() const;
+  std::uint8_t GetIPAddressSize() const noexcept;
 
   /// @brief Sets Alice's 2 byte port number
   /// @note Assumes content is valid (based on position)
@@ -590,7 +588,8 @@ class SSURelayIntroPacket : public SSUPacket {
   std::size_t GetSize() const;
 
  private:
-  std::size_t m_IPAddressSize, m_ChallengeSize;
+  std::size_t m_ChallengeSize;
+  std::uint8_t m_IPAddressSize;
   std::uint8_t* m_IPAddress, *m_Challenge;
   std::uint16_t m_Port;
 };
@@ -810,13 +809,13 @@ class SSUPacketBuilder final : public kovri::core::OutputByteStream {
   ///   Each message must be padded to a 16 byte boundary,
   ///   as required by the AES256 encryption layer
   /// @param size Size of message
-  static std::size_t GetPaddingSize(
-      std::size_t size);
+  // TODO(anonimal): we only need to pass 2 bytes and return 1 byte
+  static std::size_t GetPaddingSize(std::size_t size);
 
   /// @brief Gets padded size of message
   /// @param size Size of message
-  static std::size_t GetPaddedSize(
-      std::size_t size);
+  // TODO(anonimal): we only need to pass 2 bytes and return 2 bytes
+  static std::size_t GetPaddedSize(std::size_t size);
 
   /// @brief Writes an SSU header into a data buffer.
   /// @pre The data buffer must be sufficiently large.

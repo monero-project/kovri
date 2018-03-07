@@ -48,6 +48,7 @@
 namespace kovri {
 namespace core {
 
+// TODO(anonimal): remove
 class SignedData {
  public:
   SignedData() {}

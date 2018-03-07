@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2017, The Kovri I2P Router Project
+ * Copyright (c) 2015-2018, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -149,7 +149,7 @@ struct SSUTestVectorsFixture : public IdentityExFixture
     0x0A, 0x0B, 0x0C, 0x0D
   }};
 
-  std::array<std::uint8_t, 310> session_created {{
+  std::array<std::uint8_t, 311> session_created {{
     // 256 bytes Y (as in DH)
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -184,9 +184,9 @@ struct SSUTestVectorsFixture : public IdentityExFixture
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     // 1 byte IP address size
-    0x03,
-    // 3 bytes IP address
-    0x0A, 0x0B, 0x0C,
+    0x04,
+    // 4 bytes IP address
+    0x0A, 0x0B, 0x0C, 0x0D,
     // Port (9000)
     0x23, 0x28,
     // Relay tag (1234567890) 
@@ -400,7 +400,7 @@ BOOST_AUTO_TEST_CASE(SessionCreatedPlain) {
   SSUPacketParser parser(session_created.data(), session_created.size());
   std::unique_ptr<SSUSessionCreatedPacket> packet;
   BOOST_CHECK_NO_THROW(packet = parser.ParseSessionCreated());
-  BOOST_CHECK_EQUAL(packet->GetIPAddressSize(), 3);
+  BOOST_CHECK_EQUAL(packet->GetIPAddressSize(), 4);
   BOOST_CHECK_EQUAL(*packet->GetIPAddress(), 0x0A);
   BOOST_CHECK_EQUAL(packet->GetPort(), 9000);
   BOOST_CHECK_EQUAL(packet->GetRelayTag(), 1234567890);
@@ -580,16 +580,16 @@ BOOST_AUTO_TEST_CASE(SessionRequestPlain) {
     session_request.data() + session_request.size());
 }
 
-BOOST_AUTO_TEST_CASE(SessionCreatedPlain) {
+BOOST_AUTO_TEST_CASE(SessionCreatedPacket) {
   using namespace kovri::core;
 
   SSUSessionCreatedPacket packet;
   packet.SetDhY(&session_created.at(0));
-  packet.SetIPAddress(&session_created.at(257), 3);
+  packet.SetIPAddress(&session_created.at(257), 4);
   packet.SetPort(9000);
   packet.SetRelayTag(1234567890);
   packet.SetSignedOnTime(m_SignedOnTime);
-  packet.SetSignature(&session_created.at(270), 40);
+  packet.SetSignature(&session_created.at(271), 40);
   auto buffer = std::make_unique<std::uint8_t[]>(packet.GetSize());
   SSUPacketBuilder builder(buffer.get(), packet.GetSize());
   builder.WriteSessionCreated(&packet);

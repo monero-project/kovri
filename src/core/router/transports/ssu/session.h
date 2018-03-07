@@ -235,21 +235,29 @@ class SSUSession
       SSUPacket* pkt,
       const boost::asio::ip::udp::endpoint& sender_endpoint);
 
+  /// @brief We are Alice, sending Bob a SessionRequest message
   void SendSessionRequest();
 
   // Payload type 1: SessionCreated
 
-  void ProcessSessionCreated(
-      SSUPacket* pkt);
+  /// @brief We are Alice, processing Bob's SessionCreated message
+  /// @param packet Bob's message (header + payload)
+  void ProcessSessionCreated(const SSUPacket* packet);
 
-  void SendSessionCreated(
-      const std::uint8_t* x);
+  /// @brief We are Bob, creating and sending SessionCreated message
+  /// @param dh_x Diffie-Hellman X as created by Alice
+  void SendSessionCreated(const std::uint8_t* dh_x);
 
   // Payload type 2: SessionConfirmed
 
   void ProcessSessionConfirmed(
       SSUPacket* pkt);
 
+  /// @brief We are Alice, creating and sending SessionConfirmed message
+  /// @param dh_y Diffie-Hellman Y as created by Bob
+  /// @param our_address Our IP address
+  /// @param our_address Our IP size (4 or 16 bytes)
+  /// @param our_port Our port number
   void SendSessionConfirmed(
       const std::uint8_t* y,
       const std::uint8_t* our_address,
@@ -263,7 +271,7 @@ class SSUSession
       const boost::asio::ip::udp::endpoint& from);
 
   void SendRelayRequest(
-      std::uint32_t introducer_tag,
+      const std::uint32_t introducer_tag,
       const std::uint8_t* introducer_key);
 
   // Payload type 4: RelayResponse
@@ -272,18 +280,19 @@ class SSUSession
       SSUPacket* pkt);
 
   void SendRelayResponse(
-      std::uint32_t nonce,
+      const std::uint32_t nonce,
       const boost::asio::ip::udp::endpoint& from,
       const std::uint8_t* intro_key,
       const boost::asio::ip::udp::endpoint& to);
 
   // Payload type 5: RelayIntro
 
-  void ProcessRelayIntro(
-      SSUPacket* pkt);
+  /// @brief We are Charlie, receiving Bob's RelayIntro - then sending Alice a RelayResponse
+  /// @param packet Bob's RelayIntro packet containing Alice's IP and port
+  void ProcessRelayIntro(SSUPacket* packet);
 
   void SendRelayIntro(
-      SSUSession* session,
+      const SSUSession* session,
       const boost::asio::ip::udp::endpoint& from);
 
   // Payload type 6: Data
@@ -298,16 +307,16 @@ class SSUSession
       const boost::asio::ip::udp::endpoint& sender_endpoint);
 
   void SendPeerTest(
-      std::uint32_t nonce,
-      std::uint32_t address,
-      std::uint16_t port,
+      const std::uint32_t nonce,
+      const std::uint32_t address,
+      const std::uint16_t port,
       const std::uint8_t* intro_key,
-      bool to_address = true,
-      bool send_address = true);
+      const bool to_address = true,
+      const bool send_address = true);
 
   // Payload type 8: SessionDestroyed
 
-  void SendSesionDestroyed();
+  void SendSessionDestroyed();
 
   // End payload types
 
@@ -342,7 +351,6 @@ class SSUSession
       std::uint8_t* buf,
       std::size_t len,
       const std::uint8_t* aes_key,
-      const std::uint8_t* iv,
       const std::uint8_t* mac_key,
       std::uint8_t flag = 0);
 
@@ -352,14 +360,16 @@ class SSUSession
       std::uint8_t* buf,
       std::size_t len);
 
+  /// @brief Decrypt message
+  /// @param buf Message to decrypt + decrypt to existing buffer
+  /// @param len Message length
+  /// @param key Decrypt with given key (implies not using session's AES key)
+  /// @param is_session Decrypt using session's AES key (implies not using given AES key)
   void Decrypt(
       std::uint8_t* buf,
       std::size_t len,
-      const std::uint8_t* aes_key);
-
-  void DecryptSessionKey(
-      std::uint8_t* buf,
-      std::size_t len);
+      const std::uint8_t* aes_key,
+      const bool is_session = false);
 
   bool Validate(
       std::uint8_t* buf,
@@ -372,6 +382,27 @@ class SSUSession
 
   void HandleTerminationTimer(
       const boost::system::error_code& ecode);
+
+ private:
+  /// @brief Calculates exchanged session dataset size used in
+  ///   SessionRequest/SessionCreated/SessionConfirmed
+  /// @param alice_and_bob Alice + Bob's address sizes in bytes (concatenated size)
+  // TODO(anonimal): this will most likely be removed when sequence containers are implemented
+  // TODO(anonimal): by this point, why would we allow mix-and-match IPv6 to send to IPv4 - or vice versa...
+  std::uint16_t get_signed_data_size(const std::uint8_t alice_and_bob) const
+      noexcept
+  {
+    // TODO(anonimal): this doesn't ensure 4 or 16 byte sizes per host but that
+    //   check should be done elsewhere, in a caller.
+    assert(alice_and_bob <= (16 * 2));  // No larger than 2 IPv6 addresses
+
+    return DHKeySize::PubKey * 2  // DH X+Y
+           + alice_and_bob  // Alice + Bob's address size
+           + 2  // Alice's port
+           + 2  // Bob's port
+           + 4  // Alice's relay tag
+           + 4;  // Alice or Bob's signed-on time
+  }
 
  private:
   friend class SSUData;  // TODO(unassigned): change in later
@@ -389,7 +420,12 @@ class SSUSession
   kovri::core::AESKey m_SessionKey;
   kovri::core::MACKey m_MACKey;
   std::uint32_t m_CreationTime;  // seconds since epoch
-  std::unique_ptr<SignedData> m_SessionConfirmData;
+
+  /// @brief The unsigned SessionCreated data for SessionConfirmed processing
+  // TODO(anonimal): data should be separated from session class
+  // TODO(anonimal): mutex lock if we ever expand member usage across threads (unlikely)
+  std::vector<std::uint8_t> m_SessionConfirmData;
+
   bool m_IsDataReceived;
   kovri::core::Exception m_Exception;
 };

@@ -44,11 +44,15 @@
 #include "core/router/transports/ssu/server.h"
 #include "core/router/transports/impl.h"
 
+#include "core/util/byte_stream.h"
 #include "core/util/log.h"
 #include "core/util/timestamp.h"
 
 namespace kovri {
 namespace core {
+
+// TODO(anonimal): session message creation/processing should be separated from
+//  network session implementation and templated where possible.
 
 // TODO(anonimal): bytestream refactor
 
@@ -154,65 +158,94 @@ bool SSUSession::CreateAESandMACKey(
  *
  */
 
+// TODO(anonimal): separate message validation / decryption from session
 void SSUSession::ProcessNextMessage(
     std::uint8_t* buf,
     std::size_t len,
-    const boost::asio::ip::udp::endpoint& sender_endpoint) {
-  m_NumReceivedBytes += len;
-  LOG(debug)
-    << "SSUSession:" << GetFormattedSessionInfo()
-    << "--> " << len << " bytes transferred << "
-    << GetNumReceivedBytes() << " total bytes received";
-  kovri::core::transports.UpdateReceivedBytes(len);
-  if (m_State == SessionState::Introduced) {
-    // HolePunch received
-    LOG(debug) << "SSUSession: SSU HolePunch of " << len << " bytes received";
-    m_State = SessionState::Unknown;
-    Connect();
-  } else {
-    if (!len)
-      return;  // ignore zero-length packets
-    if (m_State == SessionState::Established)
-      ScheduleTermination();
-    // Try session key first
-    if (m_IsSessionKey && Validate(buf, len, m_MACKey))
-      {
-        DecryptSessionKey(buf, len);
-    } else {
-      // try intro key depending on side
-      auto intro_key = GetIntroKey();
-      bool validated = false;
-      if (intro_key)
+    const boost::asio::ip::udp::endpoint& sender_endpoint)
+{
+  try
+    {
+      if (!len && m_State != SessionState::Introduced)
         {
-          if (Validate(buf, len, intro_key))
-            {
-              validated = true;
-              Decrypt(buf, len, intro_key);
-            }
+          LOG(warning) << "SSUSession:" << GetFormattedSessionInfo()
+                       << ": ignoring zero-length message (expecting HolePunch)";
+          return;  // TODO(anonimal): throw/warn for potential attacks
         }
-      if (!validated)
+
+      assert(buf);
+      LOG(trace) << "SSUSession:" << GetFormattedSessionInfo() << __func__
+                 << GetFormattedHex(buf, len);
+
+      // Update session received byte count
+      m_NumReceivedBytes += len;
+      LOG(debug) << "SSUSession:" << GetFormattedSessionInfo() << "--> " << len
+                 << " bytes transferred, " << m_NumReceivedBytes
+                 << " total bytes received";
+
+      // Update total received bytes during router run
+      core::transports.UpdateReceivedBytes(len);
+
+      // TODO(anonimal): this particular state design is bad design
+      assert(
+          m_State != SessionState::Closed || m_State != SessionState::Failed);
+      switch (m_State)
         {
-          // try own intro key
-          auto address = context.GetRouterInfo().GetSSUAddress();
-          if (!address)
+          case SessionState::Introduced:
             {
-              LOG(error) << "SSUSession: " << __func__
-                         << ": SSU is not supported";
+              // TODO(anonimal): verify
+              LOG(debug) << "SSUSession: SSU HolePunch received";
+              m_State = SessionState::Unknown;
+              // Proceed to SessionRequest
+              Connect();
               return;
             }
-          if (!Validate(buf, len, address->key))
+            break;
+          case SessionState::Established:
             {
-              LOG(error) << "SSUSession: MAC verification failed " << len
-                         << " bytes from " << sender_endpoint;
-              m_Server.DeleteSession(shared_from_this());
-              return;
+              // No further messages expected from this session
+              ScheduleTermination();
             }
-          Decrypt(buf, len, address->key);
+            break;
+          case SessionState::Unknown:
+            // Continue to message processing
+            break;
+          default:
+            LOG(debug) << "SSUSession:" << GetFormattedSessionInfo() << __func__
+                       << ": session state="
+                       << static_cast<std::uint16_t>(m_State);
+
+            throw std::invalid_argument("SSUSession: invalid session state");
+            break;
         }
+
+      // Validate message using either session key or introducer key
+      const bool is_session(m_IsSessionKey);
+      const std::uint8_t* key = is_session ? m_MACKey() : GetIntroKey();
+      assert(key);
+
+      // HMAC-MD5 validation
+      if (!Validate(buf, len, key))
+        {
+          LOG(trace) << GetFormattedSessionInfo() << __func__
+                     << ": Key=" << GetFormattedHex(key, 32);
+
+          throw std::runtime_error(
+              "SSUSession:" + (is_session ? GetFormattedSessionInfo() : " ")
+              + "MAC verification failed with "
+              + (is_session ? "session key" : "introducer key"));
+        }
+
+      // Decrypt message using given key or existing session keys
+      Decrypt(buf, len, key, is_session);
+      ProcessDecryptedMessage(buf, len, sender_endpoint);
     }
-    // successfully decrypted
-    ProcessDecryptedMessage(buf, len, sender_endpoint);
-  }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      m_Server.DeleteSession(shared_from_this());
+      return;  // TODO(anonimal): throw/warn for potential attacks
+    }
 }
 
 void SSUSession::ProcessDecryptedMessage(
@@ -222,19 +255,15 @@ void SSUSession::ProcessDecryptedMessage(
   len -= (len & 0x0F);  // %16, delete extra padding
   SSUPacketParser parser(buf, len);
   std::unique_ptr<SSUPacket> packet;
-  try {
-    packet = parser.ParsePacket();
-  } catch(const std::exception& e) {
-    LOG(error)
-      << "SSUSession: invalid SSU session packet from " << sender_endpoint
-      << " --> " << e.what();
-    return;
-  } catch (...) {
-    LOG(error)
-      << "SSUSession: invalid SSU session packet from " << sender_endpoint
-      << " --> unknown exception";
-    return;
-  }
+  try
+    {
+      packet = parser.ParsePacket();
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      throw;
+    }
   switch (packet->GetHeader()->GetPayloadType()) {
     case SSUPayloadType::Data:
       ProcessData(packet.get());
@@ -321,37 +350,55 @@ void SSUSession::ProcessSessionRequest(
   SendSessionCreated(packet->GetDhX());
 }
 
-void SSUSession::SendSessionRequest() {
-  LOG(debug)
-    << "SSUSession:" << GetFormattedSessionInfo() << "sending SessionRequest";
-  auto intro_key = GetIntroKey();
-  if (!intro_key) {
-    LOG(error)
-      << "SSUSession:" << GetFormattedSessionInfo()
-      << __func__ << ": SSU is not supported";
-    return;
-  }
-  SSUSessionRequestPacket packet;
-  packet.SetHeader(std::make_unique<SSUHeader>(SSUPayloadType::SessionRequest));
-  std::array<std::uint8_t, SSUSize::IV> iv;
-  kovri::core::RandBytes(iv.data(), iv.size());
-  packet.GetHeader()->SetIV(iv.data());
-  packet.SetDhX(m_DHKeysPair->public_key.data());
-  // Fill extended options
-  std::array<std::uint8_t, 2> extended_data {{ 0x00, 0x00 }};
-  if (context.GetState() == RouterState::OK) {  // we don't need relays
-    packet.GetHeader()->SetExtendedOptions(true);
-    packet.GetHeader()->SetExtendedOptionsData(extended_data.data(), 2);
-  }
-  auto const remote_ip(core::AddressToByteVector(GetRemoteEndpoint().address()));
+// TODO(anonimal): separate message creation from session
+void SSUSession::SendSessionRequest()
+{
+  LOG(debug) << "SSUSession:" << GetFormattedSessionInfo()
+             << "sending SessionRequest";
+
+  // Create message
+  SSUSessionRequestPacket message;
+  message.SetHeader(
+      std::make_unique<SSUHeader>(SSUPayloadType::SessionRequest));
+
+  // Set IV
+  std::array<std::uint8_t, SSUSize::IV> IV;
+  core::RandBytes(IV.data(), IV.size());
+  message.GetHeader()->SetIV(IV.data());
+
+  // Set our (Alice's) DH X
+  message.SetDhX(m_DHKeysPair->public_key.data());
+
+  // Set Bob's address size and address
+  auto const remote_ip(core::AddressToByteVector(m_RemoteEndpoint.address()));
+
   // TODO(unassigned): remove const_cast, see bytestream TODO
-  packet.SetIPAddress(const_cast<std::uint8_t*>(remote_ip.data()), remote_ip.size());
-  const std::size_t packet_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
-  const std::size_t buffer_size = packet_size + SSUSize::BufferMargin;
-  // Buffer has SSUSize::BufferMargin extra bytes for computing the HMAC
-  auto buffer = std::make_unique<std::uint8_t[]>(buffer_size);
-  WriteAndEncrypt(&packet, buffer.get(), buffer_size, intro_key, intro_key);
-  m_Server.Send(buffer.get(), packet_size, GetRemoteEndpoint());
+  message.SetIPAddress(
+      const_cast<std::uint8_t*>(remote_ip.data()), remote_ip.size());
+
+  // Fill header extended options
+  // TODO(anonimal): review, implement
+  std::array<std::uint8_t, 2> options{{0x00, 0x00}};
+  if (context.GetState() == RouterState::OK)
+    {  // we don't need relays
+      message.GetHeader()->SetExtendedOptions(true);
+      message.GetHeader()->SetExtendedOptionsData(
+          options.data(), options.size());
+    }
+
+  // Create encrypted message buffer
+  std::vector<std::uint8_t> buf(
+      SSUPacketBuilder::GetPaddedSize(message.GetSize())
+      + SSUSize::BufferMargin);
+
+  // Get Bob's introducer key for AES and MAC
+  const std::uint8_t* intro_key = GetIntroKey();
+  assert(intro_key);
+
+  // Encrypt and send
+  WriteAndEncrypt(&message, buf.data(), buf.size(), intro_key, intro_key);
+  m_Server.Send(
+      buf.data(), buf.size() - SSUSize::BufferMargin, m_RemoteEndpoint);
 }
 
 /**
@@ -360,173 +407,255 @@ void SSUSession::SendSessionRequest() {
  *
  */
 
-void SSUSession::ProcessSessionCreated(
-    SSUPacket* pkt) {
-  if (!m_RemoteRouter || !m_DHKeysPair) {
-    LOG(warning)
-      << "SSUSession:" << GetFormattedSessionInfo()
-      << "unsolicited SessionCreated message";
-    return;
-  }
-  LOG(debug)
-    << "SSUSession:" << GetFormattedSessionInfo()
-    << "SessionCreated received";
-  m_Timer.cancel();  // connect timer
-  auto packet = static_cast<SSUSessionCreatedPacket*>(pkt);
-  // x, y, our IP, our port, remote IP, remote port, relay tag, signed on time
-  SignedData s;
-  if (!CreateAESandMACKey(packet->GetDhY())) {
-    LOG(error)
-      << "SSUSession:" << GetFormattedSessionInfo()
-      << "invalid DH-Y, not sending SessionConfirmed";
-    return;
-  }
-  s.Insert(m_DHKeysPair->public_key.data(), 256);  // x
-  s.Insert(packet->GetDhY(), 256);  // y
-  boost::asio::ip::address our_IP;
-  if (packet->GetIPAddressSize() == 4) {  // v4
-    boost::asio::ip::address_v4::bytes_type bytes;
-    memcpy(bytes.data(), packet->GetIPAddress(), 4);
-    our_IP = boost::asio::ip::address_v4(bytes);
-  } else {  // v6
-    boost::asio::ip::address_v6::bytes_type bytes;
-    memcpy(bytes.data(), packet->GetIPAddress(), 16);
-    our_IP = boost::asio::ip::address_v6(bytes);
-  }
-  s.Insert(packet->GetIPAddress(), packet->GetIPAddressSize());  // our IP
-  s.Insert<std::uint16_t>(boost::endian::native_to_big(packet->GetPort()));  // our port
-  LOG(debug)
-    << "SSUSession:" << GetFormattedSessionInfo()
-    << __func__ << ": our external address is "
-    << our_IP.to_string() << ":" << packet->GetPort();
-  context.UpdateAddress(our_IP);
-  if (GetRemoteEndpoint().address().is_v4()) {
-    // remote IP v4
-    s.Insert(GetRemoteEndpoint().address().to_v4().to_bytes().data(), 4);
-  } else {
-    // remote IP v6
-    s.Insert(GetRemoteEndpoint().address().to_v6().to_bytes().data(), 16);
-  }
-  s.Insert<std::uint16_t>(boost::endian::native_to_big(GetRemoteEndpoint().port()));  // remote port
-  m_RelayTag = packet->GetRelayTag();
-  s.Insert<std::uint32_t>(boost::endian::native_to_big(m_RelayTag));  // relay tag
-  s.Insert<std::uint32_t>(boost::endian::native_to_big(packet->GetSignedOnTime()));  // signed on time
-  // decrypt signature
-  auto signature_len = m_RemoteIdentity.GetSignatureLen();
-  auto padding_size = signature_len & 0x0F;  // %16
-  if (padding_size > 0)
-    signature_len += (16 - padding_size);
-  // TODO(anonimal): this try block should be larger or handled entirely by caller
-  try {
-    m_SessionKeyDecryption.SetIV(packet->GetHeader()->GetIV());
-    m_SessionKeyDecryption.Decrypt(
-        packet->GetSignature(),
-        signature_len,
-        packet->GetSignature());
-  } catch (...) {
-    m_Exception.Dispatch(__func__);
-    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
-    throw;
-  }
-  // verify
-  if (s.Verify(m_RemoteIdentity, packet->GetSignature())) {
-    SendSessionConfirmed(
-        packet->GetDhY(),
-        packet->GetIPAddress(),
-        packet->GetIPAddressSize(),
-        packet->GetPort());
-  } else {  // invalid signature
-    LOG(error)
-      << "SSUSession:" << GetFormattedSessionInfo()
-      << "SessionCreated signature verification failed";
-    // Reset the session key, Java routers might resent the message if it
-    //  failed the first time
-    m_IsSessionKey = false;
-  }
+void SSUSession::ProcessSessionCreated(const SSUPacket* packet)
+{
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try
+    {
+      LOG(debug) << "SSUSession:" << GetFormattedSessionInfo()
+                 << "SessionCreated received, processing";
+
+      if (!m_RemoteRouter || !m_DHKeysPair)
+        {
+          LOG(warning) << "SSUSession:" << GetFormattedSessionInfo()
+                       << "unsolicited SessionCreated message";
+          return;  // TODO(anonimal): throw/assert?
+        }
+
+      // TODO(anonimal): continue review of timer management. Connect timer is
+      //  canceled when it expires after sending SessionRequest, and is also canceled
+      //  once the session is established - so we should not need to cancel here.
+      //  Note: canceling also does not reset expiration time.
+
+      assert(packet);
+      const auto* message = static_cast<const SSUSessionCreatedPacket*>(packet);
+
+      // Complete SessionRequest DH agreement using Bob's DH Y
+      if (!CreateAESandMACKey(message->GetDhY()))
+        {
+          LOG(error) << "SSUSession:" << GetFormattedSessionInfo()
+                     << "invalid DH-Y, not sending SessionConfirmed";
+          return;  // TODO(anonimal): assert/throw?
+        }
+
+      // Create dataset of exchanged session data (the dataset Bob has signed)
+      // TODO(anonimal): at this point, why would we allow mix-and-match IPv6 to send to IPv4 - or vice versa...
+      bool const is_IPv6 = m_RemoteEndpoint.address().is_v6();
+      core::OutputByteStream data(get_signed_data_size(
+          message->GetIPAddressSize() + (is_IPv6 ? 16 : 4)));
+
+      // Our (Alice's) DH X
+      data.WriteData(m_DHKeysPair->public_key.data(), DHKeySize::PubKey);
+
+      // Bob's DH Y
+      data.WriteData(message->GetDhY(), DHKeySize::PubKey);
+
+      // Our (Alice's) IP and port
+      data.WriteData(message->GetIPAddress(), message->GetIPAddressSize());
+      data.Write<std::uint16_t>(message->GetPort());
+
+      // Bob's IP address
+      data.WriteData(
+          is_IPv6 ? m_RemoteEndpoint.address().to_v6().to_bytes().data()
+                  : m_RemoteEndpoint.address().to_v4().to_bytes().data(),
+          is_IPv6 ? 16 : 4);
+
+      // Bob's port
+      data.Write<std::uint16_t>(m_RemoteEndpoint.port());
+
+      // Our (Alice's) relay tag
+      data.Write<std::uint32_t>(m_RelayTag = message->GetRelayTag());
+
+      // Bob's signed-on time
+      data.Write<std::uint32_t>(message->GetSignedOnTime());
+
+      // Get Bob's padded signature length
+      std::uint8_t const signature_len =
+          SSUPacketBuilder::GetPaddedSize(m_RemoteIdentity.GetSignatureLen());
+
+      // Prepare decrypted-signature buffer
+      std::vector<std::uint8_t> signature(signature_len);
+
+      // Use Bob's IV to decrypt signature using our negotiated session key
+      m_SessionKeyDecryption.SetIV(message->GetHeader()->GetIV());
+
+      // Decrypt signature
+      m_SessionKeyDecryption.Decrypt(
+          message->GetSignature(), signature.size(), signature.data());
+
+      // TODO(anonimal): log debug of encrypted/decrypted sig + message data
+
+      // Verify signed dataset
+      if (!m_RemoteIdentity.Verify(data.Data(), data.Size(), signature.data()))
+        {
+          LOG(error) << "SSUSession:" << GetFormattedSessionInfo()
+                     << "SessionCreated signature verification failed";
+          // TODO(anonimal): review if Java routers resend the message on failure.
+          //   Instead of immediately resetting session key, we can explore ways
+          //   to observe and mitigate potential attacks. Another possible case
+          //   for failure:
+          //     "If Bob's NAT/firewall has mapped his internal port to a
+          //     different external port, and Bob is unaware of it, the
+          //     verification by Alice will fail."
+          m_IsSessionKey = false;
+          return;  // TODO(anonimal): throw/assert?
+        }
+
+      // An SSU'ism: update our external address as perceived by Bob
+      context.UpdateAddress(
+          message->GetIPAddress(),
+          message->GetIPAddressSize(),
+          message->GetPort());
+
+      // Session created, create/send confirmation
+      SendSessionConfirmed(
+          message->GetDhY(),
+          message->GetIPAddress(),
+          message->GetIPAddressSize(),
+          message->GetPort());
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      // TODO(anonimal): ensure exception handling by callers
+      throw;
+    }
 }
 
-void SSUSession::SendSessionCreated(
-    const std::uint8_t* x) {
-  auto intro_key = GetIntroKey();
-  auto address = IsV6() ?
-    context.GetRouterInfo().GetSSUAddress(true) :
-    context.GetRouterInfo().GetSSUAddress();  // v4 only
-  if (!intro_key || !address) {
-    LOG(error)
-      << "SSUSession:" << GetFormattedSessionInfo()
-      << "SendSessionCreated(): SSU is not supported";
-    return;
-  }
-  SSUSessionCreatedPacket packet;
-  packet.SetHeader(std::make_unique<SSUHeader>(SSUPayloadType::SessionCreated));
-  std::array<std::uint8_t, SSUSize::IV> iv;
-  kovri::core::RandBytes(iv.data(), iv.size());
-  packet.GetHeader()->SetIV(iv.data());
-  packet.SetDhY(m_DHKeysPair->public_key.data());
-  packet.SetPort(GetRemoteEndpoint().port());
-  // signature
-  // x,y, remote IP, remote port, our IP, our port, relay tag, signed on time
-  SignedData s;
-  s.Insert(x, 256);  // x
-  s.Insert(packet.GetDhY(), 256);  // y
-  auto const remote_ip(core::AddressToByteVector(GetRemoteEndpoint().address()));
-  // TODO(unassigned): remove const_cast, see bytestream TODO
-  packet.SetIPAddress(const_cast<std::uint8_t*>(remote_ip.data()), remote_ip.size());
-  s.Insert(remote_ip.data(), remote_ip.size());  // remote ip
-  s.Insert<std::uint16_t>(boost::endian::native_to_big(packet.GetPort()));  // remote port
-  if (address->host.is_v4())
-    s.Insert(address->host.to_v4().to_bytes().data(), 4);  // our IP V4
-  else
-    s.Insert(address->host.to_v6().to_bytes().data(), 16);  // our IP V6
-  s.Insert<std::uint16_t> (boost::endian::native_to_big(address->port));  // our port
+// TODO(anonimal): separate message creation / signed data writing from session
+void SSUSession::SendSessionCreated(const std::uint8_t* dh_x)
+{
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try
+    {
+      // Get our (Bob's) intro key and SSU address
+      // TODO(anonimal): we can get/set this sooner. Redesign.
+      const std::uint8_t* intro_key = GetIntroKey();
+      auto* address = m_RemoteEndpoint.address().is_v6()
+                          ? context.GetRouterInfo().GetSSUAddress(true)
+                          : context.GetRouterInfo().GetSSUAddress();
 
-  std::uint32_t relay_tag = 0;
-  if (context.GetRouterInfo().HasCap(RouterInfo::Cap::SSUIntroducer)) {
-    relay_tag = kovri::core::Rand<std::uint32_t>();
-    if (!relay_tag)
-      relay_tag = 1;
-    m_Server.AddRelay(relay_tag, GetRemoteEndpoint());
-  }
-  packet.SetRelayTag(relay_tag);
-  packet.SetSignedOnTime(kovri::core::GetSecondsSinceEpoch());
-  s.Insert<std::uint32_t>(boost::endian::native_to_big(relay_tag));
-  s.Insert<std::uint32_t>(boost::endian::native_to_big(packet.GetSignedOnTime()));
-  // store for session confirmation
-  m_SessionConfirmData = std::make_unique<SignedData>(s);
+      // If we don't support SSU, we shouldn't reach this stage in the session
+      assert(intro_key || address);  // TODO(anonimal): redesign
 
-  // Set signature size to compute the required padding size 
-  std::size_t signature_size = context.GetIdentity().GetSignatureLen();
-  packet.SetSignature(nullptr, signature_size);
-  const std::size_t sig_padding = SSUPacketBuilder::GetPaddingSize(
-      packet.GetSize());
-  // Set signature with correct size and fill the padding
-  auto signature_buf = std::make_unique<std::uint8_t[]>(
-      signature_size + sig_padding);
-  s.Sign(context.GetPrivateKeys(), signature_buf.get());
-  kovri::core::RandBytes(signature_buf.get() + signature_size, sig_padding);
-  packet.SetSignature(signature_buf.get(), signature_size + sig_padding);
+      // Prepare SessionConfirmed message to send to Alice
+      SSUSessionCreatedPacket message;
+      message.SetHeader(
+          std::make_unique<SSUHeader>(SSUPayloadType::SessionCreated));
 
-  // Encrypt signature and padding with newly created session key
-  // TODO(anonimal): this try block should be larger or handled entirely by caller
-  try {
-    m_SessionKeyEncryption.SetIV(packet.GetHeader()->GetIV());
-    m_SessionKeyEncryption.Encrypt(
-        packet.GetSignature(),
-        packet.GetSignatureSize(),
-        packet.GetSignature());
-  } catch (...) {
-    m_Exception.Dispatch(__func__);
-    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
-    throw;
-  }
-  const std::size_t packet_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
-  const std::size_t buffer_size = packet_size + SSUSize::BufferMargin;
-  // TODO(EinMByte): Deal with large messages in a better way
-  if (packet_size <= SSUSize::MTUv4) {
-    auto buffer = std::make_unique<std::uint8_t[]>(buffer_size);
-    WriteAndEncrypt(&packet, buffer.get(), buffer_size, intro_key, intro_key);
-    Send(buffer.get(), packet_size);
-  }
+      // Set IV
+      std::array<std::uint8_t, SSUSize::IV> IV;
+      kovri::core::RandBytes(IV.data(), IV.size());
+      message.GetHeader()->SetIV(IV.data());
+
+      // Set our (Bob's) DH Y
+      message.SetDhY(m_DHKeysPair->public_key.data());
+
+      // Set Alice's IP address size and address
+      auto const alice_ip(
+          core::AddressToByteVector(m_RemoteEndpoint.address()));
+
+      message.SetIPAddress(
+          // TODO(unassigned): remove const_cast, see bytestream TODO
+          const_cast<std::uint8_t*>(alice_ip.data()),
+          alice_ip.size());  // message IP address size must be set internally
+
+      // Set Alice's port
+      message.SetPort(m_RemoteEndpoint.port());
+
+      // Compute exchanged session dataset size
+      // TODO(anonimal): at this point, why would we allow mix-and-match IPv6 to send to IPv4 - or vice versa...
+      bool const is_IPv6 = address->host.is_v6();
+      std::uint16_t const data_size =
+          get_signed_data_size(alice_ip.size() + (is_IPv6 ? 16 : 4));
+
+      // Prepare dataset of exchanged session data (the dataset we will sign)
+      // TODO(anonimal): assert for bad design. Redesign.
+      assert(!m_SessionConfirmData.size());
+      m_SessionConfirmData.reserve(data_size);
+
+      core::OutputByteStream data(m_SessionConfirmData.data(), data_size);
+
+      // Alice's DH X
+      data.WriteData(dh_x, SSUSize::DHPublic);
+
+      // Our (Bob's) DH Y
+      data.WriteData(message.GetDhY(), SSUSize::DHPublic);
+
+      // Alice's address and port
+      data.WriteData(alice_ip.data(), alice_ip.size());
+      data.Write<std::uint16_t>(message.GetPort());
+
+      // Our (Bob's) address
+      data.WriteData(
+          is_IPv6 ? address->host.to_v6().to_bytes().data()
+                  : address->host.to_v4().to_bytes().data(),
+          is_IPv6 ? 16 : 4);
+
+      // Our (Bob's) port
+      data.Write<std::uint16_t>(address->port);
+
+      // Set Alice's relay tag
+      std::uint32_t relay_tag = 0;
+      if (context.GetRouterInfo().HasCap(RouterInfo::Cap::SSUIntroducer))
+        {
+          // Non-zero = we are offering ourselves to be an introducer
+          relay_tag = core::Rand<std::uint32_t>();
+          if (!relay_tag)
+            {
+              // TODO(anonimal): ...not good if should we have more than one relay
+              //  with tag valued 1. Get existing tags and set appropriately.
+              relay_tag = 1;
+            }
+          m_Server.AddRelay(relay_tag, m_RemoteEndpoint);
+        }
+      message.SetRelayTag(relay_tag);
+      data.Write<std::uint32_t>(relay_tag);
+
+      // Our (Bob's) signed-on time
+      message.SetSignedOnTime(core::GetSecondsSinceEpoch());
+      data.Write<std::uint32_t>(message.GetSignedOnTime());
+
+      // Compute required signature + padding size
+      std::uint8_t signature_size = context.GetIdentity().GetSignatureLen();
+      std::uint8_t const padding =
+          SSUPacketBuilder::GetPaddingSize(message.GetSize() + signature_size);
+
+      // Create the signature + padding
+      std::vector<std::uint8_t> signature(signature_size + padding);
+      context.GetPrivateKeys().Sign(data.Data(), data.Size(), signature.data());
+
+      // Randomize signature padding
+      core::RandBytes(signature.data() + signature_size, padding);
+      message.SetSignature(signature.data(), signature.size());
+
+      // Encrypt signature + padding with session key
+      std::vector<std::uint8_t> encrypted(message.GetSignatureSize());
+
+      m_SessionKeyEncryption.SetIV(message.GetHeader()->GetIV());
+      m_SessionKeyEncryption.Encrypt(
+          message.GetSignature(), encrypted.size(), encrypted.data());
+
+      message.SetSignature(encrypted.data(), encrypted.size());
+
+      // Encrypt message with Alice's intro key and send
+      std::uint16_t const size =
+          SSUPacketBuilder::GetPaddedSize(message.GetSize());
+      // TODO(anonimal): IPv6 MTU...
+      if (size <= SSUSize::MTUv4)
+        {
+          std::vector<std::uint8_t> buf(size + SSUSize::BufferMargin);
+          WriteAndEncrypt(
+              &message, buf.data(), buf.size(), intro_key, intro_key);
+          Send(buf.data(), buf.size() - SSUSize::BufferMargin);
+        }
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      // TODO(anonimal): ensure exception handling by callers
+      throw;
+    }
 }
 
 /**
@@ -536,67 +665,120 @@ void SSUSession::SendSessionCreated(
  */
 
 void SSUSession::ProcessSessionConfirmed(SSUPacket* pkt) {
-  if (m_SessionConfirmData == nullptr) {
-    // No session confirm data
-    LOG(error)
-      << "SSUSession:" << GetFormattedSessionInfo() << "unsolicited SessionConfirmed";
-    return;
-  }
+  if (m_SessionConfirmData.empty())
+    {
+      // No session confirm data
+      LOG(error) << "SSUSession:" << GetFormattedSessionInfo()
+                 << "unsolicited SessionConfirmed";
+      return;  // TODO(anonimal): throw/warn for potential attacks
+    }
+
   LOG(debug)
     << "SSUSession:" << GetFormattedSessionInfo() << "SessionConfirmed received";
   auto packet = static_cast<SSUSessionConfirmedPacket*>(pkt);
   m_RemoteIdentity = packet->GetRemoteRouterIdentity();
   m_Data.UpdatePacketSize(m_RemoteIdentity.GetIdentHash());
-  // signature time : replace with last value
-  m_SessionConfirmData->Insert<std::uint32_t>(
-      std::ios_base::end, -4, boost::endian::native_to_big(packet->GetSignedOnTime()));
-  if (m_SessionConfirmData->Verify(m_RemoteIdentity, packet->GetSignature())) {
-    // verified
-    Established();
-    return;
-  }
-  // bad state or verification failed
-  LOG(error)
-    << "SSUSession:" << GetFormattedSessionInfo() << "SessionConfirmed Failed";
+
+  // Replace unused (spec-unused) signed-on type with Alice's value
+  core::OutputByteStream data(
+      m_SessionConfirmData.data(), m_SessionConfirmData.size());
+
+  // TODO(anonimal): received as BE (at least with kovri). Ensure BE.
+  std::uint32_t const time = packet->GetSignedOnTime();
+  std::memcpy(data.Data() + (data.Size() - 4), &time, 4);
+
+  LOG(trace) << "SSUSession:" << GetFormattedSessionInfo()
+             << "SessionConfirmed data:"
+             << core::GetFormattedHex(data.Data(), data.Size());
+
+  // Verify data with Alice's signature
+  if (!m_RemoteIdentity.Verify(
+          data.Data(), data.Size(), packet->GetSignature()))
+    {
+      LOG(error) << "SSUSession:" << GetFormattedSessionInfo()
+                 << "SessionConfirmed verification failed";
+      return;  // TODO(anonimal): set threshold, throw/warn for potential attacks
+    }
+
+  LOG(debug) << "SSUSession:" << GetFormattedSessionInfo()
+             << "SessionConfirmed success";
+
+  Established();
 }
 
+// TODO(anonimal): separate message creation from session
 void SSUSession::SendSessionConfirmed(
-    const std::uint8_t* y,
+    const std::uint8_t* dh_y,
     const std::uint8_t* our_address,
     std::size_t our_address_len,
-    std::uint16_t our_port) {
-  SSUSessionConfirmedPacket packet;
-  packet.SetHeader(std::make_unique<SSUHeader>(SSUPayloadType::SessionConfirmed));
-  std::array<std::uint8_t, SSUSize::IV> iv;
-  kovri::core::RandBytes(iv.data(), iv.size());
-  packet.GetHeader()->SetIV(iv.data());
-  packet.SetRemoteRouterIdentity(context.GetIdentity());
-  packet.SetSignedOnTime(kovri::core::GetSecondsSinceEpoch());
-  auto signature_buf = std::make_unique<std::uint8_t[]>(
-      context.GetIdentity().GetSignatureLen());
-  // signature
-  // x,y, our IP, our port, remote IP, remote port,
-  // relay_tag, our signed on time
-  SignedData s;
-  s.Insert(m_DHKeysPair->public_key.data(), 256);  // x
-  s.Insert(y, 256);  // y
-  s.Insert(our_address, our_address_len);
-  s.Insert<std::uint16_t>(boost::endian::native_to_big(our_port));
-  auto const address = GetRemoteEndpoint().address();
-  if (address.is_v4())  // remote IP V4
-    s.Insert(address.to_v4().to_bytes().data(), 4);
-  else  // remote IP V6
-    s.Insert(address.to_v6().to_bytes().data(), 16);
-  s.Insert<std::uint16_t>(boost::endian::native_to_big(GetRemoteEndpoint().port()));  // remote port
-  s.Insert(boost::endian::native_to_big(m_RelayTag));
-  s.Insert(boost::endian::native_to_big(packet.GetSignedOnTime()));
-  s.Sign(context.GetPrivateKeys(), signature_buf.get());
-  packet.SetSignature(signature_buf.get());
-  const std::size_t packet_size = SSUPacketBuilder::GetPaddedSize(packet.GetSize());
-  const std::size_t buffer_size = packet_size + SSUSize::BufferMargin;
-  auto buffer = std::make_unique<std::uint8_t[]>(buffer_size);
-  WriteAndEncrypt(&packet, buffer.get(), buffer_size, m_SessionKey, m_MACKey);
-  Send(buffer.get(), packet_size);
+    std::uint16_t our_port)
+{
+  // TODO(anonimal): this try block should be handled entirely by caller
+  try
+    {
+      SSUSessionConfirmedPacket message;
+      message.SetHeader(
+          std::make_unique<SSUHeader>(SSUPayloadType::SessionConfirmed));
+
+      // Create IV
+      std::array<std::uint8_t, SSUSize::IV> IV;
+      core::RandBytes(IV.data(), IV.size());
+      message.GetHeader()->SetIV(IV.data());
+
+      // Set Bob's ident and new signed-on time
+      message.SetRemoteRouterIdentity(context.GetIdentity());
+      message.SetSignedOnTime(core::GetSecondsSinceEpoch());
+
+      // Create message to sign
+      // TODO(anonimal): at this point, why would we allow mix-and-match IPv6 to send to IPv4 - or vice versa...
+      bool const is_IPv6 = m_RemoteEndpoint.address().is_v6();
+      core::OutputByteStream data(
+          get_signed_data_size(our_address_len + (is_IPv6 ? 16 : 4)));
+
+      // Our (Alice's) DH X
+      data.WriteData(m_DHKeysPair->public_key.data(), SSUSize::DHPublic);
+
+      // Bob's DH Y
+      data.WriteData(dh_y, SSUSize::DHPublic);
+
+      // Our (Alice's) address and port
+      data.WriteData(our_address, our_address_len);
+      data.Write<std::uint16_t>(our_port);
+
+      // Bob's address
+      data.WriteData(
+          is_IPv6 ? m_RemoteEndpoint.address().to_v6().to_bytes().data()
+                  : m_RemoteEndpoint.address().to_v4().to_bytes().data(),
+          is_IPv6 ? 16 : 4);
+
+      // Bob's port
+      data.Write<std::uint16_t>(m_RemoteEndpoint.port());
+
+      // Our (Alice's) relay tag
+      data.Write<std::uint32_t>(m_RelayTag);
+
+      // Our's (Alice's) signed-on time
+      data.Write<std::uint32_t>(message.GetSignedOnTime());
+
+      // Sign message
+      std::vector<std::uint8_t> signature(
+          context.GetIdentity().GetSignatureLen());
+      context.GetPrivateKeys().Sign(data.Data(), data.Size(), signature.data());
+      message.SetSignature(signature.data());
+
+      // Encrypt with session + mac keys generated from DH exchange, then send
+      std::vector<std::uint8_t> buf(
+          SSUPacketBuilder::GetPaddedSize(message.GetSize())
+          + SSUSize::BufferMargin);
+      WriteAndEncrypt(&message, buf.data(), buf.size(), m_SessionKey, m_MACKey);
+      Send(buf.data(), buf.size() - SSUSize::BufferMargin);
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      // TODO(anonimal): ensure exception handling by callers
+      throw;
+    }
 }
 
 /**
@@ -620,56 +802,64 @@ void SSUSession::ProcessRelayRequest(
   SendRelayIntro(session.get(), from);
 }
 
-// TODO(anonimal): bytestream refactor
 void SSUSession::SendRelayRequest(
-    std::uint32_t introducer_tag,
-    const std::uint8_t* introducer_key) {
-  auto address = context.GetRouterInfo().GetSSUAddress();
-  if (!address) {
-    LOG(error)
-      << "SSUSession:" << GetFormattedSessionInfo()
-      << __func__ << ": SSU is not supported";
-    return;
-  }
-  std::array<std::uint8_t, 96 + SSUSize::BufferMargin> buf{
-      {}};  // TODO(unassigned): document size values
-  auto payload = buf.data() + SSUSize::HeaderMin;
-  core::OutputByteStream::Write<std::uint32_t>(payload, introducer_tag);
-  payload += 4;
-  *payload = 0;  // no address
-  payload++;
-  core::OutputByteStream::Write<std::uint16_t>(payload, 0, false);  // port = 0
-  payload += 2;
-  *payload = 0;  // challenge
-  payload++;
-  memcpy(payload, (const std::uint8_t *)address->key, 32);
-  payload += 32;
-  core::OutputByteStream::Write<std::uint32_t>(
-      payload, core::Rand<std::uint32_t>());  // nonce
-  std::array<std::uint8_t, SSUSize::IV> iv;
-  kovri::core::RandBytes(iv.data(), iv.size());
-  auto relay_request = SSUPayloadType::RelayRequest;
-  if (m_State == SessionState::Established) {
-    FillHeaderAndEncrypt(
-        relay_request,
-        buf.data(),
-        96,
-        m_SessionKey,
-        iv.data(),
-        m_MACKey);
-  } else {
-    FillHeaderAndEncrypt(
-        relay_request,
-        buf.data(),
-        96,
-        introducer_key,
-        iv.data(),
-        introducer_key);
-  }
+    const std::uint32_t introducer_tag,
+    const std::uint8_t* introducer_key)
+{
+  auto* const address = context.GetRouterInfo().GetSSUAddress();
+  if (!address)
+    {
+      LOG(error) << "SSUSession:" << GetFormattedSessionInfo() << __func__
+                 << ": SSU is not supported";
+      return;
+    }
+
+  // Create message  // TODO(anonimal): move to packet writer
+  // TODO(unassigned): size if we include Alice's IP (see SSU spec, unimplemented)
+  core::OutputByteStream message(
+      SSUSize::RelayRequestBuffer + SSUSize::BufferMargin);  // TODO(anonimal): review buffer margin
+
+  // TODO(unassigned): Endianness is not spec-defined, assuming BE
+
+  // Skip header (written later)
+  message.SkipBytes(SSUSize::HeaderMin);
+
+  // Intro tag
+  message.Write<std::uint32_t>(introducer_tag);
+
+  // Address, port, and challenge (see SSU spec)
+  message.SkipBytes(4);
+
+  // Key
+  message.Write<std::uint32_t>(
+      core::InputByteStream::Read<std::uint32_t>(address->key));
+
+  // Nonce
+  message.Write<std::uint32_t>(core::Rand<std::uint32_t>());
+
+  // Write header and send
+  if (m_State == SessionState::Established)
+    {
+      // Use Alice/Bob session key if session is established
+      FillHeaderAndEncrypt(
+          SSUPayloadType::RelayRequest,
+          message.Data(),
+          SSUSize::RelayRequestBuffer,
+          m_SessionKey,
+          m_MACKey);
+    }
+  else
+    {
+      FillHeaderAndEncrypt(
+          SSUPayloadType::RelayRequest,
+          message.Data(),
+          SSUSize::RelayRequestBuffer,
+          introducer_key,
+          introducer_key);
+    }
+
   m_Server.Send(
-      buf.data(),
-      96,
-      GetRemoteEndpoint());
+      message.Data(), SSUSize::RelayRequestBuffer, GetRemoteEndpoint());
 }
 
 /**
@@ -683,90 +873,86 @@ void SSUSession::ProcessRelayResponse(SSUPacket* pkt) {
     << "SSUSession:" << GetFormattedSessionInfo() << "RelayResponse received";
   auto packet = static_cast<SSURelayResponsePacket*>(pkt);
   // TODO(EinMByte): Check remote (charlie) address
-  boost::asio::ip::address our_IP;
-  if (packet->GetIPAddressAliceSize() == 4) {
-    boost::asio::ip::address_v4::bytes_type bytes;
-    memcpy(bytes.data(), packet->GetIPAddressAlice(), 4);
-    our_IP = boost::asio::ip::address_v4(bytes);
-  } else {
-    boost::asio::ip::address_v6::bytes_type bytes;
-    memcpy(bytes.data(), packet->GetIPAddressAlice(), 16);
-    our_IP = boost::asio::ip::address_v6(bytes);
-  }
-  LOG(debug)
-    << "SSUSession:" << GetFormattedSessionInfo()
-    << __func__ << ": our external address is "
-    << our_IP.to_string() << ":" << packet->GetPortAlice();
-  context.UpdateAddress(our_IP);
+  context.UpdateAddress(
+      packet->GetIPAddressAlice(),
+      packet->GetIPAddressAliceSize(),
+      packet->GetPortAlice());
 }
 
-// TODO(anonimal): bytestream refactor
 void SSUSession::SendRelayResponse(
-    std::uint32_t nonce,
+    const std::uint32_t nonce,
     const boost::asio::ip::udp::endpoint& from,
     const std::uint8_t* intro_key,
-    const boost::asio::ip::udp::endpoint& to) {
-  std::array<std::uint8_t, 80 + SSUSize::BufferMargin> buf{
-      {}};  // 64 Alice's ipv4 and 80 Alice's ipv6
-  auto payload = buf.data() + SSUSize::HeaderMin;
-  // Charlie's address always v4
-  if (!to.address().is_v4()) {
-    LOG(error)
-      << "SSUSession:" << GetFormattedSessionInfo()
-      << __func__ << ": Charlie's IP must be V4";
-    return;
-  }
-  *payload = 4;
-  payload++;  // size
-  core::OutputByteStream::Write<std::uint32_t>(
-      payload, to.address().to_v4().to_ulong());  // Charlie's IP
-  payload += 4;  // address
-  core::OutputByteStream::Write<std::uint16_t>(payload, to.port());  // Charlie's port
-  payload += 2;  // port
-  // Alice
-  auto is_IPv4 = from.address().is_v4();  // Alice's
-  if (is_IPv4) {
-    *payload = 4;
-    payload++;  // size
-    // Alice's IP V4
-    memcpy(payload, from.address().to_v4().to_bytes().data(), 4);
-    payload += 4;  // address
-  } else {
-    *payload = 16;
-    payload++;  // size
-    // Alice's IP V6
-    memcpy(payload, from.address().to_v6().to_bytes().data(), 16);
-    payload += 16;  // address
-  }
-  core::OutputByteStream::Write<std::uint16_t>(payload, from.port());  // Alice's port
-  payload += 2;  // port
-  core::OutputByteStream::Write<std::uint32_t>(payload, nonce);
-  auto relay_response = SSUPayloadType::RelayResponse;
-  if (m_State == SessionState::Established) {
-    // encrypt with session key
-    FillHeaderAndEncrypt(
-        relay_response,
-        buf.data(),
-        is_IPv4 ? 64 : 80);
-    Send(
-        buf.data(),
-        is_IPv4 ? 64 : 80);
-  } else {
-    // encrypt with Alice's intro key
-    std::array<std::uint8_t, SSUSize::IV> iv;
-    kovri::core::RandBytes(iv.data(), iv.size());
-    FillHeaderAndEncrypt(
-        relay_response,
-        buf.data(),
-        is_IPv4 ? 64 : 80,
-        intro_key,
-        iv.data(),
-        intro_key);
-    m_Server.Send(
-        buf.data(),
-        is_IPv4 ? 64 : 80,
-        from);
-  }
+    const boost::asio::ip::udp::endpoint& to)
+{
+  // Charlie's address must always be IPv4
+  if (!to.address().is_v4())
+    {
+      LOG(error) << "SSUSession:" << GetFormattedSessionInfo() << __func__
+                 << ": Charlie's must use IPv4";
+      // TODO(anonimal): don't throw?...
+      return;
+    }
+
+  // Create message  // TODO(anonimal): move to packet writer
+  core::OutputByteStream message(
+      SSUSize::RelayResponseBuffer + SSUSize::BufferMargin);  // TODO(anonimal): review buffer margin
+
+  // Skip header (written later)
+  message.SkipBytes(SSUSize::HeaderMin);
+
+  // Charlie's IPv4 size
+  message.Write<std::uint8_t>(4);
+
+  // Charlie's address
+  message.Write<std::uint32_t>(to.address().to_v4().to_ulong());
+
+  // Charlie's port
+  message.Write<std::uint16_t>(to.port());
+
+  // Alice's IP address
+  bool const is_IPv4 = from.address().is_v4();
+  if (is_IPv4)
+    {
+      message.Write<std::uint8_t>(4);
+      message.WriteData(from.address().to_v4().to_bytes().data(), 4);
+    }
+  else  // TODO(anonimal): *assumes* IPv6?
+    {
+      message.Write<std::uint8_t>(16);
+      message.WriteData(from.address().to_v6().to_bytes().data(), 16);
+    }
+
+  // Alice's port
+  message.Write<std::uint16_t>(from.port());
+
+  // Nonce
+  message.Write<std::uint32_t>(nonce);
+
+  // Write header and send
+  std::uint8_t const message_size = is_IPv4 ? SSUSize::RelayResponseBuffer - 16
+                                             : SSUSize::RelayResponseBuffer;
+  if (m_State == SessionState::Established)
+    {
+      // Uses session key if established
+      FillHeaderAndEncrypt(
+          SSUPayloadType::RelayResponse, message.Data(), message_size);
+
+      Send(message.Data(), message_size);
+    }
+  else
+    {
+      // Encrypt with Alice's intro key
+      FillHeaderAndEncrypt(
+          SSUPayloadType::RelayResponse,
+          message.Data(),
+          message_size,
+          intro_key,
+          intro_key);
+
+      m_Server.Send(message.Data(), message_size, from);
+    }
+
   LOG(debug) << "SSUSession: RelayResponse sent";
 }
 
@@ -776,64 +962,81 @@ void SSUSession::SendRelayResponse(
  *
  */
 
-void SSUSession::ProcessRelayIntro(SSUPacket* pkt) {
-  auto packet = static_cast<SSURelayIntroPacket*>(pkt);
-  std::uint32_t const size = packet->GetIPAddressSize();
-  if (size == 4) {
-    std::uint32_t const addr =
-        core::InputByteStream::Read<std::uint32_t>(packet->GetIPAddress());
-    boost::asio::ip::address_v4 address(addr);
-    // send hole punch of 1 byte
-    m_Server.Send(
-        {},
-        0,
-        boost::asio::ip::udp::endpoint(
-            address,
-            packet->GetPort()));
-  } else {
-    LOG(warning)
-      << "SSUSession:" << GetFormattedSessionInfo()
-      << __func__ << ": address size " << size << " is not supported";
-  }
+void SSUSession::ProcessRelayIntro(SSUPacket* packet)
+{
+  LOG(debug) << "SSUSession:" << GetFormattedSessionInfo()
+             << "RelayIntro received, processing";
+
+  // Get message
+  auto* message = static_cast<SSURelayIntroPacket*>(packet);
+
+  // Get Alice's address
+  boost::asio::ip::address_v4 address(
+      core::InputByteStream::Read<std::uint32_t>(message->GetIPAddress()));
+
+  // Challenge is not implemented
+  assert(!message->GetChallenge());
+
+  // Send an empty HolePunch to Alice for our NAT/firewall traversal
+  // Note: boost.asio allows sending empty buffer + 0 length data (an empty packet)
+  m_Server.Send(
+      {},
+      0,
+      boost::asio::ip::udp::endpoint(
+          address, message->GetPort() /* TODO(anonimal): ensure port is BE */));
 }
 
-// TODO(anonimal): bytestream refactor
 void SSUSession::SendRelayIntro(
-    SSUSession* session,
-    const boost::asio::ip::udp::endpoint& from) {
+    const SSUSession* session,
+    const boost::asio::ip::udp::endpoint& from)
+{
   if (!session)
-    return;
+    {
+      LOG(error) << "SSUSession:" << GetFormattedSessionInfo() << __func__
+                 << ": null session";
+      return;  // TODO(anonimal): assert/throw?!...
+    }
+
   // Alice's address always v4
-  if (!from.address().is_v4()) {
-    LOG(error)
-      << "SSUSession:" << GetFormattedSessionInfo()
-      << __func__ << ": Alice's IP must be V4";
-    return;
-  }
-  std::array<std::uint8_t, 48 + SSUSize::BufferMargin> buf{{}};
-  auto payload = buf.data() + SSUSize::HeaderMin;
-  *payload = 4;
-  payload++;  // size
-  core::OutputByteStream::Write<std::uint32_t>(
-      payload, from.address().to_v4().to_ulong());  // Alice's IP
-  payload += 4;  // address
-  core::OutputByteStream::Write<std::uint16_t>(payload, from.port());  // Alice's port
-  payload += 2;  // port
-  *payload = 0;  // challenge size
-  std::array<std::uint8_t, SSUSize::IV> iv;
-  kovri::core::RandBytes(iv.data(), iv.size());  // random iv
+  if (!from.address().is_v4())
+    {
+      LOG(error) << "SSUSession:" << GetFormattedSessionInfo() << __func__
+                 << ": Alice's address must be IPv4";
+      return;  // TODO(anonimal): assert/throw?!...
+    }
+
+  // Create message
+  core::OutputByteStream message(
+      SSUSize::RelayIntroBuffer + SSUSize::BufferMargin);
+
+  // Skip header (written later)
+  message.SkipBytes(SSUSize::HeaderMin);
+
+  // Alice's IP Size
+  message.Write<std::uint8_t>(4);
+
+  // Alice's IP
+  message.Write<std::uint32_t>(from.address().to_v4().to_ulong());
+
+  // Alice's port
+  message.Write<std::uint16_t>(from.port());
+
+  // Challenge is unimplemented, challenge size is always zero
+  message.SkipBytes(1);
+
+  // Encrypt with Bob/Charlie keys
   FillHeaderAndEncrypt(
       SSUPayloadType::RelayIntro,
-      buf.data(),
-      48,
+      message.Data(),
+      SSUSize::RelayIntroBuffer,
       session->m_SessionKey,
-      iv.data(),
       session->m_MACKey);
+
+  LOG(debug) << "SSUSession: " << GetFormattedSessionInfo()
+             << "sending RelayIntro";
+
   m_Server.Send(
-      buf.data(),
-      48,
-      session->GetRemoteEndpoint());
-  LOG(debug) << "SSUSession: " << GetFormattedSessionInfo() << "RelayIntro sent";
+      message.Data(), SSUSize::RelayIntroBuffer, session->GetRemoteEndpoint());
 }
 
 /**
@@ -985,69 +1188,85 @@ void SSUSession::ProcessPeerTest(
   }
 }
 
-// TODO(anonimal): bytestream refactor
 // TODO(anonimal): pass reference to structure, not SIX arguments!
 void SSUSession::SendPeerTest(
-    std::uint32_t nonce,
-    std::uint32_t address,
-    std::uint16_t port,
+    const std::uint32_t nonce,
+    const std::uint32_t address,
+    const std::uint16_t port,
     const std::uint8_t* intro_key,
-    bool to_address,  // is true for Alice<->Charlie communications only
-    bool send_address) {  // is false if message comes from Alice
-  std::array<std::uint8_t, 80 + SSUSize::BufferMargin> buf{{}};
-  auto payload = buf.data() + SSUSize::HeaderMin;
-  core::OutputByteStream::Write<std::uint32_t>(payload, nonce);
-  payload += 4;  // nonce
-  // address and port
-  if (send_address && address) {
-    *payload = 4;
-    payload++;  // size
-    core::OutputByteStream::Write<std::uint32_t>(payload, address);
-    payload += 4;  // address
-  } else {
-    *payload = 0;
-    payload++;  // size
-  }
-  core::OutputByteStream::Write<std::uint16_t>(payload, port);
-  payload += 2;  // port
-  // intro key
-  if (to_address) {
-    // send our intro key to address instead it's own
-    auto addr = context.GetRouterInfo().GetSSUAddress();
-    if (addr)
-      memcpy(payload, addr->key, 32);  // intro key
-    else
-      LOG(error)
-        << "SSUSession:" << GetFormattedSessionInfo()
-        << "SSU is not supported, can't send PeerTest";
-  } else {
-    memcpy(payload, intro_key, 32);  // intro key
-  }
-  // send
-  std::array<std::uint8_t, SSUSize::IV> iv;
-  kovri::core::RandBytes(iv.data(), iv.size());
-  auto peer_test = SSUPayloadType::PeerTest;
-  if (to_address) {
-    // encrypt message with specified intro key
-    FillHeaderAndEncrypt(
-        peer_test,
-        buf.data(),
-        80,
-        intro_key,
-        iv.data(),
-        intro_key);
-    boost::asio::ip::udp::endpoint ep(
-        boost::asio::ip::address_v4(address),
-        port);
-    m_Server.Send(buf.data(), 80, ep);
-  } else {
-    // encrypt message with session key
-    FillHeaderAndEncrypt(
-        peer_test,
-        buf.data(),
-        80);
-    Send(buf.data(), 80);
-  }
+    const bool to_address,  // is true for Alice<->Charlie communications only
+    const bool send_address)  // is false if message comes from Alice
+{
+  // Create message
+  core::OutputByteStream message(
+      SSUSize::PeerTestBuffer + SSUSize::BufferMargin);
+
+  // Skip header (written later)
+  message.SkipBytes(SSUSize::HeaderMin);
+
+  // Nonce
+  message.Write<std::uint32_t>(nonce);
+
+  // Address
+  if (send_address && address)
+    {
+      message.Write<std::uint8_t>(4);  // Size of address
+      message.Write<std::uint32_t>(address);  // Address
+    }
+  else
+    {
+      message.SkipBytes(1);
+    }
+
+  // Alice's Port
+  message.Write<std::uint16_t>(port);
+
+  // Write introducer key
+  if (to_address)
+    {
+      // Our (Alice's) intro key
+      auto* const addr = context.GetRouterInfo().GetSSUAddress();
+      if (addr)
+        {
+          message.WriteData(addr->key, sizeof(addr->key));
+        }
+      else
+        {
+          LOG(error) << "SSUSession:" << GetFormattedSessionInfo()
+                     << "SSU is not supported, can't send PeerTest";
+          // TODO(anonimal): return/throw/assert
+        }
+    }
+  else
+    {
+      // Charlie's intro key
+      message.WriteData(intro_key, 32);
+    }
+
+  // Write header and send
+  if (to_address)
+    {
+      // Encrypts message with given intro key
+      FillHeaderAndEncrypt(
+          SSUPayloadType::PeerTest,
+          message.Data(),
+          SSUSize::PeerTestBuffer,
+          intro_key,
+          intro_key);
+
+      boost::asio::ip::udp::endpoint ep(
+          boost::asio::ip::address_v4(address), port);
+
+      m_Server.Send(message.Data(), SSUSize::PeerTestBuffer, ep);
+    }
+  else
+    {
+      // Encrypts message with existing session key, uses existing session
+      FillHeaderAndEncrypt(
+          SSUPayloadType::PeerTest, message.Data(), SSUSize::PeerTestBuffer);
+
+      Send(message.Data(), SSUSize::PeerTestBuffer);
+    }
 }
 
 void SSUSession::SendPeerTest() {
@@ -1080,52 +1299,76 @@ void SSUSession::SendPeerTest() {
  *
  */
 
-void SSUSession::SendSesionDestroyed() {
-  if (m_IsSessionKey) {
-    std::array<std::uint8_t, 48 + SSUSize::BufferMargin> buf {{}};
-    // encrypt message with session key
-    FillHeaderAndEncrypt(
-        SSUPayloadType::SessionDestroyed,
-        buf.data(),
-        48);
-    try {
-      Send(buf.data(), 48);
-    } catch(const std::exception& ex) {
-      LOG(error)
-        << "SSUSession:" << GetFormattedSessionInfo()
-        << __func__ << ": '" << ex.what() << "'";
+void SSUSession::SendSessionDestroyed()
+{
+  if (m_IsSessionKey)
+    {
+      // This message should not contain any data
+      core::OutputByteStream message(
+          SSUSize::SessionDestroyedBuffer + SSUSize::BufferMargin);
+
+      // Write header and send (existing session)
+      FillHeaderAndEncrypt(
+          SSUPayloadType::SessionDestroyed,
+          message.Data(),
+          SSUSize::SessionDestroyedBuffer);
+      try
+        {
+          LOG(debug) << "SSUSession:" << GetFormattedSessionInfo()
+                     << "sending SessionDestroyed";
+
+          Send(message.Data(), SSUSize::SessionDestroyedBuffer);
+        }
+      catch (const std::exception& ex)
+        {
+          LOG(error) << "SSUSession:" << GetFormattedSessionInfo() << __func__
+                     << ": '" << ex.what() << "'";
+        }
     }
-    LOG(debug)
-      << "SSUSession:" << GetFormattedSessionInfo() << "SessionDestroyed sent";
-  }
 }
 
-void SSUSession::SendKeepAlive() {
-  if (m_State == SessionState::Established) {
-    std::array<std::uint8_t, 48 + SSUSize::BufferMargin> buf {{}};  // TODO(unassigned): document values
-    auto payload = buf.data() + SSUSize::HeaderMin;
-    *payload = 0;  // flags
-    payload++;
-    *payload = 0;  // num fragments
-    // encrypt message with session key
-    FillHeaderAndEncrypt(
-        SSUPayloadType::Data,
-        buf.data(),
-        48);
-    Send(buf.data(), 48);
-    LOG(debug)
-      << "SSUSession:" << GetFormattedSessionInfo() << "keep-alive sent";
-    ScheduleTermination();
-  }
+// TODO(anonimal):
+//   "An ACK packet with no acks", the function of a keep-alive message is currently
+//   undocumented in I2P specifications. The only mention of keepalives in SSU is a
+//   one-line comment under Data message types:
+//     "If the number of fragments is zero, this is an ack-only or keepalive message."
+//   Note: the Java implementation uses keepalives as a way to ping introducers.
+void SSUSession::SendKeepAlive()
+{
+  if (m_State == SessionState::Established)
+    {
+      // TODO(anonimal):
+      //   37 byte min header
+      //   + 5 byte short I2NP header
+      //   + 1 byte flag (zero)
+      //   + 1 byte number of fragments (zero) = 44...
+      core::OutputByteStream message(48 + SSUSize::BufferMargin);
+
+      // Flag (zero) + num fragments (zero)
+      message.SkipBytes(2);
+
+      // Use existing session + send
+      FillHeaderAndEncrypt(
+          SSUPayloadType::Data,
+          message.Data(),
+          message.Size() - SSUSize::BufferMargin);
+
+      LOG(debug) << "SSUSession:" << GetFormattedSessionInfo()
+                 << "sending keep-alive";
+
+      Send(message.Data(), message.Size() - SSUSize::BufferMargin);
+
+      // Ensure session lifetime
+      ScheduleTermination();
+    }
 }
 
-// TODO(anonimal): pass reference to structure, not SEVEN arguments!
+// TODO(anonimal): refactor
 void SSUSession::FillHeaderAndEncrypt(
     std::uint8_t payload_type,
     std::uint8_t* buf,
     std::size_t len,
     const std::uint8_t* aes_key,
-    const std::uint8_t* iv,
     const std::uint8_t* mac_key,
     std::uint8_t flag) {
   // TODO(anonimal): this try block should be handled entirely by caller
@@ -1137,18 +1380,19 @@ void SSUSession::FillHeaderAndEncrypt(
       return;
     }
     SSUSessionPacket pkt(buf, len);
-    memcpy(pkt.IV(), iv, SSUSize::IV);
+    core::RandBytes(pkt.IV(), SSUSize::IV);
     pkt.PutFlag(flag | (payload_type << 4));  // MSB is 0
     pkt.PutTime(kovri::core::GetSecondsSinceEpoch());
     auto encrypted = pkt.Encrypted();
     auto encrypted_len = len - (encrypted - buf);
-    kovri::core::CBCEncryption encryption(aes_key, iv);
+    kovri::core::CBCEncryption encryption(aes_key, pkt.IV());
     encryption.Encrypt(
         encrypted,
         encrypted_len,
         encrypted);
     // assume actual buffer size is 18 (16 + 2) bytes more
-    memcpy(buf + len, iv, SSUSize::IV);
+    // TODO(unassigned): ^ this is stupid and dangerous to assume that caller is responsible
+    memcpy(buf + len, pkt.IV(), SSUSize::IV);
     core::OutputByteStream::Write<std::uint16_t>(
         buf + len + SSUSize::IV, encrypted_len);
     kovri::core::HMACMD5Digest(
@@ -1163,6 +1407,7 @@ void SSUSession::FillHeaderAndEncrypt(
   }
 }
 
+// TODO(anonimal): refactor
 void SSUSession::WriteAndEncrypt(
     SSUPacket* packet,
     std::uint8_t* buffer,
@@ -1215,6 +1460,7 @@ void SSUSession::WriteAndEncrypt(
   }
 }
 
+// TODO(anonimal): refactor
 void SSUSession::FillHeaderAndEncrypt(
     std::uint8_t payload_type,
     std::uint8_t* buf,
@@ -1239,6 +1485,7 @@ void SSUSession::FillHeaderAndEncrypt(
         encrypted_len,
         encrypted);
     // assume actual buffer size is 18 (16 + 2) bytes more
+    // TODO(unassigned): ^ this is stupid and dangerous to assume that caller is responsible
     memcpy(buf + len, pkt.IV(), SSUSize::IV);
     core::OutputByteStream::Write<std::uint16_t>(
         buf + len + SSUSize::IV, encrypted_len);
@@ -1257,55 +1504,37 @@ void SSUSession::FillHeaderAndEncrypt(
 void SSUSession::Decrypt(
     std::uint8_t* buf,
     std::size_t len,
-    const std::uint8_t* aes_key) {
-  // TODO(anonimal): this try block should be handled entirely by caller
-  try {
-    if (len < SSUSize::HeaderMin) {
-      LOG(error)
-        << "SSUSession:" << GetFormattedSessionInfo()
-        << __func__ << ": unexpected SSU packet length " << len;
+    const std::uint8_t* aes_key,
+    const bool is_session)
+{
+  if (len < SSUSize::HeaderMin)
+    {
+      throw std::length_error(
+          "SSUSession:" + GetFormattedSessionInfo() + __func__
+          + ": unexpected SSU message length " + std::to_string(len));
+    }
+
+  // Parse message buffer and decrypt
+  SSUSessionPacket message(buf, len);
+
+  std::uint8_t* encrypted = message.Encrypted();
+  // TOOD(anonimal): we should only need 2 bytes
+  std::size_t encrypted_len = len - (encrypted - buf);
+  assert(encrypted_len);
+
+  // Set new key for this message
+  if (!is_session)
+    {
+      core::CBCDecryption decryption;
+      decryption.SetKey(aes_key);
+      decryption.SetIV(message.IV());
+      decryption.Decrypt(encrypted, encrypted_len, encrypted);
       return;
     }
-    SSUSessionPacket pkt(buf, len);
-    auto encrypted = pkt.Encrypted();
-    auto encrypted_len = len - (encrypted - buf);
-    kovri::core::CBCDecryption decryption;
-    decryption.SetKey(aes_key);
-    decryption.SetIV(pkt.IV());
-    decryption.Decrypt(
-        encrypted,
-        encrypted_len,
-        encrypted);
-  } catch (...) {
-    m_Exception.Dispatch(__func__);
-    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
-    throw;
-  }
-}
 
-void SSUSession::DecryptSessionKey(
-    std::uint8_t* buf,
-    std::size_t len) {
-  if (len < SSUSize::HeaderMin) {
-    LOG(error)
-      << "SSUSession:" << GetFormattedSessionInfo()
-      << __func__ << ": unexpected SSU packet length " << len;
-    return;
-  }
-  SSUSessionPacket pkt(buf, len);
-  auto encrypted = pkt.Encrypted();
-  auto encrypted_len = len - (encrypted - buf);
-  if (encrypted_len > 0) {
-    // TODO(anonimal): this try block should be larger or handled entirely by caller
-    try {
-      m_SessionKeyDecryption.SetIV(pkt.IV());
-      m_SessionKeyDecryption.Decrypt(encrypted, encrypted_len, encrypted);
-    } catch (...) {
-      m_Exception.Dispatch(__func__);
-      // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
-      throw;
-    }
-  }
+  // Use existing session's AES and MAC key
+  m_SessionKeyDecryption.SetIV(message.IV());
+  m_SessionKeyDecryption.Decrypt(encrypted, encrypted_len, encrypted);
 }
 
 bool SSUSession::Validate(
@@ -1353,7 +1582,7 @@ void SSUSession::WaitForConnect() {
 }
 
 void SSUSession::ScheduleConnectTimer() {
-  m_Timer.cancel();
+  m_Timer.cancel();  // TODO(anonimal): cancel is called within expires_from_now
   m_Timer.expires_from_now(
       boost::posix_time::seconds(
           SSUDuration::ConnectTimeout));
@@ -1408,7 +1637,7 @@ void SSUSession::WaitForIntroduction() {
 
 void SSUSession::Close() {
   m_State = SessionState::Closed;
-  SendSesionDestroyed();
+  SendSessionDestroyed();
   transports.PeerDisconnected(shared_from_this());
   m_Data.Stop();
   m_Timer.cancel();
@@ -1422,8 +1651,10 @@ void SSUSession::Done() {
 }
 
 void SSUSession::Established() {
-  // clear out session confirmation data
-  m_SessionConfirmData.reset(nullptr);
+  // Remove SessionConfirmed data
+  m_SessionConfirmData.clear();
+  m_SessionConfirmData.shrink_to_fit();
+
   m_State = SessionState::Established;
   if (m_DHKeysPair) {
     m_DHKeysPair.reset(nullptr);
@@ -1468,16 +1699,22 @@ void SSUSession::HandleTerminationTimer(
   }
 }
 
-const std::uint8_t* SSUSession::GetIntroKey() const {
-  if (m_RemoteRouter) {
-    // we are client
-    auto address = m_RemoteRouter->GetSSUAddress();
-    return address ? (const std::uint8_t *)address->key : nullptr;
-  } else {
-    // we are server
-    auto address = context.GetRouterInfo().GetSSUAddress();
-    return address ? (const std::uint8_t *)address->key : nullptr;
-  }
+const std::uint8_t* SSUSession::GetIntroKey() const
+{
+  // Use remote key if we are client
+  if (m_RemoteRouter)
+    {
+      LOG(debug) << "SSUSession: " << __func__ << ": using remote's key";
+      auto* address = m_RemoteRouter->GetSSUAddress();
+      assert(address);  // TODO(anonimal): SSU should be guaranteed
+      return address->key;
+    }
+
+  // Use our key if we are server
+  LOG(debug) << "SSUSession: " << __func__ << ": using our key";
+  auto* address = context.GetRouterInfo().GetSSUAddress();
+  assert(address);  // TODO(anonimal): SSU should be guaranteed
+  return address->key;
 }
 
 void SSUSession::SendI2NPMessages(

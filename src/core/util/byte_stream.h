@@ -179,6 +179,13 @@ class OutputByteStream : public ByteStream
   /// @param len Number of bytes to "skip"
   virtual void SkipBytes(std::size_t len);
 
+  /// @brief Allows writing the first byte in the stream
+  /// @return Pointer to the first byte
+  std::uint8_t* Data() noexcept
+  {
+    return m_DataPtr - m_Counter;
+  }
+
   /// @brief Writes data into data member buffer
   /// @note Increments buffer pointer position after writing data
   /// @param data Pointer to data to write

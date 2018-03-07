@@ -46,6 +46,7 @@
 #include "core/router/context.h"
 #include "core/router/net_db/impl.h"
 
+#include "core/util/byte_stream.h"
 #include "core/util/log.h"
 
 // TODO(unassigned): improve UPnP implementation design and ensure that client doesn't interfere
@@ -252,9 +253,9 @@ void UPnP::Discover() {
     } else {
       if (m_externalIPAddress[0]) {
         LOG(debug) << "UPnP: external IP address: " << m_externalIPAddress;
-        context.UpdateAddress(
-            boost::asio::ip::address::from_string(
-              m_externalIPAddress));
+        auto const address = core::AddressToByteVector(
+            boost::asio::ip::address::from_string(m_externalIPAddress));
+        context.UpdateAddress(address.data(), address.size());
         return;
       } else {
         LOG(error) << "UPnP: GetExternalIPAddress failed.";

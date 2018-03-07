@@ -30,6 +30,8 @@
 
 #include "core/util/byte_stream.h"
 
+#include <boost/asio/ip/address.hpp>
+
 #include <cassert>
 #include <cstring>
 #include <iomanip>
@@ -192,6 +194,36 @@ std::vector<std::uint8_t> AddressToByteVector(
             : address.to_v6().to_bytes().data(),
       data.size());
   return data;
+}
+
+boost::asio::ip::address BytesToAddress(
+    const std::uint8_t* host,
+    const std::uint8_t size)
+{
+  boost::asio::ip::address address;
+
+  assert(size == 4 || size == 16);
+  switch (size)
+    {
+      case 4:
+        {
+          boost::asio::ip::address_v4::bytes_type bytes;
+          std::memcpy(bytes.data(), host, size);
+          address = boost::asio::ip::address_v4(bytes);
+        }
+        break;
+      case 16:
+        {
+          boost::asio::ip::address_v6::bytes_type bytes;
+          std::memcpy(bytes.data(), host, size);
+          address = boost::asio::ip::address_v6(bytes);
+        }
+        break;
+      default:
+        throw std::length_error("invalid address size");
+    };
+
+  return address;
 }
 
 }  // namespace core

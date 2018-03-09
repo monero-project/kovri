@@ -37,6 +37,8 @@
 
 #include <fstream>
 #include <tuple>
+#include <vector>
+#include <utility>
 
 #include "core/router/i2np.h"
 #include "core/router/info.h"
@@ -109,9 +111,12 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
       keys.Write(buf.data(), buf.size());
 
       LOG(debug) << "RouterContext: creating RI from in-memory keys";
+      std::vector<std::pair<std::string, std::uint16_t>> points;
+      points.emplace_back(host, port);
+
       core::RouterInfo router(
           m_Keys,
-          std::make_pair(host, port),
+          points,
           std::make_pair(has_ntcp, has_ssu));  // TODO(anonimal): brittle, see TODO in header
 
       // Update context RI

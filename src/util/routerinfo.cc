@@ -122,6 +122,7 @@ bool RouterInfoCommand::Impl(
                                                    core::RouterInfo::MaxPort)
                                              : vm["port"].as<int>();
 
+
           // Set transports
           bool const has_ntcp = vm["enable-ntcp"].as<bool>();
           bool const has_ssu = vm["enable-ssu"].as<bool>();
@@ -135,11 +136,10 @@ bool RouterInfoCommand::Impl(
           core::PrivateKeys keys = core::PrivateKeys::CreateRandomKeys(
               core::DEFAULT_ROUTER_SIGNING_KEY_TYPE);
           // Create router info
+          std::vector<std::pair<std::string, std::uint16_t>> points;
+          points.emplace_back(host, port);
           core::RouterInfo routerInfo(
-              keys,
-              std::make_pair(host, port),
-              std::make_pair(has_ntcp, has_ssu),
-              caps);
+              keys, points, std::make_pair(has_ntcp, has_ssu), caps);
           // Set capabilities after creation to allow for disabling
           if (vm["ssuintroducer"].as<bool>())
             caps |= core::RouterInfo::Cap::SSUIntroducer;

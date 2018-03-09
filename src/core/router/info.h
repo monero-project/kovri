@@ -435,13 +435,13 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
   ~RouterInfo();
 
   /// @brief Create RI with standard defaults
-  /// @param point Local hostname/ip address + port
-  /// @param has_transport Supports NTCP, SSU
   /// @param keys Privkeys which generate identity
+  /// @param points Local hostname/ip address + port list
+  /// @param has_transport Supports NTCP, SSU
   /// @param caps RI capabilities
   RouterInfo(
       const core::PrivateKeys& keys,
-      const std::pair<std::string, std::uint16_t>& point,
+      const std::vector<std::pair<std::string, std::uint16_t>>& points,
       const std::pair<bool, bool>& has_transport,  // TODO(anonimal): refactor as bitwise SupportedTransport?
       const std::uint8_t caps = core::RouterInfo::Cap::Reachable);
 

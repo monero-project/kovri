@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -37,7 +37,7 @@
 #include <cstdint>
 #include <memory>
 
-#include "core/router/identity.h"
+#include "core/util/tag.h"
 
 // FIPS 197 (AES)
 // http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197.pdf

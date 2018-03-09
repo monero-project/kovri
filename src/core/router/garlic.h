@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -50,6 +50,7 @@
 #include "core/router/lease_set.h"
 
 #include "core/util/exception.h"
+#include "core/util/tag.h"
 #include "core/util/queue.h"
 
 namespace kovri {

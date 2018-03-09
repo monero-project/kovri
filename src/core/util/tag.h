@@ -30,82 +30,125 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifndef SRC_CORE_CRYPTO_HMAC_H_
-#define SRC_CORE_CRYPTO_HMAC_H_
+#ifndef SRC_CORE_UTIL_TAG_H_
+#define SRC_CORE_UTIL_TAG_H_
 
-#include <string.h>
-
-#include <cstddef>
 #include <cstdint>
+#include <cstring>
+#include <exception>
+#include <string>
+#include <vector>
 
-#include "core/crypto/hash.h"
+#include "core/crypto/radix.h"
 
-#include "core/util/exception.h"
-#include "core/util/tag.h"
+namespace kovri
+{
+namespace core
+{
+// TODO(anonimal): realistically, we'll never need this large a type.
+//   The only need is for our HMAC impl but that should be re-written
+//   so we don't suffer performance loss everywhere else Tag is used.
+template <std::uint64_t Size>
+class Tag
+{
+ public:
+  static_assert(Size, "Null tag size not allowed");
 
-namespace kovri {
-namespace core {
+  Tag() : m_Buf{} {}
 
-const std::uint64_t IPAD = 0x3636363636363636;
-const std::uint64_t OPAD = 0x5C5C5C5C5C5C5C5C;
-
-typedef kovri::core::Tag<32> MACKey;
-
-inline void HMACMD5Digest(
-    std::uint8_t* msg,
-    std::size_t len,
-    const MACKey& key,
-    std::uint8_t* digest) {
-  // TODO(anonimal): this try block should be handled entirely by caller
-  try {
-    // key is 32 bytes
-    // digest is 16 bytes
-    // block size is 64 bytes
-    std::uint64_t buf[256];
-    // ikeypad
-    buf[0] = key.GetLL()[0] ^ IPAD;
-    buf[1] = key.GetLL()[1] ^ IPAD;
-    buf[2] = key.GetLL()[2] ^ IPAD;
-    buf[3] = key.GetLL()[3] ^ IPAD;
-    buf[4] = IPAD;
-    buf[5] = IPAD;
-    buf[6] = IPAD;
-    buf[7] = IPAD;
-    // concatenate with msg
-    memcpy(buf + 8, msg, len);
-    // calculate first hash
-    std::uint8_t hash[16];  // MD5
-    kovri::core::MD5().CalculateDigest(
-        hash,
-        reinterpret_cast<std::uint8_t *>(buf),
-        len + 64);
-    // okeypad
-    buf[0] = key.GetLL()[0] ^ OPAD;
-    buf[1] = key.GetLL()[1] ^ OPAD;
-    buf[2] = key.GetLL()[2] ^ OPAD;
-    buf[3] = key.GetLL()[3] ^ OPAD;
-    buf[4] = OPAD;
-    buf[5] = OPAD;
-    buf[6] = OPAD;
-    buf[7] = OPAD;
-    // copy first hash after okeypad
-    memcpy(buf + 8, hash, 16);
-    // fill next 16 bytes with zeros (first hash size assumed 32 bytes in I2P)
-    memset(buf + 10, 0, 16);
-    // calculate digest
-    kovri::core::MD5().CalculateDigest(
-        digest,
-        reinterpret_cast<std::uint8_t *>(buf),
-        96);
-  } catch (...) {
-    core::Exception ex;
-    ex.Dispatch(__func__);
-    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
-    throw;
+  Tag(const std::uint8_t* buf)
+  {
+    std::memcpy(m_Buf, buf, Size);
   }
-}
+
+  std::uint8_t* operator()()
+  {
+    return m_Buf;
+  }
+
+  const std::uint8_t* operator()() const
+  {
+    return m_Buf;
+  }
+
+  operator std::uint8_t*()
+  {
+    return m_Buf;
+  }
+
+  operator const std::uint8_t*() const
+  {
+    return m_Buf;
+  }
+
+  const std::uint64_t* GetLL() const
+  {
+    return ll;
+  }
+
+  bool operator==(const Tag<Size>& other) const
+  {
+    return !std::memcmp(m_Buf, other.m_Buf, Size);
+  }
+
+  bool operator<(const Tag<Size>& other) const
+  {
+    return std::memcmp(m_Buf, other.m_Buf, Size) < 0;
+  }
+
+  bool IsZero() const
+  {
+    for (std::uint64_t i = 0; i < Size / 8; i++)
+      if (ll[i])
+        return false;
+    return true;
+  }
+
+  std::string ToBase32() const
+  {
+    return core::Base32::Encode(m_Buf, Size);
+  }
+
+  std::string ToBase64() const
+  {
+    return core::Base64::Encode(m_Buf, Size);
+  }
+
+  void FromBase32(const std::string& encoded)
+  {
+    std::vector<std::uint8_t> const decoded =
+        core::Base32::Decode(encoded.c_str(), encoded.length());
+
+    if (decoded.size() > Size)
+      throw std::length_error("Tag: decoded base32 size too large");
+
+    std::memcpy(m_Buf, decoded.data(), decoded.size());
+  }
+
+  void FromBase64(const std::string& encoded)
+  {
+    std::vector<std::uint8_t> const decoded =
+        core::Base64::Decode(encoded.c_str(), encoded.length());
+
+    if (decoded.size() > Size)
+      throw std::length_error("Tag: decoded base64 size too large");
+
+    std::memcpy(m_Buf, decoded.data(), decoded.size());
+  }
+
+ private:
+  // TODO(anonimal): unnecessary and error-prone
+  union
+  {  // 8 bytes alignment
+    std::uint8_t m_Buf[Size];
+    // TODO(anonimal): realistically, we'll never need this large a type.
+    //   The only need is for our HMAC impl but that should be re-written
+    //   so we don't suffer performance loss everywhere else Tag is used.
+    std::uint64_t ll[Size / 8];
+  };
+};
 
 }  // namespace core
 }  // namespace kovri
 
-#endif  // SRC_CORE_CRYPTO_HMAC_H_
+#endif  // SRC_CORE_UTIL_TAG_H_

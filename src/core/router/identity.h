@@ -46,104 +46,11 @@
 #include "core/crypto/signature_base.h"
 
 #include "core/util/exception.h"
+#include "core/util/tag.h"
 
 namespace kovri {
 namespace core {
 
-// TODO(unassigned): review/consider moving this class into core/util
-template<int Size>
-class Tag {
- public:
-  Tag(const std::uint8_t* buf) {
-    memcpy(m_Buf, buf, Size);
-  }
-  Tag(const Tag<Size>&) = default;
-
-#ifndef _WIN32
-  Tag(Tag<Size>&&) = default;
-#endif
-
-  Tag() = default;
-
-  Tag<Size>& operator= (const Tag<Size>&) = default;
-
-#ifndef _WIN32
-  Tag<Size>& operator= (Tag<Size>&&) = default;
-#endif
-
-  std::uint8_t* operator()() {
-    return m_Buf;
-  }
-
-  const std::uint8_t* operator()() const {
-    return m_Buf;
-  }
-
-  operator std::uint8_t* () {
-    return m_Buf;
-  }
-
-  operator const std::uint8_t* () const {
-    return m_Buf;
-  }
-
-  const std::uint64_t* GetLL() const {
-    return ll;
-  }
-
-  bool operator==(const Tag<Size>& other) const {
-    return !memcmp(m_Buf, other.m_Buf, Size);
-  }
-
-  bool operator<(const Tag<Size>& other) const {
-    return memcmp(m_Buf, other.m_Buf, Size) < 0;
-  }
-
-  bool IsZero() const {
-    for (int i = 0; i < Size / 8; i++)
-    if (ll[i])
-      return false;
-    return true;
-  }
-
-  std::string ToBase64() const
-  {
-    return core::Base64::Encode(m_Buf, Size);
-  }
-
-  std::string ToBase32() const
-  {
-    return core::Base32::Encode(m_Buf, Size);
-  }
-
-  void FromBase32(const std::string& encoded)
-  {
-    std::vector<std::uint8_t> const decoded =
-        core::Base32::Decode(encoded.c_str(), encoded.length());
-
-    if (decoded.size() > Size)
-      throw std::length_error("Tag: decoded base32 size too large");
-
-    std::memcpy(m_Buf, decoded.data(), decoded.size());
-  }
-
-  void FromBase64(const std::string& encoded)
-  {
-    std::vector<std::uint8_t> const decoded =
-        core::Base64::Decode(encoded.c_str(), encoded.length());
-
-    if (decoded.size() > Size)
-      throw std::length_error("Tag: decoded base64 size too large");
-
-    std::memcpy(m_Buf, decoded.data(), decoded.size());
-  }
-
- private:
-  union {  // 8 bytes alignment
-    std::uint8_t m_Buf[Size];
-    std::uint64_t ll[Size / 8];
-  };
-};
 typedef Tag<32> IdentHash;
 
 inline std::string GetB32Address(

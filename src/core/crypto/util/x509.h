@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -38,7 +38,7 @@
 #include <iosfwd>
 #include <string>
 
-#include "core/router/identity.h"  // kovri::core::tag
+#include "core/util/tag.h"
 
 namespace kovri {
 namespace core {

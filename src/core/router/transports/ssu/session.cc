@@ -1705,14 +1705,16 @@ const std::uint8_t* SSUSession::GetIntroKey() const
   if (m_RemoteRouter)
     {
       LOG(debug) << "SSUSession: " << __func__ << ": using remote's key";
-      auto* address = m_RemoteRouter->GetSSUAddress();
+      auto* const address =
+          m_RemoteRouter->GetSSUAddress(m_RemoteRouter->HasV6());
       assert(address);  // TODO(anonimal): SSU should be guaranteed
       return address->key;
     }
 
   // Use our key if we are server
   LOG(debug) << "SSUSession: " << __func__ << ": using our key";
-  auto* address = context.GetRouterInfo().GetSSUAddress();
+  auto* const address =
+      context.GetRouterInfo().GetSSUAddress(context.GetRouterInfo().HasV6());
   assert(address);  // TODO(anonimal): SSU should be guaranteed
   return address->key;
 }

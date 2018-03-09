@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -75,8 +75,10 @@ class ElGamalEncryption::ElGamalEncryptionImpl {
     }
     std::array<std::uint8_t, 255> memory;
     // Don't pad with uninitialized memory
-    RandBytes(memory.data(), 255);
-    memory.at(0) = 0xFF;
+    core::RandBytes(memory.data(), memory.size());
+    // Ensure first byte is spec-defined, non-zero, random byte
+    while (!memory.at(0))
+      core::RandBytes(memory.data(), 1);
     memcpy(memory.data() + 33, data, len);
     CryptoPP::SHA256().CalculateDigest(
         memory.data() + 1,

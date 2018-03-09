@@ -238,6 +238,13 @@ const std::string GetFormattedHex(
 std::vector<std::uint8_t> AddressToByteVector(
     const boost::asio::ip::address& address);
 
+/// @brief Returns asio address of byte array
+/// @param host IP address in byte form
+/// @param size Size of host byte array
+boost::asio::ip::address BytesToAddress(
+    const std::uint8_t* host,
+    const std::uint8_t size);
+
 // TODO(anonimal): remove from global namespace
 namespace
 {

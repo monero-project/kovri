@@ -686,17 +686,13 @@ class SSUPeerTestPacket : public SSUPacket {
   /// @return Nonce that was previously set when parsed
   std::uint32_t GetNonce() const;
 
-  // TODO(unassigned): implement SetIPAddress() like others (see spec)?
-  /// @brief Sets Alice's 1 byte IP address and byte size representation
-  ///   of Alice's IP address
+  /// @brief Sets IP address as set by message owner (see SSU spec)
   /// @note Assumes content is valid (based on position)
-  /// @param address Alice's IP address
-  void SetIPAddress(
-      std::uint32_t address);
+  /// @param address IP address
+  void SetIPAddress(const boost::asio::ip::address& address);
 
-  // TODO(unassigned): implement GetIPAddress() like others (see spec)?
-  /// @return Alice's IP address that was previously set when parsed
-  std::uint32_t GetIPAddress() const;
+  /// @return IP address that was previously set when parsed
+  const boost::asio::ip::address& GetIPAddress() const;
 
   /// @brief Sets Alice's 2 byte port number
   /// @note Assumes content is valid (based on position)
@@ -720,7 +716,8 @@ class SSUPeerTestPacket : public SSUPacket {
   std::size_t GetSize() const;
 
  private:
-  std::uint32_t m_Nonce, m_IPAddress;
+  std::uint32_t m_Nonce;
+  boost::asio::ip::address m_IPAddress;
   std::uint8_t* m_IntroKey;
   std::uint16_t m_Port;
 };

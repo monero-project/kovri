@@ -1069,10 +1069,9 @@ void SSUSession::ProcessPeerTest(
     SSUPacket* pkt,
     const boost::asio::ip::udp::endpoint& sender_endpoint) {
   auto packet = static_cast<SSUPeerTestPacket*>(pkt);
-  if (packet->GetPort() && !packet->GetIPAddress()) {
+  if (packet->GetPort() && packet->GetIPAddress().is_unspecified()) {
     LOG(warning)
-      << "SSUSession:" << GetFormattedSessionInfo() << "address size "
-      << " bytes not supported";
+      << "SSUSession:" << GetFormattedSessionInfo() << "address unspecified";
     return;
   }
   auto peer_test = SSUPayloadType::PeerTest;
@@ -1093,13 +1092,14 @@ void SSUSession::ProcessPeerTest(
         m_Server.UpdatePeerTest(
             packet->GetNonce(),
             PeerTestParticipant::Alice2);
+        // We're Alice, send to Charlie
         SendPeerTest(
             packet->GetNonce(),
-            sender_endpoint.address().to_v4().to_ulong(),
+            sender_endpoint.address(),
             sender_endpoint.port(),
             packet->GetIntroKey(),
             true,
-            false);  // to Charlie
+            false);
       }
       break;
     }
@@ -1135,11 +1135,12 @@ void SSUSession::ProcessPeerTest(
       LOG(debug)
         << "SSUSession:" << GetFormattedSessionInfo()
         << "PeerTest from Alice. We are Charlie";
+      // To Alice with her actual address and port
       SendPeerTest(
           packet->GetNonce(),
-          sender_endpoint.address().to_v4().to_ulong(),
+          sender_endpoint.address(),
           sender_endpoint.port(),
-          packet->GetIntroKey());  // to Alice with her actual address
+          packet->GetIntroKey());
       m_Server.RemovePeerTest(packet->GetNonce());  // nonce has been used
       break;
     }
@@ -1156,10 +1157,11 @@ void SSUSession::ProcessPeerTest(
               peer_test,
               packet->m_RawData,
               packet->m_RawDataLength);
-          SendPeerTest(  // to Alice with her address received from Bob
+          // To Alice with her address received from Bob
+          SendPeerTest(
               packet->GetNonce(),
-              boost::endian::big_to_native(packet->GetIPAddress()),  // TODO(anonimal): native / big endian?
-              packet->GetPort(),  // TODO(anonimal): native / big endian?
+              packet->GetIPAddress(),
+              packet->GetPort(),
               packet->GetIntroKey());
         } else {
           LOG(debug)
@@ -1172,12 +1174,13 @@ void SSUSession::ProcessPeerTest(
                 packet->GetNonce(),
                 PeerTestParticipant::Bob,
                 shared_from_this());
+            // To Charlie with Alice's actual address
             session->SendPeerTest(
                 packet->GetNonce(),
-                sender_endpoint.address().to_v4().to_ulong(),
+                sender_endpoint.address(),
                 sender_endpoint.port(),
                 packet->GetIntroKey(),
-                false);  // to Charlie with Alice's actual address
+                false);
           }
         }
       } else {
@@ -1188,10 +1191,10 @@ void SSUSession::ProcessPeerTest(
   }
 }
 
-// TODO(anonimal): pass reference to structure, not SIX arguments!
+// TODO(anonimal): interface refactor, check address type in caller implementation.
 void SSUSession::SendPeerTest(
     const std::uint32_t nonce,
-    const std::uint32_t address,
+    const boost::asio::ip::address& address,
     const std::uint16_t port,
     const std::uint8_t* intro_key,
     const bool to_address,  // is true for Alice<->Charlie communications only
@@ -1207,35 +1210,36 @@ void SSUSession::SendPeerTest(
   // Nonce
   message.Write<std::uint32_t>(nonce);
 
-  // Address
-  if (send_address && address)
+  // Given Address
+  if (send_address && !address.is_unspecified())
     {
-      message.Write<std::uint8_t>(4);  // Size of address
-      message.Write<std::uint32_t>(address);  // Address
+      bool const is_IPv6(address.is_v6());
+
+      // Size of address
+      message.Write<std::uint8_t>(is_IPv6 ? 16 : 4);
+
+      // Address
+      message.WriteData(
+          is_IPv6 ? address.to_v6().to_bytes().data()
+                  : address.to_v4().to_bytes().data(),
+          is_IPv6 ? 16 : 4);
     }
   else
     {
       message.SkipBytes(1);
     }
 
-  // Alice's Port
+  // Given Port
   message.Write<std::uint16_t>(port);
 
   // Write introducer key
   if (to_address)
     {
       // Our (Alice's) intro key
-      auto* const addr = context.GetRouterInfo().GetSSUAddress();
-      if (addr)
-        {
-          message.WriteData(addr->key, sizeof(addr->key));
-        }
-      else
-        {
-          LOG(error) << "SSUSession:" << GetFormattedSessionInfo()
-                     << "SSU is not supported, can't send PeerTest";
-          // TODO(anonimal): return/throw/assert
-        }
+      auto* const addr = context.GetRouterInfo().GetSSUAddress(
+          context.GetRouterInfo().HasV6());
+      assert(addr);
+      message.WriteData(addr->key, sizeof(addr->key));
     }
   else
     {
@@ -1254,9 +1258,7 @@ void SSUSession::SendPeerTest(
           intro_key,
           intro_key);
 
-      boost::asio::ip::udp::endpoint ep(
-          boost::asio::ip::address_v4(address), port);
-
+      boost::asio::ip::udp::endpoint ep(address, port);
       m_Server.Send(message.Data(), SSUSize::PeerTestBuffer, ep);
     }
   else
@@ -1272,13 +1274,9 @@ void SSUSession::SendPeerTest(
 void SSUSession::SendPeerTest() {
   // we are Alice
   LOG(debug) << "SSUSession: <--" << GetFormattedSessionInfo() << "sending PeerTest";
-  auto address = context.GetRouterInfo().GetSSUAddress();
-  if (!address) {
-    LOG(error)
-      << "SSUSession:" << GetFormattedSessionInfo()
-      << "SSU is not supported, can't send PeerTest";
-    return;
-  }
+  auto* const address =
+      context.GetRouterInfo().GetSSUAddress(context.GetRouterInfo().HasV6());
+  assert(address);
   auto nonce = kovri::core::Rand<std::uint32_t>();
   if (!nonce)
     nonce = 1;
@@ -1286,7 +1284,7 @@ void SSUSession::SendPeerTest() {
   m_Server.NewPeerTest(nonce, PeerTestParticipant::Alice1, shared_from_this());
   SendPeerTest(
       nonce,
-      0,  // address and port always zero for Alice
+      {},  // address and port always zero for Alice
       0,  // ^
       address->key,
       false,

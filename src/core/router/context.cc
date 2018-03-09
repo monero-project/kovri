@@ -42,6 +42,7 @@
 #include "core/router/info.h"
 #include "core/router/net_db/impl.h"
 
+#include "core/util/byte_stream.h"
 #include "core/util/filesystem.h"
 #include "core/util/mtu.h"
 #include "core/util/timestamp.h"
@@ -216,27 +217,7 @@ void RouterContext::UpdateAddress(
     const std::uint16_t port)
 {
   // Set new host address as IPv4 or IPv6
-  // TODO(unassigned): move to utility code
-  boost::asio::ip::address new_host;
-  switch (size)
-    {
-      case 4:
-        {
-          boost::asio::ip::address_v4::bytes_type bytes;
-          std::memcpy(bytes.data(), host, size);
-          new_host = boost::asio::ip::address_v4(bytes);
-        }
-        break;
-      case 16:
-        {
-          boost::asio::ip::address_v6::bytes_type bytes;
-          std::memcpy(bytes.data(), host, size);
-          new_host = boost::asio::ip::address_v6(bytes);
-        }
-        break;
-      default:
-        throw std::length_error("invalid address size");
-    };
+  boost::asio::ip::address new_host(BytesToAddress(host, size));
 
   // Set new host if applicable
   bool updated = false;

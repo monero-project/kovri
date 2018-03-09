@@ -642,12 +642,14 @@ std::uint32_t SSUPeerTestPacket::GetNonce() const {
   return m_Nonce;
 }
 
-void SSUPeerTestPacket::SetIPAddress(
-    std::uint32_t address) {
+// TODO(anonimal): use or remove
+void SSUPeerTestPacket::SetIPAddress(const boost::asio::ip::address& address)
+{
   m_IPAddress = address;
 }
 
-std::uint32_t SSUPeerTestPacket::GetIPAddress() const {
+const boost::asio::ip::address& SSUPeerTestPacket::GetIPAddress() const
+{
   return m_IPAddress;
 }
 
@@ -890,11 +892,8 @@ std::unique_ptr<SSUDataPacket> SSUPacketParser::ParseData() {
 std::unique_ptr<SSUPeerTestPacket> SSUPacketParser::ParsePeerTest() {
   auto packet = std::make_unique<SSUPeerTestPacket>();
   packet->SetNonce(Read<std::uint32_t>());
-  // TODO(anonimal): handle other address sizes
-  if (Read<std::uint8_t>() != 4)
-    throw std::length_error(
-        "SSUPacketParser: invalid peer test packet address size");
-  packet->SetIPAddress(Read<std::uint32_t>());
+  std::uint8_t const size(Read<std::uint8_t>());
+  packet->SetIPAddress(core::BytesToAddress(ReadBytes(size), size));
   packet->SetPort(Read<std::uint16_t>());
   packet->SetIntroKey(ReadBytes(SSUSize::IntroKey));
   return packet;

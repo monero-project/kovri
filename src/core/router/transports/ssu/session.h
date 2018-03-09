@@ -308,7 +308,7 @@ class SSUSession
 
   void SendPeerTest(
       const std::uint32_t nonce,
-      const std::uint32_t address,
+      const boost::asio::ip::address& address,
       const std::uint16_t port,
       const std::uint8_t* intro_key,
       const bool to_address = true,

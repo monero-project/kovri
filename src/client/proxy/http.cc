@@ -313,7 +313,39 @@ bool HTTPMessage::CreateHTTPRequest() {
     // m_ErrorResponse is set in ExtractIncomingRequest
     return false;
   }
-  HandleJumpService();
+
+  if (!IsJumpServiceRequest())
+    {
+      LOG(debug) << "HTTPProxyHandler: not a jump service request";
+    }
+  else  // Handle the jump service request
+    {
+      if (!HandleJumpService())
+        {
+          LOG(error) << "HTTPMessage: invalid jump service request";
+          m_ErrorResponse =
+              HTTPResponse(HTTPResponseCodes::status_t::bad_request);
+          return false;
+        }
+      else  // Requested address found, save to address book
+        {
+          // TODO(oneiric): this is very dangerous and broken
+          // we should prompt the user with an HTTP redirect to a save form
+          // save form should contain:
+          // - host info: short address, base32 address, base64 destination
+          // - save location options
+          // - continue without saving option
+          if (!SaveJumpServiceAddress())
+            {
+              LOG(error)
+                  << "HTTPProxyHandler: failed to save address to address book";
+              m_ErrorResponse = HTTPResponse(
+                  HTTPResponseCodes::status_t::internal_server_error);
+              return false;
+            }
+        }
+    }
+
   // Set method, path, and version
   m_Request = m_Method;
   m_Request.push_back(' ');
@@ -390,41 +422,94 @@ bool HTTPMessage::ExtractIncomingRequest() {
   return true;
 }
 
-void HTTPMessage::HandleJumpService() {
-  // TODO(GUZZI) should have boolean return value; error
-  // response?; research this
+bool HTTPMessage::HandleJumpService()
+{
   // TODO(anonimal): add support for remaining services /
   // rewrite this function
-  std::size_t pos1 = m_Path.rfind(m_JumpService.at(0));
-  std::size_t pos2 = m_Path.rfind(m_JumpService.at(1));
-  std::size_t pos;
-  if (pos1 == std::string::npos) {
-    if (pos2 == std::string::npos)
-      return;  // Not a jump service
-    else
-      pos = pos2;
-  } else {
-    if (pos2 == std::string::npos)
-      pos = pos1;
-    else if (pos1 > pos2)
-      pos = pos1;
-    else
-      pos = pos2;
-  }
-  auto base64 = m_Path.substr(pos + m_JumpService.at(0).size());
-  // We must decode
-  base64 = boost::network::uri::decoded(base64);
-  // Insert into address book
-  LOG(debug)
-    << "HTTPProxyHandler: jump service for " << m_Address
-    << " found at " << base64 << ", inserting to address book";
-  // TODO(unassigned): this is very dangerous and broken.
-  // We should ask the user for confirmation before proceeding.
-  // Previous reference: http://pastethis.i2p/raw/pn5fL4YNJL7OSWj3Sc6N/
-  // We *could* redirect the user again to avoid dirtiness in the browser
-  kovri::client::context.GetAddressBook().InsertAddressIntoStorage(
-      m_Address, base64);
-  m_Path.erase(pos);
+
+  // Perform sanity check again to:
+  // - ensure valid jump service request
+  std::size_t const pos = IsJumpServiceRequest();
+  if (!pos)
+    {
+      LOG(error) << "HTTPProxyHandler: not a valid jump service request";
+      // Jump service parameter not found in URL, so just return
+      return false;
+    }
+
+  if (!ExtractBase64Destination(pos))
+    {
+      LOG(error) << "HTTPProxyHandler: unable to process base64 destination for "
+                 << m_Address;
+      m_URL.erase(pos);
+      return false;
+    }
+
+  LOG(debug) << "HTTPProxyHandler: jump service for " << m_Address
+             << " found at " << m_Base64Destination;
+  m_URL.erase(pos);
+  return true;
+}
+
+std::size_t HTTPMessage::IsJumpServiceRequest() const
+{
+  std::size_t pos = 0;
+  std::size_t const pos1 = m_URL.rfind(m_JumpService.at(0));
+  std::size_t const pos2 = m_URL.rfind(m_JumpService.at(1));
+  if (pos1 == std::string::npos)
+    {
+      if (pos2 == std::string::npos)
+        return 0;  // Not a jump service
+      else
+        pos = pos2;
+    }
+  else
+    {
+      if (pos2 == std::string::npos)
+        pos = pos1;
+      else if (pos1 > pos2)
+        pos = pos1;
+      else
+        pos = pos2;
+    }
+
+  // final sanity check
+  if (pos && pos != std::string::npos)
+    return pos;
+
+  return 0;
+}
+
+bool HTTPMessage::ExtractBase64Destination(std::size_t const pos)
+{
+  std::size_t const base64_size = pos + m_JumpService.at(0).size();
+  if (pos && base64_size < m_URL.size())
+    {
+      std::string const base64 = m_URL.substr(base64_size);
+      m_Base64Destination = boost::network::uri::decoded(base64);
+      return true;
+    }
+
+  return false;
+}
+
+bool HTTPMessage::SaveJumpServiceAddress()
+{
+  try
+    {
+      LOG(debug) << "HTTPProxyHandler: inserting " << m_Address
+                 << " into address book";
+      kovri::client::context.GetAddressBook().InsertAddressIntoStorage(
+          m_Address, m_Base64Destination);
+    }
+  catch (...)
+    {
+      core::Exception ex;
+      ex.Dispatch("HTTPProxyHandler: unable to insert address into storage");
+      return false;
+    }
+
+  return true;
 }
 
 /* All hope is lost beyond this point */

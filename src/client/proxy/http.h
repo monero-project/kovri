@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -195,7 +195,7 @@ class HTTPMessage : public std::enable_shared_from_this<HTTPMessage>{
     m_URL, m_Method, m_Version,  m_Path;
   std::vector<std::string> m_Headers;
   std::string m_Host, m_UserAgent;
-  std::string m_Address;
+  std::string m_Address, m_Base64Destination;
 
   boost::asio::streambuf m_Buffer;
   boost::asio::streambuf m_BodyBuffer;
@@ -226,9 +226,9 @@ class HTTPMessage : public std::enable_shared_from_this<HTTPMessage>{
   /// return bool
   bool HandleData(const std::string  &buf);
 
-  /// @brief Parses path for base64 address, inserts into address book
-  /// need to change to boolean return for testing
-  void HandleJumpService();
+  /// @brief Parses URI for base64 destination
+  /// @return true on success
+  bool HandleJumpService();
 
   /// @brief Performs regex, sets address/port/path, validates version
   ///   on request sent from user
@@ -242,6 +242,19 @@ class HTTPMessage : public std::enable_shared_from_this<HTTPMessage>{
 
   const unsigned int HEADERBODY_LEN = 2;
   const unsigned int REQUESTLINE_HEADERS_MIN = 1;
+ private:
+  /// @brief Checks if request is a valid jump service request
+  /// @return Index of jump service helper sub-string, 0 indicates failure
+  std::size_t IsJumpServiceRequest() const;
+
+  /// @brief Extracts & url-decodes base64 destination from URL
+  /// @param pos Index of jump service helper sub-string in URL
+  /// @return True on success
+  bool ExtractBase64Destination(std::size_t const pos);
+
+  /// @brief Saves found address in address book
+  /// @return True on success
+  bool SaveJumpServiceAddress();
 };
 /// @class HTTPProxyServer
 /// setup asio service

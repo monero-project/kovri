@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -65,18 +65,18 @@ bool AddressBookStorage::GetAddress(
   return true;
 }
 
-void AddressBookStorage::AddAddress(
-    const kovri::core::IdentityEx& address) {
-  auto filename = GetAddressesPath() / (address.GetIdentHash().ToBase32() + ".b32");
-  std::ofstream file(filename.string(), std::ofstream::binary);
-  if (!file)
-    LOG(error) << "AddressBookStorage: can't open file " << filename;
+void AddressBookStorage::AddAddress(const kovri::core::IdentityEx& address)
+{
+  auto filename =
+      GetAddressesPath() / (address.GetIdentHash().ToBase32() + ".b32");
+  kovri::core::OutputFileStream file(filename.string(), std::ofstream::binary);
+  if (!file.Good())
+    throw std::runtime_error("failed to open file for address writing");
   const std::size_t len = address.GetFullLen();
-  auto buf = std::make_unique<std::uint8_t[]>(len);
-  // For sanity, the validity of identity length is incumbent upon the parent caller.
-  // TODO(unassigned): triple check that this is the case
-  address.ToBuffer(buf.get(), len);
-  file.write(reinterpret_cast<char *>(buf.get()), len);
+  std::vector<std::uint8_t> buf(len);
+  address.ToBuffer(buf.data(), buf.size());
+  if (!file.Write(buf.data(), buf.size()))
+    throw std::runtime_error("failed to write address file");
 }
 
 /**

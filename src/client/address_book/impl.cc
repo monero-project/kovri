@@ -444,24 +444,26 @@ std::unique_ptr<const kovri::core::IdentHash> AddressBook::GetLoadedAddressIdent
 // Used only by HTTP Proxy
 void AddressBook::InsertAddressIntoStorage(
     const std::string& address,
-    const std::string& base64) {
-  kovri::core::IdentityEx ident;
+    const std::string& base64)
+{
   try
     {
+      kovri::core::IdentityEx ident;
       ident.FromBase64(base64);
+      if (!m_Storage)
+        m_Storage = GetNewStorageInstance();
+      m_Storage->AddAddress(ident);
+      const auto& ident_hash = ident.GetIdentHash();
+      m_Addresses[address] = ident_hash;
+      LOG(info) << "AddressBook: " << address << "->"
+                << kovri::core::GetB32Address(ident_hash)
+                << " added";
     }
   catch (...)
     {
       m_Exception.Dispatch(__func__);
-      return;
+      throw;
     }
-  if (!m_Storage)
-    m_Storage = GetNewStorageInstance();
-  m_Storage->AddAddress(ident);
-  m_Addresses[address] = ident.GetIdentHash();
-  LOG(info)
-    << "AddressBook: " << address << "->"
-    << GetB32AddressFromIdentHash(ident.GetIdentHash()) << " added";
 }
 
 void AddressBook::Stop() {

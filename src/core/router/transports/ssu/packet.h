@@ -47,12 +47,12 @@ namespace core {
 enum SSUSize : std::uint16_t
 {
   MTUv4 = 1484,
-  MTUv6 = 1472,
+  MTUv6 = 1488,
   HeaderIPv4 = 20,
   HeaderIPv6 = 40,
   HeaderUDP = 8,
   PacketMaxIPv4 = MTUv4 - HeaderIPv4 - HeaderUDP,  // Total: 1456
-  PacketMaxIPv6 = MTUv6 - HeaderIPv6 - HeaderUDP,  // Total: 1424
+  PacketMaxIPv6 = MTUv6 - HeaderIPv6 - HeaderUDP,  // Total: 1440
   HeaderMin = 37,
   MAC = 16,
   IV = 16,

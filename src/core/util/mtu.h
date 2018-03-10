@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -42,8 +42,8 @@
 namespace kovri {
 namespace core {
 
-// TODO(unassigned): enum class refactor
-const std::uint16_t MTU_MAX = 1472;
+// TODO(anonimal): enum refactor
+const std::uint16_t MTU_MAX = 1488;
 const std::uint16_t MTU_FALLBACK = 576;
 
 // @return the maximum transmission unit or fallback on failure

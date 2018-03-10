@@ -27,7 +27,7 @@ message(STATUS "${KOVRI_VERSION}-${KOVRI_GIT_REVISION} \"${KOVRI_CODENAME}\"")
 message(STATUS "")
 
 # I2NP/NetDb RI properties (used internally)
-set(I2P_VERSION "0.9.27")
+set(I2P_VERSION "0.9.28")
 set(I2P_NETWORK_ID "2")  # "1" is reserved for I2P version less than 0.6.1.10
 
 # Produce version definitions, output to build directory

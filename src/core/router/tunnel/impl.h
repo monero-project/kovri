@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -61,7 +61,7 @@ const int TUNNEL_EXPIRATION_TIMEOUT = 660,    // 11 minutes
           TUNNEL_EXPIRATION_THRESHOLD = 60,   // 1 minute
           TUNNEL_RECREATION_THRESHOLD = 90,   // 1.5 minutes
           TUNNEL_CREATION_TIMEOUT = 30,       // 30 seconds
-          STANDARD_NUM_RECORDS = 5;           // in VariableTunnelBuild message
+          STANDARD_NUM_RECORDS = 4;           // in VariableTunnelBuild message
 
 enum TunnelState {
   e_TunnelStatePending,

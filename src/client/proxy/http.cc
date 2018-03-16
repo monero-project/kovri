@@ -308,7 +308,7 @@ void HTTPProxyHandler::HandleStreamRequestComplete(
 }
 /// @brief all this to change the useragent
 /// @param len length of string
-bool HTTPMessage::CreateHTTPRequest() {
+bool HTTPMessage::CreateHTTPRequest(const bool save_address) {
   if (!ExtractIncomingRequest()) {
     // m_ErrorResponse is set in ExtractIncomingRequest
     return false;
@@ -327,6 +327,7 @@ bool HTTPMessage::CreateHTTPRequest() {
               HTTPResponse(HTTPResponseCodes::status_t::bad_request);
           return false;
         }
+      // TODO(unassigned): remove this unnecessary else block
       else  // Requested address found, save to address book
         {
           // TODO(oneiric): this is very dangerous and broken
@@ -335,7 +336,9 @@ bool HTTPMessage::CreateHTTPRequest() {
           // - host info: short address, base32 address, base64 destination
           // - save location options
           // - continue without saving option
-          if (!SaveJumpServiceAddress())
+
+          // TODO(unassigned): separate this from message handling
+          if (!SaveJumpServiceAddress() && save_address)
             {
               LOG(error)
                   << "HTTPProxyHandler: failed to save address to address book";

@@ -196,7 +196,7 @@ BOOST_AUTO_TEST_CASE(ValidHelper)
   BOOST_CHECK_NO_THROW(HTTPMessage message(request));
 
   HTTPMessage message(request);
-  BOOST_CHECK(message.get().CreateHTTPRequest());
+  BOOST_CHECK(message.get().CreateHTTPRequest(false));
 }
 
 BOOST_AUTO_TEST_CASE(InvalidHelper)
@@ -206,7 +206,7 @@ BOOST_AUTO_TEST_CASE(InvalidHelper)
 
   HTTPMessage message(request);
   // TODO(unassigned): if this is an invalid test-case, then check false
-  BOOST_CHECK(message.get().CreateHTTPRequest());
+  BOOST_CHECK(message.get().CreateHTTPRequest(false));
 }
 
 BOOST_AUTO_TEST_CASE(NoDest)
@@ -215,7 +215,7 @@ BOOST_AUTO_TEST_CASE(NoDest)
   BOOST_CHECK_NO_THROW(HTTPMessage message(request));
 
   HTTPMessage message(request);
-  BOOST_CHECK(!message.get().CreateHTTPRequest());
+  BOOST_CHECK(!message.get().CreateHTTPRequest(false));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

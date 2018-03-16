@@ -58,6 +58,10 @@ RouterInfoCommand::RouterInfoCommand()
       "floodfill,f",
       bpo::value<bool>()->default_value(false)->value_name("bool"))(
       "bandwidth,b", bpo::value<std::string>()->default_value("L"))(
+      "enable-ssu",
+      bpo::value<bool>()->default_value(true)->value_name("bool"))(
+      "enable-ntcp",
+      bpo::value<bool>()->default_value(true)->value_name("bool"))(
       "ssuintroducer,i",
       bpo::value<bool>()->default_value(true)->value_name("bool"))(
       "ssutesting,t",
@@ -126,7 +130,8 @@ bool RouterInfoCommand::Impl(
           core::RouterInfo routerInfo(
               keys,
               std::make_pair(host, port),
-              std::make_pair(true, true),
+              std::make_pair(
+                  vm["enable-ntcp"].as<bool>(), vm["enable-ssu"].as<bool>()),
               caps);
           // Set capabilities after creation to allow for disabling
           if (vm["ssuintroducer"].as<bool>())

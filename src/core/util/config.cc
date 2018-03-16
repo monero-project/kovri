@@ -202,6 +202,10 @@ void Configuration::ParseConfigFile(
             + std::to_string(RouterInfo::MaxPort)
             + "], see user-guide or config file");
     }
+
+  // Ensure valid transport
+  if (!m_Map["enable-ntcp"].as<bool>() && !m_Map["enable-ssu"].as<bool>())
+    throw std::invalid_argument("at least one transport is required");
 }
 
 void Configuration::SetupGlobalPath()

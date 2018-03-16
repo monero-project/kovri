@@ -122,6 +122,14 @@ bool RouterInfoCommand::Impl(
                                                    core::RouterInfo::MaxPort)
                                              : vm["port"].as<int>();
 
+          // Set transports
+          bool const has_ntcp = vm["enable-ntcp"].as<bool>();
+          bool const has_ssu = vm["enable-ssu"].as<bool>();
+
+          if (!has_ntcp && !has_ssu)
+            throw std::invalid_argument(
+                "routerinfo: at least one transport is required");
+
           std::uint8_t caps(core::RouterInfo::Cap::Reachable);
           // Generate private key
           core::PrivateKeys keys = core::PrivateKeys::CreateRandomKeys(
@@ -130,8 +138,7 @@ bool RouterInfoCommand::Impl(
           core::RouterInfo routerInfo(
               keys,
               std::make_pair(host, port),
-              std::make_pair(
-                  vm["enable-ntcp"].as<bool>(), vm["enable-ssu"].as<bool>()),
+              std::make_pair(has_ntcp, has_ssu),
               caps);
           // Set capabilities after creation to allow for disabling
           if (vm["ssuintroducer"].as<bool>())

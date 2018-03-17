@@ -32,7 +32,7 @@
 
 #include "core/util/filesystem.h"
 
-#ifdef __MINGW32__
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <minwindef.h>
 #include <shlobj.h>

@@ -30,171 +30,192 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 #define BOOST_TEST_DYN_LINK
-#include <boost/test/unit_test.hpp>
+
 #include "client/proxy/http.h"
+
+#include <boost/test/unit_test.hpp>
 
 struct HTTPProxyRequestFixture
 {
-  enum struct FunctionName 
+  class HTTPMessage
   {
-    CreateHTTPRequest,
-    ExtractIncomingRequest,
-    HandleData,
-    HandleJumpService
+   public:
+    explicit HTTPMessage(const std::string& request) : m_Request(request)
+    {
+      m_Request.append("GET " + request + " HTTP/1.1\r\n\r\n");
+      // TODO(unassigned): message class should have private handlers. This would be useful within its ctor.
+      if (!m_Message.HandleData(m_Request))
+        throw std::runtime_error("HTTPMessage: invalid request");
+    }
+
+    // TODO(unassigned): message API needs a proper interface
+    kovri::client::HTTPMessage& get()
+    {
+      return m_Message;
+    }
+
+   private:
+    std::string m_Request;
+    // TODO(unassigned): message API needs a proper ctor
+    kovri::client::HTTPMessage m_Message;
   };
 
-  std::string CreateProxyHeader(const std::string uri) const
-  {
-    std::string proxy_header("GET ");
-    proxy_header.append(uri);
-    proxy_header.append(" HTTP/1.1\r\n\r\n");
-    return proxy_header;
-  }
-
-  bool HandleProxyFunction(
-      const std::string uri,
-      FunctionName function_name) const
-  {
-    std::string const header = CreateProxyHeader(uri);
-    kovri::client::HTTPMessage proxy_request;
-    if (!proxy_request.HandleData(header))
-      return false;
-    switch (function_name)
-      {
-        case FunctionName::CreateHTTPRequest:
-          if (!proxy_request.CreateHTTPRequest())
-            return false;
-          break;
-        case FunctionName::ExtractIncomingRequest:
-          if (!proxy_request.ExtractIncomingRequest())
-            return false;
-          break;
-        case FunctionName::HandleJumpService:
-          if (!proxy_request.HandleJumpService())
-            return false;
-          break;
-        default:
-          throw std::invalid_argument("unknown proxy function");
-      }
-    return true;
-  }
+  // Valid web-safe destination
+  std::string const valid_dest = "0UVPqAA4xUSfPYPBca24h8fdokhwcJZ-5OsBYvK7byXtXT~fOV2pExi8vrkgarGTNDfJbB2KCsdVS3V7qwtTvoCGYyklcDBlJsWMj7H763hEz5rt9SzLkcpwhOjXL1UB-QW8KxM30t-ZOfPc6OiJ1QpnE6Bo5OUm6jPurQGXdWCAPio5Z-YnRL46n0IHWOQPYYSSt-S75rMIKbZbEMDraRvSzYAphUaHfvtWr2rCSPkKh3EbrOiBYiAP2oWvAQCsjouPgVBbiAezHedM2gXzkgIyCV2kGOOcHhiihd~7fWwJOloH-gO78QkmCuY-3kp3633v3MB-XNKWnATZOuf2syWVBZbTnOXsWf41tu6a33HOuNsMxAOUrwbu7Q-EITwNlKN6~yZm4RKsJUsBGfVtKl8PBMak3flQAg95oV0OBDGuizIQ9vREOWvPGlQCAXZzEg~cUNbfBQAEAAcAAA%3D%3D";
 };
 
-BOOST_AUTO_TEST_SUITE(HTTPPProtocolTests)
+BOOST_AUTO_TEST_SUITE(HTTPMessageHeader)
 
-BOOST_AUTO_TEST_CASE(Short) {
+BOOST_AUTO_TEST_CASE(Short)
+{
   kovri::client::HTTPMessage tmp;
-  std::string tmpData = "GET guzzi.i2p HTTP/1.1";
-  BOOST_CHECK(!tmp.HandleData(tmpData));
+  BOOST_CHECK(!tmp.HandleData("GET kovri.i2p HTTP/1.1"));
 }
-BOOST_AUTO_TEST_CASE(requestLineBad) {
+
+BOOST_AUTO_TEST_CASE(MissingRequest)
+{
   kovri::client::HTTPMessage tmp;
-  std::string tmpData = "GET HTTP/1.1";
-  BOOST_CHECK(!tmp.HandleData(tmpData));
+  BOOST_CHECK(!tmp.HandleData("GET HTTP/1.1"));
 }
-BOOST_AUTO_TEST_CASE(noHeadersAtAll) {
+
+BOOST_AUTO_TEST_CASE(MissingHeaders)
+{
   kovri::client::HTTPMessage tmp;
-  std::string tmpData = "\r\n";
-  BOOST_CHECK(!tmp.HandleData(tmpData));
+  BOOST_CHECK(!tmp.HandleData("\r\n"));
 }
-BOOST_AUTO_TEST_CASE(ok) {
+
+BOOST_AUTO_TEST_CASE(Valid)
+{
   kovri::client::HTTPMessage tmp;
-  std::string tmpData = "GET guzzi.i2p ";
-  tmpData+="HTTP/1.1\r\nUser-Agent: dummy\r\n\r\n";
-  BOOST_CHECK(tmp.HandleData(tmpData));
+  BOOST_CHECK(
+      tmp.HandleData("GET kovri.i2p HTTP/1.1\r\nUser-Agent: dummy\r\n\r\n"));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
 
 /**
  *
- * Jump service request tests
+ * Jump service handler
  *
  */
 
-BOOST_FIXTURE_TEST_SUITE(HTTPProxyJumpServiceTests, HTTPProxyRequestFixture)
+BOOST_FIXTURE_TEST_SUITE(JumpServiceHandler, HTTPProxyRequestFixture)
 
-BOOST_AUTO_TEST_CASE(JumpServiceI2PAddressHelper)
+BOOST_AUTO_TEST_CASE(Valid)
 {
-  // Valid jump service request
-  std::string const valid_jump_request("stats.i2p?i2paddresshelper=0UVPqAA4xUSfPYPBca24h8fdokhwcJZ-5OsBYvK7byXtXT~fOV2pExi8vrkgarGTNDfJbB2KCsdVS3V7qwtTvoCGYyklcDBlJsWMj7H763hEz5rt9SzLkcpwhOjXL1UB-QW8KxM30t-ZOfPc6OiJ1QpnE6Bo5OUm6jPurQGXdWCAPio5Z-YnRL46n0IHWOQPYYSSt-S75rMIKbZbEMDraRvSzYAphUaHfvtWr2rCSPkKh3EbrOiBYiAP2oWvAQCsjouPgVBbiAezHedM2gXzkgIyCV2kGOOcHhiihd~7fWwJOloH-gO78QkmCuY-3kp3633v3MB-XNKWnATZOuf2syWVBZbTnOXsWf41tu6a33HOuNsMxAOUrwbu7Q-EITwNlKN6~yZm4RKsJUsBGfVtKl8PBMak3flQAg95oV0OBDGuizIQ9vREOWvPGlQCAXZzEg~cUNbfBQAEAAcAAA%3D%3D");
-  BOOST_CHECK(HandleProxyFunction(valid_jump_request, FunctionName::HandleJumpService));
+  std::string const request("stats.i2p?i2paddresshelper=" + valid_dest);
+  BOOST_CHECK_NO_THROW(HTTPMessage message(request));
+
+  HTTPMessage message(request);
+  BOOST_CHECK(message.get().HandleJumpService());
 }
 
-BOOST_AUTO_TEST_CASE(JumpServiceI2PAddressHelperSecondParam)
+BOOST_AUTO_TEST_CASE(WithURIQuery)
 {
-  // Jump service request with preceding non-jump-service parameter
-  std::string const valid_jump_following("stats.i2p?some=key&i2paddresshelper=0UVPqAA4xUSfPYPBca24h8fdokhwcJZ4zWvELv-5OsBYTHKtnLzvK7byXtXT~fOV2pExi8vrkgarGTNDfJbB2KCsdVS3V7qwtTvoCGYyklcDBlJsWMj7H763hEz5rpwhO3t0Zwe6jXL1UB-QW8KxM30t-ZOfPc6OiJ1QpnE6Bo5OUm6jPurQGXdW-YnRL46n0IHWOQPYYSSt-S75rMIKbZbEMDraRvSzYAphUaHfvtWr2rCSPkKh3EbrOiBYiAP2oWvAQCsjouPgVBbiAezHedM2gXzkgIyCV2kGOOcHhiihd~7fWwJOloH-gO78QkmCuY-3kp3633v3MB-XNKWnATZOuf2syWVBZbTnOXsWf41tu6a33HOuNsMxAOUrwbu7Q-EITwNlKN6~yZm4RKsJUsBGfVtKl8PBMak3flQAg95oV0OBDGuizIQ9vREOWvPGlQCAXZzEg~cUNbfBQAEAAcAAA%3D%3D");
-  BOOST_CHECK(HandleProxyFunction(valid_jump_following, FunctionName::HandleJumpService));
+  std::string const request(
+      "stats.i2p?some=key&i2paddresshelper=" + valid_dest);
+  BOOST_CHECK_NO_THROW(HTTPMessage message(request));
+
+  HTTPMessage message(request);
+  BOOST_CHECK(message.get().HandleJumpService());
 }
 
-BOOST_AUTO_TEST_CASE(JumpServiceInvalidThenValidHelper)
+BOOST_AUTO_TEST_CASE(InvalidDest)
 {
-  // Jump service helper with preceding invalid helper
-  std::string const invalid_then_valid_jump("stats.i2p?i2paddresshelper=someinvalidbase64&i2paddresshelper=0UVPqAA4xUSfPYPBca24h8fdokhwcJZ4zWvELv-5OsBYTHKtnLzvK7byXtXT~fOV2pExi8vrkgarGTNDfJbB2KCsdVS3V7qwtTvoCGYyklcDBlJsWMj7H763hEz5rpwhO3t0Zwe6jXL1UB-QW8KxM30t-ZOfPc6OiJ1QpnE6Bo5OUm6jPurQGXdW-YnRL46n0IHWOQPYYSSt-S75rMIKbZbEMDraRvSzYAphUaHfvtWr2rCSPkKh3EbrOiBYiAP2oWvAQCsjouPgVBbiAezHedM2gXzkgIyCV2kGOOcHhiihd~7fWwJOloH-gO78QkmCuY-3kp3633v3MB-XNKWnATZOuf2syWVBZbTnOXsWf41tu6a33HOuNsMxAOUrwbu7Q-EITwNlKN6~yZm4RKsJUsBGfVtKl8PBMak3flQAg95oV0OBDGuizIQ9vREOWvPGlQCAXZzEg~cUNbfBQAEAAcAAA%3D%3D");
-  BOOST_CHECK(HandleProxyFunction(invalid_then_valid_jump, FunctionName::HandleJumpService));
+  std::string const request(
+      "stats.i2p?i2paddresshelper=someinvalidbase64&i2paddresshelper="
+      + valid_dest);
+  BOOST_CHECK_NO_THROW(HTTPMessage message(request));
+
+  HTTPMessage message(request);
+  // TODO(unassigned): if this is an invalid test-case, then check false
+  BOOST_CHECK(message.get().HandleJumpService());
 }
 
-BOOST_AUTO_TEST_CASE(JumpServiceMultiHelpersOutOfOrder)
+BOOST_AUTO_TEST_CASE(InvalidDestWithURIQuery)
 {
-  // Jump service helper with non-jump-service parameter,
-  //   followed by an invalid jump service helper,
-  //   followed by a valid jump service helper
-  std::string const multi_invalid_then_valid_jump("stats.i2p?some=key&i2paddresshelper=someinvalidbase64?i2paddresshelper=0UVPqAA4xUSfPYPBca24h8fdokhwcJZ4zWvELv-5OsBYTHKtnLzvK7byXtXT~fOV2pExi8vrkgarGTNDfJbB2KCsdVS3V7qwtTvoCGYyklcDBlJsWMj7H763hEz5rpwhO3t0Zwe6jXL1UB-QW8KxM30t-ZOfPc6OiJ1QpnE6Bo5OUm6jPurQGXdW-YnRL46n0IHWOQPYYSSt-S75rMIKbZbEMDraRvSzYAphUaHfvtWr2rCSPkKh3EbrOiBYiAP2oWvAQCsjouPgVBbiAezHedM2gXzkgIyCV2kGOOcHhiihd~7fWwJOloH-gO78QkmCuY-3kp3633v3MB-XNKWnATZOuf2syWVBZbTnOXsWf41tu6a33HOuNsMxAOUrwbu7Q-EITwNlKN6~yZm4RKsJUsBGfVtKl8PBMak3flQAg95oV0OBDGuizIQ9vREOWvPGlQCAXZzEg~cUNbfBQAEAAcAAA%3D%3D");
-  BOOST_CHECK(HandleProxyFunction(multi_invalid_then_valid_jump, FunctionName::HandleJumpService));
+  std::string const request(
+      "stats.i2p?some=key&i2paddresshelper=someinvalidbase64?i2paddresshelper="
+      + valid_dest);
+  BOOST_CHECK_NO_THROW(HTTPMessage message(request));
+
+  HTTPMessage message(request);
+  // TODO(unassigned): if this is an invalid test-case, then check false
+  BOOST_CHECK(message.get().HandleJumpService());
 }
 
-BOOST_AUTO_TEST_CASE(JumpServiceInvalidHelperSingle)
+BOOST_AUTO_TEST_CASE(InvalidHelper)
 {
-  // Invalid single jump service helper
-  std::string const invalid_single_jump("stats.i2p?i2paBBresshelper=0UVPqAA4xUSfPYPBca24h8fdokhwcJZ4zWvELv-5OsBYTHKtnLzvK7byXtXT~fOV2pExi8vrkgarGTNDfJbB2KCsdVS3V7qwtTvoCGYyklcDBlJsWMj7H763hEz5rt9SzLkcpwhO3t0Zwe6jXL1UB-QW8KxM30t-ZOfPc6OiJ1QpnE6Bo5OUm6jPurQGXdWCAPio5Z-YnRL46n0IHWOQPYYSStJMYPlPS-S75rMIKbZbEMDraRvSzYAphUaHfvtWr2rCSPkKh3EbrOiBYiAP2oWvAQCsjouPgVF2qwQRnBbiAezHedM2gXzkgIyCV2kGOOcHhiihd~7fWwJOloH-gO78QkmCuY-3kp3633v3MBw7pmABr-XNKWnATZOuf2syWVBZbTnOXsWf41tu6a33HOuNsMxAOUrwbu7QRmT4X8X-EITwNlKN6r1t3uoQ~yZm4RKsJUsBGfVtKl8PBMak3flQAg95oV0OBDGuizIQ9vREOWvPGlQCAXZzEg~cUNbfBQAEAAcAAA%3D%3D");
-  BOOST_CHECK(!HandleProxyFunction(invalid_single_jump, FunctionName::HandleJumpService));
+  std::string const request("stats.i2p?invalid=" + valid_dest);
+  BOOST_CHECK_NO_THROW(HTTPMessage message(request));
+
+  HTTPMessage message(request);
+  BOOST_CHECK(!message.get().HandleJumpService());
 }
 
-BOOST_AUTO_TEST_CASE(JumpServiceInvalidHelperMultiple)
+BOOST_AUTO_TEST_CASE(InvalidHelperWithURIQuery)
 {
-  // Invalid jump service helper with preceding non-jump-service parameter
-  std::string const invalid_multiple_jump("stats.i2p?some=key&i2paBBresshelper=0UVPqAA4xUSfPYPBca24h8fdokhwcJZ4zWvELv-5OsBYTHKtnLzvK7byXtXT~fOV2pExi8vrkgarGTNDfJbB2KCsdVS3V7qwtTvoCGYyklcDBlJsWMj7H763hEz5rt9SzLkcpwhO3t0Zwe6jXL1UB-QW8KxM30t-ZOfPc6OiJ1QpnE6Bo5OUm6jPurQGXdWCAPio5Z-YnRL46n0IHWOQPYYSStJMYPlPS-S75rMIKbZbEMDraRvSzYAphUaHfvtWr2rCSPkKh3EbrOiBYiAP2oWvAQCsjouPgVF2qwQRnBbiAezHedM2gXzkgIyCV2kGOOcHhiihd~7fWwJOloH-gO78QkmCuY-3kp3633v3MBw7pmABr-XNKWnATZOuf2syWVBZbTnOXsWf41tu6a33HOuNsMxAOUrwbu7QRmT4X8X-EITwNlKN6r1t3uoQ~yZm4RKsJUsBGfVtKl8PBMak3flQAg95oV0OBDGuizIQ9vREOWvPGlQCAXZzEg~cUNbfBQAEAAcAAA%3D%3D");
-  BOOST_CHECK(!HandleProxyFunction(invalid_multiple_jump, FunctionName::HandleJumpService));
+  std::string const request("stats.i2p?some=key&invalid=" + valid_dest);
+  BOOST_CHECK_NO_THROW(HTTPMessage message(request));
+
+  HTTPMessage message(request);
+  BOOST_CHECK(!message.get().HandleJumpService());
 }
 
-BOOST_AUTO_TEST_CASE(JumpServiceNoHelper)
+BOOST_AUTO_TEST_CASE(NoHelper)
 {
-  std::string const no_jump_helper("stats.i2p");
-  BOOST_CHECK(!HandleProxyFunction(no_jump_helper, FunctionName::HandleJumpService));
+  std::string const request("stats.i2p");
+  BOOST_CHECK_NO_THROW(HTTPMessage message(request));
+
+  HTTPMessage message(request);
+  BOOST_CHECK(!message.get().HandleJumpService());
 }
 
-BOOST_AUTO_TEST_CASE(JumpServiceNoBase64)
+BOOST_AUTO_TEST_CASE(NoDest)
 {
-  std::string const no_jump_base64("stats.i2p?i2paddresshelper=");
-  BOOST_CHECK(!HandleProxyFunction(no_jump_base64, FunctionName::HandleJumpService));
+  std::string const request("stats.i2p?i2paddresshelper=");
+  BOOST_CHECK_NO_THROW(HTTPMessage message(request));
+
+  HTTPMessage message(request);
+  BOOST_CHECK(!message.get().HandleJumpService());
 }
+
+BOOST_AUTO_TEST_SUITE_END()
 
 /**
  *
- * CreateHTTPRequest jump service tests
+ * HTTP request creation w/ jump service
  *
  */
 
-BOOST_AUTO_TEST_CASE(CreateHTTPRequestJumpService)
+BOOST_FIXTURE_TEST_SUITE(CreateHTTPRequest, HTTPProxyRequestFixture)
+
+BOOST_AUTO_TEST_CASE(ValidHelper)
 {
-  // Valid jump service request
-  std::string const valid_jump_request("stats.i2p?i2paddresshelper=0UVPqAA4xUSfPYPBca24h8fdokhwcJZ-5OsBYvK7byXtXT~fOV2pExi8vrkgarGTNDfJbB2KCsdVS3V7qwtTvoCGYyklcDBlJsWMj7H763hEz5rt9SzLkcpwhOjXL1UB-QW8KxM30t-ZOfPc6OiJ1QpnE6Bo5OUm6jPurQGXdWCAPio5Z-YnRL46n0IHWOQPYYSSt-S75rMIKbZbEMDraRvSzYAphUaHfvtWr2rCSPkKh3EbrOiBYiAP2oWvAQCsjouPgVBbiAezHedM2gXzkgIyCV2kGOOcHhiihd~7fWwJOloH-gO78QkmCuY-3kp3633v3MB-XNKWnATZOuf2syWVBZbTnOXsWf41tu6a33HOuNsMxAOUrwbu7Q-EITwNlKN6~yZm4RKsJUsBGfVtKl8PBMak3flQAg95oV0OBDGuizIQ9vREOWvPGlQCAXZzEg~cUNbfBQAEAAcAAA%3D%3D");
-  BOOST_CHECK(HandleProxyFunction(valid_jump_request, FunctionName::CreateHTTPRequest));
+  std::string const request("stats.i2p?i2paddresshelper=" + valid_dest);
+  BOOST_CHECK_NO_THROW(HTTPMessage message(request));
+
+  HTTPMessage message(request);
+  BOOST_CHECK(message.get().CreateHTTPRequest(false));
 }
 
-BOOST_AUTO_TEST_CASE(CreateHTTPRequestJumpServiceInvalid)
+BOOST_AUTO_TEST_CASE(InvalidHelper)
 {
-  // Invalid single jump service helper
-  // Should pass, this could still be a valid HTTP proxy request
-  std::string const invalid_single_jump("stats.i2p?i2paBBresshelper=0UVPqAA4xUSfPYPBca24h8fdokhwcJZ4zWvELv-5OsBYTHKtnLzvK7byXtXT~fOV2pExi8vrkgarGTNDfJbB2KCsdVS3V7qwtTvoCGYyklcDBlJsWMj7H763hEz5rt9SzLkcpwhO3t0Zwe6jXL1UB-QW8KxM30t-ZOfPc6OiJ1QpnE6Bo5OUm6jPurQGXdWCAPio5Z-YnRL46n0IHWOQPYYSStJMYPlPS-S75rMIKbZbEMDraRvSzYAphUaHfvtWr2rCSPkKh3EbrOiBYiAP2oWvAQCsjouPgVF2qwQRnBbiAezHedM2gXzkgIyCV2kGOOcHhiihd~7fWwJOloH-gO78QkmCuY-3kp3633v3MBw7pmABr-XNKWnATZOuf2syWVBZbTnOXsWf41tu6a33HOuNsMxAOUrwbu7QRmT4X8X-EITwNlKN6r1t3uoQ~yZm4RKsJUsBGfVtKl8PBMak3flQAg95oV0OBDGuizIQ9vREOWvPGlQCAXZzEg~cUNbfBQAEAAcAAA%3D%3D");
-  BOOST_CHECK(HandleProxyFunction(invalid_single_jump, FunctionName::CreateHTTPRequest));
+  std::string const request("stats.i2p?invalid=" + valid_dest);
+  BOOST_CHECK_NO_THROW(HTTPMessage message(request));
+
+  HTTPMessage message(request);
+  // TODO(unassigned): if this is an invalid test-case, then check false
+  BOOST_CHECK(message.get().CreateHTTPRequest(false));
 }
 
-BOOST_AUTO_TEST_CASE(CreateHTTPRequestJumpServiceNoBase64)
+BOOST_AUTO_TEST_CASE(NoDest)
 {
-  std::string const no_jump_base64("stats.i2p?i2paddresshelper=");
-  BOOST_CHECK(!HandleProxyFunction(no_jump_base64, FunctionName::CreateHTTPRequest));
+  std::string const request("stats.i2p?i2paddresshelper=");
+  BOOST_CHECK_NO_THROW(HTTPMessage message(request));
+
+  HTTPMessage message(request);
+  BOOST_CHECK(!message.get().CreateHTTPRequest(false));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

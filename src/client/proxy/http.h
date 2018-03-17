@@ -237,8 +237,10 @@ class HTTPMessage : public std::enable_shared_from_this<HTTPMessage>{
 
   /// @brief Processes original request: extracts, validates,
   ///   calls jump service, appends original request
+  /// @param save_address Save address to disk
   /// @return true on success
-  bool CreateHTTPRequest();
+  // TODO(unassigned): save address param is a hack until storage is separated from message
+  bool CreateHTTPRequest(const bool save_address = true);
 
   const unsigned int HEADERBODY_LEN = 2;
   const unsigned int REQUESTLINE_HEADERS_MIN = 1;

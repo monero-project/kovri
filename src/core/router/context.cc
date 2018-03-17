@@ -81,8 +81,12 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
                   : m_Opts["port"].as<int>();
 
   // Set available transports
-  bool has_ntcp = m_Opts["enable-ntcp"].as<bool>();
-  bool has_ssu = m_Opts["enable-ssu"].as<bool>();
+  bool const has_ntcp = m_Opts["enable-ntcp"].as<bool>();
+  bool const has_ssu = m_Opts["enable-ssu"].as<bool>();
+
+  if (!has_ntcp && !has_ssu)
+    throw std::invalid_argument(
+        "RouterContext: at least one transport is required");
 
   // Set startup time
   m_StartupTime = core::GetSecondsSinceEpoch();

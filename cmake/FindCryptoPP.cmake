@@ -95,3 +95,33 @@ else(CryptoPP_INCLUDE_DIR AND CryptoPP_LIBRARIES)
   mark_as_advanced(CryptoPP_INCLUDE_DIR CryptoPP_LIBRARIES)
 
 endif(CryptoPP_INCLUDE_DIR AND CryptoPP_LIBRARIES)
+
+if (CryptoPP_FOUND AND NOT TARGET CryptoPP::CryptoPP)
+  set(library_type SHARED)
+  if (WITH_STATIC_DEPS)
+    set(library_type STATIC)
+  endif()
+
+  add_library(CryptoPP::CryptoPP ${library_type} IMPORTED)
+  set_target_properties(CryptoPP::CryptoPP PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "${CryptoPP_INCLUDE_DIR};${CryptoPP_INCLUDE_DIR}/..")
+  if (EXISTS "${CryptoPP_LIBRARIES}")
+    set_target_properties(CryptoPP::CryptoPP PROPERTIES
+      IMPORTED_LINK_INTERFACE_LANGUAGES "CXX"
+      IMPORTED_LOCATION "${CryptoPP_LIBRARIES}")
+  endif()
+  if (EXISTS "${CryptoPP_LIBRARIES_RELEASE}")
+    set_property(TARGET CryptoPP::CryptoPP APPEND PROPERTY
+      IMPORTED_CONFIGURATIONS RELEASE)
+    set_target_properties(CryptoPP::CryptoPP PROPERTIES
+      IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "CXX"
+      IMPORTED_LOCATION_RELEASE "${CryptoPP_LIBRARIES_RELEASE}")
+  endif()
+  if (EXISTS "${CryptoPP_LIBRARIES_DEBUG}")
+    set_property(TARGET CryptoPP::CryptoPP APPEND PROPERTY
+      IMPORTED_CONFIGURATIONS DEBUG)
+    set_target_properties(CryptoPP::CryptoPP PROPERTIES
+      IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "CXX"
+      IMPORTED_LOCATION_DEBUG "${CryptoPP_LIBRARIES_DEBUG}")
+  endif()
+endif()

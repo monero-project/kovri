@@ -63,28 +63,25 @@ else(CryptoPP_INCLUDE_DIR AND CryptoPP_LIBRARIES)
   #$ENV{SystemDrive}/Crypto++/lib
   #$ENV{CRYPTOPP}/lib)
 
-  # Note: MSCV is currently unsupported. Uncomment as needed
-  #if(MSVC AND NOT CryptoPP_LIBRARIES) # Give a chance for MSVC multiconfig
-  #  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-  #    set(PLATFORM x64)
-  #  else()
-  #    set(PLATFORM Win32)
-  #  endif()
-  #  find_library(CryptoPP_LIBRARIES_RELEASE NAMES cryptlib cryptopp
-  #    HINTS
-  #    ${PROJECT_SOURCE_DIR}/../../cryptopp/${PLATFORM}/Output/Release
-  #    PATHS
-  #    $ENV{CRYPTOPP}/Win32/Output/Release)
-  #  find_library(CryptoPP_LIBRARIES_DEBUG NAMES cryptlib cryptopp
-  #    HINTS
-  #    ${PROJECT_SOURCE_DIR}/../../cryptopp/${PLATFORM}/Output/Debug
-  #    PATHS
-  #    $ENV{CRYPTOPP}/Win32/Output/Debug)
-  #  set(CryptoPP_LIBRARIES
-  #    debug ${CryptoPP_LIBRARIES_DEBUG}
-  #    optimized ${CryptoPP_LIBRARIES_RELEASE}
-  #    CACHE PATH "Path to Crypto++ library" FORCE)
-  #endif()
+  if(MSVC AND NOT CryptoPP_LIBRARIES) # Give a chance for MSVC multiconfig
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+      set(PLATFORM x64)
+    else()
+      set(PLATFORM Win32)
+    endif()
+    find_library(CryptoPP_LIBRARIES_RELEASE NAMES cryptlib cryptopp
+      HINTS ${PROJECT_SOURCE_DIR}/deps/cryptopp
+      ENV CRYPTOPP
+      PATH_SUFFIXES ${PLATFORM}/Output/Release)
+    find_library(CryptoPP_LIBRARIES_DEBUG NAMES cryptlib cryptopp
+      HINTS ${PROJECT_SOURCE_DIR}/deps/cryptopp
+      ENV CRYPTOPP
+      PATH_SUFFIXES ${PLATFORM}/Output/Debug)
+    set(CryptoPP_LIBRARIES
+      debug ${CryptoPP_LIBRARIES_DEBUG}
+      optimized ${CryptoPP_LIBRARIES_RELEASE}
+      CACHE PATH "Path to Crypto++ library" FORCE)
+  endif()
 
   if(CryptoPP_INCLUDE_DIR AND CryptoPP_LIBRARIES)
     set(CryptoPP_FOUND TRUE)
@@ -97,9 +94,16 @@ else(CryptoPP_INCLUDE_DIR AND CryptoPP_LIBRARIES)
 endif(CryptoPP_INCLUDE_DIR AND CryptoPP_LIBRARIES)
 
 if (CryptoPP_FOUND AND NOT TARGET CryptoPP::CryptoPP)
+
   set(library_type SHARED)
-  if (WITH_STATIC_DEPS)
+  if (MSVC)
     set(library_type STATIC)
+  elseif(MINGW)
+    set(library_type STATIC)
+  else()
+    if (WITH_STATIC_DEPS OR CMAKE_BUILD_TYPE STREQUAL Release)
+      set(library_type STATIC)
+    endif()
   endif()
 
   add_library(CryptoPP::CryptoPP ${library_type} IMPORTED)

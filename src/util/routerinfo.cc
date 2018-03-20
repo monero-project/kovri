@@ -122,7 +122,6 @@ bool RouterInfoCommand::Impl(
                                                    core::RouterInfo::MaxPort)
                                              : vm["port"].as<int>();
 
-
           // Set transports
           bool const has_ntcp = vm["enable-ntcp"].as<bool>();
           bool const has_ssu = vm["enable-ssu"].as<bool>();

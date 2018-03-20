@@ -52,7 +52,7 @@ namespace core
 /// @class ConfigInternal
 /// @brief Internal Core base configuration implementation
 class ConfigInternal {
- protected:
+ public:
   /// @class ListParameter
   /// @brief Class used to handle custom data out of the boost::program_options.
   /// @details Template class which accepts string, integral and floating point types.

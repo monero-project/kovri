@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 2.8.12)
-project("kovri" C CXX)
+cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
+project(kovri CXX)
 
 set(KOVRI_PROJECT "The Kovri I2P Router Project")
 
@@ -33,8 +33,11 @@ set(I2P_NETWORK_ID "2")  # "1" is reserved for I2P version less than 0.6.1.10
 # Produce version definitions, output to build directory
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.h.in" "${CMAKE_BINARY_DIR}/version.h" @ONLY)
 
+# The interface target for internal usage requirements 
+add_library(kovri-private INTERFACE) 
+
 # Include build directory so we need to git-ignore version file output
-include_directories("${CMAKE_BINARY_DIR}")
+target_include_directories(kovri-private INTERFACE ${CMAKE_BINARY_DIR})
 
 # Configurable options
 option(KOVRI_DATA_PATH "The path to the kovri data folder")
@@ -49,6 +52,7 @@ option(WITH_LIBRARY    "Build library" ON)
 option(WITH_OPTIMIZE   "Optimization flags" OFF)
 option(WITH_PYTHON     "Build wrappers which require Boost.Python" OFF)
 option(WITH_STATIC     "Static build" OFF)
+option(WITH_STATIC_DEPS "Static build with static dependencies" OFF)
 option(WITH_SUPERCOP   "Build Ed25519 using the ref10 implementation from SUPERCOP" ON)  # Default ON unless we switch implementations
 option(WITH_TESTS      "Build unit tests" OFF)
 option(WITH_FUZZ_TESTS "Build fuzz tests" OFF)
@@ -60,13 +64,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS} -DNDEBUG")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -DNDEBUG")
+# https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2016-7420 
+set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS $<$<CONFIG:Release>:NDEBUG>)
 
 # Exceptions *should* substitute assertions in tests
 if (WITH_TESTS)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DNDEBUG")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNDEBUG")
+  set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS NDEBUG)
 endif()
 
 # Default build is Debug
@@ -113,14 +116,9 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   set(CLANG TRUE)
 endif()
 
-# Check for C++14 support (minimum version compilers guarantee this)
-include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++1y" CXX14_SUPPORTED)
-if(CXX14_SUPPORTED)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y")
-elseif(NOT MSVC)
-  message(FATAL_ERROR "C++14 standard not supported by compiler. See building instructions.")
-endif()
+# Require C++14 support (minimum version compilers guarantee this)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 ### TODO(unassigned): review, cleanup, improve
 # Compiler flags (by vendor)
@@ -139,19 +137,24 @@ if(NOT MSVC)
   # -flto is added from above
   #set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "-Wl,--gc-sections")
 
+  # https://developers.redhat.com/blog/2018/03/21/compiler-and-linker-flags-gcc/ 
   if(WITH_HARDENING)
-    add_definitions("-D_FORTIFY_SOURCE=2")
+    # Run-time buffer overflow detection
+    set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS _FORTIFY_SOURCE=2)
+    # Reject potentially unsafe format string arguents
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wformat -Wformat-security -Werror=format-security")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector-strong -fPIE --param ssp-buffer-size=4")
+    # Stack smashing protector
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector-strong --param ssp-buffer-size=4")
+    # Full ASLR for executables
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
     if(GNU AND NOT MINGW)
+      # Read-only segments after relocation and Disable lazy binding
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -z relro -z now")
     endif()
   endif()
   if(ANDROID)
     #From Android 5: "only position independent executables (PIE) are supported"
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIE")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIE")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fPIE -pie")
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
   endif()
   if(WITH_OPTIMIZE AND NOT WITH_COVERAGE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
@@ -165,26 +168,13 @@ if(NOT WIN32 AND NOT WITH_STATIC)
   # TODO: Consider separate compilation for COMMON_SRC for library.
   # No need in -fPIC overhead for binary if not interested in library
   # HINT: revert c266cff CMakeLists.txt: compilation speed up
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+  set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 endif()
 
 if(WITH_STATIC)
   set(Boost_USE_STATIC_LIBS ON)
   set(Boost_USE_STATIC_RUNTIME ON)
   set(BUILD_SHARED_LIBS OFF)
-  if(MINGW)
-    # Needed for windows static build to ensure full paths are used/libraries linked
-    string(REGEX MATCH "^[^/]:/[^/]*" msys2_install_path "${CMAKE_C_COMPILER}")
-    message(STATUS "MSYS location: ${msys2_install_path}")
-    set(CMAKE_INCLUDE_PATH "${msys2_install_path}/mingw${ARCH_WIDTH}/include")
-    set(DEFLIB ${msys2_install_path}/mingw${ARCH_WIDTH}/lib)
-    list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_DIRECTORIES ${DEFLIB})
-    list(REMOVE_ITEM CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES ${DEFLIB})
-    # NOTE: leave uncommented for openssl static
-    if(MINGW)
-      set(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
-    endif()
-  endif()
   if(${CMAKE_CXX_COMPILER} MATCHES ".*-openwrt-.*")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
     set(CMAKE_THREAD_LIBS_INIT
@@ -203,52 +193,40 @@ function(Uname output pattern)
 endfunction(Uname)
 
 # TODO(unassigned): extend Boost.Python cross-platform build support 
+set(additional_components)
 if (WITH_PYTHON)
   Uname(ARCH_LINUX "ARCH")
   Uname(UBUNTU "Ubuntu")
   if (APPLE OR ARCH_LINUX)
-    find_package(Boost 1.58
-      COMPONENTS chrono date_time filesystem log program_options python3 regex system thread REQUIRED)
+    set(additional_components python3)
   elseif (UBUNTU)
-    find_package(Boost 1.58
-      COMPONENTS chrono date_time filesystem log program_options python-py35 regex system thread REQUIRED)
+    set(additional_components python-py35)
   else()
     message(FATAL_ERROR
       "Boost.Python package not yet supported for your system. See TODO in root CMake recipe or open a feature request")
   endif()
-else()
-  find_package(Boost 1.58
-    COMPONENTS chrono date_time filesystem log program_options regex system thread REQUIRED)
 endif()
 
-if(NOT Boost_FOUND)
+find_package(Boost 1.58 REQUIRED COMPONENTS filesystem log program_options ${additional_components})
+if (NOT Boost_FOUND)
   message(FATAL_ERROR "Boost not found or requirement not satisfied. See building instructions.")
-else()
-  message(STATUS "Found Boost: ${Boost_INCLUDE_DIR}, ${Boost_LIBRARIES}")
-  if(NOT WITH_STATIC)
-    add_definitions(-DBOOST_ALL_DYN_LINK)
-  endif()
-  include_directories(${Boost_INCLUDE_DIRS})
+endif()
+
+if(NOT WITH_STATIC)
+  target_compile_definitions(kovri-private INTERFACE BOOST_ALL_DYN_LINK)
 endif()
 
 # Libraries
-# TODO: once CMake 3.1+ becomes mainstream, see e.g.
-#  http://stackoverflow.com/a/29871891/673826 use imported Threads::Threads
-#  instead
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-if(THREADS_HAVE_PTHREAD_ARG) # compile time flag
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
-endif()
 
 if(WITH_CRYPTOPP)
   find_package(CryptoPP REQUIRED)
   if(NOT CryptoPP_FOUND)
     message(FATAL_ERROR "Could not find Crypto++. See building instructions.")
   else()
-    message(STATUS "Found Crypto++: ${CryptoPP_INCLUDE_DIR}, ${CryptoPP_LIBRARIES}")
-    include_directories(${CryptoPP_INCLUDE_DIR}/../)  # We back-track for <cryptopp/*>
-    add_definitions(-DWITH_CRYPTOPP)
+    target_link_libraries(kovri-private INTERFACE CryptoPP::CryptoPP)
+    target_compile_definitions(kovri-private INTERFACE WITH_CRYPTOPP)
   endif()
 endif()
 
@@ -261,32 +239,27 @@ if (APPLE OR ANDROID)
       OUTPUT_STRIP_TRAILING_WHITESPACE)
   endif()
   if (WITH_STATIC)
-    #set(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
-    set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
+    set(OPENSSL_USE_STATIC_LIBS TRUE)
   endif()
   find_package(OpenSSL REQUIRED)
-  if(NOT DEFINED OPENSSL_INCLUDE_DIR)
+  if(NOT OPENSSL_FOUND)
     message(FATAL_ERROR "Could not find OpenSSL. Please download and install it first!")
   else()
-    include_directories(${OPENSSL_INCLUDE_DIR})
+    target_link_libraries(kovri-private INTERFACE OpenSSL::SSL)
   endif()
 endif()
 
 add_subdirectory(deps)
 
 # Note: we're actually building off branch 0.13-release - not 0.12.0.
-# cpp-netlib's MINOR is kept at 0.12 until 0.13 is official.
-# CMake will find cppnetlibConfig*.cmake in cpp-netlib's build directory
-# (we *could* instruct to make install for cpp-netlib but that's not needed ATM).
 if(WITH_CPPNETLIB)
-  set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} deps/cpp-netlib)
-  find_package(cppnetlib 0.12.0 REQUIRED)
-  if(NOT DEFINED CPPNETLIB_INCLUDE_DIRS)
-    message(FATAL_ERROR "Could not find cpp-netlib 0.12.0. See building instructions.")
-  else()
-    message(STATUS "Found cpp-netlib: ${CPPNETLIB_INCLUDE_DIRS}, ${CPPNETLIB_LIBRARIES}")
-    include_directories(${CPPNETLIB_INCLUDE_DIRS})
-  endif()
+  set(CPP-NETLIB_BUILD_SHARED_LIBS OFF CACHE BOOL "Build cpp-netlib as shared libraries.") 
+  set(CPP-NETLIB_BUILD_TESTS OFF CACHE BOOL "Build the cpp-netlib project tests.") 
+  set(CPP-NETLIB_BUILD_EXAMPLES OFF CACHE BOOL  "Build the cpp-netlib project examples.") 
+  set(CPP-NETLIB_ENABLE_HTTPS ON CACHE BOOL  "Build cpp-netlib with support for https if OpenSSL is found.") 
+  set(CPP-NETLIB_STATIC_OPENSSL ${WITH_STATIC_DEPS} CACHE BOOL  "Build cpp-netlib using static OpenSSL") 
+  set(CPP-NETLIB_STATIC_BOOST ${WITH_STATIC_DEPS} CACHE BOOL "Build cpp-netlib using static Boost") 
+  add_subdirectory(deps/cpp-netlib)
 endif()
 
 if(WITH_FUZZ_TESTS)
@@ -301,8 +274,8 @@ if(WITH_FUZZ_TESTS)
     message(FATAL_ERROR "Could not find Fuzzer. See building instructions.")
   else()
     message(STATUS "Found Fuzzer: ${Fuzzer_INCLUDE_DIR}, ${Fuzzer_LIBRARIES}")
-    include_directories(${Fuzzer_INCLUDE_DIR})
-    add_definitions(-DWITH_FUZZ_TESTS)
+    target_include_directories(kovri-private INTERFACE ${Fuzzer_INCLUDE_DIR})
+    target_compile_definitions(kovri-private INTERFACE WITH_FUZZ_TESTS)
   endif()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize-coverage=trace-pc-guard -fsanitize=address")
 endif()
@@ -319,16 +292,16 @@ if (WITH_PYTHON)
     message(FATAL_ERROR "Python not found or requirement not satisfied. See building instructions.")
   else()
     message(STATUS "Found Python: ${PYTHON_INCLUDE_DIR}, ${PYTHON_LIBRARIES}")
-    include_directories(${PYTHON_INCLUDE_DIRS})
+    target_include_directories(kovri-private INTERFACE ${PYTHON_INCLUDE_DIRS})
   endif()
 endif()
 
 # Load remaining includes
-include_directories(${CMAKE_SOURCE_DIR})
+target_include_directories(kovri-private INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Use data-path set in Makefile. Code must call upon this definition.
 if(KOVRI_DATA_PATH)
-  add_definitions(-DKOVRI_CUSTOM_DATA_PATH="${KOVRI_DATA_PATH}")
+  target_include_directories(kovri-private INTERFACE KOVRI_CUSTOM_DATA_PATH="${KOVRI_DATA_PATH}")
 endif()
 
 # Show summary
@@ -350,6 +323,7 @@ message(STATUS "  LIBRARY          : ${WITH_LIBRARY}")
 message(STATUS "  OPTIMIZATION     : ${WITH_OPTIMIZE}")
 message(STATUS "  PYTHON           : ${WITH_PYTHON}")
 message(STATUS "  STATIC BUILD     : ${WITH_STATIC}")
+message(STATUS "  STATIC DEPS BUILD: ${WITH_STATIC_DEPS}")
 message(STATUS "  SUPERCOP         : ${WITH_SUPERCOP}")
 message(STATUS "  TESTS            : ${WITH_TESTS}")
 message(STATUS "  FUZZ TESTS       : ${WITH_FUZZ_TESTS}")
@@ -359,17 +333,13 @@ message(STATUS "---------------------------------------")
 # Handle paths nicely
 include(GNUInstallDirs)
 
-# Binaries
-set(APP_NAME "${PROJECT_NAME}-app")
-set(UTIL_NAME "${PROJECT_NAME}-util")
-set(TESTS_NAME "${PROJECT_NAME}-tests")
-
-# TODO(unassigned): add version numbers
-# Libraries
-set(CLIENT_NAME "${PROJECT_NAME}-client")
-set(CORE_NAME "${PROJECT_NAME}-core")
-set(PYTHON_NAME "${PROJECT_NAME}_python")
-
 add_subdirectory(src)
-add_subdirectory(tests)
-add_subdirectory(contrib)
+
+if (WITH_TESTS)
+  enable_testing()
+  add_subdirectory(tests/unit_tests)
+endif()
+
+if (WITH_PYTHON)
+  add_subdirectory(contrib/python)
+endif()

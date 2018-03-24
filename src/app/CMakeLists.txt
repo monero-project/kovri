@@ -1,19 +1,17 @@
-include_directories("../")
+cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
+project(kovri-app CXX)
 
-set(APP_SRC
-  "main.cc"
-  "daemon.cc")
+add_executable(kovri-app
+  main.cc
+  daemon.cc)
+target_include_directories(kovri-app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 # Linux/OSX/BSD/DragonFly
-if(NOT CMAKE_SYSTEM_NAME STREQUAL "Windows")
-  list(APPEND APP_SRC "daemon_linux.cc")
+if (WIN32)
+  target_sources(kovri-app PRIVATE daemon_win32.cc win32_service.cc)
 else()
-  list(APPEND APP_SRC "daemon_win32.cc")
-  list(APPEND APP_SRC "win32_service.cc")
+  target_sources(kovri-app PRIVATE daemon_linux.cc)
 endif()
-
-if(WITH_BINARY)
-  ConfigureBinary(${APP_NAME} "${APP_SRC}" ${PROJECT_NAME})
-endif()
+ConfigureBinary(kovri-app "kovri") 
 
 # vim: noai:ts=2:sw=2

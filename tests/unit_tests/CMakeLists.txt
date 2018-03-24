@@ -1,49 +1,35 @@
-set(TESTS_CLIENT
-  "client/address_book/impl.cc"
-  "client/api/i2p_control/data.cc"
-  "client/api/i2p_control/parser.cc"
-  "client/reseed.cc"
-  "client/proxy/http.cc"
-  "client/util/http.cc"
-  "client/util/parse.cc"
-  "client/util/zip.cc")
+cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
+project(kovri-tests CXX)
 
-set(TESTS_CORE
-  "core/crypto/aes.cc"
-  "core/crypto/dsa.cc"
-  "core/crypto/eddsa25519.cc"
-  "core/crypto/elgamal.cc"
-  "core/crypto/radix.cc"
-  "core/crypto/rand.cc"
-  "core/crypto/util/x509.cc"
-  "core/router/identity.cc"
-  "core/router/transports/ssu/packet.cc"
-  "core/util/byte_stream.cc")
+add_executable(kovri-tests 
+  client/address_book/impl.cc
+  client/api/i2p_control/data.cc
+  client/api/i2p_control/parser.cc
+  client/reseed.cc
+  client/proxy/http.cc
+  client/util/http.cc
+  client/util/parse.cc
+  client/util/zip.cc
+  core/crypto/aes.cc
+  core/crypto/dsa.cc
+  core/crypto/eddsa25519.cc
+  core/crypto/elgamal.cc
+  core/crypto/radix.cc
+  core/crypto/rand.cc
+  core/crypto/util/x509.cc
+  core/router/identity.cc
+  core/router/transports/ssu/packet.cc
+  core/util/byte_stream.cc
+  main.cc)
 
-set(TESTS_MAIN
-  ${TESTS_CLIENT}
-  ${TESTS_CORE}
-  "main.cc")
 
-include_directories("../../src/")
+find_package(Boost REQUIRED COMPONENTS unit_test_framework)
 
-if(WITH_TESTS)
-  find_package(
-    Boost COMPONENTS
-    unit_test_framework
-    chrono program_options
-    date_time thread system
-    filesystem regex
-    REQUIRED)
-  add_executable(${TESTS_NAME} ${TESTS_MAIN})
-  target_link_libraries(
-    ${TESTS_NAME} ${CORE_NAME} ${CLIENT_NAME}
-    ${Boost_LIBRARIES} ${CryptoPP_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-  if(MINGW)
-    target_link_libraries(${TESTS_NAME} ${CORE_NAME} ws2_32 wsock32 iphlpapi)
-  endif()
-  enable_testing()
-  add_test(KovriTest ${TESTS_NAME})
-  install(TARGETS
-    ${TESTS_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-endif()
+target_link_libraries(kovri-tests PRIVATE 
+  Boost::unit_test_framework
+  kovri-client
+  kovri-private)
+
+install(TARGETS kovri-tests RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}) 
+
+add_test(NAME KovriTest COMMAND kovri-tests)

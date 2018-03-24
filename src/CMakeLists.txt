@@ -1,15 +1,14 @@
-function(ConfigureBinary BIN_NAME BIN_SRC OUT_NAME)
-  add_executable(${BIN_NAME} ${BIN_SRC})
-  target_link_libraries(
-    ${BIN_NAME}
-    ${CLIENT_NAME} ${CORE_NAME}
-    ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-  if (WITH_PYTHON)
-    target_link_libraries(${BIN_NAME} ${PYTHON_LIBRARIES})
-  endif()
+cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
+project(kovri-src CXX)
+
+function(ConfigureBinary BIN_NAME OUT_NAME)
+  target_link_libraries(${BIN_NAME} PRIVATE
+    kovri-core
+    kovri-client 
+    kovri-private)
   set_target_properties(${BIN_NAME} PROPERTIES OUTPUT_NAME "${OUT_NAME}")
   if(WITH_STATIC)
-    if(NOT MINGW)
+    if(NOT MINGW AND NOT MSVC)
       set_target_properties(${BIN_NAME} PROPERTIES LINK_FLAGS "-static-libgcc -static-libstdc++")
     endif()
     if(CLANG AND NOT (ARM OR ANDROID) )
@@ -23,25 +22,20 @@ function(ConfigureBinary BIN_NAME BIN_SRC OUT_NAME)
       set_target_properties(${BIN_NAME} PROPERTIES LINK_FLAGS "-static")
     endif()
   endif()
-  if(MINGW)
-    target_link_libraries(${BIN_NAME} wsock32 iphlpapi ws2_32)
-  endif()
   if(WITH_HARDENING AND CMAKE_CXX_COMPILER_ID STREQUAL GNU)
     set_target_properties(${BIN_NAME} PROPERTIES LINK_FLAGS "-z relro -z now")
   endif()
-  # FindBoost pulls pthread for thread which is broken for static linking
-  # (at least on Ubuntu 15.04)
-  list(GET Boost_LIBRARIES -1 LAST_Boost_LIBRARIES)
-  if(${LAST_Boost_LIBRARIES} MATCHES ".*pthread.*")
-    list(REMOVE_AT Boost_LIBRARIES -1)
-  endif()
-  if(MSVC)
-    install(FILES
-      $<TARGET_PDB_FILE:${BIN_NAME}> DESTINATION "bin" CONFIGURATIONS DEBUG)
-  endif()
 endfunction()
 
-add_subdirectory(app)
-add_subdirectory(client)
-add_subdirectory(core)
-add_subdirectory(util)
+if (WITH_BINARY)
+  add_subdirectory(app)
+  if (WITH_KOVRI_UTIL)
+    add_subdirectory(util)
+  endif()
+endif()
+
+if (WITH_LIBRARY)
+  add_subdirectory(client)
+  add_subdirectory(core)
+endif()
+

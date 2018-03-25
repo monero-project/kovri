@@ -32,6 +32,10 @@ target_link_libraries(kovri-client PRIVATE
   PUBLIC
   cppnetlib::client-connections)
 
+if (MSVC)
+  cotire(kovri-client)
+endif()
+
 install(
   TARGETS kovri-client
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

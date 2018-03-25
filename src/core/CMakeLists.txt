@@ -114,10 +114,13 @@ if(WITH_SUPERCOP)
     ${EDDSA_DIR}/ed25519/verify.cc)
 endif()
 
+if (MSVC)
+  cotire(kovri-core)
+endif()
 
 # Library building
 install(
-  TARGETS ${CORE_NAME}
+  TARGETS kovri-core
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})

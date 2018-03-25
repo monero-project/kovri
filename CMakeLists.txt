@@ -58,8 +58,9 @@ option(WITH_TESTS      "Build unit tests" OFF)
 option(WITH_FUZZ_TESTS "Build fuzz tests" OFF)
 option(WITH_UPNP       "Include support for UPnP client" OFF)
 
+
 set(CMAKE_VERBOSE_MAKEFILE true)
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_CURRENT_SOURCE_DIR}/cmake/cotire/CMake)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -306,6 +307,9 @@ if (MSVC)
   set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /DEBUG:fastlink") 
   # The /MP flag is applied by cotire
   # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+  
+  set(COTIRE_PCH_MEMORY_SCALING_FACTOR "300")
+  include(cotire)
 endif() 
 
 # Load remaining includes

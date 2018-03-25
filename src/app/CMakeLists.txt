@@ -14,4 +14,7 @@ else()
 endif()
 ConfigureBinary(kovri-app "kovri") 
 
+if (MSVC)
+  cotire(kovri-app)
+endif()
 # vim: noai:ts=2:sw=2

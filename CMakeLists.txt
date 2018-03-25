@@ -300,6 +300,14 @@ if (WITH_PYTHON)
   endif()
 endif()
 
+# Speed up MSVC build
+# https://blogs.msdn.microsoft.com/vcblog/2016/10/26/recommendations-to-speed-c-builds-in-visual-studio/
+if (MSVC) 
+  set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /DEBUG:fastlink") 
+  # The /MP flag is applied by cotire
+  # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+endif() 
+
 # Load remaining includes
 target_include_directories(kovri-private INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 

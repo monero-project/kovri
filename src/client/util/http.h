@@ -34,7 +34,6 @@
 #define SRC_CLIENT_UTIL_HTTP_H_
 
 // cpp-netlib
-#define BOOST_NETWORK_ENABLE_HTTPS
 #include <boost/network/include/http/client.hpp>
 #include <boost/network/uri.hpp>
 

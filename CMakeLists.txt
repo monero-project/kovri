@@ -274,7 +274,7 @@ if(WITH_CPPNETLIB)
   set(CPP-NETLIB_BUILD_EXAMPLES OFF CACHE BOOL  "Build the cpp-netlib project examples.") 
   set(CPP-NETLIB_ENABLE_HTTPS ON CACHE BOOL  "Build cpp-netlib with support for https if OpenSSL is found.") 
   set(CPP-NETLIB_STATIC_OPENSSL ${WITH_STATIC_DEPS} CACHE BOOL  "Build cpp-netlib using static OpenSSL") 
-  set(CPP-NETLIB_STATIC_BOOST ${WITH_STATIC_DEPS} CACHE BOOL "Build cpp-netlib using static Boost") 
+  set(CPP-NETLIB_STATIC_BOOST ${WITH_STATIC} CACHE BOOL "Build cpp-netlib using static Boost") 
   add_subdirectory(deps/cpp-netlib)
 endif()
 

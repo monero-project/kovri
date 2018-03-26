@@ -228,6 +228,13 @@ if (NOT Boost_FOUND)
   message(FATAL_ERROR "Boost not found or requirement not satisfied. See building instructions.")
 endif()
 
+# Fix OpenBSD build failure due to missing Boost::log_setup target
+if (NOT TARGET Boost::log_setup)
+  get_property(BoostLogDependencies TARGET Boost::log PROPERTY INTERFACE_LINK_LIBRARIES)
+  list(REMOVE_ITEM BoostLogDependencies "Boost::log_setup")
+  set_property(TARGET Boost::log PROPERTY INTERFACE_LINK_LIBRARIES "${BoostLogDependencies}")
+endif()
+
 if(NOT WITH_STATIC)
   target_compile_definitions(kovri-private INTERFACE BOOST_ALL_DYN_LINK)
 endif()

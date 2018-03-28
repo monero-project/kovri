@@ -529,6 +529,68 @@ void AddressBook::Stop() {
   m_Subscribers.clear();
 }
 
+BookEntry::BookEntry(
+    const std::string& host,
+    const kovri::core::IdentHash& address) try : m_Host(host),
+                                                 m_Address(address)
+  {
+    if (m_Host.empty())
+      throw std::invalid_argument("AddressBook: empty entry hostname");
+  }
+catch (...)
+  {
+    kovri::core::Exception ex(__func__);
+    ex.Dispatch();
+    throw;
+  }
+
+BookEntry::BookEntry(
+    const std::string& host,
+    const std::string& address) try : m_Host(host)
+  {
+    if (m_Host.empty())
+      throw std::invalid_argument("AddressBook: empty entry hostname");
+    core::IdentityEx ident;
+    ident.FromBase64(address);
+    m_Address = ident.GetIdentHash();
+  }
+catch (...)
+  {
+    kovri::core::Exception ex(__func__);
+    ex.Dispatch();
+    throw;
+  }
+
+BookEntry::BookEntry(const std::string& subscription_line) try
+  {
+    if (subscription_line.empty())
+      throw std::invalid_argument("AddressBook: empty subscription line");
+    std::size_t pos = subscription_line.find('=');
+    if (pos == std::string::npos)
+      throw std::runtime_error("AddressBook: invalid subscription line");
+    m_Host = subscription_line.substr(0, pos++);
+    if (m_Host.empty())
+      throw std::runtime_error("AddressBook: empty entry hostname");
+    core::IdentityEx ident;
+    ident.FromBase64(subscription_line.substr(pos));
+    m_Address = ident.GetIdentHash();
+  }
+catch (...)
+  {
+    kovri::core::Exception ex(__func__);
+    ex.Dispatch();
+    throw;
+  }
+
+const std::string& BookEntry::get_host() const noexcept
+{
+  return m_Host;
+}
+
+const core::IdentHash& BookEntry::get_address() const noexcept
+{
+  return m_Address;
+}
 /*
 // TODO(unassigned): currently unused
 void AddressBook::InsertAddress(

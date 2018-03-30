@@ -190,13 +190,51 @@ void Configuration::ParseConfigFile(
   auto hosts = m_Map["host"].as<ListParameter<std::string, 2>>();
   // TODO(anonimal): move to sanity check function for namespace use
   // Check host syntax
+
+  // Ensure host parameter is what we expect.
+  // TODO(brbzull): If default?
+  if (!hosts.IsExpectedSize())
+    throw std::invalid_argument(
+        "host parameter contains more than expected(2)");
+
+  // We will store the first address just after we run the basic validation.
+  boost::optional<boost::asio::ip::address> first_address;
+  bool valid_host = true;
   for (const auto& host : hosts.values)
     {
       boost::system::error_code ec;
-      boost::asio::ip::address::from_string(host, ec);
+      auto address = boost::asio::ip::address::from_string(host, ec);
       if (ec)
-        throw std::runtime_error("Invalid host: " + ec.message());
+        {
+          valid_host = false;
+          break;
+        }
+
+      // only for the second host.
+      if (first_address)
+        {
+          // same one?
+          if (*first_address == address)
+            {
+              valid_host = false;
+              break;
+            }
+
+          // should be different.
+          if (first_address.get().is_v4() == address.is_v4()
+              || first_address.get().is_v6() == address.is_v6())
+            {
+              valid_host = false;
+              break;
+            }
+        }
+      else
+        first_address = std::move(address);
     }
+
+  if (!valid_host)
+    throw std::invalid_argument("Invalid host parameter");
+  // TODO(brbzull): Check for rfc1918.
 
   // Ensure port in valid range
   if (!m_Map["port"].defaulted())

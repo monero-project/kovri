@@ -12,3 +12,6 @@
 	path = deps/miniupnp
 	url = https://github.com/monero-project/miniupnp
 	branch = monero
+[submodule "cmake/cotire"]
+	path = cmake/cotire
+	url = https://github.com/sakra/cotire.git

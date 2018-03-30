@@ -20,7 +20,8 @@ add_executable(kovri-tests
   core/router/identity.cc
   core/router/transports/ssu/packet.cc
   core/util/byte_stream.cc
-  main.cc)
+  main.cc
+  core/router/identity.h)
 
 
 find_package(Boost REQUIRED COMPONENTS unit_test_framework)

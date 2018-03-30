@@ -22,7 +22,26 @@ add_library(kovri-client
   util/json.cc
   util/parse.cc
   util/zip.cc
-)
+  address_book/impl.h
+  address_book/storage.h
+  api/datagram.h
+  api/i2p_control/data.h
+  api/i2p_control/server.h
+  api/i2p_control/session.h
+  api/streaming.h
+  context.h
+  destination.h
+  instance.h
+  proxy/http.h
+  proxy/socks.h
+  reseed.h
+  service.h
+  tunnel.h
+  util/config.h
+  util/http.h
+  util/json.h
+  util/parse.h
+  util/zip.h)
 
 target_include_directories(kovri-client PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_link_libraries(kovri-client PRIVATE 

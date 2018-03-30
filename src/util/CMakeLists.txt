@@ -8,7 +8,17 @@ add_executable(kovri-util
   i2pcontrol.cc
   main.cc
   routerinfo.cc
-  su3file.cc)
+  su3file.cc
+  base.h
+  benchmark.h
+  command.h
+  cpuid.h
+  fuzz.h
+  i2pcontrol.h
+  i2pcontrol_client.h
+  kovri.h
+  routerinfo.h
+  su3file.h)
 target_include_directories(kovri-util PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 if(NOT WIN32)

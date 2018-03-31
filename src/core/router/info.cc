@@ -669,14 +669,12 @@ void RouterInfo::DisableV6()
   m_SupportedTransports &= ~SupportedTransport::SSUv6;
 
   // Remove addresses in question
-  for (std::size_t i = 0; i < m_Addresses.size(); i++)
-    {
-      if (m_Addresses[i].host.is_v6())
-        {
-          LOG(debug) << "RouterInfo: " << __func__ << ": removing address";
-          m_Addresses.erase(m_Addresses.begin() + i);
-        }
-    }
+  m_Addresses.erase(
+      std::remove_if(
+          std::begin(m_Addresses),
+          std::end(m_Addresses),
+          [](const auto& address) { return address.host.is_v6(); }),
+      std::end(m_Addresses));
 }
 
 void RouterInfo::Update(const std::uint8_t* buf, std::uint16_t len)

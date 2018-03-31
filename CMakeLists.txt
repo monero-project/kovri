@@ -174,6 +174,17 @@ endif()
 
 set(Boost_USE_MULTITHREADED ON)
 
+if(WITH_STATIC_DEPS AND MSVC)
+  foreach(flag_var IN ITEMS
+        CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+        CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
+    if(${flag_var} MATCHES "/MD")
+      string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+    endif()
+  endforeach()
+  set(Boost_USE_STATIC_RUNTIME ON)
+endif()
+
 if(WITH_STATIC)
   set(Boost_USE_STATIC_LIBS ON)
   if (NOT MSVC)

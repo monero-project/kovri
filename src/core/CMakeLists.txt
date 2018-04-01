@@ -123,7 +123,7 @@ endif()
 
 if(WITH_SUPERCOP)
   set(EDDSA_DIR "crypto/impl/supercop")
-  target_sources(kovri-core PRIVATE 
+  set(EDDSA_SRC
     ${EDDSA_DIR}/signature.cc
     ${EDDSA_DIR}/ed25519/fe_0.cc
     ${EDDSA_DIR}/ed25519/fe_1.cc
@@ -189,6 +189,13 @@ if(WITH_SUPERCOP)
     ${EDDSA_DIR}/ed25519/pow225521.h
     ${EDDSA_DIR}/ed25519/sc.h
     ${EDDSA_DIR}/ed25519/sqrtm1.h)
+
+  # Disable unity build for eddsa files
+  foreach(eddsa_file IN LISTS EDDSA_SRC)
+    set_property(SOURCE ${eddsa_file} PROPERTY COTIRE_EXCLUDED TRUE)
+  endforeach()
+  
+  target_sources(kovri-core PRIVATE ${EDDSA_SRC})
 endif()
 
 if (WITH_UPNP)

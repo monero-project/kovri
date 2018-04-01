@@ -58,6 +58,7 @@ option(WITH_SUPERCOP   "Build Ed25519 using the ref10 implementation from SUPERC
 option(WITH_TESTS      "Build unit tests" OFF)
 option(WITH_FUZZ_TESTS "Build fuzz tests" OFF)
 option(WITH_UPNP       "Include support for UPnP client" OFF)
+option(WITH_COTIRE     "Enable cotire (compile time reducer) - precompiled header and single compilation unit builds" ${MSVC})
 
 
 set(CMAKE_VERBOSE_MAKEFILE true)
@@ -201,6 +202,20 @@ if(WITH_STATIC)
   endif()
 endif()
 
+# Speed up MSVC build
+# https://blogs.msdn.microsoft.com/vcblog/2016/10/26/recommendations-to-speed-c-builds-in-visual-studio/
+if (MSVC) 
+  set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /DEBUG:fastlink") 
+  if (NOT WITH_COTIRE AND MSVC_IDE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+  endif()
+endif()
+
+if(WITH_COTIRE)
+  set(COTIRE_PCH_MEMORY_SCALING_FACTOR "300")
+  include(cotire OPTIONAL)
+endif() 
+
 # Get uname output
 function(Uname output pattern)
   execute_process(
@@ -327,16 +342,6 @@ if (WITH_PYTHON)
   endif()
 endif()
 
-# Speed up MSVC build
-# https://blogs.msdn.microsoft.com/vcblog/2016/10/26/recommendations-to-speed-c-builds-in-visual-studio/
-if (MSVC) 
-  set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /DEBUG:fastlink") 
-  # The /MP flag is applied by cotire
-  # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
-  
-  set(COTIRE_PCH_MEMORY_SCALING_FACTOR "300")
-  include(cotire)
-endif() 
 
 # Solve issue with as.exe fatal error - Object file has too many sections
 # http://stackoverflow.com/a/28372660
@@ -378,6 +383,7 @@ message(STATUS "  SUPERCOP         : ${WITH_SUPERCOP}")
 message(STATUS "  TESTS            : ${WITH_TESTS}")
 message(STATUS "  FUZZ TESTS       : ${WITH_FUZZ_TESTS}")
 message(STATUS "  UPnP             : ${WITH_UPNP}")
+message(STATUS "  Cotire           : ${WITH_COTIRE}")
 message(STATUS "---------------------------------------")
 
 # Handle paths nicely

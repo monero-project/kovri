@@ -57,6 +57,7 @@ using namespace rtc;
 #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
 
+#if (NTDDI_VERSION < NTDDI_VISTA)
 // This function was written by Petar Korponai?. See
 // http://stackoverflow.com/questions/15660203/inet-pton-identifier-not-found
 int inet_pton(
@@ -86,6 +87,7 @@ int inet_pton(
   }
   return 0;
 }
+#endif
 #endif
 
 namespace kovri {

@@ -96,7 +96,7 @@ StringStream::ReadKeyPair()
 
   // TODO(anonimal): debug logging; include delimiter/terminator
 
-  return std::make_tuple(key, value, read_size);
+  return std::make_tuple(std::move(key), std::move(value), read_size);
 }
 
 std::string StringStream::ReadStringFromByte()

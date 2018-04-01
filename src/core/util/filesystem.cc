@@ -71,7 +71,7 @@ StringStream::StringStream(
   m_Terminator = terminator;
 }
 
-const std::tuple<std::string, std::string, std::size_t>
+std::tuple<std::string, std::string, std::size_t>
 StringStream::ReadKeyPair()
 {
   std::uint16_t read_size(0);  // TODO(anonimal): member for stream read size
@@ -99,7 +99,7 @@ StringStream::ReadKeyPair()
   return std::make_tuple(key, value, read_size);
 }
 
-const std::string StringStream::ReadStringFromByte()
+std::string StringStream::ReadStringFromByte()
 {
   // Get stated length amount
   std::uint8_t len;

@@ -110,10 +110,10 @@ class StringStream {
  public:
   /// @return Tuple of key pair (key/value) + size read of stream
   // TODO(anonimal): std::pair refactor, use member for read stream size
-  const std::tuple<std::string, std::string, std::size_t> ReadKeyPair();
+  std::tuple<std::string, std::string, std::size_t> ReadKeyPair();
 
   /// @return String value of stream amount as described in byte
-  const std::string ReadStringFromByte();
+  std::string ReadStringFromByte();
 
   /// @brief Write key value pair (with delimiter and terminator) to stream
   /// @warning Writes size of key then key, size of value and then value

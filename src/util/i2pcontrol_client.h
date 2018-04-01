@@ -109,7 +109,7 @@ class I2PControlClient final
   // @param callback Callback to call when response is complete
   // @throw boost::system::error on error
   void HandleHTTPResponse(
-      boost::iterator_range<char const*> const& it,
+      boost::network::http::client::char_const_range const& it,
       boost::system::error_code const& error,
       std::shared_ptr<Request> request,
       std::shared_ptr<std::stringstream> stream,

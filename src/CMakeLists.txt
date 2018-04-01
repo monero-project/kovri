@@ -27,6 +27,11 @@ function(ConfigureBinary BIN_NAME OUT_NAME)
   endif()
 endfunction()
 
+if (WITH_LIBRARY)
+  add_subdirectory(core)
+  add_subdirectory(client)
+endif()
+
 if (WITH_BINARY)
   add_subdirectory(app)
   if (WITH_KOVRI_UTIL)
@@ -34,8 +39,4 @@ if (WITH_BINARY)
   endif()
 endif()
 
-if (WITH_LIBRARY)
-  add_subdirectory(client)
-  add_subdirectory(core)
-endif()
 

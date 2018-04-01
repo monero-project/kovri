@@ -28,9 +28,24 @@ find_package(Boost REQUIRED COMPONENTS unit_test_framework)
 
 target_link_libraries(kovri-tests PRIVATE 
   Boost::unit_test_framework
-  kovri-client
-  kovri-private)
+  kovri-private
+  kovri-client)
+
+if (COMMAND cotire)
+  set_target_properties(kovri-tests PROPERTIES COTIRE_PREFIX_HEADER_INCLUDE_PATH "${CMAKE_SOURCE_DIR}/deps")
+  cotire(kovri-tests)
+
+  set(tests_target kovri-tests_unity)
+else()
+  set(tests_target kovri-tests)
+endif()
+
+add_test(NAME KovriTest COMMAND ${tests_target})
+
+if (MSVC AND NOT WITH_STATIC)
+  file(TO_NATIVE_PATH "${Boost_LIBRARY_DIRS}" BOOST_DLL_DIR)
+  file(TO_NATIVE_PATH "${OPENSSL_ROOT_DIR}/bin" OPENSSL_DLL_DIR)
+  set_property(TEST KovriTest PROPERTY ENVIRONMENT "PATH=%PATH%\;${BOOST_DLL_DIR}\;${OPENSSL_DLL_DIR}")
+endif()
 
 install(TARGETS kovri-tests RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}) 
-
-add_test(NAME KovriTest COMMAND kovri-tests)

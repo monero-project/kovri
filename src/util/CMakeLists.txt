@@ -40,4 +40,9 @@ endif()
 
 ConfigureBinary(kovri-util "kovri-util")
 
+if (COMMAND cotire)
+  set_target_properties(kovri-client PROPERTIES COTIRE_PREFIX_HEADER_INCLUDE_PATH "${CMAKE_SOURCE_DIR}/deps")
+  cotire(kovri-util)
+endif()
+
 # vim: noai:ts=2:sw=2

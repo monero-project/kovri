@@ -197,7 +197,8 @@ if (WITH_UPNP)
   target_link_libraries(kovri-core PRIVATE ${CMAKE_DL_LIBS} ${UPNP_LIBRARIES})
 endif()
 
-if (MSVC)
+if (COMMAND cotire)
+  set_target_properties(kovri-core PROPERTIES COTIRE_PREFIX_HEADER_INCLUDE_PATH "${CMAKE_SOURCE_DIR}/deps")
   cotire(kovri-core)
 endif()
 

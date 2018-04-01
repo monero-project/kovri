@@ -509,8 +509,8 @@ void SSUData::ScheduleResend() {
     << "scheduling resend";
   m_ResendTimer.cancel();
   m_ResendTimer.expires_from_now(
-      boost::posix_time::seconds(
-          SSUDuration::ResendInterval));
+      boost::posix_time::seconds{
+        static_cast<long>(SSUDuration::ResendInterval)});
   auto s = m_Session.shared_from_this();
   m_ResendTimer.async_wait(
       [s](const boost::system::error_code& ecode) {
@@ -562,8 +562,8 @@ void SSUData::ScheduleDecay() {
     << "SSUData:" << m_Session.GetFormattedSessionInfo() << "scheduling decay";
   m_DecayTimer.cancel();
   m_DecayTimer.expires_from_now(
-      boost::posix_time::seconds(
-          SSUDuration::DecayInterval));
+      boost::posix_time::seconds{
+          static_cast<long>(SSUDuration::DecayInterval)});
   auto s = m_Session.shared_from_this();
   m_ResendTimer.async_wait(
       [s](const boost::system::error_code& ecode) {
@@ -586,8 +586,8 @@ void SSUData::ScheduleIncompleteMessagesCleanup() {
     << "scheduling incomplete messages cleanup";
   m_IncompleteMessagesCleanupTimer.cancel();
   m_IncompleteMessagesCleanupTimer.expires_from_now(
-      boost::posix_time::seconds(
-          SSUDuration::IncompleteMessagesCleanupTimeout));
+      boost::posix_time::seconds{
+          static_cast<long>(SSUDuration::IncompleteMessagesCleanupTimeout)});
   auto s = m_Session.shared_from_this();
   m_IncompleteMessagesCleanupTimer.async_wait(
       [s](const boost::system::error_code& ecode) {

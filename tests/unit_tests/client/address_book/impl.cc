@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2015-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2015-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -44,6 +44,44 @@
 
 /// @class SubscriptionFixture
 struct SubscriptionFixture {
+  struct AddressBookEntry
+  {
+   public:
+    explicit AddressBookEntry(const std::string& subscription_line)
+    {
+      try
+        {
+          std::size_t pos = subscription_line.find('=');
+          if (pos == std::string::npos)
+            throw std::runtime_error(
+                "AddressBookEntry: invalid subscription line");
+          m_Host = subscription_line.substr(0, pos++);
+          kovri::core::IdentityEx ident;
+          ident.FromBase64(subscription_line.substr(pos));
+          m_Address = ident.GetIdentHash();
+        }
+      catch (...)
+        {
+          kovri::core::Exception ex;
+          ex.Dispatch(__func__);
+          throw;
+        }
+    }
+
+    const std::string& host() const
+    {
+      return m_Host;
+    }
+
+    const kovri::core::IdentHash& address() const
+    {
+      return m_Address;
+    }
+
+   private:
+    std::string m_Host;  ///< Human-readable I2P hostname
+    kovri::core::IdentHash m_Address;  ///< I2P address hash
+  };
 
   /// @brief Validates given lines as proven addressbook host/address pairs
   /// @param lines Lines to validate
@@ -170,4 +208,21 @@ BOOST_AUTO_TEST_CASE(PGPClearSign) {
 
 // TODO(unassigned): more cases?
 
-BOOST_AUTO_TEST_SUITE_END() 
+BOOST_AUTO_TEST_CASE(RejectDuplicateEntry)
+{
+  // Ensure valid subscription line creates an entry
+  BOOST_CHECK_NO_THROW(AddressBookEntry entry(subscription.front()));
+
+  AddressBookEntry entry(subscription.front());
+  // Ensure valid entry is inserted
+  BOOST_CHECK_NO_THROW(book.InsertAddress(entry.host(), entry.address()));
+  // Ensure address book throws for duplicate host
+  BOOST_CHECK_THROW(
+      book.InsertAddress(entry.host(), entry.address()), std::runtime_error);
+  // Ensure address book throws for duplicate address
+  BOOST_CHECK_THROW(
+      book.InsertAddress("unique." + entry.host(), entry.address()),
+      std::runtime_error);
+}
+
+BOOST_AUTO_TEST_SUITE_END()

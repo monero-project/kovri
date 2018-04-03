@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -107,9 +107,18 @@ class AddressBook : public AddressBookDefaults {
     return m_SharedLocalDestination;
   }
 
+  /// @brief Insert address into in-memory storage
+  /// @param host Human-readable hostname to insert
+  /// @param address Hash of address to insert
+  /// @notes Throws if host or address are duplicates
+  void InsertAddress(
+      const std::string& host,
+      const kovri::core::IdentHash& address);
+
   /// @brief Inserts address into address book from HTTP Proxy jump service
   /// @param address Const reference to human-readable address
   /// @param base64 Const reference to Base64 address
+  // TODO(oneiric): remove after separating HTTP Proxy from Address Book
   void InsertAddressIntoStorage(
       const std::string& address,
       const std::string& base64);

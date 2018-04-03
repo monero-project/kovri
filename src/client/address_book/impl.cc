@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -228,6 +228,7 @@ void AddressBook::DownloadSubscription() {
     << "AddressBook: picking random subscription from total publisher count: "
     << publisher_count;
   // Pick a random publisher to subscribe from
+  // TODO(oneiric): download all subscriptions not already stored
   auto publisher = kovri::core::RandInRange32(0, publisher_count - 1);
   m_SubscriberIsDownloading = true;
   try {
@@ -295,6 +296,7 @@ bool AddressBook::SaveSubscription(
       LOG(debug) << "AddressBook: processing " << addresses.size() << " addresses";
       // Stream may be a file or downloaded stream.
       // Regardless, we want to write/overwrite the subscription file.
+      // TODO(oneiric): save unique entries to userhosts.txt
       if (file_name.empty())  // Use default filename if none given.
         file_name = (core::GetPath(core::Path::AddressBook) / GetDefaultSubscriptionFilename()).string();
       LOG(debug) << "AddressBook: opening subscription file " << file_name;
@@ -307,11 +309,20 @@ bool AddressBook::SaveSubscription(
       for (auto const& address : addresses) {
         const std::string& host = address.first;
         const auto& ident = address.second;
-        // Write/overwrite Hostname=Base64Address pairing to subscription file
-        file << host << "=" << ident.ToBase64() << '\n';  // TODO(anonimal): this is not optimal, especially for large subscriptions
-        // Add to address book
-        m_Storage->AddAddress(ident);
-        m_Addresses[host] = ident.GetIdentHash();  // TODO(anonimal): setter?
+        try
+          {
+            // Only stores subscription lines for addresses not already loaded
+            InsertAddress(host, ident.GetIdentHash());
+            // Write/overwrite Hostname=Base64Address pairing to subscription file
+            // TODO(anonimal): this is not optimal, especially for large subscriptions
+            file << host << "=" << ident.ToBase64() << '\n';
+            m_Storage->AddAddress(ident);
+          }
+        catch (...)
+          {
+            m_Exception.Dispatch(__func__);
+            continue;
+          }
       }
       // Flush subscription file
       file << std::flush;
@@ -319,10 +330,8 @@ bool AddressBook::SaveSubscription(
       m_Storage->Save(m_Addresses);
       m_SubscriptionIsLoaded = true;
     }
-  } catch (const std::exception& ex) {
-    LOG(error) << "AddressBook: exception in " << __func__ << ": " << ex.what();
   } catch (...) {
-    LOG(error) << "AddressBook: unknown exception in " << __func__;
+    m_Exception.Dispatch(__func__);
   }
   return m_SubscriptionIsLoaded;
 }
@@ -341,6 +350,7 @@ AddressBook::ValidateSubscription(std::istream& stream) {
   //const std::string alpha = "abcdefghijklmnopqrstuvwxyz";
   // TODO(unassigned): expand when we want to venture beyond the .i2p TLD
   // TODO(unassigned): IDN ccTLDs support?
+  // TODO(unassigned): investigate alternatives to regex (maybe Boost.Spirit?)
   std::regex regex("(?=^.{1,253}$)(^(((?!-)[a-zA-Z0-9-]{1,63})|((?!-)[a-zA-Z0-9-]{1,63}\\.)+[a-zA-Z]+[(i2p)]{2,63})$)");
   try {
     // Read through stream, add to address book
@@ -441,6 +451,28 @@ std::unique_ptr<const kovri::core::IdentHash> AddressBook::GetLoadedAddressIdent
   return nullptr;
 }
 
+void AddressBook::InsertAddress(
+    const std::string& host,
+    const kovri::core::IdentHash& address)
+{
+  try
+  {
+    // Ensure address book only inserts unique entries
+    if (!m_Addresses.empty())
+      {
+        for (const auto& entry : m_Addresses)
+          if (entry.second == address)
+            throw std::runtime_error("AddressBook: address already loaded");
+      }
+    m_Addresses[host] = address;
+  }
+  catch (...)
+  {
+    m_Exception.Dispatch(__func__);
+    throw;
+  }
+}
+
 // Used only by HTTP Proxy
 void AddressBook::InsertAddressIntoStorage(
     const std::string& address,
@@ -450,11 +482,11 @@ void AddressBook::InsertAddressIntoStorage(
     {
       kovri::core::IdentityEx ident;
       ident.FromBase64(base64);
+      const auto& ident_hash = ident.GetIdentHash();
+      InsertAddress(address, ident_hash);
       if (!m_Storage)
         m_Storage = GetNewStorageInstance();
       m_Storage->AddAddress(ident);
-      const auto& ident_hash = ident.GetIdentHash();
-      m_Addresses[address] = ident_hash;
       LOG(info) << "AddressBook: " << address << "->"
                 << kovri::core::GetB32Address(ident_hash)
                 << " added";

@@ -60,7 +60,7 @@ RouterInfo::RouterInfo() : m_Exception(__func__), m_Buffer(nullptr)  // TODO(ano
 
 RouterInfo::RouterInfo(
     const core::PrivateKeys& keys,
-    const std::pair<std::string, std::uint16_t>& point,
+    const std::vector<std::pair<std::string, std::uint16_t>>& points,
     const std::pair<bool, bool>& has_transport,
     const std::uint8_t caps)
     : m_Exception(__func__), m_RouterIdentity(keys.GetPublic())
@@ -76,14 +76,19 @@ RouterInfo::RouterInfo(
   // Set default caps
   SetCaps(caps);
 
-  // Set default transports
-  if (has_transport.first)
-    AddAddress(std::make_tuple(Transport::NTCP, point.first, point.second));
+  for (const auto& point : points)
+    {
+      // Set default transports
+      if (has_transport.first)
+        AddAddress(std::make_tuple(Transport::NTCP, point.first, point.second));
+
+      if (has_transport.second)
+        AddAddress(
+            std::make_tuple(Transport::SSU, point.first, point.second), hash);
+    }
 
   if (has_transport.second)
     {
-      AddAddress(
-          std::make_tuple(Transport::SSU, point.first, point.second), hash);
       SetCaps(
           m_Caps | core::RouterInfo::Cap::SSUTesting
           | core::RouterInfo::Cap::SSUIntroducer);
@@ -664,14 +669,12 @@ void RouterInfo::DisableV6()
   m_SupportedTransports &= ~SupportedTransport::SSUv6;
 
   // Remove addresses in question
-  for (std::size_t i = 0; i < m_Addresses.size(); i++)
-    {
-      if (m_Addresses[i].host.is_v6())
-        {
-          LOG(debug) << "RouterInfo: " << __func__ << ": removing address";
-          m_Addresses.erase(m_Addresses.begin() + i);
-        }
-    }
+  m_Addresses.erase(
+      std::remove_if(
+          std::begin(m_Addresses),
+          std::end(m_Addresses),
+          [](const auto& address) { return address.host.is_v6(); }),
+      std::end(m_Addresses));
 }
 
 void RouterInfo::Update(const std::uint8_t* buf, std::uint16_t len)

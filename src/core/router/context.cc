@@ -37,6 +37,8 @@
 
 #include <fstream>
 #include <tuple>
+#include <vector>
+#include <utility>
 
 #include "core/router/i2np.h"
 #include "core/router/info.h"
@@ -46,6 +48,7 @@
 #include "core/util/filesystem.h"
 #include "core/util/mtu.h"
 #include "core/util/timestamp.h"
+#include "core/util/config.h"
 
 namespace kovri
 {
@@ -75,7 +78,7 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
 
   // Set host/port for RI creation/updating
   // Note: host/port sanity checks done during configuration construction
-  auto host = m_Opts["host"].as<std::string>();  // TODO(anonimal): fix default host
+  auto hosts = m_Opts["host"].as<core::Configuration::ListParameter<std::string, 2>>();  // TODO(anonimal): fix default host
   auto port = m_Opts["port"].defaulted()
                   ? RandInRange32(RouterInfo::MinPort, RouterInfo::MaxPort)
                   : m_Opts["port"].as<int>();
@@ -108,10 +111,15 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
       m_Keys.ToBuffer(buf.data(), buf.size());
       keys.Write(buf.data(), buf.size());
 
+      // Read and fill the RI points
+      std::vector<std::pair<std::string, std::uint16_t>> points;
+      for (const auto& host : hosts.values)
+        points.emplace_back(host, port);
+
       LOG(debug) << "RouterContext: creating RI from in-memory keys";
       core::RouterInfo router(
           m_Keys,
-          std::make_pair(host, port),
+          points,
           std::make_pair(has_ntcp, has_ssu));  // TODO(anonimal): brittle, see TODO in header
 
       // Update context RI
@@ -127,16 +135,35 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
       LOG(debug) << "RouterContext: updating existing RI " << info_path;
       core::RouterInfo router(info_path);
 
-      // NTCP
-      if (has_ntcp && !router.GetNTCPAddress())
-        router.AddAddress(std::make_tuple(Transport::NTCP, host, port));
+      for (const auto& host : hosts.values)
+        {
+          const auto& address = boost::asio::ip::address::from_string(host);
+
+          // NTCP
+          if (has_ntcp && !router.GetNTCPAddress(address.is_v6()))
+            {
+              LOG(debug)
+                  << "RouterContext: enable-ntcp present and no transport "
+                     "found in existing routerInfo for host "
+                  << host;
+              router.AddAddress(std::make_tuple(Transport::NTCP, host, port));
+            }
+          // SSU
+          if (has_ssu && !router.GetSSUAddress(address.is_v6()))
+            {
+              LOG(debug)
+                  << "RouterContext: enable-ssu present and no transport "
+                     "found in existing routerInfo for host "
+                  << host;
+              router.AddAddress(
+                  std::make_tuple(Transport::SSU, host, port),
+                  router.GetIdentHash());
+            }
+        }
+
       if (!has_ntcp)
         RemoveTransport(core::RouterInfo::Transport::NTCP);
 
-      // SSU
-      if (has_ssu && !router.GetSSUAddress())
-        router.AddAddress(
-            std::make_tuple(Transport::SSU, host, port), router.GetIdentHash());
       if (!has_ssu)
         {
           RemoveTransport(core::RouterInfo::Transport::SSU);
@@ -159,7 +186,7 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
         SetReachable();
     }
 
-  LOG(info) << "RouterContext: will listen on host " << host;
+  LOG(info) << "RouterContext: will listen on host " << hosts.raw_data;
   LOG(info) << "RouterContext: will listen on port " << port;
 
   // TODO(anonimal): we don't want a flurry of micro-managed setter functions

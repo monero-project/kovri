@@ -82,7 +82,9 @@ void Configuration::ParseConfig()
   // Map options values from command-line and config
   bpo::options_description system("\nsystem");
   system.add_options()(
-      "host", bpo::value<std::string>()->default_value("127.0.0.1"))(  // TODO(anonimal): fix default host
+      "host",
+        bpo::value<ListParameter<std::string, 2>>()->default_value(
+            ListParameter<std::string, 2>("127.0.0.1")))(  // TODO(anonimal): fix default host
       "port,p", bpo::value<int>()->default_value(0))(
       "data-dir",
       bpo::value<std::string>()
@@ -185,12 +187,54 @@ void Configuration::ParseConfigFile(
   bpo::store(bpo::parse_config_file(filename, options), var_map);
   bpo::notify(var_map);
 
+  auto hosts = m_Map["host"].as<ListParameter<std::string, 2>>();
   // TODO(anonimal): move to sanity check function for namespace use
   // Check host syntax
-  boost::system::error_code ec;
-  boost::asio::ip::address::from_string(m_Map["host"].as<std::string>(), ec);
-  if (ec)
-    throw std::runtime_error("Invalid host: " + ec.message());
+
+  // Ensure host parameter is what we expect.
+  // TODO(brbzull): If default?
+  if (!hosts.IsExpectedSize())
+    throw std::invalid_argument(
+        "host parameter contains more than expected(2)");
+
+  // We will store the first address just after we run the basic validation.
+  boost::optional<boost::asio::ip::address> first_address;
+  bool valid_host = true;
+  for (const auto& host : hosts.values)
+    {
+      boost::system::error_code ec;
+      auto address = boost::asio::ip::address::from_string(host, ec);
+      if (ec)
+        {
+          valid_host = false;
+          break;
+        }
+
+      // only for the second host.
+      if (first_address)
+        {
+          // same one?
+          if (*first_address == address)
+            {
+              valid_host = false;
+              break;
+            }
+
+          // should be different.
+          if (first_address.get().is_v4() == address.is_v4()
+              || first_address.get().is_v6() == address.is_v6())
+            {
+              valid_host = false;
+              break;
+            }
+        }
+      else
+        first_address = std::move(address);
+    }
+
+  if (!valid_host)
+    throw std::invalid_argument("Invalid host parameter");
+  // TODO(brbzull): Check for rfc1918.
 
   // Ensure port in valid range
   if (!m_Map["port"].defaulted())

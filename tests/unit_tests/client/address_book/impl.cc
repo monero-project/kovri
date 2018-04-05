@@ -206,6 +206,54 @@ BOOST_AUTO_TEST_CASE(PGPClearSign) {
   BOOST_CHECK(Validate());
 }
 
+BOOST_AUTO_TEST_CASE(ValidBookEntry) {
+  // Test constructing from a subscription line
+  BOOST_CHECK_NO_THROW(kovri::client::BookEntry entry(subscription.front()));
+  kovri::client::BookEntry entry(subscription.front());
+
+  // Test constructing from an identity hash
+  BOOST_CHECK_NO_THROW(
+      kovri::client::BookEntry entry("kovri.i2p", entry.get_address()));
+
+  // Test constructing from a base64-encoded address
+  std::string const valid_dest =
+      subscription.front().substr(subscription.front().find('=') + 1);
+  BOOST_CHECK_NO_THROW(kovri::client::BookEntry entry("kovri.i2p", valid_dest));
+}
+
+BOOST_AUTO_TEST_CASE(InvalidBookEntry) {
+  std::string const valid_dest =
+      subscription.front().substr(subscription.front().find('=') + 1);
+  kovri::core::IdentityEx ident;
+  BOOST_CHECK_NO_THROW(ident.FromBase64(valid_dest));
+  ident.FromBase64(valid_dest);
+
+  // Empty Kovri hostname w/ base64-encoded address
+  BOOST_CHECK_THROW(
+      kovri::client::BookEntry entry("", valid_dest), std::invalid_argument);
+  // Empty Kovri hostname w/ identity hash address
+  BOOST_CHECK_THROW(
+      kovri::client::BookEntry entry("", ident.GetIdentHash()),
+      std::invalid_argument);
+  // Garbage Kovri address
+  BOOST_CHECK_THROW(
+      kovri::client::BookEntry entry("kovri.i2p", "QnNcMfHF"),
+      std::runtime_error);
+  // Empty Kovri address
+  BOOST_CHECK_THROW(
+      kovri::client::BookEntry entry("kovri.i2p", ""), std::runtime_error);
+  // Subscription line with no hostname
+  BOOST_CHECK_THROW(
+      kovri::client::BookEntry entry("=" + valid_dest), std::runtime_error);
+  // Subscription line with no address
+  BOOST_CHECK_THROW(
+      kovri::client::BookEntry entry("kovri.i2p="), std::runtime_error);
+  // Garbage subscription line
+  BOOST_CHECK_THROW(
+      kovri::client::BookEntry entry("QnNcMfHF"), std::runtime_error);
+  // Empty subscription line
+  BOOST_CHECK_THROW(kovri::client::BookEntry entry(""), std::invalid_argument);
+}
 // TODO(unassigned): more cases?
 
 BOOST_AUTO_TEST_CASE(RejectDuplicateEntry)

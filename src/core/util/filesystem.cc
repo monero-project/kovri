@@ -71,7 +71,7 @@ StringStream::StringStream(
   m_Terminator = terminator;
 }
 
-const std::tuple<std::string, std::string, std::size_t>
+std::tuple<std::string, std::string, std::size_t>
 StringStream::ReadKeyPair()
 {
   std::uint16_t read_size(0);  // TODO(anonimal): member for stream read size
@@ -96,21 +96,20 @@ StringStream::ReadKeyPair()
 
   // TODO(anonimal): debug logging; include delimiter/terminator
 
-  return std::make_tuple(key, value, read_size);
+  return std::make_tuple(std::move(key), std::move(value), read_size);
 }
 
-const std::string StringStream::ReadStringFromByte()
+std::string StringStream::ReadStringFromByte()
 {
   // Get stated length amount
   std::uint8_t len;
   m_Stream.read(reinterpret_cast<char*>(&len), 1);
 
-  // Read given amount
-  char buf[len];
-  m_Stream.read(reinterpret_cast<char*>(buf), len);
+  std::string string(len, '\0');
 
-  // Return as string
-  const std::string string(buf, len);
+  // Read given amount
+  m_Stream.read(const_cast<char*>(string.data()), string.size());
+
   return string;
 }
 

@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -48,7 +48,7 @@ BOOL I2PService::IsService() {
   BOOL is_service = FALSE;
   HWINSTA win_station = GetProcessWindowStation();
   if (win_station != NULL) {
-    USEROBJECTFLAGS uof = { 0 };
+    USEROBJECTFLAGS uof{};
     if (GetUserObjectInformation(win_station, UOI_FLAGS, &uof,
       sizeof(USEROBJECTFLAGS), NULL) && ((uof.dwFlags & WSF_VISIBLE) == 0)) {
         is_service = TRUE;

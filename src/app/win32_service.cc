@@ -40,6 +40,7 @@
 
 #include "app/daemon.h"
 
+#include "core/util/config.h"
 #include "core/util/log.h"
 
 I2PService *I2PService::m_Service = NULL;
@@ -151,8 +152,11 @@ void I2PService::Start(
 
 void I2PService::OnStart(
     DWORD argc,
-    PSTR *argv) {
-  // TODO(unassigned): unused args
+    PSTR * argv) {
+  std::vector<std::string> args{};
+  for (DWORD i=0; i < argc; ++i)
+    args.push_back(argv[i]);
+  Daemon.Configure(args);
   LOG(info)
     << "I2PServiceWin32: Service in " << __func__ << EVENTLOG_INFORMATION_TYPE;
   Daemon.Start();

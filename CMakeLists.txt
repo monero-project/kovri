@@ -188,7 +188,9 @@ endif()
 
 if(WITH_STATIC)
   set(Boost_USE_STATIC_LIBS ON)
-  if (NOT MSVC)
+  # Apple does not support statically linked binaries on Mac OS X
+  # https://developer.apple.com/library/content/qa/qa1118/_index.html
+  if (NOT MSVC AND NOT APPLE)
     set(Boost_USE_STATIC_RUNTIME ON)
   endif()
   set(BUILD_SHARED_LIBS OFF)

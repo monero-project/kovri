@@ -41,22 +41,22 @@
 
 #ifdef _WIN32
 // Internal name of the service
-#define SERVICE_NAME             "Kovri"
+#define SERVICE_NAME             PSTR("Kovri")
 
 // Displayed name of the service
-#define SERVICE_DISPLAY_NAME     "Kovri I2P Router"
+#define SERVICE_DISPLAY_NAME     PSTR("Kovri I2P Router")
 
 // Service start options.
 #define SERVICE_START_TYPE       SERVICE_DEMAND_START
 
 // List of service dependencies - "dep1\0dep2\0\0"
-#define SERVICE_DEPENDENCIES     ""
+#define SERVICE_DEPENDENCIES     PSTR("")
 
 // The name of the account under which the service should run
-#define SERVICE_ACCOUNT          "NT AUTHORITY\\LocalService"
+#define SERVICE_ACCOUNT          PSTR("NT AUTHORITY\\LocalService")
 
 // The password to the service account name
-#define SERVICE_PASSWORD         NULL
+#define SERVICE_PASSWORD         PSTR("")
 #endif
 
 

@@ -1582,8 +1582,8 @@ void SSUSession::WaitForConnect() {
 void SSUSession::ScheduleConnectTimer() {
   m_Timer.cancel();  // TODO(anonimal): cancel is called within expires_from_now
   m_Timer.expires_from_now(
-      boost::posix_time::seconds(
-          SSUDuration::ConnectTimeout));
+      boost::posix_time::seconds{
+          static_cast<long>(SSUDuration::ConnectTimeout)});
   m_Timer.async_wait(
       std::bind(
           &SSUSession::HandleConnectTimer,
@@ -1609,8 +1609,8 @@ void SSUSession::Introduce(
   if (m_State == SessionState::Unknown) {
     // set connect timer
     m_Timer.expires_from_now(
-        boost::posix_time::seconds(
-            SSUDuration::ConnectTimeout));
+        boost::posix_time::seconds{
+            static_cast<long>(SSUDuration::ConnectTimeout)});
     m_Timer.async_wait(
         std::bind(
           &SSUSession::HandleConnectTimer,
@@ -1624,8 +1624,8 @@ void SSUSession::WaitForIntroduction() {
   m_State = SessionState::Introduced;
   // set connect timer
   m_Timer.expires_from_now(
-      boost::posix_time::seconds(
-          SSUDuration::ConnectTimeout));
+      boost::posix_time::seconds{
+          static_cast<long>(SSUDuration::ConnectTimeout)});
   m_Timer.async_wait(
       std::bind(
         &SSUSession::HandleConnectTimer,
@@ -1678,8 +1678,8 @@ void SSUSession::Failed() {
 void SSUSession::ScheduleTermination() {
   m_Timer.cancel();
   m_Timer.expires_from_now(
-      boost::posix_time::seconds(
-          SSUDuration::TerminationTimeout));
+      boost::posix_time::seconds{
+          static_cast<long>(SSUDuration::TerminationTimeout)});
   m_Timer.async_wait(
       std::bind(
           &SSUSession::HandleTerminationTimer,

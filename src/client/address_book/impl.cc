@@ -89,7 +89,7 @@ void AddressBook::Start(
     std::make_unique<boost::asio::deadline_timer>(
         m_SharedLocalDestination->GetService());
   m_SubscriberUpdateTimer->expires_from_now(
-      boost::posix_time::minutes(SubscriberTimeout::InitialUpdate));
+      boost::posix_time::minutes{static_cast<long>(SubscriberTimeout::InitialUpdate)});
   m_SubscriberUpdateTimer->async_wait(
       std::bind(
           &AddressBook::SubscriberUpdateTimer,
@@ -120,7 +120,7 @@ void AddressBook::SubscriberUpdateTimer(
     }
     // Try again after timeout
     m_SubscriberUpdateTimer->expires_from_now(
-        boost::posix_time::minutes(SubscriberTimeout::InitialRetry));
+        boost::posix_time::minutes{static_cast<long>(SubscriberTimeout::InitialRetry)});
     m_SubscriberUpdateTimer->async_wait(
         std::bind(
             &AddressBook::SubscriberUpdateTimer,
@@ -272,10 +272,11 @@ void AddressBook::HostsDownloadComplete(
   LOG(debug) << "AddressBook: subscription download complete";
   if (m_SubscriberUpdateTimer) {
     m_SubscriberUpdateTimer->expires_from_now(
-        boost::posix_time::minutes(
+        boost::posix_time::minutes{
+        static_cast<long>(
             success
             ? SubscriberTimeout::ContinuousUpdate
-            : SubscriberTimeout::ContinuousRetry));
+            : SubscriberTimeout::ContinuousRetry)});
     m_SubscriberUpdateTimer->async_wait(
         std::bind(
             &AddressBook::SubscriberUpdateTimer,

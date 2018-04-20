@@ -476,8 +476,8 @@ std::set<SSUSession *> SSUServer::FindIntroducers(
 void SSUServer::ScheduleIntroducersUpdateTimer() {
   LOG(debug) << "SSUServer: scheduling introducers update timer";
   m_IntroducersUpdateTimer.expires_from_now(
-      boost::posix_time::seconds(
-          SSUDuration::KeepAliveInterval));
+      boost::posix_time::seconds{
+          static_cast<long>(SSUDuration::KeepAliveInterval)});
   m_IntroducersUpdateTimer.async_wait(
       std::bind(
           &SSUServer::HandleIntroducersUpdateTimer,
@@ -590,8 +590,8 @@ void SSUServer::RemovePeerTest(
 void SSUServer::SchedulePeerTestsCleanupTimer() {
   LOG(debug) << "SSUServer: scheduling PeerTests cleanup timer";
   m_PeerTestsCleanupTimer.expires_from_now(
-      boost::posix_time::seconds(
-          SSUDuration::PeerTestTimeout));
+      boost::posix_time::seconds{
+          static_cast<long>(SSUDuration::PeerTestTimeout)});
   m_PeerTestsCleanupTimer.async_wait(
       std::bind(
           &SSUServer::HandlePeerTestsCleanupTimer,

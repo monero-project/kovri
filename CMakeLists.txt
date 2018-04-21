@@ -160,13 +160,6 @@ if(NOT MSVC)
   endif()
 endif()
 
-if(WITH_UPNP)
-  add_definitions(-DUSE_UPNP)
-  if(NOT MSVC)
-    set(DL_LIB ${CMAKE_DL_LIBS})
-  endif()
-endif()
-
 if(NOT WIN32 AND NOT WITH_STATIC)
   # TODO: Consider separate compilation for COMMON_SRC for library.
   # No need in -fPIC overhead for binary if not interested in library
@@ -278,6 +271,8 @@ if (APPLE OR ANDROID)
   endif()
 endif()
 
+add_subdirectory(deps)
+
 # Note: we're actually building off branch 0.13-release - not 0.12.0.
 # cpp-netlib's MINOR is kept at 0.12 until 0.13 is official.
 # CMake will find cppnetlibConfig*.cmake in cpp-netlib's build directory
@@ -290,14 +285,6 @@ if(WITH_CPPNETLIB)
   else()
     message(STATUS "Found cpp-netlib: ${CPPNETLIB_INCLUDE_DIRS}, ${CPPNETLIB_LIBRARIES}")
     include_directories(${CPPNETLIB_INCLUDE_DIRS})
-  endif()
-endif()
-
-# TODO(anonimal): when UPnP is working, consider static as well
-if(WITH_UPNP)
-  find_package(MiniUPnPc REQUIRED)
-  if(NOT ${MINIUPNPC_FOUND})
-    message(FATAL_ERROR "Could not find MiniUPnPc. See building instructions.")
   endif()
 endif()
 

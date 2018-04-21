@@ -109,7 +109,12 @@ if(WITH_LIBRARY)
   target_link_libraries(
     ${CORE_NAME}
     ${Boost_LIBRARIES} ${CryptoPP_LIBRARIES} ${OPENSSL_LIBRARIES}
-    ${CPPNETLIB_LIBRARIES} ${DL_LIB})
+    ${CPPNETLIB_LIBRARIES} ${CMAKE_DL_LIBS})
+  if (WITH_UPNP)
+    # Add definition for our implementation (must be here or in root recipe)
+    add_definitions(-DUSE_UPNP)
+    target_link_libraries(${CORE_NAME} ${UPNP_LIBRARIES})
+  endif()
   install(
     TARGETS ${CORE_NAME}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

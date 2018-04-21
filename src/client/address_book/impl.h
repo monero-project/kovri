@@ -59,6 +59,42 @@ namespace kovri {
 namespace client {
 
 class AddressBookSubscriber;
+/// @class BookEntry
+/// @brief Container for Address Book entry
+class BookEntry
+{
+ public:
+  /// @brief Create address book entry from a hostname & identity hash
+  /// @param host Kovri hostname
+  /// @param address Kovri identity hash
+  /// @throw std::invalid_argument on empty hostname
+  BookEntry(const std::string& host, const kovri::core::IdentHash& address);
+
+  /// @brief Create address book entry from a host & base64-encoded address
+  /// @param host Kovri hostname
+  /// @param address Base64-encoded Kovri address
+  /// @throw std::invalid_argument on empty hostname
+  /// @throw std::runtime_error on malformed or empty address
+  BookEntry(const std::string& host, const std::string& address);
+
+  /// @brief Create address book entry from a subscription line
+  /// @param subscription_line Line from a subscription file (host=address format)
+  /// @throw std::invalid_argument on empty subscription line
+  /// @throw std::runtime_error on empty hostname
+  /// @throw std::runtime_error on malformed subscription line
+  /// @throw std::runtime_error on malformed address
+  explicit BookEntry(const std::string& subscription_line);
+
+  /// @brief Accessor for host data member
+  const std::string& get_host() const noexcept;
+
+  /// @brief Accessor for address data member
+  const core::IdentHash& get_address() const noexcept;
+
+ private:
+  std::string m_Host;  ///< Human-readable Kovri hostname
+  core::IdentHash m_Address;  ///< Kovri identity hash
+};
 /// @class AddressBook
 /// @brief Address book implementation
 class AddressBook : public AddressBookDefaults {

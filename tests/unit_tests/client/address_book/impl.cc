@@ -44,45 +44,6 @@
 
 /// @class SubscriptionFixture
 struct SubscriptionFixture {
-  struct AddressBookEntry
-  {
-   public:
-    explicit AddressBookEntry(const std::string& subscription_line)
-    {
-      try
-        {
-          std::size_t pos = subscription_line.find('=');
-          if (pos == std::string::npos)
-            throw std::runtime_error(
-                "AddressBookEntry: invalid subscription line");
-          m_Host = subscription_line.substr(0, pos++);
-          kovri::core::IdentityEx ident;
-          ident.FromBase64(subscription_line.substr(pos));
-          m_Address = ident.GetIdentHash();
-        }
-      catch (...)
-        {
-          kovri::core::Exception ex;
-          ex.Dispatch(__func__);
-          throw;
-        }
-    }
-
-    const std::string& host() const
-    {
-      return m_Host;
-    }
-
-    const kovri::core::IdentHash& address() const
-    {
-      return m_Address;
-    }
-
-   private:
-    std::string m_Host;  ///< Human-readable I2P hostname
-    kovri::core::IdentHash m_Address;  ///< I2P address hash
-  };
-
   /// @brief Validates given lines as proven addressbook host/address pairs
   /// @param lines Lines to validate
   /// @return Only valid data that was parsed
@@ -206,22 +167,70 @@ BOOST_AUTO_TEST_CASE(PGPClearSign) {
   BOOST_CHECK(Validate());
 }
 
+BOOST_AUTO_TEST_CASE(ValidBookEntry) {
+  // Test constructing from a subscription line
+  BOOST_CHECK_NO_THROW(kovri::client::BookEntry entry(subscription.front()));
+  kovri::client::BookEntry entry(subscription.front());
+
+  // Test constructing from an identity hash
+  BOOST_CHECK_NO_THROW(
+      kovri::client::BookEntry entry("kovri.i2p", entry.get_address()));
+
+  // Test constructing from a base64-encoded address
+  std::string const valid_dest =
+      subscription.front().substr(subscription.front().find('=') + 1);
+  BOOST_CHECK_NO_THROW(kovri::client::BookEntry entry("kovri.i2p", valid_dest));
+}
+
+BOOST_AUTO_TEST_CASE(InvalidBookEntry) {
+  std::string const valid_dest =
+      subscription.front().substr(subscription.front().find('=') + 1);
+  kovri::core::IdentityEx ident;
+  BOOST_CHECK_NO_THROW(ident.FromBase64(valid_dest));
+  ident.FromBase64(valid_dest);
+
+  // Empty Kovri hostname w/ base64-encoded address
+  BOOST_CHECK_THROW(
+      kovri::client::BookEntry entry("", valid_dest), std::invalid_argument);
+  // Empty Kovri hostname w/ identity hash address
+  BOOST_CHECK_THROW(
+      kovri::client::BookEntry entry("", ident.GetIdentHash()),
+      std::invalid_argument);
+  // Garbage Kovri address
+  BOOST_CHECK_THROW(
+      kovri::client::BookEntry entry("kovri.i2p", "QnNcMfHF"),
+      std::runtime_error);
+  // Empty Kovri address
+  BOOST_CHECK_THROW(
+      kovri::client::BookEntry entry("kovri.i2p", ""), std::runtime_error);
+  // Subscription line with no hostname
+  BOOST_CHECK_THROW(
+      kovri::client::BookEntry entry("=" + valid_dest), std::runtime_error);
+  // Subscription line with no address
+  BOOST_CHECK_THROW(
+      kovri::client::BookEntry entry("kovri.i2p="), std::runtime_error);
+  // Garbage subscription line
+  BOOST_CHECK_THROW(
+      kovri::client::BookEntry entry("QnNcMfHF"), std::runtime_error);
+  // Empty subscription line
+  BOOST_CHECK_THROW(kovri::client::BookEntry entry(""), std::invalid_argument);
+}
 // TODO(unassigned): more cases?
 
 BOOST_AUTO_TEST_CASE(RejectDuplicateEntry)
 {
-  // Ensure valid subscription line creates an entry
-  BOOST_CHECK_NO_THROW(AddressBookEntry entry(subscription.front()));
+  BOOST_CHECK_NO_THROW(kovri::client::BookEntry entry(subscription.front()));
+  kovri::client::BookEntry entry(subscription.front());
 
-  AddressBookEntry entry(subscription.front());
   // Ensure valid entry is inserted
-  BOOST_CHECK_NO_THROW(book.InsertAddress(entry.host(), entry.address()));
+  BOOST_CHECK_NO_THROW(book.InsertAddress(entry.get_host(), entry.get_address()));
   // Ensure address book throws for duplicate host
   BOOST_CHECK_THROW(
-      book.InsertAddress(entry.host(), entry.address()), std::runtime_error);
+      book.InsertAddress(entry.get_host(), entry.get_address()),
+      std::runtime_error);
   // Ensure address book throws for duplicate address
   BOOST_CHECK_THROW(
-      book.InsertAddress("unique." + entry.host(), entry.address()),
+      book.InsertAddress("unique." + entry.get_host(), entry.get_address()),
       std::runtime_error);
 }
 

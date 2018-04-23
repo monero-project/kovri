@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -37,10 +37,10 @@
 
 #include <boost/asio.hpp>
 
-#include <miniupnpc/miniwget.h>
-#include <miniupnpc/miniupnpc.h>
-#include <miniupnpc/upnpcommands.h>
-#include <miniupnpc/upnperrors.h>
+#include <miniupnp/miniupnpc/miniwget.h>
+#include <miniupnp/miniupnpc/miniupnpc.h>
+#include <miniupnp/miniupnpc/upnpcommands.h>
+#include <miniupnp/miniupnpc/upnperrors.h>
 
 #include <memory>
 #include <string>

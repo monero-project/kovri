@@ -54,6 +54,7 @@ option(WITH_TESTS      "Build unit tests" OFF)
 option(WITH_FUZZ_TESTS "Build fuzz tests" OFF)
 option(WITH_UPNP       "Include support for UPnP client" OFF)
 
+set(CMAKE_VERBOSE_MAKEFILE true)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -157,13 +158,6 @@ if(NOT MSVC)
   endif()
   if(WITH_COVERAGE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 --coverage")
-  endif()
-endif()
-
-if(WITH_UPNP)
-  add_definitions(-DUSE_UPNP)
-  if(NOT MSVC)
-    set(DL_LIB ${CMAKE_DL_LIBS})
   endif()
 endif()
 
@@ -278,6 +272,8 @@ if (APPLE OR ANDROID)
   endif()
 endif()
 
+add_subdirectory(deps)
+
 # Note: we're actually building off branch 0.13-release - not 0.12.0.
 # cpp-netlib's MINOR is kept at 0.12 until 0.13 is official.
 # CMake will find cppnetlibConfig*.cmake in cpp-netlib's build directory
@@ -290,14 +286,6 @@ if(WITH_CPPNETLIB)
   else()
     message(STATUS "Found cpp-netlib: ${CPPNETLIB_INCLUDE_DIRS}, ${CPPNETLIB_LIBRARIES}")
     include_directories(${CPPNETLIB_INCLUDE_DIRS})
-  endif()
-endif()
-
-# TODO(anonimal): when UPnP is working, consider static as well
-if(WITH_UPNP)
-  find_package(MiniUPnPc REQUIRED)
-  if(NOT ${MINIUPNPC_FOUND})
-    message(FATAL_ERROR "Could not find MiniUPnPc. See building instructions.")
   endif()
 endif()
 

@@ -20,6 +20,7 @@ add_executable(kovri-tests
   core/router/identity.cc
   core/router/transports/ssu/packet.cc
   core/util/byte_stream.cc
+  core/util/config.cc
   main.cc
   core/router/identity.h)
 

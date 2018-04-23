@@ -338,6 +338,13 @@ if (MSVC)
   include(cotire)
 endif() 
 
+# Solve issue with as.exe fatal error - Object file has too many sections
+# http://stackoverflow.com/a/28372660
+# This error appear for cotired build
+if (MINGW)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj")
+endif()
+
 # Load remaining includes
 target_include_directories(kovri-private INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 

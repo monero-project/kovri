@@ -140,8 +140,7 @@ bool BaseCommand::Impl(
       return false;
     }
 
-  // TODO(anonimal): fix args size
-  if (vm.count("help") || (args.size() < 1) || (args.size() > 3))
+  if (vm.count("help") || (args.size() <= 1) || (args.size() > 3))
     {
       if (args.size() < 2)
         LOG(error) << "Not enough arguments !";

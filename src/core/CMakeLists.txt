@@ -191,6 +191,12 @@ if(WITH_SUPERCOP)
     ${EDDSA_DIR}/ed25519/sqrtm1.h)
 endif()
 
+if (WITH_UPNP)
+  # Add definition for our implementation (must be here or in root recipe)
+  target_compile_definitions(kovri-core PRIVATE USE_UPNP)
+  target_link_libraries(kovri-core PRIVATE ${CMAKE_DL_LIBS} ${UPNP_LIBRARIES})
+endif()
+
 if (MSVC)
   cotire(kovri-core)
 endif()

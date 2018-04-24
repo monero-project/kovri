@@ -154,12 +154,11 @@ class StringStream {
 template <typename StreamType, typename FileStreamType>
 class FileStream {
  public:
-  // TODO(anonimal): fix documentation
 
   /// @brief Read from stream
-  /// @param buf : buffer to read from
-  /// @param size : number of byte to read
-  /// @return false on failure, true otherwise
+  /// @param buf Read member stream - writing into buffer
+  /// @param size Number of bytes to read
+  /// @return False on failure, true otherwise
   template <typename SizeCast = std::size_t, typename Buffer, typename Size>
   bool Read(Buffer* buf, Size&& size) {
     m_Stream->read(
@@ -227,9 +226,9 @@ class FileStream {
   }
 
   /// @brief Write to stream
-  /// @param buf : buffer to write to
-  /// @param size : number of byte to write
-  /// @return false on failure, true otherwise
+  /// @param buf Write into member stream from this buffer
+  /// @param size Number of bytes to write
+  /// @return False on failure, true otherwise
   template <typename SizeCast = std::size_t, typename Buffer, typename Size>
   bool Write(Buffer* buf, Size&& size) {
     m_Stream->write(

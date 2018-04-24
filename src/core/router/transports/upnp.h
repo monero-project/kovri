@@ -85,7 +85,7 @@ class UPnP {
   // For miniupnpc
   const char* m_MulticastIf = 0;
   const char* m_Minissdpdpath = 0;
-  struct UPNPDev* m_Devlist = 0;
+  std::unique_ptr<struct UPNPDev, void (*)(struct UPNPDev*)> m_Devlist;
   char m_NetworkAddr[64];
   char m_externalIPAddress[40];
 };

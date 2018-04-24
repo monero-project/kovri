@@ -45,7 +45,7 @@
 namespace kovri {
 namespace core {
 
-UPnP::UPnP() : m_Thread(nullptr) {}
+UPnP::UPnP() : m_Thread(nullptr), m_Devlist(nullptr, freeUPNPDevlist) {}
 
 void UPnP::Stop() {
   if (m_Thread) {
@@ -81,17 +81,18 @@ void UPnP::Discover() {
   int nerror = 0;
   // default according to miniupnpc.h
   unsigned char ttl = 2;
-  m_Devlist = upnpDiscover(
+  m_Devlist = std::unique_ptr<struct UPNPDev, void(*)(struct UPNPDev*)>(
+    upnpDiscover(
       2000,
       m_MulticastIf,
       m_Minissdpdpath,
       0,
       0,
       ttl,
-      &nerror);
+      &nerror), freeUPNPDevlist);
   int r;
   r = UPNP_GetValidIGD(
-      m_Devlist,
+      m_Devlist.get(),
       &m_upnpUrls,
       &m_upnpData,
       m_NetworkAddr,
@@ -198,8 +199,6 @@ void UPnP::CloseMapping(
 }
 
 void UPnP::Close() {
-  freeUPNPDevlist(m_Devlist);
-  m_Devlist = 0;
   FreeUPNPUrls(&m_upnpUrls);
 }
 

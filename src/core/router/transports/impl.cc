@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -129,13 +129,6 @@ std::unique_ptr<DHKeysPair> DHKeysPairSupplier::Acquire() {
     throw;
   }
   return pair;
-}
-
-void DHKeysPairSupplier::Return(
-    std::unique_ptr<DHKeysPair> pair) {
-  LOG(debug) << "DHKeysPairSupplier: returning";
-  std::unique_lock<std::mutex> l(m_AcquiredMutex);
-  m_Queue.push(std::move(pair));
 }
 
 void Peer::Done() {
@@ -542,12 +535,6 @@ void Transports::DetectExternalIP() {
 std::unique_ptr<DHKeysPair> Transports::GetNextDHKeysPair() {
   LOG(debug) << "Transports: getting next DH keys pair";
   return m_DHKeysPairSupplier.Acquire();
-}
-
-void Transports::ReuseDHKeysPair(
-    std::unique_ptr<DHKeysPair> pair) {
-  LOG(debug) << "Transports: reusing DH keys pair";
-  m_DHKeysPairSupplier.Return(std::move(pair));
 }
 
 void Transports::PeerConnected(

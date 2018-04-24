@@ -204,7 +204,6 @@ void NTCPSession::HandlePhase2Received(
       kovri::core::netdb.SetUnreachable(
           GetRemoteIdentity().GetIdentHash(),
           true);
-      transports.ReuseDHKeysPair(std::move(m_DHKeysPair));
       m_DHKeysPair.reset(nullptr);
       Terminate();
     }
@@ -248,7 +247,6 @@ void NTCPSession::HandlePhase2Received(
       LOG(trace)
         << "NTCPSession:" << GetFormattedSessionInfo()
         << "Decrypted " << GetFormattedPhaseInfo(Phase::Two);
-      transports.ReuseDHKeysPair(std::move(m_DHKeysPair));
       m_DHKeysPair.reset(nullptr);
       Terminate();
       return;

@@ -60,7 +60,7 @@ class TunnelEncryption::TunnelEncryptionImpl {
       const std::uint8_t* in,
       std::uint8_t* out) {
     if (UsingAESNI()) {
-#if defined(__x86_64__) || defined(_M_X64)  // TODO(unassigned): hack until we implement ARM AES-NI
+#if (defined(__x86_64__) || defined(_M_X64)) && (!defined(_MSC_VER))  // TODO(unassigned): hack until we implement ARM AES-NI
       __asm__(
           // encrypt IV
           "movups (%[in]), %%xmm0 \n"
@@ -146,7 +146,7 @@ class TunnelDecryption::TunnelDecryptionImpl {
       const std::uint8_t* in,
       std::uint8_t* out) {
     if (UsingAESNI()) {
-#if defined(__x86_64__) || defined(_M_X64)  // TODO(unassigned): hack until we implement ARM AES-NI
+#if (defined(__x86_64__) || defined(_M_X64)) && (!defined(_MSC_VER))  // TODO(unassigned): hack until we implement ARM AES-NI
       __asm__(
           // decrypt IV
           "movups (%[in]), %%xmm0 \n"

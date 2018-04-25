@@ -28,17 +28,14 @@
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include_directories("${CMAKE_SOURCE_DIR}" "${CMAKE_SOURCE_DIR}/src")
+cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
+project(kovri_python CXX)
 
-set(PYTHON_SRC
-  "kovri.cc"
-  "util.cc")
+add_library(kovri_python SHARED 
+  kovri.cc
+  util.cc)
 
-add_library(${PYTHON_NAME} SHARED ${PYTHON_SRC})
+target_link_libraries(kovri_python PRIVATE kovri-private
+  ${PYTHON_LIBRARIES} kovri-core kovri-client)
 
-target_link_libraries(
-  ${PYTHON_NAME}
-  ${Boost_LIBRARIES} ${PYTHON_LIBRARIES}
-  ${CORE_NAME} ${CLIENT_NAME})
-
-set_target_properties(${PYTHON_NAME} PROPERTIES PREFIX "")
+set_target_properties(kovri_python PROPERTIES PREFIX "")

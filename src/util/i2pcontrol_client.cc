@@ -149,7 +149,7 @@ void I2PControlClient::ProcessAsyncSendRequest(
 }
 
 void I2PControlClient::HandleHTTPResponse(
-    boost::iterator_range<char const*> const& range,
+    boost::network::http::client::char_const_range const& range,
     boost::system::error_code const& error,
     std::shared_ptr<Request> request,
     std::shared_ptr<std::stringstream> stream,

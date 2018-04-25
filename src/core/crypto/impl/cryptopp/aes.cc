@@ -58,9 +58,9 @@ bool UsingAESNI() {
 }
 
 /// TODO(unassigned): if we switch libraries, we should move AES-NI elsewhere.
-/// TODO(unassigned): ARM support? MSVC x86-64 support?
+/// TODO(unassigned): ARM support? MSVC x86-64 support? 1
 bool HasAESNI() {
-#if defined(__x86_64__) || defined(_M_X64)  // TODO(unassigned): hack until we implement ARM AES-NI
+#if (defined(__x86_64__) || defined(_M_X64)) && (!defined(_MSC_VER))  // TODO(unassigned): hack until we implement ARM AES-NI
   unsigned int eax, ecx;  // We only need ECX
   const unsigned int flag = (1 << 25);  // ECX bit 25 for AES-NI
   LOG(debug) << "Crypto: checking for AES-NI...";
@@ -87,7 +87,7 @@ class ECBCryptoAESNI {
   }
 
  protected:
-#if defined(__x86_64__) || defined(_M_X64)  // TODO(unassigned): hack until we implement ARM AES-NI
+#if (defined(__x86_64__) || defined(_M_X64)) && (!defined(_MSC_VER))  // TODO(unassigned): hack until we implement ARM AES-NI
   void ExpandKey(
       const AESKey& key) {
     __asm__(
@@ -149,7 +149,7 @@ class ECBEncryption::ECBEncryptionImpl : public ECBCryptoAESNI {
   void SetKey(
       const AESKey& key) {
     if (UsingAESNI()) {
-#if defined(__x86_64__) || defined(_M_X64)  // TODO(unassigned): hack until we implement ARM AES-NI
+#if (defined(__x86_64__) || defined(_M_X64)) && (!defined(_MSC_VER))  // TODO(unassigned): hack until we implement ARM AES-NI
       ExpandKey(key);
 #endif
     } else {
@@ -161,7 +161,7 @@ class ECBEncryption::ECBEncryptionImpl : public ECBCryptoAESNI {
       const CipherBlock* in,
       CipherBlock* out) {
     if (UsingAESNI()) {
-#if defined(__x86_64__) || defined(_M_X64)  // TODO(unassigned): hack until we implement ARM AES-NI
+#if (defined(__x86_64__) || defined(_M_X64)) && (!defined(_MSC_VER))  // TODO(unassigned): hack until we implement ARM AES-NI
       __asm__(
           "movups (%[in]), %%xmm0 \n"
           EncryptAES256(sched)
@@ -220,7 +220,7 @@ class ECBDecryption::ECBDecryptionImpl : public ECBCryptoAESNI {
   void SetKey(
       const AESKey& key) {
     if (UsingAESNI()) {
-#if defined(__x86_64__) || defined(_M_X64)  // TODO(unassigned): hack until we implement ARM AES-NI
+#if (defined(__x86_64__) || defined(_M_X64)) && (!defined(_MSC_VER))  // TODO(unassigned): hack until we implement ARM AES-NI
       ExpandKey(key);  // expand encryption key first
       // then invert it using aesimc
       __asm__(
@@ -250,7 +250,7 @@ class ECBDecryption::ECBDecryptionImpl : public ECBCryptoAESNI {
       const CipherBlock* in,
       CipherBlock* out) {
     if (UsingAESNI()) {
-#if defined(__x86_64__) || defined(_M_X64)  // TODO(unassigned): hack until we implement ARM AES-NI
+#if (defined(__x86_64__) || defined(_M_X64)) && (!defined(_MSC_VER))  // TODO(unassigned): hack until we implement ARM AES-NI
       __asm__(
           "movups (%[in]), %%xmm0 \n"
           DecryptAES256(sched)
@@ -326,7 +326,7 @@ class CBCEncryption::CBCEncryptionImpl {
       const CipherBlock* in,
       CipherBlock* out) {
     if (UsingAESNI()) {
-#if defined(__x86_64__) || defined(_M_X64)  // TODO(unassigned): hack until we implement ARM AES-NI
+#if (defined(__x86_64__) || defined(_M_X64)) && (!defined(_MSC_VER))  // TODO(unassigned): hack until we implement ARM AES-NI
       __asm__(
           "movups (%[iv]), %%xmm1 \n"
           "1: \n"
@@ -372,7 +372,7 @@ class CBCEncryption::CBCEncryptionImpl {
       const std::uint8_t* in,
       std::uint8_t* out) {
     if (UsingAESNI()) {
-#if defined(__x86_64__) || defined(_M_X64)  // TODO(unassigned): hack until we implement ARM AES-NI
+#if (defined(__x86_64__) || defined(_M_X64)) && (!defined(_MSC_VER))  // TODO(unassigned): hack until we implement ARM AES-NI
       __asm__(
           "movups (%[iv]), %%xmm1 \n"
           "movups (%[in]), %%xmm0 \n"
@@ -478,7 +478,7 @@ class CBCDecryption::CBCDecryptionImpl {
       const CipherBlock* in,
       CipherBlock* out) {
     if (UsingAESNI()) {
-#if defined(__x86_64__) || defined(_M_X64)  // TODO(unassigned): hack until we implement ARM AES-NI
+#if (defined(__x86_64__) || defined(_M_X64)) && (!defined(_MSC_VER))  // TODO(unassigned): hack until we implement ARM AES-NI
       __asm__(
         "movups (%[iv]), %%xmm1 \n"
         "1: \n"
@@ -525,7 +525,7 @@ class CBCDecryption::CBCDecryptionImpl {
       const std::uint8_t* in,
       std::uint8_t* out) {
     if (UsingAESNI()) {
-#if defined(__x86_64__) || defined(_M_X64)  // TODO(unassigned): hack until we implement ARM AES-NI
+#if (defined(__x86_64__) || defined(_M_X64)) && (!defined(_MSC_VER))  // TODO(unassigned): hack until we implement ARM AES-NI
       __asm__(
         "movups (%[iv]), %%xmm1 \n"
         "movups (%[in]), %%xmm0 \n"

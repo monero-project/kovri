@@ -351,6 +351,10 @@ if (MINGW)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj")
 endif()
 
+# Directly link IPHLPAPI.lib instead of using `#pragma comment()`
+if (WIN32)
+  target_link_libraries(kovri-private INTERFACE "IPHLPAPI.lib")
+endif()
 # Load remaining includes
 target_include_directories(kovri-private INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 

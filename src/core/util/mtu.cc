@@ -52,7 +52,6 @@ using namespace rtc;
 
 #include <string>
 
-#pragma comment(lib, "IPHLPAPI.lib")
 
 #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))

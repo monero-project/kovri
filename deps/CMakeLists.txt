@@ -47,8 +47,8 @@ if(WITH_UPNP)
   # https://github.com/monero-project/kovri/pull/865#discussion_r184370624
   set_property(TARGET libminiupnpc-static APPEND PROPERTY INTERFACE_COMPILE_DEFINITIONS MINIUPNP_STATICLIB)
 
-  # Allows to include like #include <miniupnpc/miniupnpc.h>
-  set_property(TARGET libminiupnpc-static APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/miniupnp)
+  # Use #include <miniupnp/miniupnpc/miniupnpc.h>
+  set_property(TARGET libminiupnpc-static APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR})
   # Suppress warnings from miniupnpc headers 
-  set_property(TARGET libminiupnpc-static APPEND PROPERTY INTERFACE_SYSTEM_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/miniupnp)
+  set_property(TARGET libminiupnpc-static APPEND PROPERTY INTERFACE_SYSTEM_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR})
 endif()

@@ -33,7 +33,6 @@
 #ifdef USE_UPNP
 #include "core/router/transports/upnp.h"
 
-#include <boost/bind.hpp>
 #include <boost/thread/thread.hpp>
 
 #include "core/router/context.h"
@@ -56,10 +55,7 @@ void UPnP::Stop() {
 
 void UPnP::Start() {
   m_Thread =
-    std::make_unique<std::thread>(
-        std::bind(
-            &UPnP::Run,
-            this));
+    std::make_unique<std::thread>(&UPnP::Run, this);
 }
 
 UPnP::~UPnP() = default;

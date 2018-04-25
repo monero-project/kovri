@@ -45,7 +45,7 @@
 namespace kovri {
 namespace core {
 
-UPnP::UPnP() : m_Thread(nullptr), m_Devlist(nullptr, freeUPNPDevlist) {}
+UPnP::UPnP() : m_Devlist(nullptr, freeUPNPDevlist) {}
 
 void UPnP::Stop() {
   if (m_Thread) {

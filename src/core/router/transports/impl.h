@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -139,12 +139,6 @@ class Transports {
 
   /// @return a pointer to a Diffie-Hellman pair
   std::unique_ptr<kovri::core::DHKeysPair> GetNextDHKeysPair();
-
-  /// @brief Returns a keypair for reuse.
-  // TODO(unassigned): Do not reuse ephemeral keys, the whole point is that they
-  //                   are not reused.
-  void ReuseDHKeysPair(
-      std::unique_ptr<DHKeysPair> pair);
 
   /// @brief Asynchronously sends a message to a peer.
   /// @param ident the router hash of the remote peer

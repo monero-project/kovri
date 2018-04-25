@@ -29,20 +29,26 @@
 # Parts of this file are originally copyright (c) 2014-2018 The Monero Project
 
 if(WITH_UPNP)
-  find_package(Miniupnpc REQUIRED)
-
   message(STATUS "Using in-tree miniupnpc")
 
-  add_definitions(-DMINIUPNP_STATICLIB)
   add_subdirectory(miniupnp/miniupnpc)
 
-  # TODO(unassigned): needed?...
+  # It is better to setup these options inside miniupnp/miniupnpc/CMakeLists.txt
+  # But the following line allow us to do it here
   set_property(TARGET libminiupnpc-static PROPERTY FOLDER "deps")
+
+  # Suppress noise warnings
   if(MSVC)
     set_property(TARGET libminiupnpc-static APPEND_STRING PROPERTY COMPILE_FLAGS " -wd4244 -wd4267")
   elseif(NOT MSVC)
     set_property(TARGET libminiupnpc-static APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-undef -Wno-unused-result -Wno-unused-value")
   endif()
 
-  set(UPNP_LIBRARIES "libminiupnpc-static" PARENT_SCOPE)
+  # https://github.com/monero-project/kovri/pull/865#discussion_r184370624
+  set_property(TARGET libminiupnpc-static APPEND PROPERTY INTERFACE_COMPILE_DEFINITIONS MINIUPNP_STATICLIB)
+
+  # Allows to include like #include <miniupnpc/miniupnpc.h>
+  set_property(TARGET libminiupnpc-static APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/miniupnp)
+  # Suppress warnings from miniupnpc headers 
+  set_property(TARGET libminiupnpc-static APPEND PROPERTY INTERFACE_SYSTEM_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/miniupnp)
 endif()

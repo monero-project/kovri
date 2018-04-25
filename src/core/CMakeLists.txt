@@ -194,7 +194,7 @@ endif()
 if (WITH_UPNP)
   # Add definition for our implementation (must be here or in root recipe)
   target_compile_definitions(kovri-core PRIVATE USE_UPNP)
-  target_link_libraries(kovri-core PRIVATE ${CMAKE_DL_LIBS} ${UPNP_LIBRARIES})
+  target_link_libraries(kovri-core PRIVATE libminiupnpc-static)
 endif()
 
 if (MSVC)

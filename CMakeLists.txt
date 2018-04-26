@@ -59,9 +59,10 @@ option(WITH_TESTS      "Build unit tests" OFF)
 option(WITH_FUZZ_TESTS "Build fuzz tests" OFF)
 option(WITH_UPNP       "Include support for UPnP client" OFF)
 option(WITH_COTIRE     "Enable cotire (compile time reducer) - precompiled header and single compilation unit builds" ${MSVC})
+# Verbosity enabled by default, but can be disabled from cli by adding -DCMAKE_VERBOSE_MAKEFILE=OFF
+# https://github.com/monero-project/kovri/pull/867#discussion_r184359361
+option(CMAKE_VERBOSE_MAKEFILE "Enable verbose build output" ON)
 
-
-set(CMAKE_VERBOSE_MAKEFILE true)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_CURRENT_SOURCE_DIR}/cmake/cotire/CMake)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})

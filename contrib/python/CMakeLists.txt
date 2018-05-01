@@ -36,6 +36,16 @@ add_library(kovri_python SHARED
   util.cc)
 
 target_link_libraries(kovri_python PRIVATE kovri-private
-  ${PYTHON_LIBRARIES} kovri-core kovri-client)
+  ${PYTHON_LIBRARIES})
+
+# Use unity targets if they are available
+foreach(_target IN ITEMS kovri-core kovri-client)
+  get_target_property(_unityTargetName ${_target} COTIRE_UNITY_TARGET_NAME)
+  if (_unityTargetName)
+    target_link_libraries(kovri_python PRIVATE ${_unityTargetName})
+  else()
+    target_link_libraries(kovri_python PRIVATE ${_target})
+  endif()
+endforeach()
 
 set_target_properties(kovri_python PROPERTIES PREFIX "")

@@ -15,7 +15,8 @@ else()
 endif()
 ConfigureBinary(kovri-app "kovri") 
 
-if (MSVC)
+if (COMMAND cotire)
+  set_target_properties(kovri-app PROPERTIES COTIRE_PREFIX_HEADER_INCLUDE_PATH "${CMAKE_SOURCE_DIR}/deps")
   cotire(kovri-app)
 endif()
 # vim: noai:ts=2:sw=2

@@ -51,7 +51,8 @@ target_link_libraries(kovri-client PRIVATE
   PUBLIC
   cppnetlib::client-connections)
 
-if (MSVC)
+if (COMMAND cotire)
+  set_target_properties(kovri-client PROPERTIES COTIRE_PREFIX_HEADER_INCLUDE_PATH "${CMAKE_SOURCE_DIR}/deps")
   cotire(kovri-client)
 endif()
 

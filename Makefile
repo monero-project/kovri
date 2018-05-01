@@ -50,8 +50,19 @@ else
   data-path = $(KOVRI_DATA_PATH)
 endif
 
+# By default cotire enabled
+COTIRE ?= 1
+
+ifeq ($(COTIRE), 1)
+  cmake_target = all_unity
+  cmake_cotire = -D WITH_COTIRE=ON
+else
+  cmake_target = all
+  cmake_cotire = -D WITH_COTIRE=OFF
+endif
+
 # Our base cmake command
-cmake = cmake $(cmake-gen)
+cmake = cmake $(cmake-gen) $(cmake_cotire)
 
 # Release types
 cmake-debug = $(cmake) -D CMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
@@ -92,8 +103,8 @@ build-fuzzer = contrib/Fuzzer/$(build)
 
 # CMake builder macros
 define CMAKE
-  mkdir -p $1
-  cd $1 && $2 ../
+  cmake -E make_directory $1
+  cmake -E chdir $1 $2 ../
 endef
 
 define MAKE_CRYPTOPP
@@ -135,11 +146,11 @@ release-static-deps:
 
 dynamic: shared-deps
 	$(eval cmake-kovri += $(cmake-native))
-	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 static: deps
 	$(eval cmake-kovri += $(cmake-native) $(cmake-static))
-	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 #-----------------------------------#
 # For  dynamic distribution release #
@@ -148,7 +159,7 @@ static: deps
 release: release-deps
 	# TODO(unassigned): cmake release flags + optimizations/hardening when we're out of alpha
 	$(eval cmake-kovri += $(cmake-kovri-util))
-	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 #--------------------------------------------------------------#
 # For static distribution release (website and nightly builds) #
@@ -157,11 +168,11 @@ release: release-deps
 release-static: release-static-deps
         # TODO(unassigned): cmake release flags + optimizations/hardening when we're out of alpha
 	$(eval cmake-kovri += $(cmake-static) $(cmake-kovri-util))
-	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 release-static-android: release-static-deps
 	$(eval cmake-kovri += $(cmake-static) $(cmake-android) $(cmake-kovri-util))
-	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 # TODO(unassigned): static UPnP once our UPnP implementation is release-ready
 
@@ -172,58 +183,58 @@ release-static-android: release-static-deps
 # Utility binary
 util: deps
 	$(eval cmake-kovri += $(cmake-kovri-util))
-	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 # For API/testnet development
 python: shared-deps
 	$(eval cmake-kovri += $(cmake-python))
-	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 # Produce vanilla binary with UPnP support
 upnp: deps
 	$(eval cmake-kovri += $(cmake-upnp))
-	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 # Produce optimized, hardened binary *with* UPnP
 all-options: deps
 	$(eval cmake-kovri += $(cmake-optimize) $(cmake-hardening) $(cmake-upnp) $(cmake-kovri-util))
-	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 # Produce optimized, hardened binary *without* UPnP. Note: we need (or very much should have) optimizations with hardening
 optimized-hardened: deps
 	$(eval cmake-kovri += $(cmake-optimize) $(cmake-hardening))
-	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 # Produce all unit-tests with optimized hardening
 optimized-hardened-tests: deps
 	$(eval cmake-kovri += $(cmake-optimize) $(cmake-hardening) $(cmake-tests))
-	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 # Produce build with coverage. Note: leaving out hardening because of need for optimizations
 coverage: deps
 	$(eval cmake-kovri += $(cmake-coverage) $(cmake-upnp) $(cmake-kovri-util))
-	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 # Produce unit-tests with coverage
 coverage-tests: deps
 	$(eval cmake-kovri += $(cmake-coverage) $(cmake-tests))
-	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 # Produce vanilla unit-tests
 tests: deps
 	$(eval cmake-kovri += $(cmake-tests))
-	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 # Produce vanilla fuzzer-tests
 fuzz-tests: deps
 	$(call CMAKE_FUZZER) && $(MAKE)
 	$(eval cmake-kovri += $(cmake-fuzz-tests))
-	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE)
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 # Produce Doxygen documentation
 doxygen:
 	$(eval cmake-kovri += $(cmake-doxygen))
-	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) doc
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) doc
 
 # Produce available CMake build options
 help:

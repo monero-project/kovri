@@ -37,8 +37,8 @@
 
 #include <boost/asio.hpp>
 
-#include <miniupnp/miniupnpc/miniwget.h>
 #include <miniupnp/miniupnpc/miniupnpc.h>
+#include <miniupnp/miniupnpc/miniwget.h>
 #include <miniupnp/miniupnpc/upnpcommands.h>
 #include <miniupnp/miniupnpc/upnperrors.h>
 
@@ -83,17 +83,11 @@ class UPnP {
   struct IGDdatas m_upnpData {{}};
 
   // For miniupnpc
-  const char* m_MulticastIf = 0;
-  const char* m_Minissdpdpath = 0;
-  struct UPNPDev* m_Devlist = 0;
-  char m_NetworkAddr[64];
-  char m_externalIPAddress[40];
-  bool m_IsModuleLoaded;
-#ifndef _WIN32
-  void* m_Module;
-#else
-  HINSTANCE m_Module;
-#endif
+  const char* m_MulticastIf = nullptr;
+  const char* m_Minissdpdpath = nullptr;
+  std::unique_ptr<struct UPNPDev, void (*)(struct UPNPDev*)> m_Devlist;
+  char m_NetworkAddr[64]{};
+  char m_externalIPAddress[40]{};
 };
 
 }  // namespace core

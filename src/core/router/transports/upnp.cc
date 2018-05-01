@@ -33,15 +33,7 @@
 #ifdef USE_UPNP
 #include "core/router/transports/upnp.h"
 
-#include <boost/bind.hpp>
 #include <boost/thread/thread.hpp>
-
-#ifdef _WIN32
-#include <windows.h>
-#define dlsym GetProcAddress
-#else
-#include <dlfcn.h>
-#endif
 
 #include "core/router/context.h"
 #include "core/router/net_db/impl.h"
@@ -49,96 +41,10 @@
 #include "core/util/byte_stream.h"
 #include "core/util/log.h"
 
-// TODO(unassigned): improve UPnP implementation design and ensure that client doesn't interfere
-
-// These are per-process and are safe to reuse for all threads
-#ifndef UPNPDISCOVER_SUCCESS
-/* miniupnpc 1.5 */
-UPNPDev* (*upnpDiscoverFunc) (
-    int,
-    const char *,
-    const char *,
-    int);
-
-int(*UPNP_AddPortMappingFunc) (
-    const char*,
-    const char*,
-    const char*,
-    const char*,
-    const char*,
-    const char*,
-    const char*,
-    const char*);
-#else
-/* miniupnpc 1.6 */
-UPNPDev* (*upnpDiscoverFunc) (
-    int,
-    const char*,
-    const char*,
-    int,
-    int,
-    int*);
-
-int(*UPNP_AddPortMappingFunc) (
-    const char*,
-    const char*,
-    const char*,
-    const char*,
-    const char*,
-    const char*,
-    const char*,
-    const char*,
-    const char *);
-#endif
-int(*UPNP_GetValidIGDFunc) (
-    struct UPNPDev*,
-    struct UPNPUrls*,
-    struct IGDdatas*,
-    char*,
-    int);
-
-int(*UPNP_GetExternalIPAddressFunc) (
-    const char*,
-    const char*,
-    char*);
-
-int(*UPNP_DeletePortMappingFunc) (
-    const char*,
-    const char*,
-    const char*,
-    const char*,
-    const char*);
-
-void(*freeUPNPDevlistFunc) (
-    struct UPNPDev*);
-
-void(*FreeUPNPUrlsFunc) (
-    struct UPNPUrls*);
-
-// Nice approach http://stackoverflow.com/a/21517513/673826
-template<class M, typename F>
-F GetKnownProcAddressImpl(
-    M hmod,
-    const char *name,
-    F) {
-  auto proc = reinterpret_cast<F>(dlsym(hmod, name));
-  if (!proc) {
-    LOG(error)
-      << "UPnP: error resolving " << name << " from UPNP library. "
-      << "This often happens if there is version mismatch!";
-  }
-  return proc;
-}
-#define GetKnownProcAddress(hmod, func) GetKnownProcAddressImpl(hmod, #func, func##Func);
-
 namespace kovri {
 namespace core {
 
-UPnP::UPnP()
-    : m_Thread(nullptr),
-      m_IsModuleLoaded(false),
-      // TODO(unassigned): check default for windows (INVALID_HANDLE?)
-      m_Module(nullptr) {}
+UPnP::UPnP() : m_Devlist(nullptr, freeUPNPDevlist) {}
 
 void UPnP::Stop() {
   if (m_Thread) {
@@ -148,60 +54,11 @@ void UPnP::Stop() {
 }
 
 void UPnP::Start() {
-  if (!m_IsModuleLoaded) {
-#ifdef MAC_OSX
-    m_Module = dlopen("libminiupnpc.dylib", RTLD_LAZY);
-#elif _WIN32
-    // official prebuilt binary, e.g., in upnpc-exe-win32-20140422.zip
-    m_Module = LoadLibrary("miniupnpc.dll");
-#else
-    m_Module = dlopen("libminiupnpc.so", RTLD_LAZY);
-#endif
-    if (m_Module == NULL) {
-      LOG(error)
-        << "UPnP: error loading UPNP library."
-        << "This often happens if there is version mismatch!";
-      return;
-    } else {
-      upnpDiscoverFunc = GetKnownProcAddress(
-          m_Module,
-          upnpDiscover);
-      UPNP_GetValidIGDFunc = GetKnownProcAddress(
-          m_Module,
-          UPNP_GetValidIGD);
-      UPNP_GetExternalIPAddressFunc = GetKnownProcAddress(
-          m_Module,
-          UPNP_GetExternalIPAddress);
-      UPNP_AddPortMappingFunc = GetKnownProcAddress(
-          m_Module,
-          UPNP_AddPortMapping);
-      UPNP_DeletePortMappingFunc = GetKnownProcAddress(
-          m_Module,
-          UPNP_DeletePortMapping);
-      freeUPNPDevlistFunc = GetKnownProcAddress(
-          m_Module,
-          freeUPNPDevlist);
-      FreeUPNPUrlsFunc = GetKnownProcAddress(
-          m_Module,
-          FreeUPNPUrls);
-      if (upnpDiscoverFunc &&
-          UPNP_GetValidIGDFunc &&
-          UPNP_GetExternalIPAddressFunc &&
-          UPNP_AddPortMappingFunc &&
-          UPNP_DeletePortMappingFunc &&
-          freeUPNPDevlistFunc &&
-          FreeUPNPUrlsFunc)
-        m_IsModuleLoaded = true;
-    }
-  }
   m_Thread =
-    std::make_unique<std::thread>(
-        std::bind(
-            &UPnP::Run,
-            this));
+    std::make_unique<std::thread>(&UPnP::Run, this);
 }
 
-UPnP::~UPnP() {}
+UPnP::~UPnP() = default;
 
 void UPnP::Run() {
   for (const auto& address : context.GetRouterInfo().GetAddresses()) {
@@ -217,38 +74,32 @@ void UPnP::Run() {
 }
 
 void UPnP::Discover() {
-#ifndef UPNPDISCOVER_SUCCESS
-  /* miniupnpc 1.5 */
-  m_Devlist = upnpDiscoverFunc(
-      2000,
-      m_MulticastIf,
-      m_Minissdpdpath,
-      0);
-#else
-  /* miniupnpc 1.6 */
   int nerror = 0;
-  m_Devlist = upnpDiscoverFunc(
+  // default according to miniupnpc.h
+  unsigned char ttl = 2;
+  m_Devlist = std::unique_ptr<struct UPNPDev, void(*)(struct UPNPDev*)>(
+    upnpDiscover(
       2000,
       m_MulticastIf,
       m_Minissdpdpath,
       0,
       0,
-      &nerror);
-#endif
+      ttl,
+      &nerror), freeUPNPDevlist);
   int r;
-  r = UPNP_GetValidIGDFunc(
-      m_Devlist,
+  r = UPNP_GetValidIGD(
+      m_Devlist.get(),
       &m_upnpUrls,
       &m_upnpData,
       m_NetworkAddr,
       sizeof(m_NetworkAddr));
   if (r == 1) {
-    r = UPNP_GetExternalIPAddressFunc(
+    r = UPNP_GetExternalIPAddress(
         m_upnpUrls.controlURL,
         m_upnpData.first.servicetype,
         m_externalIPAddress);
     if (r != UPNPCOMMAND_SUCCESS) {
-      LOG(error) << "UPnP: UPNP_GetExternalIPAddressFunc() returned " << r;
+      LOG(error) << "UPnP: UPNP_GetExternalIPAddress() returned " << r;
       return;
     } else {
       if (m_externalIPAddress[0]) {
@@ -282,20 +133,7 @@ void UPnP::TryPortMapping(
   const std::string desc = "Kovri";
   try {
     for (;;) {
-#ifndef UPNPDISCOVER_SUCCESS
-      /* miniupnpc 1.5 */
-      r = UPNP_AddPortMappingFunc(
-          m_upnpUrls.controlURL,
-          m_upnpData.first.servicetype,
-          upnp_port.c_str(),
-          upnp_port.c_str(),
-          m_NetworkAddr,
-          desc.c_str(),
-          upnp_type.c_str(),
-          0);
-#else
-      /* miniupnpc 1.6 */
-      r = UPNP_AddPortMappingFunc(
+      r = UPNP_AddPortMapping(
           m_upnpUrls.controlURL,
           m_upnpData.first.servicetype,
           upnp_port.c_str(),
@@ -305,7 +143,6 @@ void UPnP::TryPortMapping(
           upnp_type.c_str(),
           0,
           "0");
-#endif
       if (r == UPNPCOMMAND_SUCCESS) {
         LOG(debug)
           << "UPnP: port mapping successful. "
@@ -348,24 +185,17 @@ void UPnP::CloseMapping(
       upnp_type = "UDP";
   }
   int r = 0;
-  r = UPNP_DeletePortMappingFunc(
+  r = UPNP_DeletePortMapping(
       m_upnpUrls.controlURL,
       m_upnpData.first.servicetype,
      upnp_port.c_str(),
       upnp_type.c_str(),
       0);
-  LOG(debug) << "UPnP: UPNP_DeletePortMappingFunc() returned : " << r << "\n";
+  LOG(debug) << "UPnP: UPNP_DeletePortMapping() returned : " << r << "\n";
 }
 
 void UPnP::Close() {
-  freeUPNPDevlistFunc(m_Devlist);
-  m_Devlist = 0;
-  FreeUPNPUrlsFunc(&m_upnpUrls);
-#ifndef _WIN32
-  dlclose(m_Module);
-#else
-  FreeLibrary(m_Module);
-#endif
+  FreeUPNPUrls(&m_upnpUrls);
 }
 
 }  // namespace core

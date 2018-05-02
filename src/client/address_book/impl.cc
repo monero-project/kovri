@@ -313,7 +313,7 @@ bool AddressBook::SaveSubscription(
         try
           {
             // Only stores subscription lines for addresses not already loaded
-            InsertAddress(host, ident.GetIdentHash());
+            InsertAddress(host, ident.GetIdentHash(), SubscriptionType::Default);
             // Write/overwrite Hostname=Base64Address pairing to subscription file
             // TODO(anonimal): this is not optimal, especially for large subscriptions
             file << host << "=" << ident.ToBase64() << '\n';
@@ -446,7 +446,8 @@ std::unique_ptr<const kovri::core::IdentHash> AddressBook::GetLoadedAddressIdent
   if (m_SubscriptionIsLoaded) {
     auto it = m_Addresses.find(address);
     if (it != m_Addresses.end()) {
-      return std::make_unique<const kovri::core::IdentHash>(it->second);
+      return std::make_unique<const kovri::core::IdentHash>(
+          std::get<kovri::core::IdentHash>(it->second));
     }
   }
   return nullptr;
@@ -454,18 +455,22 @@ std::unique_ptr<const kovri::core::IdentHash> AddressBook::GetLoadedAddressIdent
 
 void AddressBook::InsertAddress(
     const std::string& host,
-    const kovri::core::IdentHash& address)
+    const kovri::core::IdentHash& address,
+    SubscriptionType source)
 {
   try
   {
     // Ensure address book only inserts unique entries
     if (!m_Addresses.empty())
       {
+        auto host_search = m_Addresses.find(host);
+        if (host_search != m_Addresses.end())
+          throw std::runtime_error("AddressBook: host already loaded");
         for (const auto& entry : m_Addresses)
-          if (entry.second == address)
+          if (std::get<kovri::core::IdentHash>(entry.second) == address)
             throw std::runtime_error("AddressBook: address already loaded");
       }
-    m_Addresses[host] = address;
+    m_Addresses[host] = std::make_pair(address, source);
   }
   catch (...)
   {
@@ -484,7 +489,7 @@ void AddressBook::InsertAddressIntoStorage(
       kovri::core::IdentityEx ident;
       ident.FromBase64(base64);
       const auto& ident_hash = ident.GetIdentHash();
-      InsertAddress(address, ident_hash);
+      InsertAddress(address, ident_hash, SubscriptionType::User);
       if (!m_Storage)
         m_Storage = GetNewStorageInstance();
       m_Storage->AddAddress(ident);

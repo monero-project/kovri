@@ -89,9 +89,10 @@ void AddressBookStorage::RemoveAddress(
 }
 **/
 
-std::size_t AddressBookStorage::Load(
-    std::map<std::string, kovri::core::IdentHash>& addresses) {
+std::size_t AddressBookStorage::Load(AddressMap& addresses)
+{
   std::size_t num = 0;
+  // TODO(oneiric): generalize to multiple subscription files see #337
   auto filename = core::GetPath(core::Path::AddressBook) / GetDefaultAddressesFilename();
   std::ifstream file(filename.string());
   if (!file) {
@@ -112,7 +113,7 @@ std::size_t AddressBookStorage::Load(
         if (!addr.empty())
           {
             ident.FromBase32(addr);
-            addresses[name] = ident;
+            addresses[name] = std::make_pair(ident, SubscriptionType::Default);
             num++;
           }
       }
@@ -122,17 +123,23 @@ std::size_t AddressBookStorage::Load(
   return num;
 }
 
-std::size_t AddressBookStorage::Save(
-    const std::map<std::string, kovri::core::IdentHash>& addresses) {
+std::size_t AddressBookStorage::Save(const AddressMap& addresses)
+{
   std::size_t num = 0;
+  // TODO(oneiric): generalize to multiple subscription files see #337
   auto filename = core::GetPath(core::Path::AddressBook)/ GetDefaultAddressesFilename();
   std::ofstream file(filename.string(), std::ofstream::out);
   if (!file) {
     LOG(error) << "AddressBookStorage: can't open file " << filename;
   } else {
     for (auto const& it : addresses) {
-      file << it.first << "," << it.second.ToBase32() << std::endl;
-      num++;
+      if (std::get<SubscriptionType>(it.second) == SubscriptionType::Default)
+        {
+          file << it.first << ","
+               << std::get<kovri::core::IdentHash>(it.second).ToBase32()
+               << std::endl;
+          num++;
+        }
     }
     LOG(info) << "AddressBookStorage: " << num << " addresses saved";
   }

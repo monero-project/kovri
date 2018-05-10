@@ -653,6 +653,16 @@ const boost::asio::ip::address& SSUPeerTestPacket::GetIPAddress() const
   return m_IPAddress;
 }
 
+void SSUPeerTestPacket::SetIPAddressSize(const std::uint8_t size)
+{
+  m_IPAddressSize = size;
+}
+
+std::uint8_t SSUPeerTestPacket::GetIPAddressSize() const
+{
+  return m_IPAddressSize;
+}
+
 void SSUPeerTestPacket::SetPort(
     std::uint16_t port) {
   m_Port = port;
@@ -675,7 +685,7 @@ std::size_t SSUPeerTestPacket::GetSize() const {
   return SSUPacket::GetSize()
          + 4  // Nonce
          + 1  // Alice's IP address size
-         // TODO(unassigned): that many byte representation of IP address (if size > 0)
+         + m_IPAddressSize  // Bob or Charlie: 4 or 16 (IPv4/6), Alice: 0, see spec
          + 2  // Alice's port number
          + SSUSize::IntroKey;  // Alice's or Charlie's 32-byte introduction key
 }
@@ -893,7 +903,9 @@ std::unique_ptr<SSUPeerTestPacket> SSUPacketParser::ParsePeerTest() {
   auto packet = std::make_unique<SSUPeerTestPacket>();
   packet->SetNonce(Read<std::uint32_t>());
   std::uint8_t const size(Read<std::uint8_t>());
-  packet->SetIPAddress(core::BytesToAddress(ReadBytes(size), size));
+  if (size)  // Bob or Charlie
+    packet->SetIPAddress(core::BytesToAddress(ReadBytes(size), size));
+  packet->SetIPAddressSize(size);
   packet->SetPort(Read<std::uint16_t>());
   packet->SetIntroKey(ReadBytes(SSUSize::IntroKey));
   return packet;

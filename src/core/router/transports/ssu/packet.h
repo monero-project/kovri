@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2017, The Kovri I2P Router Project
+ * Copyright (c) 2015-2018, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -694,6 +694,12 @@ class SSUPeerTestPacket : public SSUPacket {
   /// @return IP address that was previously set when parsed
   const boost::asio::ip::address& GetIPAddress() const;
 
+  /// @brief Sets IP address size as set by message owner (see SSU spec)
+  void SetIPAddressSize(const std::uint8_t size);
+
+  /// @return IP address size that was previously set when parsed
+  std::uint8_t GetIPAddressSize() const;
+
   /// @brief Sets Alice's 2 byte port number
   /// @note Assumes content is valid (based on position)
   /// @param port Alice's port number
@@ -718,6 +724,7 @@ class SSUPeerTestPacket : public SSUPacket {
  private:
   std::uint32_t m_Nonce;
   boost::asio::ip::address m_IPAddress;
+  std::uint8_t m_IPAddressSize;
   std::uint8_t* m_IntroKey;
   std::uint16_t m_Port;
 };

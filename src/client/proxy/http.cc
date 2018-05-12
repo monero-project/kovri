@@ -37,7 +37,6 @@
 #include <boost/algorithm/string/regex.hpp>
 
 
-#include <boost/network/uri/decode.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/regex.hpp>
 #include <boost/tokenizer.hpp>
@@ -489,7 +488,7 @@ bool HTTPMessage::ExtractBase64Destination(std::size_t const pos)
   if (pos && base64_size < m_URL.size())
     {
       std::string const base64 = m_URL.substr(base64_size);
-      m_Base64Destination = boost::network::uri::decoded(base64);
+      m_Base64Destination = uri::decoded(base64);
       return true;
     }
 

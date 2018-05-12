@@ -34,13 +34,14 @@
 
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/asio.hpp>
-#include <boost/network/uri.hpp>
 
 #include <array>
 #include <chrono>
 #include <condition_variable>
 #include <fstream>
 #include <utility>
+
+#include "client/util/uri.h"
 
 #include "core/crypto/rand.h"
 
@@ -144,7 +145,7 @@ void AddressBook::LoadPublishers() {
     // Publisher URI
     std::string publisher;
     // Validate publisher URI
-    boost::network::uri::uri uri;
+    uri::uri uri;
     // Read in publishers, line by line
     while (std::getline(file, publisher)) {
       // If found, clear whitespace before and after publisher (on the line)
@@ -159,7 +160,7 @@ void AddressBook::LoadPublishers() {
         continue;
       // Perform URI sanity test
       if (!uri.string().empty())
-        uri = boost::network::uri::uri();
+        uri = uri::uri();
       uri.append(publisher);
       if (!uri.is_valid())
         {

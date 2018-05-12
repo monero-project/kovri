@@ -37,6 +37,8 @@
 #include <sstream>
 #include <utility>
 
+#include "client/util/uri.h"
+
 #include "core/util/byte_stream.h"
 
 namespace asio = boost::asio;
@@ -125,7 +127,6 @@ void I2PControlClient::ProcessAsyncSendRequest(
     std::shared_ptr<Request> request,
     std::function<void(std::unique_ptr<Response>)> callback)
 {
-  namespace uri = boost::network::uri;
   uri::uri url;
   url << uri::scheme("http") << uri::host(m_Host) << uri::port(m_Port);
   http::client::request http_request(url);

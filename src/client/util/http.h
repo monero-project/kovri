@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -35,7 +35,6 @@
 
 // cpp-netlib
 #include <boost/network/include/http/client.hpp>
-#include <boost/network/uri.hpp>
 
 #include <cstdint>
 #include <fstream>
@@ -46,6 +45,7 @@
 #include <string>
 
 #include "client/reseed.h"
+#include "client/util/uri.h"
 #include "core/util/log.h"
 
 namespace kovri {
@@ -164,7 +164,7 @@ class HTTP : public HTTPStorage {
     LOG(debug) << "HTTP: Set URI " << uri;
     // Remove existing URI if set
     if (!m_URI.string().empty()) {
-      boost::network::uri::uri new_uri;
+      uri::uri new_uri;
       m_URI.swap(new_uri);
     }
     // Set new URI
@@ -173,7 +173,7 @@ class HTTP : public HTTPStorage {
 
   /// @brief Get initialized URI
   /// @return cpp-netlib URI object
-  boost::network::uri::uri GetURI() const
+  uri::uri GetURI() const
   {
     return m_URI;
   }
@@ -212,7 +212,7 @@ class HTTP : public HTTPStorage {
  private:
   /// @var m_URI
   /// @brief cpp-netlib URI instance
-  boost::network::uri::uri m_URI;
+  uri::uri m_URI;
 
   // TODO(anonimal): consider removing typedefs after refactor
   // TODO(anonimal): remove the following notes after refactor

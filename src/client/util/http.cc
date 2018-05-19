@@ -148,9 +148,6 @@ bool HTTP::DownloadViaClearnet() {
 
   // Create client with options
   Client client(options);
-  // TODO(unassigned): this top try block is specifically for Windows and ARMv8
-  // but is harmless for all platforms (see #453 and cpp-netlib/cpp-netlib#696)
-  try {
     try {
       // Create request
       Request request(uri.string());  // A fully-qualified, completed URI
@@ -209,17 +206,13 @@ bool HTTP::DownloadViaClearnet() {
           LOG(warning) << "HTTP: response code: " << response.status();
           return false;
       }
+    } catch (const boost::system::system_error& ex) {
+      LOG(error) << "HTTP: " << boost::diagnostic_information(ex);
+      return false;
     } catch (const std::exception& ex) {
       LOG(error) << "HTTP: unable to complete download: " << ex.what();
       return false;
-    } catch (const std::exception_ptr& ex) {
-      LOG(error) << "HTTP: caught exception_ptr, rethrowing exception";
-      std::rethrow_exception(ex);
     }
-  } catch (const boost::system::system_error& ex) {
-    LOG(error) << "HTTP: " << boost::diagnostic_information(ex);
-    return false;
-  }
   return true;
 }
 

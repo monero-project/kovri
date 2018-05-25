@@ -146,8 +146,11 @@ bool DaemonLinux::Initialize() {
     return false;
   }
   LOG(debug) << "DaemonLinux: pid file ready";
+
   // Signal handler
-  struct sigaction sa {{}};
+  struct sigaction sa;
+  memset(&sa, 0, sizeof(struct sigaction));  // C struct initialized in C way.
+
   sa.sa_handler = handle_signal;
   sigemptyset(&sa.sa_mask);
   sa.sa_flags = SA_RESTART;

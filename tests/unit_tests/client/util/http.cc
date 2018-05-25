@@ -34,9 +34,20 @@
 
 #include "client/util/http.h"
 
-BOOST_AUTO_TEST_SUITE(HTTPUtilityTests)
+struct HTTPFixture
+{
+  class HTTP : public kovri::client::HTTP
+  {
+   public:
+    using Client_t = Client;
+    using Options_t = Options;
+    using Request_t = Request;
+    using Response_t = Response;
+  };
+  HTTP http;
+};
 
-kovri::client::HTTP http;
+BOOST_FIXTURE_TEST_SUITE(HTTPUtilityTests, HTTPFixture)
 
 BOOST_AUTO_TEST_CASE(UriParse) {
   // Note: cpp-netlib has better tests.
@@ -49,6 +60,34 @@ BOOST_AUTO_TEST_CASE(UriParse) {
 
   http.SetURI("http://username:password@udhdrtrcetjm5sxzskjyr5ztpeszydbh4dpl3pl4utgqqw2v4jna.b32.i2p/hosts.txt");
   BOOST_CHECK(http.GetURI().is_valid() && http.HostIsI2P());
+}
+
+BOOST_AUTO_TEST_CASE(GoodSNI)
+{
+  HTTP::Client_t client;
+  HTTP::Response_t response;
+  // Setup request for host requiring SNI
+  HTTP::Request_t request("https://reseed.memcpy.io");
+  // Ensure we set the proper SNI hostname
+  request.sni_hostname(request.host());
+  // Ensure the request itself does not throw
+  BOOST_CHECK_NO_THROW(response = client.get(request));
+  // Ensure no internal errors are thrown
+  BOOST_CHECK_NO_THROW(response.status());
+}
+
+BOOST_AUTO_TEST_CASE(BadSNI)
+{
+  HTTP::Client_t client;
+  HTTP::Response_t response;
+  // Setup request for host requiring SNI
+  HTTP::Request_t request("https://reseed.memcpy.io");
+  // Ensure SNI hostname is unset
+  request.sni_hostname("");
+  // Ensure the request itself does not throw
+  BOOST_CHECK_NO_THROW(response = client.get(request));
+  // Expect a Boost system error (we unset the SNI hostname)
+  BOOST_CHECK_THROW(response.status(), boost::system::system_error);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

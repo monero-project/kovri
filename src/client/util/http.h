@@ -217,6 +217,8 @@ class HTTP : public HTTPStorage {
   // TODO(anonimal): consider removing typedefs after refactor
   // TODO(anonimal): remove the following notes after refactor
 
+  // Add to protected visibility for unit-tests
+ protected:
   /// @brief HTTP client object
   /// @notes Currently only applies to clearnet download
   typedef boost::network::http::client Client;

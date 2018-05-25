@@ -95,6 +95,7 @@ class ConfigInternal {
                                              typename std::decay<U>::type>::
                                     value>::type* value = 0) noexcept
     {
+      (void) value;  // Silence compiler warning about unused parameters.
       return string_value;
     }
 

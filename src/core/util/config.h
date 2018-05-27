@@ -78,6 +78,7 @@ class ConfigInternal {
     {
       try
         {
+          (void) value;  // TODO(anonimal): no
           return boost::lexical_cast<U>(string_value);
         }
       catch (const boost::bad_lexical_cast& ex)

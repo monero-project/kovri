@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2015-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2015-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -163,8 +163,8 @@ void CpuidCommand::PrintUsage(const std::string& name) const
 }
 
 bool CpuidCommand::Impl(
-    const std::string& cmd_name,
-    const std::vector<std::string>& args)
+    const std::string& /*cmd_name*/,
+    const std::vector<std::string>& /*args*/)
 {
 #if defined(__x86_64__) || defined(__i386__)
   LOG(info) << "CPU Vendor: " << GetCpuVendor();

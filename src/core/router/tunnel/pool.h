@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -162,13 +162,28 @@ class TunnelPool
       m_NumInboundTunnels,
       m_NumOutboundTunnels;
   std::shared_ptr<std::vector<kovri::core::IdentHash> > m_ExplicitPeers;
+
   mutable std::mutex m_InboundTunnelsMutex;
-
-  // recent tunnel appears first
-  std::set<std::shared_ptr<InboundTunnel>, TunnelCreationTimeCmp> m_InboundTunnels;
-
   mutable std::mutex m_OutboundTunnelsMutex;
-  std::set<std::shared_ptr<OutboundTunnel>, TunnelCreationTimeCmp> m_OutboundTunnels;
+
+  /// @brief Custom comparator to order most recent tunnels first
+  /// @notes For efficiency, we'll stick with a functor instead of ctor'd std::function with lambda
+  struct CompareTime
+  {
+    template <class T>
+    bool operator()(const std::shared_ptr<T>& a, const std::shared_ptr<T>& b)
+        const
+    {
+      if (a->GetCreationTime() != b->GetCreationTime())
+        return a->GetCreationTime() > b->GetCreationTime();
+      else
+        return a < b;
+    }
+  };
+
+  std::set<std::shared_ptr<InboundTunnel>, CompareTime> m_InboundTunnels;
+  std::set<std::shared_ptr<OutboundTunnel>, CompareTime> m_OutboundTunnels;
+
   std::map<std::uint32_t, std::pair<std::shared_ptr<OutboundTunnel>, std::shared_ptr<InboundTunnel> > > m_Tests;
   bool m_IsActive;
 

@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2015-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2015-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -147,7 +147,7 @@ class Configuration
 
  private:
   /// @brief Exception dispatcher
-  core::Exception m_Exception;
+  static core::Exception m_Exception;
 
   /// @var m_TunnelsConfig
   /// @brief Vector of all sections in a tunnel configuration

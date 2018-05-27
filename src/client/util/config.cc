@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2015-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2015-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -44,9 +44,13 @@ namespace kovri
 {
 namespace client
 {
+/// @brief Safely initialize exception member
+/// @details Complies with CERT secure coding rule ERR53-CPP, and resolves build warnings
+/// @notes Initializing the member with class name was/is a hack until our logger is improved
+core::Exception Configuration::m_Exception("Configuration");
+
 Configuration::Configuration(const core::Configuration& core_config) try
-    : m_Exception(__func__),
-      m_CoreConfig(core_config)
+    : m_CoreConfig(core_config)
   {
     ParseConfig();
   }

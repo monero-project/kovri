@@ -58,6 +58,9 @@ class Tag
 
   Tag(const std::uint8_t* buf)
   {
+    assert(buf);
+    if (!buf)
+      throw std::invalid_argument("Null buffer not allowed");
     std::memcpy(m_Buf, buf, Size);
   }
 

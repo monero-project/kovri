@@ -95,17 +95,6 @@ class TunnelBase {
   std::uint64_t m_CreationTime;  // seconds since epoch
 };
 
-struct TunnelCreationTimeCmp {
-  bool operator() (
-      std::shared_ptr<const TunnelBase> t1,
-      std::shared_ptr<const TunnelBase> t2) const {
-    if (t1->GetCreationTime() != t2->GetCreationTime())
-      return t1->GetCreationTime() > t2->GetCreationTime();
-    else
-      return t1 < t2;
-  }
-};
-
 }  // namespace core
 }  // namespace kovri
 

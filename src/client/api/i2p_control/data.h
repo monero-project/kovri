@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2015-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2015-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -86,6 +86,8 @@ struct I2PControlDataTraits
   class AbstractMethod
   {
    public:
+    virtual ~AbstractMethod() = default;
+
     /// @return String value of given enumerated method
     /// @param trait key used for trait string value
     /// @throw std::domain_error if invalid key

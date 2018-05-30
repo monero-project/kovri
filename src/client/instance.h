@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2015-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2015-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -94,7 +94,7 @@ class Instance
 
  private:
   /// @brief Exception dispatcher
-  core::Exception m_Exception;
+  static core::Exception m_Exception;
 
   /// @brief Core instance
   core::Instance m_Core;

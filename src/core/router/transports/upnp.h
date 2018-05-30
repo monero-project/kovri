@@ -79,8 +79,8 @@ class UPnP {
   std::unique_ptr<std::thread> m_Thread;
 
   // Miniupnpc POD-types
-  struct UPNPUrls m_upnpUrls {{}};
-  struct IGDdatas m_upnpData {{}};
+  struct UPNPUrls m_upnpUrls{};
+  struct IGDdatas m_upnpData{};
 
   // For miniupnpc
   const char* m_MulticastIf = nullptr;

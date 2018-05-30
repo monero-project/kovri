@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2015-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2015-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -78,6 +78,7 @@ class ConfigInternal {
     {
       try
         {
+          (void) value;  // TODO(anonimal): no
           return boost::lexical_cast<U>(string_value);
         }
       catch (const boost::bad_lexical_cast& ex)
@@ -220,7 +221,7 @@ class Configuration final: public ConfigInternal
 
  private:
   /// @brief Exception dispatcher
-  core::Exception m_Exception;
+  static core::Exception m_Exception;
 
   /// @brief Vector of string arguments passed to configuration
   std::vector<std::string> m_Args;

@@ -33,9 +33,7 @@
 #include "core/router/identity.h"
 
 #include <boost/endian/conversion.hpp>
-
-#include <stdio.h>
-#include <time.h>
+#include <boost/date_time/gregorian/gregorian_types.hpp>
 
 #include "core/crypto/hash.h"
 #include "core/crypto/rand.h"
@@ -727,42 +725,43 @@ Keys CreateRandomKeys() {
   return keys;
 }
 
-IdentHash CreateRoutingKey(
-    const IdentHash& ident) {
-  std::uint8_t buf[41];  // ident + yyyymmdd
-  memcpy(buf, (const std::uint8_t *)ident, 32);
-  time_t t = time(nullptr);
-  struct tm tm;
-  // TODO(unassigned): never use sprintf, use snprintf instead.
-#ifdef _WIN32
-  gmtime_s(&tm, &t);
-  sprintf_s(
-      reinterpret_cast<char *>((buf + 32)),
-      9,
-      "%04i%02i%02i",
-      tm.tm_year + 1900,
-      tm.tm_mon + 1,
-      tm.tm_mday);
-#else
-  gmtime_r(&t, &tm);
-  sprintf(
-      reinterpret_cast<char *>((buf + 32)),
-      "%04i%02i%02i",
-      tm.tm_year + 1900,
-      tm.tm_mon + 1,
-      tm.tm_mday);
-#endif
+// TODO(unassigned): should not be a free function
+IdentHash CreateRoutingKey(const IdentHash& ident)
+{
   IdentHash key;
-  // TODO(anonimal): this try block should be larger or handled entirely by caller
-  try {
-    kovri::core::SHA256().CalculateDigest((std::uint8_t *)key, buf, 40);
-  } catch (...) {
-    core::Exception ex;
-    ex.Dispatch(__func__);
-    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
-    throw;
-  }
+  try
+    {
+      if (ident.IsZero())
+        throw std::invalid_argument("Identity: zero-initialized ident");
+
+      // Get spec-defined formatted date
+      std::string const date(GetFormattedDate());
+
+      // Create buffer for key
+      std::vector<std::uint8_t> buf(
+          ident(), ident() + (ident.size() + date.size()));
+
+      // Append the ISO date
+      buf.insert(buf.end(), date.begin(), date.end());
+
+      // Hash the key
+      assert(key.size() <= buf.size());
+      kovri::core::SHA256().CalculateDigest(key(), buf.data(), buf.size());
+    }
+  catch (...)
+    {
+      kovri::core::Exception ex(__func__);
+      ex.Dispatch();
+      throw;
+    }
   return key;
+}
+
+// TODO(unassigned): should not be a free function
+std::string GetFormattedDate()
+{
+  boost::gregorian::date date(boost::gregorian::day_clock::universal_day());
+  return boost::gregorian::to_iso_string(date);
 }
 
 XORMetric operator^(

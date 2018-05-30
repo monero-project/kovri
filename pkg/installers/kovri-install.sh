@@ -57,10 +57,6 @@ catch()
   echo " ${green}[OK]${normal}"
 }
 
-# Path for binaries
-bin_path=$HOME/bin
-bins=(kovri kovri-util)
-
 # Get platform
 case $OSTYPE in
   linux*)
@@ -115,15 +111,30 @@ while getopts ":r:f:cpu" _opt; do
 done
 shift "$(($OPTIND -1))"
 
+# Path for binaries/scripts
+bin_path=$HOME/bin
+bin_path_files=(kovri-bash.sh kovri kovri-util)
+
 # Set default resources if needed
 if [[ -z $resources ]]; then
-  resources="pkg/client pkg/config contrib/utils/kovri-bash.sh build/${bins[0]} build/${bins[1]}"
+  # TODO: brittle, relies on appropriately placed index
+  resources=("pkg/client" "pkg/config" \
+             "contrib/utils/${bin_path_files[0]}" \
+             "build/${bin_path_files[1]}" \
+             "build/${bin_path_files[2]}")
 fi
 
 # Test if resources are available
 for _resource in ${resources[@]}; do
   if [[ ! -e $_resource ]]; then
-    false
+    # If kovri-util is unavailable, don't fail
+    if [[ "$_resource" == "${resources[-1]}" ]]; then
+      # Remove unavailable resource to avoid later attempt at install
+      unset 'resources[${#resources[@]}-1]'
+      true
+    else
+      false
+    fi
     catch "$_resource is unavailable, did you build Kovri?"
   fi
 done
@@ -163,8 +174,8 @@ Uninstall()
     fi
   done
 
-  # Remove binaries
-  for _bin in ${bins[@]}; do
+  # Remove binaries/scripts
+  for _bin in ${bin_path_files[@]}; do
     local _binary=${bin_path}/${_bin}
     if [[ -e $_binary ]]; then
       echo -n "Removing $_binary"

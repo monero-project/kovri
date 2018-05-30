@@ -47,6 +47,16 @@ PrintUsage()
   echo -e "Create package with accompanying checksum file:\n\n$0 [-r \"client config kovri kovri-util\"] -p -c [-f /tmp/kovri-package.tar.bz2]\n\n"
 }
 
+# Error handler
+catch()
+{
+  if [[ $? -ne 0 ]]; then
+    echo " ${red}[ERROR] Failed to install: '$1' ${normal}" >&2
+    exit 1
+  fi
+  echo " ${green}[OK]${normal}"
+}
+
 # Path for binaries
 bin_path=$HOME/bin
 bins=(kovri kovri-util)
@@ -331,16 +341,6 @@ if [[ $(tput colors) ]]; then
   yellow="$(tput setaf 3)"
   normal="$(tput sgr0)"
 fi
-
-# Error handler
-catch()
-{
-  if [[ $? -ne 0 ]]; then
-    echo " ${red}[ERROR] Failed to install: '$1' ${normal}" >&2
-    exit 1
-  fi
-  echo " ${green}[OK]${normal}"
-}
 
 echo "${yellow}The Kovri I2P Router Project (c) 2015-2017${normal}"
 

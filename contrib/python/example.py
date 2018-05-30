@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright (c) 2015-2017, The Kovri I2P Router Project
+# Copyright (c) 2015-2018, The Kovri I2P Router Project
 #
 # All rights reserved.
 #
@@ -29,7 +29,7 @@
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 root = "../../"
-args = "--log-level 5 --enable-ssu 0"
+args = "--log-level 5 --disable-ssu"
 
 # Ensure kovri data dir is available
 import subprocess

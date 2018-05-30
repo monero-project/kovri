@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -188,24 +188,22 @@ void SetupLogging(const boost::program_options::variables_map& kovri_config)
   // Auto flush for closer-to-real-time record message reporting
   // Note: our severity levels are processed in reverse
   if (severity <= logging::trivial::debug
-      || kovri_config["log-auto-flush"].as<bool>())
+      || kovri_config["enable-auto-flush-log"].as<bool>())
     file_backend->auto_flush();
   // Create file sink
   auto file_sink = boost::shared_ptr<text_file_sink>(
       std::make_unique<text_file_sink>(file_backend));
   // Set sink formatting
   text_sink->set_formatter(
-      GetFormat(kovri_config["log-enable-color"].as<bool>()));
+      GetFormat(kovri_config["disable-color-log"].as<bool>() ? false : true));
   file_sink->set_formatter(GetFormat(false));
   // Add sinks
   core->add_sink(text_sink);
   core->add_sink(file_sink);
   // Remove sinks if needed (we must first have added sinks to remove)
-  bool log_to_console = kovri_config["log-to-console"].as<bool>();
-  bool log_to_file = kovri_config["log-to-file"].as<bool>();
-  if (!log_to_console)
+  if (kovri_config["disable-console-log"].as<bool>())
     core->remove_sink(text_sink);
-  if (!log_to_file)
+  if (kovri_config["disable-file-log"].as<bool>())
     core->remove_sink(file_sink);
 }
 

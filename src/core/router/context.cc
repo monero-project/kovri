@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -84,8 +84,8 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
                   : m_Opts["port"].as<int>();
 
   // Set available transports
-  bool const has_ntcp = m_Opts["enable-ntcp"].as<bool>();
-  bool const has_ssu = m_Opts["enable-ssu"].as<bool>();
+  bool const has_ntcp(m_Opts["disable-ntcp"].as<bool>() ? false : true);
+  bool const has_ssu(m_Opts["disable-ssu"].as<bool>() ? false : true);
 
   if (!has_ntcp && !has_ssu)
     throw std::invalid_argument(
@@ -143,8 +143,8 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
           if (has_ntcp && !router.GetNTCPAddress(address.is_v6()))
             {
               LOG(debug)
-                  << "RouterContext: enable-ntcp present and no transport "
-                     "found in existing routerInfo for host "
+                  << "RouterContext: NTCP was expected but no transport "
+                     "was found in existing routerInfo for host "
                   << host;
               router.AddAddress(std::make_tuple(Transport::NTCP, host, port));
             }
@@ -152,8 +152,8 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
           if (has_ssu && !router.GetSSUAddress(address.is_v6()))
             {
               LOG(debug)
-                  << "RouterContext: enable-ssu present and no transport "
-                     "found in existing routerInfo for host "
+                  << "RouterContext: SSU was expected but no transport "
+                     "was found in existing routerInfo for host "
                   << host;
               router.AddAddress(
                   std::make_tuple(Transport::SSU, host, port),
@@ -195,10 +195,11 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
   LOG(debug) << "RouterContext: setting context RI traits";
 
   // IPv6
-  m_Opts["v6"].as<bool>() ? m_RouterInfo.EnableV6() : m_RouterInfo.DisableV6();
+  m_Opts["enable-ipv6"].as<bool>() ? m_RouterInfo.EnableV6()
+                                   : m_RouterInfo.DisableV6();
 
   // Floodfill
-  if (m_Opts["floodfill"].as<bool>())
+  if (m_Opts["enable-floodfill"].as<bool>())
     {
       m_RouterInfo.SetCaps(
           m_RouterInfo.GetCaps() | core::RouterInfo::Cap::Floodfill);

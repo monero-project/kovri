@@ -91,7 +91,8 @@ bool Reseed::Start() {
   SU3 su3(
       m_Stream,
       m_SigningKeys,
-      core::context.GetOpts()["enable-su3-verification"].as<bool>());
+      core::context.GetOpts()["disable-su3-verification"].as<bool>() ? false
+                                                                     : true);
   if (!su3.SU3Impl()) {
     LOG(error) << "Reseed: SU3 implementation failed";
     return false;

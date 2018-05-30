@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2015-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2015-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -57,18 +57,24 @@ RouterInfoCommand::RouterInfoCommand()
       "host",
       bpo::value<core::Configuration::ListParameter<std::string, 2>>()->default_value(
           core::Configuration::ListParameter<std::string, 2>("127.0.0.1")))(
-      "port", bpo::value<int>()->default_value(0))(
-      "floodfill,f",
-      bpo::value<bool>()->default_value(false)->value_name("bool"))(
+      "port,p", bpo::value<int>()->default_value(0))(
+
       "bandwidth,b", bpo::value<std::string>()->default_value("L"))(
-      "enable-ssu",
-      bpo::value<bool>()->default_value(true)->value_name("bool"))(
-      "enable-ntcp",
-      bpo::value<bool>()->default_value(true)->value_name("bool"))(
+
+      "enable-floodfill",
+      bpo::bool_switch()->default_value(false))(
+
+      "disable-ssu",
+      bpo::bool_switch()->default_value(false))(
+
+      "disable-ntcp",
+      bpo::bool_switch()->default_value(false))(
+
       "ssuintroducer,i",
-      bpo::value<bool>()->default_value(true)->value_name("bool"))(
+      bpo::bool_switch()->default_value(true))(
+
       "ssutesting,t",
-      bpo::value<bool>()->default_value(true)->value_name("bool"));
+      bpo::bool_switch()->default_value(true));
 
   m_Options.add(create_options).add(read_options);
 }
@@ -80,7 +86,7 @@ void RouterInfoCommand::PrintUsage(const std::string& name) const
   LOG(info) << "or: " << name
             << " --create --host "
                "192.168.1.1,2a01:e35:8b5c:b240:71a2:6750:8d4:47fa --port 10100 "
-               "--floodfill 1 --bandwidth P";
+               "--enable-floodfill --bandwidth P";
 }
 
 bool RouterInfoCommand::Impl(
@@ -128,8 +134,8 @@ bool RouterInfoCommand::Impl(
                                              : vm["port"].as<int>();
 
           // Set transports
-          bool const has_ntcp = vm["enable-ntcp"].as<bool>();
-          bool const has_ssu = vm["enable-ssu"].as<bool>();
+          bool const has_ntcp(vm["disable-ntcp"].as<bool>() ? false : true);
+          bool const has_ssu(vm["disable-ssu"].as<bool>() ? false : true);
 
           if (!has_ntcp && !has_ssu)
             throw std::invalid_argument(

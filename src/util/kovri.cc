@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2015-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2015-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -44,7 +44,7 @@
 //  Known issues when running kovri from kovri-util:
 //
 //  1. Because of(?) the Boost.Log singleton (unresolved, see TODOs),
-//  there are duplicate log records. Simply removing the log-to-console
+//  there are duplicate log records. Simply removing console logging
 //  option for either kovri-util or kovri will prevent dups.
 //
 //  2. Passing log-level to kovri from kovri-util doesn't work (it's not

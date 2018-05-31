@@ -103,17 +103,22 @@ int main(int argc, const char* argv[])
   bpo::options_description general_desc("General options");
   // See src/app/config.cc for log options
   general_desc.add_options()("help,h", "produce this help message")(
-      "log-to-console",
-      bpo::value<bool>()->default_value(true)->value_name("bool"))(
-      "log-to-file",
-      bpo::value<bool>()->default_value(false)->value_name("bool"))(
+      "disable-console-log",
+      bpo::bool_switch()->default_value(false))(
+
+      "disable-file-log",
+      bpo::bool_switch()->default_value(false))(
+
+      "disable-color-log",
+      bpo::bool_switch()->default_value(false))(
+
+      "enable-auto-flush-log",
+      bpo::bool_switch()->default_value(false))(
+
       "log-file-name",
       bpo::value<std::string>()->default_value("")->value_name("path"))(
-      "log-level", bpo::value<std::uint16_t>()->default_value(3))(
-      "log-auto-flush",
-      bpo::value<bool>()->default_value(false)->value_name("bool"))(
-      "log-enable-color",
-      bpo::value<bool>()->default_value(true)->value_name("bool"));
+
+      "log-level", bpo::value<std::uint16_t>()->default_value(3));
 
   bpo::options_description spec("Specific options");
   spec.add_options()(

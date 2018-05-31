@@ -94,14 +94,23 @@ void Configuration::ParseConfig()
       bpo::value<std::string>()
           ->default_value(core::GetPath(core::Path::DefaultData).string())
           ->value_name("path"))(
-      "daemon,d", bpo::value<bool>()->default_value(false)->value_name("bool"))(
       "service,s", bpo::value<std::string>()->default_value(""))(
-      "log-to-console",
-      bpo::value<bool>()->default_value(true)->value_name("bool"))(
-      "log-to-file",
-      bpo::value<bool>()->default_value(true)->value_name("bool"))(
-      "log-file-name",
-      bpo::value<std::string>()->default_value("")->value_name("path"))(
+
+      "enable-daemon,d",
+      bpo::bool_switch()->default_value(false))(
+
+      "disable-console-log",
+      bpo::bool_switch()->default_value(false))(
+
+      "disable-file-log",
+      bpo::bool_switch()->default_value(false))(
+
+      "disable-color-log",
+      bpo::bool_switch()->default_value(false))(
+
+      "enable-auto-flush-log",
+      bpo::bool_switch()->default_value(false))(
+
       // TODO(anonimal): use only 1 log file?
       // Log levels
       // 0 = fatal
@@ -112,31 +121,42 @@ void Configuration::ParseConfig()
       // 5 = trace debug info warn error fatal
       "log-level",
       bpo::value<std::uint16_t>()->default_value(3))(
-      "log-auto-flush",
-      bpo::value<bool>()->default_value(false)->value_name("bool"))(
-      "log-enable-color",
-      bpo::value<bool>()->default_value(true)->value_name("bool"))(
+
+      "log-file-name",
+      bpo::value<std::string>()->default_value("")->value_name("path"))(
+
       "kovriconf,c",
       bpo::value<std::string>()->default_value("")->value_name("path"))(
+
       "tunnelsconf,t",
       bpo::value<std::string>()->default_value("")->value_name("path"));
   // This is NOT our default values for port, log-file-name, kovriconf and tunnelsconf
 
   bpo::options_description network("\nnetwork");
   network.add_options()(
-      "v6,6", bpo::value<bool>()->default_value(false)->value_name("bool"))(
-      "floodfill,f",
-      bpo::value<bool>()->default_value(false)->value_name("bool"))(
-      "bandwidth,b", bpo::value<std::string>()->default_value("L"))(  // TODO(anonimal): refine + update packaged default config file
-      "enable-ssu",
-      bpo::value<bool>()->default_value(true)->value_name("bool"))(
-      "enable-ntcp",
-      bpo::value<bool>()->default_value(true)->value_name("bool"))(
+      "enable-ipv6",
+      bpo::bool_switch()->default_value(false))(
+
+      "enable-floodfill",
+      bpo::bool_switch()->default_value(false))(
+
+      // TODO(anonimal): refine bandwidth + update packaged default config file
+      "bandwidth,b",
+      bpo::value<std::string>()->default_value("L"))(
+
+      "disable-ssu",
+      bpo::bool_switch()->default_value(false))(
+
+      "disable-ntcp",
+      bpo::bool_switch()->default_value(false))(
+
       "reseed-from,r", bpo::value<std::string>()->default_value(""))(
-      "enable-https",
-      bpo::value<bool>()->default_value(true)->value_name("bool"))(
-      "enable-su3-verification",
-      bpo::value<bool>()->default_value(true)->value_name("bool"));
+
+      "disable-https",
+      bpo::bool_switch()->default_value(false))(
+
+      "disable-su3-verification",
+      bpo::bool_switch()->default_value(false));
 
   bpo::options_description client("\nclient");
   client.add_options()("httpproxyport", bpo::value<int>()->default_value(4446))(
@@ -252,7 +272,7 @@ void Configuration::ParseConfigFile(
     }
 
   // Ensure valid transport
-  if (!m_Map["enable-ntcp"].as<bool>() && !m_Map["enable-ssu"].as<bool>())
+  if (m_Map["disable-ntcp"].as<bool>() && m_Map["disable-ssu"].as<bool>())
     throw std::invalid_argument("at least one transport is required");
 }
 

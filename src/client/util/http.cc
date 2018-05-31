@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -117,7 +117,7 @@ bool HTTP::DownloadViaClearnet() {
   LOG(debug) << "HTTP: Download Clearnet with timeout : "
              << kovri::core::GetType(Timeout::Request);
   // Ensure that we only download from explicit TLS-enabled hosts
-  if (core::context.GetOpts()["enable-https"].as<bool>()) {
+  if (!core::context.GetOpts()["disable-https"].as<bool>()) {
     const std::string cert = uri.host() + ".crt";
     const boost::filesystem::path cert_path = core::GetPath(core::Path::TLS) / cert;
     if (!boost::filesystem::exists(cert_path)) {

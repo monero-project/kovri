@@ -1,4 +1,4 @@
-# Copyright (c) 2015-2017, The Kovri I2P Router Project
+# Copyright (c) 2015-2018, The Kovri I2P Router Project
 #
 # All rights reserved.
 #
@@ -300,19 +300,19 @@ set_args()
   # TODO(unassigned): *all* arguments (including sequence count, etc.)
   # Set utility binary arguments
   if [[ -z $KOVRI_UTIL_ARGS ]]; then
-    KOVRI_UTIL_ARGS="--floodfill 1 --bandwidth P"
+    KOVRI_UTIL_ARGS="--enable-floodfill --bandwidth P"
     read_input "Change utility binary arguments? [KOVRI_UTIL_ARGS=\"${KOVRI_UTIL_ARGS}\"]" KOVRI_UTIL_ARGS
   fi
 
   # Set daemon binary arguments
   if [[ -z $KOVRI_BIN_ARGS ]]; then
-    KOVRI_BIN_ARGS="--floodfill 1 --enable-su3-verification 0 --log-auto-flush 1 --enable-https 0"
+    KOVRI_BIN_ARGS="--enable-floodfill --disable-su3-verification --disable-https --enable-auto-flush-log"
     read_input "Change kovri binary arguments? [KOVRI_BIN_ARGS=\"${KOVRI_BIN_ARGS}\"]" KOVRI_BIN_ARGS
   fi
 
   # Set firewalled daemon binary arguments
   if [[ $KOVRI_NB_FW -gt 0 && -z $KOVRI_FW_BIN_ARGS ]]; then
-    KOVRI_FW_BIN_ARGS="--floodfill 0 --enable-su3-verification 0 --log-auto-flush 1"
+    KOVRI_FW_BIN_ARGS="--enable-floodfill --disable-su3-verification --enable-auto-flush-log"
     read_input "Change firewalled kovri binary arguments? [KOVRI_FW_BIN_ARGS=\"${KOVRI_FW_BIN_ARGS}\"]" KOVRI_FW_BIN_ARGS
   fi
 }

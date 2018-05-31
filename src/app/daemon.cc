@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -63,7 +63,7 @@ bool DaemonSingleton::Configure(const std::vector<std::string>& args)
       core::Instance core(args);
 
       // Set daemon mode (if applicable)
-      m_IsDaemon = core.GetConfig().GetMap().at("daemon").as<bool>();
+      m_IsDaemon = core.GetConfig().GetMap().at("enable-daemon").as<bool>();
 #ifdef _WIN32
       m_Service = core.GetConfig().GetMap().at("service").as<std::string>();
 #endif

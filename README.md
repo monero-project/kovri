@@ -11,9 +11,9 @@
 - Non-technical users should download the binaries/installer from the Downloads section below
 - Do *not* use the zip file from github: do a recursive clone only
 
-1. Install dependencies as described in the [documentation](https://github.com/monero-project/kovri-docs/tree/master/i18n)
+1. See the build instructions below (within this file)
 2. `$ git clone --recursive https://github.com/monero-project/kovri && cd kovri/ && make && make install`
-3. [Read the user-guide](https://github.com/monero-project/kovri-docs/tree/master/i18n) in your language of choice
+3. Read [the various guides](https://github.com/monero-project/kovri-docs/tree/master/i18n) in your language of choice
 
 ## Downloads
 
@@ -44,8 +44,65 @@ Alpha release coming soon
 | Coveralls | [![Coveralls Status](https://coveralls.io/repos/github/monero-project/kovri/badge.svg?branch=master)](https://coveralls.io/github/monero-project/kovri?branch=master)
 | License   | [![License](https://img.shields.io/badge/license-BSD3-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
-## Documentation and Contributing
-- Various guides like how to build, how to contribe, style, etc., can be found in your language within the [kovri-docs](https://github.com/monero-project/kovri-docs/) repository (please review before submitting a pull request)
+## Building
+
+### Dependencies and environment
+
+| Dependency          | Minimum version              | Optional | Arch Linux  | Ubuntu/Debian    | macOS (Homebrew) | FreeBSD       | OpenBSD     |
+| ------------------- | ---------------------------- |:--------:| ----------- | ---------------- | ---------------- | ------------- | ----------- |
+| git                 | 1.9.1                        |          | git         | git              | git              | git           | git         |
+| gcc                 | 4.9.2                        |          | gcc         | gcc              |                  |               |             |
+| clang               | 3.5 (3.6 on FreeBSD)         |          | clang       | clang            | clang (Apple)    | clang36       | llvm        |
+| CMake               | 3.5.1                        |          | cmake       | cmake            | cmake            | cmake         | cmake       |
+| gmake (BSD)         | 4.2.1                        |          |             |                  |                  | gmake         | gmake       |
+| Boost               | 1.58                         |          | boost       | libboost-all-dev | boost            | boost-libs    | boost       |
+| OpenSSL             | Always latest stable version |          | openssl     | openssl          | openssl          | openssl       | openssl     |
+| Doxygen             | 1.8.6                        |    X     | doxygen     | doxygen          | doxygen          | doxygen       | doxygen     |
+| Graphviz            | 2.36                         |    X     | graphviz    | graphviz         | graphviz         | graphviz      | graphviz    |
+| Docker              | Always latest stable version |    X     | See website | See website      | See website      | See website   | See website |
+
+#### Windows (MSYS2/MinGW-64)
+* Download the [MSYS2 installer](http://msys2.github.io/), 64-bit or 32-bit as needed
+* Use the shortcut associated with your architecture to launch the MSYS2 environment. On 64-bit systems that would be the `MinGW-w64 Win64 Shell` shortcut. Note: if you are running 64-bit Windows, you'll have both 64-bit and 32-bit environments
+* Update the packages in your MSYS2 install:
+
+```shell
+$ pacman -Sy
+$ pacman -Su --ignoregroup base
+$ pacman -Syu
+```
+
+#### Install packages
+
+Note: For i686 builds, replace `mingw-w64-x86_64` with `mingw-w64-i686`
+
+`$ pacman -S make mingw-w64-x86_64-cmake mingw-w64-x86_64-gcc mingw-w64-x86_64-boost mingw-w64-x86_64-openssl`
+
+Optional:
+
+`$ pacman -S mingw-w64-x86_64-doxygen mingw-w64-x86_64-graphviz`
+
+### Make and install
+
+```bash
+$ git clone --recursive https://github.com/monero-project/kovri
+$ make  # see the Makefile for all build options
+$ make install
+```
+
+- End-users MUST run `make install` for new installations
+- Developers SHOULD run `make install` after a fresh build
+
+### Docker
+
+Or build locally with Docker
+
+```bash
+$ docker build -t kovri:latest .
+```
+
+## Documentation and Development
+- Various guides can be found in your language within the [kovri-docs](https://github.com/monero-project/kovri-docs/) repository (please review before submitting a pull request)
 - [Moneropedia](https://getmonero.org/knowledge-base/moneropedia/kovri) is recommended for all users and developers
 - [Forum Funding System](https://forum.getmonero.org/8/funding-required) to get funded for your work, [submit a proposal](https://forum.getmonero.org/7/open-tasks/2379/forum-funding-system-ffs-sticky)
 - [build.getmonero.org](https://build.getmonero.org/) or monero-build.i2p for detailed build information

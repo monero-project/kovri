@@ -8,12 +8,8 @@
 
 ## Quickstart
 
-- Non-technical users should download the binaries/installer from the Downloads section below
-- Do *not* use the zip file from github: do a recursive clone only
-
-1. Install dependencies as described in the [documentation](https://github.com/monero-project/kovri-docs/tree/master/i18n)
-2. `$ git clone --recursive https://github.com/monero-project/kovri && cd kovri/ && make && make install`
-3. [Read the user-guide](https://github.com/monero-project/kovri-docs/tree/master/i18n) in your language of choice
+- Want pre-built binaries? [Download below](#downloads)
+- Want to build and install yourself? [Build instructions below](#building)
 
 ## Downloads
 
@@ -23,18 +19,18 @@ Alpha release coming soon
 
 ### [Nightly Releases (bleeding edge)](https://build.getmonero.org/waterfall)
 
-| Operating System      | Processor | Status | Download | Checksum |
-| --------------------- | --------- |--------| -------- | -------- |
-| Linux |   amd64   | [![Linux amd64](https://build.getmonero.org/png?builder=kovri-static-ubuntu-amd64)](https://build.getmonero.org/builders/kovri-static-ubuntu-amd64) | [kovri-latest-linux-amd64.tar.bz2](https://build.getmonero.org/downloads/kovri-latest-linux-amd64.tar.bz2) | [kovri-latest-linux-amd64.tar.bz2.sha256sum.txt](https://build.getmonero.org/downloads/kovri-latest-linux-amd64.tar.bz2.sha256sum.txt)
-| Linux |   i686    | [![Linux i686](https://build.getmonero.org/png?builder=kovri-static-ubuntu-i686)](https://build.getmonero.org/builders/kovri-static-ubuntu-i686) | [kovri-latest-linux-i686.tar.bz2](https://build.getmonero.org/downloads/kovri-latest-linux-i686.tar.bz2) | [kovri-latest-linux-i686.tar.bz2.sha256sum.txt](https://build.getmonero.org/downloads/kovri-latest-linux-i686.tar.bz2.sha256sum.txt)
-| Linux |   armv8   | [![Linux armv8](https://build.getmonero.org/png?builder=kovri-static-debian-arm8)](https://build.getmonero.org/builders/kovri-static-debian-arm8) | [kovri-latest-linux-armv8.tar.bz2](https://build.getmonero.org/downloads/kovri-latest-linux-armv8.tar.bz2) | [kovri-latest-linux-armv8.tar.bz2.sha256sum.txt](https://build.getmonero.org/downloads/kovri-latest-linux-armv8.tar.bz2.sha256sum.txt)
-| Linux |   armv7   | [![Linux armv7](https://build.getmonero.org/png?builder=kovri-static-ubuntu-arm7)](https://build.getmonero.org/builders/kovri-static-ubuntu-arm7) | [kovri-latest-linux-armv7.tar.bz2](https://build.getmonero.org/downloads/kovri-latest-linux-armv7.tar.bz2) | [kovri-latest-linux-armv7.tar.bz2.sha256sum.txt](https://build.getmonero.org/downloads/kovri-latest-linux-armv7.tar.bz2.sha256sum.txt)
-| macOS |   amd64   | [![macOS amd64](https://build.getmonero.org/png?builder=kovri-static-osx)](https://build.getmonero.org/builders/kovri-static-osx) | [kovri-latest-osx-10.13.tar.bz2](https://build.getmonero.org/downloads/kovri-latest-osx-10.13.tar.bz2) | [kovri-latest-osx-10.13.tar.bz2.sha256sum.txt](https://build.getmonero.org/downloads/kovri-latest-osx-10.13.tar.bz2.sha256sum.txt)
-| FreeBSD |   amd64   | [![FreeBSD amd64](https://build.getmonero.org/png?builder=kovri-static-freebsd64)](https://build.getmonero.org/builders/kovri-static-freebsd64) | [kovri-latest-freebsd-amd64.tar.bz2](https://build.getmonero.org/downloads/kovri-latest-freebsd-amd64.tar.bz2) | [kovri-latest-freebsd-amd64.tar.bz2.sha256sum.txt](https://build.getmonero.org/downloads/kovri-latest-freebsd-amd64.tar.bz2.sha256sum.txt)
-| OpenBSD |   amd64   | [![OpenBSD amd64](https://build.getmonero.org/png?builder=kovri-static-openbsd-amd64)](https://build.getmonero.org/builders/kovri-static-openbsd-amd64) | [kovri-latest-openbsd-amd64.tar.bz2](https://build.getmonero.org/downloads/kovri-latest-openbsd-amd64.tar.bz2) | [kovri-latest-openbsd-amd64.tar.bz2.sha256sum.txt](https://build.getmonero.org/downloads/kovri-latest-openbsd-amd64.tar.bz2.sha256sum.txt)
-| DragonFly BSD |   amd64   | [![DragonFly BSD amd64](https://build.getmonero.org/png?builder=kovri-static-dragonflybsd-amd64)](https://build.getmonero.org/builders/kovri-static-dragonflybsd-amd64) | [kovri-latest-dragonfly-4.6.tar.bz2](https://build.getmonero.org/downloads/kovri-latest-dragonfly-4.6.tar.bz2) | [kovri-latest-dragonfly-4.6.tar.bz2.sha256sum.txt](https://build.getmonero.org/downloads/kovri-latest-dragonfly-4.6.tar.bz2.sha256sum.txt)
-| Windows |   amd64   | [![Windows amd64](https://build.getmonero.org/png?builder=kovri-static-win64)](https://build.getmonero.org/builders/kovri-static-win64) | [kovri-latest-win64.exe](https://build.getmonero.org/downloads/kovri-latest-win64.exe) | [kovri-latest-win64.exe.sha256sum.txt](https://build.getmonero.org/downloads/kovri-latest-win64.exe.sha256sum.txt)
-| Windows |   i686    | [![Windows i686](https://build.getmonero.org/png?builder=kovri-static-win32)](https://build.getmonero.org/builders/kovri-static-win32) | [kovri-latest-win32.exe](https://build.getmonero.org/downloads/kovri-latest-win32.exe) | [kovri-latest-win32.exe.sha256sum.txt](https://build.getmonero.org/downloads/kovri-latest-win32.exe.sha256sum.txt)
+| Download | Checksum | Status |
+| -------- | -------- | ------ |
+| [Linux (x86-64)](https://build.getmonero.org/downloads/kovri-latest-linux-amd64.tar.bz2) | [Linux (x86-64)](https://build.getmonero.org/downloads/kovri-latest-linux-amd64.tar.bz2.sha256sum.txt) | [![Linux (x86-64)](https://build.getmonero.org/png?builder=kovri-static-ubuntu-amd64)](https://build.getmonero.org/builders/kovri-static-ubuntu-amd64) |
+| [Linux (i686)](https://build.getmonero.org/downloads/kovri-latest-linux-i686.tar.bz2) | [Linux (i686)](https://build.getmonero.org/downloads/kovri-latest-linux-i686.tar.bz2.sha256sum.txt) | [![Linux (i686)](https://build.getmonero.org/png?builder=kovri-static-ubuntu-i686)](https://build.getmonero.org/builders/kovri-static-ubuntu-i686) |
+| [Linux (ARMv8)](https://build.getmonero.org/downloads/kovri-latest-linux-armv8.tar.bz2) | [Linux (ARMv8)](https://build.getmonero.org/downloads/kovri-latest-linux-armv8.tar.bz2.sha256sum.txt) | [![Linux (ARMv8)](https://build.getmonero.org/png?builder=kovri-static-debian-arm8)](https://build.getmonero.org/builders/kovri-static-debian-arm8) |
+| [Linux (ARMv7)](https://build.getmonero.org/downloads/kovri-latest-linux-armv7.tar.bz2) | [Linux (ARMv8)](https://build.getmonero.org/downloads/kovri-latest-linux-armv7.tar.bz2.sha256sum.txt) | [![Linux (ARMv8)](https://build.getmonero.org/png?builder=kovri-static-ubuntu-arm7)](https://build.getmonero.org/builders/kovri-static-ubuntu-) |
+| [macOS (x86-64)](https://build.getmonero.org/downloads/kovri-latest-osx-10.13.tar.bz2) | [macOS (x86-64)](https://build.getmonero.org/downloads/kovri-latest-osx-10.13.tar.bz2.sha256sum.txt) | [![macOS (x86-64)](https://build.getmonero.org/png?builder=kovri-static-osx)](https://build.getmonero.org/builders/kovri-static-osx) |
+| [FreeBSD (x86-64)](https://build.getmonero.org/downloads/kovri-latest-freebsd-amd64.tar.bz2) | [FreeBSD (x86-64)](https://build.getmonero.org/downloads/kovri-latest-freebsd-amd64.tar.bz2.sha256sum.txt) | [![FreeBSD (x86-64)](https://build.getmonero.org/png?builder=kovri-static-freebsd64)](https://build.getmonero.org/builders/kovri-static-freebsd64) |
+| [OpenBSD (x86-64)](https://build.getmonero.org/downloads/kovri-latest-openbsd-amd64.tar.bz2) | [OpenBSD (x86-64)](https://build.getmonero.org/downloads/kovri-latest-openbsd-amd64.tar.bz2.sha256sum.txt) | [![OpenBSD (x86-64)](https://build.getmonero.org/png?builder=kovri-static-openbsd-amd64)](https://build.getmonero.org/builders/kovri-static-openbsd-amd64) |
+| [DragonFly BSD (x86-64)](https://build.getmonero.org/downloads/kovri-latest-dragonflybsd-4.6.tar.bz2) | [DragonFly BSD (x86-64)](https://build.getmonero.org/downloads/kovri-latest-dragonflybsd-4.6.tar.bz2.sha256sum.txt) | [![DragonFly BSD (x86-64)](https://build.getmonero.org/png?builder=kovri-static-dragonflybsd-amd64)](https://build.getmonero.org/builders/kovri-static-dragonflybsd-amd64) |
+| [Windows (x86-64)](https://build.getmonero.org/downloads/kovri-latest-win64.exe) | [Windows (x86-64)](https://build.getmonero.org/downloads/kovri-latest-win64.exe.sha256sum.txt) | [![Windows (x86-64)](https://build.getmonero.org/png?builder=kovri-static-win64)](https://build.getmonero.org/builders/kovri-static-win64) |
+| [Windows (i686)](https://build.getmonero.org/downloads/kovri-latest-win32.exe) | [Windows (i686)](https://build.getmonero.org/downloads/kovri-latest-win32.exe.sha256sum.txt) | [![Windows (i686)](https://build.getmonero.org/png?builder=kovri-static-win32)](https://build.getmonero.org/builders/kovri-static-win32) |
 
 ## Coverage
 
@@ -44,8 +40,69 @@ Alpha release coming soon
 | Coveralls | [![Coveralls Status](https://coveralls.io/repos/github/monero-project/kovri/badge.svg?branch=master)](https://coveralls.io/github/monero-project/kovri?branch=master)
 | License   | [![License](https://img.shields.io/badge/license-BSD3-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
-## Documentation and Contributing
-- Various guides like how to build, how to contribe, style, etc., can be found in your language within the [kovri-docs](https://github.com/monero-project/kovri-docs/) repository (please review before submitting a pull request)
+## Building
+
+### Dependencies and environment
+
+| Dependency          | Minimum version              | Optional | Arch Linux  | Ubuntu/Debian    | macOS (Homebrew) | FreeBSD       | OpenBSD     |
+| ------------------- | ---------------------------- |:--------:| ----------- | ---------------- | ---------------- | ------------- | ----------- |
+| git                 | 1.9.1                        |          | git         | git              | git              | git           | git         |
+| gcc                 | 4.9.2                        |          | gcc         | gcc              |                  |               |             |
+| clang               | 3.5 (3.6 on FreeBSD)         |          | clang       | clang            | clang (Apple)    | clang36       | llvm        |
+| CMake               | 3.5.1                        |          | cmake       | cmake            | cmake            | cmake         | cmake       |
+| gmake (BSD)         | 4.2.1                        |          |             |                  |                  | gmake         | gmake       |
+| Boost               | 1.58                         |          | boost       | libboost-all-dev | boost            | boost-libs    | boost       |
+| OpenSSL             | Always latest stable version |          | openssl     | openssl          | openssl          | openssl       | openssl     |
+| Doxygen             | 1.8.6                        |    X     | doxygen     | doxygen          | doxygen          | doxygen       | doxygen     |
+| Graphviz            | 2.36                         |    X     | graphviz    | graphviz         | graphviz         | graphviz      | graphviz    |
+| Docker              | Always latest stable version |    X     | See website | See website      | See website      | See website   | See website |
+
+#### Windows (MSYS2/MinGW-64)
+* Download the [MSYS2 installer](http://msys2.github.io/), 64-bit or 32-bit as needed
+* Use the shortcut associated with your architecture to launch the MSYS2 environment. On 64-bit systems that would be the `MinGW-w64 Win64 Shell` shortcut. Note: if you are running 64-bit Windows, you'll have both 64-bit and 32-bit environments
+* Update the packages in your MSYS2 install:
+
+```shell
+$ pacman -Sy
+$ pacman -Su --ignoregroup base
+$ pacman -Syu
+```
+
+#### Install packages
+
+Note: For i686 builds, replace `mingw-w64-x86_64` with `mingw-w64-i686`
+
+`$ pacman -S make mingw-w64-x86_64-cmake mingw-w64-x86_64-gcc mingw-w64-x86_64-boost mingw-w64-x86_64-openssl`
+
+Optional:
+
+`$ pacman -S mingw-w64-x86_64-doxygen mingw-w64-x86_64-graphviz`
+
+### Make and install
+
+**Do *not* use the zip file from github: do a recursive clone only**
+
+```bash
+$ git clone --recursive https://github.com/monero-project/kovri
+$ make  # see the Makefile for all build options
+$ make install
+```
+
+- End-users MUST run `make install` for new installations
+- Developers SHOULD run `make install` after a fresh build
+
+### Docker
+
+Or build locally with Docker
+
+```bash
+$ docker build -t kovri:latest .
+```
+
+## Documentation and Development
+- A [User Guide](https://github.com/monero-project/kovri-docs/blob/master/i18n/en/user_guide.md) is available for all users
+- A [Developer Guide](https://github.com/monero-project/kovri-docs/blob/master/i18n/en/developer_guide.md) is available for developers (please read before opening a pull request)
+- More documentation can be found in your language of choice within the [kovri-docs](https://github.com/monero-project/kovri-docs/) repository
 - [Moneropedia](https://getmonero.org/knowledge-base/moneropedia/kovri) is recommended for all users and developers
 - [Forum Funding System](https://forum.getmonero.org/8/funding-required) to get funded for your work, [submit a proposal](https://forum.getmonero.org/7/open-tasks/2379/forum-funding-system-ffs-sticky)
 - [build.getmonero.org](https://build.getmonero.org/) or monero-build.i2p for detailed build information

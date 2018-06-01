@@ -1,4 +1,4 @@
-# Copyright (c) 2015-2017, The Kovri I2P Router Project
+# Copyright (c) 2015-2018, The Kovri I2P Router Project
 #
 # All rights reserved.
 #
@@ -31,7 +31,7 @@
 # $ export KOVRI_PORT=$((9111 + RANDOM & 30777))
 # $ docker run -p ${KOVRI_PORT}:${KOVRI_PORT} --env KOVRI_PORT=${KOVRI_PORT} geti2p/kovri
 
-FROM alpine:3.6
+FROM alpine:3.7
 ENV KOVRI_HOST 0.0.0.0
 ENV KOVRI_PORT 24085
 ADD . kovri/

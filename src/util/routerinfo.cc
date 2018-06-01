@@ -158,7 +158,7 @@ bool RouterInfoCommand::Impl(
             caps |= core::RouterInfo::Cap::SSUIntroducer;
           if (vm["ssutesting"].as<bool>())
             caps |= core::RouterInfo::Cap::SSUTesting;
-          if (vm["floodfill"].as<bool>())
+          if (vm["enable-floodfill"].as<bool>())
             caps |= core::RouterInfo::Cap::Floodfill;
           auto bandwidth = vm["bandwidth"].as<std::string>();
           if (!bandwidth.empty() && (bandwidth[0] > 'L'))

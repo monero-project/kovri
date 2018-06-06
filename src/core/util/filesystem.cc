@@ -156,7 +156,7 @@ boost::filesystem::path GetPath(Path path)
 #else
 #ifdef _WIN32
       char local_app_data[MAX_PATH];
-      SHGetFolderPath(NULL, CSIDL_APPDATA, 0, NULL, local_app_data);
+      SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, local_app_data);
       return boost::filesystem::path(std::string(local_app_data) + "\\" + data_dir);
 #else
       boost::filesystem::path path_ret;

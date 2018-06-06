@@ -52,7 +52,6 @@ using namespace rtc;
 
 #include <string>
 
-#pragma comment(lib, "IPHLPAPI.lib")
 
 #define MALLOC(x) HeapAlloc(GetProcessHeap(), 0, (x))
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
@@ -150,7 +149,6 @@ std::uint16_t GetMTUWindowsIpv4(
   ULONG out_buf_len = 0;
   PIP_ADAPTER_ADDRESSES addresses = nullptr;
   PIP_ADAPTER_ADDRESSES current_addresses = nullptr;
-  PIP_ADAPTER_UNICAST_ADDRESS unicast = nullptr;
   if (GetAdaptersAddresses(
         AF_INET,
         GAA_FLAG_INCLUDE_PREFIX,
@@ -175,9 +173,8 @@ std::uint16_t GetMTUWindowsIpv4(
   }
   current_addresses = addresses;
   while (current_addresses) {
-    PIP_ADAPTER_UNICAST_ADDRESS first_unicast_address =
-      current_addresses->FirstUnicastAddress;
-    unicast = current_addresses->FirstUnicastAddress;
+    PIP_ADAPTER_UNICAST_ADDRESS unicast =
+        current_addresses->FirstUnicastAddress;
     if (unicast == nullptr) {
       LOG(error)
         << "MTU: " << __func__ << " has failed:"
@@ -209,7 +206,6 @@ std::uint16_t GetMTUWindowsIpv6(
   ULONG out_buf_len = 0;
   PIP_ADAPTER_ADDRESSES addresses = nullptr;
   PIP_ADAPTER_ADDRESSES current_addresses = nullptr;
-  PIP_ADAPTER_UNICAST_ADDRESS unicast = nullptr;
   if (GetAdaptersAddresses(
         AF_INET6,
         GAA_FLAG_INCLUDE_PREFIX,
@@ -235,9 +231,8 @@ std::uint16_t GetMTUWindowsIpv6(
   bool found_address = false;
   current_addresses = addresses;
   while (current_addresses) {
-    PIP_ADAPTER_UNICAST_ADDRESS first_unicast_address =
-      current_addresses->FirstUnicastAddress;
-    unicast = current_addresses->FirstUnicastAddress;
+    PIP_ADAPTER_UNICAST_ADDRESS unicast =
+        current_addresses->FirstUnicastAddress;
     if (unicast == nullptr) {
       LOG(error)
         << "MTU: " << __func__ << " has failed:"

@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -40,6 +40,7 @@
 
 #include "app/daemon.h"
 
+#include "core/util/config.h"
 #include "core/util/log.h"
 
 I2PService *I2PService::m_Service = NULL;
@@ -48,7 +49,7 @@ BOOL I2PService::IsService() {
   BOOL is_service = FALSE;
   HWINSTA win_station = GetProcessWindowStation();
   if (win_station != NULL) {
-    USEROBJECTFLAGS uof = { 0 };
+    USEROBJECTFLAGS uof{};
     if (GetUserObjectInformation(win_station, UOI_FLAGS, &uof,
       sizeof(USEROBJECTFLAGS), NULL) && ((uof.dwFlags & WSF_VISIBLE) == 0)) {
         is_service = TRUE;
@@ -61,8 +62,10 @@ BOOL I2PService::Run(
     I2PService &service) {
   m_Service = &service;
   SERVICE_TABLE_ENTRY service_table[] = {
-    { service.m_Name, ServiceMain },
-    { NULL, NULL }
+  // If service name is NULL, set to empty string to comply
+  //   with SERVICE_TABLE_ENTRY spec.
+    { service.m_Name == NULL ? PSTR("") : service.m_Name, ServiceMain },
+    { PSTR(""), NULL }
   };
   return StartServiceCtrlDispatcher(service_table);
 }
@@ -96,11 +99,9 @@ I2PService::I2PService(
     BOOL can_stop,
     BOOL can_shutdown,
     BOOL can_pause_continue) {
-  if (service_name == NULL) {
-    m_Name = "";  // TODO(unassigned): why?
-  } else {
-    m_Name = service_name;
-  }
+  // If service name is NULL, set to empty string to comply
+  //   with SERVICE_TABLE_ENTRY spec.
+  m_Name = service_name == NULL ? PSTR("") : service_name;
   m_StatusHandle = NULL;
   m_Status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
   m_Status.dwCurrentState = SERVICE_START_PENDING;
@@ -151,8 +152,11 @@ void I2PService::Start(
 
 void I2PService::OnStart(
     DWORD argc,
-    PSTR *argv) {
-  // TODO(unassigned): unused args
+    PSTR * argv) {
+  std::vector<std::string> args{};
+  for (DWORD i=0; i < argc; ++i)
+    args.push_back(argv[i]);
+  Daemon.Configure(args);
   LOG(info)
     << "I2PServiceWin32: Service in " << __func__ << EVENTLOG_INFORMATION_TYPE;
   Daemon.Start();

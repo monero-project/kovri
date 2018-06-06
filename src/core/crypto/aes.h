@@ -101,14 +101,11 @@ enum AESSize : std::uint8_t
 };
 
 template<std::size_t Size>
-class AESAlignedBuffer {  // 16 bytes alignment
+class alignas(16) AESAlignedBuffer {
  public:
-  AESAlignedBuffer() {
-    m_Buf = m_UnalignedBuffer;
-    std::uint8_t rem = ((std::size_t)m_Buf) & 0x0f;
-    if (rem)
-      m_Buf += (16 - rem);
-  }
+  AESAlignedBuffer() = default;
+  AESAlignedBuffer(const AESAlignedBuffer&) = delete;
+  AESAlignedBuffer& operator=(const AESAlignedBuffer&) = delete;
 
   operator std::uint8_t* () {
     return m_Buf;
@@ -119,8 +116,7 @@ class AESAlignedBuffer {  // 16 bytes alignment
   }
 
  private:
-  std::uint8_t m_UnalignedBuffer[Size + 15] = {};  // up to 15 bytes alignment
-  std::uint8_t* m_Buf;
+  std::uint8_t m_Buf[Size] = {};  // Aligned at 16 bytes.
 };
 
 /**

@@ -52,7 +52,7 @@ Alpha release coming soon
 | CMake               | 3.5.1                        |          | cmake       | cmake            | cmake            | cmake         | cmake       |
 | gmake (BSD)         | 4.2.1                        |          |             |                  |                  | gmake         | gmake       |
 | Boost               | 1.58                         |          | boost       | libboost-all-dev | boost            | boost-libs    | boost       |
-| OpenSSL             | Always latest stable version |          | openssl     | openssl          | openssl          | openssl       | openssl     |
+| OpenSSL             | Always latest stable version |          | openssl     | libssl-dev       | openssl          | openssl       | openssl     |
 | Doxygen             | 1.8.6                        |    X     | doxygen     | doxygen          | doxygen          | doxygen       | doxygen     |
 | Graphviz            | 2.36                         |    X     | graphviz    | graphviz         | graphviz         | graphviz      | graphviz    |
 | Docker              | Always latest stable version |    X     | See website | See website      | See website      | See website   | See website |

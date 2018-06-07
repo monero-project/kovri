@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright (c) 2015-2017, The Kovri I2P Router Project
+# Copyright (c) 2015-2018, The Kovri I2P Router Project
 #
 # All rights reserved.
 #
@@ -353,7 +353,7 @@ if [[ $(tput colors) ]]; then
   normal="$(tput sgr0)"
 fi
 
-echo "${yellow}The Kovri I2P Router Project (c) 2015-2017${normal}"
+echo "${yellow}The Kovri I2P Router Project (c) 2015-2018${normal}"
 
 if [[ $package_option == true ]]; then
   CreatePackage

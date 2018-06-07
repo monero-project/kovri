@@ -139,6 +139,11 @@ class Tag
     std::memcpy(m_Buf, decoded.data(), decoded.size());
   }
 
+  decltype(Size) size() const
+  {
+    return Size;
+  }
+
  private:
   // TODO(anonimal): unnecessary and error-prone
   union

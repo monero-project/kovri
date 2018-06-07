@@ -219,7 +219,7 @@ set_images()
   fi
 
   # If image name not set, provide name options + build options
-  local _default_image="geti2p/kovri${_docker_tag}"
+  local _default_image="monero-project/kovri${_docker_tag}"
   if [[ -z $KOVRI_IMAGE ]]; then
     KOVRI_IMAGE=${_default_image}
     read_input "Change kovri image name?: [KOVRI_IMAGE=\"${KOVRI_IMAGE}\"]" KOVRI_IMAGE

@@ -33,8 +33,10 @@
 #ifndef SRC_CORE_UTIL_TAG_H_
 #define SRC_CORE_UTIL_TAG_H_
 
+#include <cassert>
 #include <cstdint>
 #include <cstring>
+
 #include <exception>
 #include <string>
 #include <vector>
@@ -49,10 +51,11 @@ namespace core
 //   The only need is for our HMAC impl but that should be re-written
 //   so we don't suffer performance loss everywhere else Tag is used.
 template <std::uint64_t Size>
-class Tag
+class alignas(8) Tag
 {
  public:
   static_assert(Size, "Null tag size not allowed");
+  static_assert(Size % 8 == 0, "The tag size must be a multiple of 8.");
 
   Tag() : m_Buf{} {}
 
@@ -86,7 +89,7 @@ class Tag
 
   const std::uint64_t* GetLL() const
   {
-    return ll;
+    return reinterpret_cast<const std::uint64_t*>(m_Buf);
   }
 
   bool operator==(const Tag<Size>& other) const
@@ -102,7 +105,7 @@ class Tag
   bool IsZero() const
   {
     for (std::uint64_t i = 0; i < Size / 8; i++)
-      if (ll[i])
+      if (GetLL()[i])
         return false;
     return true;
   }
@@ -140,15 +143,7 @@ class Tag
   }
 
  private:
-  // TODO(anonimal): unnecessary and error-prone
-  union
-  {  // 8 bytes alignment
-    std::uint8_t m_Buf[Size];
-    // TODO(anonimal): realistically, we'll never need this large a type.
-    //   The only need is for our HMAC impl but that should be re-written
-    //   so we don't suffer performance loss everywhere else Tag is used.
-    std::uint64_t ll[Size / 8];
-  };
+  std::uint8_t m_Buf[Size];  ///< 8-byte aligned.
 };
 
 }  // namespace core

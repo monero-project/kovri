@@ -27,10 +27,8 @@ function(ConfigureBinary BIN_NAME OUT_NAME)
   endif()
 endfunction()
 
-if (WITH_LIBRARY)
-  add_subdirectory(core)
-  add_subdirectory(client)
-endif()
+add_subdirectory(core)
+add_subdirectory(client)
 
 if (WITH_BINARY)
   add_subdirectory(app)
@@ -38,5 +36,3 @@ if (WITH_BINARY)
     add_subdirectory(util)
   endif()
 endif()
-
-

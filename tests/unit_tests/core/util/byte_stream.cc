@@ -71,6 +71,12 @@ BOOST_AUTO_TEST_CASE(NullStreams)
 
   BOOST_CHECK_THROW(
       core::InputByteStream input(buf.data(), 0), std::length_error);
+
+#ifndef _NDEBUG
+  BOOST_CHECK_THROW(
+      core::InputByteStream::Read<std::uint8_t>(nullptr),
+      std::invalid_argument);
+#endif
 }
 
 BOOST_AUTO_TEST_CASE(InputByteStream)

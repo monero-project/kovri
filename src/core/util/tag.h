@@ -142,6 +142,11 @@ class alignas(8) Tag
     std::memcpy(m_Buf, decoded.data(), decoded.size());
   }
 
+  decltype(Size) size() const
+  {
+    return Size;
+  }
+
  private:
   std::uint8_t m_Buf[Size];  ///< 8-byte aligned.
 };

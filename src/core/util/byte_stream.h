@@ -141,6 +141,9 @@ class InputByteStream : public ByteStream
     static_assert(
         std::is_integral<UInt>::value || std::is_signed<UInt>(),
         "InputByteStream: invalid type (unsigned integral only)");
+    assert(buf);
+    if (!buf)
+      throw std::invalid_argument("InputByteStream: null buffer");
 
     UInt size;
     std::memcpy(&size, buf, sizeof(size));

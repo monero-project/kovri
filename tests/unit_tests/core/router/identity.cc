@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2017, The Kovri I2P Router Project
+ * Copyright (c) 2015-2018, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -31,9 +31,11 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
+#include <boost/date_time/gregorian/gregorian_types.hpp>
 
 #include <array>
 #include <memory>
+#include <regex>
 
 #include "core/crypto/signature.h"
 #include "core/router/identity.h"
@@ -83,6 +85,26 @@ BOOST_AUTO_TEST_CASE(ParseIdentityFailure)
     BOOST_CHECK_EQUAL(
         identity.FromBuffer(m_AliceIdentity.data(), m_AliceIdentity.size() - i),
         0);
+}
+
+BOOST_AUTO_TEST_CASE(ValidRoutingKey)
+{
+  core::IdentityEx ident;
+  BOOST_CHECK(ident.FromBuffer(m_AliceIdentity.data(), m_AliceIdentity.size()));
+  BOOST_CHECK_NO_THROW(core::CreateRoutingKey(ident.GetIdentHash()));
+}
+
+BOOST_AUTO_TEST_CASE(InvalidRoutingKey)
+{
+  kovri::core::IdentHash hash;
+  BOOST_CHECK_THROW(core::CreateRoutingKey(nullptr), std::invalid_argument);
+  BOOST_CHECK_THROW(core::CreateRoutingKey(hash), std::invalid_argument);
+}
+
+BOOST_AUTO_TEST_CASE(ValidDateFormat)
+{
+  std::regex regex("(20\\d{2})(\\d{2})(\\d{2})");  // Valid for only this century
+  BOOST_CHECK(std::regex_search(core::GetFormattedDate(), regex));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

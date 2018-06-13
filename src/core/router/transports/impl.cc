@@ -157,9 +157,7 @@ Transports::Transports()
       m_LastOutBandwidthUpdateBytes(0),
       m_LastBandwidthUpdateTime(0) {}
 
-Transports::~Transports() {
-  Stop();  // TODO(anonimal): remove
-}
+Transports::~Transports() {}
 
 void Transports::Start() {
   LOG(debug) << "Transports: starting";

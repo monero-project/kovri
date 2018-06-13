@@ -79,7 +79,7 @@ struct I2PControlDataTraits
 
   /// @return Enumerated method trait
   /// @param value String value of potential trait given
-  Method GetMethodFromString(const std::string& value) const noexcept;
+  Method GetMethodFromString(const std::string& value) const;
 
   /// @class AbstractMethod
   /// @brief Base class for specific methods
@@ -95,7 +95,7 @@ struct I2PControlDataTraits
 
     /// @return Enumerated key trait
     /// @param value String value of potential trait given
-    virtual std::uint8_t GetTrait(const std::string& value) const noexcept = 0;
+    virtual std::uint8_t GetTrait(const std::string& value) const = 0;
 
     /// @return Enumerated Method implemented
     virtual Method Which(void) const = 0;
@@ -151,7 +151,7 @@ struct I2PControlDataTraits
       return Method::Authenticate;
     }
     const std::string GetTrait(std::uint8_t value) const;
-    std::uint8_t GetTrait(const std::string& value) const noexcept;
+    std::uint8_t GetTrait(const std::string& value) const;
     void ParseRequest(const ptree& tree);
     void ParseResponse(const ptree& tree);
   };
@@ -169,7 +169,7 @@ struct I2PControlDataTraits
       return Method::Echo;
     }
     const std::string GetTrait(std::uint8_t value) const;
-    std::uint8_t GetTrait(const std::string& value) const noexcept;
+    std::uint8_t GetTrait(const std::string& value) const;
     void ParseRequest(const ptree& tree);
     void ParseResponse(const ptree& tree);
   };
@@ -188,7 +188,7 @@ struct I2PControlDataTraits
       return Method::GetRate;
     }
     const std::string GetTrait(std::uint8_t value) const;
-    std::uint8_t GetTrait(const std::string& value) const noexcept;
+    std::uint8_t GetTrait(const std::string& value) const;
     void ParseRequest(const ptree& tree);
     void ParseResponse(const ptree& tree);
   };
@@ -209,7 +209,7 @@ struct I2PControlDataTraits
       return Method::I2PControl;
     }
     const std::string GetTrait(std::uint8_t value) const;
-    std::uint8_t GetTrait(const std::string& value) const noexcept;
+    std::uint8_t GetTrait(const std::string& value) const;
     void ParseRequest(const ptree& tree);
     void ParseResponse(const ptree& tree);
   };
@@ -247,7 +247,7 @@ struct I2PControlDataTraits
       return Method::RouterInfo;
     }
     const std::string GetTrait(std::uint8_t value) const;
-    std::uint8_t GetTrait(const std::string& value) const noexcept;
+    std::uint8_t GetTrait(const std::string& value) const;
     void ParseRequest(const ptree& tree);
     void ParseResponse(const ptree& tree);
   };
@@ -270,7 +270,7 @@ struct I2PControlDataTraits
       return Method::RouterManager;
     }
     const std::string GetTrait(std::uint8_t value) const;
-    std::uint8_t GetTrait(const std::string& value) const noexcept;
+    std::uint8_t GetTrait(const std::string& value) const;
     void ParseRequest(const ptree& tree);
     void ParseResponse(const ptree& tree);
   };
@@ -300,7 +300,7 @@ struct I2PControlDataTraits
       return Method::NetworkSetting;
     }
     const std::string GetTrait(std::uint8_t value) const;
-    std::uint8_t GetTrait(const std::string& value) const noexcept;
+    std::uint8_t GetTrait(const std::string& value) const;
     void ParseRequest(const ptree& tree);
     void ParseResponse(const ptree& tree);
   };

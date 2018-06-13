@@ -107,7 +107,7 @@ const std::string I2PControlDataTraits::GetTrait(Method method) const
 }
 
 I2PControlDataTraits::Method I2PControlDataTraits::GetMethodFromString(
-    const std::string& value) const noexcept
+    const std::string& value) const
 {
   if (value == GetTrait(Method::Authenticate))
     return Method::Authenticate;
@@ -168,7 +168,7 @@ const std::string I2PControlDataTraits::MethodAuthenticate::GetTrait(
 }
 
 std::uint8_t I2PControlDataTraits::MethodAuthenticate::GetTrait(
-    const std::string& value) const noexcept
+    const std::string& value) const
 {
   if (value == GetTrait(API))
     return API;
@@ -212,7 +212,7 @@ const std::string I2PControlDataTraits::MethodEcho::GetTrait(
 }
 
 std::uint8_t I2PControlDataTraits::MethodEcho::GetTrait(
-    const std::string& value) const noexcept
+    const std::string& value) const
 {
   if (value == GetTrait(Echo))
     return Echo;
@@ -254,7 +254,7 @@ const std::string I2PControlDataTraits::MethodGetRate::GetTrait(
 }
 
 std::uint8_t I2PControlDataTraits::MethodGetRate::GetTrait(
-    const std::string& value) const noexcept
+    const std::string& value) const
 {
   if (value == GetTrait(Stat))
     return Stat;
@@ -304,7 +304,7 @@ const std::string I2PControlDataTraits::MethodI2PControl::GetTrait(
 }
 
 std::uint8_t I2PControlDataTraits::MethodI2PControl::GetTrait(
-    const std::string& value) const noexcept
+    const std::string& value) const
 {
   if (value == GetTrait(Address))
     return Address;
@@ -423,7 +423,7 @@ const std::string I2PControlDataTraits::MethodRouterInfo::GetTrait(
 }
 
 std::uint8_t I2PControlDataTraits::MethodRouterInfo::GetTrait(
-    const std::string& value) const noexcept
+    const std::string& value) const
 {
   if (value == GetTrait(Status))
     return Status;
@@ -586,7 +586,7 @@ const std::string I2PControlDataTraits::MethodRouterManager::GetTrait(
       "Invalid router manager command " + std::to_string(command));
 }
 std::uint8_t I2PControlDataTraits::MethodRouterManager::GetTrait(
-    const std::string& value) const noexcept
+    const std::string& value) const
 {
   if (value == GetTrait(FindUpdates))
     return FindUpdates;
@@ -699,7 +699,7 @@ const std::string I2PControlDataTraits::MethodNetworkSetting::GetTrait(
 }
 
 std::uint8_t I2PControlDataTraits::MethodNetworkSetting::GetTrait(
-    const std::string& value) const noexcept
+    const std::string& value) const
 {
   if (value == GetTrait(NTCPPort))
     return NTCPPort;

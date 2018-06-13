@@ -73,7 +73,6 @@ cmake-kovri = $(cmake-debug)
 cmake-kovri-util = -D WITH_KOVRI_UTIL=ON
 
 # Current off-by-default Kovri build options
-cmake-upnp       = -D WITH_UPNP=ON
 cmake-optimize   = -D WITH_OPTIMIZE=ON
 cmake-hardening  = -D WITH_HARDENING=ON
 cmake-tests      = -D WITH_TESTS=ON
@@ -174,8 +173,6 @@ release-static-android: release-static-deps
 	$(eval cmake-kovri += $(cmake-static) $(cmake-android) $(cmake-kovri-util))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
-# TODO(unassigned): static UPnP once our UPnP implementation is release-ready
-
 #-----------------#
 # Optional builds #
 #-----------------#
@@ -190,17 +187,12 @@ python: shared-deps
 	$(eval cmake-kovri += $(cmake-python))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
-# Produce vanilla binary with UPnP support
-upnp: deps
-	$(eval cmake-kovri += $(cmake-upnp))
-	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
-
-# Produce optimized, hardened binary *with* UPnP
+# Produce optimized, hardened binary
 all-options: deps
-	$(eval cmake-kovri += $(cmake-optimize) $(cmake-hardening) $(cmake-upnp) $(cmake-kovri-util))
+	$(eval cmake-kovri += $(cmake-optimize) $(cmake-hardening) $(cmake-kovri-util))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
-# Produce optimized, hardened binary *without* UPnP. Note: we need (or very much should have) optimizations with hardening
+# Produce optimized, hardened binary. Note: we need (or very much should have) optimizations with hardening
 optimized-hardened: deps
 	$(eval cmake-kovri += $(cmake-optimize) $(cmake-hardening))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
@@ -212,7 +204,7 @@ optimized-hardened-tests: deps
 
 # Produce build with coverage. Note: leaving out hardening because of need for optimizations
 coverage: deps
-	$(eval cmake-kovri += $(cmake-coverage) $(cmake-upnp) $(cmake-kovri-util))
+	$(eval cmake-kovri += $(cmake-coverage) $(cmake-kovri-util))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 # Produce unit-tests with coverage

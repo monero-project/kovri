@@ -56,7 +56,6 @@ option(WITH_STATIC_DEPS "Static build with static dependencies" OFF)
 option(WITH_SUPERCOP   "Build Ed25519 using the ref10 implementation from SUPERCOP" ON)  # Default ON unless we switch implementations
 option(WITH_TESTS      "Build unit tests" OFF)
 option(WITH_FUZZ_TESTS "Build fuzz tests" OFF)
-option(WITH_UPNP       "Include support for UPnP client" OFF)
 option(WITH_COTIRE     "Enable cotire (compile time reducer) - precompiled header and single compilation unit builds" ${MSVC})
 # Verbosity enabled by default, but can be disabled from cli by adding -DCMAKE_VERBOSE_MAKEFILE=OFF
 # https://github.com/monero-project/kovri/pull/867#discussion_r184359361
@@ -385,7 +384,6 @@ message(STATUS "  STATIC DEPS BUILD: ${WITH_STATIC_DEPS}")
 message(STATUS "  SUPERCOP         : ${WITH_SUPERCOP}")
 message(STATUS "  TESTS            : ${WITH_TESTS}")
 message(STATUS "  FUZZ TESTS       : ${WITH_FUZZ_TESTS}")
-message(STATUS "  UPnP             : ${WITH_UPNP}")
 message(STATUS "  Cotire           : ${WITH_COTIRE}")
 message(STATUS "---------------------------------------")
 

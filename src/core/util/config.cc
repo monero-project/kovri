@@ -48,6 +48,7 @@
 
 #include <memory>
 #include <stdexcept>
+#include <sstream>
 
 #include "core/router/context.h"
 #include "core/router/info.h"
@@ -70,6 +71,10 @@ Configuration::Configuration(const std::vector<std::string>& args) try
     : m_Args(args)
   {
     ParseConfig();
+  }
+catch (const boost::program_options::error_with_option_name& ex)
+  {
+    // Avoids dispatcher logging without an intrusive change to the dispatcher
   }
 catch (...)
   {
@@ -187,9 +192,9 @@ void Configuration::ParseConfig()
   // Help options
   if (m_Map.count("help"))
     {
-      LOG(info) << config_options;
-      throw std::runtime_error(
-          "for more details, see user-guide or config file");
+      std::ostringstream message;
+      message << config_options;
+      throw boost::program_options::error_with_option_name(message.str());
     }
   // Parse config file after mapping command-line
   // TODO(anonimal): we want to be able to reload config file without original

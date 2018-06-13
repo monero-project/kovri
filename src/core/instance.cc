@@ -75,6 +75,10 @@ Instance::Instance(const std::vector<std::string>& args) try : m_Config(args)
     // Continue with configuration/setup
     m_Config.SetupAESNI();
   }
+catch (const boost::program_options::error_with_option_name& ex)
+  {
+    // Avoids dispatcher logging without an intrusive change to the dispatcher
+  }
 catch (...)
   {
     m_Exception.Dispatch();

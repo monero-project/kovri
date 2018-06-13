@@ -134,8 +134,8 @@ bool Benchmark::Impl(const std::string& cmd_name,
 template <class Verifier, class Signer>
 void Benchmark::BenchmarkTest(
     std::size_t count,
-    uint8_t * public_key,
     uint8_t * private_key,
+    uint8_t * public_key,
     uint8_t * output,
     KeyGenerator generator)
 {

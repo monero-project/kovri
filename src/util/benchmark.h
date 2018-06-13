@@ -67,8 +67,8 @@ class Benchmark : public Command
   template <class Verifier, class Signer>
   void BenchmarkTest(
       std::size_t count,
-      uint8_t * public_key_size,
       uint8_t * private_key_size,
+      uint8_t * public_key_size,
       uint8_t * output,
       KeyGenerator generator);
 

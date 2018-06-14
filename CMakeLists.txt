@@ -74,6 +74,8 @@ if (WITH_TESTS)
   set_property(DIRECTORY APPEND PROPERTY COMPILE_DEFINITIONS NDEBUG)
 endif()
 
+set(CMAKE_SKIP_BUILD_RPATH TRUE)
+
 # Default build is Debug
 # TODO(anonimal): currently, there are no other release-specific flags (fix this when we release)
 if(NOT CMAKE_BUILD_TYPE)

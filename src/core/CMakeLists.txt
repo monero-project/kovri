@@ -198,11 +198,8 @@ if(WITH_SUPERCOP)
   target_sources(kovri-core PRIVATE ${EDDSA_SRC})
 endif()
 
-if (WITH_UPNP)
-  # Add definition for our implementation (must be here or in root recipe)
-  target_compile_definitions(kovri-core PRIVATE USE_UPNP)
-  target_link_libraries(kovri-core PRIVATE libminiupnpc-static)
-endif()
+# Add definition for our implementation (must be here or in root recipe)
+target_link_libraries(kovri-core PRIVATE libminiupnpc-static)
 
 if (COMMAND cotire)
   set_target_properties(kovri-core PROPERTIES COTIRE_PREFIX_HEADER_INCLUDE_PATH "${CMAKE_SOURCE_DIR}/deps")

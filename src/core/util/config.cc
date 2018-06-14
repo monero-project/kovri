@@ -134,6 +134,9 @@ void Configuration::ParseConfig()
 
   bpo::options_description network("\nnetwork");
   network.add_options()(
+      "enable-upnp",
+      bpo::bool_switch()->default_value(false))(
+
       "enable-ipv6",
       bpo::bool_switch()->default_value(false))(
 

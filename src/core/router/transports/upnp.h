@@ -33,8 +33,6 @@
 #ifndef SRC_CORE_ROUTER_TRANSPORTS_UPNP_H_
 #define SRC_CORE_ROUTER_TRANSPORTS_UPNP_H_
 
-#ifdef USE_UPNP
-
 #include <boost/asio.hpp>
 
 #include <miniupnp/miniupnpc/miniupnpc.h>
@@ -93,5 +91,4 @@ class UPnP {
 }  // namespace core
 }  // namespace kovri
 
-#endif  // USE_UPNP
 #endif  // SRC_CORE_ROUTER_TRANSPORTS_UPNP_H_

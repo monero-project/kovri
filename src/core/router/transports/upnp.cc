@@ -30,7 +30,6 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#ifdef USE_UPNP
 #include "core/router/transports/upnp.h"
 
 #include <boost/thread/thread.hpp>
@@ -48,14 +47,16 @@ UPnP::UPnP() : m_Devlist(nullptr, freeUPNPDevlist) {}
 
 void UPnP::Stop() {
   if (m_Thread) {
+    LOG(info) << "UPnP: stopping";
     m_Thread->join();
     m_Thread.reset(nullptr);
   }
 }
 
-void UPnP::Start() {
-  m_Thread =
-    std::make_unique<std::thread>(&UPnP::Run, this);
+void UPnP::Start()
+{
+  LOG(info) << "UPnP: starting";
+  m_Thread = std::make_unique<std::thread>(&UPnP::Run, this);
 }
 
 UPnP::~UPnP() = default;
@@ -200,5 +201,3 @@ void UPnP::Close() {
 
 }  // namespace core
 }  // namespace kovri
-
-#endif  // USE_UPNP

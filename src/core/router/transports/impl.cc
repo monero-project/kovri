@@ -157,16 +157,14 @@ Transports::Transports()
       m_LastOutBandwidthUpdateBytes(0),
       m_LastBandwidthUpdateTime(0) {}
 
-Transports::~Transports() {
-  Stop();
-}
+Transports::~Transports() {}
 
 void Transports::Start() {
   LOG(debug) << "Transports: starting";
-#ifdef USE_UPNP
-  m_UPnP.Start();
-  LOG(debug) << "Transports: UPnP started";
-#endif
+
+  if (context.GetOpts()["enable-upnp"].as<bool>())
+    m_UPnP.Start();
+
   m_DHKeysPairSupplier.Start();
   m_IsRunning = true;
   m_Thread = std::make_unique<std::thread>(std::bind(&Transports::Run, this));
@@ -207,9 +205,7 @@ void Transports::Start() {
 }
 
 void Transports::Stop() {
-#ifdef USE_UPNP
   m_UPnP.Stop();
-#endif
   m_PeerCleanupTimer.cancel();
   m_Peers.clear();
   if (m_SSUServer) {

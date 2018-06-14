@@ -55,12 +55,9 @@
 #include "core/router/transports/ntcp/session.h"
 #include "core/router/transports/session.h"
 #include "core/router/transports/ssu/server.h"
+#include "core/router/transports/upnp.h"
 
 #include "core/util/exception.h"
-
-#ifdef USE_UPNP
-#include "core/router/transports/upnp.h"
-#endif
 
 namespace kovri {
 namespace core {
@@ -279,9 +276,7 @@ class Transports {
   std::uint64_t m_LastInBandwidthUpdateBytes, m_LastOutBandwidthUpdateBytes;
   std::uint64_t m_LastBandwidthUpdateTime;
 
-#ifdef USE_UPNP
   UPnP m_UPnP;
-#endif
 
  public:
   const decltype(m_Peers)& GetPeers() const {

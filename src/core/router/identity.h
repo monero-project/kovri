@@ -292,8 +292,16 @@ struct XORMetric {
   }
 };
 
-IdentHash CreateRoutingKey(
-    const IdentHash& ident);
+// TODO(unassigned): should not be a free function
+/// @brief Hash identity with appended mod date according to spec
+/// @param ident Identity hash used as the basis for the routing key
+/// @throw std::invalid_argument if supplied a zero-initialized ident
+IdentHash CreateRoutingKey(const IdentHash& ident);
+
+// TODO(unassigned): should not be a free function
+/// @return Formatted UTC date used in routing key
+/// @notes Must return yyyyMMdd
+std::string GetFormattedDate();
 
 XORMetric operator^(
     const IdentHash& key1,

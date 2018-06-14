@@ -11,6 +11,16 @@
 - Want pre-built binaries? [Download below](#downloads)
 - Want to build and install yourself? [Build instructions below](#building)
 
+## Multilingual README
+This page is also available in the following languages
+
++ [Italian](https://github.com/monero-project/kovri-docs/blob/master/i18n/it/README.md)
++ Spanish
++ Russian
++ French
++ German
++ Danishs
+
 ## Downloads
 
 ### Releases

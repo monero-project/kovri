@@ -54,7 +54,6 @@ option(WITH_PYTHON     "Build wrappers which require Boost.Python" OFF)
 option(WITH_STATIC     "Static build" OFF)
 option(WITH_STATIC_DEPS "Static build with static dependencies" OFF)
 option(WITH_SHARED_DEPS "Dynamic build with partial in-tree shared dependencies" OFF)
-option(WITH_SUPERCOP   "Build Ed25519 using the ref10 implementation from SUPERCOP" ON)  # Default ON unless we switch implementations
 option(WITH_TESTS      "Build unit tests" OFF)
 option(WITH_FUZZ_TESTS "Build fuzz tests" OFF)
 option(WITH_COTIRE     "Enable cotire (compile time reducer) - precompiled header and single compilation unit builds" ${MSVC})

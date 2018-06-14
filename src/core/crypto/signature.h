@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -35,6 +35,8 @@
 
 #include <cstdint>
 #include <memory>
+
+#include <cryptopp/naclite.h>
 
 #include "core/crypto/signature_base.h"
 
@@ -473,68 +475,103 @@ class RSASHA5124096RawVerifier : public RawVerifier {
  *
  */
 
-const std::size_t EDDSA25519_PUBLIC_KEY_LENGTH = 32;
-const std::size_t EDDSA25519_SIGNATURE_LENGTH = 64;
-const std::size_t EDDSA25519_PRIVATE_KEY_LENGTH = 32;
+// TODO(anonimal): continue with remaining crypto
+namespace crypto
+{
+namespace PkLen
+{
+enum
+{
+  Ed25519 = CryptoPP::NaCl::crypto_sign_PUBLICKEYBYTES,
+};
+}  // namespace PkLen
 
-/// @class EDDSA25519Verifier
-class EDDSA25519Verifier : public Verifier {
+namespace SkLen
+{
+enum
+{
+  Ed25519 = CryptoPP::NaCl::crypto_sign_SECRETKEYBYTES,
+};
+}  // namespace SkLen
+
+namespace SigLen
+{
+enum
+{
+  Ed25519 = CryptoPP::NaCl::crypto_sign_BYTES,
+};
+}  // namespace SigLen
+}  // namespace crypto
+
+/// @class Ed25519Verifier
+/// @brief Interface class for the EdDSA Ed25519 verifier
+class Ed25519Verifier : public Verifier
+{
  public:
-  EDDSA25519Verifier(
-      const std::uint8_t* signing_key);
-  ~EDDSA25519Verifier();
+  explicit Ed25519Verifier(const std::uint8_t* pk);
 
+  ~Ed25519Verifier();
+
+  /// @brief Verify signed message with given signature
+  /// @param m Message (without signature)
+  /// @param mlen Message length (without signature)
+  /// @param sig Signature
   bool Verify(
-      const std::uint8_t* buf,
-      std::size_t len,
-      const std::uint8_t* signature) const;
+      const std::uint8_t* m,
+      const std::size_t mlen,
+      const std::uint8_t* sig) const;
 
-  std::size_t GetPublicKeyLen() const {
-    return EDDSA25519_PUBLIC_KEY_LENGTH;
+  std::size_t GetPublicKeyLen() const
+  {
+    return crypto::PkLen::Ed25519;
   }
 
-  std::size_t GetSignatureLen() const {
-    return EDDSA25519_SIGNATURE_LENGTH;
+  std::size_t GetPrivateKeyLen() const
+  {
+    return crypto::SkLen::Ed25519 - 32;  // An I2P'ism
   }
 
-  std::size_t GetPrivateKeyLen() const {
-    return EDDSA25519_PRIVATE_KEY_LENGTH;
+  std::size_t GetSignatureLen() const
+  {
+    return crypto::SigLen::Ed25519;
   }
 
  private:
-  class EDDSA25519VerifierImpl;
-  std::unique_ptr<EDDSA25519VerifierImpl> m_EDDSA25519VerifierPimpl;
+  class Ed25519VerifierImpl;
+  std::unique_ptr<Ed25519VerifierImpl> m_Ed25519VerifierPimpl;
 };
 
-/// @class EDDSA25519Signer
-class EDDSA25519Signer : public Signer {
+/// @class Ed25519Signer
+/// @brief Interface class for the EdDSA Ed25519 signer
+class Ed25519Signer : public Signer
+{
  public:
-  /// @brief Construct from a key pair.
-  EDDSA25519Signer(
-      const std::uint8_t* signing_private_key,
-      const std::uint8_t* signing_public_key);
+  /// @brief Create signer from a private key
+  /// @param sk Private key
+  /// @details The corresponding public key will be computed internally
+  explicit Ed25519Signer(const std::uint8_t* sk);
 
-  // @brief Construct from a private key.
-  // @details The corresponding public key will be computed from it.
-  EDDSA25519Signer(
-      const std::uint8_t* signing_private_key);
-  ~EDDSA25519Signer();
+  /// @brief Create signer from a keypair
+  /// @param sk Private key
+  /// @param pk Public key
+  Ed25519Signer(const std::uint8_t* sk, const std::uint8_t* pk);
 
-  void Sign(
-      const std::uint8_t* buf,
-      std::size_t len,
-      std::uint8_t* signature) const;
+  ~Ed25519Signer();
+
+  /// @brief Ed25519 sign a message
+  /// @param m Message
+  /// @param mlen Message size
+  /// @param sig Output the signature (only) of the signed message
+  void Sign(const std::uint8_t* m, const std::size_t mlen, std::uint8_t* sig)
+      const;
 
  private:
-  class EDDSA25519SignerImpl;
-  std::unique_ptr<EDDSA25519SignerImpl> m_EDDSA25519SignerPimpl;
+  class Ed25519SignerImpl;
+  std::unique_ptr<Ed25519SignerImpl> m_Ed25519SignerPimpl;
 };
 
-// Create keys
-void CreateEDDSARandomKeys(
-    std::uint8_t* private_key,
-    std::uint8_t* public_key);
-
+/// @brief Generate ed25519 keypair
+void CreateEd25519KeyPair(std::uint8_t* sk, std::uint8_t* pk);
 
 }  // namespace core
 }  // namespace kovri

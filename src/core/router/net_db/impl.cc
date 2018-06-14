@@ -950,15 +950,18 @@ std::shared_ptr<const RouterInfo> NetDb::GetClosestFloodfill(
   IdentHash dest_key = CreateRoutingKey(destination);
   min_metric.SetMax();
   std::unique_lock<std::mutex> l(m_FloodfillsMutex);
-  for (auto it : m_Floodfills) {
-    if (!it->IsUnreachable()) {
-      XORMetric m = dest_key ^ it->GetIdentHash();
-      if (m < min_metric && !excluded.count(it->GetIdentHash())) {
-        min_metric = m;
-        r = it;
-      }
+  for (const auto& it : m_Floodfills)
+    {
+      if (!it->IsUnreachable() && !excluded.count(it->GetIdentHash()))
+        {
+          XORMetric m = dest_key ^ it->GetIdentHash();
+          if (m < min_metric)
+            {
+              min_metric = m;
+              r = it;
+            }
+        }
     }
-  }
   return r;
 }
 
@@ -977,31 +980,24 @@ std::vector<IdentHash> NetDb::GetClosestFloodfills(
   std::set<Sorted> sorted;
   IdentHash dest_key = CreateRoutingKey(destination); {
     std::unique_lock<std::mutex> l(m_FloodfillsMutex);
-    for (auto it : m_Floodfills) {
-      if (!it->IsUnreachable()) {
-        XORMetric m = dest_key ^ it->GetIdentHash();
-        if (sorted.size() < num) {
-          sorted.insert({it, m});
-        } else if (m < sorted.rbegin()->metric) {
-          sorted.insert({it, m});
-          sorted.erase(std::prev(sorted.end()));
-        }
+    for (const auto& it : m_Floodfills)
+      {
+        if (!it->IsUnreachable() && !excluded.count(it->GetIdentHash()))
+          {
+            XORMetric m = dest_key ^ it->GetIdentHash();
+            sorted.insert({it, m});
+          }
       }
-    }
   }
+
   std::vector<IdentHash> res;
   std::uint8_t i{};
-  for (auto it : sorted) {
-    if (i < num) {
-      auto& ident = it.r->GetIdentHash();
-      if (!excluded.count(ident)) {
-        res.push_back(ident);
-        i++;
-      }
-    } else {
-      break;
+  for (auto it = sorted.begin(); it != sorted.end() && i < num; ++it)
+    {
+      const auto& ident = it->r->GetIdentHash();
+      res.push_back(ident);
+      ++i;
     }
-  }
   return res;
 }
 
@@ -1013,15 +1009,19 @@ std::shared_ptr<const RouterInfo> NetDb::GetClosestNonFloodfill(
   IdentHash dest_key = CreateRoutingKey(destination);
   min_metric.SetMax();
   // must be called from NetDb thread only
-  for (auto it : m_RouterInfos) {
-    if (!it.second->HasCap(RouterInfo::Cap::Floodfill)) {
-      XORMetric m = dest_key ^ it.first;
-      if (m < min_metric && !excluded.count(it.first)) {
-        min_metric = m;
-        r = it.second;
-      }
+  for (const auto& it : m_RouterInfos)
+    {
+      if (!it.second->HasCap(RouterInfo::Cap::Floodfill)
+          && !excluded.count(it.first))
+        {
+          XORMetric m = dest_key ^ it.first;
+          if (m < min_metric)
+            {
+              min_metric = m;
+              r = it.second;
+            }
+        }
     }
-  }
   return r;
 }
 

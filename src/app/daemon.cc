@@ -70,6 +70,12 @@ bool DaemonSingleton::Configure(const std::vector<std::string>& args)
       // Create/configure client instance
       m_Client = std::make_unique<client::Instance>(core);
     }
+  // Catch harmless program_option exceptions without dispatching (and producing excessive logging)
+  catch (const boost::program_options::error_with_option_name& ex)
+    {
+      LOG(info) << ex.what() << "\nSee configuration file for details";
+      return false;
+    }
   catch (...)
     {
       m_Exception.Dispatch(__func__);

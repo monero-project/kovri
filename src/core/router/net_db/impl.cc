@@ -1008,7 +1008,7 @@ std::shared_ptr<const RouterInfo> NetDb::GetClosestNonFloodfill(
   XORMetric min_metric;
   IdentHash dest_key = CreateRoutingKey(destination);
   min_metric.SetMax();
-  // must be called from NetDb thread only
+  std::unique_lock<std::mutex> l(m_RouterInfosMutex);
   for (const auto& it : m_RouterInfos)
     {
       if (!it.second->HasCap(RouterInfo::Cap::Floodfill)

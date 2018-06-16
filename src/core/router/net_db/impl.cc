@@ -946,21 +946,29 @@ std::shared_ptr<const RouterInfo> NetDb::GetClosestFloodfill(
     const IdentHash& destination,
     const std::set<IdentHash>& excluded) const {
   std::shared_ptr<const RouterInfo> r;
-  XORMetric min_metric;
-  IdentHash dest_key = CreateRoutingKey(destination);
-  min_metric.SetMax();
-  std::unique_lock<std::mutex> l(m_FloodfillsMutex);
-  for (const auto& it : m_Floodfills)
-    {
-      if (!it->IsUnreachable() && !excluded.count(it->GetIdentHash()))
+  try
+   {
+      XORMetric min_metric;
+      IdentHash dest_key = CreateRoutingKey(destination);
+      min_metric.SetMax();
+      std::unique_lock<std::mutex> l(m_FloodfillsMutex);
+      for (const auto& it : m_Floodfills)
         {
-          XORMetric m = dest_key ^ it->GetIdentHash();
-          if (m < min_metric)
+          if (!it->IsUnreachable() && !excluded.count(it->GetIdentHash()))
             {
-              min_metric = m;
-              r = it;
+              XORMetric m = dest_key ^ it->GetIdentHash();
+              if (m < min_metric)
+                {
+                  min_metric = m;
+                  r = it;
+                }
             }
         }
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      throw;
     }
   return r;
 }
@@ -970,33 +978,44 @@ std::vector<IdentHash> NetDb::GetClosestFloodfills(
     std::uint8_t num,
     std::set<IdentHash>& excluded) const
 {
-  struct Sorted {
-    std::shared_ptr<const RouterInfo> r;
-    XORMetric metric;
-    bool operator<(const Sorted& other) const {
-      return metric < other.metric;
-    }
-  };
-  std::set<Sorted> sorted;
-  IdentHash dest_key = CreateRoutingKey(destination); {
-    std::unique_lock<std::mutex> l(m_FloodfillsMutex);
-    for (const auto& it : m_Floodfills)
+  std::vector<IdentHash> res;
+  try
+    {
+      IdentHash dest_key = CreateRoutingKey(destination);
+      struct Sorted
       {
-        if (!it->IsUnreachable() && !excluded.count(it->GetIdentHash()))
+        std::shared_ptr<const RouterInfo> r;
+        XORMetric metric;
+        bool operator<(const Sorted& other) const
+        {
+          return metric < other.metric;
+        }
+      };
+      std::set<Sorted> sorted;
+      {
+        std::unique_lock<std::mutex> l(m_FloodfillsMutex);
+        for (const auto& it : m_Floodfills)
           {
-            XORMetric m = dest_key ^ it->GetIdentHash();
-            sorted.insert({it, m});
+            if (!it->IsUnreachable() && !excluded.count(it->GetIdentHash()))
+              {
+                XORMetric m = dest_key ^ it->GetIdentHash();
+                sorted.insert({it, m});
+              }
           }
       }
-  }
 
-  std::vector<IdentHash> res;
-  std::uint8_t i{};
-  for (auto it = sorted.begin(); it != sorted.end() && i < num; ++it)
+      std::uint8_t i{};
+      for (auto it = sorted.begin(); it != sorted.end() && i < num; ++it)
+        {
+          const auto& ident = it->r->GetIdentHash();
+          res.push_back(ident);
+          ++i;
+        }
+    }
+  catch (...)
     {
-      const auto& ident = it->r->GetIdentHash();
-      res.push_back(ident);
-      ++i;
+      m_Exception.Dispatch(__func__);
+      throw;
     }
   return res;
 }
@@ -1005,22 +1024,30 @@ std::shared_ptr<const RouterInfo> NetDb::GetClosestNonFloodfill(
     const IdentHash& destination,
     const std::set<IdentHash>& excluded) const {
   std::shared_ptr<const RouterInfo> r;
-  XORMetric min_metric;
-  IdentHash dest_key = CreateRoutingKey(destination);
-  min_metric.SetMax();
-  std::unique_lock<std::mutex> l(m_RouterInfosMutex);
-  for (const auto& it : m_RouterInfos)
+  try
     {
-      if (!it.second->HasCap(RouterInfo::Cap::Floodfill)
-          && !excluded.count(it.first))
+      XORMetric min_metric;
+      IdentHash dest_key = CreateRoutingKey(destination);
+      min_metric.SetMax();
+      std::unique_lock<std::mutex> l(m_RouterInfosMutex);
+      for (const auto& it : m_RouterInfos)
         {
-          XORMetric m = dest_key ^ it.first;
-          if (m < min_metric)
+          if (!it.second->HasCap(RouterInfo::Cap::Floodfill)
+              && !excluded.count(it.first))
             {
-              min_metric = m;
-              r = it.second;
+              XORMetric m = dest_key ^ it.first;
+              if (m < min_metric)
+                {
+                  min_metric = m;
+                  r = it.second;
+                }
             }
         }
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      throw;
     }
   return r;
 }

@@ -18,6 +18,7 @@ add_executable(kovri-tests
   core/crypto/rand.cc
   core/crypto/util/x509.cc
   core/router/identity.cc
+  core/router/info.cc
   core/router/transports/ssu/packet.cc
   core/util/byte_stream.cc
   core/util/config.cc

@@ -736,6 +736,25 @@ void RouterInfo::CreateBuffer(const PrivateKeys& private_keys)
     }
 }
 
+bool RouterInfo::Verify()
+{
+  bool success = false;
+  try
+    {
+      std::size_t len = m_BufferLen - m_RouterIdentity.GetSignatureLen();
+      if (len < Size::MinUnsignedBuffer)
+        throw std::length_error("RouterInfo: invalid RouterInfo size");
+      success =
+          m_RouterIdentity.Verify(m_Buffer.get(), len, m_Buffer.get() + len);
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      throw;
+    }
+  return success;
+}
+
 // TODO(anonimal): debug + trace logging
 // TODO(anonimal): unit-test
 void RouterInfo::CreateRouterInfo(

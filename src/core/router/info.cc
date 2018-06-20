@@ -750,8 +750,8 @@ void RouterInfo::CreateRouterInfo(
   LOG(debug) << "RouterInfo: " << __func__;
 
   // Write ident
-  // TODO(anonimal): review the following arbitrary size (must be >= 387)
-  std::array<std::uint8_t, 1024> ident {{}};
+  // Max size for ident with key certificate, see spec
+  std::array<std::uint8_t, 391> ident {{}};
   auto ident_len =
       private_keys.GetPublic().ToBuffer(ident.data(), ident.size());
   router_info.Write(ident.data(), ident_len);

@@ -69,6 +69,7 @@ struct RouterInfoTraits
   {
     MinBuffer = core::DSA_SIGNATURE_LENGTH,  // TODO(unassigned): see #498
     MaxBuffer = 2048,  // TODO(anonimal): review if arbitrary
+    MinUnsignedBuffer = 399,  // Minimum RouterInfo length w/o signature, see spec
     // TODO(unassigned): algorithm to dynamically determine cost
     NTCPCost = 10,  // NTCP *should* have priority over SSU
     SSUCost = 5,
@@ -522,6 +523,11 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
   /// @param private_keys Private keys used to derive signing key
   ///   (and subsequently sign the RI with)
   void CreateBuffer(const PrivateKeys& private_keys);
+
+  /// @brief Verify RI signature
+  /// @throws std::length_error if unsigned buffer length is below minimum
+  /// @throws std::runtime_error if signature verification fails
+  void Verify();
 
   /// @brief Save RI to file
   /// @param path Full RI path of file to save to

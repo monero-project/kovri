@@ -164,15 +164,7 @@ void RouterInfo::ReadFromBuffer(bool verify_signature)
       // Verify signature
       if (verify_signature)
         {
-          // Note: signature length is guaranteed to be no less than buffer length
-          std::uint16_t const len =
-              m_Buffer.size() - m_RouterIdentity.GetSignatureLen();
-          if (!m_RouterIdentity.Verify(
-                  m_Buffer.data(), len, m_Buffer.data() + len))
-            {
-              LOG(error) << "RouterInfo: signature verification failed";
-              m_IsUnreachable = true;
-            }
+          Verify();
           m_RouterIdentity.DropVerifier();
         }
     }
@@ -699,6 +691,32 @@ void RouterInfo::CreateBuffer(const PrivateKeys& private_keys)
       m_Buffer(
           reinterpret_cast<const std::uint8_t*>(router_info.Str().c_str()),
           router_info.Str().size());
+
+      // Verify signature
+      Verify();
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      throw;
+    }
+}
+
+void RouterInfo::Verify()
+{
+  try
+    {
+      if (!m_Buffer.data())
+        throw std::runtime_error("RouterInfo: null buffer");
+      std::size_t const len = m_Buffer.size() - m_RouterIdentity.GetSignatureLen();
+      if (len < Size::MinUnsignedBuffer)
+        throw std::length_error("RouterInfo: invalid RouterInfo size");
+      auto const buf = m_Buffer.data();
+      if (!m_RouterIdentity.Verify(buf, len, &buf[len]))
+        {
+          m_IsUnreachable = true;
+          throw std::runtime_error("RouterInfo: signature verification failed");
+        }
     }
   catch (...)
     {

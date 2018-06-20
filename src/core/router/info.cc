@@ -699,15 +699,6 @@ void RouterInfo::CreateBuffer(const PrivateKeys& private_keys)
       m_Buffer(
           reinterpret_cast<const std::uint8_t*>(router_info.Str().c_str()),
           router_info.Str().size());
-
-      // Signature
-      // TODO(anonimal): signing should be done when creating RI, not after. Requires other refactoring.
-      private_keys.Sign(
-          m_Buffer.data(),
-          m_Buffer.size(),
-          m_Buffer.data() + m_Buffer.size());
-
-      m_Buffer(m_Buffer.size() + private_keys.GetPublic().GetSignatureLen());
     }
   catch (...)
     {
@@ -879,7 +870,17 @@ void RouterInfo::CreateRouterInfo(
   // Write remaining options to RI
   router_info.Write(options.Str().c_str(), options.Str().size());
 
-  // TODO(anonimal): we should implement RI signing *here*
+  // Ensure signature has proper capacity
+  std::vector<std::uint8_t> sig_buf(private_keys.GetPublic().GetSignatureLen());
+
+  // Sign RI
+  private_keys.Sign(
+      reinterpret_cast<const std::uint8_t*>(router_info.Str().c_str()),
+      router_info.Str().size(),
+      sig_buf.data());
+
+  // Write signature to RI
+  router_info.Write(sig_buf.data(), sig_buf.size());
 
   LOG(debug) << "RouterInfo: " << __func__
              << " total RI size: " << router_info.Str().size();

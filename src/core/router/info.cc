@@ -68,6 +68,11 @@ RouterInfo::RouterInfo(
   // TODO(anonimal): in core config, we guarantee validity of host and port but
   //  we don't guarantee here without said caller in place.
 
+  // Reject non-EdDSA signing keys, see #498 and spec
+  if (m_RouterIdentity.GetSigningKeyType()
+      != core::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519)
+    throw std::invalid_argument("RouterInfo: invalid signing key type");
+
   // Log our identity
   const IdentHash& hash = m_RouterIdentity.GetIdentHash();
   LOG(info) << "RouterInfo: our router's ident: " << m_RouterIdentity.ToBase64();

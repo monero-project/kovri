@@ -70,6 +70,14 @@ RouterInfo::RouterInfo(
       != core::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519)
     throw std::invalid_argument("RouterInfo: invalid signing key type");
 
+  // Reject empty addresses
+  if (points.empty())
+    throw std::invalid_argument("RouterInfo: no transport address(es)");
+
+  // Reject routers with NTCP & SSU disabled
+  if (!has_transport.first && !has_transport.second)
+    throw std::invalid_argument("RouterInfo: no supported transports");
+
   // Log our identity
   const IdentHash& hash = m_RouterIdentity.GetIdentHash();
   LOG(info) << "RouterInfo: our router's ident: " << m_RouterIdentity.ToBase64();

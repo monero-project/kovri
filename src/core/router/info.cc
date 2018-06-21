@@ -65,9 +65,6 @@ RouterInfo::RouterInfo(
     const std::uint8_t caps)
     : m_Exception(__func__), m_RouterIdentity(keys.GetPublic())
 {
-  // TODO(anonimal): in core config, we guarantee validity of host and port but
-  //  we don't guarantee here without said caller in place.
-
   // Reject non-EdDSA signing keys, see #498 and spec
   if (m_RouterIdentity.GetSigningKeyType()
       != core::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519)
@@ -564,8 +561,14 @@ void RouterInfo::AddAddress(
 {
   Address addr;
   addr.transport = std::get<0>(point);
-  addr.host = boost::asio::ip::address::from_string(std::get<1>(point));
+  boost::system::error_code ec;
+  addr.host = boost::asio::ip::address::from_string(std::get<1>(point), ec);
+  if (ec)
+    throw std::invalid_argument(
+        "RouterInfo: " + std::string(__func__) + ": " + ec.message());
   addr.port = std::get<2>(point);
+  if (addr.port < PortRange::MinPort || addr.port > PortRange::MaxPort)
+    throw std::invalid_argument("RouterInfo: port not in valid range");
   addr.date = 0;  // TODO(anonimal): ?...
 
   // Set transport-specific

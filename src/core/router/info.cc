@@ -65,8 +65,18 @@ RouterInfo::RouterInfo(
     const std::uint8_t caps)
     : m_Exception(__func__), m_RouterIdentity(keys.GetPublic())
 {
-  // TODO(anonimal): in core config, we guarantee validity of host and port but
-  //  we don't guarantee here without said caller in place.
+  // Reject non-EdDSA signing keys, see #498 and spec
+  if (m_RouterIdentity.GetSigningKeyType()
+      != core::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519)
+    throw std::invalid_argument("RouterInfo: invalid signing key type");
+
+  // Reject empty addresses
+  if (points.empty())
+    throw std::invalid_argument("RouterInfo: no transport address(es)");
+
+  // Reject routers with NTCP & SSU disabled
+  if (!has_transport.first && !has_transport.second)
+    throw std::invalid_argument("RouterInfo: no supported transports");
 
   // Log our identity
   const IdentHash& hash = m_RouterIdentity.GetIdentHash();
@@ -559,8 +569,14 @@ void RouterInfo::AddAddress(
 {
   Address addr;
   addr.transport = std::get<0>(point);
-  addr.host = boost::asio::ip::address::from_string(std::get<1>(point));
+  boost::system::error_code ec;
+  addr.host = boost::asio::ip::address::from_string(std::get<1>(point), ec);
+  if (ec)
+    throw std::invalid_argument(
+        "RouterInfo: " + std::string(__func__) + ": " + ec.message());
   addr.port = std::get<2>(point);
+  if (addr.port < PortRange::MinPort || addr.port > PortRange::MaxPort)
+    throw std::invalid_argument("RouterInfo: port not in valid range");
   addr.date = 0;  // TODO(anonimal): ?...
 
   // Set transport-specific
@@ -723,21 +739,31 @@ void RouterInfo::CreateBuffer(const PrivateKeys& private_keys)
       if (!m_Buffer)
         m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
       std::memcpy(m_Buffer.get(), router_info.Str().c_str(), m_BufferLen);
-
-      // Signature
-      // TODO(anonimal): signing should be done when creating RI, not after. Requires other refactoring.
-      private_keys.Sign(
-          reinterpret_cast<std::uint8_t*>(m_Buffer.get()),
-          m_BufferLen,
-          reinterpret_cast<std::uint8_t*>(m_Buffer.get()) + m_BufferLen);
-
-      m_BufferLen += private_keys.GetPublic().GetSignatureLen();
     }
   catch (...)
     {
       m_Exception.Dispatch(__func__);
       throw;
     }
+}
+
+bool RouterInfo::Verify()
+{
+  bool success = false;
+  try
+    {
+      std::size_t len = m_BufferLen - m_RouterIdentity.GetSignatureLen();
+      if (len < Size::MinUnsignedBuffer)
+        throw std::length_error("RouterInfo: invalid RouterInfo size");
+      success =
+          m_RouterIdentity.Verify(m_Buffer.get(), len, m_Buffer.get() + len);
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      throw;
+    }
+  return success;
 }
 
 // TODO(anonimal): debug + trace logging
@@ -750,8 +776,8 @@ void RouterInfo::CreateRouterInfo(
   LOG(debug) << "RouterInfo: " << __func__;
 
   // Write ident
-  // TODO(anonimal): review the following arbitrary size (must be >= 387)
-  std::array<std::uint8_t, 1024> ident {{}};
+  // Max size for ident with key certificate, see spec
+  std::array<std::uint8_t, 391> ident {{}};
   auto ident_len =
       private_keys.GetPublic().ToBuffer(ident.data(), ident.size());
   router_info.Write(ident.data(), ident_len);
@@ -903,7 +929,17 @@ void RouterInfo::CreateRouterInfo(
   // Write remaining options to RI
   router_info.Write(options.Str().c_str(), options.Str().size());
 
-  // TODO(anonimal): we should implement RI signing *here*
+  // Ensure signature has proper capacity
+  std::vector<std::uint8_t> sig_buf(private_keys.GetPublic().GetSignatureLen());
+
+  // Sign RI
+  private_keys.Sign(
+      reinterpret_cast<const std::uint8_t*>(router_info.Str().c_str()),
+      router_info.Str().size(),
+      sig_buf.data());
+
+  // Write signature to RI
+  router_info.Write(sig_buf.data(), sig_buf.size());
 
   LOG(debug) << "RouterInfo: " << __func__
              << " total RI size: " << router_info.Str().size();

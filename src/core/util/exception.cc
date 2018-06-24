@@ -45,7 +45,7 @@ namespace core {
 Exception::Exception(const char* message) : m_Message(message) {}
 
 // TODO(anonimal): exception error codes to replace strings?
-void Exception::Dispatch(const char* message)
+void Exception::Dispatch(const char* message) const
 {
   // Message to log
   std::string log;

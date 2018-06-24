@@ -84,8 +84,7 @@ Optional:
 
 ```bash
 $ git clone --recursive https://github.com/monero-project/kovri.git
-$ cd kovri
-$ make  # see the Makefile for all build options
+$ cd kovri && make  # see the Makefile for all build options
 $ make install
 ```
 

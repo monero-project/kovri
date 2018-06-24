@@ -38,6 +38,7 @@ using namespace rtc;
 #elif defined(__linux__) || \
     defined(__APPLE__) || \
     defined(__FreeBSD__) || \
+    defined(__DragonFly__) || \
     defined(__OpenBSD__)
 #include <ifaddrs.h>
 #include <sys/types.h>
@@ -95,6 +96,7 @@ namespace core {
 #if defined(__linux__) || \
     defined(__APPLE__) || \
     defined(__FreeBSD__) || \
+    defined(__DragonFly__) || \
     defined(__OpenBSD__)
 std::uint16_t GetMTUUnix(
     const boost::asio::ip::address& local_address) {
@@ -302,6 +304,7 @@ std::uint16_t GetMTU(
 #if defined(__linux__) || \
     defined(__APPLE__) || \
     defined(__FreeBSD__) || \
+    defined(__DragonFly__) || \
     defined(__OpenBSD__)
   auto mtu = GetMTUUnix(local_address);
 #elif defined(_WIN32)

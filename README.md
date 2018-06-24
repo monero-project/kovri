@@ -93,8 +93,8 @@ Optional:
 **Do *not* use the zip file from github: do a recursive clone only**
 
 ```bash
-$ git clone --recursive https://github.com/monero-project/kovri
-$ make  # see the Makefile for all build options
+$ git clone --recursive https://github.com/monero-project/kovri.git
+$ cd kovri && make  # see the Makefile for all build options
 $ make install
 ```
 

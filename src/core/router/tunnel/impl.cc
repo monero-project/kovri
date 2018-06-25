@@ -672,10 +672,8 @@ void Tunnels::ManageTransitTunnels() {
   const std::uint64_t ts = kovri::core::GetSecondsSinceEpoch();
   for (auto it = m_TransitTunnels.begin(); it != m_TransitTunnels.end();) {
     if (ts > it->second->GetCreationTime() + TUNNEL_EXPIRATION_TIMEOUT) {
-      auto tmp = it->second;
-      LOG(debug) << "Tunnels: transit tunnel " << tmp->GetTunnelID() << " expired";
+      LOG(debug) << "Tunnels: transit tunnel " << it->second->GetTunnelID() << " expired";
       it = m_TransitTunnels.erase(it);
-      delete tmp;
     } else {
       it++;
     }

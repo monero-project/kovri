@@ -52,6 +52,7 @@
 #include "client/util/http.h"
 
 #include "core/router/identity.h"
+#include "core/util/exception.h"
 
 namespace kovri {
 namespace client {
@@ -547,7 +548,13 @@ void HTTPProxyHandler::Terminate() {
     m_Socket->close();
     m_Socket = nullptr;
   }
-  Done(shared_from_this());
+
+  try {
+    Done(shared_from_this());
+  } catch (...) {
+    core::Exception ex;
+    ex.Dispatch(__func__);
+  }
 }
 
 }  // namespace client

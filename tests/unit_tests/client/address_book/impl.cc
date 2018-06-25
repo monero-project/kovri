@@ -174,12 +174,12 @@ BOOST_AUTO_TEST_CASE(ValidBookEntry) {
 
   // Test constructing from an identity hash
   BOOST_CHECK_NO_THROW(
-      kovri::client::BookEntry entry("kovri.i2p", entry.get_address()));
+      kovri::client::BookEntry e("kovri.i2p", entry.get_address()));
 
   // Test constructing from a base64-encoded address
   std::string const valid_dest =
       subscription.front().substr(subscription.front().find('=') + 1);
-  BOOST_CHECK_NO_THROW(kovri::client::BookEntry entry("kovri.i2p", valid_dest));
+  BOOST_CHECK_NO_THROW(kovri::client::BookEntry e("kovri.i2p", valid_dest));
 }
 
 BOOST_AUTO_TEST_CASE(InvalidBookEntry) {

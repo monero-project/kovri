@@ -272,7 +272,14 @@ set_bins()
     mount_repo_bins="-v ${KOVRI_REPO}/build/kovri:/usr/bin/kovri \
       -v ${KOVRI_REPO}/build/kovri-util:/usr/bin/kovri-util"
 
-    read_bool_input "Build repo binaries from within the container?" KOVRI_BUILD_REPO_BINS "Exec make release-static"
+    build_cmd="make clean"
+    if [[ $KOVRI_DOCKERFILE = "Dockerfile.arch" ]]; then
+      build_cmd="${build_cmd} release" # Arch doesn't support static OpenSSL builds
+    else
+      build_cmd="${build_cmd} release-static"
+    fi
+
+    read_bool_input "Build repo binaries from within the container?" KOVRI_BUILD_REPO_BINS "Exec $build_cmd"
 
     if [[ $KOVRI_BUILD_REPO_BINS = false ]]; then
       echo "Please ensure that the binaries are built statically if not built within a container"

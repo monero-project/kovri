@@ -31,4 +31,19 @@
 #define BOOST_TEST_MAIN
 #include <boost/test/unit_test.hpp>
 
+#include "core/util/log.h"
+
+/// @brief Disable log spam from the libs for all unit-tests
+/// @note This won't disable logs that boost.test specific
+struct Logger final
+{
+  Logger()
+  {
+    boost::log::core::get()->set_logging_enabled(false);
+  }
+  ~Logger() = default;
+};
+
+BOOST_GLOBAL_FIXTURE(Logger);
+
 // Skeleton Main for TEST_DYN_LINK tests

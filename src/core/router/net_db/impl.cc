@@ -975,8 +975,8 @@ std::shared_ptr<const RouterInfo> NetDb::GetClosestFloodfill(
 
 std::vector<IdentHash> NetDb::GetClosestFloodfills(
     const IdentHash& destination,
-    std::uint8_t num,
-    std::set<IdentHash>& excluded) const
+    const std::uint8_t num,
+    const std::set<IdentHash>& excluded) const
 {
   std::vector<IdentHash> res;
   try

@@ -197,16 +197,16 @@ class NetDb : public NetDbTraits {
 
   std::shared_ptr<const RouterInfo> GetClosestFloodfill(
       const IdentHash& destination,
-      const std::set<IdentHash>& excluded) const;
+      const std::set<IdentHash>& excluded = std::set<IdentHash>()) const;
 
   std::vector<IdentHash> GetClosestFloodfills(
       const IdentHash& destination,
-      std::uint8_t num,
-      std::set<IdentHash>& excluded) const;
+      const std::uint8_t num,
+      const std::set<IdentHash>& excluded = std::set<IdentHash>()) const;
 
   std::shared_ptr<const RouterInfo> GetClosestNonFloodfill(
       const IdentHash& destination,
-      const std::set<IdentHash>& excluded) const;
+      const std::set<IdentHash>& excluded = std::set<IdentHash>()) const;
 
   void SetUnreachable(
       const IdentHash& ident,

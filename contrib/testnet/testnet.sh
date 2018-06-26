@@ -76,6 +76,7 @@ web_host_octet=".2"
 
 pid=$(id -u)
 gid="docker" # Assumes user is in docker group
+docker_uid=$pid
 
 # TODO(unassigned): better sequencing impl
 #Note: sequence limit [2:254]
@@ -247,7 +248,7 @@ set_images()
     read_input "Change Dockerfile?: [KOVRI_DOCKERFILE=${KOVRI_DOCKERFILE}]" KOVRI_DOCKERFILE
   fi
   local _kovri_dockerfile_path="${KOVRI_REPO}/${docker_dir}/Dockerfiles/${KOVRI_DOCKERFILE}"
-  read_bool_input "Build Kovri Docker image? [$KOVRI_IMAGE]" KOVRI_BUILD_IMAGE "docker build -t $KOVRI_IMAGE -f $_kovri_dockerfile_path $KOVRI_REPO"
+  read_bool_input "Build Kovri Docker image? [$KOVRI_IMAGE]" KOVRI_BUILD_IMAGE "docker build --build-arg userid=$docker_uid -t $KOVRI_IMAGE -f $_kovri_dockerfile_path $KOVRI_REPO"
 
   # Select Kovri Webserver Dockerfile
   local _default_web_dockerfile="Dockerfile.apache"
@@ -495,6 +496,7 @@ create_ri()
 
   docker run -w $mount -it --rm \
     -v $_volume \
+    -u $docker_uid \
     $mount_repo_bins \
     $KOVRI_IMAGE /usr/bin/kovri-util routerinfo --create \
       --host $_host \
@@ -551,6 +553,7 @@ create_instance()
     --ip $_host \
     -p ${_port}:${_port} \
     -v $_volume \
+    -u $docker_uid \
     $mount_repo_bins \
     $_docker_opts \
     $KOVRI_IMAGE \
@@ -576,6 +579,7 @@ create_webserver_instance()
   # Start publisher instance
   docker create -it --network=${KOVRI_NETWORK} --ip=${_web_host} --name $web_name \
     $_entrypoint \
+    -u $docker_uid \
     -v ${_dest_dir}/${web_root_dir}/:${web_system_dir}/${web_root_dir}/ \
     $KOVRI_WEB_IMAGE \
     "$_cmd"
@@ -763,6 +767,7 @@ Exec()
     --rm \
     -v $KOVRI_REPO:/home/kovri/kovri \
     -w /home/kovri/kovri \
+    -u $docker_uid \
     $KOVRI_IMAGE \
     $@
   catch "Docker: run failed"

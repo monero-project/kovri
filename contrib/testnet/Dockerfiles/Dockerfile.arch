@@ -28,12 +28,16 @@
 
 FROM greyltc/archlinux:latest
 
+ARG userid
+
+ENV userid=$userid
+
 RUN pacman -Syu --noconfirm && pacman -S --noconfirm \
       binutils boost cmake gcc clang gdb make \
       gnu-netcat iftop iproute2 openssh tcpdump \
       htop iotop \
       && \
-      useradd -m kovri -s /usr/bin/bash && \
+      useradd -m kovri -u $userid -s /usr/bin/bash && \
       chown -R kovri:kovri /home/kovri
 
 USER kovri

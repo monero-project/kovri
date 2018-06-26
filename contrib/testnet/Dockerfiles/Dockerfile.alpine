@@ -28,6 +28,10 @@
 
 FROM alpine:3.7
 
+ARG userid
+
+ENV userid=$userid
+
 RUN apk add --update --no-cache \
       binutils \
       boost \
@@ -46,7 +50,7 @@ RUN apk add --update --no-cache \
       coreutils \
       curl \
       && \ 
-      adduser -D kovri && \
+      adduser -D kovri -u $userid && \
       chown -R kovri:kovri /home/kovri
 
 USER kovri

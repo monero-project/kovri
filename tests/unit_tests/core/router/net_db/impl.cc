@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2015-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -26,13 +26,16 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,          //
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF    //
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
- *                                                                                            //
- * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
+
+#include <memory>
+#include <set>
+#include <utility>
+#include <vector>
 
 #include "core/router/identity.h"
 #include "core/router/info.h"
@@ -44,153 +47,124 @@ namespace core = kovri::core;
 
 struct NetDbFixture : public IdentityExFixture
 {
-  /// @alias RouterCap
-  /// @brief Capabilities alias
-  /// @details Intended for readability & user-friendliness when writing new tests
-  using RouterCap = core::RouterInfoTraits::Cap;
+  using Cap = core::RouterInfoTraits::Cap;
 
-  /// @brief Create identity from buffer
-  /// @details Useful for getting a valid IdentHash
-  void CreateIdent()
+  NetDbFixture() : m_NetDb(std::make_unique<core::NetDb>())
   {
-    // Create valid identity
-    BOOST_CHECK(
-        m_Ident.FromBuffer(m_AliceIdentity.data(), m_AliceIdentity.size()));
-
-    // Set ident hash for convenience
+    // Use Alice's data from IdentityEx fixture
+    core::IdentityEx m_Ident;
+    m_Ident.FromBuffer(m_AliceIdentity.data(), m_AliceIdentity.size());
     m_Hash = m_Ident.GetIdentHash();
   }
 
-  /// @brief Add router to NetDb
-  /// @param cap Capability to add to router
-  void AddRouter(const RouterCap cap)
+  std::unique_ptr<core::RouterInfo> AddRouterInfo(Cap cap)
   {
-    // Create new private keys
-    m_Keys = core::PrivateKeys::CreateRandomKeys(
-        core::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
+    auto ri = std::make_unique<core::RouterInfo>(
+        core::PrivateKeys::CreateRandomKeys(
+            core::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519),
+        std::vector<std::pair<std::string, std::uint16_t>>{{"127.0.0.1", 9111}},
+        std::make_pair(true, false),
+        cap);
 
-    // Create new router
-    m_RI =
-        std::make_unique<core::RouterInfo>(m_Keys, m_Points, m_Transports, cap);
+    m_NetDb->AddRouterInfo(
+        ri->GetIdentHash(), ri->GetBuffer(), ri->GetBufferLen());
 
-    // Add router to NetDb
-    BOOST_CHECK_NO_THROW(m_NetDB.AddRouterInfo(
-        m_RI->GetIdentHash(), m_RI->GetBuffer(), m_RI->GetBufferLen()));
+    return ri;
   }
 
-  core::NetDb m_NetDB;
+  std::shared_ptr<const core::RouterInfo> GetClosestFloodfill()
+  {
+    auto ff = m_NetDb->GetClosestFloodfill(m_Hash);
+    if (!ff)
+      throw std::runtime_error("no floodfill available");
+    return ff;
+  }
+
+  std::vector<core::IdentHash> GetClosestFloodfills(const std::uint8_t count)
+  {
+    auto ffs = m_NetDb->GetClosestFloodfills(m_Hash, count);
+    if (ffs.empty())
+      throw std::runtime_error("no floodfills available");
+    return ffs;
+  }
+
+  std::shared_ptr<const core::RouterInfo> GetClosestNonFloodfill()
+  {
+    auto ri = m_NetDb->GetClosestNonFloodfill(m_Hash);
+    if (!ri)
+      throw std::runtime_error("no routers available");
+    return ri;
+  }
+
   core::IdentHash m_Hash;
-  core::IdentityEx m_Ident;
-  core::PrivateKeys m_Keys;
-  std::set<core::IdentHash> m_Ex;
-  std::unique_ptr<core::RouterInfo> m_RI;
-  std::pair<bool, bool> m_Transports{true, false};
-  std::vector<std::pair<std::string, std::uint16_t> > m_Points{{"127.0.0.1", 9111}};
+  std::unique_ptr<core::NetDb> m_NetDb;
 };
 
 BOOST_FIXTURE_TEST_SUITE(NetDbTests, NetDbFixture)
 
-BOOST_AUTO_TEST_CASE(ValidClosestFloodfill)
-{
-  // Create a valid router identity
-  CreateIdent();
-
-  // Add floodfill router to NetDb
-  AddRouter(RouterCap::Floodfill);
-
-  std::shared_ptr<const core::RouterInfo> ret_ri;
-
-  // Ensure no exceptions thrown getting valid floodfill
-  BOOST_CHECK_NO_THROW(ret_ri = m_NetDB.GetClosestFloodfill(m_Hash, m_Ex));
-
-  // Ensure expected floodfill is returned
-  BOOST_CHECK(ret_ri && ret_ri->GetIdentHash() == m_RI->GetIdentHash());
-}
-
-BOOST_AUTO_TEST_CASE(InvalidClosestFloodfill)
-{
-  // Ensure null destination throws
-  BOOST_CHECK_THROW(
-      m_NetDB.GetClosestFloodfill(nullptr, m_Ex), std::invalid_argument);
-
-  // Ensure zero-initialized destination throws
-  BOOST_CHECK_THROW(
-      m_NetDB.GetClosestFloodfill(m_Hash, m_Ex), std::invalid_argument);
-}
-
+// TODO(unassigned): this isn't an accurate testcase (we should rather test kademlia)
 BOOST_AUTO_TEST_CASE(ValidClosestFloodfills)
 {
-  // Create a valid router identity
-  CreateIdent();
+  constexpr std::uint8_t count(2);  // FF count
 
-  // Add floodfill router to NetDb
-  AddRouter(RouterCap::Floodfill);
+  // Add floodfills to netdb
+  std::set<std::unique_ptr<core::RouterInfo>> infos;
+  for (auto i(0); i < count; i++)
+    infos.insert(AddRouterInfo(Cap::Floodfill));
 
-  // Store the first floodfill locally
-  std::unique_ptr<core::RouterInfo> flood_ri{nullptr};
-  flood_ri.swap(m_RI);
+  // Get added floodfill hashes
+  std::vector<core::IdentHash> hashes;
+  for (const auto& ri : infos)
+    hashes.push_back(ri->GetIdentHash());
 
-  // Add another floodfill router to NetDb
-  AddRouter(RouterCap::Floodfill);
+  // Get closest floodfills
+  std::vector<core::IdentHash> ffs;
+  BOOST_REQUIRE_NO_THROW(ffs = GetClosestFloodfills(infos.size()));
 
-  std::vector<core::IdentHash> ret_hash;
-  const std::uint8_t limit = 2;
+  // Floodfill hashes should match added router hashes
+  // TODO(unassigned): this should change once we include the kademlia test
+  std::sort(ffs.begin(), ffs.end());
+  std::sort(hashes.begin(), hashes.end());
 
-  // Ensure no exceptions thrown getting valid floodfill(s)
-  BOOST_CHECK_NO_THROW(
-      ret_hash = m_NetDB.GetClosestFloodfills(m_Hash, limit, m_Ex));
-
-  // Ensure number of floodfills added are returned
-  BOOST_CHECK(ret_hash.size() == limit);
-
-  // Ensure returned ident hashes are unique
-  BOOST_CHECK(ret_hash.front() != ret_hash.back());
-
-  // Ensure returned ident hashes match expected floodfills
-  for (auto const& h : ret_hash)
-    BOOST_CHECK(h == flood_ri->GetIdentHash() || h == m_RI->GetIdentHash());
-
-  // Ensure limit is respected
-  BOOST_CHECK(m_NetDB.GetClosestFloodfills(m_Hash, 0, m_Ex).empty());
+  BOOST_CHECK(ffs == hashes);
 }
 
-BOOST_AUTO_TEST_CASE(InvalidClosestFloodfills)
+BOOST_AUTO_TEST_CASE(ValidClosestFloodfill)
 {
-  // Ensure null destination throws
-  BOOST_CHECK_THROW(
-      m_NetDB.GetClosestFloodfills(nullptr, 1, m_Ex), std::invalid_argument);
+  std::unique_ptr<core::RouterInfo> ri;
+  BOOST_REQUIRE_NO_THROW(ri = AddRouterInfo(Cap::Floodfill));
 
-  // Ensure zero-initialized destination throws
-  BOOST_CHECK_THROW(
-      m_NetDB.GetClosestFloodfills(m_Hash, 1, m_Ex), std::invalid_argument);
+  std::shared_ptr<const core::RouterInfo> ff;
+  BOOST_REQUIRE_NO_THROW(ff = GetClosestFloodfill());
+
+  BOOST_REQUIRE_EQUAL(ff->GetIdentHash(), ri->GetIdentHash());
 }
 
 BOOST_AUTO_TEST_CASE(ValidClosestNonFloodfill)
 {
-  // Create a valid router identity
-  CreateIdent();
+  std::unique_ptr<core::RouterInfo> ri;
+  BOOST_REQUIRE_NO_THROW(ri = AddRouterInfo(Cap::HighBandwidth));
 
-  // Add non-floodfill to NetDb
-  AddRouter(RouterCap::HighBandwidth);
+  std::shared_ptr<const core::RouterInfo> ff;
+  BOOST_REQUIRE_NO_THROW(ff = GetClosestNonFloodfill());
 
-  std::shared_ptr<const core::RouterInfo> ret_ri;
-
-  // Ensure no exceptions thrown getting valid non-floodfill
-  BOOST_CHECK_NO_THROW(ret_ri = m_NetDB.GetClosestNonFloodfill(m_Hash, m_Ex));
-
-  // Ensure expected non-floodfill is returned
-  BOOST_CHECK(ret_ri && ret_ri->GetIdentHash() == m_RI->GetIdentHash());
+  BOOST_CHECK_EQUAL(ff->GetIdentHash(), ri->GetIdentHash());
 }
 
-BOOST_AUTO_TEST_CASE(InvalidClosestNonFloodfill)
+BOOST_AUTO_TEST_CASE(InvalidRouters)
 {
-  // Ensure null destination throws
-  BOOST_CHECK_THROW(
-      m_NetDB.GetClosestNonFloodfill(nullptr, m_Ex), std::invalid_argument);
+  core::IdentHash hash;  // Empty hash
 
-  // Ensure zero-initialized destination throws
-  BOOST_CHECK_THROW(
-      m_NetDB.GetClosestNonFloodfill(m_Hash, m_Ex), std::invalid_argument);
+  BOOST_CHECK_THROW(m_NetDb->GetClosestFloodfill(hash), std::exception);
+  BOOST_CHECK_THROW(m_NetDb->GetClosestFloodfill(nullptr), std::exception);
+
+  BOOST_CHECK_THROW(m_NetDb->GetClosestFloodfills(hash, 1), std::exception);
+  BOOST_CHECK_THROW(m_NetDb->GetClosestFloodfills(nullptr, 1), std::exception);
+
+  BOOST_CHECK_THROW(GetClosestFloodfills(0), std::exception);
+
+  BOOST_CHECK_THROW(m_NetDb->GetClosestNonFloodfill(nullptr), std::exception);
+  BOOST_CHECK_THROW(m_NetDb->GetClosestNonFloodfill(hash), std::exception);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

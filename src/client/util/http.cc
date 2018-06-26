@@ -180,8 +180,9 @@ bool HTTP::DownloadViaClearnet() {
       }
       // Create response object, send request and receive response
       LOG(trace) << "HTTP: Request " << kovri::core::LogNetMessageToString(request);
-      Response response = client.get(request);
+      Response response = client.head(request);
       LOG(trace) << "HTTP: Response " << kovri::core::LogNetMessageToString(response);
+      std::string new_etag, new_last_modified;
       // Test HTTP response status code
       switch (response.status()) {
         // New download or cached version does not match, so re-download
@@ -190,15 +191,46 @@ bool HTTP::DownloadViaClearnet() {
           for (auto const& header : response.headers()) {
             if (header.first == "ETag") {
               if (header.second != GetPreviousETag())
-                SetETag(header.second);  // Set new ETag
+                new_etag = header.second;
             }
             if (header.first == "Last-Modified") {
               if (header.second != GetPreviousLastModified())
-                SetLastModified(header.second);  // Set new Last-Modified
+                new_last_modified = header.second;
             }
+            if (header.first == "Content-Length")
+              {
+                // Convert Content-Length string to LengthLimit comparable type
+                std::uint64_t clen = std::stoull(header.second);
+                if (uri.path().rfind(".txt") != std::string::npos)
+                  {
+                    if (clen < Length::HostsMin || clen > Length::HostsMax)
+                      {
+                        LOG(warning) << "HTTP: invalid subscription file size";
+                        return false;
+                      }
+                  }
+                if (uri.path().rfind(".su3") != std::string::npos)
+                  {
+                    if (clen < Length::SU3Min || clen > Length::SU3Max)
+                      {
+                        LOG(warning) << "HTTP: invalid reseed file size";
+                        return false;
+                      }
+                  }
+              }
           }
+          // Download full response
+          LOG(trace) << "HTTP: Request "
+                     << kovri::core::LogNetMessageToString(request);
+          response = client.get(request);
+          LOG(trace) << "HTTP: Response "
+                     << kovri::core::LogNetMessageToString(response);
           // Save downloaded content
           SetDownloadedContents(boost::network::http::body(response));
+          if (!new_etag.empty())
+            SetETag(new_etag);  // Set new ETag
+          if (!new_last_modified.empty())
+            SetLastModified(new_last_modified);  // Set new Last-Modified
           break;
         // File requested is unchanged since previous download
         case http::basic_response<http::tags::http_server>::status_type::not_modified:

@@ -149,6 +149,25 @@ class HTTPStorage {
 ///   In-net: Connections made within the I2P network
 class HTTP : public HTTPStorage {
  public:
+  /// @enum Length
+  /// @brief Arbitrary upper & specified lower limits on HTTP download size
+  enum Length : std::uint32_t
+  {
+    // 64 KiB, Arbitrary size in bytes
+    HostsMax = 64 * 1024,
+
+    // 521 B size in bytes
+    // (host)-"="-(key), see hosts.txt spec
+    HostsMin = 4 + 1 + 516,
+
+    // 128 KiB, Arbitrary size in bytes
+    SU3Max = 128 * 1024,
+
+    // 631 B size in bytes,
+    // (su3 header)-(zip header)-(routerInfo)-(sig), see zip impl & SU3 spec
+    SU3Min = 71 + 83 + 437 + 40,
+  };
+
   HTTP() {}  // for HTTPProxy and tests
   ~HTTP() {}
 

@@ -953,7 +953,7 @@ const RouterInfo::Address* RouterInfo::GetAddress(
     return transports & supported;
   };
 
-  Transport transport;
+  Transport transport(Transport::Unknown);
   bool has_v6(false);
 
   // Ensure address has appropriate transport
@@ -962,6 +962,8 @@ const RouterInfo::Address* RouterInfo::GetAddress(
 
   if (has_transport(SupportedTransport::SSUv4 | SupportedTransport::SSUv6))
     transport = Transport::SSU;
+
+  assert(transport != Transport::Unknown);
 
   if (has_transport(SupportedTransport::NTCPv6 | SupportedTransport::SSUv6))
     has_v6 = true;

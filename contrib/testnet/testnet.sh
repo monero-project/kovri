@@ -134,7 +134,7 @@ PrintUsage()
   echo "KOVRI_BUILD_REPO_BINS   = build repo binaries from *within* the container"
   echo "KOVRI_CLEANUP           = cleanup/destroy previous testnet"
   echo "KOVRI_USE_NAMED_PIPES   = use named pipes for logging"
-  echo "KOVRI_DISABLE_MONITORING= disable logging"
+  echo "KOVRI_ENABLE_MONITORING = enable logging"
   echo ""
   echo "Log monitoring"
   echo "--------------"
@@ -314,13 +314,13 @@ set_args()
 
   # Set daemon binary arguments
   if [[ -z $KOVRI_BIN_ARGS ]]; then
-    KOVRI_BIN_ARGS="--enable-floodfill --disable-su3-verification --disable-https --enable-auto-flush-log"
+    KOVRI_BIN_ARGS="--enable-floodfill --disable-su3-verification --disable-https --enable-auto-flush-log --i2pcontroladdress 0.0.0.0 --i2pcontrolport 7650"
     read_input "Change kovri binary arguments? [KOVRI_BIN_ARGS=\"${KOVRI_BIN_ARGS}\"]" KOVRI_BIN_ARGS
   fi
 
   # Set firewalled daemon binary arguments
   if [[ $KOVRI_NB_FW -gt 0 && -z $KOVRI_FW_BIN_ARGS ]]; then
-    KOVRI_FW_BIN_ARGS="--enable-floodfill --disable-su3-verification --enable-auto-flush-log"
+    KOVRI_FW_BIN_ARGS="--enable-floodfill --disable-su3-verification --enable-auto-flush-log --i2pcontroladdress 0.0.0.0 --i2pcontrolport 7650"
     read_input "Change firewalled kovri binary arguments? [KOVRI_FW_BIN_ARGS=\"${KOVRI_FW_BIN_ARGS}\"]" KOVRI_FW_BIN_ARGS
   fi
 }
@@ -596,8 +596,8 @@ create_webserver_instance()
 
 create_monitoring()
 {
-  read_bool_input "Disable monitoring?" KOVRI_DISABLE_MONITORING ""
-  if [[ $KOVRI_DISABLE_MONITORING = false ]]; then
+  read_bool_input "Enable monitoring?" KOVRI_ENABLE_MONITORING ""
+  if [[ $KOVRI_ENABLE_MONITORING = true ]]; then
     # Set db IP
     local _db_host="${network_octets}${db_host_octet}"
     local _db_uri="${_db_host}:8086"
@@ -690,7 +690,7 @@ Start()
     catch "Could not start docker: $_seq"
   done
 
-  if [[ $KOVRI_DISABLE_MONITORING = false ]]; then
+  if [[ $KOVRI_ENABLE_MONITORING = true ]]; then
     echo -n "Starting monitoring database... " && docker start $db_container_name
     echo -n "Starting container stats collector... " && docker start $stats_container_name
     echo -n "Starting kovri stats collector... " && docker start $stats_kovri_name
@@ -711,7 +711,7 @@ Stop()
   local _stop="docker stop -t $KOVRI_STOP_TIMEOUT"
 
   # Stop testnet
-  if [[ $KOVRI_DISABLE_MONITORING = false ]]; then
+  if [[ $KOVRI_ENABLE_MONITORING = true ]]; then
     echo -n "Stopping monitoring collector " && $_stop $stats_kovri_name
     echo -n "Stopping container stats collector... " && $_stop $stats_container_name
     echo -n "Stopping monitoring database... " && $_stop $db_container_name
@@ -744,7 +744,7 @@ Destroy()
 
   Stop
 
-  if [[ $KOVRI_DISABLE_MONITORING = false ]]; then
+  if [[ $KOVRI_ENABLE_MONITORING = true ]]; then
     echo -n "Removing monitoring collector... " && docker rm -v $stats_kovri_name
     echo -n "Removing container stats collector... " && docker rm -v $stats_container_name
     echo -n "Removing monitoring database... " && docker rm -v $db_container_name

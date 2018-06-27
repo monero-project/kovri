@@ -658,7 +658,7 @@ create_monitoring()
     echo "Grafana: Created datasource ${_db_host}:8086"
 
     # Grafana: Create API token
-    local _apiKey=$(curl -X POST -H "Content-Type: application/json" -d '{"name":"apikeycurl", "role": "Admin"}' ${_grafana_uri}/api/auth/keys | python -c "import sys, json; print json.load(sys.stdin)['key']")
+    local _apiKey=$(curl -X POST -H "Content-Type: application/json" -d '{"name":"apikeycurl", "role": "Admin"}' ${_grafana_uri}/api/auth/keys | python -c "import sys, json; print(json.load(sys.stdin)['key'])")
     catch "Grafana: Could not create API key"
     echo "Grafana: Created api key $_apiKey"
 

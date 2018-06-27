@@ -680,6 +680,16 @@ create_monitoring()
   fi
 }
 
+has_monitoring()
+{
+  HAS_MONITORING=false;
+  local monitor_containers="${db_container_name}|${stats_container_name}|${stats_kovri_name}|${grafana_base_name}"
+  docker container ls --all | grep -q -E "$monitor_containers"
+  if [[ $? -eq 0 ]]; then
+    HAS_MONITORING=true;
+  fi
+}
+
 Start()
 {
   echo -n "Starting web server... " && docker start $web_name
@@ -690,7 +700,8 @@ Start()
     catch "Could not start docker: $_seq"
   done
 
-  if [[ $KOVRI_ENABLE_MONITORING = true ]]; then
+  has_monitoring
+  if [[ $HAS_MONITORING = true ]]; then
     echo -n "Starting monitoring database... " && docker start $db_container_name
     echo -n "Starting container stats collector... " && docker start $stats_container_name
     echo -n "Starting kovri stats collector... " && docker start $stats_kovri_name
@@ -711,7 +722,8 @@ Stop()
   local _stop="docker stop -t $KOVRI_STOP_TIMEOUT"
 
   # Stop testnet
-  if [[ $KOVRI_ENABLE_MONITORING = true ]]; then
+  has_monitoring
+  if [[ $HAS_MONITORING = true ]]; then
     echo -n "Stopping monitoring collector " && $_stop $stats_kovri_name
     echo -n "Stopping container stats collector... " && $_stop $stats_container_name
     echo -n "Stopping monitoring database... " && $_stop $db_container_name
@@ -744,7 +756,8 @@ Destroy()
 
   Stop
 
-  if [[ $KOVRI_ENABLE_MONITORING = true ]]; then
+  has_monitoring
+  if [[ $HAS_MONITORING = true ]]; then
     echo -n "Removing monitoring collector... " && docker rm -v $stats_kovri_name
     echo -n "Removing container stats collector... " && docker rm -v $stats_container_name
     echo -n "Removing monitoring database... " && docker rm -v $db_container_name

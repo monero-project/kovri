@@ -76,6 +76,9 @@ void Exception::Dispatch(const char* message)
   } catch (const boost::program_options::error& ex) {
     LOG(error) << log << "program option exception"
                << ": '" << ex.what() << "'";
+  } catch (const std::bad_weak_ptr& ex) {
+    LOG(error) << log << "bad weak pointer" << ": '" << ex.what() << "'";
+    assert(0);
   } catch (const std::exception& ex) {
     LOG(error) << log << "standard exception" << ": '" << ex.what() << "'";
   } catch (...) {

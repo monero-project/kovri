@@ -123,7 +123,7 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
           std::make_pair(has_ntcp, has_ssu));  // TODO(anonimal): brittle, see TODO in header
 
       // Update context RI
-      m_RouterInfo.Update(router.GetBuffer(), router.GetBufferLen());
+      m_RouterInfo.Update(router.data(), router.size());
     }
   else  // Keys (and RI should also) exist
     {
@@ -178,7 +178,7 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
       router.SetDefaultOptions();
 
       // Update context RI
-      m_RouterInfo.Update(router.GetBuffer(), router.GetBufferLen());
+      m_RouterInfo.Update(router.data(), router.size());
 
       // Test for reachability of context's RI
       if (IsUnreachable())

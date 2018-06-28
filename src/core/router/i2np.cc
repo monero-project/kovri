@@ -289,7 +289,7 @@ std::shared_ptr<I2NPMessage> CreateDatabaseStoreMsg(
       buf += 32;
     }
     kovri::core::Gzip compressor;
-    compressor.Put(router->GetBuffer(), router->GetBufferLen());
+    compressor.Put(router->data(), router->size());
     auto size = compressor.MaxRetrievable();
     core::OutputByteStream::Write<std::uint16_t>(buf, size);  // size
     buf += 2;

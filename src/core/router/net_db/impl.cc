@@ -339,7 +339,7 @@ bool NetDb::Load()
                         || timestamp < router->GetTimestamp()
                                     + Time::RouterExpiration))
                   {
-                    router->DeleteBuffer();
+                    router->clear();
                     router->GetOptions().clear();  // options are not used for regular routers  // TODO(anonimal): review
                     m_RouterInfos.insert(std::make_pair(router->GetIdentHash(), router));
                     if (router->HasCap(RouterInfo::Cap::Floodfill))
@@ -391,7 +391,7 @@ void NetDb::SaveUpdated() {
       it.second->SaveToFile(f);
       it.second->SetUpdated(false);
       it.second->SetUnreachable(false);
-      it.second->DeleteBuffer();
+      it.second->clear();
       count++;
     } else {
       // RouterInfo expires after N minutes if it uses an introducer
@@ -714,7 +714,7 @@ void NetDb::HandleDatabaseLookupMsg(
       if (router) {
         LOG(debug) << "NetDb: requested RouterInfo " << key << " found";
         router->LoadBuffer();
-        if (router->GetBuffer())
+        if (router->data())
           reply_msg = CreateDatabaseStoreMsg(router);
       }
     }

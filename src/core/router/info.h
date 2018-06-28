@@ -49,6 +49,7 @@
 #include "core/router/identity.h"
 #include "core/router/profiling.h"
 
+#include "core/util/buffer.h"
 #include "core/util/exception.h"
 #include "core/util/tag.h"
 #include "core/util/filesystem.h"
@@ -543,21 +544,22 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
 
  public:
   /// @return Pointer to RI buffer
-  const std::uint8_t* GetBuffer() const
+  const std::uint8_t* data() const
   {
-    return m_Buffer.get();
+    return m_Buffer.data();
   }
 
   /// @return RI buffer length
-  std::uint16_t GetBufferLen() const noexcept
+  std::uint16_t size() const noexcept
   {
-    return m_BufferLen;
+    return m_Buffer.size();
   }
 
-  /// @brief Deletes RI buffer
-  void DeleteBuffer()
+  /// @brief Clear RI buffer
+  void clear()
   {
-    m_Buffer.reset(nullptr);
+    // TODO(unassigned): we may also want to clear all options
+    m_Buffer.clear();
   }
 
   /// @return RI's router identity
@@ -802,10 +804,9 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
 
  private:
   core::Exception m_Exception;
+  core::Buffer<Size::MinBuffer, Size::MaxBuffer> m_Buffer;
   std::string m_Path;
   IdentityEx m_RouterIdentity;
-  std::unique_ptr<std::uint8_t[]> m_Buffer;
-  std::uint16_t m_BufferLen{};
   std::uint64_t m_Timestamp{};
   std::vector<Address> m_Addresses;
   std::map<std::string, std::string> m_Options;

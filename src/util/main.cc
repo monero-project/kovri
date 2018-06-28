@@ -65,74 +65,74 @@ void PrintUsage(
 
 int main(int argc, const char* argv[])
 {
-  ListCommands list_cmd;
+  try
+    {
+      ListCommands list_cmd;
 
-  Base32Command base32_cmd;
-  list_cmd[base32_cmd.GetName()] = &base32_cmd;
+      Base32Command base32_cmd;
+      list_cmd[base32_cmd.GetName()] = &base32_cmd;
 
-  Base64Command base64_cmd;
-  list_cmd[base64_cmd.GetName()] = &base64_cmd;
+      Base64Command base64_cmd;
+      list_cmd[base64_cmd.GetName()] = &base64_cmd;
 
-  SU3FileCommand su3file_cmd;
-  list_cmd[su3file_cmd.GetName()] = &su3file_cmd;
+      SU3FileCommand su3file_cmd;
+      list_cmd[su3file_cmd.GetName()] = &su3file_cmd;
 
-  RouterInfoCommand routerinfo_cmd;
-  list_cmd[routerinfo_cmd.GetName()] = &routerinfo_cmd;
+      RouterInfoCommand routerinfo_cmd;
+      list_cmd[routerinfo_cmd.GetName()] = &routerinfo_cmd;
 
-  Benchmark benchmark_cmd;
-  list_cmd[benchmark_cmd.GetName()] = &benchmark_cmd;
+      Benchmark benchmark_cmd;
+      list_cmd[benchmark_cmd.GetName()] = &benchmark_cmd;
 
-  I2PControlCommand i2pcontrol_cmd;
-  list_cmd[i2pcontrol_cmd.GetName()] = &i2pcontrol_cmd;
+      I2PControlCommand i2pcontrol_cmd;
+      list_cmd[i2pcontrol_cmd.GetName()] = &i2pcontrol_cmd;
 
 #ifndef _WIN32
-  KovriCommand kovri_cmd;
-  list_cmd[kovri_cmd.GetName()] = &kovri_cmd;
+      KovriCommand kovri_cmd;
+      list_cmd[kovri_cmd.GetName()] = &kovri_cmd;
 #endif
 
 #ifdef WITH_CRYPTOPP
-  CpuidCommand cpuid_cmd;
-  list_cmd[cpuid_cmd.GetName()] = &cpuid_cmd;
+      CpuidCommand cpuid_cmd;
+      list_cmd[cpuid_cmd.GetName()] = &cpuid_cmd;
 #endif // WITH_CRYPTOPP
 
 #ifdef WITH_FUZZ_TESTS
-  FuzzCommand fuzz_cmd;
-  list_cmd[fuzz_cmd.GetName()] = &fuzz_cmd;
+      FuzzCommand fuzz_cmd;
+      list_cmd[fuzz_cmd.GetName()] = &fuzz_cmd;
 #endif  // WITH_FUZZ_TESTS
 
-  bpo::options_description general_desc("General options");
-  // See src/app/config.cc for log options
-  general_desc.add_options()("help,h", "produce this help message")(
-      "disable-console-log",
-      bpo::bool_switch()->default_value(false))(
+      bpo::options_description general_desc("General options");
+      // See src/app/config.cc for log options
+      general_desc.add_options()("help,h", "produce this help message")(
+          "disable-console-log",
+          bpo::bool_switch()->default_value(false))(
 
-      "disable-file-log",
-      bpo::bool_switch()->default_value(false))(
+          "disable-file-log",
+          bpo::bool_switch()->default_value(false))(
 
-      "disable-color-log",
-      bpo::bool_switch()->default_value(false))(
+          "disable-color-log",
+          bpo::bool_switch()->default_value(false))(
 
-      "enable-auto-flush-log",
-      bpo::bool_switch()->default_value(false))(
+          "enable-auto-flush-log",
+          bpo::bool_switch()->default_value(false))(
 
-      "log-file-name",
-      bpo::value<std::string>()->default_value("")->value_name("path"))(
+          "log-file-name",
+          bpo::value<std::string>()->default_value("")->value_name("path"))(
 
-      "log-level", bpo::value<std::uint16_t>()->default_value(3));
+          "log-level", bpo::value<std::uint16_t>()->default_value(3));
 
-  bpo::options_description spec("Specific options");
-  spec.add_options()(
-      "args", bpo::value<std::vector<std::string> >()->multitoken());
-  bpo::options_description config_options;
-  config_options.add(general_desc).add(spec);
+      bpo::options_description spec("Specific options");
+      spec.add_options()(
+          "args", bpo::value<std::vector<std::string> >()->multitoken());
+      bpo::options_description config_options;
+      config_options.add(general_desc).add(spec);
 
-  bpo::positional_options_description pos;
-  pos.add("args", -1);
+      bpo::positional_options_description pos;
+      pos.add("args", -1);
 
-  bpo::variables_map vm;
-  std::vector<std::string> args, opts;
-  try
-    {
+      bpo::variables_map vm;
+      std::vector<std::string> args, opts;
       bpo::parsed_options parsed = bpo::command_line_parser(argc, argv)
                                        .options(config_options)
                                        .allow_unregistered()
@@ -142,6 +142,52 @@ int main(int argc, const char* argv[])
 
       bpo::store(parsed, vm);
       bpo::notify(vm);
+
+      // Setup logging options
+      kovri::core::SetupLogging(vm);
+
+      if (vm.count("args"))
+        args = vm["args"].as<std::vector<std::string> >();
+
+      if (vm.count("help"))
+        {
+          if (!args.empty())
+            {
+              const auto& c = list_cmd.find(args.front());
+              if (c != list_cmd.end())
+                {  // print only sub command help
+                  list_cmd[c->first]->PrintUsage(
+                      std::string(argv[0]) + " " + c->first);
+                  return EXIT_SUCCESS;
+                }
+            }
+          PrintUsage(argv[0], general_desc, list_cmd);
+          return EXIT_SUCCESS;
+        }
+
+      if (opts.empty())
+        {
+          LOG(error) << "Not enough arguments !";
+          PrintUsage(argv[0], general_desc, list_cmd);
+          return EXIT_FAILURE;
+        }
+
+      std::string sub_cmd = opts.front();
+      // If the first argument is not a command
+      if (list_cmd.find(sub_cmd) == list_cmd.end())
+        {
+          LOG(error) << "Invalid command or option \"" << sub_cmd << "\"";
+          PrintUsage(argv[0], general_desc, list_cmd);
+          return EXIT_FAILURE;
+        }
+
+      for (const auto& a : opts)
+        LOG(trace) << "-- OPTS : " << a;
+      opts.erase(opts.begin());  // Remove sub command
+      // Process
+      if (list_cmd[sub_cmd]->Impl(std::string(argv[0]) + " " + sub_cmd, opts))
+        return EXIT_SUCCESS;
+      return EXIT_FAILURE;
     }
   catch (...)
     {
@@ -149,50 +195,4 @@ int main(int argc, const char* argv[])
       ex.Dispatch(__func__);
       return EXIT_FAILURE;
     }
-
-  // Setup logging options
-  kovri::core::SetupLogging(vm);
-
-  if (vm.count("args"))
-    args = vm["args"].as<std::vector<std::string> >();
-
-  if (vm.count("help"))
-    {
-      if (!args.empty())
-        {
-          const auto& c = list_cmd.find(args.front());
-          if (c != list_cmd.end())
-            {  // print only sub command help
-              list_cmd[c->first]->PrintUsage(
-                  std::string(argv[0]) + " " + c->first);
-              return EXIT_SUCCESS;
-            }
-        }
-      PrintUsage(argv[0], general_desc, list_cmd);
-      return EXIT_SUCCESS;
-    }
-
-  if (opts.empty())
-    {
-      LOG(error) << "Not enough arguments !";
-      PrintUsage(argv[0], general_desc, list_cmd);
-      return EXIT_FAILURE;
-    }
-
-  std::string sub_cmd = opts.front();
-  // If the first argument is not a command
-  if (list_cmd.find(sub_cmd) == list_cmd.end())
-    {
-      LOG(error) << "Invalid command or option \"" << sub_cmd << "\"";
-      PrintUsage(argv[0], general_desc, list_cmd);
-      return EXIT_FAILURE;
-    }
-
-  for (const auto& a : opts)
-    LOG(trace) << "-- OPTS : " << a;
-  opts.erase(opts.begin());  // Remove sub command
-  // Process
-  if (list_cmd[sub_cmd]->Impl(std::string(argv[0]) + " " + sub_cmd, opts))
-    return EXIT_SUCCESS;
-  return EXIT_FAILURE;
 }

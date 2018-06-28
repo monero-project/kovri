@@ -247,6 +247,7 @@ void SSUServer::HandleReceivedPackets(
       if (!session || session->GetRemoteEndpoint() != pkt->from) {
         if (session)
           session->FlushData();
+        std::unique_lock<std::mutex> l(m_SessionsMutex);
         auto session_it = m_Sessions.find(pkt->from);
         if (session_it != m_Sessions.end())
           {
@@ -255,12 +256,10 @@ void SSUServer::HandleReceivedPackets(
         else
           {
           session = std::make_shared<SSUSession>(*this, pkt->from);
-          session->WaitForConnect(); {
-            std::unique_lock<std::mutex> l(m_SessionsMutex);
-            // TODO(anonimal): assuming we get this far with 0 length HolePunch,
-            //   why would we add a session with Charlie *before* sending a SessionRequest?
-            m_Sessions[pkt->from] = session;
-          }
+          session->WaitForConnect();
+          // TODO(anonimal): assuming we get this far with 0 length HolePunch,
+          //   why would we add a session with Charlie *before* sending a SessionRequest?
+          m_Sessions[pkt->from] = session;
           LOG(debug)
             << "SSUServer: created new SSU session from "
             << session->GetRemoteEndpoint();

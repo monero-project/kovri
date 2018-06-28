@@ -59,6 +59,7 @@ add_library(kovri-core
   router/tunnel/impl.h
   router/tunnel/pool.h
   router/tunnel/transit.h
+  util/buffer.h
   util/byte_stream.h
   util/config.h
   util/exception.h

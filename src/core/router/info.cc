@@ -34,6 +34,7 @@
 
 #include <boost/lexical_cast.hpp>
 #include <boost/endian/conversion.hpp>
+#include <boost/version.hpp>
 
 #include <cstring>
 #include <fstream>
@@ -272,16 +273,19 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
                 {
                   // Process host and transport
                   boost::system::error_code ecode;
+#if (BOOST_VERSION >= 106600)
+                  address.host = boost::asio::ip::make_address(value, ecode);
+#else
                   address.host =
                       boost::asio::ip::address::from_string(value, ecode);
-                  // Unresolved hosts should be ignored as part of #686
+#endif
                   if (ecode)
                     {
-                       is_valid_address = false;
-                       LOG(error) << "RouterInfo: " << __func__
-                                  << ": address host error: '"
-                                  << ecode.message() << "'";
-                       break;
+                      // Also ignores unresolved hosts, as part of #686
+                      LOG(error) << "RouterInfo: " << __func__ << ": "
+                                 << __LINE__ << ": " << ecode.message() << "'";
+                      is_valid_address = false;
+                      break;
                     }
                   // Add supported transport
                   if (address.host.is_v4())
@@ -346,17 +350,19 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
                         case Trait::IntroHost:
                           {
                             boost::system::error_code ecode;
+#if (BOOST_VERSION >= 106600)
+                            introducer.host =
+                                boost::asio::ip::make_address(value, ecode);
+#else
                             introducer.host =
                                 boost::asio::ip::address::from_string(
                                     value, ecode);
-                            // TODO(unassigned):
-                            // Because unresolved hosts return EINVAL,
-                            // and since we currently have no implementation to resolve introducer hosts,
-                            // treat *all* errors as an invalid address.
+#endif
                             if (ecode)
                               {
-                                LOG(error) << "RouterInfo: " << __func__
-                                           << ": introducer host error: '"
+                                // Also ignores unresolved hosts, as part of #686
+                                LOG(error) << "RouterInfo: " << __func__ << ": "
+                                           << __LINE__ << ": "
                                            << ecode.message() << "'";
                                 is_valid_address = false;
                               }

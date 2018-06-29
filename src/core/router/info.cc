@@ -271,38 +271,19 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
               case Trait::Host:
                 {
                   // Process host and transport
-                  // TODO(unassigned): we process transport so we can resolve host. This seems like a hack.
                   boost::system::error_code ecode;
                   address.host =
                       boost::asio::ip::address::from_string(value, ecode);
                   if (ecode)
                     {
-                      // Unresolved hosts return invalid argument. See TODO below
-                      if (ecode != boost::asio::error::invalid_argument)
+                      // Unresolved hosts should be ignored as part of #686
+                      if (ecode == boost::asio::error::invalid_argument)
                         {
                           is_valid_address = false;
                           LOG(error) << "RouterInfo: " << __func__ << ": '"
                                      << ecode.message() << "'";
+                          continue;
                         }
-                      // Prepare for host resolution
-                      switch (address.transport)
-                        {
-		          case Transport::NTCP:
-                            // NTCP will (should be) resolved in transports
-                            // TODO(unassigned): refactor. Though we will resolve host later, assigning values upon error is simply confusing.
-                            m_SupportedTransports |= SupportedTransport::NTCPv4;
-                            address.address = value;
-                            break;
-		          case Transport::SSU:
-                            // TODO(unassigned): implement address resolver for SSU (then break from default case)
-                            LOG(warning)
-                                << "RouterInfo: unexpected SSU address "
-                                << value;
-                            // fall-through
-                          default:
-                            is_valid_address = false;
-                        }
-                      break;
                     }
                   // Add supported transport
                   if (address.host.is_v4())

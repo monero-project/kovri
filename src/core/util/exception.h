@@ -49,7 +49,7 @@ class Exception final {
   /// @brief Exception class dispatcher
   /// @details Set optional exception message, concats messages, adds trivial formatting
   /// @param message String message to log for exception
-  void Dispatch(const char* message = "");
+  void Dispatch(const char* message = "") const;
 
  private:
   std::string m_Message;

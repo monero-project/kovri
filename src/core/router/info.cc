@@ -403,9 +403,10 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
                                 sizeof(introducer.key));
                           }
                           break;
+                        // TODO(unassigned):
+                        //   Implement introducer expiration according to proposal #133
                         default:
-                          LOG(error) << "RouterInfo: invalid introducer trait";
-                          is_valid_address = false;
+                          LOG(warning) << "RouterInfo: unknown introducer trait";
                           break;
                       }
                   }

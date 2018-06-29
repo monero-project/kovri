@@ -672,6 +672,10 @@ create_monitoring()
       catch "Grafana: failed to add dashboard $dashboard"
     done
 
+    # Grafana: install InfluxDB admin panel
+    local _install_influx_admin_panel="grafana-cli plugins install natel-influx-admin-panel"
+    docker exec -it ${grafana_base_name} ${_install_influx_admin_panel}
+
     # Stop grafana
     echo -n "Stopping... " && docker stop ${grafana_base_name}
     catch "Could not stop ${grafana_base_name}"

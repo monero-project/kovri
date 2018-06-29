@@ -382,10 +382,15 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
                                 sizeof(introducer.key));
                           }
                           break;
-                        // TODO(unassigned):
-                        //   Implement introducer expiration according to proposal #133
+                        case Trait::IntroExp:
+                          // TODO(unassigned):
+                          //   Implement introducer expiration according to proposal #133
+                          LOG(debug) << "RouterInfo: expiration supplied";
+                          break;
                         default:
-                          LOG(warning) << "RouterInfo: unknown introducer trait";
+                          LOG(warning)
+                              << "RouterInfo: unknown introducer trait";
+                          is_valid_address = false;
                           break;
                       }
                   }

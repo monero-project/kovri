@@ -233,23 +233,11 @@ class Transports {
   bool ConnectToPeer(
       const kovri::core::IdentHash& ident, Peer& peer);
 
-  bool ConnectToPeerNTCP(
-      const kovri::core::IdentHash& ident, Peer& peer);
-
+  bool ConnectToPeerNTCP(Peer& peer);
   bool ConnectToPeerSSU(Peer& peer);
 
   void HandlePeerCleanupTimer(
       const boost::system::error_code& ecode);
-
-  void NTCPResolve(
-      const std::string& addr,
-      const kovri::core::IdentHash& ident);
-
-  void HandleNTCPResolve(
-      const boost::system::error_code& ecode,
-      boost::asio::ip::tcp::resolver::iterator it,
-      kovri::core::IdentHash ident,
-      std::shared_ptr<boost::asio::ip::tcp::resolver> resolver);
 
   void UpdateBandwidth();
 

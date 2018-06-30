@@ -475,7 +475,6 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
   {
     Transport transport;
     boost::asio::ip::address host;
-    std::string address;
     std::uint16_t port{}, mtu{};
     std::uint64_t date{};
     std::uint8_t cost{};

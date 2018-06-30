@@ -42,6 +42,7 @@
 #include "client/tunnel.h"
 
 #include "core/router/identity.h"
+#include "core/util/exception.h"
 
 
 namespace kovri {
@@ -376,7 +377,15 @@ void SOCKSHandler::Terminate() {
     LOG(debug) << "SOCKSHandler: close stream";
     m_Stream.reset();
   }
-  Done(shared_from_this());
+  try
+    {
+      Done(shared_from_this());
+    }
+  catch (...)
+    {
+      core::Exception ex;
+      ex.Dispatch(__func__);
+    }
 }
 
 // TODO(anonimal): bytestream refactor

@@ -54,7 +54,7 @@ namespace kovri
 namespace core
 {
 
-RouterInfo::RouterInfo() : m_Exception(__func__), m_Buffer(nullptr)  // TODO(anonimal): buffer refactor
+RouterInfo::RouterInfo() : m_Exception(__func__)
 {
 }
 
@@ -103,8 +103,7 @@ RouterInfo::RouterInfo(
 
 RouterInfo::RouterInfo(const std::string& path)
     : m_Exception(__func__),
-      m_Path(path),
-      m_Buffer(std::make_unique<std::uint8_t[]>(Size::MaxBuffer))  // TODO(anonimal): buffer refactor
+      m_Path(path)
 {
   ReadFromFile();
   ReadFromBuffer(false);
@@ -112,14 +111,8 @@ RouterInfo::RouterInfo(const std::string& path)
 
 RouterInfo::RouterInfo(const std::uint8_t* buf, std::uint16_t len)
     : m_Exception(__func__),
-      m_Buffer(std::make_unique<std::uint8_t[]>(Size::MaxBuffer)),  // TODO(anonimal): buffer refactor
-      m_BufferLen(len)
+      m_Buffer(buf, len)
 {
-  if (!buf)
-    throw std::invalid_argument("RouterInfo: null buffer");
-  if (len < Size::MinBuffer || len > Size::MaxBuffer)
-    throw std::length_error("RouterInfo: invalid buffer length");
-  std::memcpy(m_Buffer.get(), buf, len);
   ReadFromBuffer(true);
   m_IsUpdated = true;
 }
@@ -138,18 +131,11 @@ void RouterInfo::ReadFromFile()
 
       // Get full length of stream
       stream.Seekg(0, std::ios::end);
-      m_BufferLen = stream.Tellg();
-      if (m_BufferLen < Size::MinBuffer || m_BufferLen > Size::MaxBuffer)
-        {
-          LOG(error) << "RouterInfo: buffer length = " << m_BufferLen;
-          throw std::runtime_error(m_Path + " is malformed");
-        }
+      m_Buffer(stream.Tellg());
 
       // Read in complete length of stream
       stream.Seekg(0, std::ios::beg);
-      if (!m_Buffer)
-        m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
-      stream.Read(m_Buffer.get(), m_BufferLen);
+      stream.Read(m_Buffer.data(), m_Buffer.size());
     }
   catch (...)
     {
@@ -163,15 +149,15 @@ void RouterInfo::ReadFromBuffer(bool verify_signature)
   try
     {
       // Get + verify identity length from existing RI in buffer
-      std::size_t ident_len =
-          m_RouterIdentity.FromBuffer(m_Buffer.get(), m_BufferLen);
+      std::size_t const ident_len =
+          m_RouterIdentity.FromBuffer(m_Buffer.data(), m_Buffer.size());
       if (!ident_len)
         throw std::length_error("null ident length");
 
       // Parse existing RI from buffer
       std::string router_info(
-          reinterpret_cast<char*>(m_Buffer.get()) + ident_len,
-          m_BufferLen - ident_len);
+          reinterpret_cast<const char*>(m_Buffer.data()) + ident_len,
+          m_Buffer.size() - ident_len);
 
       ParseRouterInfo(router_info);
 
@@ -179,11 +165,10 @@ void RouterInfo::ReadFromBuffer(bool verify_signature)
       if (verify_signature)
         {
           // Note: signature length is guaranteed to be no less than buffer length
-          std::uint16_t len = m_BufferLen - m_RouterIdentity.GetSignatureLen();
+          std::uint16_t const len =
+              m_Buffer.size() - m_RouterIdentity.GetSignatureLen();
           if (!m_RouterIdentity.Verify(
-                  reinterpret_cast<std::uint8_t*>(m_Buffer.get()),
-                  len,
-                  reinterpret_cast<std::uint8_t*>(m_Buffer.get() + len)))
+                  m_Buffer.data(), len, m_Buffer.data() + len))
             {
               LOG(error) << "RouterInfo: signature verification failed";
               m_IsUnreachable = true;
@@ -679,33 +664,27 @@ void RouterInfo::DisableV6()
 
 void RouterInfo::Update(const std::uint8_t* buf, std::uint16_t len)
 {
-  if (len < Size::MinBuffer || len > Size::MaxBuffer)
-    throw std::length_error(
-        "RouterInfo: " + std::string(__func__) + ": invalid buffer length");
-  if (!m_Buffer)
-    m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
-  m_BufferLen = len;
+  m_Buffer(buf, len);
   m_IsUpdated = true;
   m_IsUnreachable = false;
   m_SupportedTransports = 0;
   m_Caps = 0;
   m_Addresses.clear();
   m_Options.clear();
-  std::memcpy(m_Buffer.get(), buf, len);
   ReadFromBuffer(true);
   // don't delete buffer until saved to file
 }
 
 const std::uint8_t* RouterInfo::LoadBuffer()
 {
-  if (!m_Buffer)
+  if (!m_Buffer.size())
     {
       ReadFromFile();
       LOG(debug) << "RouterInfo: buffer for " << GetIdentHashAbbreviation()
                  << " loaded from file";
     }
 
-  return m_Buffer.get();
+  return m_Buffer.data();
 }
 
 void RouterInfo::CreateBuffer(const PrivateKeys& private_keys)
@@ -715,23 +694,20 @@ void RouterInfo::CreateBuffer(const PrivateKeys& private_keys)
       // Create RI
       core::StringStream router_info;
       CreateRouterInfo(router_info, private_keys);
-      if (router_info.Str().size() > Size::MaxBuffer)
-        throw std::length_error("created RI is too big");
 
       // Create buffer
-      m_BufferLen = router_info.Str().size();
-      if (!m_Buffer)
-        m_Buffer = std::make_unique<std::uint8_t[]>(Size::MaxBuffer);
-      std::memcpy(m_Buffer.get(), router_info.Str().c_str(), m_BufferLen);
+      m_Buffer(
+          reinterpret_cast<const std::uint8_t*>(router_info.Str().c_str()),
+          router_info.Str().size());
 
       // Signature
       // TODO(anonimal): signing should be done when creating RI, not after. Requires other refactoring.
       private_keys.Sign(
-          reinterpret_cast<std::uint8_t*>(m_Buffer.get()),
-          m_BufferLen,
-          reinterpret_cast<std::uint8_t*>(m_Buffer.get()) + m_BufferLen);
+          m_Buffer.data(),
+          m_Buffer.size(),
+          m_Buffer.data() + m_Buffer.size());
 
-      m_BufferLen += private_keys.GetPublic().GetSignatureLen();
+      m_Buffer(m_Buffer.size() + private_keys.GetPublic().GetSignatureLen());
     }
   catch (...)
     {
@@ -916,11 +892,8 @@ void RouterInfo::SaveToFile(const std::string& path)
   if (stream.Fail())
     throw std::runtime_error("RouterInfo: cannot open " + path);
 
-  // TODO(anonimal): buffer should be guaranteed
-  if (!m_Buffer)
-    throw std::length_error("RouterInfo: cannot save file, buffer is empty");
-
-  if (!stream.Write(m_Buffer.get(), m_BufferLen))
+  assert(m_Buffer.size());
+  if (!stream.Write(m_Buffer.data(), m_Buffer.size()))
     throw std::runtime_error("RouterInfo: cannot save " + path);
 }
 

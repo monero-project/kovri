@@ -349,6 +349,11 @@ endif()
 # This error appear for cotired build
 if (MINGW)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj")
+  # TODO(unassigned): remove once a better solution is found (we don't want to force optimization)
+  #   Referencing https://github.com/monero-project/meta/issues/238
+  if (WITH_STATIC AND ARCH_WIDTH EQUAL "64")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
+  endif()
 endif()
 
 # Directly link IPHLPAPI.lib instead of using `#pragma comment()`

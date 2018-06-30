@@ -66,8 +66,8 @@ struct NetDbFixture : public IdentityExFixture
         std::make_pair(true, false),
         cap);
 
-    m_NetDb->AddRouterInfo(
-        ri->GetIdentHash(), ri->GetBuffer(), ri->GetBufferLen());
+    BOOST_CHECK_NO_THROW(
+        m_NetDb->AddRouterInfo(ri->GetIdentHash(), ri->data(), ri->size()));
 
     return ri;
   }

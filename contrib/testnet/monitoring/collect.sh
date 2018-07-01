@@ -43,7 +43,7 @@ while true; do
     IFS=$'\n'
 
     # Get statistics from kovri instances
-    stats=$(/usr/bin/kovri-util control stats --host $_host --disable-console-log)
+    stats=$(/usr/bin/kovri-util --disable-file-log --disable-color-log --enable-auto-flush-log control stats --host $_host 2>&1)
     if [[ $? -ne 0 ]]; then
         echo "Instance $_seq is not accessible"
         continue

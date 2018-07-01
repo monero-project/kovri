@@ -37,7 +37,7 @@ docker_base_name=$5
 while true; do
   sleep 15
   data=""
-  for _seq in $($sequence); do
+  for _seq in $(eval $sequence); do
     _host="${network_octets}.$((10#${_seq}))"
     _container_name="${docker_base_name}${_seq}"
     IFS=$'\n'

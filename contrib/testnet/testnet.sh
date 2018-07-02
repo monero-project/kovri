@@ -76,6 +76,7 @@ web_host_octet=".2"
 
 pid=$(id -u)
 gid="docker" # Assumes user is in docker group
+docker_uid=$pid
 
 # TODO(unassigned): better sequencing impl
 #Note: sequence limit [2:254]
@@ -133,7 +134,7 @@ PrintUsage()
   echo "KOVRI_BUILD_REPO_BINS   = build repo binaries from *within* the container"
   echo "KOVRI_CLEANUP           = cleanup/destroy previous testnet"
   echo "KOVRI_USE_NAMED_PIPES   = use named pipes for logging"
-  echo "KOVRI_DISABLE_MONITORING= disable logging"
+  echo "KOVRI_ENABLE_MONITORING = enable logging"
   echo ""
   echo "Log monitoring"
   echo "--------------"
@@ -247,7 +248,7 @@ set_images()
     read_input "Change Dockerfile?: [KOVRI_DOCKERFILE=${KOVRI_DOCKERFILE}]" KOVRI_DOCKERFILE
   fi
   local _kovri_dockerfile_path="${KOVRI_REPO}/${docker_dir}/Dockerfiles/${KOVRI_DOCKERFILE}"
-  read_bool_input "Build Kovri Docker image? [$KOVRI_IMAGE]" KOVRI_BUILD_IMAGE "docker build -t $KOVRI_IMAGE -f $_kovri_dockerfile_path $KOVRI_REPO"
+  read_bool_input "Build Kovri Docker image? [$KOVRI_IMAGE]" KOVRI_BUILD_IMAGE "docker build --build-arg userid=$docker_uid -t $KOVRI_IMAGE -f $_kovri_dockerfile_path $KOVRI_REPO"
 
   # Select Kovri Webserver Dockerfile
   local _default_web_dockerfile="Dockerfile.apache"
@@ -271,7 +272,14 @@ set_bins()
     mount_repo_bins="-v ${KOVRI_REPO}/build/kovri:/usr/bin/kovri \
       -v ${KOVRI_REPO}/build/kovri-util:/usr/bin/kovri-util"
 
-    read_bool_input "Build repo binaries from within the container?" KOVRI_BUILD_REPO_BINS "Exec make release-static"
+    build_cmd="make clean"
+    if [[ $KOVRI_DOCKERFILE = "Dockerfile.arch" ]]; then
+      build_cmd="${build_cmd} release" # Arch doesn't support static OpenSSL builds
+    else
+      build_cmd="${build_cmd} release-static"
+    fi
+
+    read_bool_input "Build repo binaries from within the container?" KOVRI_BUILD_REPO_BINS "Exec $build_cmd"
 
     if [[ $KOVRI_BUILD_REPO_BINS = false ]]; then
       echo "Please ensure that the binaries are built statically if not built within a container"
@@ -306,13 +314,13 @@ set_args()
 
   # Set daemon binary arguments
   if [[ -z $KOVRI_BIN_ARGS ]]; then
-    KOVRI_BIN_ARGS="--enable-floodfill --disable-su3-verification --disable-https --enable-auto-flush-log"
+    KOVRI_BIN_ARGS="--enable-floodfill --disable-su3-verification --disable-https --enable-auto-flush-log --i2pcontroladdress 0.0.0.0 --i2pcontrolport 7650"
     read_input "Change kovri binary arguments? [KOVRI_BIN_ARGS=\"${KOVRI_BIN_ARGS}\"]" KOVRI_BIN_ARGS
   fi
 
   # Set firewalled daemon binary arguments
   if [[ $KOVRI_NB_FW -gt 0 && -z $KOVRI_FW_BIN_ARGS ]]; then
-    KOVRI_FW_BIN_ARGS="--enable-floodfill --disable-su3-verification --enable-auto-flush-log"
+    KOVRI_FW_BIN_ARGS="--enable-floodfill --disable-su3-verification --enable-auto-flush-log --i2pcontroladdress 0.0.0.0 --i2pcontrolport 7650"
     read_input "Change firewalled kovri binary arguments? [KOVRI_FW_BIN_ARGS=\"${KOVRI_FW_BIN_ARGS}\"]" KOVRI_FW_BIN_ARGS
   fi
 }
@@ -495,6 +503,7 @@ create_ri()
 
   docker run -w $mount -it --rm \
     -v $_volume \
+    -u $docker_uid \
     $mount_repo_bins \
     $KOVRI_IMAGE /usr/bin/kovri-util routerinfo --create \
       --host $_host \
@@ -551,6 +560,7 @@ create_instance()
     --ip $_host \
     -p ${_port}:${_port} \
     -v $_volume \
+    -u $docker_uid \
     $mount_repo_bins \
     $_docker_opts \
     $KOVRI_IMAGE \
@@ -576,6 +586,7 @@ create_webserver_instance()
   # Start publisher instance
   docker create -it --network=${KOVRI_NETWORK} --ip=${_web_host} --name $web_name \
     $_entrypoint \
+    -u $docker_uid \
     -v ${_dest_dir}/${web_root_dir}/:${web_system_dir}/${web_root_dir}/ \
     $KOVRI_WEB_IMAGE \
     "$_cmd"
@@ -585,8 +596,8 @@ create_webserver_instance()
 
 create_monitoring()
 {
-  read_bool_input "Disable monitoring?" KOVRI_DISABLE_MONITORING ""
-  if [[ $KOVRI_DISABLE_MONITORING = false ]]; then
+  read_bool_input "Enable monitoring?" KOVRI_ENABLE_MONITORING ""
+  if [[ $KOVRI_ENABLE_MONITORING = true ]]; then
     # Set db IP
     local _db_host="${network_octets}${db_host_octet}"
     local _db_uri="${_db_host}:8086"
@@ -647,7 +658,7 @@ create_monitoring()
     echo "Grafana: Created datasource ${_db_host}:8086"
 
     # Grafana: Create API token
-    local _apiKey=$(curl -X POST -H "Content-Type: application/json" -d '{"name":"apikeycurl", "role": "Admin"}' ${_grafana_uri}/api/auth/keys | python -c "import sys, json; print json.load(sys.stdin)['key']")
+    local _apiKey=$(curl -X POST -H "Content-Type: application/json" -d '{"name":"apikeycurl", "role": "Admin"}' ${_grafana_uri}/api/auth/keys | python -c "import sys, json; print(json.load(sys.stdin)['key'])")
     catch "Grafana: Could not create API key"
     echo "Grafana: Created api key $_apiKey"
 
@@ -661,11 +672,25 @@ create_monitoring()
       catch "Grafana: failed to add dashboard $dashboard"
     done
 
+    # Grafana: install InfluxDB admin panel
+    local _install_influx_admin_panel="grafana-cli plugins install natel-influx-admin-panel"
+    docker exec -it ${grafana_base_name} ${_install_influx_admin_panel}
+
     # Stop grafana
     echo -n "Stopping... " && docker stop ${grafana_base_name}
     catch "Could not stop ${grafana_base_name}"
 
     echo "Monitoring interface is accessibe at: http://127.0.0.1:${grafana_host_port} with credentials admin:${grafana_password}"
+  fi
+}
+
+has_monitoring()
+{
+  HAS_MONITORING=false;
+  local monitor_containers="${db_container_name}|${stats_container_name}|${stats_kovri_name}|${grafana_base_name}"
+  docker container ls --all | grep -q -E "$monitor_containers"
+  if [[ $? -eq 0 ]]; then
+    HAS_MONITORING=true;
   fi
 }
 
@@ -679,7 +704,8 @@ Start()
     catch "Could not start docker: $_seq"
   done
 
-  if [[ $KOVRI_DISABLE_MONITORING = false ]]; then
+  has_monitoring
+  if [[ $HAS_MONITORING = true ]]; then
     echo -n "Starting monitoring database... " && docker start $db_container_name
     echo -n "Starting container stats collector... " && docker start $stats_container_name
     echo -n "Starting kovri stats collector... " && docker start $stats_kovri_name
@@ -700,7 +726,8 @@ Stop()
   local _stop="docker stop -t $KOVRI_STOP_TIMEOUT"
 
   # Stop testnet
-  if [[ $KOVRI_DISABLE_MONITORING = false ]]; then
+  has_monitoring
+  if [[ $HAS_MONITORING = true ]]; then
     echo -n "Stopping monitoring collector " && $_stop $stats_kovri_name
     echo -n "Stopping container stats collector... " && $_stop $stats_container_name
     echo -n "Stopping monitoring database... " && $_stop $db_container_name
@@ -733,7 +760,8 @@ Destroy()
 
   Stop
 
-  if [[ $KOVRI_DISABLE_MONITORING = false ]]; then
+  has_monitoring
+  if [[ $HAS_MONITORING = true ]]; then
     echo -n "Removing monitoring collector... " && docker rm -v $stats_kovri_name
     echo -n "Removing container stats collector... " && docker rm -v $stats_container_name
     echo -n "Removing monitoring database... " && docker rm -v $db_container_name
@@ -763,6 +791,7 @@ Exec()
     --rm \
     -v $KOVRI_REPO:/home/kovri/kovri \
     -w /home/kovri/kovri \
+    -u $docker_uid \
     $KOVRI_IMAGE \
     $@
   catch "Docker: run failed"

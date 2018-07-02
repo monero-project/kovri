@@ -37,13 +37,13 @@ docker_base_name=$5
 while true; do
   sleep 15
   data=""
-  for _seq in $($sequence); do
+  for _seq in $(eval $sequence); do
     _host="${network_octets}.$((10#${_seq}))"
     _container_name="${docker_base_name}${_seq}"
     IFS=$'\n'
 
     # Get statistics from kovri instances
-    stats=$(/usr/bin/kovri-util control stats --host $_host --disable-console-log)
+    stats=$(/usr/bin/kovri-util --disable-file-log --disable-color-log --enable-auto-flush-log control stats --host $_host 2>&1)
     if [[ $? -ne 0 ]]; then
         echo "Instance $_seq is not accessible"
         continue

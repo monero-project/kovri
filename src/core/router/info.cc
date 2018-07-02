@@ -712,10 +712,7 @@ void RouterInfo::Verify()
         throw std::length_error("RouterInfo: invalid RouterInfo size");
       const std::uint8_t* buf = m_Buffer.data();
       if (!m_RouterIdentity.Verify(buf, len, &buf[len]))
-        {
-          m_IsUnreachable = true;
-          throw std::runtime_error("RouterInfo: signature verification failed");
-        }
+        m_IsUnreachable = true;
     }
   catch (...)
     {

@@ -173,7 +173,10 @@ class HTTPResponse{
     htmlbody+="HTTP Error " + std::to_string(status) + " ";
     htmlbody+=HTTPResponseCodes::status_message(status);
     if (status == HTTPResponseCodes::status_t::service_unavailable) {
-      htmlbody+=" Please wait for the router to integrate";
+      htmlbody+=
+          "<p>Service may be unavailable because it's offline, overloaded, or "
+          "the router can't retrieve the service's destination information.<br>"
+          "Please try again later.</p>";
     }
     htmlbody+="</body>";
     htmlbody+="</html>";

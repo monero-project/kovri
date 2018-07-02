@@ -242,7 +242,7 @@ bool HTTPMessage::HandleData(const std::string& protocol_string) {
   std::vector<std::string> tokens_header_body;
   // get header info
   // initially set error response to bad_request
-  m_ErrorResponse = HTTPResponse(HTTPResponseCodes::status_t::bad_request);
+  m_ErrorResponse.set_response(HTTPResponse::status_t::bad_request);
   if (boost::algorithm::split_regex(
           header_body, protocol_string, boost::regex("\r\n\r\n")).size()
       != HEADERBODY_LEN)
@@ -280,7 +280,7 @@ bool HTTPMessage::HandleData(const std::string& protocol_string) {
 
   m_HeaderMap = headers;
   // reset error response to ok
-  m_ErrorResponse = HTTPResponse(HTTPResponseCodes::status_t::ok);
+  m_ErrorResponse.set_response(HTTPResponse::status_t::ok);
   return true;
 }
 
@@ -302,8 +302,7 @@ void HTTPProxyHandler::HandleStreamRequestComplete(
     Done(shared_from_this());
   } else {
     LOG(error) << "HTTPProxyHandler: stream is unavailable, try again soon";
-    m_Protocol.m_ErrorResponse
-        = HTTPResponse(HTTPResponseCodes::status_t::service_unavailable);
+    m_Protocol.set_error_response(HTTPResponse::status_t::service_unavailable);
     HTTPRequestFailed();
   }
 }
@@ -324,8 +323,7 @@ bool HTTPMessage::CreateHTTPRequest(const bool save_address) {
       if (!HandleJumpService())
         {
           LOG(error) << "HTTPMessage: invalid jump service request";
-          m_ErrorResponse =
-              HTTPResponse(HTTPResponseCodes::status_t::bad_request);
+          m_ErrorResponse.set_response(HTTPResponse::status_t::bad_request);
           return false;
         }
       // TODO(unassigned): remove this unnecessary else block
@@ -343,8 +341,8 @@ bool HTTPMessage::CreateHTTPRequest(const bool save_address) {
             {
               LOG(error)
                   << "HTTPProxyHandler: failed to save address to address book";
-              m_ErrorResponse = HTTPResponse(
-                  HTTPResponseCodes::status_t::internal_server_error);
+              m_ErrorResponse.set_response(
+                  HTTPResponse::status_t::internal_server_error);
               return false;
             }
         }
@@ -391,7 +389,7 @@ bool HTTPMessage::CreateHTTPRequest(const bool save_address) {
 }
 
 bool HTTPMessage::ExtractIncomingRequest() {
-  m_ErrorResponse = HTTPResponse(HTTPResponseCodes::status_t::bad_request);
+  m_ErrorResponse.set_response(HTTPResponse::status_t::bad_request);
   LOG(debug)
     << "HTTPProxyHandler: method is: " << m_Method
     << " request is: " << m_URL;
@@ -418,11 +416,10 @@ bool HTTPMessage::ExtractIncomingRequest() {
   // Check for HTTP version
   if (m_Version != "HTTP/1.0" && m_Version != "HTTP/1.1") {
     LOG(error) << "HTTPProxyHandler: unsupported version: " << m_Version;
-    m_ErrorResponse
-        = HTTPResponse(HTTPResponseCodes::status_t::http_not_supported);
+    m_ErrorResponse.set_response(HTTPResponse::status_t::http_not_supported);
     return false;
   }
-  m_ErrorResponse = HTTPResponse(HTTPResponseCodes::status_t::ok);
+  m_ErrorResponse.set_response(HTTPResponse::status_t::ok);
   return true;
 }
 
@@ -521,8 +518,8 @@ void HTTPProxyHandler::HTTPRequestFailed() {
   boost::asio::async_write(
       *m_Socket,
       boost::asio::buffer(
-          m_Protocol.m_ErrorResponse.m_Response,
-          m_Protocol.m_ErrorResponse.m_Response.size()),
+          m_Protocol.get_error_response(),
+          m_Protocol.get_error_response().size()),
       std::bind(
           &HTTPProxyHandler::SentHTTPFailed,
           shared_from_this(),

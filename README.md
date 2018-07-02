@@ -17,7 +17,7 @@ This page is also available in the following languages
 + [Italian](https://github.com/monero-project/kovri-docs/blob/master/i18n/it/README.md)
 + Spanish
 + Russian
-+ French
++ [French](https://github.com/monero-project/kovri-docs/blob/master/i18n/fr/README.md)
 + German
 + Danishs
 

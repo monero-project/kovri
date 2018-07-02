@@ -219,3 +219,33 @@ BOOST_AUTO_TEST_CASE(NoDest)
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+
+/**
+ *
+ * HTTP response creation
+ *
+ */
+
+BOOST_AUTO_TEST_SUITE(CreateHTTPResponse)
+
+BOOST_AUTO_TEST_CASE(ValidResponse)
+{
+  const auto status = kovri::client::HTTPResponse::status_t::ok;
+
+  BOOST_CHECK_NO_THROW(kovri::client::HTTPResponse response(status));
+
+  kovri::client::HTTPResponse response(status);
+
+  BOOST_CHECK(response.get_response().size());
+
+  BOOST_CHECK_NE(
+      response.get_response().find(std::to_string(status)), std::string::npos);
+
+  BOOST_CHECK_NE(
+      response.get_response().find(response.status_message(status)),
+      std::string::npos);
+
+  // TODO(oneiric): after Boost.Beast refactor, check response follows HTTP protocol
+}
+
+BOOST_AUTO_TEST_SUITE_END()

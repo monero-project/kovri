@@ -706,9 +706,8 @@ void RouterInfo::Verify()
 {
   try
     {
-      if (!m_Buffer.data())
-        throw std::runtime_error("RouterInfo: null buffer");
-      std::size_t const len = m_Buffer.size() - m_RouterIdentity.GetSignatureLen();
+      std::size_t const len =
+          m_Buffer.size() - m_RouterIdentity.GetSignatureLen();
       if (len < Size::MinUnsignedBuffer)
         throw std::length_error("RouterInfo: invalid RouterInfo size");
       const std::uint8_t* buf = m_Buffer.data();

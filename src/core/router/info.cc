@@ -706,12 +706,14 @@ void RouterInfo::Verify()
 {
   try
     {
+      // Get RI length without signature
       std::size_t const len =
           m_Buffer.size() - m_RouterIdentity.GetSignatureLen();
-      if (len < Size::MinUnsignedBuffer)
-        throw std::length_error("RouterInfo: invalid RouterInfo size");
+
+      // Confirm if valid and usable
       const std::uint8_t* buf = m_Buffer.data();
-      if (!m_RouterIdentity.Verify(buf, len, &buf[len]))
+      if (len < Size::MinUnsignedBuffer
+          || !m_RouterIdentity.Verify(buf, len, &buf[len]))
         m_IsUnreachable = true;
     }
   catch (...)

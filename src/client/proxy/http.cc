@@ -56,6 +56,83 @@
 
 namespace kovri {
 namespace client {
+std::string HTTPResponse::status_message(const status_t status) const
+{
+  switch (status)
+    {
+      case status_t::ok:
+        return "OK";
+      case status_t::created:
+        return "Created";
+      case status_t::accepted:
+        return "Accepted";
+      case status_t::no_content:
+        return "No Content";
+      case status_t::multiple_choices:
+        return "Multiple Choices";
+      case status_t::moved_permanently:
+        return "Moved Permanently";
+      case status_t::moved_temporarily:
+        return "Moved Temporarily";
+      case status_t::not_modified:
+        return "Not Modified";
+      case status_t::bad_request:
+        return "Bad Request";
+      case status_t::unauthorized:
+        return "Unauthorized";
+      case status_t::forbidden:
+        return "Fobidden";
+      case status_t::not_found:
+        return "Not Found";
+      case status_t::not_supported:
+        return "Not Supported";
+      case status_t::not_acceptable:
+        return "Not Acceptable";
+      case status_t::internal_server_error:
+        return "Internal Server Error";
+      case status_t::not_implemented:
+        return "Not Implemented";
+      case status_t::bad_gateway:
+        return "Bad Gateway";
+      case status_t::service_unavailable:
+        return "Service Unavailable";
+      case status_t::partial_content:
+        return "Partial Content";
+      case status_t::request_timeout:
+        return "Request Timeout";
+      case status_t::precondition_failed:
+        return "Precondition Failed";
+      case status_t::unsatisfiable_range:
+        return "Requested Range Not Satisfiable";
+      case status_t::http_not_supported:
+        return "HTTP Version Not Supported";
+      case status_t::space_unavailable:
+        return "Insufficient Space to Store Resource";
+      default:
+        return "Unknown";
+    }
+}
+
+/// @brief Set HTTP error response
+/// @param status HTTP status code for the error response
+void HTTPResponse::set_response(const status_t status)
+{
+  std::string ext_msg{};
+  if (status == status_t::service_unavailable)
+    ext_msg =
+        "<p>Service may be unavailable because it's offline, overloaded, or "
+        "the router can't retrieve the service's destination information.<br>"
+        "Please try again later.</p>";
+  std::string const html_body(
+      "<html><head><title>HTTP Error</title></head><body>HTTP Error "
+      + std::to_string(status) + " " + status_message(status) + ext_msg
+      + "</body></html>");
+  m_Response = "HTTP/1.0 " + std::to_string(status) + " "
+               + status_message(status)
+               + "\r\nContent-type: text/html;charset=UTF-8\r\n"
+               + "Content-Encoding: UTF-8\r\nContent-length: "
+               + std::to_string(html_body.size()) + "\r\n\r\n" + html_body;
+}
 
 HTTPProxyServer::HTTPProxyServer(
     const std::string& name,

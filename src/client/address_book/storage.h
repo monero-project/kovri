@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -54,6 +54,23 @@ namespace client {
 /// @class AddressBookDefaults
 /// @brief Default string constants used throughout address book
 struct AddressBookDefaults {
+  /// @enum Subscription
+  /// @brief Subscription type for where to load/save subscription addresses
+  /// @notes Scoped to prevent namespace pollution (otherwise, purely stylistic)
+  enum struct SubscriptionType
+  {
+    Default,
+    User,
+    Private,
+  };
+
+  /// @alias AddressMap
+  /// @brief Maps human-readable hostname to an identity hash and subscription type
+  /// @details Intended for user-convenience, readability, mapping to/from database entries, and potential subscription feed support
+  /// @notes For subscription feed details, see I2P proposal 112
+  using AddressMap =
+      std::map<std::string, std::pair<core::IdentHash, SubscriptionType> >;
+
   /// @enum AddressBookSize
   enum AddressBookSize : std::uint16_t {
     /// @brief Line in subscription file
@@ -138,14 +155,12 @@ class AddressBookStorage : public AddressBookDefaults {
   /// @brief Loads subscriptions from file into memory
   /// @return Number of subscriptions loaded
   /// @param addresses Reference to map of human-readable addresses to hashes
-  std::size_t Load(
-      std::map<std::string, kovri::core::IdentHash>& addresses);
+  std::size_t Load(AddressMap& addresses);
 
   /// @brief Saves subscriptions to file in CSV format to verify addresses loaded
   /// @return Number of addresses saved
   /// @param addresses Const reference to map of human-readable address to b32 hashes of address
-  std::size_t Save(
-      const std::map<std::string, kovri::core::IdentHash>& addresses);
+  std::size_t Save(const AddressMap& addresses);
 
  private:
   /// @return Address book path with appended addresses location

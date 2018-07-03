@@ -230,11 +230,12 @@ BOOST_AUTO_TEST_SUITE(CreateHTTPResponse)
 
 BOOST_AUTO_TEST_CASE(ValidResponse)
 {
-  const auto status = kovri::client::HTTPResponse::status_t::ok;
+  namespace client = kovri::client;
+  const auto status = client::HTTPResponse::ok;
 
-  BOOST_CHECK_NO_THROW(kovri::client::HTTPResponse response(status));
+  BOOST_CHECK_NO_THROW(client::HTTPResponse response(status));
 
-  kovri::client::HTTPResponse response(status);
+  client::HTTPResponse response(status);
 
   BOOST_CHECK(response.get().size());
 

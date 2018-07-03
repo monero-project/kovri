@@ -34,8 +34,6 @@
 
 #include "core/router/identity.h"
 
-namespace core = kovri::core;
-
 struct RouterInfoFixture
 {
   core::PrivateKeys keys = core::PrivateKeys::CreateRandomKeys(
@@ -46,18 +44,14 @@ BOOST_FIXTURE_TEST_SUITE(RouterInfoTests, RouterInfoFixture)
 
 BOOST_AUTO_TEST_CASE(ValidSignature)
 {
-  // Ensure EdDSA router is created & signature verification succeeds
   BOOST_CHECK_NO_THROW(core::RouterInfo r(keys, {{"127.0.0.1", 10701}}, {}));
 }
 
 BOOST_AUTO_TEST_CASE(InvalidSignature)
 {
+  // If RI is not built completely, insufficient data will throw
   core::RouterInfo router;
-
-  // Ensure default constructed router fails verification
   BOOST_CHECK_THROW(router.Verify(), std::exception);
-
-  // Create router buffer without setting default options
   BOOST_CHECK_THROW(router.CreateBuffer(keys), std::exception);
 }
 

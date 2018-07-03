@@ -117,21 +117,23 @@ std::string HTTPResponse::status_message(const status_t status) const
 /// @param status HTTP status code for the error response
 void HTTPResponse::set_response(const status_t status)
 {
-  std::string ext_msg{};
-  if (status == service_unavailable)
-    ext_msg =
-        "<p>Service may be unavailable because it's offline, overloaded, or "
-        "the router can't retrieve the service's destination information.<br>"
-        "Please try again later.</p>";
-  std::string const html_body(
-      "<html><head><title>HTTP Error</title></head><body>HTTP Error "
-      + std::to_string(status) + " " + status_message(status) + ext_msg
+  std::string const code(std::to_string(status)),
+      message(status_message(status));
+
+  static const char* const offline =
+      "<p>Service may be unavailable because it's offline, overloaded, or "
+      "the router can't retrieve the service's destination information.<br>"
+      "Please try again later.</p>";
+
+  std::string const body(
+      "<html><head><title>HTTP Error</title></head><body>HTTP Error " + code
+      + " " + message + (status == service_unavailable ? offline : "")
       + "</body></html>");
-  m_Response = "HTTP/1.0 " + std::to_string(status) + " "
-               + status_message(status)
+
+  m_Response = "HTTP/1.0 " + code + " " + message
                + "\r\nContent-type: text/html;charset=UTF-8\r\n"
                + "Content-Encoding: UTF-8\r\nContent-length: "
-               + std::to_string(html_body.size()) + "\r\n\r\n" + html_body;
+               + std::to_string(body.size()) + "\r\n\r\n" + body;
 }
 
 HTTPProxyServer::HTTPProxyServer(

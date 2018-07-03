@@ -236,14 +236,13 @@ BOOST_AUTO_TEST_CASE(ValidResponse)
 
   kovri::client::HTTPResponse response(status);
 
-  BOOST_CHECK(response.get_response().size());
+  BOOST_CHECK(response.get().size());
 
   BOOST_CHECK_NE(
-      response.get_response().find(std::to_string(status)), std::string::npos);
+      response.get().find(std::to_string(status)), std::string::npos);
 
   BOOST_CHECK_NE(
-      response.get_response().find(response.status_message(status)),
-      std::string::npos);
+      response.get().find(response.get_message(status)), std::string::npos);
 
   // TODO(oneiric): after Boost.Beast refactor, check response follows HTTP protocol
 }

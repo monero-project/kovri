@@ -85,20 +85,20 @@ class HTTPResponse{
 
   explicit HTTPResponse(const status_t status)
   {
-    set_response(status);
+    set(status);
   }
 
   /// @brief Get error message for a status code
   /// @return HTTP error message
-  std::string status_message(const status_t status) const;
+  std::string get_message(const status_t status) const;
 
   /// @brief Set HTTP error response
   /// @param status HTTP status code for the error response
-  void set_response(const status_t status);
+  void set(const status_t status);
 
   /// @brief Get the HTTP error response
   /// @return HTTP error response with HTML-formatted body
-  const std::string& get_response() const
+  const std::string& get() const
   {
     return m_Response;
   }
@@ -165,14 +165,14 @@ class HTTPMessage : public std::enable_shared_from_this<HTTPMessage>{
   /// @param status HTTP status code
   void set_error_response(const HTTPResponse::status_t status)
   {
-    m_ErrorResponse.set_response(status);
+    m_ErrorResponse.set(status);
   }
 
   /// @brief Get HTTP error response
   /// @return HTTP error response
   const std::string& get_error_response() const
   {
-    return m_ErrorResponse.get_response();
+    return m_ErrorResponse.get();
   }
 
   const unsigned int HEADERBODY_LEN = 2;

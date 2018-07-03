@@ -98,7 +98,7 @@ class HTTPResponse{
 
   /// @brief Get the HTTP error response
   /// @return HTTP error response with HTML-formatted body
-  const std::string& get() const
+  const std::string& get() const noexcept
   {
     return m_Response;
   }

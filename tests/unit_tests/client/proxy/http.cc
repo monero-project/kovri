@@ -230,22 +230,33 @@ BOOST_AUTO_TEST_SUITE(CreateHTTPResponse)
 
 BOOST_AUTO_TEST_CASE(ValidResponse)
 {
-  const auto status = kovri::client::HTTPResponse::status_t::ok;
+  namespace client = kovri::client;
+  const auto status = client::HTTPResponse::ok;
 
-  BOOST_CHECK_NO_THROW(kovri::client::HTTPResponse response(status));
+  BOOST_CHECK_NO_THROW(client::HTTPResponse response(status));
 
-  kovri::client::HTTPResponse response(status);
+  client::HTTPResponse response(status);
 
-  BOOST_CHECK(response.get_response().size());
+  BOOST_CHECK(response.get().size());
 
+  // TODO(unassigned): these are hacky ways to determine status code
   BOOST_CHECK_NE(
-      response.get_response().find(std::to_string(status)), std::string::npos);
-
+      response.get().find(std::to_string(status)), std::string::npos);
   BOOST_CHECK_NE(
-      response.get_response().find(response.status_message(status)),
-      std::string::npos);
+      response.get().find(response.get_message(status)), std::string::npos);
+
+  // Set new response
+  BOOST_CHECK_NO_THROW(response.set(client::HTTPResponse::service_unavailable));
 
   // TODO(oneiric): after Boost.Beast refactor, check response follows HTTP protocol
+}
+
+BOOST_AUTO_TEST_CASE(InvalidResponse)
+{
+  client::HTTPResponse response(client::HTTPResponse::ok);
+  BOOST_CHECK_THROW(
+      response.set(static_cast<client::HTTPResponse::status_t>(12345)),
+      std::exception);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

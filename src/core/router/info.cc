@@ -165,15 +165,7 @@ void RouterInfo::ReadFromBuffer(bool verify_signature)
       // Verify signature
       if (verify_signature)
         {
-          // Note: signature length is guaranteed to be no less than buffer length
-          std::uint16_t const len =
-              m_Buffer.size() - m_RouterIdentity.GetSignatureLen();
-          if (!m_RouterIdentity.Verify(
-                  m_Buffer.data(), len, m_Buffer.data() + len))
-            {
-              LOG(error) << "RouterInfo: signature verification failed";
-              m_IsUnreachable = true;
-            }
+          Verify();
           m_RouterIdentity.DropVerifier();
         }
     }
@@ -691,14 +683,29 @@ void RouterInfo::CreateBuffer(const PrivateKeys& private_keys)
           reinterpret_cast<const std::uint8_t*>(router_info.Str().c_str()),
           router_info.Str().size());
 
-      // Signature
-      // TODO(anonimal): signing should be done when creating RI, not after. Requires other refactoring.
-      private_keys.Sign(
-          m_Buffer.data(),
-          m_Buffer.size(),
-          m_Buffer.data() + m_Buffer.size());
+      // Verify signature
+      Verify();
+    }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+      throw;
+    }
+}
 
-      m_Buffer(m_Buffer.size() + private_keys.GetPublic().GetSignatureLen());
+void RouterInfo::Verify()
+{
+  try
+    {
+      // Get RI length without signature
+      std::size_t const len =
+          m_Buffer.size() - m_RouterIdentity.GetSignatureLen();
+
+      // Confirm if valid and usable
+      const std::uint8_t* buf = m_Buffer.data();
+      if (len < Size::MinUnsignedBuffer
+          || !m_RouterIdentity.Verify(buf, len, &buf[len]))
+        m_IsUnreachable = true;
     }
   catch (...)
     {
@@ -870,7 +877,17 @@ void RouterInfo::CreateRouterInfo(
   // Write remaining options to RI
   router_info.Write(options.Str().c_str(), options.Str().size());
 
-  // TODO(anonimal): we should implement RI signing *here*
+  // Ensure signature has proper capacity
+  std::vector<std::uint8_t> sig_buf(private_keys.GetPublic().GetSignatureLen());
+
+  // Sign RI
+  private_keys.Sign(
+      reinterpret_cast<const std::uint8_t*>(router_info.Str().c_str()),
+      router_info.Str().size(),
+      sig_buf.data());
+
+  // Write signature to RI
+  router_info.Write(sig_buf.data(), sig_buf.size());
 
   LOG(debug) << "RouterInfo: " << __func__
              << " total RI size: " << router_info.Str().size();

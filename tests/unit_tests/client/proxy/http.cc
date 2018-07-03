@@ -251,4 +251,12 @@ BOOST_AUTO_TEST_CASE(ValidResponse)
   // TODO(oneiric): after Boost.Beast refactor, check response follows HTTP protocol
 }
 
+BOOST_AUTO_TEST_CASE(InvalidResponse)
+{
+  client::HTTPResponse response(client::HTTPResponse::ok);
+  BOOST_CHECK_THROW(
+      response.set(static_cast<client::HTTPResponse::status_t>(12345)),
+      std::exception);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

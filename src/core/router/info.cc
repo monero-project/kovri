@@ -34,6 +34,7 @@
 
 #include <boost/lexical_cast.hpp>
 #include <boost/endian/conversion.hpp>
+#include <boost/version.hpp>
 
 #include <cstring>
 #include <fstream>
@@ -256,37 +257,19 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
               case Trait::Host:
                 {
                   // Process host and transport
-                  // TODO(unassigned): we process transport so we can resolve host. This seems like a hack.
                   boost::system::error_code ecode;
+#if (BOOST_VERSION >= 106600)
+                  address.host = boost::asio::ip::make_address(value, ecode);
+#else
                   address.host =
                       boost::asio::ip::address::from_string(value, ecode);
+#endif
                   if (ecode)
                     {
-                      // Unresolved hosts return invalid argument. See TODO below
-                      if (ecode != boost::asio::error::invalid_argument)
-                        {
-                          is_valid_address = false;
-                          LOG(error) << "RouterInfo: " << __func__ << ": '"
-                                     << ecode.message() << "'";
-                        }
-                      // Prepare for host resolution
-                      switch (address.transport)
-                        {
-		          case Transport::NTCP:
-                            // NTCP will (should be) resolved in transports
-                            // TODO(unassigned): refactor. Though we will resolve host later, assigning values upon error is simply confusing.
-                            m_SupportedTransports |= SupportedTransport::NTCPv4;
-                            address.address = value;
-                            break;
-		          case Transport::SSU:
-                            // TODO(unassigned): implement address resolver for SSU (then break from default case)
-                            LOG(warning)
-                                << "RouterInfo: unexpected SSU address "
-                                << value;
-                            // fall-through
-                          default:
-                            is_valid_address = false;
-                        }
+                      // Also ignores unresolved hosts, as part of #686
+                      LOG(error) << "RouterInfo: " << __func__ << ": "
+                                 << __LINE__ << ": " << ecode.message() << "'";
+                      is_valid_address = false;
                       break;
                     }
                   // Add supported transport
@@ -352,17 +335,19 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
                         case Trait::IntroHost:
                           {
                             boost::system::error_code ecode;
+#if (BOOST_VERSION >= 106600)
+                            introducer.host =
+                                boost::asio::ip::make_address(value, ecode);
+#else
                             introducer.host =
                                 boost::asio::ip::address::from_string(
                                     value, ecode);
-                            // TODO(unassigned):
-                            // Because unresolved hosts return EINVAL,
-                            // and since we currently have no implementation to resolve introducer hosts,
-                            // treat *all* errors as an invalid address.
+#endif
                             if (ecode)
                               {
-                                LOG(error) << "RouterInfo: " << __func__
-                                           << ": introducer host error: '"
+                                // Also ignores unresolved hosts, as part of #686
+                                LOG(error) << "RouterInfo: " << __func__ << ": "
+                                           << __LINE__ << ": "
                                            << ecode.message() << "'";
                                 is_valid_address = false;
                               }
@@ -388,8 +373,14 @@ void RouterInfo::ParseRouterInfo(const std::string& router_info)
                                 sizeof(introducer.key));
                           }
                           break;
+                        case Trait::IntroExp:
+                          // TODO(unassigned):
+                          //   Implement introducer expiration according to proposal #133
+                          LOG(debug) << "RouterInfo: expiration supplied";
+                          break;
                         default:
-                          LOG(error) << "RouterInfo: invalid introducer trait";
+                          LOG(warning)
+                              << "RouterInfo: unknown introducer trait";
                           is_valid_address = false;
                           break;
                       }

@@ -341,9 +341,9 @@ bool Transports::ConnectToPeer(
   if (!m_NTCPServer && m_SSUServer)
     result = ConnectToPeerSSU(peer);
   else if (m_NTCPServer && !m_SSUServer)
-    result = ConnectToPeerNTCP(ident, peer);
+    result = ConnectToPeerNTCP(peer);
   else if (peer.num_attempts == 0)
-    result = ConnectToPeerNTCP(ident, peer);
+    result = ConnectToPeerNTCP(peer);
   else if (peer.num_attempts == 1)
     result = ConnectToPeerSSU(peer);
   // Increase the number of attempts (even when no transports are available)
@@ -359,31 +359,29 @@ bool Transports::ConnectToPeer(
   return false;
 }
 
-bool Transports::ConnectToPeerNTCP(
-    const kovri::core::IdentHash& ident,
-    Peer& peer) {
+bool Transports::ConnectToPeerNTCP(Peer& peer)
+{
   if (!m_NTCPServer)
     return false;  // NTCP not supported
   LOG(debug)
     << "Transports: attempting NTCP for peer"
     << GetFormattedSessionInfo(peer.router);
-  const auto address = peer.router->GetNTCPAddress(context.SupportsV6());
+  const auto* address = peer.router->GetNTCPAddress(context.SupportsV6());
   // No NTCP address found
   if (!address)
     return false;
+
+  // TODO(anonimal): We should expect to have an address specified when NTCP is enabled/allowed
+  assert(!address->host.is_unspecified());
+
   if (!address->host.is_unspecified()) {
     if (!peer.router->UsesIntroducer() && !peer.router->IsUnreachable()) {
       auto s = std::make_shared<NTCPSession>(*m_NTCPServer, peer.router);
       m_NTCPServer->Connect(address->host, address->port, s);
       return true;
     }
-  } else {  // we don't have address
-    if (address->address.length() > 0) {  // trying to resolve
-      LOG(debug) << "Transports: NTCP resolving " << address->address;
-      NTCPResolve(address->address, ident);
-      return true;
-    }
   }
+
   return false;
 }
 
@@ -424,50 +422,6 @@ void Transports::HandleRequestComplete(
       LOG(warning) << "Transports: router not found, failed to send messages";
       m_Peers.erase(it);
     }
-  }
-}
-
-void Transports::NTCPResolve(
-    const std::string& addr,
-    const kovri::core::IdentHash& ident) {
-  auto resolver =
-    std::make_shared<boost::asio::ip::tcp::resolver>(m_Service);
-  resolver->async_resolve(
-      boost::asio::ip::tcp::resolver::query(
-          addr,
-          ""),
-      std::bind(
-          &Transports::HandleNTCPResolve,
-          this,
-          std::placeholders::_1,
-          std::placeholders::_2,
-          ident,
-          resolver));
-}
-
-void Transports::HandleNTCPResolve(
-    const boost::system::error_code& ecode,
-    boost::asio::ip::tcp::resolver::iterator it,
-    kovri::core::IdentHash ident,
-    std::shared_ptr<boost::asio::ip::tcp::resolver>) {
-  auto it1 = m_Peers.find(ident);
-  if (it1 != m_Peers.end()) {
-    auto& peer = it1->second;
-    if (!ecode && peer.router) {
-      auto address = (*it).endpoint().address();
-      LOG(debug)
-        << "Transports: " << (*it).host_name()
-        << " has been resolved to " << address;
-      auto addr = peer.router->GetNTCPAddress();
-      if (addr) {
-        auto s = std::make_shared<NTCPSession>(*m_NTCPServer, peer.router);
-        m_NTCPServer->Connect(address, addr->port, s);
-        return;
-      }
-    }
-    LOG(error)
-      << "Transports: unable to resolve NTCP address: " << ecode.message();
-    m_Peers.erase(it1);
   }
 }
 

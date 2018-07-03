@@ -166,6 +166,7 @@ struct RouterInfoTraits
     IntroPort,
     IntroTag,
     IntroKey,
+    IntroExp,  ///< Introducer expiration
 
     // Demarcation
     Delimiter,
@@ -242,6 +243,9 @@ struct RouterInfoTraits
         case Trait::IntroKey:
           return "ikey";
 
+        case Trait::IntroExp:
+          return "iexp";
+
         // Demarcation
         case Trait::Delimiter:
           return "=";
@@ -299,6 +303,9 @@ struct RouterInfoTraits
 
     else if (value == GetTrait(Trait::IntroKey))
       return Trait::IntroKey;
+
+    else if (value == GetTrait(Trait::IntroExp))
+      return Trait::IntroExp;
 
     // Demarcation
     else if (value == GetTrait(Trait::Delimiter))
@@ -469,7 +476,6 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
   {
     Transport transport;
     boost::asio::ip::address host;
-    std::string address;
     std::uint16_t port{}, mtu{};
     std::uint64_t date{};
     std::uint8_t cost{};

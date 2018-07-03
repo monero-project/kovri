@@ -239,11 +239,14 @@ BOOST_AUTO_TEST_CASE(ValidResponse)
 
   BOOST_CHECK(response.get().size());
 
+  // TODO(unassigned): these are hacky ways to determine status code
   BOOST_CHECK_NE(
       response.get().find(std::to_string(status)), std::string::npos);
-
   BOOST_CHECK_NE(
       response.get().find(response.get_message(status)), std::string::npos);
+
+  // Set new response
+  BOOST_CHECK_NO_THROW(response.set(client::HTTPResponse::service_unavailable));
 
   // TODO(oneiric): after Boost.Beast refactor, check response follows HTTP protocol
 }

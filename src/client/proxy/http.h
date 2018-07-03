@@ -51,8 +51,12 @@
 namespace kovri {
 namespace client {
 
-struct HTTPResponseCodes{
-  enum status_t {
+/// @class HTTPResponse
+/// @brief response for http error messages
+class HTTPResponse{
+ public:
+  enum status_t
+  {
     ok = 200,
     created = 201,
     accepted = 202,
@@ -79,112 +83,28 @@ struct HTTPResponseCodes{
     space_unavailable = 507
   };
 
-
-  static char const* status_message(status_t status) {
-    static char const ok_[] = "OK", created_[] = "Created",
-                      accepted_[] = "Accepted", no_content_[] = "No Content",
-                      multiple_choices_[] = "Multiple Choices",
-                      moved_permanently_[] = "Moved Permanently",
-                      moved_temporarily_[] = "Moved Temporarily",
-                      not_modified_[] = "Not Modified",
-                      bad_request_[] = "Bad Request",
-                      unauthorized_[] = "Unauthorized",
-                      forbidden_[] = "Fobidden", not_found_[] = "Not Found",
-                      not_supported_[] = "Not Supported",
-                      not_acceptable_[] = "Not Acceptable",
-                      internal_server_error_[] = "Internal Server Error",
-                      not_implemented_[] = "Not Implemented",
-                      bad_gateway_[] = "Bad Gateway",
-                      service_unavailable_[] = "Service Unavailable",
-                      unknown_[] = "Unknown",
-                      partial_content_[] = "Partial Content",
-                      request_timeout_[] = "Request Timeout",
-                      precondition_failed_[] = "Precondition Failed",
-                      http_not_supported_[]= "HTTP Version Not Supported",
-                      unsatisfiable_range_[] =
-                          "Requested Range Not Satisfiable",
-                      space_unavailable_[] =
-                          "Insufficient Space to Store Resource";
-    switch (status) {
-      case ok:
-        return ok_;
-      case created:
-        return created_;
-      case accepted:
-        return accepted_;
-      case no_content:
-        return no_content_;
-      case multiple_choices:
-        return multiple_choices_;
-      case moved_permanently:
-        return moved_permanently_;
-      case moved_temporarily:
-        return moved_temporarily_;
-      case not_modified:
-        return not_modified_;
-      case bad_request:
-        return bad_request_;
-      case unauthorized:
-        return unauthorized_;
-      case forbidden:
-        return forbidden_;
-      case not_found:
-        return not_found_;
-      case not_supported:
-        return not_supported_;
-      case not_acceptable:
-        return not_acceptable_;
-      case internal_server_error:
-        return internal_server_error_;
-      case not_implemented:
-        return not_implemented_;
-      case bad_gateway:
-        return bad_gateway_;
-      case service_unavailable:
-        return service_unavailable_;
-      case partial_content:
-        return partial_content_;
-      case request_timeout:
-        return request_timeout_;
-      case precondition_failed:
-        return precondition_failed_;
-      case unsatisfiable_range:
-        return unsatisfiable_range_;
-      case http_not_supported:
-        return http_not_supported_;
-      case space_unavailable:
-        return space_unavailable_;
-      default:
-        return unknown_;
-    }
+  explicit HTTPResponse(const status_t status)
+  {
+    set(status);
   }
-};
-/// @class HTTPResponse
-/// @brief response for http error messages
-class HTTPResponse{
- public:
+
+  /// @brief Get error message for a status code
+  /// @return HTTP error message
+  std::string get_message(const status_t status) const;
+
+  /// @brief Set HTTP error response
+  /// @param status HTTP status code for the error response
+  void set(const status_t status);
+
+  /// @brief Get the HTTP error response
+  /// @return HTTP error response with HTML-formatted body
+  const std::string& get() const noexcept
+  {
+    return m_Response;
+  }
+
+ private:
   std::string m_Response;
-  explicit HTTPResponse(HTTPResponseCodes::status_t status){
-    std::string htmlbody = "<html>";
-    htmlbody+="<head>";
-    htmlbody+="<title>HTTP Error</title>";
-    htmlbody+="</head>";
-    htmlbody+="<body>";
-    htmlbody+="HTTP Error " + std::to_string(status) + " ";
-    htmlbody+=HTTPResponseCodes::status_message(status);
-    if (status == HTTPResponseCodes::status_t::service_unavailable) {
-      htmlbody+=" Please wait for the router to integrate";
-    }
-    htmlbody+="</body>";
-    htmlbody+="</html>";
-
-    m_Response =
-    "HTTP/1.0 " + std::to_string(status) + " " +
-    HTTPResponseCodes::status_message(status)+"\r\n" +
-    "Content-type: text/html;charset=UTF-8\r\n" +
-    "Content-Encoding: UTF-8\r\n" +
-    "Content-length:" + std::to_string(htmlbody.size()) + "\r\n\r\n" + htmlbody;
-  }
 };
 
 /// @class HTTPMessage
@@ -214,8 +134,7 @@ class HTTPMessage : public std::enable_shared_from_this<HTTPMessage>{
   }
   };
   HTTPResponse m_ErrorResponse;
-  HTTPMessage():m_Port(0), m_ErrorResponse(HTTPResponseCodes::status_t::ok) {
-  }
+  HTTPMessage() : m_Port(0), m_ErrorResponse(HTTPResponse::ok) {}
   enum msg_t {
     response,
     request
@@ -241,6 +160,20 @@ class HTTPMessage : public std::enable_shared_from_this<HTTPMessage>{
   /// @return true on success
   // TODO(unassigned): save address param is a hack until storage is separated from message
   bool CreateHTTPRequest(const bool save_address = true);
+
+  /// @brief Sets HTTP error response
+  /// @param status HTTP status code
+  void set_error_response(const HTTPResponse::status_t status)
+  {
+    m_ErrorResponse.set(status);
+  }
+
+  /// @brief Get HTTP error response
+  /// @return HTTP error response
+  const std::string& get_error_response() const
+  {
+    return m_ErrorResponse.get();
+  }
 
   const unsigned int HEADERBODY_LEN = 2;
   const unsigned int REQUESTLINE_HEADERS_MIN = 1;

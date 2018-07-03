@@ -56,6 +56,86 @@
 
 namespace kovri {
 namespace client {
+std::string HTTPResponse::get_message(const status_t status) const
+{
+  switch (status)
+    {
+      case status_t::ok:
+        return "OK";
+      case status_t::created:
+        return "Created";
+      case status_t::accepted:
+        return "Accepted";
+      case status_t::no_content:
+        return "No Content";
+      case status_t::multiple_choices:
+        return "Multiple Choices";
+      case status_t::moved_permanently:
+        return "Moved Permanently";
+      case status_t::moved_temporarily:
+        return "Moved Temporarily";
+      case status_t::not_modified:
+        return "Not Modified";
+      case status_t::bad_request:
+        return "Bad Request";
+      case status_t::unauthorized:
+        return "Unauthorized";
+      case status_t::forbidden:
+        return "Fobidden";
+      case status_t::not_found:
+        return "Not Found";
+      case status_t::not_supported:
+        return "Not Supported";
+      case status_t::not_acceptable:
+        return "Not Acceptable";
+      case status_t::internal_server_error:
+        return "Internal Server Error";
+      case status_t::not_implemented:
+        return "Not Implemented";
+      case status_t::bad_gateway:
+        return "Bad Gateway";
+      case status_t::service_unavailable:
+        return "Service Unavailable";
+      case status_t::partial_content:
+        return "Partial Content";
+      case status_t::request_timeout:
+        return "Request Timeout";
+      case status_t::precondition_failed:
+        return "Precondition Failed";
+      case status_t::unsatisfiable_range:
+        return "Requested Range Not Satisfiable";
+      case status_t::http_not_supported:
+        return "HTTP Version Not Supported";
+      case status_t::space_unavailable:
+        return "Insufficient Space to Store Resource";
+      default:
+        assert(false);
+        throw std::invalid_argument("invalid HTTP status code");
+    }
+}
+
+/// @brief Set HTTP error response
+/// @param status HTTP status code for the error response
+void HTTPResponse::set(const status_t status)
+{
+  std::string const code(std::to_string(status)),
+      message(get_message(status));
+
+  static const char* const offline =
+      "<p>Service may be unavailable because it's offline, overloaded, or "
+      "the router can't retrieve the service's destination information.<br>"
+      "Please try again later.</p>";
+
+  std::string const body(
+      "<html><head><title>HTTP Error</title></head><body>HTTP Error " + code
+      + " " + message + (status == service_unavailable ? offline : "")
+      + "</body></html>");
+
+  m_Response = "HTTP/1.0 " + code + " " + message
+               + "\r\nContent-type: text/html;charset=UTF-8\r\n"
+               + "Content-Encoding: UTF-8\r\nContent-length: "
+               + std::to_string(body.size()) + "\r\n\r\n" + body;
+}
 
 HTTPProxyServer::HTTPProxyServer(
     const std::string& name,
@@ -242,7 +322,7 @@ bool HTTPMessage::HandleData(const std::string& protocol_string) {
   std::vector<std::string> tokens_header_body;
   // get header info
   // initially set error response to bad_request
-  m_ErrorResponse = HTTPResponse(HTTPResponseCodes::status_t::bad_request);
+  m_ErrorResponse.set(HTTPResponse::bad_request);
   if (boost::algorithm::split_regex(
           header_body, protocol_string, boost::regex("\r\n\r\n")).size()
       != HEADERBODY_LEN)
@@ -280,7 +360,7 @@ bool HTTPMessage::HandleData(const std::string& protocol_string) {
 
   m_HeaderMap = headers;
   // reset error response to ok
-  m_ErrorResponse = HTTPResponse(HTTPResponseCodes::status_t::ok);
+  m_ErrorResponse.set(HTTPResponse::ok);
   return true;
 }
 
@@ -302,8 +382,7 @@ void HTTPProxyHandler::HandleStreamRequestComplete(
     Done(shared_from_this());
   } else {
     LOG(error) << "HTTPProxyHandler: stream is unavailable, try again soon";
-    m_Protocol.m_ErrorResponse
-        = HTTPResponse(HTTPResponseCodes::status_t::service_unavailable);
+    m_Protocol.set_error_response(HTTPResponse::service_unavailable);
     HTTPRequestFailed();
   }
 }
@@ -324,8 +403,7 @@ bool HTTPMessage::CreateHTTPRequest(const bool save_address) {
       if (!HandleJumpService())
         {
           LOG(error) << "HTTPMessage: invalid jump service request";
-          m_ErrorResponse =
-              HTTPResponse(HTTPResponseCodes::status_t::bad_request);
+          m_ErrorResponse.set(HTTPResponse::bad_request);
           return false;
         }
       // TODO(unassigned): remove this unnecessary else block
@@ -343,8 +421,8 @@ bool HTTPMessage::CreateHTTPRequest(const bool save_address) {
             {
               LOG(error)
                   << "HTTPProxyHandler: failed to save address to address book";
-              m_ErrorResponse = HTTPResponse(
-                  HTTPResponseCodes::status_t::internal_server_error);
+              m_ErrorResponse.set(
+                  HTTPResponse::internal_server_error);
               return false;
             }
         }
@@ -391,7 +469,7 @@ bool HTTPMessage::CreateHTTPRequest(const bool save_address) {
 }
 
 bool HTTPMessage::ExtractIncomingRequest() {
-  m_ErrorResponse = HTTPResponse(HTTPResponseCodes::status_t::bad_request);
+  m_ErrorResponse.set(HTTPResponse::bad_request);
   LOG(debug)
     << "HTTPProxyHandler: method is: " << m_Method
     << " request is: " << m_URL;
@@ -418,11 +496,10 @@ bool HTTPMessage::ExtractIncomingRequest() {
   // Check for HTTP version
   if (m_Version != "HTTP/1.0" && m_Version != "HTTP/1.1") {
     LOG(error) << "HTTPProxyHandler: unsupported version: " << m_Version;
-    m_ErrorResponse
-        = HTTPResponse(HTTPResponseCodes::status_t::http_not_supported);
+    m_ErrorResponse.set(HTTPResponse::http_not_supported);
     return false;
   }
-  m_ErrorResponse = HTTPResponse(HTTPResponseCodes::status_t::ok);
+  m_ErrorResponse.set(HTTPResponse::ok);
   return true;
 }
 
@@ -521,8 +598,8 @@ void HTTPProxyHandler::HTTPRequestFailed() {
   boost::asio::async_write(
       *m_Socket,
       boost::asio::buffer(
-          m_Protocol.m_ErrorResponse.m_Response,
-          m_Protocol.m_ErrorResponse.m_Response.size()),
+          m_Protocol.get_error_response(),
+          m_Protocol.get_error_response().size()),
       std::bind(
           &HTTPProxyHandler::SentHTTPFailed,
           shared_from_this(),

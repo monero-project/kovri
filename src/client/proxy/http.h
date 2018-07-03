@@ -134,7 +134,7 @@ class HTTPMessage : public std::enable_shared_from_this<HTTPMessage>{
   }
   };
   HTTPResponse m_ErrorResponse;
-  HTTPMessage() : m_Port(0), m_ErrorResponse(HTTPResponse::status_t::ok) {}
+  HTTPMessage() : m_Port(0), m_ErrorResponse(HTTPResponse::ok) {}
   enum msg_t {
     response,
     request

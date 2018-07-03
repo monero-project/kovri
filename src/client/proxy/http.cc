@@ -118,7 +118,7 @@ std::string HTTPResponse::status_message(const status_t status) const
 void HTTPResponse::set_response(const status_t status)
 {
   std::string ext_msg{};
-  if (status == status_t::service_unavailable)
+  if (status == service_unavailable)
     ext_msg =
         "<p>Service may be unavailable because it's offline, overloaded, or "
         "the router can't retrieve the service's destination information.<br>"
@@ -319,7 +319,7 @@ bool HTTPMessage::HandleData(const std::string& protocol_string) {
   std::vector<std::string> tokens_header_body;
   // get header info
   // initially set error response to bad_request
-  m_ErrorResponse.set_response(HTTPResponse::status_t::bad_request);
+  m_ErrorResponse.set_response(HTTPResponse::bad_request);
   if (boost::algorithm::split_regex(
           header_body, protocol_string, boost::regex("\r\n\r\n")).size()
       != HEADERBODY_LEN)
@@ -357,7 +357,7 @@ bool HTTPMessage::HandleData(const std::string& protocol_string) {
 
   m_HeaderMap = headers;
   // reset error response to ok
-  m_ErrorResponse.set_response(HTTPResponse::status_t::ok);
+  m_ErrorResponse.set_response(HTTPResponse::ok);
   return true;
 }
 
@@ -379,7 +379,7 @@ void HTTPProxyHandler::HandleStreamRequestComplete(
     Done(shared_from_this());
   } else {
     LOG(error) << "HTTPProxyHandler: stream is unavailable, try again soon";
-    m_Protocol.set_error_response(HTTPResponse::status_t::service_unavailable);
+    m_Protocol.set_error_response(HTTPResponse::service_unavailable);
     HTTPRequestFailed();
   }
 }
@@ -400,7 +400,7 @@ bool HTTPMessage::CreateHTTPRequest(const bool save_address) {
       if (!HandleJumpService())
         {
           LOG(error) << "HTTPMessage: invalid jump service request";
-          m_ErrorResponse.set_response(HTTPResponse::status_t::bad_request);
+          m_ErrorResponse.set_response(HTTPResponse::bad_request);
           return false;
         }
       // TODO(unassigned): remove this unnecessary else block
@@ -419,7 +419,7 @@ bool HTTPMessage::CreateHTTPRequest(const bool save_address) {
               LOG(error)
                   << "HTTPProxyHandler: failed to save address to address book";
               m_ErrorResponse.set_response(
-                  HTTPResponse::status_t::internal_server_error);
+                  HTTPResponse::internal_server_error);
               return false;
             }
         }
@@ -466,7 +466,7 @@ bool HTTPMessage::CreateHTTPRequest(const bool save_address) {
 }
 
 bool HTTPMessage::ExtractIncomingRequest() {
-  m_ErrorResponse.set_response(HTTPResponse::status_t::bad_request);
+  m_ErrorResponse.set_response(HTTPResponse::bad_request);
   LOG(debug)
     << "HTTPProxyHandler: method is: " << m_Method
     << " request is: " << m_URL;
@@ -493,10 +493,10 @@ bool HTTPMessage::ExtractIncomingRequest() {
   // Check for HTTP version
   if (m_Version != "HTTP/1.0" && m_Version != "HTTP/1.1") {
     LOG(error) << "HTTPProxyHandler: unsupported version: " << m_Version;
-    m_ErrorResponse.set_response(HTTPResponse::status_t::http_not_supported);
+    m_ErrorResponse.set_response(HTTPResponse::http_not_supported);
     return false;
   }
-  m_ErrorResponse.set_response(HTTPResponse::status_t::ok);
+  m_ErrorResponse.set_response(HTTPResponse::ok);
   return true;
 }
 

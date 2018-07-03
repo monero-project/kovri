@@ -109,7 +109,8 @@ std::string HTTPResponse::get_message(const status_t status) const
       case status_t::space_unavailable:
         return "Insufficient Space to Store Resource";
       default:
-        return "Unknown";
+        assert(false);
+        throw std::invalid_argument("invalid HTTP status code");
     }
 }
 

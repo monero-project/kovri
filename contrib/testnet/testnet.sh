@@ -55,6 +55,7 @@ grafana_image="grafana/grafana"
 grafana_base_name="kovri-grafana"
 grafana_host_octet=".6"
 grafana_host_port="3030"
+grafana_user="admin"
 grafana_password="kovri"
 
 # Docker mount
@@ -147,6 +148,21 @@ PrintUsage()
   echo "You can \"poll\" this output by simply cat'ing the pipe:"
   echo ""
   echo "  $ cat /tmp/testnet/kovri_010/log_pipe"
+  echo ""
+  echo "Graphical monitoring"
+  echo "--------------------"
+  echo ""
+  echo "After starting the testnet, login to Grafana via web browser:"
+  echo ""
+  echo "http://127.0.0.1:${grafana_host_port}"
+  echo "User: ${grafana_user}"
+  echo "Password: ${grafana_password}"
+  echo ""
+  echo "Click the Home icon to get a list of Dashboards"
+  echo "  - Details Containers: detailed statistics about container resource usage"
+  echo "  - Details NetDb: detailed statistics about Kovri instances' NetDb"
+  echo "  - Instance Overview: overall statistics of the Kovri tesnet environment"
+  echo "  - Each Dashboard can be filtered to show a subset of Kovri instances"
   echo ""
   echo "Usage: $ $0 {create|start|stop|destroy|exec|help}" >&2
 }
@@ -641,7 +657,7 @@ create_monitoring()
 
     # Create UI container
     local _grafana_host="${network_octets}${grafana_host_octet}"
-    local _grafana_uri="http://admin:${grafana_password}@${_grafana_host}:3000"
+    local _grafana_uri="http://${grafana_user}:${grafana_password}@${_grafana_host}:3000"
     docker run -d --name ${grafana_base_name} --network=${KOVRI_NETWORK} --ip=${_grafana_host} \
       -p ${grafana_host_port}:3000 -e "GF_SECURITY_ADMIN_PASSWORD=${grafana_password}" ${grafana_image}
     catch "Could not create ${grafana_base_name}"
@@ -680,7 +696,7 @@ create_monitoring()
     echo -n "Stopping... " && docker stop ${grafana_base_name}
     catch "Could not stop ${grafana_base_name}"
 
-    echo "Monitoring interface is accessibe at: http://127.0.0.1:${grafana_host_port} with credentials admin:${grafana_password}"
+    echo "Monitoring interface is accessibe at: http://127.0.0.1:${grafana_host_port} with credentials ${grafana_user}:${grafana_password}"
   fi
 }
 

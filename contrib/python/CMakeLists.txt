@@ -49,3 +49,7 @@ foreach(_target IN ITEMS kovri-core kovri-client)
 endforeach()
 
 set_target_properties(kovri_python PROPERTIES PREFIX "")
+
+if (WITH_COTIRE)
+  cotire(kovri_python)
+endif()

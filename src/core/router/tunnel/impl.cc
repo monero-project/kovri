@@ -667,10 +667,9 @@ void Tunnels::ManageInboundTunnels() {
 }
 
 void Tunnels::ManageTransitTunnels() {
-  std::unique_lock<std::mutex> l(m_TransitTunnelsMutex);
-
   const std::uint64_t ts = kovri::core::GetSecondsSinceEpoch();
   for (auto it = m_TransitTunnels.begin(); it != m_TransitTunnels.end();) {
+    std::unique_lock<std::mutex> l(m_TransitTunnelsMutex);
     if (ts > it->second->GetCreationTime() + TUNNEL_EXPIRATION_TIMEOUT) {
       LOG(debug) << "Tunnels: transit tunnel " << it->second->GetTunnelID() << " expired";
       it = m_TransitTunnels.erase(it);

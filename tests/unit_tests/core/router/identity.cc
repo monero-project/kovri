@@ -53,8 +53,7 @@ BOOST_AUTO_TEST_CASE(ParseIdentity)
   BOOST_CHECK(
       identity.FromBuffer(m_AliceIdentity.data(), m_AliceIdentity.size()));
   // Check that FromBuffer + ToBuffer == original buffer
-  // TODO(anonimal): review the following arbitrary size (must be >= 387)
-  std::array<std::uint8_t, 1024> output{{}};
+  std::array<std::uint8_t, core::DEFAULT_IDENTITY_SIZE + 4> output{{}};
   auto len = identity.ToBuffer(output.data(), output.size());
   BOOST_CHECK_EQUAL_COLLECTIONS(
       output.data(),

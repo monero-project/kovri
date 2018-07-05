@@ -317,6 +317,17 @@ void IdentityEx::FromBase64(const std::string& encoded)
     throw std::runtime_error("IdentityEx: could not decode from base64");
 }
 
+std::string IdentityEx::ToBase32() const
+{
+  // TODO(anonimal): this max size is arbitrary. Realistically,
+  //   we'll only need a max with 387 + 4 for EdDSA-Ed25519 routers
+  //   which is a majority of the network. Note: do not set that size
+  //   until we remove implementing other signatures.
+  core::Buffer<core::DEFAULT_IDENTITY_SIZE, 1024> buf;
+  buf(ToBuffer(buf.data(), buf.size()));
+  return core::Base32::Encode(buf.data(), buf.size());
+}
+
 std::string IdentityEx::ToBase64() const
 {
   std::array<std::uint8_t, 1024> buf{{}};

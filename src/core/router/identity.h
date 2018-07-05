@@ -160,6 +160,7 @@ class IdentityEx {
 
   void FromBase64(const std::string& s);
 
+  std::string ToBase32() const;
   std::string ToBase64() const;
 
   /// @brief Human readable description of this struct

@@ -79,12 +79,10 @@ cmake-tests      = -D WITH_TESTS=ON
 cmake-fuzz-tests = -D WITH_FUZZ_TESTS=ON
 cmake-static     = -D WITH_STATIC=ON
 cmake-static-deps= -D WITH_STATIC_DEPS=ON
+cmake-shared-deps= -D WITH_SHARED_DEPS=ON
 cmake-doxygen    = -D WITH_DOXYGEN=ON
 cmake-coverage   = -D WITH_COVERAGE=ON
 cmake-python     = -D WITH_PYTHON=ON
-
-# cpp-netlib shared
-cmake-cpp-netlib-shared = -D CPP-NETLIB_BUILD_SHARED_LIBS=ON
 
 # Android-specific
 cmake-android = -D ANDROID=1 -D KOVRI_DATA_PATH="/data/local/tmp/.kovri"
@@ -129,7 +127,7 @@ deps:
 	$(call MAKE_CRYPTOPP, $(MAKE) $(cryptopp-native) static)
 
 shared-deps:
-	$(eval cmake-kovri += $(cmake-cpp-netlib-shared))
+	$(eval cmake-kovri += $(cmake-shared-deps))
 	$(call MAKE_CRYPTOPP, $(MAKE) shared)
 
 release-deps:

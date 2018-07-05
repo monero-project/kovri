@@ -53,6 +53,7 @@ option(WITH_OPTIMIZE   "Optimization flags" OFF)
 option(WITH_PYTHON     "Build wrappers which require Boost.Python" OFF)
 option(WITH_STATIC     "Static build" OFF)
 option(WITH_STATIC_DEPS "Static build with static dependencies" OFF)
+option(WITH_SHARED_DEPS "Dynamic build with partial in-tree shared dependencies" OFF)
 option(WITH_SUPERCOP   "Build Ed25519 using the ref10 implementation from SUPERCOP" ON)  # Default ON unless we switch implementations
 option(WITH_TESTS      "Build unit tests" OFF)
 option(WITH_FUZZ_TESTS "Build fuzz tests" OFF)
@@ -75,7 +76,7 @@ if (WITH_TESTS)
 endif()
 
 # The kovri shared object used for boost.python will need build rpath
-if (NOT WITH_PYTHON)
+if (NOT WITH_PYTHON AND NOT WITH_SHARED_DEPS)
   set(CMAKE_SKIP_BUILD_RPATH TRUE)
 endif()
 
@@ -303,7 +304,7 @@ add_subdirectory(deps)
 
 # Note: we're actually building off branch 0.13-release - not 0.12.0.
 if(WITH_CPPNETLIB)
-  set(CPP-NETLIB_BUILD_SHARED_LIBS OFF CACHE BOOL "Build cpp-netlib as shared libraries.") 
+  set(CPP-NETLIB_BUILD_SHARED_LIBS ${WITH_SHARED_DEPS} CACHE BOOL "Build cpp-netlib as shared libraries.")
   set(CPP-NETLIB_BUILD_TESTS OFF CACHE BOOL "Build the cpp-netlib project tests.") 
   set(CPP-NETLIB_BUILD_EXAMPLES OFF CACHE BOOL  "Build the cpp-netlib project examples.") 
   set(CPP-NETLIB_ENABLE_HTTPS ON CACHE BOOL  "Build cpp-netlib with support for https if OpenSSL is found.") 
@@ -391,6 +392,7 @@ message(STATUS "  OPTIMIZATION     : ${WITH_OPTIMIZE}")
 message(STATUS "  PYTHON           : ${WITH_PYTHON}")
 message(STATUS "  STATIC BUILD     : ${WITH_STATIC}")
 message(STATUS "  STATIC DEPS BUILD: ${WITH_STATIC_DEPS}")
+message(STATUS "  SHARED DEPS BUILD: ${WITH_SHARED_DEPS}")
 message(STATUS "  SUPERCOP         : ${WITH_SUPERCOP}")
 message(STATUS "  TESTS            : ${WITH_TESTS}")
 message(STATUS "  FUZZ TESTS       : ${WITH_FUZZ_TESTS}")

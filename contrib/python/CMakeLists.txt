@@ -36,7 +36,7 @@ add_library(kovri_python SHARED
   util.cc)
 
 target_link_libraries(kovri_python PRIVATE kovri-private
-  ${PYTHON_LIBRARIES})
+  ${Boost_LIBRARIES} ${PYTHON_LIBRARIES})
 
 # Use unity targets if they are available
 foreach(_target IN ITEMS kovri-core kovri-client)

@@ -53,7 +53,7 @@ struct NetDbFixture : public IdentityExFixture
   {
     // Use Alice's data from IdentityEx fixture
     core::IdentityEx m_Ident;
-    m_Ident.FromBuffer(m_AliceIdentity.data(), m_AliceIdentity.size());
+    m_Ident.FromBuffer(raw_ident.data(), raw_ident.size());
     m_Hash = m_Ident.GetIdentHash();
   }
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015-2017, The Kovri I2P Router Project
+ * Copyright (c) 2015-2018, The Kovri I2P Router Project
  *
  * All rights reserved.
  *
@@ -41,7 +41,7 @@ namespace core = kovri::core;
 
 struct IdentityExFixture
 {
-  std::array<std::uint8_t, core::DEFAULT_IDENTITY_SIZE + 4> m_AliceIdentity
+  std::array<std::uint8_t, core::DEFAULT_IDENTITY_SIZE + 4> raw_ident
   {{
     // 256 bytes Public key
     0x6c, 0xdb, 0x94, 0xcb, 0xce, 0x27, 0x7a, 0xef,

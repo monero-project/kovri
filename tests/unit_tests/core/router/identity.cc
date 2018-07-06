@@ -51,15 +51,15 @@ BOOST_AUTO_TEST_CASE(ParseIdentity)
   // Parse
   core::IdentityEx identity;
   BOOST_CHECK(
-      identity.FromBuffer(m_AliceIdentity.data(), m_AliceIdentity.size()));
+      identity.FromBuffer(raw_ident.data(), raw_ident.size()));
   // Check that FromBuffer + ToBuffer == original buffer
   std::array<std::uint8_t, core::DEFAULT_IDENTITY_SIZE + 4> output{{}};
   auto len = identity.ToBuffer(output.data(), output.size());
   BOOST_CHECK_EQUAL_COLLECTIONS(
       output.data(),
       output.data() + len,
-      m_AliceIdentity.data(),
-      m_AliceIdentity.data() + m_AliceIdentity.size());
+      raw_ident.data(),
+      raw_ident.data() + raw_ident.size());
   // Check key types
   BOOST_CHECK_EQUAL(
       identity.GetSigningKeyType(),
@@ -79,17 +79,17 @@ BOOST_AUTO_TEST_CASE(ParseIdentityFailure)
   // Change for invalid length
   core::IdentityEx identity;
   for (std::size_t i(1);
-       i <= m_AliceIdentity.size() - core::DEFAULT_IDENTITY_SIZE;
+       i <= raw_ident.size() - core::DEFAULT_IDENTITY_SIZE;
        i++)
     BOOST_CHECK_EQUAL(
-        identity.FromBuffer(m_AliceIdentity.data(), m_AliceIdentity.size() - i),
+        identity.FromBuffer(raw_ident.data(), raw_ident.size() - i),
         0);
 }
 
 BOOST_AUTO_TEST_CASE(ValidRoutingKey)
 {
   core::IdentityEx ident;
-  BOOST_CHECK(ident.FromBuffer(m_AliceIdentity.data(), m_AliceIdentity.size()));
+  BOOST_CHECK(ident.FromBuffer(raw_ident.data(), raw_ident.size()));
   BOOST_CHECK_NO_THROW(core::CreateRoutingKey(ident.GetIdentHash()));
 }
 

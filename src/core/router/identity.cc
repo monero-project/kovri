@@ -308,6 +308,13 @@ std::size_t IdentityEx::ToBuffer(
   return GetFullLen();
 }
 
+void IdentityEx::FromBase32(const std::string& encoded)
+{
+  auto const decoded = core::Base32::Decode(encoded.c_str(), encoded.length());
+  if (!FromBuffer(decoded.data(), decoded.size()))
+    throw std::runtime_error("IdentityEx: could not decode from base32");
+}
+
 void IdentityEx::FromBase64(const std::string& encoded)
 {
   auto const decoded = core::Base64::Decode(encoded.c_str(), encoded.length());

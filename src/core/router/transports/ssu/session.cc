@@ -186,9 +186,6 @@ void SSUSession::ProcessNextMessage(
       // Update total received bytes during router run
       core::transports.UpdateReceivedBytes(len);
 
-      // TODO(anonimal): this particular state design is bad design
-      assert(
-          m_State != SessionState::Closed || m_State != SessionState::Failed);
       switch (m_State)
         {
           case SessionState::Introduced:

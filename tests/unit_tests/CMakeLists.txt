@@ -6,6 +6,7 @@ add_executable(kovri-tests
   client/address_book/storage.cc
   client/api/i2p_control/data.cc
   client/api/i2p_control/parser.cc
+  client/api/streaming.cc
   client/reseed.cc
   client/proxy/http.cc
   client/util/http.cc

@@ -41,6 +41,11 @@ namespace core = kovri::core;
 
 struct IdentityExFixture
 {
+  IdentityExFixture()
+  {
+    BOOST_CHECK(ident.FromBuffer(raw_ident.data(), raw_ident.size()));
+  }
+
   std::array<std::uint8_t, core::DEFAULT_IDENTITY_SIZE + 4> raw_ident
   {{
     // 256 bytes Public key
@@ -102,6 +107,8 @@ struct IdentityExFixture
     // 2 bytes crypto key : CRYPTO_KEY_TYPE_ELGAMAL
     0x00, 0x00,
   }};
+
+  core::IdentityEx ident;
 };
 
 #endif  // TESTS_UNIT_TESTS_CORE_ROUTER_IDENTITY_H_

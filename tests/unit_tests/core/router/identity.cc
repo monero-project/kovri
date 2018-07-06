@@ -48,30 +48,31 @@ BOOST_FIXTURE_TEST_SUITE(IdentityExTests, IdentityExFixture)
 
 BOOST_AUTO_TEST_CASE(ParseIdentity)
 {
-  // Parse
-  core::IdentityEx identity;
-  BOOST_CHECK(
-      identity.FromBuffer(raw_ident.data(), raw_ident.size()));
-  // Check that FromBuffer + ToBuffer == original buffer
+  // Verify integrity of buffer conversion
   std::array<std::uint8_t, core::DEFAULT_IDENTITY_SIZE + 4> output{{}};
-  auto len = identity.ToBuffer(output.data(), output.size());
+  auto const len = ident.ToBuffer(output.data(), output.size());
   BOOST_CHECK_EQUAL_COLLECTIONS(
       output.data(),
       output.data() + len,
       raw_ident.data(),
       raw_ident.data() + raw_ident.size());
+
   // Check key types
   BOOST_CHECK_EQUAL(
-      identity.GetSigningKeyType(),
+      ident.GetSigningKeyType(),
       core::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
-  BOOST_CHECK_EQUAL(identity.GetCryptoKeyType(), core::CRYPTO_KEY_TYPE_ELGAMAL);
+
+  BOOST_CHECK_EQUAL(ident.GetCryptoKeyType(), core::CRYPTO_KEY_TYPE_ELGAMAL);
+
   // Check sig lengths
   BOOST_CHECK_EQUAL(
-      identity.GetSigningPublicKeyLen(), core::EDDSA25519_PUBLIC_KEY_LENGTH);
+      ident.GetSigningPublicKeyLen(), core::EDDSA25519_PUBLIC_KEY_LENGTH);
+
   BOOST_CHECK_EQUAL(
-      identity.GetSigningPrivateKeyLen(), core::EDDSA25519_PRIVATE_KEY_LENGTH);
+      ident.GetSigningPrivateKeyLen(), core::EDDSA25519_PRIVATE_KEY_LENGTH);
+
   BOOST_CHECK_EQUAL(
-      identity.GetSignatureLen(), core::EDDSA25519_SIGNATURE_LENGTH);
+      ident.GetSignatureLen(), core::EDDSA25519_SIGNATURE_LENGTH);
 }
 
 BOOST_AUTO_TEST_CASE(ParseIdentityFailure)
@@ -88,16 +89,14 @@ BOOST_AUTO_TEST_CASE(ParseIdentityFailure)
 
 BOOST_AUTO_TEST_CASE(ValidRoutingKey)
 {
-  core::IdentityEx ident;
-  BOOST_CHECK(ident.FromBuffer(raw_ident.data(), raw_ident.size()));
   BOOST_CHECK_NO_THROW(core::CreateRoutingKey(ident.GetIdentHash()));
 }
 
 BOOST_AUTO_TEST_CASE(InvalidRoutingKey)
 {
   kovri::core::IdentHash hash;
-  BOOST_CHECK_THROW(core::CreateRoutingKey(nullptr), std::invalid_argument);
   BOOST_CHECK_THROW(core::CreateRoutingKey(hash), std::invalid_argument);
+  BOOST_CHECK_THROW(core::CreateRoutingKey(nullptr), std::invalid_argument);
 }
 
 BOOST_AUTO_TEST_CASE(ValidDateFormat)

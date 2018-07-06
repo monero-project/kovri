@@ -565,6 +565,7 @@ void SSUSession::SendSessionCreated(const std::uint8_t* dh_x)
 
       // Compute exchanged session dataset size
       // TODO(anonimal): at this point, why would we allow mix-and-match IPv6 to send to IPv4 - or vice versa...
+      assert(address);
       bool const is_IPv6 = address->host.is_v6();
       std::uint16_t const data_size =
           get_signed_data_size(alice_ip.size() + (is_IPv6 ? 16 : 4));

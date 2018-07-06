@@ -105,7 +105,7 @@ Stream::Stream(
       m_Status(eStreamStatusNew),
       m_IsAckSendScheduled(false),
       m_LocalDestination(local),
-      m_CurrentRemoteLease {0, 0, 0},
+      m_CurrentRemoteLease{},
       m_ReceiveTimer(m_Service),
       m_ResendTimer(m_Service),
       m_AckSendTimer(m_Service),

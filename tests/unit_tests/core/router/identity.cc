@@ -105,4 +105,9 @@ BOOST_AUTO_TEST_CASE(ValidDateFormat)
   BOOST_CHECK(std::regex_search(core::GetFormattedDate(), regex));
 }
 
+BOOST_AUTO_TEST_CASE(Base32Conversion)
+{
+  BOOST_CHECK_NO_THROW(ident.FromBase32(ident.ToBase32()));
+}
+
 BOOST_AUTO_TEST_SUITE_END()

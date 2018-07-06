@@ -110,4 +110,9 @@ BOOST_AUTO_TEST_CASE(Base32Conversion)
   BOOST_CHECK_NO_THROW(ident.FromBase32(ident.ToBase32()));
 }
 
+BOOST_AUTO_TEST_CASE(Base64Conversion)
+{
+  BOOST_CHECK_NO_THROW(ident.FromBase64(ident.ToBase64()));
+}
+
 BOOST_AUTO_TEST_SUITE_END()

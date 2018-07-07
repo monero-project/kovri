@@ -148,12 +148,9 @@ class SSUData {
       std::uint32_t msg_id,
       std::size_t fragment_num);
 
-  void ProcessACKs(
-      std::uint8_t*& buf,
-      std::uint8_t flag);
+  void ProcessACKs(std::uint8_t*& buf, std::uint8_t flag, std::size_t& idx);
 
-  void ProcessFragments(
-      std::uint8_t * buf);
+  void ProcessFragments(std::uint8_t* buf, std::size_t& idx);
 
   void ProcessSentMessageACK(
       std::uint32_t msg_id);

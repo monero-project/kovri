@@ -147,7 +147,7 @@ void SSUData::ProcessSentMessageACK(
 }
 
 void SSUData::ProcessACKs(
-    std::uint8_t*& buf,
+    const std::uint8_t* const buf,
     std::uint8_t flag,
     std::atomic<std::size_t>& idx)
 {
@@ -197,7 +197,9 @@ void SSUData::ProcessACKs(
   }
 }
 
-void SSUData::ProcessFragments(std::uint8_t* buf, std::atomic<std::size_t>& idx)
+void SSUData::ProcessFragments(
+    const std::uint8_t* const buf,
+    std::atomic<std::size_t>& idx)
 {
   LOG(debug)
     << "SSUData:" << m_Session.GetFormattedSessionInfo()
@@ -346,7 +348,7 @@ void SSUData::FlushReceivedMessage() {
 }
 
 void SSUData::ProcessMessage(
-    std::uint8_t* buf,
+    const std::uint8_t* const buf,
     std::size_t len) {
   // std::uint8_t* start = buf;
   std::atomic<std::size_t> idx(0);

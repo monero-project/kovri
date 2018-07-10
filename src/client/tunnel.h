@@ -126,6 +126,11 @@ class I2PTunnelConnection
 
   void StreamReceive();
 
+  const auto& get_stream() const noexcept
+  {
+    return m_Stream;
+  }
+
   void HandleStreamReceive(
       const boost::system::error_code& ecode,
       std::size_t bytes_transferred);

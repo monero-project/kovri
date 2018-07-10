@@ -62,9 +62,9 @@ struct SSUTestVectorsFixture : public IdentityExFixture
     // 1 byte info
     output.Write<std::uint8_t>(0x01);
     // 2 byte identity size (0x01, 0x87)
-    output.Write<std::uint16_t>(m_AliceIdentity.size());
+    output.Write<std::uint16_t>(raw_ident.size());
     // Append identity
-    output.WriteData(m_AliceIdentity.data(), m_AliceIdentity.size());
+    output.WriteData(raw_ident.data(), raw_ident.size());
     // Signed on time (0x57, 0x69, 0x04, 0xAA)
     output.Write<std::uint32_t>(m_SignedOnTime);
     // Padding to reach multiple of 16 bytes
@@ -461,7 +461,7 @@ BOOST_AUTO_TEST_CASE(SessionConfirmedPlain)
   // Construct IdentityEx
   core::IdentityEx identity;
   BOOST_CHECK(
-      identity.FromBuffer(m_AliceIdentity.data(), m_AliceIdentity.size()));
+      identity.FromBuffer(raw_ident.data(), raw_ident.size()));
   std::unique_ptr<core::SSUSessionConfirmedPacket> packet;
   // Parse
   core::SSUPacketParser parser(session_confirmed.data(), session_confirmed.size());
@@ -679,7 +679,7 @@ BOOST_AUTO_TEST_CASE(SessionConfirmedPlain)
   // Construct IdentityEx
   core::IdentityEx identity;
   BOOST_CHECK(
-      identity.FromBuffer(m_AliceIdentity.data(), m_AliceIdentity.size()));
+      identity.FromBuffer(raw_ident.data(), raw_ident.size()));
   // Build initial packet : need header
   core::SSUPacketParser parser(header_plain.data(), header_plain.size());
   std::unique_ptr<core::SSUHeader> header;
@@ -701,7 +701,7 @@ BOOST_AUTO_TEST_CASE(SessionConfirmedPlain)
   // Padding is randomized, so check everything before and after
   const std::size_t padding_position = header_plain.size() + 1  // Info
                                        + 2  // Identity size
-                                       + m_AliceIdentity.size()  // Identity
+                                       + raw_ident.size()  // Identity
                                        + 4;  // SignedOnTime size
   BOOST_CHECK_EQUAL_COLLECTIONS(
       buffer.get(),

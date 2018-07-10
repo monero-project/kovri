@@ -48,31 +48,31 @@ BOOST_FIXTURE_TEST_SUITE(IdentityExTests, IdentityExFixture)
 
 BOOST_AUTO_TEST_CASE(ParseIdentity)
 {
-  // Parse
-  core::IdentityEx identity;
-  BOOST_CHECK(
-      identity.FromBuffer(m_AliceIdentity.data(), m_AliceIdentity.size()));
-  // Check that FromBuffer + ToBuffer == original buffer
-  // TODO(anonimal): review the following arbitrary size (must be >= 387)
-  std::array<std::uint8_t, 1024> output{{}};
-  auto len = identity.ToBuffer(output.data(), output.size());
+  // Verify integrity of buffer conversion
+  std::array<std::uint8_t, core::DEFAULT_IDENTITY_SIZE + 4> output{{}};
+  auto const len = ident.ToBuffer(output.data(), output.size());
   BOOST_CHECK_EQUAL_COLLECTIONS(
       output.data(),
       output.data() + len,
-      m_AliceIdentity.data(),
-      m_AliceIdentity.data() + m_AliceIdentity.size());
+      raw_ident.data(),
+      raw_ident.data() + raw_ident.size());
+
   // Check key types
   BOOST_CHECK_EQUAL(
-      identity.GetSigningKeyType(),
+      ident.GetSigningKeyType(),
       core::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
-  BOOST_CHECK_EQUAL(identity.GetCryptoKeyType(), core::CRYPTO_KEY_TYPE_ELGAMAL);
+
+  BOOST_CHECK_EQUAL(ident.GetCryptoKeyType(), core::CRYPTO_KEY_TYPE_ELGAMAL);
+
   // Check sig lengths
   BOOST_CHECK_EQUAL(
-      identity.GetSigningPublicKeyLen(), core::EDDSA25519_PUBLIC_KEY_LENGTH);
+      ident.GetSigningPublicKeyLen(), core::EDDSA25519_PUBLIC_KEY_LENGTH);
+
   BOOST_CHECK_EQUAL(
-      identity.GetSigningPrivateKeyLen(), core::EDDSA25519_PRIVATE_KEY_LENGTH);
+      ident.GetSigningPrivateKeyLen(), core::EDDSA25519_PRIVATE_KEY_LENGTH);
+
   BOOST_CHECK_EQUAL(
-      identity.GetSignatureLen(), core::EDDSA25519_SIGNATURE_LENGTH);
+      ident.GetSignatureLen(), core::EDDSA25519_SIGNATURE_LENGTH);
 }
 
 BOOST_AUTO_TEST_CASE(ParseIdentityFailure)
@@ -80,31 +80,39 @@ BOOST_AUTO_TEST_CASE(ParseIdentityFailure)
   // Change for invalid length
   core::IdentityEx identity;
   for (std::size_t i(1);
-       i <= m_AliceIdentity.size() - core::DEFAULT_IDENTITY_SIZE;
+       i <= raw_ident.size() - core::DEFAULT_IDENTITY_SIZE;
        i++)
     BOOST_CHECK_EQUAL(
-        identity.FromBuffer(m_AliceIdentity.data(), m_AliceIdentity.size() - i),
+        identity.FromBuffer(raw_ident.data(), raw_ident.size() - i),
         0);
 }
 
 BOOST_AUTO_TEST_CASE(ValidRoutingKey)
 {
-  core::IdentityEx ident;
-  BOOST_CHECK(ident.FromBuffer(m_AliceIdentity.data(), m_AliceIdentity.size()));
   BOOST_CHECK_NO_THROW(core::CreateRoutingKey(ident.GetIdentHash()));
 }
 
 BOOST_AUTO_TEST_CASE(InvalidRoutingKey)
 {
   kovri::core::IdentHash hash;
-  BOOST_CHECK_THROW(core::CreateRoutingKey(nullptr), std::invalid_argument);
   BOOST_CHECK_THROW(core::CreateRoutingKey(hash), std::invalid_argument);
+  BOOST_CHECK_THROW(core::CreateRoutingKey(nullptr), std::invalid_argument);
 }
 
 BOOST_AUTO_TEST_CASE(ValidDateFormat)
 {
   std::regex regex("(20\\d{2})(\\d{2})(\\d{2})");  // Valid for only this century
   BOOST_CHECK(std::regex_search(core::GetFormattedDate(), regex));
+}
+
+BOOST_AUTO_TEST_CASE(Base32Conversion)
+{
+  BOOST_CHECK_NO_THROW(ident.FromBase32(ident.ToBase32()));
+}
+
+BOOST_AUTO_TEST_CASE(Base64Conversion)
+{
+  BOOST_CHECK_NO_THROW(ident.FromBase64(ident.ToBase64()));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

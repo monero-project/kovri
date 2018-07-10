@@ -724,7 +724,10 @@ void RouterInfo::CreateRouterInfo(
   LOG(debug) << "RouterInfo: " << __func__;
 
   // Write ident
-  // TODO(anonimal): review the following arbitrary size (must be >= 387)
+  // TODO(anonimal): this max size is arbitrary. Realistically,
+  //   we'll only need a max with 387 + 4 for EdDSA-Ed25519 routers
+  //   which is a majority of the network. Note: do not set that size
+  //   until we remove implementing other signatures.
   std::array<std::uint8_t, 1024> ident {{}};
   auto ident_len =
       private_keys.GetPublic().ToBuffer(ident.data(), ident.size());

@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -250,21 +250,48 @@ void I2PTunnelConnectionHTTP::Write(
   } else {
     m_InHeader.clear();
     m_InHeader.write((const char *)buf, len);
+
+    // Acquire remote's ident from the connecting stream for X-I2P headers
+    const core::IdentityEx& ident =
+        I2PTunnelConnection::get_stream()->GetRemoteIdentity();
+
     std::string line;
     bool end_of_header = false;
-    while (!end_of_header) {
-      std::getline(m_InHeader, line);
-      if (!m_InHeader.fail()) {
-        if (line.find("Host:") != std::string::npos)
-          m_OutHeader << "Host: " << m_Host << "\r\n";
+    while (!end_of_header)
+      {
+        std::getline(m_InHeader, line);
+        if (!m_InHeader.fail())
+          {
+            if (line.find("Host:") != std::string::npos)
+              {
+                m_OutHeader << "Host: " << m_Host << "\r\n";
+              }
+            else if (line == "\r")
+              {
+                // Append X-I2P headers as a server-side courtesy
+                m_OutHeader
+                    << "X-I2P-DestHash: " << ident.GetIdentHash().ToBase64()
+                    << "\r\n";
+
+                m_OutHeader
+                    << "X-I2P-DestB32: " << ident.GetIdentHash().ToBase32()
+                    << ".b32.i2p\r\n";
+
+                m_OutHeader << "X-I2P-DestB64: " << ident.ToBase64() << "\r\n";
+
+                m_OutHeader << line << "\n";
+                end_of_header = true;
+              }
+            else
+              {
+                m_OutHeader << line << "\n";
+              }
+          }
         else
-          m_OutHeader << line << "\n";
-        if (line == "\r")
-          end_of_header = true;
-      } else {
-        break;
+          {
+            break;
+          }
       }
-    }
     if (end_of_header) {
       m_OutHeader << m_InHeader.str();  // data right after header
       m_HeaderSent = true;

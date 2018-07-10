@@ -158,8 +158,10 @@ class IdentityEx {
       std::uint8_t* buf,
       std::size_t len) const;
 
+  void FromBase32(const std::string& encoded);
   void FromBase64(const std::string& s);
 
+  std::string ToBase32() const;
   std::string ToBase64() const;
 
   /// @brief Human readable description of this struct

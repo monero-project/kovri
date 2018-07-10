@@ -129,7 +129,7 @@ class SSUData {
   void Stop();
 
   void ProcessMessage(
-      std::uint8_t* buf,
+      const std::uint8_t* const buf,
       std::size_t len);
 
   void FlushReceivedMessage();
@@ -149,11 +149,13 @@ class SSUData {
       std::size_t fragment_num);
 
   void ProcessACKs(
-      std::uint8_t*& buf,
-      std::uint8_t flag);
+      const std::uint8_t* const buf,
+      std::uint8_t flag,
+      std::atomic<std::size_t>& idx);
 
   void ProcessFragments(
-      std::uint8_t * buf);
+      const std::uint8_t* const buf,
+      std::atomic<std::size_t>& idx);
 
   void ProcessSentMessageACK(
       std::uint32_t msg_id);

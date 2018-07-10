@@ -147,32 +147,34 @@ void SSUData::ProcessSentMessageACK(
 }
 
 void SSUData::ProcessACKs(
-    std::uint8_t*& buf,
-    std::uint8_t flag) {
+    const std::uint8_t* const buf,
+    std::uint8_t flag,
+    std::atomic<std::size_t>& idx)
+{
   LOG(debug)
     << "SSUData:" << m_Session.GetFormattedSessionInfo() << "processing ACKs";
   if (flag & SSUFlag::DataExplicitACKsIncluded) {
     // explicit ACKs
-    auto num_ACKs = *buf;
-    buf++;
+    auto num_ACKs = buf[idx];
+    idx++;
     for (auto i = 0; i < num_ACKs; i++)
       ProcessSentMessageACK(
-          core::InputByteStream::Read<std::uint32_t>(buf + i * 4));
-    buf += num_ACKs * 4;
+          core::InputByteStream::Read<std::uint32_t>(&buf[idx + i * 4]));
+    idx += num_ACKs * 4;
   }
   if (flag & SSUFlag::DataACKBitfieldsIncluded) {
     // explicit ACK bitfields
-    auto num_bitfields = *buf;
-    buf++;
+    auto num_bitfields = buf[idx];
+    idx++;
     for (auto i = 0; i < num_bitfields; i++) {
-      auto const msg_id = core::InputByteStream::Read<std::uint32_t>(buf);
-      buf += 4;  // message ID
+      auto const msg_id = core::InputByteStream::Read<std::uint32_t>(&buf[idx]);
+      idx += 4;  // message ID
       auto it = m_SentMessages.find(msg_id);
       // process individual ACK bitfields
       bool is_not_last = false;
       std::size_t fragment = 0;
       do {
-        auto bitfield = *buf;
+        auto bitfield = buf[idx];
         is_not_last = bitfield & 0x80;
         bitfield &= 0x7F;  // clear MSB
         if (bitfield && it != m_SentMessages.end()) {
@@ -188,7 +190,7 @@ void SSUData::ProcessACKs(
             mask <<= 1;
           }
         }
-        buf++;
+        idx++;
       }
       while (is_not_last);
     }
@@ -196,19 +198,21 @@ void SSUData::ProcessACKs(
 }
 
 void SSUData::ProcessFragments(
-    std::uint8_t* buf) {
+    const std::uint8_t* const buf,
+    std::atomic<std::size_t>& idx)
+{
   LOG(debug)
     << "SSUData:" << m_Session.GetFormattedSessionInfo()
     << "processing fragments";
-  auto num_fragments = *buf;  // number of fragments
-  buf++;
+  auto num_fragments = buf[idx];  // number of fragments
+  idx++;
   for (auto i = 0; i < num_fragments; i++) {
-    auto const msg_id = core::InputByteStream::Read<std::uint32_t>(buf);
-    buf += 4;
+    auto const msg_id = core::InputByteStream::Read<std::uint32_t>(&buf[idx]);
+    idx += 4;
     std::array<std::uint8_t, 4> frag;
     frag.at(0) = 0;
-    memcpy(frag.data() + 1, buf, 3);
-    buf += 3;
+    memcpy(frag.data() + 1, &buf[idx], 3);
+    idx += 3;
     auto const fragment_info =
         core::InputByteStream::Read<std::uint32_t>(frag.data());
     auto fragment_size = fragment_info & 0x3FFF;  // bits 0 - 13
@@ -332,7 +336,7 @@ void SSUData::ProcessFragments(
     } else {
       SendFragmentACK(msg_id, fragment_num);
     }
-    buf += fragment_size;
+    idx += fragment_size;
   }
 }
 
@@ -344,11 +348,12 @@ void SSUData::FlushReceivedMessage() {
 }
 
 void SSUData::ProcessMessage(
-    std::uint8_t* buf,
+    const std::uint8_t* const buf,
     std::size_t len) {
   // std::uint8_t* start = buf;
-  std::uint8_t flag = *buf;
-  buf++;
+  std::atomic<std::size_t> idx(0);
+  std::uint8_t flag = buf[idx];
+  idx++;
   LOG(debug)
     << "SSUData:" << m_Session.GetFormattedSessionInfo()
     << "processing message: flags=" << static_cast<std::size_t>(flag)
@@ -357,19 +362,19 @@ void SSUData::ProcessMessage(
   if (flag &
       (SSUFlag::DataACKBitfieldsIncluded |
        SSUFlag::DataExplicitACKsIncluded))
-    ProcessACKs(buf, flag);
+    ProcessACKs(buf, flag, idx);
   // extended data if presented
   if (flag & SSUFlag::DataExtendedIncluded) {
-    std::uint8_t extended_data_size = *buf;
-    buf++;  // size
+    std::uint8_t extended_data_size = buf[idx];
+    idx++;  // size
     LOG(debug)
       << "SSUData:" << m_Session.GetFormattedSessionInfo()
       << "SSU extended data of "
       << static_cast<int>(extended_data_size) << " bytes presented";
-    buf += extended_data_size;
+    idx += extended_data_size;
   }
   // process data
-  ProcessFragments(buf);
+  ProcessFragments(buf, idx);
 }
 
 // TODO(anonimal): bytestream refactor

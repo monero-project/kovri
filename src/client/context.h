@@ -96,13 +96,6 @@ class ClientContext {
   kovri::core::PrivateKeys CreatePrivateKeys(
       const std::string& filename);
 
-  /// @brief Creates text file containing private key's public b32 address
-  /// @param keys Private keys to derive b32 address from
-  /// @param filename The relative name of the text address file
-  void CreateBaseAddressTextFile(
-      const kovri::core::PrivateKeys& keys,
-      const std::string& filename);
-
   /// @brief Loads private keys from given filename
   /// @param filename Relative name of the private key file
   /// @return Loaded private keys
@@ -198,6 +191,14 @@ class ClientContext {
   I2PClientTunnel* GetClientTunnel(int port);
 
   boost::asio::io_service& GetIoService();
+
+ private:
+  /// @brief Creates text file containing private key's public base address
+  /// @param keys Private keys to derive public ident (and base encoded hash) from
+  /// @param filename The root name of the file (i.e., website-keys = website-keys.b32.txt, website-keys.b64.txt)
+  void CreateDestTextFiles(
+      const kovri::core::PrivateKeys& keys,
+      const std::string& filename);
 
  private:
   std::mutex m_DestinationsMutex;

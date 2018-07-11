@@ -34,6 +34,8 @@
 
 #include "core/util/buffer.h"
 
+namespace core = kovri::core;
+
 struct BufferFixture
 {
   core::Buffer<> buf;

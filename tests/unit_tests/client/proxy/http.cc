@@ -253,6 +253,8 @@ BOOST_AUTO_TEST_CASE(ValidResponse)
 
 BOOST_AUTO_TEST_CASE(InvalidResponse)
 {
+  namespace client = kovri::client;
+
   client::HTTPResponse response(client::HTTPResponse::ok);
   BOOST_CHECK_THROW(
       response.set(static_cast<client::HTTPResponse::status_t>(12345)),

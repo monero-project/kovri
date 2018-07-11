@@ -33,6 +33,9 @@
 #include <boost/test/unit_test.hpp>
 
 #include "core/router/identity.h"
+#include "core/router/info.h"
+
+namespace core = kovri::core;
 
 struct RouterInfoFixture
 {

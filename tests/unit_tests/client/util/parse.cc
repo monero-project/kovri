@@ -80,6 +80,19 @@ BOOST_AUTO_TEST_CASE(Base64)
     acl += ident.ToBase64() + ",";
 }
 
+BOOST_AUTO_TEST_CASE(MixedRadix)
+{
+  std::size_t count(0);
+
+  for (const auto& ident : idents)
+    {
+      if (!count)
+        acl += ident.ToBase32() + ",";
+      acl += ident.ToBase64() + ",";
+      count++;
+    }
+}
+
 BOOST_AUTO_TEST_CASE(InvalidList)
 {
   std::uint8_t count(0);

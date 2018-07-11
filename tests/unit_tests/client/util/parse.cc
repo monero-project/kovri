@@ -59,7 +59,7 @@ BOOST_AUTO_TEST_CASE(ParseACL)
 
       // Log valid b32
       const std::string b32 = hash.ToBase32();
-      LOG(debug) << "ParseACL: " << b32;
+      BOOST_TEST_MESSAGE(b32);
 
       // Construct malformed ACL delimiters
       // TODO(unassigned): extend test for malformed ACLs?
@@ -69,7 +69,7 @@ BOOST_AUTO_TEST_CASE(ParseACL)
     }
 
   // Log our malformed ACL
-  LOG(debug) << "ParseACL: " << acl;
+  BOOST_TEST_MESSAGE(acl);
 
   // Parse our malformed ACL
   auto const& parsed_idents = kovri::client::ParseACL(acl);

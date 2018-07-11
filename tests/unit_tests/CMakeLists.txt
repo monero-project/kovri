@@ -7,8 +7,8 @@ add_executable(kovri-tests
   client/api/i2p_control/data.cc
   client/api/i2p_control/parser.cc
   client/api/streaming.cc
-  client/reseed.cc
   client/proxy/http.cc
+  client/reseed.cc
   client/util/http.cc
   client/util/parse.cc
   client/util/zip.cc
@@ -20,14 +20,15 @@ add_executable(kovri-tests
   core/crypto/rand.cc
   core/crypto/util/x509.cc
   core/router/identity.cc
-  core/router/net_db/impl.cc
+  core/router/identity.h
   core/router/info.cc
+  core/router/net_db/impl.cc
   core/router/transports/ssu/packet.cc
   core/util/buffer.cc
   core/util/byte_stream.cc
   core/util/config.cc
   main.cc
-  core/router/identity.h)
+  main.h)
 
 set_property(SOURCE main.cc PROPERTY COTIRE_EXCLUDED TRUE)
 set_property(SOURCE core/crypto/util/x509.cc PROPERTY COTIRE_EXCLUDED TRUE)

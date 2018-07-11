@@ -31,13 +31,12 @@
 #ifndef TESTS_UNIT_TESTS_CORE_ROUTER_IDENTITY_H_
 #define TESTS_UNIT_TESTS_CORE_ROUTER_IDENTITY_H_
 
+#include "tests/unit_tests/main.h"
+
 #include <array>
 #include <memory>
 
 #include "core/router/identity.h"
-#include "core/util/log.h"
-
-namespace core = kovri::core;
 
 struct IdentityExFixture
 {

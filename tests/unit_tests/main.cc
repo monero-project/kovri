@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2015-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2015-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -29,6 +29,7 @@
  */
 
 #define BOOST_TEST_MAIN
+
 #include <boost/test/unit_test.hpp>
 
 #include "core/util/log.h"

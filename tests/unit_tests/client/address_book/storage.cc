@@ -28,9 +28,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#define BOOST_TEST_DYN_LINK
-
-#include <boost/test/unit_test.hpp>
+#include "tests/unit_tests/main.h"
 
 #include <iostream>
 
@@ -38,9 +36,6 @@
 #include "client/address_book/storage.h"
 
 #include "core/router/context.h"
-
-namespace client = kovri::client;
-namespace core = kovri::core;
 
 struct AddressBookStorageFixture
 {

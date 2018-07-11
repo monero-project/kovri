@@ -28,9 +28,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#define BOOST_TEST_DYN_LINK
-
-#include <boost/test/unit_test.hpp>
+#include "tests/unit_tests/main.h"
 
 #include <memory>
 #include <set>
@@ -42,8 +40,6 @@
 #include "core/router/net_db/impl.h"
 
 #include "tests/unit_tests/core/router/identity.h"
-
-namespace core = kovri::core;
 
 struct NetDbFixture : public IdentityExFixture
 {

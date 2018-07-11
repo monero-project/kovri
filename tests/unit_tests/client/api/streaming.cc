@@ -28,17 +28,12 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define BOOST_TEST_DYN_LINK
-
-#include <boost/test/unit_test.hpp>
+#include "tests/unit_tests/main.h"
 
 #include "src/client/api/streaming.h"
 #include "src/client/destination.h"
 
 #include "src/core/router/identity.h"
-
-namespace core = kovri::core;
-namespace client = kovri::client;
 
 struct StreamingFixture
 {

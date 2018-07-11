@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2015-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2015-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -29,19 +29,14 @@
  *                                                                                            //
  */
 
-#define BOOST_TEST_DYN_LINK
-
-#include <boost/test/unit_test.hpp>
+#include "tests/unit_tests/main.h"
 
 #include <array>
 #include <limits>
 #include <type_traits>
 
 #include "client/api/i2p_control/data.h"
-#include "core/util/log.h"
 
-namespace client = kovri::client;
-namespace core = kovri::core;
 typedef client::I2PControlResponse Response;
 typedef client::I2PControlRequest Request;
 typedef Response::ErrorCode ErrorCode;

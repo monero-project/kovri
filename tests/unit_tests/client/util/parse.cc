@@ -38,45 +38,54 @@
 #include "core/router/identity.h"
 #include "core/util/log.h"
 
-BOOST_AUTO_TEST_SUITE(ClientParsing)
+namespace core = kovri::core;
+namespace client = kovri::client;
 
-BOOST_AUTO_TEST_CASE(ParseACL)
+struct ParseACLFixture
 {
-  std::set<kovri::core::IdentHash> idents;
-  std::uint8_t count(3);
+  ParseACLFixture()
+  {
+    // Create hash set
+    for (std::uint8_t i(0); i < 3; i++)
+      {
+        core::IdentHash hash;
+        // Note: not a "real" (key-generated) ident hash
+        core::RandBytes(hash(), sizeof(hash));
+        idents.insert(hash);
+      }
+  }
+
+  ~ParseACLFixture()
+  {
+    BOOST_TEST_MESSAGE(acl);
+    BOOST_REQUIRE_NO_THROW(client::ParseACL(acl));
+    BOOST_CHECK(client::ParseACL(acl) == idents);
+  }
+
+  std::set<core::IdentHash> idents;
   std::string acl;
+};
 
-  // Create hashes + construct malformed ACL
-  for (std::uint8_t i(0); i < count; i++)
+BOOST_FIXTURE_TEST_SUITE(ParseACL, ParseACLFixture)
+
+BOOST_AUTO_TEST_CASE(InvalidList)
+{
+  std::uint8_t count(0);
+
+  // Construct malformed ACL
+  // TODO(unassigned): extend test for malformed ACLs?
+  for (const auto& ident : idents)
     {
-      // Note: not a "real" (key-generated) ident hash
-      std::array<std::uint8_t, sizeof(kovri::core::IdentHash)> rand{{}};
-      kovri::core::RandBytes(rand.data(), rand.size());
-
-      // Create hash + insert into set
-      kovri::core::IdentHash hash(rand.data());
-      idents.insert(hash);
-
-      // Log valid b32
-      const std::string b32 = hash.ToBase32();
-      BOOST_TEST_MESSAGE(b32);
-
-      // Construct malformed ACL delimiters
-      // TODO(unassigned): extend test for malformed ACLs?
-      acl += b32;
-      if (i != (count - 1))
+      acl += ident.ToBase32();
+      if (count != (idents.size() - 1))
         acl += ",,,,";
+      count++;
     }
-
-  // Log our malformed ACL
-  BOOST_TEST_MESSAGE(acl);
-
-  // Parse our malformed ACL
-  auto const& parsed_idents = kovri::client::ParseACL(acl);
-
-  // Check if parser fixed the ACL and if parsed ACL matches the correct ACL
-  BOOST_CHECK(parsed_idents == idents);
 }
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE(ClientParsing)
 
 struct TunnelFixture {
   kovri::client::TunnelAttributes tunnel{};

@@ -89,7 +89,7 @@ class X509FixtureImpl : X509Fixture {
   }
 };
 
-BOOST_FIXTURE_TEST_SUITE(X509, X509Fixture);
+BOOST_FIXTURE_TEST_SUITE(KovriX509, X509Fixture);
 
 // First, test that the cert is valid
 BOOST_AUTO_TEST_CASE(GoodX509) {

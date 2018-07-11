@@ -68,6 +68,12 @@ struct ParseACLFixture
 
 BOOST_FIXTURE_TEST_SUITE(ParseACL, ParseACLFixture)
 
+BOOST_AUTO_TEST_CASE(Base32)
+{
+  for (const auto& ident : idents)
+    acl += ident.ToBase32() + ",";
+}
+
 BOOST_AUTO_TEST_CASE(InvalidList)
 {
   std::uint8_t count(0);

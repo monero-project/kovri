@@ -74,6 +74,12 @@ BOOST_AUTO_TEST_CASE(Base32)
     acl += ident.ToBase32() + ",";
 }
 
+BOOST_AUTO_TEST_CASE(Base64)
+{
+  for (const auto& ident : idents)
+    acl += ident.ToBase64() + ",";
+}
+
 BOOST_AUTO_TEST_CASE(InvalidList)
 {
   std::uint8_t count(0);

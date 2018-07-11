@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -44,7 +44,7 @@ namespace client {
 /// @brief Parses an ACL
 /// @param record String record of CSV
 /// @return Returns a std::set of the b32 of each value from the list
-const std::set<kovri::core::IdentHash> ParseACL(const std::string list);
+std::set<kovri::core::IdentHash> ParseACL(const std::string list);
 
 /// @brief Parse for multiple CSV destination(s) and also dest:port
 /// @details Free function used solely for configuration which shows that we

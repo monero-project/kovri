@@ -59,7 +59,7 @@ namespace core {
 struct RawSSUPacket {
   kovri::core::AESAlignedBuffer<SSUSize::RawPacketBuffer> buf;
   boost::asio::ip::udp::endpoint from;
-  std::size_t len;
+  std::size_t len{};
 };
 
 class SSUServer {

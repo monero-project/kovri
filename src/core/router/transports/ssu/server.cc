@@ -133,18 +133,18 @@ void SSUServer::Send(
   }
 }
 
-void SSUServer::Receive() {
+void SSUServer::Receive()
+{
   LOG(debug) << "SSUServer: receiving data";
 // BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
 #if (BOOST_VERSION >= 106600)
   auto packet = std::make_unique<RawSSUPacket>();
 #else
-  RawSSUPacket* packet = new RawSSUPacket();  // always freed in ensuing handlers
+  RawSSUPacket* packet =
+      new RawSSUPacket();  // always freed in ensuing handlers
 #endif
   m_Socket.async_receive_from(
-      boost::asio::buffer(
-          packet->buf,
-          SSUSize::MTUv4),
+      boost::asio::buffer(packet->buf, SSUSize::MTUv4),
       packet->from,
       std::bind(
           &SSUServer::HandleReceivedFrom,
@@ -157,21 +157,21 @@ void SSUServer::Receive() {
 #else
           packet  // will not work with unique_ptr .get()
 #endif
-));
+              ));
 }
 
-void SSUServer::ReceiveV6() {
+void SSUServer::ReceiveV6()
+{
   LOG(debug) << "SSUServer: V6: receiving data";
 // BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
 #if (BOOST_VERSION >= 106600)
   auto packet = std::make_unique<RawSSUPacket>();
 #else
-  RawSSUPacket* packet = new RawSSUPacket();  // always freed in ensuing handlers
+  RawSSUPacket* packet =
+      new RawSSUPacket();  // always freed in ensuing handlers
 #endif
   m_SocketV6.async_receive_from(
-      boost::asio::buffer(
-          packet->buf,
-          SSUSize::MTUv6),
+      boost::asio::buffer(packet->buf, SSUSize::MTUv6),
       packet->from,
       std::bind(
           &SSUServer::HandleReceivedFromV6,
@@ -184,7 +184,7 @@ void SSUServer::ReceiveV6() {
 #else
           packet  // will not work with unique_ptr .get()
 #endif
-));
+              ));
 }
 
 // coverity[+free : arg-2]
@@ -200,57 +200,58 @@ void SSUServer::HandleReceivedFrom(
 )
 {
   LOG(debug) << "SSUServer: handling received data";
-  if (!ecode) {
-    packet->len = bytes_transferred;
+  if (!ecode)
+    {
+      packet->len = bytes_transferred;
 // BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
 #if (BOOST_VERSION >= 106600)
-    std::vector<std::unique_ptr<RawSSUPacket>> packets;
-    packets.push_back(std::move(packet));
+      std::vector<std::unique_ptr<RawSSUPacket>> packets;
+      packets.push_back(std::move(packet));
 #else
-    std::vector<RawSSUPacket*> packets;
-    packets.push_back(packet);
+      std::vector<RawSSUPacket*> packets;
+      packets.push_back(packet);
 #endif
-    boost::system::error_code ec;
-    std::size_t more_bytes = m_Socket.available(ec);
-    // TODO(anonimal): but what about 0 length HolePunch?
-    //   Current handler's null length check done in vain?
-    while (more_bytes && packets.size() < 25) {
+      boost::system::error_code ec;
+      std::size_t more_bytes = m_Socket.available(ec);
+      // TODO(anonimal): but what about 0 length HolePunch?
+      //   Current handler's null length check done in vain?
+      while (more_bytes && packets.size() < 25)
+        {
 // BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
 #if (BOOST_VERSION >= 106600)
-      auto pkt = std::make_unique<RawSSUPacket>();
+          auto pkt = std::make_unique<RawSSUPacket>();
 #else
-      RawSSUPacket* pkt = new RawSSUPacket();
+          RawSSUPacket* pkt = new RawSSUPacket();
 #endif
-      pkt->len = m_Socket.receive_from(
-          boost::asio::buffer(
-              pkt->buf,
-              SSUSize::MTUv4),
-          pkt->from);
+          pkt->len = m_Socket.receive_from(
+              boost::asio::buffer(pkt->buf, SSUSize::MTUv4), pkt->from);
 // BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
 #if (BOOST_VERSION >= 106600)
-      packets.push_back(std::move(pkt));
+          packets.push_back(std::move(pkt));
 #else
-      packets.push_back(pkt);
+          packets.push_back(pkt);
 #endif
-      more_bytes = m_Socket.available();
+          more_bytes = m_Socket.available();
+        }
+      m_Service.post(std::bind(
+          &SSUServer::HandleReceivedPackets,
+          this,
+// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
+#if (BOOST_VERSION >= 106600)
+          std::move(packets)
+#else
+          packets
+#endif
+              ));
+      Receive();
     }
-    m_Service.post(
-        std::bind(
-            &SSUServer::HandleReceivedPackets,
-            this,
-// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
-#if (BOOST_VERSION >= 106600)
-            std::move(packets)));
-#else
-            packets));
-#endif
-    Receive();
-  } else {
-    LOG(error) << "SSUServer: receive error: " << ecode.message();
+  else
+    {
+      LOG(error) << "SSUServer: receive error: " << ecode.message();
 #if (BOOST_VERSION < 106600)
-    delete packet;  // free packet, now
+      delete packet;  // free packet, now
 #endif
-  }
+    }
 }
 
 // coverity[+free : arg-2]
@@ -266,54 +267,55 @@ void SSUServer::HandleReceivedFromV6(
 )
 {
   LOG(debug) << "SSUServer: V6: handling received data";
-  if (!ecode) {
-    packet->len = bytes_transferred;
+  if (!ecode)
+    {
+      packet->len = bytes_transferred;
 // BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
 #if (BOOST_VERSION >= 106600)
-    std::vector<std::unique_ptr<RawSSUPacket>> packets;
-    packets.push_back(std::move(packet));
+      std::vector<std::unique_ptr<RawSSUPacket>> packets;
+      packets.push_back(std::move(packet));
 #else
-    std::vector<RawSSUPacket*> packets;
-    packets.push_back(packet);
+      std::vector<RawSSUPacket*> packets;
+      packets.push_back(packet);
 #endif
-    std::size_t more_bytes = m_SocketV6.available();
-    while (more_bytes && packets.size() < 25) {
+      std::size_t more_bytes = m_SocketV6.available();
+      while (more_bytes && packets.size() < 25)
+        {
 // BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
 #if (BOOST_VERSION >= 106600)
-      auto pkt = std::make_unique<RawSSUPacket>();
+          auto pkt = std::make_unique<RawSSUPacket>();
 #else
-      RawSSUPacket* pkt = new RawSSUPacket();
+          RawSSUPacket* pkt = new RawSSUPacket();
 #endif
-      pkt->len = m_SocketV6.receive_from(
-          boost::asio::buffer(
-              pkt->buf,
-              SSUSize::MTUv6),
-          pkt->from);
+          pkt->len = m_SocketV6.receive_from(
+              boost::asio::buffer(pkt->buf, SSUSize::MTUv6), pkt->from);
 // BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
 #if (BOOST_VERSION >= 106600)
-      packets.push_back(std::move(pkt));
+          packets.push_back(std::move(pkt));
 #else
-      packets.push_back(pkt);
+          packets.push_back(pkt);
 #endif
-      more_bytes = m_SocketV6.available();
+          more_bytes = m_SocketV6.available();
+        }
+      m_Service.post(std::bind(
+          &SSUServer::HandleReceivedPackets,
+          this,
+// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
+#if (BOOST_VERSION >= 106600)
+          std::move(packets)
+#else
+          packets
+#endif
+              ));
+      ReceiveV6();
     }
-    m_Service.post(
-        std::bind(
-            &SSUServer::HandleReceivedPackets,
-            this,
-// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
-#if (BOOST_VERSION >= 106600)
-            std::move(packets)));
-#else
-            packets));
-#endif
-    ReceiveV6();
-  } else {
-    LOG(error) << "SSUServer: V6 receive error: " << ecode.message();
+  else
+    {
+      LOG(error) << "SSUServer: V6 receive error: " << ecode.message();
 #if (BOOST_VERSION < 106600)
-    delete packet;  // free packet, now
+      delete packet;  // free packet, now
 #endif
-  }
+    }
 }
 
 void SSUServer::HandleReceivedPackets(
@@ -335,41 +337,45 @@ void SSUServer::HandleReceivedPackets(
   for (auto* packet : packets)
     {
 #endif
-    try {
-      // Packet received for a session other than the previous one
-      if (!session || session->GetRemoteEndpoint() != packet->from) {
-        if (session)
-          session->FlushData();
-        auto session_it = m_Sessions.find(packet->from);
-        if (session_it != m_Sessions.end())
-          {
-            session = session_it->second;
-          }
-        else
-          {
-          session = std::make_shared<SSUSession>(*this, packet->from);
-          session->WaitForConnect(); {
-            std::unique_lock<std::mutex> l(m_SessionsMutex);
-            // TODO(anonimal): assuming we get this far with 0 length HolePunch,
-            //   why would we add a session with Charlie *before* sending a SessionRequest?
-            m_Sessions[packet->from] = session;
-          }
-          LOG(debug)
-            << "SSUServer: created new SSU session from "
-            << session->GetRemoteEndpoint();
+      try
+        {
+          // Packet received for a session other than the previous one
+          if (!session || session->GetRemoteEndpoint() != packet->from)
+            {
+              if (session)
+                session->FlushData();
+              auto session_it = m_Sessions.find(packet->from);
+              if (session_it != m_Sessions.end())
+                {
+                  session = session_it->second;
+                }
+              else
+                {
+                  session = std::make_shared<SSUSession>(*this, packet->from);
+                  session->WaitForConnect();
+                  {
+                    std::unique_lock<std::mutex> l(m_SessionsMutex);
+                    // TODO(anonimal): assuming we get this far with 0 length HolePunch,
+                    //   why would we add a session with Charlie *before* sending a SessionRequest?
+                    m_Sessions[packet->from] = session;
+                  }
+                  LOG(debug) << "SSUServer: created new SSU session from "
+                             << session->GetRemoteEndpoint();
+                }
+            }
+          session->ProcessNextMessage(packet->buf, packet->len, packet->from);
         }
-      }
-      session->ProcessNextMessage(packet->buf, packet->len, packet->from);
-    } catch (const std::exception& ex) {
-      LOG(error) << "SSUServer: " << __func__ << ": '" << ex.what() << "'";
-      if (session)
-        session->FlushData();
-      session = nullptr;
-    }
+      catch (const std::exception& ex)
+        {
+          LOG(error) << "SSUServer: " << __func__ << ": '" << ex.what() << "'";
+          if (session)
+            session->FlushData();
+          session = nullptr;
+        }
 #if (BOOST_VERSION < 106600)
-    delete packet;  // free received packet
+      delete packet;  // free received packet
 #endif
-  }
+    }
   if (session)
     session->FlushData();
 }

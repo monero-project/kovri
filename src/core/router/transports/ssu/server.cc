@@ -46,10 +46,7 @@
 
 namespace kovri {
 namespace core {
-
-SSUServer::SSUServer(
-    boost::asio::io_service& service,
-    std::size_t port)
+SSUServer::SSUServer(boost::asio::io_service& service, const std::size_t port)
     : m_Service(service),
       m_Endpoint(boost::asio::ip::udp::v4(), port),
       m_EndpointV6(boost::asio::ip::udp::v6(), port),
@@ -57,7 +54,8 @@ SSUServer::SSUServer(
       m_SocketV6(m_Service),
       m_IntroducersUpdateTimer(m_Service),
       m_PeerTestsCleanupTimer(m_Service),
-      m_IsRunning(false) {
+      m_IsRunning(false)
+{
   m_Socket.set_option(boost::asio::socket_base::receive_buffer_size(65535));
   m_Socket.set_option(boost::asio::socket_base::send_buffer_size(65535));
   if (context.SupportsV6()) {
@@ -98,14 +96,15 @@ void SSUServer::Stop() {
 }
 
 void SSUServer::AddRelay(
-    std::uint32_t tag,
-    const boost::asio::ip::udp::endpoint& relay) {
+    const std::uint32_t tag,
+    const boost::asio::ip::udp::endpoint& relay)
+{
   LOG(debug) << "SSUServer: adding relay";
   m_Relays[tag] = relay;
 }
 
-std::shared_ptr<SSUSession> SSUServer::FindRelaySession(
-    std::uint32_t tag) {
+std::shared_ptr<SSUSession> SSUServer::FindRelaySession(const std::uint32_t tag)
+{
   LOG(debug) << "SSUServer: finding relay session";
   auto it = m_Relays.find(tag);
   if (it != m_Relays.end())
@@ -115,8 +114,9 @@ std::shared_ptr<SSUSession> SSUServer::FindRelaySession(
 
 void SSUServer::Send(
     const std::uint8_t* buf,
-    std::size_t len,
-    const boost::asio::ip::udp::endpoint& to) {
+    const std::size_t len,
+    const boost::asio::ip::udp::endpoint& to)
+{
   LOG(debug) << "SSUServer: sending data";
   if (to.protocol() == boost::asio::ip::udp::v4()) {
     try {
@@ -168,8 +168,9 @@ void SSUServer::ReceiveV6() {
 // coverity[+free : arg-2]
 void SSUServer::HandleReceivedFrom(
     const boost::system::error_code& ecode,
-    std::size_t bytes_transferred,
-    RawSSUPacket* packet) {
+    const std::size_t bytes_transferred,
+    RawSSUPacket* packet)
+{
   LOG(debug) << "SSUServer: handling received data";
   if (!ecode) {
     packet->len = bytes_transferred;
@@ -205,8 +206,9 @@ void SSUServer::HandleReceivedFrom(
 // coverity[+free : arg-2]
 void SSUServer::HandleReceivedFromV6(
     const boost::system::error_code& ecode,
-    std::size_t bytes_transferred,
-    RawSSUPacket* packet) {
+    const std::size_t bytes_transferred,
+    RawSSUPacket* packet)
+{
   LOG(debug) << "SSUServer: V6: handling received data";
   if (!ecode) {
     packet->len = bytes_transferred;
@@ -236,8 +238,8 @@ void SSUServer::HandleReceivedFromV6(
   }
 }
 
-void SSUServer::HandleReceivedPackets(
-    std::vector<RawSSUPacket *> packets) {
+void SSUServer::HandleReceivedPackets(const std::vector<RawSSUPacket*>& packets)
+{
   LOG(debug) << "SSUServer: handling received packets";
   std::shared_ptr<SSUSession> session;
   for (auto packet : packets) {
@@ -280,7 +282,8 @@ void SSUServer::HandleReceivedPackets(
 }
 
 std::shared_ptr<SSUSession> SSUServer::FindSession(
-    std::shared_ptr<const kovri::core::RouterInfo> router) const {
+    const std::shared_ptr<const kovri::core::RouterInfo>& router) const
+{
   LOG(debug) << "SSUServer: finding session from RI";
   if (!router)
     return nullptr;
@@ -309,8 +312,9 @@ std::shared_ptr<SSUSession> SSUServer::FindSession(
 }
 
 std::shared_ptr<SSUSession> SSUServer::GetSession(
-    std::shared_ptr<const kovri::core::RouterInfo> router,
-    bool peer_test) {
+    const std::shared_ptr<const kovri::core::RouterInfo>& router,
+    const bool peer_test)
+{
   LOG(debug) << "SSUServer: getting session";
   std::shared_ptr<SSUSession> session;
   if (router) {
@@ -407,8 +411,8 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
   return session;
 }
 
-void SSUServer::DeleteSession(
-    std::shared_ptr<SSUSession> session) {
+void SSUServer::DeleteSession(const std::shared_ptr<SSUSession>& session)
+{
   LOG(debug) << "SSUServer: deleting session";
   if (session) {
     session->Close();
@@ -425,9 +429,9 @@ void SSUServer::DeleteAllSessions() {
   m_Sessions.clear();
 }
 
-template<typename Filter>
-std::shared_ptr<SSUSession> SSUServer::GetRandomSession(
-    Filter filter) {
+template <typename Filter>
+std::shared_ptr<SSUSession> SSUServer::GetRandomSession(const Filter filter)
+{
   LOG(debug) << "SSUServer: getting random session";
   std::vector<std::shared_ptr<SSUSession>> filtered_sessions;
   for (auto session : m_Sessions)
@@ -442,7 +446,8 @@ std::shared_ptr<SSUSession> SSUServer::GetRandomSession(
 }
 
 std::shared_ptr<SSUSession> SSUServer::GetRandomEstablishedSession(
-    std::shared_ptr<const SSUSession> excluded) {
+    const std::shared_ptr<const SSUSession>& excluded)
+{
   LOG(debug) << "SSUServer: getting random established session";
   return GetRandomSession(
       [excluded](std::shared_ptr<SSUSession> session)->bool {
@@ -451,8 +456,9 @@ std::shared_ptr<SSUSession> SSUServer::GetRandomEstablishedSession(
       session != excluded; });
 }
 
-std::set<SSUSession *> SSUServer::FindIntroducers(
-    std::size_t max_num_introducers) {
+std::set<SSUSession*> SSUServer::FindIntroducers(
+    const std::size_t max_num_introducers)
+{
   LOG(debug) << "SSUServer: finding introducers";
   std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
   std::set<SSUSession *> ret;
@@ -541,9 +547,10 @@ void SSUServer::HandleIntroducersUpdateTimer(
 }
 
 void SSUServer::NewPeerTest(
-    std::uint32_t nonce,
-    PeerTestParticipant role,
-    std::shared_ptr<SSUSession> session) {
+    const std::uint32_t nonce,
+    const PeerTestParticipant role,
+    const std::shared_ptr<SSUSession>& session)
+{
   LOG(debug) << "SSUServer: new peer test";
   m_PeerTests[nonce] = {
     kovri::core::GetMillisecondsSinceEpoch(),
@@ -552,8 +559,8 @@ void SSUServer::NewPeerTest(
   };
 }
 
-PeerTestParticipant SSUServer::GetPeerTestParticipant(
-    std::uint32_t nonce) {
+PeerTestParticipant SSUServer::GetPeerTestParticipant(const std::uint32_t nonce)
+{
   LOG(debug) << "SSUServer: getting PeerTest participant";
   auto it = m_PeerTests.find(nonce);
   if (it != m_PeerTests.end())
@@ -563,7 +570,8 @@ PeerTestParticipant SSUServer::GetPeerTestParticipant(
 }
 
 std::shared_ptr<SSUSession> SSUServer::GetPeerTestSession(
-    std::uint32_t nonce) {
+    const std::uint32_t nonce)
+{
   LOG(debug) << "SSUServer: getting PeerTest session";
   auto it = m_PeerTests.find(nonce);
   if (it != m_PeerTests.end())
@@ -573,16 +581,17 @@ std::shared_ptr<SSUSession> SSUServer::GetPeerTestSession(
 }
 
 void SSUServer::UpdatePeerTest(
-    std::uint32_t nonce,
-    PeerTestParticipant role) {
+    const std::uint32_t nonce,
+    const PeerTestParticipant role)
+{
   LOG(debug) << "SSUServer: updating PeerTest";
   auto it = m_PeerTests.find(nonce);
   if (it != m_PeerTests.end())
     it->second.role = role;
 }
 
-void SSUServer::RemovePeerTest(
-    std::uint32_t nonce) {
+void SSUServer::RemovePeerTest(const std::uint32_t nonce)
+{
   LOG(debug) << "SSUServer: removing PeerTest";
   m_PeerTests.erase(nonce);
 }

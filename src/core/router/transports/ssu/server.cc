@@ -47,7 +47,8 @@
 namespace kovri {
 namespace core {
 SSUServer::SSUServer(boost::asio::io_service& service, const std::size_t port)
-    : m_Service(service),
+    : m_Exception(__func__),
+      m_Service(service),
       m_Endpoint(boost::asio::ip::udp::v4(), port),
       m_EndpointV6(boost::asio::ip::udp::v6(), port),
       m_Socket(m_Service, m_Endpoint),
@@ -118,19 +119,20 @@ void SSUServer::Send(
     const boost::asio::ip::udp::endpoint& to)
 {
   LOG(debug) << "SSUServer: sending data";
-  if (to.protocol() == boost::asio::ip::udp::v4()) {
-    try {
-      m_Socket.send_to(boost::asio::buffer(buf, len), to);
-    } catch (const std::exception& ex) {
-      LOG(error) << "SSUServer: send error: '" << ex.what() << "'";
-    }
-  } else {
-    try {
+  try
+    {
+      if (to.protocol() == boost::asio::ip::udp::v4())
+        {
+          m_Socket.send_to(boost::asio::buffer(buf, len), to);
+          return;
+        }
+
       m_SocketV6.send_to(boost::asio::buffer(buf, len), to);
-    } catch (const std::exception& ex) {
-      LOG(error) << "SSUServer: V6 send error: '" << ex.what() << "'";
     }
-  }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+    }
 }
 
 void SSUServer::Receive()
@@ -365,9 +367,9 @@ void SSUServer::HandleReceivedPackets(
             }
           session->ProcessNextMessage(packet->buf, packet->len, packet->from);
         }
-      catch (const std::exception& ex)
+      catch (...)
         {
-          LOG(error) << "SSUServer: " << __func__ << ": '" << ex.what() << "'";
+          m_Exception.Dispatch(__func__);
           if (session)
             session->FlushData();
           session = nullptr;

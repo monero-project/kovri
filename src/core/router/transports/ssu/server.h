@@ -52,6 +52,7 @@
 #include "core/router/transports/ssu/packet.h"
 #include "core/router/transports/ssu/session.h"
 
+#include "core/util/exception.h"
 
 namespace kovri {
 namespace core {
@@ -174,6 +175,8 @@ class SSUServer {
   void HandlePeerTestsCleanupTimer(const boost::system::error_code& ecode);
 
  private:
+  core::Exception m_Exception;
+
   struct PeerTest {
     std::uint64_t creation_time{};  ///< Must be set as time since epoch, in implementation
     PeerTestParticipant role;

@@ -134,14 +134,33 @@ class SSUServer {
   void HandleReceivedFrom(
       const boost::system::error_code& ecode,
       const std::size_t bytes_transferred,
-      RawSSUPacket* packet);
+// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
+#if (BOOST_VERSION >= 106600)
+      std::unique_ptr<RawSSUPacket>& packet
+#else
+      RawSSUPacket* packet
+#endif
+  );
 
   void HandleReceivedFromV6(
       const boost::system::error_code& ecode,
       const std::size_t bytes_transferred,
-      RawSSUPacket* packet);
+// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
+#if (BOOST_VERSION >= 106600)
+      std::unique_ptr<RawSSUPacket>& packet
+#else
+      RawSSUPacket* packet
+#endif
+  );
 
-  void HandleReceivedPackets(const std::vector<RawSSUPacket*>& packets);
+  void HandleReceivedPackets(
+// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
+#if (BOOST_VERSION >= 106600)
+      const std::vector<std::unique_ptr<RawSSUPacket>>& packets
+#else
+      const std::vector<RawSSUPacket*>& packets
+#endif
+  );
 
   template <typename Filter>
   std::shared_ptr<SSUSession> GetRandomSession(const Filter filter);

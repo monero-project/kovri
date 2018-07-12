@@ -606,7 +606,7 @@ void SSUServer::HandlePeerTestsCleanupTimer(
     std::size_t num_deleted = 0;
     std::uint64_t ts = kovri::core::GetMillisecondsSinceEpoch();
     for (auto it = m_PeerTests.begin(); it != m_PeerTests.end();) {
-      if (ts > it->second.creationTime
+      if (ts > it->second.creation_time
                + SSUDuration::PeerTestTimeout
                * 1000LL) {
         num_deleted++;

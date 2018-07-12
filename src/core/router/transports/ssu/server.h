@@ -167,7 +167,7 @@ class SSUServer {
 
  private:
   struct PeerTest {
-    std::uint64_t creationTime;
+    std::uint64_t creation_time{};  ///< Must be set as time since epoch, in implementation
     PeerTestParticipant role;
     std::shared_ptr<SSUSession> session;  // for Bob to Alice
   };

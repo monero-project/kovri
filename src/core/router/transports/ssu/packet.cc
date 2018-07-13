@@ -42,7 +42,7 @@
 namespace kovri {
 namespace core {
 // TODO(unassigned): move out of unit file
-std::size_t SSUSessionConfirmedPacket::GetSize() const
+std::size_t SSUSessionConfirmedPacket::GetSize() const noexcept
 {
   // This message must be a multiple of 16
   return SSUPacketBuilder::GetPaddedSize(
@@ -61,14 +61,14 @@ std::size_t SSUSessionConfirmedPacket::GetSize() const
 SSUHeader::SSUHeader()
     : SSUHeader(SSUPayloadType::Unknown) {}
 
-SSUHeader::SSUHeader(SSUPayloadType type)
+SSUHeader::SSUHeader(const SSUPayloadType type)
     : SSUHeader(type, nullptr, nullptr, 0) {}
 
 SSUHeader::SSUHeader(
-    SSUPayloadType type,
+    const SSUPayloadType type,
     std::uint8_t* mac,
     std::uint8_t* iv,
-    std::uint32_t time)
+    const std::uint32_t time)
     : m_MAC(mac),
       m_IV(iv),
       m_ExtendedOptions(nullptr),
@@ -86,7 +86,7 @@ SSUHeader::SSUHeader(
 
 SSUPacketParser::SSUPacketParser(
     std::uint8_t* data,
-    std::size_t len)
+    const std::size_t len)
     : InputByteStream(data, len) {}
 
 SSUFragment SSUPacketParser::ParseFragment() {
@@ -306,7 +306,7 @@ std::unique_ptr<SSUSessionDestroyedPacket> SSUPacketParser::ParseSessionDestroye
 
 SSUPacketBuilder::SSUPacketBuilder(
       std::uint8_t* data,
-      std::size_t len)
+      const std::size_t len)
   : OutputByteStream(data, len) {}
 
 void SSUPacketBuilder::WriteHeader(SSUHeader* header) {

@@ -106,7 +106,7 @@ enum SSUPayloadType : std::uint8_t
   Unknown  // TODO(unassigned): fully implement
 };
 
-// TODO(unassigned): finish SSU refactor, see notes in #140 (especially regarding excessive getters/setters)
+// TODO(unassigned): finish SSU refactor, see notes in #140 (especially regarding excessive getters/setters, and const correct pointers)
 
 /// @class SSUHeader
 /// @brief Constitutes all SSU headers
@@ -116,7 +116,7 @@ class SSUHeader
   SSUHeader();
 
   /// @brief Constructs SSU header with pre-determined payload type
-  explicit SSUHeader(SSUPayloadType type);
+  explicit SSUHeader(const SSUPayloadType type);
 
   /// @brief Constructs SSU header with pre-determined payload type and content
   /// @note Assumes content is valid
@@ -125,21 +125,21 @@ class SSUHeader
   /// @param iv Pointer to header's IV material
   /// @param time Header's timestamp
   SSUHeader(
-      SSUPayloadType type,
+      const SSUPayloadType type,
       std::uint8_t* mac,
       std::uint8_t* iv,
-      std::uint32_t time);
+      const std::uint32_t time);
 
   /// @brief Sets MAC from appointed position within header
   /// @note Assumes content is valid (based on position)
-  void SetMAC(std::uint8_t* mac)
+  void SetMAC(std::uint8_t* mac) noexcept
   {
     m_MAC = mac;
   }
 
   /// @brief Gets acquired MAC after it has been set when parsed
   /// @return Pointer to MAC material
-  std::uint8_t* GetMAC() const
+  std::uint8_t* GetMAC() const noexcept
   {
     return m_MAC;
   }
@@ -147,14 +147,14 @@ class SSUHeader
   /// @brief Sets IV from appointed position within header
   /// @note Assumes content is valid (based on position)
   /// @param Pointer to header's IV material
-  void SetIV(std::uint8_t* iv)
+  void SetIV(std::uint8_t* iv) noexcept
   {
     m_IV = iv;
   }
 
   /// @brief Gets acquired IV after it has been set when parsed
   /// @return Pointer to IV material
-  std::uint8_t const* GetIV() const
+  std::uint8_t const* GetIV() const noexcept
   {
     return m_IV;
   }
@@ -164,7 +164,7 @@ class SSUHeader
   /// @param type nonnegative integer between 0 and 8
   /// @throw std::invalid_argument if the type is invalid
   // TODO(unassigned): replace this C-style type
-  void SetPayloadType(short type)
+  void SetPayloadType(const short type)
   {
     if (type < 0 || type > 8)
       throw std::invalid_argument("SetPayloadType invalid type given");
@@ -173,20 +173,20 @@ class SSUHeader
 
   /// @brief Gets SSU header payload type
   /// @return SSU header payload type
-  SSUPayloadType GetPayloadType() const
+  SSUPayloadType GetPayloadType() const noexcept
   {
     return m_PayloadType;
   }
 
   /// @brief Sets timestamp from appointed position within header
   /// @note Assumes content is valid (based on position)
-  void SetTime(std::uint32_t time)
+  void SetTime(const std::uint32_t time) noexcept
   {
     m_Time = time;
   }
 
   /// @return Timestamp that was previously set when parsed
-  std::uint32_t GetTime() const
+  std::uint32_t GetTime() const noexcept
   {
     return m_Time;
   }
@@ -194,21 +194,21 @@ class SSUHeader
   /// @brief Sets rekey after testing if flag has been set
   /// @note Assumes content is valid (based on position)
   /// @param rekey True if rekey is set, false if not
-  void SetRekey(bool rekey)
+  void SetRekey(const bool rekey) noexcept
   {
     m_Rekey = rekey;
   }
 
   /// @brief Returns bool of rekey that was set when parsed
   /// @return True if rekey is set, false if not
-  bool HasRekey() const
+  bool HasRekey() const noexcept
   {
     return m_Rekey;
   }
 
   /// @brief Sets extended options after testing if flag is set
   /// @param extended True if extended options are set, false if not
-  void SetExtendedOptions(bool extended)
+  void SetExtendedOptions(const bool extended) noexcept
   {
     m_Extended = extended;
   }
@@ -217,33 +217,33 @@ class SSUHeader
   /// @note Assumes content is extended options material based on bit being set
   /// @param data Extended options to write
   /// @param size Size of extended options (in bytes)
-  void SetExtendedOptionsData(std::uint8_t* data, std::uint8_t size)
+  void SetExtendedOptionsData(std::uint8_t* data, const std::uint8_t size) noexcept
   {
     m_ExtendedOptions = data;
     m_ExtendedOptionsSize = size;
   }
 
   /// @return Pointer to extended options data that was previously set when parsed
-  std::uint8_t const* GetExtendedOptionsData() const
+  std::uint8_t const* GetExtendedOptionsData() const noexcept
   {
     return m_ExtendedOptions;
   }
 
   /// @return Extended options size that was previously set when parsed
-  std::uint8_t GetExtendedOptionsSize() const
+  std::uint8_t GetExtendedOptionsSize() const noexcept
   {
     return m_ExtendedOptionsSize;
   }
 
   /// @return Extended options bool that was previously set when parsed
-  bool HasExtendedOptions() const
+  bool HasExtendedOptions() const noexcept
   {
     return m_Extended;
   }
 
   /// @brief Computes the header size based on which options are set.
   /// @return The size (in bytes) of this header.
-  std::size_t GetSize() const
+  std::size_t GetSize() const noexcept
   {
     std::uint16_t size = SSUSize::HeaderMin;
     if (HasRekey())
@@ -283,13 +283,13 @@ class SSUPacket
 
   /// @brief Getter for the header of this packet.
   /// @return A raw pointer to the header of this packet.
-  SSUHeader* GetHeader() const
+  SSUHeader* GetHeader() const noexcept
   {
     return m_Header.get();
   }
 
   /// @return Header size if available, else 0
-  std::size_t GetSize() const
+  std::size_t GetSize() const noexcept
   {
     return m_Header ? m_Header->GetSize() : 0;
   }
@@ -311,13 +311,13 @@ class SSUSessionRequestPacket : public SSUPacket
   /// @brief Sets Diffie-Hellman X to begin the DH agreement
   /// @note Assumes content is valid (based on position)
   /// @param dhX Pointer to DH X
-  void SetDhX(std::uint8_t* dhX)
+  void SetDhX(std::uint8_t* dhX) noexcept
   {
     m_DhX = dhX;
   }
 
   /// @return Pointer to DH X that was previously set when parsed
-  std::uint8_t const* GetDhX() const
+  std::uint8_t const* GetDhX() const noexcept
   {
     return m_DhX;
   }
@@ -337,7 +337,7 @@ class SSUSessionRequestPacket : public SSUPacket
   }
 
   /// @return Pointer to Bob's IP address that was previously set when parsed
-  std::uint8_t const* GetIPAddress() const
+  std::uint8_t const* GetIPAddress() const noexcept
   {
     return m_IPAddress;
   }
@@ -349,7 +349,7 @@ class SSUSessionRequestPacket : public SSUPacket
   }
 
   /// @return The size (in bytes) of this header + message
-  std::size_t GetSize() const
+  std::size_t GetSize() const noexcept
   {
     return SSUPacket::GetSize() + SSUSize::DHPublic  // DH X-parameter
            + 1  // Bob's IP address size
@@ -370,13 +370,13 @@ class SSUSessionCreatedPacket : public SSUPacket
   /// @brief Sets Diffie-Hellman Y to begin the DH agreement
   /// @note Assumes content is valid (based on position)
   /// @param dhY Pointer to DH Y
-  void SetDhY(std::uint8_t* dhY)
+  void SetDhY(std::uint8_t* dhY) noexcept
   {
     m_DhY = dhY;
   }
 
   /// @return Pointer to DH Y that was previously set when parsed
-  std::uint8_t const* GetDhY() const
+  std::uint8_t const* GetDhY() const noexcept
   {
     return m_DhY;
   }
@@ -396,7 +396,7 @@ class SSUSessionCreatedPacket : public SSUPacket
   }
 
   /// @return Pointer to Alice's IP address that was previously set when parsed
-  std::uint8_t const* GetIPAddress() const
+  std::uint8_t const* GetIPAddress() const noexcept
   {
     return m_IPAddress;
   }
@@ -410,26 +410,26 @@ class SSUSessionCreatedPacket : public SSUPacket
   /// @brief Sets Alice's 2 byte port number
   /// @note Assumes content is valid (based on position)
   /// @param port Alice's port number
-  void SetPort(std::uint16_t port)
+  void SetPort(const std::uint16_t port) noexcept
   {
     m_Port = port;
   }
 
   /// @return Alice's IP port that was previously set when parsed
-  std::uint16_t GetPort() const
+  std::uint16_t GetPort() const noexcept
   {
     return m_Port;
   }
 
   /// @brief Sets 4 byte relay (introduction) tag which Alice can publish
   /// @note Assumes content is valid (based on position)
-  void SetRelayTag(std::uint32_t relay_tag)
+  void SetRelayTag(const std::uint32_t relay_tag) noexcept
   {
     m_RelayTag = relay_tag;
   }
 
   /// @return Relay tag that was previously set when parsed
-  std::uint32_t GetRelayTag() const
+  std::uint32_t GetRelayTag() const noexcept
   {
     return m_RelayTag;
   }
@@ -437,13 +437,13 @@ class SSUSessionCreatedPacket : public SSUPacket
   /// @brief Sets 4 byte timestamp (seconds from the epoch) for use
   ///   in the signature
   /// @note Assumes content is valid (based on position)
-  void SetSignedOnTime(std::uint32_t time)
+  void SetSignedOnTime(const std::uint32_t time) noexcept
   {
     m_SignedOnTime = time;
   }
 
   /// @return Timestamp that was previously set when parsed
-  std::uint32_t GetSignedOnTime() const
+  std::uint32_t GetSignedOnTime() const noexcept
   {
     return m_SignedOnTime;
   }
@@ -454,26 +454,26 @@ class SSUSessionCreatedPacket : public SSUPacket
   /// @note Assumes content is valid (based on position)
   /// @param signature Pointer to Bob's signature
   /// @param size Bob's signature size
-  void SetSignature(std::uint8_t* signature, std::size_t size)
+  void SetSignature(std::uint8_t* signature, const std::size_t size) noexcept
   {
     m_Signature = signature;
     m_SignatureSize = size;
   }
 
   /// @return Pointer to Bob's signature that was previously set when parsed
-  std::uint8_t* GetSignature() const
+  std::uint8_t* GetSignature() const noexcept
   {
     return m_Signature;
   }
 
   /// @return Bob's signature size that was previously set when parsed
-  std::size_t GetSignatureSize() const
+  std::size_t GetSignatureSize() const noexcept
   {
     return m_SignatureSize;
   }
 
   /// @return The size (in bytes) of this header + message
-  std::size_t GetSize() const
+  std::size_t GetSize() const noexcept
   {
     return SSUPacket::GetSize()
            + SSUSize::DHPublic  // Y to complete the DH agreement
@@ -510,20 +510,20 @@ class SSUSessionConfirmedPacket : public SSUPacket
 
   /// @return Reference to the router identity to be included in the
   ///         SessionConfirmed message
-  kovri::core::IdentityEx& GetRemoteRouterIdentity()
+  const kovri::core::IdentityEx& GetRemoteRouterIdentity() const noexcept
   {
     return m_RemoteIdentity;
   }
 
   /// @brief Sets 4 byte signed-on timestamp
   /// @note Assumes content is valid (based on position)
-  void SetSignedOnTime(std::uint32_t time)
+  void SetSignedOnTime(const std::uint32_t time) noexcept
   {
     m_SignedOnTime = time;
   }
 
   /// @return Timestamp that was previously set when parsed
-  std::uint32_t GetSignedOnTime() const
+  std::uint32_t GetSignedOnTime() const noexcept
   {
     return m_SignedOnTime;
   }
@@ -533,18 +533,18 @@ class SSUSessionConfirmedPacket : public SSUPacket
   ///   + Alice's new relay tag + Alice's signed on time)
   /// @note Assumes content is valid (based on position)
   /// @param signature Pointer to Alice's signature
-  void SetSignature(std::uint8_t* signature)
+  void SetSignature(std::uint8_t* signature) noexcept
   {
     m_Signature = signature;
   }
   /// @return Pointer to Alices's signature size that was previously set when parsed
-  std::uint8_t const* GetSignature() const
+  std::uint8_t const* GetSignature() const noexcept
   {
     return m_Signature;
   }
 
   /// @return The size (in bytes) of this header + message
-  std::size_t GetSize() const;
+  std::size_t GetSize() const noexcept;
 
  private:
   kovri::core::IdentityEx m_RemoteIdentity;
@@ -563,12 +563,13 @@ class SSURelayRequestPacket : public SSUPacket
   ///   in the SessionCreated message from Bob
   /// @note Assumes content is valid (based on position)
   /// @param tag Relay tag
-  void SetRelayTag(std::uint32_t relay_tag)
+  void SetRelayTag(const std::uint32_t relay_tag) noexcept
   {
     m_RelayTag = relay_tag;
   }
+
   /// @return Relay tag that was previously set when parsed
-  std::uint32_t GetRelayTag() const
+  std::uint32_t GetRelayTag() const noexcept
   {
     return m_RelayTag;
   }
@@ -588,7 +589,7 @@ class SSURelayRequestPacket : public SSUPacket
   }
 
   /// @return Pointer to Alice's IP address that was previously set when parsed
-  std::uint8_t const* GetIPAddress() const
+  std::uint8_t const* GetIPAddress() const noexcept
   {
     return m_IPAddress;
   }
@@ -598,12 +599,13 @@ class SSURelayRequestPacket : public SSUPacket
   /// @brief Sets Alice's 2 byte port number
   /// @note Assumes content is valid (based on position)
   /// @param port Alice's port number
-  void SetPort(std::uint16_t port)
+  void SetPort(const std::uint16_t port) noexcept
   {
     m_Port = port;
   }
+
   /// @return Alice's IP port that was previously set when parsed
-  std::uint16_t GetPort() const
+  std::uint16_t GetPort() const noexcept
   {
     return m_Port;
   }
@@ -613,14 +615,14 @@ class SSURelayRequestPacket : public SSUPacket
   /// @note Assumes content is valid (based on position)
   /// @param challenge Pointer to challenge size
   /// @param size Size of challenge size
-  void SetChallenge(std::uint8_t* challenge, std::size_t size)
+  void SetChallenge(std::uint8_t* challenge, const std::size_t size) noexcept
   {
     m_Challenge = challenge;
     m_ChallengeSize = size;
   }
 
   /// @return Pointer to challenge that was previously set when parsed
-  std::uint8_t const* GetChallenge() const
+  std::uint8_t const* GetChallenge() const noexcept
   {
     return m_Challenge;
   }
@@ -629,13 +631,13 @@ class SSURelayRequestPacket : public SSUPacket
   ///   (so Bob can reply with Charlie's info)
   /// @note Assumes content is valid (based on position)
   /// @param key Pointer to intro key
-  void SetIntroKey(std::uint8_t* intro_key)
+  void SetIntroKey(std::uint8_t* intro_key) noexcept
   {
     m_IntroKey = intro_key;
   }
 
   /// @return Pointer to intro key that was previously set when parsed
-  std::uint8_t const* GetIntroKey() const
+  std::uint8_t const* GetIntroKey() const noexcept
   {
     return m_IntroKey;
   }
@@ -643,19 +645,19 @@ class SSURelayRequestPacket : public SSUPacket
   /// @brief Sets 4 byte nonce of Alice's relay request
   /// @note Assumes content is valid (based on position)
   /// @param nonce 4 byte nonce
-  void SetNonce(std::uint32_t nonce)
+  void SetNonce(const std::uint32_t nonce) noexcept
   {
     m_Nonce = nonce;
   }
 
   /// @return Nonce that was previously set when parsed
-  std::uint32_t GetNonce() const
+  std::uint32_t GetNonce() const noexcept
   {
     return m_Nonce;
   }
 
   /// @return The size (in bytes) of this header + message
-  std::size_t GetSize() const
+  std::size_t GetSize() const noexcept
   {
     return SSUPacket::GetSize() + 4  // Relay tag
            + 1  // Alice's IP address size
@@ -697,7 +699,7 @@ class SSURelayResponsePacket : public SSUPacket
   }
 
   /// @return Pointer to Charlie's IP address that was previously set when parsed
-  std::uint8_t const* GetIPAddressCharlie() const
+  std::uint8_t const* GetIPAddressCharlie() const noexcept
   {
     return m_IPAddressCharlie;
   }
@@ -705,13 +707,13 @@ class SSURelayResponsePacket : public SSUPacket
   /// @brief Sets Charlies's 2 byte port number
   /// @note Assumes content is valid (based on position)
   /// @param port Charlie's port number
-  void SetPortCharlie(std::uint16_t port)
+  void SetPortCharlie(const std::uint16_t port) noexcept
   {
     m_PortCharlie = port;
   }
 
   /// @return Charlie's IP port that was previously set when parsed
-  std::uint16_t GetPortCharlie() const
+  std::uint16_t GetPortCharlie() const noexcept
   {
     return m_PortCharlie;
   }
@@ -731,7 +733,7 @@ class SSURelayResponsePacket : public SSUPacket
   }
 
   /// @return Pointer to Alice's IP address that was previously set when parsed
-  std::uint8_t const* GetIPAddressAlice() const
+  std::uint8_t const* GetIPAddressAlice() const noexcept
   {
     return m_IPAddressAlice;
   }
@@ -745,31 +747,31 @@ class SSURelayResponsePacket : public SSUPacket
   /// @brief Sets Alices's 2 byte port number
   /// @note Assumes content is valid (based on position)
   /// @param port Alice's port number
-
-  void SetPortAlice(std::uint16_t port)
+  void SetPortAlice(const std::uint16_t port) noexcept
   {
     m_PortAlice = port;
   }
+
   /// @return Alice's IP port that was previously set when parsed
-  std::uint16_t GetPortAlice() const
+  std::uint16_t GetPortAlice() const noexcept
   {
     return m_PortAlice;
   }
 
   /// @brief Sets 4 byte nonce sent by Alice
   /// @param nonce 4 byte nonce
-  void SetNonce(std::uint32_t nonce)
+  void SetNonce(const std::uint32_t nonce) noexcept
   {
     m_Nonce = nonce;
   }
   /// @return Nonce that was previously set when parsed
-  std::uint32_t GetNonce() const
+  std::uint32_t GetNonce() const noexcept
   {
     return m_Nonce;
   }
 
   /// @return The size (in bytes) of this header + message
-  std::size_t GetSize() const
+  std::size_t GetSize() const noexcept
   {
     return SSUPacket::GetSize() + 1  // Charlie's IP address size
            + m_IPAddressCharlieSize  // That many byte representation of IP address
@@ -798,7 +800,6 @@ class SSURelayIntroPacket : public SSUPacket
   /// @note Assumes content is valid (based on position)
   /// @param address Pointer to Alice's IP address
   /// @param size Alice's IP address size (in bytes)
-
   void SetIPAddress(std::uint8_t* address, const std::uint8_t size)
   {
     // Alice's is always 4 bytes because she is trying to connect to Charlie via IPv4
@@ -810,7 +811,7 @@ class SSURelayIntroPacket : public SSUPacket
   }
 
   /// @return Pointer to Alice's IP address that was previously set when parsed
-  std::uint8_t const* GetIPAddress() const
+  std::uint8_t const* GetIPAddress() const noexcept
   {
     return m_IPAddress;
   }
@@ -824,13 +825,13 @@ class SSURelayIntroPacket : public SSUPacket
   /// @brief Sets Alice's 2 byte port number
   /// @note Assumes content is valid (based on position)
   /// @param port Alice's port number
-  void SetPort(std::uint16_t port)
+  void SetPort(const std::uint16_t port) noexcept
   {
     m_Port = port;
   }
 
   /// @return Alice's IP port that was previously set when parsed
-  std::uint16_t GetPort() const
+  std::uint16_t GetPort() const noexcept
   {
     return m_Port;
   }
@@ -840,21 +841,20 @@ class SSURelayIntroPacket : public SSUPacket
   /// @note Assumes content is valid (based on position)
   /// @param challenge Pointer to challenge size
   /// @param size Size of challenge size
-
-  void SetChallenge(std::uint8_t* challenge, std::size_t size)
+  void SetChallenge(std::uint8_t* challenge, const std::size_t size) noexcept
   {
     m_Challenge = challenge;
     m_ChallengeSize = size;
   }
 
   /// @return Pointer to challenge that was previously set when parsed
-  std::uint8_t const* GetChallenge() const
+  std::uint8_t const* GetChallenge() const noexcept
   {
     return m_Challenge;
   }
 
   /// @return The size (in bytes) of this header + message
-  std::size_t GetSize() const
+  std::size_t GetSize() const noexcept
   {
     return SSUPacket::GetSize() + 1  // Alice's IP address size
            + m_IPAddressSize  // that many bytes representation of IP address
@@ -879,40 +879,41 @@ class SSUFragment
   /// @brief Sets 4 byte message ID
   /// @note Assumes content is valid (based on position)
   /// @param message_id 4 byte message ID
-  void SetMessageID(std::uint32_t message_ID)
+  void SetMessageID(const std::uint32_t message_ID) noexcept
   {
     m_MessageID = message_ID;
   }
 
   /// @brief Sets fragment size (0 - 16383)
   /// @param size Fragment size
-  void SetSize(std::size_t size)
+  void SetSize(const std::size_t size) noexcept
   {
     m_Size = size;
   }
 
   /// @return Fragment size that was set when parsed
-  std::size_t GetSize() const
+  std::size_t GetSize() const noexcept
   {
     return m_Size;
   }
 
   /// @brief Sets 'is last' bit
   /// @param bool True if last, false if not
-  void SetIsLast(bool is_last)
+  void SetIsLast(const bool is_last) noexcept
   {
     m_IsLast = is_last;
   }
 
   /// @brief Sets fragment number (0 - 127)
   /// @param number Fragment number
-  void SetNumber(std::uint8_t number)
+  void SetNumber(const std::uint8_t number) noexcept
   {
     m_Number = number;
   }
+
   /// @brief Sets whole fragment data
   /// @param Pointer to fragment size
-  void SetData(std::uint8_t* data)
+  void SetData(std::uint8_t* data) noexcept
   {
     m_Data = data;
   }
@@ -933,14 +934,14 @@ class SSUDataPacket : public SSUPacket
  public:
   /// @brief Add explicit acks if they are included
   /// @param message_id The message ID being fully ACK'd
-  void AddExplicitACK(std::uint32_t message_ID)
+  void AddExplicitACK(const std::uint32_t message_ID)
   {
     m_ExplicitACKs.push_back(message_ID);
   }
 
   /// @brief Add ACK if included (not including bitfield)
   /// @param message_id The message ID being fully ACK'd
-  void AddACK(std::uint32_t message_ID)
+  void AddACK(const std::uint32_t message_ID)
   {
     m_ACKs.push_back(message_ID);
   }
@@ -948,14 +949,14 @@ class SSUDataPacket : public SSUPacket
   /// @brief Add ACK bitfield if ACK is included
   /// @note Called after ACK is included
   /// @param bitfield ACK bitfield
-  void AddACKBitfield(std::uint8_t bitfield)
+  void AddACKBitfield(const std::uint8_t bitfield)
   {
     m_ACKBitfields.push_back(bitfield);
   }
 
   /// @brief Add fragment for parsing
   /// @param fragment Fragment to be parsed
-  void AddFragment(SSUFragment fragment)
+  void AddFragment(const SSUFragment fragment)
   {
     m_Fragments.push_back(fragment);
   }
@@ -996,12 +997,13 @@ class SSUPeerTestPacket : public SSUPacket
   /// @brief Sets 4 byte nonce
   /// @note Assumes content is valid (based on position)
   /// @param nonce 4 byte nonce
-  void SetNonce(std::uint32_t nonce)
+  void SetNonce(const std::uint32_t nonce) noexcept
   {
     m_Nonce = nonce;
   }
+
   /// @return Nonce that was previously set when parsed
-  std::uint32_t GetNonce() const
+  std::uint32_t GetNonce() const noexcept
   {
     return m_Nonce;
   }
@@ -1009,26 +1011,26 @@ class SSUPeerTestPacket : public SSUPacket
   /// @brief Sets IP address as set by message owner (see SSU spec)
   /// @note Assumes content is valid (based on position)
   /// @param address IP address
-  void SetIPAddress(const boost::asio::ip::address& address)
+  void SetIPAddress(const boost::asio::ip::address& address) noexcept
   {
     m_IPAddress = address;
   }
 
   /// @return IP address that was previously set when parsed
-  const boost::asio::ip::address& GetIPAddress() const
+  const boost::asio::ip::address& GetIPAddress() const noexcept
   {
     return m_IPAddress;
   }
 
   /// @brief Sets IP address size as set by message owner (see SSU spec)
   // TODO(anonimal): use or remove
-  void SetIPAddressSize(const std::uint8_t size)
+  void SetIPAddressSize(const std::uint8_t size) noexcept
   {
     m_IPAddressSize = size;
   }
 
   /// @return IP address size that was previously set when parsed
-  std::uint8_t GetIPAddressSize() const
+  std::uint8_t GetIPAddressSize() const noexcept
   {
     return m_IPAddressSize;
   }
@@ -1036,12 +1038,13 @@ class SSUPeerTestPacket : public SSUPacket
   /// @brief Sets Alice's 2 byte port number
   /// @note Assumes content is valid (based on position)
   /// @param port Alice's port number
-  void SetPort(std::uint16_t port)
+  void SetPort(const std::uint16_t port) noexcept
   {
     m_Port = port;
   }
+
   /// @return Alice's IP port that was previously set when parsed
-  std::uint16_t GetPort() const
+  std::uint16_t GetPort() const noexcept
   {
     return m_Port;
   }
@@ -1049,19 +1052,19 @@ class SSUPeerTestPacket : public SSUPacket
   /// @brief Alice's or Charlie's 32-byte introduction key
   /// @note Assumes content is valid (based on position)
   /// @param key Pointer to intro key
-  void SetIntroKey(std::uint8_t* intro_key)
+  void SetIntroKey(std::uint8_t* intro_key) noexcept
   {
     m_IntroKey = intro_key;
   }
 
   /// @return Pointer to intro key that was previously set when parsed
-  std::uint8_t const* GetIntroKey() const
+  std::uint8_t const* GetIntroKey() const noexcept
   {
     return m_IntroKey;
   }
 
   /// @return The size (in bytes) of this header + message
-  std::size_t GetSize() const
+  std::size_t GetSize() const noexcept
   {
     return SSUPacket::GetSize() + 4  // Nonce
            + 1  // Alice's IP address size
@@ -1094,9 +1097,7 @@ class SSUPacketParser : private kovri::core::InputByteStream {
   /// @brief Constructs packet parser from message/packet
   /// @param data Pointer to message/packet
   /// @param len Length of message/packet
-  SSUPacketParser(
-      std::uint8_t* data,
-      std::size_t len);
+  SSUPacketParser(std::uint8_t* data, const std::size_t len);
 
   /// @brief Parses an SSU header.
   /// @return a pointer to the newly constructed SSUHeader object
@@ -1153,10 +1154,8 @@ class SSUPacketBuilder final : public kovri::core::OutputByteStream {
 
   /// @brief Constructs packet builder with a given buffer
   /// @param data Pointer to the first byte of the buffer 
-  /// @param len Length of the buffer 
-  SSUPacketBuilder(
-      std::uint8_t* data,
-      std::size_t len);
+  /// @param len Length of the buffer
+  SSUPacketBuilder(std::uint8_t* data, const std::size_t len);
 
   /// @brief Calculates padding size needed for message
   /// @details All messages contain 0 or more bytes of padding.
@@ -1164,7 +1163,7 @@ class SSUPacketBuilder final : public kovri::core::OutputByteStream {
   ///   as required by the AES256 encryption layer
   /// @param size Size of message
   // TODO(anonimal): we only need to pass 2 bytes and return 1 byte
-  static std::size_t GetPaddingSize(std::size_t size)
+  static std::size_t GetPaddingSize(const std::size_t size)
   {
     return (size % 16) ? 16 - size % 16 : 0;
   }
@@ -1172,7 +1171,7 @@ class SSUPacketBuilder final : public kovri::core::OutputByteStream {
   /// @brief Gets padded size of message
   /// @param size Size of message
   // TODO(anonimal): we only need to pass 2 bytes and return 2 bytes
-  static std::size_t GetPaddedSize(std::size_t size)
+  static std::size_t GetPaddedSize(const std::size_t size)
   {
     return size + GetPaddingSize(size);
   }

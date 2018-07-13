@@ -1346,12 +1346,6 @@ void SSUSession::FillHeaderAndEncrypt(
     std::uint8_t flag) {
   // TODO(anonimal): this try block should be handled entirely by caller
   try {
-    if (len < SSUSize::HeaderMin) {
-      LOG(error)
-        << "SSUSession:" << GetFormattedSessionInfo()
-        << "unexpected SSU packet length " << len;
-      return;
-    }
     SSUSessionPacket pkt(buf, len);
     core::RandBytes(pkt.IV(), SSUSize::IV);
     pkt.PutFlag(flag | (payload_type << 4));  // MSB is 0
@@ -1440,12 +1434,6 @@ void SSUSession::FillHeaderAndEncrypt(
     std::size_t len) {
   // TODO(anonimal): this try block should be handled entirely by caller
   try {
-    if (len < SSUSize::HeaderMin) {
-      LOG(error)
-        << "SSUSession:" << GetFormattedSessionInfo()
-        << "unexpected SSU packet length " << len;
-      return;
-    }
     SSUSessionPacket pkt(buf, len);
     kovri::core::RandBytes(pkt.IV(), SSUSize::IV);  // random iv
     m_SessionKeyEncryption.SetIV(pkt.IV());
@@ -1480,13 +1468,6 @@ void SSUSession::Decrypt(
     const std::uint8_t* aes_key,
     const bool is_session)
 {
-  if (len < SSUSize::HeaderMin)
-    {
-      throw std::length_error(
-          "SSUSession:" + GetFormattedSessionInfo() + __func__
-          + ": unexpected SSU message length " + std::to_string(len));
-    }
-
   // Parse message buffer and decrypt
   SSUSessionPacket message(buf, len);
 
@@ -1514,12 +1495,6 @@ bool SSUSession::Validate(
     std::uint8_t* buf,
     std::size_t len,
     const std::uint8_t* mac_key) {
-  if (len < SSUSize::HeaderMin) {
-    LOG(error)
-      << "SSUSession:" << GetFormattedSessionInfo()
-      << __func__ << ": unexpected SSU packet length " << len;
-    return false;
-  }
   SSUSessionPacket pkt(buf, len);
   auto encrypted = pkt.Encrypted();
   auto encrypted_len = len - (encrypted - buf);

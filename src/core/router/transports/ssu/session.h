@@ -81,7 +81,12 @@ struct SSUSessionPacket  // TODO(unassigned): finish
   SSUSessionPacket(std::uint8_t* buf, const std::size_t len)
       : data(buf) /*, body(nullptr), data_len(len)*/
   {
-    // TODO(anonimal): assert valid length
+    assert(len > SSUSize::HeaderMin);  // TODO(unassigned): upper limit
+    if (len < SSUSize::HeaderMin)
+      {
+        throw std::length_error(
+            __func__ + std::string(": invalid length: " + std::to_string(len)));
+      }
   }
 
   /// @brief Sets flag byte

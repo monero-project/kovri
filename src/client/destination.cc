@@ -515,7 +515,7 @@ void ClientDestination::HandleDataMessage(const std::uint8_t* buf, std::size_t)
       // streaming protocol
       auto dest = GetStreamingDestination(dest_port);
       if (dest)
-        dest->HandleDataMessagePayload(payload.Data(), payload.Size());
+        dest->HandleDataMessagePayload(payload.data(), payload.size());
       else
         LOG(warning) << "ClientDestination: missing streaming destination";
     }
@@ -526,8 +526,8 @@ void ClientDestination::HandleDataMessage(const std::uint8_t* buf, std::size_t)
         m_DatagramDestination->HandleDataMessagePayload(
             source_port,
             dest_port,
-            payload.Data(),
-            payload.Size());
+            payload.data(),
+            payload.size());
       else
         LOG(warning) << "ClientDestination: missing streaming destination";
     break;

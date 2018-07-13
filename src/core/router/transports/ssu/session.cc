@@ -483,7 +483,7 @@ void SSUSession::ProcessSessionCreated(const SSUPacket* packet)
       // TODO(anonimal): log debug of encrypted/decrypted sig + message data
 
       // Verify signed dataset
-      if (!m_RemoteIdentity.Verify(data.Data(), data.Size(), signature.data()))
+      if (!m_RemoteIdentity.Verify(data.data(), data.size(), signature.data()))
         {
           LOG(error) << "SSUSession:" << GetFormattedSessionInfo()
                      << "SessionCreated signature verification failed";
@@ -549,8 +549,7 @@ void SSUSession::SendSessionCreated(const std::uint8_t* dh_x)
       message.SetDhY(m_DHKeysPair->public_key.data());
 
       // Set Alice's IP address size and address
-      auto const alice_ip(
-          core::AddressToByteVector(m_RemoteEndpoint.address()));
+      auto const alice_ip(core::AddressToByteVector(m_RemoteEndpoint.address()));
 
       message.SetIPAddress(
           // TODO(unassigned): remove const_cast, see bytestream TODO
@@ -621,7 +620,7 @@ void SSUSession::SendSessionCreated(const std::uint8_t* dh_x)
 
       // Create the signature + padding
       std::vector<std::uint8_t> signature(signature_size + padding);
-      context.GetPrivateKeys().Sign(data.Data(), data.Size(), signature.data());
+      context.GetPrivateKeys().Sign(data.data(), data.size(), signature.data());
 
       // Randomize signature padding
       core::RandBytes(signature.data() + signature_size, padding);
@@ -683,15 +682,15 @@ void SSUSession::ProcessSessionConfirmed(SSUPacket* pkt) {
 
   // TODO(anonimal): received as BE (at least with kovri). Ensure BE.
   std::uint32_t const time = packet->GetSignedOnTime();
-  std::memcpy(data.Data() + (data.Size() - 4), &time, 4);
+  std::memcpy(data.data() + (data.size() - 4), &time, 4);
 
   LOG(trace) << "SSUSession:" << GetFormattedSessionInfo()
              << "SessionConfirmed data:"
-             << core::GetFormattedHex(data.Data(), data.Size());
+             << core::GetFormattedHex(data.data(), data.size());
 
   // Verify data with Alice's signature
   if (!m_RemoteIdentity.Verify(
-          data.Data(), data.Size(), packet->GetSignature()))
+          data.data(), data.size(), packet->GetSignature()))
     {
       LOG(error) << "SSUSession:" << GetFormattedSessionInfo()
                  << "SessionConfirmed verification failed";
@@ -761,7 +760,7 @@ void SSUSession::SendSessionConfirmed(
       // Sign message
       std::vector<std::uint8_t> signature(
           context.GetIdentity().GetSignatureLen());
-      context.GetPrivateKeys().Sign(data.Data(), data.Size(), signature.data());
+      context.GetPrivateKeys().Sign(data.data(), data.size(), signature.data());
       message.SetSignature(signature.data());
 
       // Encrypt with session + mac keys generated from DH exchange, then send
@@ -841,7 +840,7 @@ void SSUSession::SendRelayRequest(
       // Use Alice/Bob session key if session is established
       FillHeaderAndEncrypt(
           SSUPayloadType::RelayRequest,
-          message.Data(),
+          message.data(),
           SSUSize::RelayRequestBuffer,
           m_SessionKey,
           m_MACKey);
@@ -850,14 +849,14 @@ void SSUSession::SendRelayRequest(
     {
       FillHeaderAndEncrypt(
           SSUPayloadType::RelayRequest,
-          message.Data(),
+          message.data(),
           SSUSize::RelayRequestBuffer,
           introducer_key,
           introducer_key);
     }
 
   m_Server.Send(
-      message.Data(), SSUSize::RelayRequestBuffer, GetRemoteEndpoint());
+      message.data(), SSUSize::RelayRequestBuffer, GetRemoteEndpoint());
 }
 
 /**
@@ -934,21 +933,21 @@ void SSUSession::SendRelayResponse(
     {
       // Uses session key if established
       FillHeaderAndEncrypt(
-          SSUPayloadType::RelayResponse, message.Data(), message_size);
+          SSUPayloadType::RelayResponse, message.data(), message_size);
 
-      Send(message.Data(), message_size);
+      Send(message.data(), message_size);
     }
   else
     {
       // Encrypt with Alice's intro key
       FillHeaderAndEncrypt(
           SSUPayloadType::RelayResponse,
-          message.Data(),
+          message.data(),
           message_size,
           intro_key,
           intro_key);
 
-      m_Server.Send(message.Data(), message_size, from);
+      m_Server.Send(message.data(), message_size, from);
     }
 
   LOG(debug) << "SSUSession: RelayResponse sent";
@@ -1025,7 +1024,7 @@ void SSUSession::SendRelayIntro(
   // Encrypt with Bob/Charlie keys
   FillHeaderAndEncrypt(
       SSUPayloadType::RelayIntro,
-      message.Data(),
+      message.data(),
       SSUSize::RelayIntroBuffer,
       session->m_SessionKey,
       session->m_MACKey);
@@ -1034,7 +1033,7 @@ void SSUSession::SendRelayIntro(
              << "sending RelayIntro";
 
   m_Server.Send(
-      message.Data(), SSUSize::RelayIntroBuffer, session->GetRemoteEndpoint());
+      message.data(), SSUSize::RelayIntroBuffer, session->GetRemoteEndpoint());
 }
 
 /**
@@ -1251,21 +1250,21 @@ void SSUSession::SendPeerTest(
       // Encrypts message with given intro key
       FillHeaderAndEncrypt(
           SSUPayloadType::PeerTest,
-          message.Data(),
+          message.data(),
           SSUSize::PeerTestBuffer,
           intro_key,
           intro_key);
 
       boost::asio::ip::udp::endpoint ep(address, port);
-      m_Server.Send(message.Data(), SSUSize::PeerTestBuffer, ep);
+      m_Server.Send(message.data(), SSUSize::PeerTestBuffer, ep);
     }
   else
     {
       // Encrypts message with existing session key, uses existing session
       FillHeaderAndEncrypt(
-          SSUPayloadType::PeerTest, message.Data(), SSUSize::PeerTestBuffer);
+          SSUPayloadType::PeerTest, message.data(), SSUSize::PeerTestBuffer);
 
-      Send(message.Data(), SSUSize::PeerTestBuffer);
+      Send(message.data(), SSUSize::PeerTestBuffer);
     }
 }
 
@@ -1306,14 +1305,14 @@ void SSUSession::SendSessionDestroyed()
       // Write header and send (existing session)
       FillHeaderAndEncrypt(
           SSUPayloadType::SessionDestroyed,
-          message.Data(),
+          message.data(),
           SSUSize::SessionDestroyedBuffer);
       try
         {
           LOG(debug) << "SSUSession:" << GetFormattedSessionInfo()
                      << "sending SessionDestroyed";
 
-          Send(message.Data(), SSUSize::SessionDestroyedBuffer);
+          Send(message.data(), SSUSize::SessionDestroyedBuffer);
         }
       catch (const std::exception& ex)
         {
@@ -1346,13 +1345,13 @@ void SSUSession::SendKeepAlive()
       // Use existing session + send
       FillHeaderAndEncrypt(
           SSUPayloadType::Data,
-          message.Data(),
-          message.Size() - SSUSize::BufferMargin);
+          message.data(),
+          message.size() - SSUSize::BufferMargin);
 
       LOG(debug) << "SSUSession:" << GetFormattedSessionInfo()
                  << "sending keep-alive";
 
-      Send(message.Data(), message.Size() - SSUSize::BufferMargin);
+      Send(message.data(), message.size() - SSUSize::BufferMargin);
 
       // Ensure session lifetime
       ScheduleTermination();
@@ -1423,7 +1422,7 @@ void SSUSession::WriteAndEncrypt(
       buffer
       + SSUSize::IV
       + SSUSize::MAC;
-    auto encrypted_len = builder.Tellp() - encrypted;
+    auto encrypted_len = builder.tellp() - encrypted;
     // Add padding
     std::size_t const padding_size =
         SSUPacketBuilder::GetPaddingSize(encrypted_len);

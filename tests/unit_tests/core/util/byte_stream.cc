@@ -90,8 +90,8 @@ BOOST_AUTO_TEST_CASE(InputByteStream)
   BOOST_CHECK_EQUAL_COLLECTIONS(
       input.Data(),
       input.Data() + input.Size(),
-      m_IPv4Array.data(),
-      m_IPv4Array.data() + m_IPv4Array.size());
+      m_IPv4Array.begin(),
+      m_IPv4Array.end());
 }
 
 BOOST_AUTO_TEST_CASE(OutputByteStream)
@@ -103,15 +103,15 @@ BOOST_AUTO_TEST_CASE(OutputByteStream)
   BOOST_CHECK_NO_THROW(output.Write<std::uint8_t>(m_IPv4Array.at(0)));
   BOOST_CHECK_EQUAL(output.Size(), buffer.size());
   BOOST_CHECK_EQUAL(output.Data(), buffer.data());
-  BOOST_CHECK_EQUAL(output.Tellp(), buffer.data() + 1);
+  BOOST_CHECK_EQUAL(output.Tellp(), &buffer.at(1));
   BOOST_CHECK_NO_THROW(output.WriteData(&m_IPv4Array.at(1), 3));
-  BOOST_CHECK_EQUAL(output.Tellp(), buffer.data() + buffer.size());
+  BOOST_CHECK_EQUAL(output.Tellp(), buffer.end());
   BOOST_CHECK_THROW(output.Write<std::uint8_t>(1), std::length_error);
   BOOST_CHECK_EQUAL_COLLECTIONS(
-      buffer.data(),
-      buffer.data() + buffer.size(),
-      m_IPv4Array.data(),
-      m_IPv4Array.data() + m_IPv4Array.size());
+      buffer.begin(),
+      buffer.end(),
+      m_IPv4Array.begin(),
+      m_IPv4Array.end());
 }
 
 BOOST_AUTO_TEST_CASE(NoBufferOutputByteStream)
@@ -197,10 +197,10 @@ BOOST_AUTO_TEST_CASE(AddressToByteVectorIPv4)
   auto const ip = core::AddressToByteVector(address);
   BOOST_CHECK_EQUAL(ip.size(), address.to_v4().to_bytes().size());
   BOOST_CHECK_EQUAL_COLLECTIONS(
-      ip.data(),
-      ip.data() + ip.size(),
-      m_IPv4Array.data(),
-      m_IPv4Array.data() + m_IPv4Array.size());
+      ip.begin(),
+      ip.end(),
+      m_IPv4Array.begin(),
+      m_IPv4Array.end());
   // Reconstruct a new address and check with original
   boost::asio::ip::address_v4::bytes_type bytes;
   std::memcpy(bytes.data(), ip.data(), address.to_v4().to_bytes().size());
@@ -215,10 +215,10 @@ BOOST_AUTO_TEST_CASE(AddressToByteVectorIPv6)
   auto const ip = core::AddressToByteVector(address);
   BOOST_CHECK_EQUAL(ip.size(), address.to_v6().to_bytes().size());
   BOOST_CHECK_EQUAL_COLLECTIONS(
-      ip.data(),
-      ip.data() + ip.size(),
-      m_IPv6Array.data(),
-      m_IPv6Array.data() + m_IPv6Array.size());
+      ip.begin(),
+      ip.end(),
+      m_IPv6Array.begin(),
+      m_IPv6Array.end());
   // Reconstruct a new address and check with original
   boost::asio::ip::address_v6::bytes_type bytes;
   std::memcpy(bytes.data(), ip.data(), address.to_v6().to_bytes().size());

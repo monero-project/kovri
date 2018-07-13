@@ -91,32 +91,32 @@ struct SSUSessionPacket  // TODO(unassigned): finish
 
   /// @brief Sets flag byte
   /// @param flag Flag byte
-  void PutFlag(const std::uint8_t flag) noexcept
+  void put_flag(const std::uint8_t flag) noexcept
   {
     data[32] = flag;
   }
 
   /// @brief Puts timestamp into packet header
   /// @param time Timestamp
-  void PutTime(const std::uint32_t time)
+  void put_time(const std::uint32_t time)
   {
     return core::OutputByteStream::Write<std::uint32_t>(&data[33], time);
   }
 
   /// @brief Gets pointer to MAC
-  std::uint8_t* MAC() noexcept
+  std::uint8_t* get_mac() noexcept
   {
     return data;
   }
 
   /// @brief Gets pointer to begining of encrypted section
-  std::uint8_t* Encrypted() noexcept
+  std::uint8_t* get_encrypted() noexcept
   {
     return data + std::size_t(32);
   }
 
   /// @brief Gets pointer to IV
-  std::uint8_t* IV() noexcept
+  std::uint8_t* get_iv() noexcept
   {
     return data + std::size_t(16);
   }

@@ -56,28 +56,6 @@ namespace core {
 
 // TODO(anonimal): bytestream refactor
 
-std::uint8_t* SSUSessionPacket::MAC() const {
-  return data;
-}
-
-std::uint8_t* SSUSessionPacket::IV() const {
-  return data + std::size_t(16);
-}
-
-void SSUSessionPacket::PutFlag(
-    std::uint8_t flag) const {
-  data[32] = flag;
-}
-
-void SSUSessionPacket::PutTime(
-    std::uint32_t time) const {
-  return core::OutputByteStream::Write<std::uint32_t>(&data[33], time);
-}
-
-std::uint8_t* SSUSessionPacket::Encrypted() const {
-  return data + std::size_t(32);
-}
-
 SSUSession::SSUSession(
     SSUServer& server,
     boost::asio::ip::udp::endpoint& remote_endpoint,

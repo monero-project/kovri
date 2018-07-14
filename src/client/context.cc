@@ -149,7 +149,7 @@ kovri::core::PrivateKeys ClientContext::LoadPrivateKeys(
     keys.FromBuffer(buf.get(), len);
     // Contingency: create associated address text file if the private keys
     // filename is swapped out with another set of keys with the same filename
-    CreateBaseAddressTextFile(keys, filename);
+    CreateDestTextFiles(keys, filename);
     LOG(info)
       << "ClientContext: " << file_path << " loaded: uses local address "
       << kovri::core::GetB32Address(keys.GetPublic().GetIdentHash());
@@ -174,28 +174,53 @@ kovri::core::PrivateKeys ClientContext::CreatePrivateKeys(
   len = keys.ToBuffer(buf.get(), len);
   file.write(reinterpret_cast<char *>(buf.get()), len);
   // Create associated address text file
-  CreateBaseAddressTextFile(keys, filename);
+  CreateDestTextFiles(keys, filename);
   LOG(info)
-    << "ClientContext: created new private keys " << file_path << " for "
-    << kovri::core::GetB32Address(keys.GetPublic().GetIdentHash());
+    << "ClientContext: created new private keys " << file_path;
   return keys;
 }
 
-void ClientContext::CreateBaseAddressTextFile(
+void ClientContext::CreateDestTextFiles(
     const kovri::core::PrivateKeys& keys,
-    const std::string& filename) {
-  auto path = core::EnsurePath(core::GetPath(core::Path::ClientKeys));
-  auto file_path = (path / filename).string() + ".txt";
-  // Create binary keys file
-  std::ofstream file(file_path);
-  if (!file)
-    throw std::runtime_error("ClientContext: could not open base address text file for writing");
-  // Re: identity, see #366
-  // Base32
-  file << kovri::core::GetB32Address(keys.GetPublic().GetIdentHash()) << "\n";
-  // Base64
-  file << keys.GetPublic().ToBase64();
-  LOG(info) << "ClientContext: created base address text file " << file_path;
+    const std::string& filename)
+{
+  LOG(debug) << "ClientContext: creating destination text files";
+
+  // Get the identity to encode
+  const core::IdentityEx& ident = keys.GetPublic();
+
+  // Ensure real-time path to write to
+  const std::string file =
+      (core::EnsurePath(core::GetPath(core::Path::ClientKeys)) / filename)
+          .string();
+
+  // Create base32 address file
+  LOG(info) << "ClientContext: saving base32 address to " << file << ".b32.txt";
+
+  std::ofstream b32(file + ".b32.txt");
+  if (!b32)
+    throw std::runtime_error("couldn't open b32 text file for writing");
+
+  std::string address = core::GetB32Address(ident.GetIdentHash());
+
+  b32 << address;
+
+  LOG(info) << "ClientContext: this destination's base32 address is: "
+            << address;
+
+  // Create base64 address file
+  LOG(info) << "ClientContext: saving base64 address to " << file << ".b64.txt";
+
+  std::ofstream b64(file + ".b64.txt");
+  if (!b64)
+    throw std::runtime_error("couldn't open b64 text file for writing");
+
+  address = ident.ToBase64();
+
+  b64 << address;
+
+  LOG(info) << "ClientContext: this destination's base64 address is: "
+            << address;
 }
 
 std::shared_ptr<ClientDestination> ClientContext::LoadLocalDestination(

@@ -46,18 +46,17 @@
 
 namespace kovri {
 namespace core {
-
-SSUServer::SSUServer(
-    boost::asio::io_service& service,
-    std::size_t port)
-    : m_Service(service),
+SSUServer::SSUServer(boost::asio::io_service& service, const std::size_t port)
+    : m_Exception(__func__),
+      m_Service(service),
       m_Endpoint(boost::asio::ip::udp::v4(), port),
       m_EndpointV6(boost::asio::ip::udp::v6(), port),
       m_Socket(m_Service, m_Endpoint),
       m_SocketV6(m_Service),
       m_IntroducersUpdateTimer(m_Service),
       m_PeerTestsCleanupTimer(m_Service),
-      m_IsRunning(false) {
+      m_IsRunning(false)
+{
   m_Socket.set_option(boost::asio::socket_base::receive_buffer_size(65535));
   m_Socket.set_option(boost::asio::socket_base::send_buffer_size(65535));
   if (context.SupportsV6()) {
@@ -98,14 +97,15 @@ void SSUServer::Stop() {
 }
 
 void SSUServer::AddRelay(
-    std::uint32_t tag,
-    const boost::asio::ip::udp::endpoint& relay) {
+    const std::uint32_t tag,
+    const boost::asio::ip::udp::endpoint& relay)
+{
   LOG(debug) << "SSUServer: adding relay";
   m_Relays[tag] = relay;
 }
 
-std::shared_ptr<SSUSession> SSUServer::FindRelaySession(
-    std::uint32_t tag) {
+std::shared_ptr<SSUSession> SSUServer::FindRelaySession(const std::uint32_t tag)
+{
   LOG(debug) << "SSUServer: finding relay session";
   auto it = m_Relays.find(tag);
   if (it != m_Relays.end())
@@ -115,172 +115,276 @@ std::shared_ptr<SSUSession> SSUServer::FindRelaySession(
 
 void SSUServer::Send(
     const std::uint8_t* buf,
-    std::size_t len,
-    const boost::asio::ip::udp::endpoint& to) {
+    const std::size_t len,
+    const boost::asio::ip::udp::endpoint& to)
+{
   LOG(debug) << "SSUServer: sending data";
-  if (to.protocol() == boost::asio::ip::udp::v4()) {
-    try {
-      m_Socket.send_to(boost::asio::buffer(buf, len), to);
-    } catch (const std::exception& ex) {
-      LOG(error) << "SSUServer: send error: '" << ex.what() << "'";
-    }
-  } else {
-    try {
+  try
+    {
+      if (to.protocol() == boost::asio::ip::udp::v4())
+        {
+          m_Socket.send_to(boost::asio::buffer(buf, len), to);
+          return;
+        }
+
       m_SocketV6.send_to(boost::asio::buffer(buf, len), to);
-    } catch (const std::exception& ex) {
-      LOG(error) << "SSUServer: V6 send error: '" << ex.what() << "'";
     }
-  }
+  catch (...)
+    {
+      m_Exception.Dispatch(__func__);
+    }
 }
 
-void SSUServer::Receive() {
+void SSUServer::Receive()
+{
   LOG(debug) << "SSUServer: receiving data";
-  RawSSUPacket* packet = new RawSSUPacket();  // always freed in ensuing handlers
+// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
+#if (BOOST_VERSION >= 106600)
+  auto packet = std::make_unique<RawSSUPacket>();
+#else
+  RawSSUPacket* packet =
+      new RawSSUPacket();  // always freed in ensuing handlers
+#endif
   m_Socket.async_receive_from(
-      boost::asio::buffer(
-          packet->buf,
-          SSUSize::MTUv4),
+      boost::asio::buffer(packet->buf, SSUSize::MTUv4),
       packet->from,
       std::bind(
           &SSUServer::HandleReceivedFrom,
           this,
           std::placeholders::_1,
           std::placeholders::_2,
-          packet));
+// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
+#if (BOOST_VERSION >= 106600)
+          std::move(packet)
+#else
+          packet  // will not work with unique_ptr .get()
+#endif
+              ));
 }
 
-void SSUServer::ReceiveV6() {
+void SSUServer::ReceiveV6()
+{
   LOG(debug) << "SSUServer: V6: receiving data";
-  RawSSUPacket* packet = new RawSSUPacket();  // always freed in ensuing handlers
+// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
+#if (BOOST_VERSION >= 106600)
+  auto packet = std::make_unique<RawSSUPacket>();
+#else
+  RawSSUPacket* packet =
+      new RawSSUPacket();  // always freed in ensuing handlers
+#endif
   m_SocketV6.async_receive_from(
-      boost::asio::buffer(
-          packet->buf,
-          SSUSize::MTUv6),
+      boost::asio::buffer(packet->buf, SSUSize::MTUv6),
       packet->from,
       std::bind(
           &SSUServer::HandleReceivedFromV6,
           this,
           std::placeholders::_1,
           std::placeholders::_2,
-          packet));
+// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
+#if (BOOST_VERSION >= 106600)
+          std::move(packet)
+#else
+          packet  // will not work with unique_ptr .get()
+#endif
+              ));
 }
 
 // coverity[+free : arg-2]
 void SSUServer::HandleReceivedFrom(
     const boost::system::error_code& ecode,
-    std::size_t bytes_transferred,
-    RawSSUPacket* packet) {
+    const std::size_t bytes_transferred,
+// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
+#if (BOOST_VERSION >= 106600)
+    std::unique_ptr<RawSSUPacket>& packet
+#else
+    RawSSUPacket* packet
+#endif
+)
+{
   LOG(debug) << "SSUServer: handling received data";
-  if (!ecode) {
-    packet->len = bytes_transferred;
-    std::vector<RawSSUPacket *> packets;
-    packets.push_back(packet);
-    boost::system::error_code ec;
-    std::size_t more_bytes = m_Socket.available(ec);
-    // TODO(anonimal): but what about 0 length HolePunch?
-    //   Current handler's null length check done in vain?
-    while (more_bytes && packets.size() < 25) {
-      packet = new RawSSUPacket();
-      packet->len = m_Socket.receive_from(
-          boost::asio::buffer(
-              packet->buf,
-              SSUSize::MTUv4),
-          packet->from);
+  if (!ecode)
+    {
+      packet->len = bytes_transferred;
+// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
+#if (BOOST_VERSION >= 106600)
+      std::vector<std::unique_ptr<RawSSUPacket>> packets;
+      packets.push_back(std::move(packet));
+#else
+      std::vector<RawSSUPacket*> packets;
       packets.push_back(packet);
-      more_bytes = m_Socket.available();
+#endif
+      boost::system::error_code ec;
+      std::size_t more_bytes = m_Socket.available(ec);
+      // TODO(anonimal): but what about 0 length HolePunch?
+      //   Current handler's null length check done in vain?
+      while (more_bytes && packets.size() < 25)
+        {
+// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
+#if (BOOST_VERSION >= 106600)
+          auto pkt = std::make_unique<RawSSUPacket>();
+#else
+          RawSSUPacket* pkt = new RawSSUPacket();
+#endif
+          pkt->len = m_Socket.receive_from(
+              boost::asio::buffer(pkt->buf, SSUSize::MTUv4), pkt->from);
+// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
+#if (BOOST_VERSION >= 106600)
+          packets.push_back(std::move(pkt));
+#else
+          packets.push_back(pkt);
+#endif
+          more_bytes = m_Socket.available();
+        }
+      m_Service.post(std::bind(
+          &SSUServer::HandleReceivedPackets,
+          this,
+// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
+#if (BOOST_VERSION >= 106600)
+          std::move(packets)
+#else
+          packets
+#endif
+              ));
+      Receive();
     }
-    // packet is freed in ensuing handler
-    m_Service.post(
-        std::bind(
-            &SSUServer::HandleReceivedPackets,
-            this,
-            packets));
-    Receive();
-  } else {
-    LOG(error) << "SSUServer: receive error: " << ecode.message();
-    delete packet;  // free packet, now
-  }
+  else
+    {
+      LOG(error) << "SSUServer: receive error: " << ecode.message();
+#if (BOOST_VERSION < 106600)
+      delete packet;  // free packet, now
+#endif
+    }
 }
 
 // coverity[+free : arg-2]
 void SSUServer::HandleReceivedFromV6(
     const boost::system::error_code& ecode,
-    std::size_t bytes_transferred,
-    RawSSUPacket* packet) {
+    const std::size_t bytes_transferred,
+// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
+#if (BOOST_VERSION >= 106600)
+    std::unique_ptr<RawSSUPacket>& packet
+#else
+    RawSSUPacket* packet
+#endif
+)
+{
   LOG(debug) << "SSUServer: V6: handling received data";
-  if (!ecode) {
-    packet->len = bytes_transferred;
-    std::vector<RawSSUPacket *> packets;
-    packets.push_back(packet);
-    std::size_t more_bytes = m_SocketV6.available();
-    while (more_bytes && packets.size() < 25) {
-      packet = new RawSSUPacket();
-      packet->len = m_SocketV6.receive_from(
-          boost::asio::buffer(
-              packet->buf,
-              SSUSize::MTUv6),
-          packet->from);
+  if (!ecode)
+    {
+      packet->len = bytes_transferred;
+// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
+#if (BOOST_VERSION >= 106600)
+      std::vector<std::unique_ptr<RawSSUPacket>> packets;
+      packets.push_back(std::move(packet));
+#else
+      std::vector<RawSSUPacket*> packets;
       packets.push_back(packet);
-      more_bytes = m_SocketV6.available();
+#endif
+      std::size_t more_bytes = m_SocketV6.available();
+      while (more_bytes && packets.size() < 25)
+        {
+// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
+#if (BOOST_VERSION >= 106600)
+          auto pkt = std::make_unique<RawSSUPacket>();
+#else
+          RawSSUPacket* pkt = new RawSSUPacket();
+#endif
+          pkt->len = m_SocketV6.receive_from(
+              boost::asio::buffer(pkt->buf, SSUSize::MTUv6), pkt->from);
+// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
+#if (BOOST_VERSION >= 106600)
+          packets.push_back(std::move(pkt));
+#else
+          packets.push_back(pkt);
+#endif
+          more_bytes = m_SocketV6.available();
+        }
+      m_Service.post(std::bind(
+          &SSUServer::HandleReceivedPackets,
+          this,
+// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
+#if (BOOST_VERSION >= 106600)
+          std::move(packets)
+#else
+          packets
+#endif
+              ));
+      ReceiveV6();
     }
-    // packet is freed in ensuing handler
-    m_Service.post(
-        std::bind(
-            &SSUServer::HandleReceivedPackets,
-            this,
-            packets));
-    ReceiveV6();
-  } else {
-    LOG(error) << "SSUServer: V6 receive error: " << ecode.message();
-    delete packet;  // free packet, now
-  }
+  else
+    {
+      LOG(error) << "SSUServer: V6 receive error: " << ecode.message();
+#if (BOOST_VERSION < 106600)
+      delete packet;  // free packet, now
+#endif
+    }
 }
 
 void SSUServer::HandleReceivedPackets(
-    std::vector<RawSSUPacket *> packets) {
+// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
+#if (BOOST_VERSION >= 106600)
+    const std::vector<std::unique_ptr<RawSSUPacket>>& packets
+#else
+    const std::vector<RawSSUPacket*>& packets
+#endif
+)
+{
   LOG(debug) << "SSUServer: handling received packets";
   std::shared_ptr<SSUSession> session;
-  for (auto packet : packets) {
-    auto pkt = packet;
-    try {
-      // we received pkt for other session than previous
-      if (!session || session->GetRemoteEndpoint() != pkt->from) {
-        if (session)
-          session->FlushData();
-        auto session_it = m_Sessions.find(pkt->from);
-        if (session_it != m_Sessions.end())
-          {
-            session = session_it->second;
-          }
-        else
-          {
-          session = std::make_shared<SSUSession>(*this, pkt->from);
-          session->WaitForConnect(); {
-            std::unique_lock<std::mutex> l(m_SessionsMutex);
-            // TODO(anonimal): assuming we get this far with 0 length HolePunch,
-            //   why would we add a session with Charlie *before* sending a SessionRequest?
-            m_Sessions[pkt->from] = session;
-          }
-          LOG(debug)
-            << "SSUServer: created new SSU session from "
-            << session->GetRemoteEndpoint();
+// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
+#if (BOOST_VERSION >= 106600)
+  for (const auto& packet : packets)
+    {
+#else
+  for (auto* packet : packets)
+    {
+#endif
+      try
+        {
+          // Packet received for a session other than the previous one
+          if (!session || session->GetRemoteEndpoint() != packet->from)
+            {
+              if (session)
+                session->FlushData();
+              auto session_it = m_Sessions.find(packet->from);
+              if (session_it != m_Sessions.end())
+                {
+                  session = session_it->second;
+                }
+              else
+                {
+                  session = std::make_shared<SSUSession>(*this, packet->from);
+                  session->WaitForConnect();
+                  {
+                    std::unique_lock<std::mutex> l(m_SessionsMutex);
+                    // TODO(anonimal): assuming we get this far with 0 length HolePunch,
+                    //   why would we add a session with Charlie *before* sending a SessionRequest?
+                    m_Sessions[packet->from] = session;
+                  }
+                  LOG(debug) << "SSUServer: created new SSU session from "
+                             << session->GetRemoteEndpoint();
+                }
+            }
+          session->ProcessNextMessage(packet->buf, packet->len, packet->from);
         }
-      }
-      session->ProcessNextMessage(pkt->buf, pkt->len, pkt->from);
-    } catch (const std::exception& ex) {
-      LOG(error) << "SSUServer: " << __func__ << ": '" << ex.what() << "'";
-      if (session)
-        session->FlushData();
-      session = nullptr;
+      catch (...)
+        {
+          m_Exception.Dispatch(__func__);
+          if (session)
+            session->FlushData();
+          session = nullptr;
+        }
+#if (BOOST_VERSION < 106600)
+      delete packet;  // free received packet
+#endif
     }
-    delete pkt;  // free received packet
-  }
   if (session)
     session->FlushData();
 }
 
 std::shared_ptr<SSUSession> SSUServer::FindSession(
-    std::shared_ptr<const kovri::core::RouterInfo> router) const {
+    const std::shared_ptr<const kovri::core::RouterInfo>& router) const
+{
   LOG(debug) << "SSUServer: finding session from RI";
   if (!router)
     return nullptr;
@@ -309,8 +413,9 @@ std::shared_ptr<SSUSession> SSUServer::FindSession(
 }
 
 std::shared_ptr<SSUSession> SSUServer::GetSession(
-    std::shared_ptr<const kovri::core::RouterInfo> router,
-    bool peer_test) {
+    const std::shared_ptr<const kovri::core::RouterInfo>& router,
+    const bool peer_test)
+{
   LOG(debug) << "SSUServer: getting session";
   std::shared_ptr<SSUSession> session;
   if (router) {
@@ -407,8 +512,8 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
   return session;
 }
 
-void SSUServer::DeleteSession(
-    std::shared_ptr<SSUSession> session) {
+void SSUServer::DeleteSession(const std::shared_ptr<SSUSession>& session)
+{
   LOG(debug) << "SSUServer: deleting session";
   if (session) {
     session->Close();
@@ -425,9 +530,9 @@ void SSUServer::DeleteAllSessions() {
   m_Sessions.clear();
 }
 
-template<typename Filter>
-std::shared_ptr<SSUSession> SSUServer::GetRandomSession(
-    Filter filter) {
+template <typename Filter>
+std::shared_ptr<SSUSession> SSUServer::GetRandomSession(const Filter filter)
+{
   LOG(debug) << "SSUServer: getting random session";
   std::vector<std::shared_ptr<SSUSession>> filtered_sessions;
   for (auto session : m_Sessions)
@@ -442,7 +547,8 @@ std::shared_ptr<SSUSession> SSUServer::GetRandomSession(
 }
 
 std::shared_ptr<SSUSession> SSUServer::GetRandomEstablishedSession(
-    std::shared_ptr<const SSUSession> excluded) {
+    const std::shared_ptr<const SSUSession>& excluded)
+{
   LOG(debug) << "SSUServer: getting random established session";
   return GetRandomSession(
       [excluded](std::shared_ptr<SSUSession> session)->bool {
@@ -451,8 +557,9 @@ std::shared_ptr<SSUSession> SSUServer::GetRandomEstablishedSession(
       session != excluded; });
 }
 
-std::set<SSUSession *> SSUServer::FindIntroducers(
-    std::size_t max_num_introducers) {
+std::set<SSUSession*> SSUServer::FindIntroducers(
+    const std::size_t max_num_introducers)
+{
   LOG(debug) << "SSUServer: finding introducers";
   std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
   std::set<SSUSession *> ret;
@@ -541,9 +648,10 @@ void SSUServer::HandleIntroducersUpdateTimer(
 }
 
 void SSUServer::NewPeerTest(
-    std::uint32_t nonce,
-    PeerTestParticipant role,
-    std::shared_ptr<SSUSession> session) {
+    const std::uint32_t nonce,
+    const PeerTestParticipant role,
+    const std::shared_ptr<SSUSession>& session)
+{
   LOG(debug) << "SSUServer: new peer test";
   m_PeerTests[nonce] = {
     kovri::core::GetMillisecondsSinceEpoch(),
@@ -552,8 +660,8 @@ void SSUServer::NewPeerTest(
   };
 }
 
-PeerTestParticipant SSUServer::GetPeerTestParticipant(
-    std::uint32_t nonce) {
+PeerTestParticipant SSUServer::GetPeerTestParticipant(const std::uint32_t nonce)
+{
   LOG(debug) << "SSUServer: getting PeerTest participant";
   auto it = m_PeerTests.find(nonce);
   if (it != m_PeerTests.end())
@@ -563,7 +671,8 @@ PeerTestParticipant SSUServer::GetPeerTestParticipant(
 }
 
 std::shared_ptr<SSUSession> SSUServer::GetPeerTestSession(
-    std::uint32_t nonce) {
+    const std::uint32_t nonce)
+{
   LOG(debug) << "SSUServer: getting PeerTest session";
   auto it = m_PeerTests.find(nonce);
   if (it != m_PeerTests.end())
@@ -573,16 +682,17 @@ std::shared_ptr<SSUSession> SSUServer::GetPeerTestSession(
 }
 
 void SSUServer::UpdatePeerTest(
-    std::uint32_t nonce,
-    PeerTestParticipant role) {
+    const std::uint32_t nonce,
+    const PeerTestParticipant role)
+{
   LOG(debug) << "SSUServer: updating PeerTest";
   auto it = m_PeerTests.find(nonce);
   if (it != m_PeerTests.end())
     it->second.role = role;
 }
 
-void SSUServer::RemovePeerTest(
-    std::uint32_t nonce) {
+void SSUServer::RemovePeerTest(const std::uint32_t nonce)
+{
   LOG(debug) << "SSUServer: removing PeerTest";
   m_PeerTests.erase(nonce);
 }
@@ -606,7 +716,7 @@ void SSUServer::HandlePeerTestsCleanupTimer(
     std::size_t num_deleted = 0;
     std::uint64_t ts = kovri::core::GetMillisecondsSinceEpoch();
     for (auto it = m_PeerTests.begin(); it != m_PeerTests.end();) {
-      if (ts > it->second.creationTime
+      if (ts > it->second.creation_time
                + SSUDuration::PeerTestTimeout
                * 1000LL) {
         num_deleted++;

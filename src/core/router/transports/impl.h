@@ -100,10 +100,10 @@ class DHKeysPairSupplier {
 /// @class Peer
 /// @brief Stores information about transport peers.
 struct Peer {
-  std::size_t num_attempts;
+  std::size_t num_attempts{};
   std::shared_ptr<const kovri::core::RouterInfo> router;
   std::list<std::shared_ptr<TransportSession>> sessions;
-  std::uint64_t creation_time;
+  std::uint64_t creation_time{};  ///< Must be set as time since epoch, in implementation
   std::vector<std::shared_ptr<kovri::core::I2NPMessage>> delayed_messages;
 
   void Done();

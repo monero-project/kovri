@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -73,47 +73,57 @@ enum struct PeerTestParticipant : std::uint8_t {
 };
 
 class SSUPacket;
-struct SSUSessionPacket {
-  /// @var data
-  /// @brief pointer to beginning of packet header
-  std::uint8_t* data;
-  /// @var data_len
-  /// @brief how big is the total packet including header
-  std::size_t data_len;
-  /// @var body
-  /// @brief pointer to begining of packet body
-  std::uint8_t* body;
+/// @brief A session packet "sliding-window" of the given buffer
+struct SSUSessionPacket  // TODO(unassigned): finish
+{
+  SSUSessionPacket() : data(nullptr) /*, body(nullptr), data_len(0)*/ {}
 
-  SSUSessionPacket()
-      : data(nullptr),
-        data_len(0),
-        body(nullptr) {}
-
-  SSUSessionPacket(
-      std::uint8_t* buf,
-      std::size_t len)
-      : data(buf),
-        data_len(len),
-        body(nullptr) {}
+  SSUSessionPacket(std::uint8_t* buf, const std::size_t len)
+      : data(buf) /*, body(nullptr), data_len(len)*/
+  {
+    assert(len > SSUSize::HeaderMin);  // TODO(unassigned): upper limit
+    if (len < SSUSize::HeaderMin)
+      {
+        throw std::length_error(
+            __func__ + std::string(": invalid length: " + std::to_string(len)));
+      }
+  }
 
   /// @brief Sets flag byte
-  /// @param f Flag byte
-  void PutFlag(
-      std::uint8_t flag) const;
+  /// @param flag Flag byte
+  void put_flag(const std::uint8_t flag) noexcept
+  {
+    data[32] = flag;
+  }
 
   /// @brief Puts timestamp into packet header
-  /// @param t Timestamp
-  void PutTime(
-      std::uint32_t time) const;
+  /// @param time Timestamp
+  void put_time(const std::uint32_t time)
+  {
+    return core::OutputByteStream::Write<std::uint32_t>(&data[33], time);
+  }
 
   /// @brief Gets pointer to MAC
-  std::uint8_t* MAC() const;
+  std::uint8_t* get_mac() noexcept
+  {
+    return data;
+  }
 
   /// @brief Gets pointer to begining of encrypted section
-  std::uint8_t* Encrypted() const;
+  std::uint8_t* get_encrypted() noexcept
+  {
+    return data + std::size_t(32);
+  }
 
   /// @brief Gets pointer to IV
-  std::uint8_t* IV() const;
+  std::uint8_t* get_iv() noexcept
+  {
+    return data + std::size_t(16);
+  }
+
+  std::uint8_t* data;  ///< Pointer to beginning of packet header
+  //std::uint8_t* body;  ///< Pointer to begining of packet body
+  //std::size_t data_len;  ///< How big is the total packet including header
 };
 
 class SSUServer;

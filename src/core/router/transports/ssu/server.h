@@ -52,6 +52,7 @@
 #include "core/router/transports/ssu/packet.h"
 #include "core/router/transports/ssu/session.h"
 
+#include "core/util/exception.h"
 
 namespace kovri {
 namespace core {
@@ -59,14 +60,12 @@ namespace core {
 struct RawSSUPacket {
   kovri::core::AESAlignedBuffer<SSUSize::RawPacketBuffer> buf;
   boost::asio::ip::udp::endpoint from;
-  std::size_t len;
+  std::size_t len{};
 };
 
 class SSUServer {
  public:
-  SSUServer(
-      boost::asio::io_service& service,
-      std::size_t port);
+  SSUServer(boost::asio::io_service& service, const std::size_t port);
 
   ~SSUServer();
 
@@ -75,60 +74,58 @@ class SSUServer {
   void Stop();
 
   std::shared_ptr<SSUSession> GetSession(
-      std::shared_ptr<const kovri::core::RouterInfo> router,
-      bool peer_test = false);
+      const std::shared_ptr<const kovri::core::RouterInfo>& router,
+      const bool peer_test = false);
 
   std::shared_ptr<SSUSession> FindSession(
-      std::shared_ptr<const kovri::core::RouterInfo> router) const;
+      const std::shared_ptr<const kovri::core::RouterInfo>& router) const;
 
   std::shared_ptr<SSUSession> FindSession(
       const boost::asio::ip::udp::endpoint& ep) const;
 
   std::shared_ptr<SSUSession> GetRandomEstablishedSession(
-      std::shared_ptr<const SSUSession> excluded);
+      const std::shared_ptr<const SSUSession>& excluded);
 
-  void DeleteSession(
-      std::shared_ptr<SSUSession> session);
+  void DeleteSession(const std::shared_ptr<SSUSession>& session);
 
   void DeleteAllSessions();
 
-  boost::asio::io_service& GetService() {
+  // TODO(unassigned): const ref
+  boost::asio::io_service& GetService()
+  {
     return m_Service;
   }
 
-  const boost::asio::ip::udp::endpoint& GetEndpoint() const {
+  const auto& GetEndpoint() const noexcept
+  {
     return m_Endpoint;
   }
 
   void Send(
       const uint8_t* buf,
-      std::size_t len,
+      const std::size_t len,
       const boost::asio::ip::udp::endpoint& to);
 
   void AddRelay(
-      std::uint32_t tag,
+      const std::uint32_t tag,
       const boost::asio::ip::udp::endpoint& relay);
 
-  std::shared_ptr<SSUSession> FindRelaySession(
-      std::uint32_t tag);
+  std::shared_ptr<SSUSession> FindRelaySession(const std::uint32_t tag);
 
   void NewPeerTest(
-      std::uint32_t nonce,
-      PeerTestParticipant role,
-      std::shared_ptr<SSUSession> session = nullptr);
+      const std::uint32_t nonce,
+      const PeerTestParticipant role,
+      const std::shared_ptr<SSUSession>& session = nullptr);
 
-  PeerTestParticipant GetPeerTestParticipant(
-      std::uint32_t nonce);
+  PeerTestParticipant GetPeerTestParticipant(const std::uint32_t nonce);
 
-  std::shared_ptr<SSUSession> GetPeerTestSession(
-      std::uint32_t nonce);
+  std::shared_ptr<SSUSession> GetPeerTestSession(const std::uint32_t nonce);
 
   void UpdatePeerTest(
-      std::uint32_t nonce,
-      PeerTestParticipant role);
+      const std::uint32_t nonce,
+      const PeerTestParticipant role);
 
-  void RemovePeerTest(
-      std::uint32_t nonce);
+  void RemovePeerTest(const std::uint32_t nonce);
 
  private:
   void Receive();
@@ -137,37 +134,51 @@ class SSUServer {
 
   void HandleReceivedFrom(
       const boost::system::error_code& ecode,
-      std::size_t bytes_transferred,
-      RawSSUPacket* packet);
+      const std::size_t bytes_transferred,
+// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
+#if (BOOST_VERSION >= 106600)
+      std::unique_ptr<RawSSUPacket>& packet
+#else
+      RawSSUPacket* packet
+#endif
+  );
 
   void HandleReceivedFromV6(
       const boost::system::error_code& ecode,
-      std::size_t bytes_transferred,
-      RawSSUPacket* packet);
+      const std::size_t bytes_transferred,
+// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
+#if (BOOST_VERSION >= 106600)
+      std::unique_ptr<RawSSUPacket>& packet
+#else
+      RawSSUPacket* packet
+#endif
+  );
 
   void HandleReceivedPackets(
-      std::vector<RawSSUPacket *> packets);
+// BOOST_ASIO_MOVE_ACCEPT_HANDLER_CHECK enabled in 1.66
+#if (BOOST_VERSION >= 106600)
+      const std::vector<std::unique_ptr<RawSSUPacket>>& packets
+#else
+      const std::vector<RawSSUPacket*>& packets
+#endif
+  );
 
-  template<typename Filter>
-  std::shared_ptr<SSUSession> GetRandomSession(
-      Filter filter);
+  template <typename Filter>
+  std::shared_ptr<SSUSession> GetRandomSession(const Filter filter);
 
-  std::set<SSUSession *> FindIntroducers(
-      std::size_t max_num_introducers);
+  std::set<SSUSession*> FindIntroducers(const std::size_t max_num_introducers);
 
   void ScheduleIntroducersUpdateTimer();
-
-  void HandleIntroducersUpdateTimer(
-      const boost::system::error_code& ecode);
+  void HandleIntroducersUpdateTimer(const boost::system::error_code& ecode);
 
   void SchedulePeerTestsCleanupTimer();
-
-  void HandlePeerTestsCleanupTimer(
-      const boost::system::error_code& ecode);
+  void HandlePeerTestsCleanupTimer(const boost::system::error_code& ecode);
 
  private:
+  core::Exception m_Exception;
+
   struct PeerTest {
-    std::uint64_t creationTime;
+    std::uint64_t creation_time{};  ///< Must be set as time since epoch, in implementation
     PeerTestParticipant role;
     std::shared_ptr<SSUSession> session;  // for Bob to Alice
   };

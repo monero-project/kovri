@@ -28,13 +28,9 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-#define BOOST_TEST_DYN_LINK
-
-#include <boost/test/unit_test.hpp>
+#include "tests/unit_tests/main.h"
 
 #include "core/util/config.h"
-
-namespace core = kovri::core;
 
 struct ConfigurationFixture
 {

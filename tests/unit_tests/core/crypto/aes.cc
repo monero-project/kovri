@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -30,9 +30,7 @@
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
-#define BOOST_TEST_DYN_LINK
-
-#include <boost/test/unit_test.hpp>
+#include "tests/unit_tests/main.h"
 
 #include "core/crypto/aes.h"
 

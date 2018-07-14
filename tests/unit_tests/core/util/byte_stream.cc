@@ -29,17 +29,13 @@
  *                                                                                            //
  */
 
-#define BOOST_TEST_DYN_LINK
-
-#include <boost/test/unit_test.hpp>
+#include "tests/unit_tests/main.h"
 
 #include <array>
 #include <limits>
 #include <cstring>
 
 #include "core/util/byte_stream.h"
-
-namespace core = kovri::core;
 
 struct ByteStreamFixture
 {

@@ -28,29 +28,16 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "tests/unit_tests/main.h"
+#ifndef TESTS_UNIT_TESTS_MAIN_H_
+#define TESTS_UNIT_TESTS_MAIN_H_
 
-#include "core/router/identity.h"
+#ifndef BOOST_TEST_DYN_LINK
+#define BOOST_TEST_DYN_LINK
+#endif
 
-struct RouterInfoFixture
-{
-  core::PrivateKeys keys = core::PrivateKeys::CreateRandomKeys(
-      core::SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519);
-};
+#include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(RouterInfoTests, RouterInfoFixture)
+namespace core = kovri::core;
+namespace client = kovri::client;
 
-BOOST_AUTO_TEST_CASE(ValidSignature)
-{
-  BOOST_CHECK_NO_THROW(core::RouterInfo r(keys, {{"127.0.0.1", 10701}}, {}));
-}
-
-BOOST_AUTO_TEST_CASE(InvalidSignature)
-{
-  // If RI is not built completely, insufficient data will throw
-  core::RouterInfo router;
-  BOOST_CHECK_THROW(router.Verify(), std::exception);
-  BOOST_CHECK_THROW(router.CreateBuffer(keys), std::exception);
-}
-
-BOOST_AUTO_TEST_SUITE_END()
+#endif  // TESTS_UNIT_TESTS_MAIN_H_

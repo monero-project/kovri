@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2015-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2015-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -89,7 +89,7 @@ class X509FixtureImpl : X509Fixture {
   }
 };
 
-BOOST_FIXTURE_TEST_SUITE(X509, X509Fixture);
+BOOST_FIXTURE_TEST_SUITE(KovriX509, X509Fixture);
 
 // First, test that the cert is valid
 BOOST_AUTO_TEST_CASE(GoodX509) {

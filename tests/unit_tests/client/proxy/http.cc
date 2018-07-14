@@ -29,11 +29,10 @@
  *                                                                                            //
  * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
-#define BOOST_TEST_DYN_LINK
+
+#include "tests/unit_tests/main.h"
 
 #include "client/proxy/http.h"
-
-#include <boost/test/unit_test.hpp>
 
 struct HTTPProxyRequestFixture
 {
@@ -230,7 +229,6 @@ BOOST_AUTO_TEST_SUITE(CreateHTTPResponse)
 
 BOOST_AUTO_TEST_CASE(ValidResponse)
 {
-  namespace client = kovri::client;
   const auto status = client::HTTPResponse::ok;
 
   BOOST_CHECK_NO_THROW(client::HTTPResponse response(status));

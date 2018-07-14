@@ -713,7 +713,7 @@ SSUFragment SSUPacketParser::ParseFragment() {
   fragment.SetIsLast(fragment_info & 0x010000);  // bit 16
   fragment.SetNumber(fragment_info >> 17);  // bits 23 - 17
   // End session if fragmented size is greater than buffer size
-  if (fragment.GetSize() > Size())
+  if (fragment.GetSize() > size())
     {
       // TODO(anonimal): invalid size could be an implementation issue rather
       //   than an attack. Reconsider how we mitigate invalid fragment size.
@@ -975,7 +975,7 @@ void SSUPacketBuilder::WriteSessionCreated(SSUSessionCreatedPacket* packet) {
 
 void SSUPacketBuilder::WriteSessionConfirmed(
     SSUSessionConfirmedPacket* packet) {
-  std::uint8_t* const begin = m_DataPtr;
+  const std::uint8_t* const begin = tellp();
   Write<std::uint8_t>(0x01);  // 1 byte info, with 1 fragment
   const std::size_t identity_size = packet->GetRemoteRouterIdentity().GetFullLen();
   Write<std::uint16_t>(identity_size);
@@ -988,7 +988,7 @@ void SSUPacketBuilder::WriteSessionConfirmed(
   // message
   const std::size_t signature_size = packet->GetRemoteRouterIdentity().GetSignatureLen();
   const std::size_t padding_size = GetPaddingSize(
-      packet->GetHeader()->GetSize() + m_DataPtr - begin + signature_size);
+      packet->GetHeader()->GetSize() + tellp() - begin + signature_size);
   std::uint8_t* const padding = m_DataPtr;
   SkipBytes(padding_size);
   kovri::core::RandBytes(padding, padding_size);

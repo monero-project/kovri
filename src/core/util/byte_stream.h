@@ -71,27 +71,27 @@ class ByteStream
 
   /// @brief Get the first unconsumed/unwritten byte in the stream
   /// @return Pointer to the first byte
-  const std::uint8_t* Data() const noexcept
+  const std::uint8_t* data() const noexcept
   {
     return m_DataPtr - m_Counter;
   }
 
   /// @brief Total size of stream given at initialization
   /// @return Total size
-  std::size_t Size() const noexcept
+  std::size_t size() const noexcept
   {
     return m_Length + m_Counter;
   }
 
   /// @brief Get the current position in the stream
   /// @return Pointer to current byte position
-  const std::uint8_t* Tellp() const noexcept
+  const std::uint8_t* tellp() const noexcept
   {
     return m_DataPtr;
   }
 
   /// @brief Remaining length of the stream after advancement
-  std::size_t Gcount() const noexcept
+  std::size_t gcount() const noexcept
   {
     return m_Length;
   }
@@ -184,7 +184,7 @@ class OutputByteStream : public ByteStream
 
   /// @brief Allows writing the first byte in the stream
   /// @return Pointer to the first byte
-  std::uint8_t* Data() noexcept
+  std::uint8_t* data() noexcept
   {
     return m_DataPtr - m_Counter;
   }

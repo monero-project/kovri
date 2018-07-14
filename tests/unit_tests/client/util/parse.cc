@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2015-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -26,8 +26,6 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,          //
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF    //
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
- *                                                                                            //
- * Parts of the project are originally copyright (c) 2013-2015 The PurpleI2P Project          //
  */
 
 #include <boost/test/unit_test.hpp>
@@ -40,45 +38,85 @@
 #include "core/router/identity.h"
 #include "core/util/log.h"
 
-BOOST_AUTO_TEST_SUITE(ClientParsing)
+namespace core = kovri::core;
+namespace client = kovri::client;
 
-BOOST_AUTO_TEST_CASE(ParseACL)
+struct ParseACLFixture
 {
-  std::set<kovri::core::IdentHash> idents;
-  std::uint8_t count(3);
+  ParseACLFixture()
+  {
+    // Create hash set
+    for (std::uint8_t i(0); i < 3; i++)
+      {
+        core::IdentHash hash;
+        // Note: not a "real" (key-generated) ident hash
+        core::RandBytes(hash(), sizeof(hash));
+        idents.insert(hash);
+      }
+  }
+
+  ~ParseACLFixture()
+  {
+    BOOST_TEST_MESSAGE(acl);
+    BOOST_REQUIRE_NO_THROW(client::ParseACL(acl));
+    BOOST_CHECK(client::ParseACL(acl) == idents);
+  }
+
+  std::set<core::IdentHash> idents;
   std::string acl;
+};
 
-  // Create hashes + construct malformed ACL
-  for (std::uint8_t i(0); i < count; i++)
-    {
-      // Note: not a "real" (key-generated) ident hash
-      std::array<std::uint8_t, sizeof(kovri::core::IdentHash)> rand{{}};
-      kovri::core::RandBytes(rand.data(), rand.size());
+BOOST_FIXTURE_TEST_SUITE(ParseACL, ParseACLFixture)
 
-      // Create hash + insert into set
-      kovri::core::IdentHash hash(rand.data());
-      idents.insert(hash);
-
-      // Log valid b32
-      const std::string b32 = hash.ToBase32();
-      LOG(debug) << "ParseACL: " << b32;
-
-      // Construct malformed ACL delimiters
-      // TODO(unassigned): extend test for malformed ACLs?
-      acl += b32;
-      if (i != (count - 1))
-        acl += ",,,,";
-    }
-
-  // Log our malformed ACL
-  LOG(debug) << "ParseACL: " << acl;
-
-  // Parse our malformed ACL
-  auto const& parsed_idents = kovri::client::ParseACL(acl);
-
-  // Check if parser fixed the ACL and if parsed ACL matches the correct ACL
-  BOOST_CHECK(parsed_idents == idents);
+BOOST_AUTO_TEST_CASE(Base32)
+{
+  for (const auto& ident : idents)
+    acl += ident.ToBase32() + ",";
 }
+
+BOOST_AUTO_TEST_CASE(Base32Domain)
+{
+  for (const auto& ident : idents)
+    acl += ident.ToBase32() + ".b32.i2p,";
+}
+
+BOOST_AUTO_TEST_CASE(Base64)
+{
+  for (const auto& ident : idents)
+    acl += ident.ToBase64() + ",";
+}
+
+BOOST_AUTO_TEST_CASE(MixedRadix)
+{
+  std::size_t count(0);
+
+  for (const auto& ident : idents)
+    {
+      if (!count)
+        acl += ident.ToBase32() + ",";
+      acl += ident.ToBase64() + ",";
+      count++;
+    }
+}
+
+BOOST_AUTO_TEST_CASE(InvalidList)
+{
+  std::uint8_t count(0);
+
+  // Construct malformed ACL
+  // TODO(unassigned): extend test for malformed ACLs?
+  for (const auto& ident : idents)
+    {
+      acl += ident.ToBase32();
+      if (count != (idents.size() - 1))
+        acl += ",,,,";
+      count++;
+    }
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE(ClientParsing)
 
 struct TunnelFixture {
   kovri::client::TunnelAttributes tunnel{};

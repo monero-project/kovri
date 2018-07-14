@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -36,32 +36,53 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/lexical_cast.hpp>
 
+#include <string>
+
 #include "core/util/log.h"
 #include "core/util/exception.h"
 
 namespace kovri {
 namespace client {
-
-const std::set<kovri::core::IdentHash> ParseACL(const std::string list)
+std::set<kovri::core::IdentHash> ParseACL(const std::string list)
 {
+  // Parse and store given hashes (either base32 or base64 encoded)
+  std::set<kovri::core::IdentHash> idents;
+  // Parse delimiter
   std::vector<std::string> parsed;
   boost::split(parsed, list, boost::is_any_of(","));
-  // Get b32 of each value
-  std::set<kovri::core::IdentHash> idents;
-  for (auto const& p : parsed)
+
+  // Decode and store hashes
+  for (auto& p : parsed)
     {
-      kovri::core::IdentHash ident;
       try
         {
+          kovri::core::IdentHash ident;
+
+          // If base64 hash is given
+          const auto b64 = p.rfind("=");  // Assumes base64
+          if (b64 != std::string::npos)
+            {
+              ident.FromBase64(p);
+              idents.insert(ident);
+              continue;
+            }
+
+          // Strip base32 domain if found
+          const auto b32 = p.rfind(".b32.i2p");
+          if (b32 != std::string::npos)
+            p.resize(p.size() - 8);
+
+          // Base32 decode
           ident.FromBase32(p);
           idents.insert(ident);
         }
       catch (...)
         {
           core::Exception ex;
-          ex.Dispatch("ParseACL: could not parse ident");
+          ex.Dispatch(__func__);
         }
     }
+
   return idents;
 }
 

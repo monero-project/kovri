@@ -14,12 +14,12 @@
 ## Multilingual README
 This page is also available in the following languages
 
-+ [Italian](https://github.com/monero-project/kovri-docs/blob/master/i18n/it/README.md)
-+ Spanish
-+ Russian
-+ [French](https://github.com/monero-project/kovri-docs/blob/master/i18n/fr/README.md)
-+ German
-+ Danishs
+- [Italiano](https://github.com/monero-project/kovri-docs/blob/master/i18n/it/README.md)
+- Español
+- Pусский
+- [Français](https://github.com/monero-project/kovri-docs/blob/master/i18n/fr/README.md)
+- Deutsch
+- Dansk
 
 ## Downloads
 

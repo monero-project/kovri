@@ -44,6 +44,8 @@
 // TODO(anonimal): a secure bytestream implementation that ensures wiped memory when needed.
 //   Otherwise, and preferably, use existing standard library containers with crypto++.
 
+// TODO(unassigned): std::bitset implementation, see #823
+
 namespace kovri
 {
 namespace core

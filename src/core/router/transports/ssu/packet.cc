@@ -89,10 +89,18 @@ SSUPacketParser::SSUPacketParser(
     const std::size_t len)
     : InputByteStream(data, len) {}
 
-SSUFragment SSUPacketParser::ParseFragment() {
+SSUFragment SSUPacketParser::ParseFragment()
+{
+  // Patch for #823 so we can keep running with assertions
+  if (gcount() < 4 /* message ID */ + 3 /* fragment info */)
+    throw std::length_error(
+        "SSUPacketParser: invalid packet size, fragment unavailable");
+
   SSUFragment fragment;
   fragment.set_msg_id(Read<std::uint32_t>());
-  // TODO(EinMByte): clean this up
+
+  // TODO(unassigned): we should not setup a 4 byte array to parse 3 bytes
+  //   and ByteStream should consider having a std::bitset implementation.
   std::array<std::uint8_t, 4> info_buf {{}};
   memcpy(info_buf.data() + 1, ReadBytes(3), 3);
   const std::uint32_t fragment_info = Read<std::uint32_t>(info_buf.data());

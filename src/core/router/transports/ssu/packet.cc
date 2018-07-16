@@ -112,7 +112,7 @@ SSUFragment SSUPacketParser::ParseFragment()
   std::uint16_t const frag_size = fragment.get_size();
 
   // End session if fragmented size is greater than buffer size
-  if (frag_size > size())
+  if (frag_size > gcount())
     {
       // TODO(anonimal): invalid size could be an implementation issue rather
       //   than an attack. Reconsider how we mitigate invalid fragment size.

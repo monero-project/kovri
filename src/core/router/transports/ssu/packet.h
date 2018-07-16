@@ -888,7 +888,7 @@ class SSUFragment
 
   /// @brief Sets fragment size (0 - 16383)
   /// @param size Fragment size
-  void set_size(const std::size_t size) noexcept
+  void set_size(const std::uint16_t size) noexcept
   {
     m_Size = size;
   }
@@ -924,7 +924,7 @@ class SSUFragment
   std::uint8_t m_MessageID;
   std::uint8_t m_Number;
   bool m_IsLast;
-  std::size_t m_Size;
+  std::uint16_t m_Size;
   std::uint8_t* m_Data;
 };
 

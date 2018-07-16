@@ -38,6 +38,7 @@
 #include "core/crypto/diffie_hellman.h"
 #include "core/crypto/hash.h"
 #include "core/crypto/rand.h"
+#include "core/crypto/util/misc.h"
 
 #include "core/router/context.h"
 #include "core/router/transports/ssu/packet.h"
@@ -1508,7 +1509,7 @@ bool SSUSession::Validate(
       encrypted_len + SSUSize::BufferMargin,
       mac_key,
       digest.data());
-  return !memcmp(pkt.get_mac(), digest.data(), digest.size());
+  return core::ConstTimeCmp(pkt.get_mac(), digest.data(), digest.size());
 }
 
 void SSUSession::Connect() {

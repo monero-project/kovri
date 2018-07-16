@@ -39,6 +39,7 @@
 #include "core/crypto/elgamal.h"
 #include "core/crypto/rand.h"
 #include "core/crypto/util/compression.h"
+#include "core/crypto/util/misc.h"
 
 #include "core/router/context.h"
 #include "core/router/garlic.h"
@@ -367,7 +368,7 @@ bool HandleBuildRequestRecords(
     for (int i = 0; i < num; i++) {
       std::uint8_t* record = records + i * TUNNEL_BUILD_RECORD_SIZE;
       // Test if current hop's router identity is ours
-      if (!memcmp(
+      if (core::ConstTimeCmp(
               record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET,
               (const std::uint8_t *)context.GetRouterInfo().GetIdentHash(),
               16)) {

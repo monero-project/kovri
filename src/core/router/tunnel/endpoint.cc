@@ -37,6 +37,7 @@
 #include <utility>
 
 #include "core/crypto/hash.h"
+#include "core/crypto/util/misc.h"
 
 #include "core/router/context.h"
 #include "core/router/net_db/impl.h"
@@ -82,7 +83,7 @@ void TunnelEndpoint::HandleDecryptedTunnelDataMsg(
       // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
       throw;
     }
-    if (memcmp(hash, decrypted, 4)) {
+    if (!core::ConstTimeCmp(hash, decrypted, 4)) {
       LOG(error)
         << "TunnelEndpoint: " << __func__ << ": checksum verification failed";
       return;

@@ -42,6 +42,7 @@
 #include <vector>
 
 #include "core/crypto/radix.h"
+#include "core/crypto/util/misc.h"
 
 namespace kovri
 {
@@ -94,11 +95,12 @@ class alignas(8) Tag
 
   bool operator==(const Tag<Size>& other) const
   {
-    return !std::memcmp(m_Buf, other.m_Buf, Size);
+    return core::ConstTimeCmp(m_Buf, other.m_Buf, Size);
   }
 
   bool operator<(const Tag<Size>& other) const
   {
+    // TODO(anonimal): implement constant time comparator
     return std::memcmp(m_Buf, other.m_Buf, Size) < 0;
   }
 

@@ -108,14 +108,21 @@ SSUFragment SSUPacketParser::ParseFragment()
   // bits 15-14: unused, set to 0 for compatibility with future uses
   fragment.set_is_last(fragment_info & 0x010000);  // bit 16
   fragment.set_num(fragment_info >> 17);  // bits 23 - 17
+
+  std::uint16_t const frag_size = fragment.get_size();
+
   // End session if fragmented size is greater than buffer size
-  if (fragment.get_size() > size())
+  if (frag_size > size())
     {
       // TODO(anonimal): invalid size could be an implementation issue rather
       //   than an attack. Reconsider how we mitigate invalid fragment size.
       throw std::length_error("SSUPacketParser: invalid fragment size");
     }
-  fragment.set_data(ReadBytes(fragment.get_size()));
+
+  // Don't read if purported size is 0
+  if (frag_size)
+    fragment.set_data(ReadBytes(frag_size));
+
   return fragment;
 }
 

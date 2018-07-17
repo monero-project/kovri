@@ -89,10 +89,18 @@ SSUPacketParser::SSUPacketParser(
     const std::size_t len)
     : InputByteStream(data, len) {}
 
-SSUFragment SSUPacketParser::ParseFragment() {
+SSUFragment SSUPacketParser::ParseFragment()
+{
+  // Patch for #823 so we can keep running with assertions
+  if (gcount() < 4 /* message ID */ + 3 /* fragment info */)
+    throw std::length_error(
+        "SSUPacketParser: invalid packet size, fragment unavailable");
+
   SSUFragment fragment;
   fragment.set_msg_id(Read<std::uint32_t>());
-  // TODO(EinMByte): clean this up
+
+  // TODO(unassigned): we should not setup a 4 byte array to parse 3 bytes
+  //   and ByteStream should consider having a std::bitset implementation.
   std::array<std::uint8_t, 4> info_buf {{}};
   memcpy(info_buf.data() + 1, ReadBytes(3), 3);
   const std::uint32_t fragment_info = Read<std::uint32_t>(info_buf.data());
@@ -100,14 +108,21 @@ SSUFragment SSUPacketParser::ParseFragment() {
   // bits 15-14: unused, set to 0 for compatibility with future uses
   fragment.set_is_last(fragment_info & 0x010000);  // bit 16
   fragment.set_num(fragment_info >> 17);  // bits 23 - 17
+
+  std::uint16_t const frag_size = fragment.get_size();
+
   // End session if fragmented size is greater than buffer size
-  if (fragment.get_size() > size())
+  if (frag_size > gcount())
     {
       // TODO(anonimal): invalid size could be an implementation issue rather
       //   than an attack. Reconsider how we mitigate invalid fragment size.
       throw std::length_error("SSUPacketParser: invalid fragment size");
     }
-  fragment.set_data(ReadBytes(fragment.get_size()));
+
+  // Don't read if purported size is 0
+  if (frag_size)
+    fragment.set_data(ReadBytes(frag_size));
+
   return fragment;
 }
 

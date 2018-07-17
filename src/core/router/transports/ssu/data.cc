@@ -35,6 +35,7 @@
 #include <boost/bind.hpp>
 #include <boost/endian/conversion.hpp>
 
+#include "core/router/info.h"
 #include "core/router/net_db/impl.h"
 #include "core/router/transports/ssu/server.h"
 
@@ -94,7 +95,10 @@ void SSUData::Stop() {
 void SSUData::AdjustPacketSize(
     const kovri::core::RouterInfo& remote_router) {
   LOG(debug) << "SSUData: adjusting packet size";
-  auto ssu_address = remote_router.GetSSUAddress();
+
+  const auto* ssu_address =
+      remote_router.GetAddress(m_Session.IsV6(), Transport::SSU);
+
   if (ssu_address && ssu_address->mtu) {
     if (m_Session.IsV6 ())
       m_PacketSize =

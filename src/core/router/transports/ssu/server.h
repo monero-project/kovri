@@ -63,7 +63,7 @@ struct RawSSUPacket {
   std::size_t len{};
 };
 
-class SSUServer {
+class SSUServer : public core::RouterInfoTraits {
  public:
   SSUServer(boost::asio::io_service& service, const std::size_t port);
 

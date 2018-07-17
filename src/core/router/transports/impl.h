@@ -115,7 +115,7 @@ const std::uint32_t LOW_BANDWIDTH_LIMIT = 32 * 1024;  // 32KBps
 /// @class Transports
 /// @brief Provides functions to pass messages to a given peer.
 ///        Manages the SSU and NTCP transports.
-class Transports {
+class Transports : public core::RouterInfoTraits {
  public:
   Transports();
 

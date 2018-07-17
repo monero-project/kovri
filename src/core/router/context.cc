@@ -140,7 +140,7 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
           const auto& address = boost::asio::ip::address::from_string(host);
 
           // NTCP
-          if (has_ntcp && !router.GetNTCPAddress(address.is_v6()))
+          if (has_ntcp && !router.GetAddress(address.is_v6(), Transport::NTCP))
             {
               LOG(debug)
                   << "RouterContext: NTCP was expected but no transport "
@@ -149,7 +149,7 @@ void RouterContext::Initialize(const boost::program_options::variables_map& map)
               router.AddAddress(std::make_tuple(Transport::NTCP, host, port));
             }
           // SSU
-          if (has_ssu && !router.GetSSUAddress(address.is_v6()))
+          if (has_ssu && !router.GetAddress(address.is_v6(), Transport::SSU))
             {
               LOG(debug)
                   << "RouterContext: SSU was expected but no transport "
@@ -278,7 +278,7 @@ bool RouterContext::AddIntroducer(
     const kovri::core::RouterInfo& routerInfo,
     std::uint32_t tag) {
   bool ret = false;
-  auto address = routerInfo.GetSSUAddress();
+  const auto* address = routerInfo.GetV4Address(Transport::SSU);
   if (address) {
     ret = m_RouterInfo.AddIntroducer(address, tag);
     if (ret)

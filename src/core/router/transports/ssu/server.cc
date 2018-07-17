@@ -388,7 +388,7 @@ std::shared_ptr<SSUSession> SSUServer::FindSession(
   LOG(debug) << "SSUServer: finding session from RI";
   if (!router)
     return nullptr;
-  auto address = router->GetSSUAddress();  // v4 only
+  auto* address = router->GetV4Address(Transport::SSU);
   if (!address)
     return nullptr;
   auto session =
@@ -396,7 +396,7 @@ std::shared_ptr<SSUSession> SSUServer::FindSession(
   if (session || !context.SupportsV6())
     return session;
   // try v6
-  address = router->GetSSUAddress(true);
+  address = router->GetV6Address(Transport::SSU);
   if (!address)
     return nullptr;
   return FindSession(boost::asio::ip::udp::endpoint(address->host, address->port));
@@ -419,7 +419,7 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
   LOG(debug) << "SSUServer: getting session";
   std::shared_ptr<SSUSession> session;
   if (router) {
-    auto address = router->GetSSUAddress(context.SupportsV6());
+    const auto* address = router->GetAnyAddress(context.SupportsV6(), Transport::SSU);
     if (address) {
       boost::asio::ip::udp::endpoint remote_endpoint(
           address->host,

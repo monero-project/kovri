@@ -41,6 +41,7 @@
 #include "core/crypto/util/misc.h"
 
 #include "core/router/context.h"
+#include "core/router/info.h"
 #include "core/router/transports/ssu/packet.h"
 #include "core/router/transports/ssu/server.h"
 #include "core/router/transports/impl.h"
@@ -507,9 +508,8 @@ void SSUSession::SendSessionCreated(const std::uint8_t* dh_x)
       // Get our (Bob's) intro key and SSU address
       // TODO(anonimal): we can get/set this sooner. Redesign.
       const std::uint8_t* intro_key = GetIntroKey();
-      auto* address = m_RemoteEndpoint.address().is_v6()
-                          ? context.GetRouterInfo().GetSSUAddress(true)
-                          : context.GetRouterInfo().GetSSUAddress();
+      const auto* address = context.GetRouterInfo().GetAddress(
+          m_RemoteEndpoint.address().is_v6(), Transport::SSU);
 
       // If we don't support SSU, we shouldn't reach this stage in the session
       assert(intro_key || address);  // TODO(anonimal): redesign
@@ -782,7 +782,7 @@ void SSUSession::SendRelayRequest(
     const std::uint32_t introducer_tag,
     const std::uint8_t* introducer_key)
 {
-  auto* const address = context.GetRouterInfo().GetSSUAddress();
+  const auto* address = context.GetRouterInfo().GetV4Address(Transport::SSU);
   if (!address)
     {
       LOG(error) << "SSUSession:" << GetFormattedSessionInfo() << __func__
@@ -1212,8 +1212,8 @@ void SSUSession::SendPeerTest(
   if (to_address)
     {
       // Our (Alice's) intro key
-      auto* const addr = context.GetRouterInfo().GetSSUAddress(
-          context.GetRouterInfo().HasV6());
+      const auto* addr = context.GetRouterInfo().GetAnyAddress(
+          context.GetRouterInfo().HasV6(), Transport::SSU);
       assert(addr);
       message.WriteData(addr->key, sizeof(addr->key));
     }
@@ -1250,8 +1250,8 @@ void SSUSession::SendPeerTest(
 void SSUSession::SendPeerTest() {
   // we are Alice
   LOG(debug) << "SSUSession: <--" << GetFormattedSessionInfo() << "sending PeerTest";
-  auto* const address =
-      context.GetRouterInfo().GetSSUAddress(context.GetRouterInfo().HasV6());
+  const auto* address = context.GetRouterInfo().GetAnyAddress(
+      context.GetRouterInfo().HasV6(), Transport::SSU);
   assert(address);
   auto nonce = kovri::core::Rand<std::uint32_t>();
   if (!nonce)
@@ -1655,15 +1655,15 @@ const std::uint8_t* SSUSession::GetIntroKey() const
     {
       LOG(debug) << "SSUSession: " << __func__ << ": using remote's key";
       auto* const address =
-          m_RemoteRouter->GetSSUAddress(m_RemoteRouter->HasV6());
+          m_RemoteRouter->GetAddress(m_RemoteRouter->HasV6(), Transport::SSU);
       assert(address);  // TODO(anonimal): SSU should be guaranteed
       return address->key;
     }
 
   // Use our key if we are server
   LOG(debug) << "SSUSession: " << __func__ << ": using our key";
-  auto* const address =
-      context.GetRouterInfo().GetSSUAddress(context.GetRouterInfo().HasV6());
+  const auto* address = context.GetRouterInfo().GetAnyAddress(
+      context.GetRouterInfo().HasV6(), Transport::SSU);
   assert(address);  // TODO(anonimal): SSU should be guaranteed
   return address->key;
 }

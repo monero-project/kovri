@@ -117,7 +117,7 @@ struct SentMessage {
 };
 
 class SSUSession;
-class SSUData {
+class SSUData : public RouterInfoTraits {
  public:
   SSUData(
       SSUSession& session);

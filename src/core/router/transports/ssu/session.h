@@ -127,9 +127,10 @@ struct SSUSessionPacket  // TODO(unassigned): finish
 };
 
 class SSUServer;
-class SSUSession
-    : public TransportSession,
-      public std::enable_shared_from_this<SSUSession> {
+class SSUSession : public RouterInfoTraits,
+                   public TransportSession,
+                   public std::enable_shared_from_this<SSUSession>
+{
  public:
   SSUSession(
       SSUServer& server,

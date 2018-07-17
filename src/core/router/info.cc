@@ -915,26 +915,61 @@ std::shared_ptr<RouterProfile> RouterInfo::GetProfile() const
   return m_Profile;
 }
 
-const RouterInfo::Address* RouterInfo::GetNTCPAddress(bool has_v6) const
+const RouterInfo::Address* RouterInfo::GetAnyAddress(
+    const bool prefer_v6,
+    const Transport transport) const
 {
-  if (!has_v6)
-    return GetAddress(SupportedTransport::NTCPv4);
-  return GetAddress(SupportedTransport::NTCPv4 | SupportedTransport::NTCPv6);
-}
+  if (prefer_v6)
+    {
+      const Address* address = GetAddress(prefer_v6, transport);
+      if (address)
+        return address;
+    }
 
-const RouterInfo::Address* RouterInfo::GetSSUAddress(bool has_v6) const
-{
-  if (!has_v6)
-    return GetAddress(SupportedTransport::SSUv4);
-  return GetAddress(SupportedTransport::SSUv4 | SupportedTransport::SSUv6);
+  return GetAddress(false, transport);
 }
 
 const RouterInfo::Address* RouterInfo::GetAddress(
-    const std::uint8_t transports) const
+    const bool require_v6,
+    const Transport transport) const
+{
+  return require_v6 ? GetV6Address(transport) : GetV4Address(transport);
+}
+
+const RouterInfo::Address* RouterInfo::GetV6Address(
+    const Transport transport) const
+{
+  switch (transport)
+    {
+      case Transport::NTCP:
+        return GetAddress(SupportedTransport::NTCPv6);
+      case Transport::SSU:
+        return GetAddress(SupportedTransport::SSUv6);
+      default:
+        return nullptr;
+    }
+}
+
+const RouterInfo::Address* RouterInfo::GetV4Address(
+    const Transport transport) const
+{
+  switch (transport)
+    {
+      case Transport::NTCP:
+        return GetAddress(SupportedTransport::NTCPv4);
+      case Transport::SSU:
+        return GetAddress(SupportedTransport::SSUv4);
+      default:
+        return nullptr;
+    }
+}
+
+const RouterInfo::Address* RouterInfo::GetAddress(
+    const std::uint8_t requested) const
 {
   // Ensures supported transports
-  auto has_transport = [transports](const std::uint8_t supported) -> bool {
-    return transports & supported;
+  auto has_transport = [requested](const std::uint8_t supported) -> bool {
+    return requested & supported;
   };
 
   Transport transport(Transport::Unknown);
@@ -957,8 +992,8 @@ const RouterInfo::Address* RouterInfo::GetAddress(
     {
       if (address.transport == transport)
         {
-          // Ensurew we return v6 capable address if selected
-          if (address.host.is_v4() || (has_v6 && address.host.is_v6()))
+          if ((address.host.is_v4() && !has_v6)
+              || (address.host.is_v6() && has_v6))
             {
               LOG(debug) << "RouterInfo: " << __func__ << GetTrait(transport)
                          << " " << address.host;

@@ -104,6 +104,7 @@ if(WITH_CRYPTOPP)
     ${CRYPTOPP_DIR}/tunnel.cc
     ${CRYPTOPP_DIR}/util/checksum.cc
     ${CRYPTOPP_DIR}/util/compression.cc
+    ${CRYPTOPP_DIR}/util/misc.cc
     ${CRYPTOPP_DIR}/util/x509.cc
     crypto/aes.h
     crypto/diffie_hellman.h
@@ -117,6 +118,7 @@ if(WITH_CRYPTOPP)
     crypto/tunnel.h
     crypto/util/checksum.h
     crypto/util/compression.h
+    crypto/util/misc.h
     crypto/util/x509.h
     ${CRYPTOPP_DIR}/aesni_macros.h
     ${CRYPTOPP_DIR}/crypto_const.h)

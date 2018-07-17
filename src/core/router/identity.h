@@ -290,6 +290,7 @@ struct XORMetric {
   }
 
   bool operator<(const XORMetric& other) const {
+    // TODO(anonimal): implement constant time comparator
     return memcmp(metric, other.metric, 32) < 0;
   }
 };

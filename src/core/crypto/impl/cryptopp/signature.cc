@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -36,6 +36,7 @@
 #include <cryptopp/dsa.h>
 #include <cryptopp/eccrypto.h>
 #include <cryptopp/integer.h>
+#include <cryptopp/misc.h>
 #include <cryptopp/oids.h>
 #include <cryptopp/osrng.h>
 #include <cryptopp/rsa.h>
@@ -761,7 +762,7 @@ class RSARawVerifier {
     if (buf.size() < Hash::DIGESTSIZE)
       return false;  // Can't verify digest longer than key
     // We assume digest is right aligned, at least for PKCS#1 v1.5 padding
-    return !std::memcmp(
+    return CryptoPP::VerifyBufsEqual(
         buf.data() + (buf.size() - Hash::DIGESTSIZE),
         digest.data(),
         Hash::DIGESTSIZE);

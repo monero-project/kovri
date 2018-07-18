@@ -62,6 +62,12 @@ SOCKSHandler::SOCKSHandler(
         m_AddressType(IPv4),
         m_SOCKSVersion(SOCKS5),
         m_Command(Connect) {
+          if (!parent)
+            throw std::invalid_argument(
+                __func__ + std::string(": null server"));
+          if (!socket)
+            throw std::invalid_argument(
+                __func__ + std::string(": null socket"));
           m_Address.ip = 0;
           EnterState(GetSOCKSVersion);
         }

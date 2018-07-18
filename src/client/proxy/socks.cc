@@ -610,15 +610,5 @@ void SOCKSDNSAddress::FromString(std::string str)
   memcpy(value, str.c_str(), size);
 }
 
-std::string SOCKSDNSAddress::ToString()
-{
-  return std::string(value, size);
-}
-
-void SOCKSDNSAddress::PushBack(char c)
-{
-  value[size++] = c;
-}
-
 }  // namespace client
 }  // namespace kovri

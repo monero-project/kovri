@@ -73,9 +73,15 @@ struct SOCKSDNSAddress {
 
   void FromString(std::string str);
 
-  std::string ToString();
+  std::string ToString()
+  {
+    return std::string(value, size);
+  }
 
-  void PushBack(char c);
+  void PushBack(char c)
+  {
+    value[size++] = c;
+  }
 };
 
 class SOCKSHandler

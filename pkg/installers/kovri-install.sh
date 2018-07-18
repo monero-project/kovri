@@ -296,7 +296,7 @@ CreatePackage()
         rsync -avR $_resource $staging_path 1>/dev/null
       done
     else
-      cp -R --parents $resources $staging_path
+      cp -R --parents ${resources[@]} $staging_path
     fi
     catch "could not copy resources for packaging"
 

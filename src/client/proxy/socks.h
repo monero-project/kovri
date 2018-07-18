@@ -81,7 +81,7 @@ struct SOCKSDNSAddress {
 class SOCKSHandler
     : public kovri::client::I2PServiceHandler,
       public std::enable_shared_from_this<SOCKSHandler> {
- private:
+ protected:
    /// @enum State
    /// @brief Enumerators used for parsing data to
    ///  fetch the corresponding variable
@@ -304,6 +304,7 @@ class SOCKSHandler
   void HandleStreamRequestComplete(
       std::shared_ptr<kovri::client::Stream> stream);
 
+ private:
   std::uint8_t m_SocketBuffer[MAX_SOCKS_BUFFER_SIZE];
   std::shared_ptr<boost::asio::ip::tcp::socket> m_Socket;
   std::shared_ptr<kovri::client::Stream> m_Stream;

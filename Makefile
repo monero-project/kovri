@@ -28,6 +28,7 @@
 
 # Get custom Kovri data path + set appropriate CMake generator.
 # If no path is given, set default path
+SHELL := $(shell which bash)
 system := $(shell uname)
 ifeq ($(KOVRI_DATA_PATH),)
   ifeq ($(system), Linux)

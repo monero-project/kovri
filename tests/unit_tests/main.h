@@ -38,6 +38,7 @@
 #include <boost/test/unit_test.hpp>
 
 namespace core = kovri::core;
+namespace crypto = core::crypto;
 namespace client = kovri::client;
 
 #endif  // TESTS_UNIT_TESTS_MAIN_H_

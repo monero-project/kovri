@@ -4,7 +4,7 @@
 2. A free, decentralized, anonymity technology based on [I2P](https://getmonero.org/resources/moneropedia/i2p.html)'s open specifications
 
 ## Disclaimer
-- Currently **pre-alpha** software; under heavy development (and not yet integrated with monero)
+- Currently **Alpha** software; under heavy development (and not yet integrated with monero)
 
 ## Quickstart
 

@@ -37,11 +37,15 @@
 #include <cryptopp/eccrypto.h>
 #include <cryptopp/integer.h>
 #include <cryptopp/misc.h>
+#include <cryptopp/naclite.h>
 #include <cryptopp/oids.h>
 #include <cryptopp/osrng.h>
 #include <cryptopp/rsa.h>
+#include <cryptopp/secblock.h>
 
+#include <algorithm>
 #include <array>
+#include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <memory>
@@ -51,10 +55,10 @@
 
 #include "core/crypto/rand.h"
 
-#include "core/util/log.h"
-
 namespace kovri {
 namespace core {
+
+// TODO(anonimal): remove pimpl, see #785
 
 /**
  *
@@ -806,6 +810,135 @@ void RSASHA5124096RawVerifier::Update(
 bool RSASHA5124096RawVerifier::Verify(
     const std::uint8_t* signature) {
   return m_RSASHA5124096RawVerifierPimpl->Verify(signature);
+}
+
+/**
+ *
+ * Ed25519
+ *
+ */
+
+/// @class Ed25519VerifierImpl
+/// @brief Implementation class for the EdDSA Ed25519 verifier
+class Ed25519Verifier::Ed25519VerifierImpl
+{
+ public:
+  Ed25519VerifierImpl(const std::uint8_t* pk) : m_Pk(pk, crypto::PkLen::Ed25519)
+  {
+  }
+
+  bool Verify(
+      const std::uint8_t* m,
+      const std::size_t mlen,
+      const std::uint8_t* sig) const
+  {
+    // Combine message with given signature
+    CryptoPP::SecByteBlock sm(crypto::SigLen::Ed25519 + mlen);
+    std::copy(sig, sig + crypto::SigLen::Ed25519, sm.begin());
+    std::copy(m, m + mlen, sm.begin() + crypto::SigLen::Ed25519);
+
+    // Verify
+    CryptoPP::SecByteBlock rm(mlen + crypto::SigLen::Ed25519);
+    CryptoPP::word64 rmlen;
+
+    int const ret(CryptoPP::NaCl::crypto_sign_open(
+        rm, &rmlen, sm.data(), sm.size(), m_Pk.data()));
+
+    assert(rmlen == mlen);
+
+    return !ret;
+  }
+
+ private:
+  CryptoPP::SecByteBlock m_Pk;
+};
+
+Ed25519Verifier::Ed25519Verifier(const std::uint8_t* pk)
+    : m_Ed25519VerifierPimpl(std::make_unique<Ed25519VerifierImpl>(pk))
+{
+}
+
+Ed25519Verifier::~Ed25519Verifier() {}
+
+bool Ed25519Verifier::Verify(
+    const std::uint8_t* m,
+    const std::size_t mlen,
+    const std::uint8_t* sig) const
+{
+  return m_Ed25519VerifierPimpl->Verify(m, mlen, sig);
+}
+
+/// @class Ed25519SignerImpl
+/// @brief Implementation class for the EdDSA Ed25519 signer
+class Ed25519Signer::Ed25519SignerImpl
+{
+ public:
+  Ed25519SignerImpl(const std::uint8_t* sk, const std::uint8_t* pk)
+      : m_Sk(sk, crypto::SkLen::Ed25519), m_Pk(pk, crypto::PkLen::Ed25519)
+  {
+  }
+
+  Ed25519SignerImpl(const std::uint8_t* sk)
+      : m_Sk(sk, crypto::SkLen::Ed25519), m_Pk(crypto::PkLen::Ed25519)
+  {
+    // Create keypair
+    if (CryptoPP::NaCl::crypto_sign_sk2pk(m_Pk.data(), m_Sk.data()))
+      throw CryptoPP::Exception(
+          CryptoPP::Exception::OTHER_ERROR, "could not create ed25519 keypair");
+
+    // Concat pubkey with secret key (an I2P'ism)
+    std::copy(m_Pk.begin(), m_Pk.end(), m_Sk.end() - 32);
+  }
+
+  void Sign(
+      const std::uint8_t* m,
+      const std::size_t mlen,
+      std::uint8_t* signature) const
+  {
+    // Signed message length
+    CryptoPP::word64 smlen;
+
+    // Sign message
+    std::vector<std::uint8_t> sm(crypto::SigLen::Ed25519 + mlen);
+    if (CryptoPP::NaCl::crypto_sign(sm.data(), &smlen, m, mlen, m_Sk.data()))
+      throw CryptoPP::Exception(
+          CryptoPP::Exception::OTHER_ERROR, "could not ed25519 sign message");
+
+    // We only want the signature
+    assert(sm.size() == smlen);
+    std::copy(sm.begin(), sm.end() - mlen, signature);
+  }
+
+ private:
+  CryptoPP::SecByteBlock m_Sk;  ///< Private key
+  CryptoPP::SecByteBlock m_Pk;  ///< Public key
+};
+
+Ed25519Signer::Ed25519Signer(const std::uint8_t* sk)
+    : m_Ed25519SignerPimpl(std::make_unique<Ed25519SignerImpl>(sk))
+{
+}
+
+Ed25519Signer::Ed25519Signer(const std::uint8_t* sk, const std::uint8_t* pk)
+    : m_Ed25519SignerPimpl(std::make_unique<Ed25519SignerImpl>(sk, pk))
+{
+}
+
+Ed25519Signer::~Ed25519Signer() {}
+
+void Ed25519Signer::Sign(
+    const std::uint8_t* m,
+    const std::size_t mlen,
+    std::uint8_t* sig) const
+{
+  m_Ed25519SignerPimpl->Sign(m, mlen, sig);
+}
+
+void CreateEd25519KeyPair(std::uint8_t* sk, std::uint8_t* pk)
+{
+  if (CryptoPP::NaCl::crypto_sign_keypair(pk, sk))
+    throw CryptoPP::Exception(
+        CryptoPP::Exception::OTHER_ERROR, "could not create ed25519 keypair");
 }
 
 }  // namespace core

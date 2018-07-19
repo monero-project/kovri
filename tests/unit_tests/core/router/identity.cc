@@ -61,15 +61,14 @@ BOOST_AUTO_TEST_CASE(ParseIdentity)
 
   BOOST_CHECK_EQUAL(ident.GetCryptoKeyType(), core::CRYPTO_KEY_TYPE_ELGAMAL);
 
-  // Check sig lengths
-  BOOST_CHECK_EQUAL(
-      ident.GetSigningPublicKeyLen(), core::EDDSA25519_PUBLIC_KEY_LENGTH);
+  // Check lengths
+  BOOST_CHECK_EQUAL(ident.GetSigningPublicKeyLen(), crypto::PkLen::Ed25519);
 
   BOOST_CHECK_EQUAL(
-      ident.GetSigningPrivateKeyLen(), core::EDDSA25519_PRIVATE_KEY_LENGTH);
+      ident.GetSigningPrivateKeyLen(),
+      crypto::SkLen::Ed25519 - 32 /* An I2P'ism */);
 
-  BOOST_CHECK_EQUAL(
-      ident.GetSignatureLen(), core::EDDSA25519_SIGNATURE_LENGTH);
+  BOOST_CHECK_EQUAL(ident.GetSignatureLen(), crypto::SigLen::Ed25519);
 }
 
 BOOST_AUTO_TEST_CASE(ParseIdentityFailure)

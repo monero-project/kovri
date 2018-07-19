@@ -47,6 +47,7 @@ class Verifier {
       std::size_t len,
       const std::uint8_t* signature) const = 0;
 
+  // TODO(anonimal): 2 unsigned bytes
   virtual std::size_t GetPublicKeyLen() const = 0;
   virtual std::size_t GetSignatureLen() const = 0;
   virtual std::size_t GetPrivateKeyLen() const = 0;

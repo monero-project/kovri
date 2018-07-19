@@ -158,15 +158,14 @@ IdentityEx::IdentityEx(
           break;
         }
         case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519: {
-          std::size_t padding =
-            128 - kovri::core::EDDSA25519_PUBLIC_KEY_LENGTH;  // 96 = 128 - 32
+          std::size_t padding = 128 - crypto::PkLen::Ed25519;  // 96 = 128 - 32
           kovri::core::RandBytes(
               m_StandardIdentity.signing_key,
               padding);
           memcpy(
               m_StandardIdentity.signing_key + padding,
               signing_key,
-              kovri::core::EDDSA25519_PUBLIC_KEY_LENGTH);
+              crypto::PkLen::Ed25519);
           break;
         }
         default:
@@ -402,7 +401,7 @@ std::string IdentityEx::GetDescription(const std::string& tabs) const
         ss << "Excess: " << (kovri::core::RSASHA5124096_KEY_LENGTH - 128);
         break;
       case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:  // 96 = 128 - 32
-        ss << "Padding: " << (128 - kovri::core::EDDSA25519_PUBLIC_KEY_LENGTH);
+        ss << "Padding: " << (128 - crypto::PkLen::Ed25519);
         break;
       default:
         LOG(warning) << "IdentityEx: signing key type "
@@ -528,10 +527,9 @@ void IdentityEx::CreateVerifier() const  {
       break;
     }
     case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519: {
-      std::size_t padding = 128 - kovri::core::EDDSA25519_PUBLIC_KEY_LENGTH;  // 96 = 128 - 32
-      m_Verifier =
-        std::make_unique<kovri::core::EDDSA25519Verifier>(
-            m_StandardIdentity.signing_key + padding);
+      std::size_t padding = 128 - crypto::PkLen::Ed25519;  // 96 = 128 - 32
+      m_Verifier = std::make_unique<kovri::core::Ed25519Verifier>(
+          m_StandardIdentity.signing_key + padding);
       break;
     }
     default:
@@ -644,7 +642,7 @@ void PrivateKeys::CreateSigner() {
       m_Signer = std::make_unique<kovri::core::RSASHA5124096Signer>(m_SigningPrivateKey);
     break;
     case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
-      m_Signer = std::make_unique<kovri::core::EDDSA25519Signer>(m_SigningPrivateKey);
+      m_Signer = std::make_unique<kovri::core::Ed25519Signer>(m_SigningPrivateKey);
     break;
     default:
       LOG(warning)
@@ -695,10 +693,9 @@ PrivateKeys PrivateKeys::CreateRandomKeys(SigningKeyType type) {
             signing_public_key);
       break;
       case SIGNING_KEY_TYPE_EDDSA_SHA512_ED25519:
-        kovri::core::CreateEDDSARandomKeys(
-            keys.m_SigningPrivateKey,
-            signing_public_key);
-      break;
+        kovri::core::CreateEd25519KeyPair(
+            keys.m_SigningPrivateKey, signing_public_key);
+        break;
       default:
         LOG(warning)
           << "IdentityEx: Signing key type "

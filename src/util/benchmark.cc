@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -28,14 +28,18 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.               //
  */
 
-
 #include "util/benchmark.h"
 
+#include <cryptopp/secblock.h>
+
+#include "core/crypto/signature.h"
 #include "core/util/exception.h"
 #include "core/util/log.h"
 
-
 namespace bpo = boost::program_options;
+namespace core = kovri::core;
+namespace crypto = core::crypto;
+
 /// @brief perfrom all benchmark tests
 void Benchmark::PerformTests()
 {
@@ -83,16 +87,20 @@ void Benchmark::PerformTests()
       output_ECDSAP521,
       kovri::core::CreateECDSAP521RandomKeys);
 
-  LOG(info) << "-----EDDSA25519-----";
-  uint8_t private_key_EDDSA25519[kovri::core::EDDSA25519_PRIVATE_KEY_LENGTH];
-  uint8_t public_key_EDDSA25519[kovri::core::EDDSA25519_PUBLIC_KEY_LENGTH];
-  uint8_t output_EDDSA25519[ kovri::core::EDDSA25519_SIGNATURE_LENGTH];
-  BenchmarkTest<kovri::core::EDDSA25519Verifier, kovri::core::EDDSA25519Signer>(
+  // TODO(anonimal): refactor other benchmarks
+  LOG(info) << "-----EdDSA25519-----";
+
+  // Use SecByteBlock for benchmark accuracy (see #784)
+  CryptoPP::SecByteBlock ed25519_sk(crypto::SkLen::Ed25519);
+  CryptoPP::SecByteBlock ed25519_pk(crypto::PkLen::Ed25519);
+  CryptoPP::SecByteBlock ed25519_sig(crypto::SigLen::Ed25519);
+
+  BenchmarkTest<core::Ed25519Verifier, core::Ed25519Signer>(
       Benchmark::BenchmarkCount,
-      private_key_EDDSA25519,
-      public_key_EDDSA25519,
-      output_EDDSA25519,
-      kovri::core::CreateEDDSARandomKeys);
+      ed25519_sk.data(),
+      ed25519_pk.data(),
+      ed25519_sig.data(),
+      kovri::core::CreateEd25519KeyPair);
 }
 
 Benchmark::Benchmark() : m_Desc("Options")

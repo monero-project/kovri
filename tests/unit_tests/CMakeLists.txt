@@ -14,7 +14,7 @@ add_executable(kovri-tests
   client/util/zip.cc
   core/crypto/aes.cc
   core/crypto/dsa.cc
-  core/crypto/eddsa25519.cc
+  core/crypto/ed25519.cc
   core/crypto/elgamal.cc
   core/crypto/radix.cc
   core/crypto/rand.cc

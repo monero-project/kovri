@@ -845,6 +845,9 @@ class Ed25519Verifier::Ed25519VerifierImpl
         rm, &rmlen, sm.data(), sm.size(), m_Pk.data()));
 
     assert(rmlen == mlen);
+    if (rmlen != mlen)
+      throw std::length_error(
+          __func__ + std::string(": signature verification failed"));
 
     return !ret;
   }
@@ -906,6 +909,9 @@ class Ed25519Signer::Ed25519SignerImpl
 
     // We only want the signature
     assert(sm.size() == smlen);
+    if (sm.size() != smlen)
+      throw std::length_error(
+          __func__ + std::string(": invalid signed message length"));
     std::copy(sm.begin(), sm.end() - mlen, signature);
   }
 

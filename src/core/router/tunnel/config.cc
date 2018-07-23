@@ -197,7 +197,7 @@ void TunnelHopConfig::CreateBuildRequestRecord(
   std::uint8_t flag = 0;
   if (IsGateway())
     flag |= 0x80;
-  if (IsEndpoint())
+  else if (IsEndpoint())
     flag |= 0x40;
   stream->Write<std::uint8_t>(flag);
 

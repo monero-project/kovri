@@ -101,15 +101,15 @@ BOOST_FIXTURE_TEST_CASE(Verify, Ed25519Fixture)
 BOOST_FIXTURE_TEST_CASE(NullMsg, Ed25519Fixture)
 {
   constexpr std::array<std::uint8_t, m.size()> null{{}};
-  BOOST_CHECK_NO_THROW(verifier.Verify(null.data(), null.size(), sig.data()));
-  BOOST_CHECK(!verifier.Verify(null.data(), null.size(), sig.data()));
+  BOOST_CHECK_THROW(
+      verifier.Verify(null.data(), null.size(), sig.data()), std::exception);
 }
 
 BOOST_FIXTURE_TEST_CASE(NullSig, Ed25519Fixture)
 {
   constexpr std::array<std::uint8_t, crypto::SigLen::Ed25519> null{{}};
-  BOOST_CHECK_NO_THROW(verifier.Verify(m.data(), m.size(), null.data()));
-  BOOST_CHECK(!verifier.Verify(m.data(), m.size(), null.data()));
+  BOOST_CHECK_THROW(
+      verifier.Verify(m.data(), m.size(), null.data()), std::exception);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

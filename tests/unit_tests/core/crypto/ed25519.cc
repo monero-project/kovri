@@ -112,4 +112,15 @@ BOOST_FIXTURE_TEST_CASE(NullSig, Ed25519Fixture)
       verifier.Verify(m.data(), m.size(), null.data()), std::exception);
 }
 
+BOOST_FIXTURE_TEST_CASE(BadSig, Ed25519Fixture)
+{
+  constexpr std::array<std::uint8_t, m.size()> bm{
+      {0x41, 0x41, 0x6f, 0x6d, 0x20, 0x61, 0x6e, 0x6f, 0x6e,
+       0x69, 0x6d, 0x61, 0x6c, 0x2c, 0x20, 0x77, 0x69, 0x74,
+       0x68, 0x20, 0x6c, 0x6f, 0x76, 0x65, 0x20, 0x3c, 0x33}};
+
+  BOOST_CHECK_THROW(
+      verifier.Verify(bm.data(), bm.size(), sig.data()), std::exception);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

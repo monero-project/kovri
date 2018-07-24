@@ -203,20 +203,13 @@ void TunnelHopConfig::CreateBuildRequestRecord(
   RandBytes(padding.data(), padding.size());
   stream->WriteData(padding.data(), padding.size());
 
-  // TODO(anonimal): this try block should be larger or handled entirely by caller
-  try {
-    // ElGamal encrypt with the hop's public encryption key
-    GetCurrentRouter()->GetElGamalEncryption()->Encrypt(
-        stream->data(),
-        stream->size(),
-        // TODO(unassigned): Passing pointer argument interferes with more needed refactor work.
-        // Pointing to record argument appears to only lead to more spaghetti code
-        record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET);
-  } catch (...) {
-    m_Exception.Dispatch(__func__);
-    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
-    throw;
-  }
+  // ElGamal encrypt with the hop's public encryption key
+  GetCurrentRouter()->GetElGamalEncryption()->Encrypt(
+      stream->data(),
+      stream->size(),
+      // TODO(unassigned): Passing pointer argument interferes with more needed refactor work.
+      // Pointing to record argument appears to only lead to more spaghetti code
+      record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET);
 
   // First half of the SHA-256 of the current hop's router identity
   std::memcpy(

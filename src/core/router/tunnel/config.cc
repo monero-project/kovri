@@ -62,8 +62,8 @@ TunnelHopConfig::TunnelHopConfig(
       m_NextTunnelID(0),
       m_PreviousHop(nullptr),
       m_NextHop(nullptr),
-      m_IsGateway(true),
-      m_IsEndpoint(true),
+      m_IsGateway(false),
+      m_IsEndpoint(false),
       m_RecordIndex(0),
       m_Exception(__func__) {
         if (!router)
@@ -125,6 +125,8 @@ const TunnelAESRecordAttributes& TunnelHopConfig::GetAESAttributes() const {
 }
 
 void TunnelHopConfig::SetIsGateway(bool value) noexcept {
+  if (value)
+    m_IsEndpoint = !value;
   m_IsGateway = value;
 }
 
@@ -133,6 +135,8 @@ bool TunnelHopConfig::IsGateway() const noexcept {
 }
 
 void TunnelHopConfig::SetIsEndpoint(bool value) noexcept {
+  if (value)
+    m_IsGateway = !value;
   m_IsEndpoint = value;
 }
 
@@ -246,6 +250,7 @@ TunnelConfig::TunnelConfig(
       m_FirstHop->SetIsGateway(false);
       m_LastHop->SetReplyHop(reply_tunnel_config->GetFirstHop());
     } else {  // inbound
+      m_FirstHop->SetIsGateway(true);
       m_LastHop->SetNextRouter(context.GetSharedRouterInfo());
     }
   }
@@ -279,7 +284,8 @@ int TunnelConfig::GetNumHops() const {
 }
 
 bool TunnelConfig::IsInbound() const {
-  return m_FirstHop->IsGateway();
+  // Last hop in inbound tunnel is a participant
+  return !m_LastHop->IsEndpoint();
 }
 
 std::vector<std::shared_ptr<const kovri::core::RouterInfo> > TunnelConfig::GetPeers() const {

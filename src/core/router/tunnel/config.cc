@@ -155,13 +155,14 @@ int TunnelHopConfig::GetRecordIndex() const noexcept {
 }
 
 void TunnelHopConfig::CreateBuildRequestRecord(
-    std::uint8_t* record,
-    std::uint32_t reply_msg_ID) {
+    ClearBuildRequestRecord& clear_record,
+    const std::uint32_t reply_msg_ID)
+{
   LOG(debug) << "TunnelHopConfig: creating build request record";
 
   // Create clear text record
-  std::array<std::uint8_t, BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE> clear_text {{}};
-  auto stream = std::make_unique<OutputByteStream>(clear_text.data(), clear_text.size());
+  auto stream = std::make_unique<kovri::core::OutputByteStream>(
+      clear_record.data(), clear_record.size());
 
   // Tunnel ID to receive messages as
   stream->Write<std::uint32_t>(GetTunnelID());
@@ -202,20 +203,24 @@ void TunnelHopConfig::CreateBuildRequestRecord(
   std::array<std::uint8_t, BUILD_REQUEST_RECORD_RAND_PAD_SIZE> padding;
   RandBytes(padding.data(), padding.size());
   stream->WriteData(padding.data(), padding.size());
+}
+
+void TunnelHopConfig::EncryptRecord(
+    const ClearBuildRequestRecord& clear_record,
+    EncryptedBuildRequestRecord& encrypted_record)
+{
+  // Copy local identity to beginning of the encrypted record
+  const auto& local_ident = GetCurrentRouter()->GetIdentHash();
+  std::copy(
+      local_ident(),
+      local_ident() + local_ident.size(),
+      encrypted_record.begin());
 
   // ElGamal encrypt with the hop's public encryption key
   GetCurrentRouter()->GetElGamalEncryption()->Encrypt(
-      stream->data(),
-      stream->size(),
-      // TODO(unassigned): Passing pointer argument interferes with more needed refactor work.
-      // Pointing to record argument appears to only lead to more spaghetti code
-      record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET);
-
-  // First half of the SHA-256 of the current hop's router identity
-  std::memcpy(
-      record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET,
-      local_ident,
-      BUILD_REQUEST_RECORD_CURRENT_HOP_IDENT_HASH_SIZE);
+      clear_record.data(),
+      clear_record.size(),
+      encrypted_record.data() + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET);
 }
 
 // TODO(unassigned): smart pointers, please

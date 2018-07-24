@@ -80,7 +80,6 @@ class TunnelHopConfig {
   void SetNextHop(TunnelHopConfig* hop);
   TunnelHopConfig* GetNextHop() const noexcept;
 
-  void SetPreviousHop(TunnelHopConfig* hop) noexcept;  // TODO(unassigned): see comment in #510
   TunnelHopConfig* GetPreviousHop() const noexcept;
 
   void SetReplyHop(const TunnelHopConfig* hop);

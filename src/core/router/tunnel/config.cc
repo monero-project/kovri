@@ -108,15 +108,6 @@ TunnelHopConfig* TunnelHopConfig::GetNextHop() const noexcept {
   return m_NextHop;
 }
 
-void TunnelHopConfig::SetPreviousHop(TunnelHopConfig* hop) noexcept {
-  m_PreviousHop = hop;
-  if (m_PreviousHop) {
-    m_PreviousHop->m_NextHop = this;
-    m_PreviousHop->m_IsEndpoint = false;
-    m_IsGateway = false;
-  }
-}
-
 TunnelHopConfig* TunnelHopConfig::GetPreviousHop() const noexcept {
   return m_PreviousHop;
 }

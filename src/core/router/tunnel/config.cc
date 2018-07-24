@@ -158,6 +158,9 @@ void TunnelHopConfig::CreateBuildRequestRecord(
     ClearBuildRequestRecord& clear_record,
     const std::uint32_t reply_msg_ID)
 {
+  if (!reply_msg_ID)
+    throw std::invalid_argument(__func__ + std::string(": null reply ID"));
+
   LOG(debug) << "TunnelHopConfig: creating build request record";
 
   // Create clear text record

@@ -45,7 +45,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <memory>
@@ -844,8 +843,6 @@ class Ed25519Verifier::Ed25519VerifierImpl
     int const ret(CryptoPP::NaCl::crypto_sign_open(
         rm, &rmlen, sm.data(), sm.size(), m_Pk.data()));
 
-    assert(rmlen == mlen);
-
     return !ret;
   }
 
@@ -905,7 +902,6 @@ class Ed25519Signer::Ed25519SignerImpl
           CryptoPP::Exception::OTHER_ERROR, "could not ed25519 sign message");
 
     // We only want the signature
-    assert(sm.size() == smlen);
     std::copy(sm.begin(), sm.end() - mlen, signature);
   }
 

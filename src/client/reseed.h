@@ -131,7 +131,8 @@ class Reseed {
     //"https://i2p-0.manas.ca:8443/",
     //"https://i2p.manas.ca:8443/",
     "https://i2p.novg.net/",
-    "https://reseed.atomike.ninja/",  // Requires SNI
+    // TODO(unassigned): Currently expired certificate
+    //"https://reseed.atomike.ninja/",  // Requires SNI
     "https://reseed.memcpy.io/",  // Requires SNI
   };
 };

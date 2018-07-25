@@ -91,12 +91,12 @@ BOOST_AUTO_TEST_CASE(GetAddress)
       keys, {{"127.0.0.1", 54321}, {"::1", 12345}}, {true, true});
 
   // Yes ipv4
-  BOOST_CHECK_NE(ri.GetV4Address(Transport::NTCP), nullptr);
-  BOOST_CHECK_NE(ri.GetV4Address(Transport::SSU), nullptr);
+  BOOST_CHECK(ri.GetV4Address(Transport::NTCP) != nullptr);
+  BOOST_CHECK(ri.GetV4Address(Transport::SSU) != nullptr);
 
   // Yes ipv6
-  BOOST_CHECK_NE(ri.GetV6Address(Transport::NTCP), nullptr);
-  BOOST_CHECK_NE(ri.GetV6Address(Transport::SSU), nullptr);
+  BOOST_CHECK(ri.GetV6Address(Transport::NTCP) != nullptr);
+  BOOST_CHECK(ri.GetV6Address(Transport::SSU) != nullptr);
 }
 
 BOOST_AUTO_TEST_CASE(GetAddressIPv4only)
@@ -104,24 +104,24 @@ BOOST_AUTO_TEST_CASE(GetAddressIPv4only)
   core::RouterInfo ri(keys, {{"127.0.0.1", 54321}}, {true, true});
 
   // Yes ipv4
-  BOOST_CHECK_NE(ri.GetV4Address(Transport::NTCP), nullptr);
-  BOOST_CHECK_NE(ri.GetV4Address(Transport::SSU), nullptr);
+  BOOST_CHECK(ri.GetV4Address(Transport::NTCP) != nullptr);
+  BOOST_CHECK(ri.GetV4Address(Transport::SSU) != nullptr);
 
-  BOOST_CHECK_NE(ri.GetAddress(false, Transport::NTCP), nullptr);
-  BOOST_CHECK_NE(ri.GetAddress(false, Transport::SSU), nullptr);
+  BOOST_CHECK(ri.GetAddress(false, Transport::NTCP) != nullptr);
+  BOOST_CHECK(ri.GetAddress(false, Transport::SSU) != nullptr);
 
-  BOOST_CHECK_NE(ri.GetAnyAddress(false, Transport::NTCP), nullptr);
-  BOOST_CHECK_NE(ri.GetAnyAddress(false, Transport::SSU), nullptr);
+  BOOST_CHECK(ri.GetAnyAddress(false, Transport::NTCP) != nullptr);
+  BOOST_CHECK(ri.GetAnyAddress(false, Transport::SSU) != nullptr);
 
   // No ipv6
-  BOOST_CHECK_EQUAL(ri.GetV6Address(Transport::NTCP), nullptr);
-  BOOST_CHECK_EQUAL(ri.GetV6Address(Transport::SSU), nullptr);
+  BOOST_CHECK(ri.GetV6Address(Transport::NTCP) == nullptr);
+  BOOST_CHECK(ri.GetV6Address(Transport::SSU) == nullptr);
 
-  BOOST_CHECK_EQUAL(ri.GetAddress(true, Transport::NTCP), nullptr);
-  BOOST_CHECK_EQUAL(ri.GetAddress(true, Transport::SSU), nullptr);
+  BOOST_CHECK(ri.GetAddress(true, Transport::NTCP) == nullptr);
+  BOOST_CHECK(ri.GetAddress(true, Transport::SSU) == nullptr);
 
-  BOOST_CHECK_NE(ri.GetAnyAddress(true, Transport::NTCP), nullptr);
-  BOOST_CHECK_NE(ri.GetAnyAddress(true, Transport::SSU), nullptr);
+  BOOST_CHECK(ri.GetAnyAddress(true, Transport::NTCP) != nullptr);
+  BOOST_CHECK(ri.GetAnyAddress(true, Transport::SSU) != nullptr);
 
   BOOST_CHECK_EQUAL(ri.GetAnyAddress(true, Transport::NTCP)->host.is_v6(), false);
   BOOST_CHECK_EQUAL(ri.GetAnyAddress(true, Transport::SSU)->host.is_v6(), false);
@@ -132,24 +132,24 @@ BOOST_AUTO_TEST_CASE(GetAddressIPv6only)
   core::RouterInfo ri(keys, {{"::1", 54321}}, {true, true});
 
   // No ipv4
-  BOOST_CHECK_EQUAL(ri.GetV4Address(Transport::NTCP), nullptr);
-  BOOST_CHECK_EQUAL(ri.GetV4Address(Transport::SSU), nullptr);
+  BOOST_CHECK(ri.GetV4Address(Transport::NTCP) == nullptr);
+  BOOST_CHECK(ri.GetV4Address(Transport::SSU) == nullptr);
 
-  BOOST_CHECK_EQUAL(ri.GetAddress(false, Transport::NTCP), nullptr);
-  BOOST_CHECK_EQUAL(ri.GetAddress(false, Transport::SSU), nullptr);
+  BOOST_CHECK(ri.GetAddress(false, Transport::NTCP) == nullptr);
+  BOOST_CHECK(ri.GetAddress(false, Transport::SSU) == nullptr);
 
-  BOOST_CHECK_EQUAL(ri.GetAnyAddress(false, Transport::NTCP), nullptr);
-  BOOST_CHECK_EQUAL(ri.GetAnyAddress(false, Transport::SSU), nullptr);
+  BOOST_CHECK(ri.GetAnyAddress(false, Transport::NTCP) == nullptr);
+  BOOST_CHECK(ri.GetAnyAddress(false, Transport::SSU) == nullptr);
 
   // Yes ipv6
-  BOOST_CHECK_NE(ri.GetV6Address(Transport::NTCP), nullptr);
-  BOOST_CHECK_NE(ri.GetV6Address(Transport::SSU), nullptr);
+  BOOST_CHECK(ri.GetV6Address(Transport::NTCP) != nullptr);
+  BOOST_CHECK(ri.GetV6Address(Transport::SSU) != nullptr);
 
-  BOOST_CHECK_NE(ri.GetAddress(true, Transport::NTCP), nullptr);
-  BOOST_CHECK_NE(ri.GetAddress(true, Transport::SSU), nullptr);
+  BOOST_CHECK(ri.GetAddress(true, Transport::NTCP) != nullptr);
+  BOOST_CHECK(ri.GetAddress(true, Transport::SSU) != nullptr);
 
-  BOOST_CHECK_NE(ri.GetAnyAddress(true, Transport::NTCP), nullptr);
-  BOOST_CHECK_NE(ri.GetAnyAddress(true, Transport::SSU), nullptr);
+  BOOST_CHECK(ri.GetAnyAddress(true, Transport::NTCP) != nullptr);
+  BOOST_CHECK(ri.GetAnyAddress(true, Transport::SSU) != nullptr);
 
   BOOST_CHECK_EQUAL(ri.GetAnyAddress(true, Transport::NTCP)->host.is_v6(), true);
   BOOST_CHECK_EQUAL(ri.GetAnyAddress(true, Transport::SSU)->host.is_v6(), true);

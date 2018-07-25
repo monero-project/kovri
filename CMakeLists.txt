@@ -4,8 +4,8 @@ project(kovri CXX)
 set(KOVRI_PROJECT "The Kovri I2P Router Project")
 
 # Versioning
-set(KOVRI_VERSION "0.1.0-pre-alpha")
-set(KOVRI_CODENAME "In the beginning")
+set(KOVRI_VERSION "0.1.0-alpha")
+set(KOVRI_CODENAME "Les préludes")
 
 # Get git revision
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git)

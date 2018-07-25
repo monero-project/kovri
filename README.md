@@ -25,8 +25,6 @@ This page is also available in the following languages
 
 ### Releases
 
-Alpha release coming soon
-
 ### [Nightly Releases (bleeding edge)](https://build.getmonero.org/waterfall)
 
 | Installer | Checksum | Status |

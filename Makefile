@@ -69,10 +69,6 @@ cmake = cmake $(cmake-gen) $(cmake_cotire)
 cmake-debug = $(cmake) -D CMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 cmake-release = $(cmake) -D CMAKE_BUILD_TYPE=Release
 
-# TODO(unassigned): cmake-release when we're out of alpha
-cmake-kovri = $(cmake-debug)
-cmake-kovri-util = -D WITH_KOVRI_UTIL=ON
-
 # Current off-by-default Kovri build options
 cmake-optimize   = -D WITH_OPTIMIZE=ON
 cmake-hardening  = -D WITH_HARDENING=ON
@@ -84,6 +80,7 @@ cmake-shared-deps= -D WITH_SHARED_DEPS=ON
 cmake-doxygen    = -D WITH_DOXYGEN=ON
 cmake-coverage   = -D WITH_COVERAGE=ON
 cmake-python     = -D WITH_PYTHON=ON
+cmake-kovri-util = -D WITH_KOVRI_UTIL=ON
 
 # Android-specific
 cmake-android = -D ANDROID=1 -D KOVRI_DATA_PATH="/data/local/tmp/.kovri"
@@ -128,14 +125,14 @@ deps:
 	$(call MAKE_CRYPTOPP, $(MAKE) $(cryptopp-native) static)
 
 shared-deps:
-	$(eval cmake-kovri += $(cmake-shared-deps))
+	$(eval cmake-debug += $(cmake-shared-deps))
 	$(call MAKE_CRYPTOPP, $(MAKE) shared)
 
 release-deps:
 	$(call MAKE_CRYPTOPP, $(MAKE) static)
 
 release-static-deps:
-	$(eval cmake-kovri += $(cmake-static-deps))
+	$(eval cmake-release += $(cmake-static-deps))
 	$(call MAKE_CRYPTOPP, $(MAKE) static)
 
 #-----------------------------------#
@@ -143,20 +140,24 @@ release-static-deps:
 #-----------------------------------#
 
 dynamic: shared-deps
-	$(eval cmake-kovri += $(cmake-native))
+	$(eval cmake-kovri += $(cmake-debug) $(cmake-native))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 static: deps
-	$(eval cmake-kovri += $(cmake-native) $(cmake-static))
+	$(eval cmake-kovri += $(cmake-debug) $(cmake-native) $(cmake-static))
+	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
+
+debug: deps
+	$(eval cmake-kovri += $(cmake-debug) $(cmake-native) $(cmake-kovri-util))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 #-----------------------------------#
-# For  dynamic distribution release #
+# For dynamic distribution release #
 #-----------------------------------#
 
 release: release-deps
-	# TODO(unassigned): cmake release flags + optimizations/hardening when we're out of alpha
-	$(eval cmake-kovri += $(cmake-kovri-util))
+        # TODO(unassigned): optimizations/hardening when we're out of alpha
+	$(eval cmake-kovri += $(cmake-release) $(cmake-kovri-util))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 #--------------------------------------------------------------#
@@ -164,12 +165,12 @@ release: release-deps
 #--------------------------------------------------------------#
 
 release-static: release-static-deps
-        # TODO(unassigned): cmake release flags + optimizations/hardening when we're out of alpha
-	$(eval cmake-kovri += $(cmake-static) $(cmake-kovri-util))
+        # TODO(unassigned): optimizations/hardening when we're out of alpha
+	$(eval cmake-kovri += $(cmake-release) $(cmake-static) $(cmake-kovri-util))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 release-static-android: release-static-deps
-	$(eval cmake-kovri += $(cmake-static) $(cmake-android) $(cmake-kovri-util))
+	$(eval cmake-kovri += $(cmake-release) $(cmake-static) $(cmake-android) $(cmake-kovri-util))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 #-----------------#
@@ -178,48 +179,48 @@ release-static-android: release-static-deps
 
 # Utility binary
 util: deps
-	$(eval cmake-kovri += $(cmake-kovri-util))
+	$(eval $(cmake-kovri) += $(cmake-debug) $(cmake-kovri-util))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 # For API/testnet development
 python: shared-deps
-	$(eval cmake-kovri += $(cmake-python))
+	$(eval cmake-kovri += $(cmake-debug) $(cmake-python))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 # Produce optimized, hardened binary
 all-options: deps
-	$(eval cmake-kovri += $(cmake-optimize) $(cmake-hardening) $(cmake-kovri-util))
+	$(eval cmake-kovri += $(cmake-release) $(cmake-optimize) $(cmake-hardening) $(cmake-kovri-util))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 # Produce optimized, hardened binary. Note: we need (or very much should have) optimizations with hardening
 optimized-hardened: deps
-	$(eval cmake-kovri += $(cmake-optimize) $(cmake-hardening))
+	$(eval cmake-kovri += $(cmake-release) $(cmake-optimize) $(cmake-hardening))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 # Produce all unit-tests with optimized hardening
 optimized-hardened-tests: deps
-	$(eval cmake-kovri += $(cmake-optimize) $(cmake-hardening) $(cmake-tests))
+	$(eval cmake-kovri += $(cmake-release) $(cmake-optimize) $(cmake-hardening) $(cmake-tests))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 # Produce build with coverage. Note: leaving out hardening because of need for optimizations
 coverage: deps
-	$(eval cmake-kovri += $(cmake-coverage) $(cmake-kovri-util))
+	$(eval cmake-kovri += $(cmake-debug) $(cmake-coverage) $(cmake-kovri-util))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 # Produce unit-tests with coverage
 coverage-tests: deps
-	$(eval cmake-kovri += $(cmake-coverage) $(cmake-tests))
+	$(eval cmake-kovri += $(cmake-debug) $(cmake-coverage) $(cmake-tests))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 # Produce vanilla unit-tests
 tests: deps
-	$(eval cmake-kovri += $(cmake-tests))
+	$(eval cmake-kovri += $(cmake-debug) $(cmake-tests))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 # Produce vanilla fuzzer-tests
 fuzz-tests: deps
 	$(call CMAKE_FUZZER) && $(MAKE)
-	$(eval cmake-kovri += $(cmake-fuzz-tests))
+	$(eval cmake-kovri += $(cmake-debug) $(cmake-fuzz-tests))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) $(cmake_target)
 
 # Produce Doxygen documentation
@@ -229,7 +230,8 @@ doxygen:
 
 # Produce available CMake build options
 help:
-	$(call CMAKE,$(build),$(cmake-kovri) -LH)
+	# TODO(unassigned): fix (we must actually change directory)
+	$(call CMAKE,$(build) -LH)
 
 # Clean all build directories and Doxygen output
 clean:
@@ -252,4 +254,4 @@ uninstall:
 	@_install="./pkg/installers/kovri-install.sh"; \
 	if [ -e $$_install ]; then $$_install -u; else echo "Unable to find $$_install"; exit 1; fi
 
-.PHONY: all deps release-deps release-static-deps dynamic static release release-static release-static-android all-options optimized-hardened optimized-hardened-tests coverage coverage-tests tests doxygen help clean install uninstall
+.PHONY: all deps release-deps release-static-deps dynamic static debug release release-static release-static-android all-options optimized-hardened optimized-hardened-tests coverage coverage-tests tests doxygen help clean install uninstall

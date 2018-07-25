@@ -101,8 +101,9 @@ void AddressBook::SubscriberUpdateTimer(
     const boost::system::error_code& ecode) {
   LOG(debug) << "AddressBook: begin " << __func__;
   if (ecode) {
-    LOG(error)
-      << "AddressBook: " << __func__ << " exception: " << ecode.message();
+    if (ecode != boost::asio::error::operation_aborted)
+      LOG(error) << "AddressBook: " << __func__ << ": '" << ecode.message()
+                 << "'";
     return;
   }
   // Load publishers (see below about multiple publishers)
@@ -453,6 +454,7 @@ std::unique_ptr<const kovri::core::IdentHash> AddressBook::GetLoadedAddressIdent
   return nullptr;
 }
 
+// TODO(unassigned): return bool
 void AddressBook::InsertAddress(
     const std::string& host,
     const kovri::core::IdentHash& address,
@@ -463,6 +465,7 @@ void AddressBook::InsertAddress(
     // Ensure address book only inserts unique entries
     if (!m_Addresses.empty())
       {
+        // TODO(unassigned): these throws should instead log warning and return bool
         auto host_search = m_Addresses.find(host);
         if (host_search != m_Addresses.end())
           throw std::runtime_error("AddressBook: host already loaded");

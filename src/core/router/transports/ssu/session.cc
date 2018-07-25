@@ -644,8 +644,8 @@ void SSUSession::ProcessSessionConfirmed(SSUPacket* pkt) {
   if (m_SessionConfirmData.empty())
     {
       // No session confirm data
-      LOG(error) << "SSUSession:" << GetFormattedSessionInfo()
-                 << "unsolicited SessionConfirmed";
+      LOG(warning) << "SSUSession:" << GetFormattedSessionInfo()
+                   << "unsolicited SessionConfirmed";
       return;  // TODO(anonimal): throw/warn for potential attacks
     }
 
@@ -1546,7 +1546,7 @@ void SSUSession::HandleConnectTimer(
     const boost::system::error_code& ecode) {
   if (!ecode) {
     // timeout expired
-    LOG(error)
+    LOG(warning)
       << "SSUSession:" << GetFormattedSessionInfo()
       << "session was not established after "
       << static_cast<std::size_t>(SSUDuration::ConnectTimeout) << " seconds";

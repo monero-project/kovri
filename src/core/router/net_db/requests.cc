@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -162,9 +162,11 @@ void NetDbRequests::ManageRequests() {
           } else {
             is_complete = true;
             if (!inbound)
-              LOG(warning) << "NetDbRequests: no inbound tunnels";
+              LOG(warning) << "NetDbRequests: no inbound tunnels (router may "
+                              "need more time to integrate into the network)";
             if (!outbound)
-              LOG(warning) << "NetDbRequests: no outbound tunnels";
+              LOG(warning) << "NetDbRequests: no outbound tunnels (router may "
+                              "need more time to integrate into the network)";
             if (!next_floodfill)
               LOG(warning) << "NetDbRequests: no more floodfills";
           }

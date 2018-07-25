@@ -366,13 +366,15 @@ bool Transports::ConnectToPeerNTCP(Peer& peer)
   LOG(debug)
     << "Transports: attempting NTCP for peer"
     << GetFormattedSessionInfo(peer.router);
-  const auto* address = peer.router->GetNTCPAddress(context.SupportsV6());
-  // No NTCP address found
-  if (!address)
-    return false;
 
-  // TODO(anonimal): We should expect to have an address specified when NTCP is enabled/allowed
-  assert(!address->host.is_unspecified());
+  const auto* address =
+      peer.router->GetAnyAddress(context.SupportsV6(), Transport::NTCP);
+
+  if (!address)
+    {
+      LOG(warning) << "Transports: no NTCP address found";
+      return false;
+    }
 
   if (!address->host.is_unspecified()) {
     if (!peer.router->UsesIntroducer() && !peer.router->IsUnreachable()) {

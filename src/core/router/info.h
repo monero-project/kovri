@@ -546,13 +546,27 @@ class RouterInfo : public RouterInfoTraits, public RoutingDestination
 
   // TODO(anonimal): template address getter
 
-  /// @return Address object capable of NTCP
-  /// @param has_v6 Address should have v6 capability
-  const Address* GetNTCPAddress(bool has_v6 = false) const;
+  /// @return V6-only address object
+  /// @param transport Given transport (NTCP or SSU)
+  const Address* GetV6Address(const Transport transport) const;
 
-  /// @return Address object capable of SSU
-  /// @param has_v6 Address should have v6 capability
-  const Address* GetSSUAddress(bool has_v6 = false) const;
+  /// @return V4-only address object
+  /// @param transport Given transport (NTCP or SSU)
+  const Address* GetV4Address(const Transport transport) const;
+
+  /// @return Any available address object
+  /// @param prefer_v6 Give preference to IPv6 object but return IPv4 if IPv6 is unavailable
+  /// @param transport Given transport (NTCP or SSU)
+  const Address* GetAnyAddress(
+      const bool prefer_v6,
+      const Transport transport) const;
+
+  /// @return Address object, IPv4 only unless otherwise specified
+  /// @param require_v6 Require that an IPv6-only object is returned
+  /// @param transport Given transport (NTCP or SSU)
+  const Address* GetAddress(
+      const bool require_v6,
+      const Transport transport) const;
 
  public:
   /// @return Pointer to RI buffer

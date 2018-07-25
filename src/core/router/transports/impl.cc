@@ -350,10 +350,8 @@ bool Transports::ConnectToPeer(
   ++peer.num_attempts;
   if (result)
     return true;
-  // Couldn't connect, get rid of this peer
-  LOG(error)
-    << "Transports:" << GetFormattedSessionInfo(peer.router)
-    << "no NTCP/SSU address available";
+  LOG(debug) << "Transports:" << GetFormattedSessionInfo(peer.router)
+             << __func__ << ": could not connect. Removing peer";
   peer.Done();
   m_Peers.erase(ident);
   return false;

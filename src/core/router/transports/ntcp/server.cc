@@ -1,5 +1,5 @@
 /**                                                                                           //
- * Copyright (c) 2013-2017, The Kovri I2P Router Project                                      //
+ * Copyright (c) 2013-2018, The Kovri I2P Router Project                                      //
  *                                                                                            //
  * All rights reserved.                                                                       //
  *                                                                                            //
@@ -119,7 +119,9 @@ void NTCPServer::HandleAccept(
         << "NTCPServer: " << __func__ << " remote endpoint: " << ec.message();
     }
   } else {
-    LOG(error) << "NTCPServer: " << __func__ << ": '" << ecode.message() << "'";
+      if (ecode != boost::asio::error::operation_aborted)
+        LOG(error) << "NTCPServer: " << __func__ << ": '" << ecode.message()
+                   << "'";
   }
   if (ecode != boost::asio::error::operation_aborted) {
     conn = std::make_shared<NTCPSession>(*this);
@@ -161,7 +163,9 @@ void NTCPServer::HandleAcceptV6(
           << "NTCPServer: " << __func__ << " remote endpoint: " << ec.message();
     }
   } else {
-    LOG(error) << "NTCPServer: " << __func__ << ": '" << ecode.message() << "'";
+      if (ecode != boost::asio::error::operation_aborted)
+        LOG(error) << "NTCPServer: " << __func__ << ": '" << ecode.message()
+                   << "'";
   }
   if (ecode != boost::asio::error::operation_aborted) {
     conn = std::make_shared<NTCPSession>(*this);
@@ -198,7 +202,7 @@ void NTCPServer::HandleConnect(
     std::shared_ptr<NTCPSession> conn,
     const boost::system::error_code& ecode) {
   if (ecode) {
-    LOG(error)
+    LOG(warning)
       << "NTCPServer:"
       << " [" << conn->GetRemoteRouter()->GetIdentHashAbbreviation() << "] "
       << __func__ << ": '" << ecode.message() << "'";

@@ -162,7 +162,7 @@ void NTCPSession::HandlePhase1Sent(
     const boost::system::error_code& ecode,
     std::size_t /*bytes_transferred*/) {
   if (ecode) {
-    LOG(error)
+    LOG(warning)
       << "NTCPSession:" << GetFormattedSessionInfo()
       << "!!! couldn't send Phase1 '" << ecode.message() << "'";
     if (ecode != boost::asio::error::operation_aborted)
@@ -191,13 +191,10 @@ void NTCPSession::HandlePhase2Received(
     const boost::system::error_code& ecode,
     std::size_t /*bytes_transferred*/) {
   if (ecode) {
-    LOG(error)
+    LOG(warning)
       << "NTCPSession:" << GetFormattedSessionInfo()
-      << "!!! Phase2 read error '" << ecode.message() << "'";
+      << "!!! " << __func__ << ": '" << ecode.message() << "'";
     if (ecode != boost::asio::error::operation_aborted) {
-      LOG(error)
-        << "NTCPSession:" << GetFormattedSessionInfo()
-        << "!!! Phase2 error, RI is not valid";
       LOG(trace)
         << "NTCPSession:" << GetFormattedSessionInfo()
         << GetFormattedPhaseInfo(Phase::Two);
@@ -241,9 +238,9 @@ void NTCPSession::HandlePhase2Received(
           m_Establisher->phase2.encrypted.hxy.data(),
           xy.data(),
           NTCPSize::PubKey * 2)) {
-      LOG(error)
+      LOG(warning)
         << "NTCPSession:" << GetFormattedSessionInfo()
-        << "!!! Phase2 << incorrect hash";
+        << "!!! " << __func__ << ": incorrect hash";
       LOG(trace)
         << "NTCPSession:" << GetFormattedSessionInfo()
         << "Decrypted " << GetFormattedPhaseInfo(Phase::Two);
@@ -375,7 +372,7 @@ void NTCPSession::HandlePhase3Sent(
     std::size_t /*bytes_transferred*/,
     std::uint32_t ts_A) {
   if (ecode) {
-    LOG(error)
+    LOG(warning)
       << "NTCPSession:" << GetFormattedSessionInfo()
       << "!!! couldn't send Phase3 '" << ecode.message() << "'";
     if (ecode != boost::asio::error::operation_aborted)
@@ -410,13 +407,10 @@ void NTCPSession::HandlePhase4Received(
     std::size_t bytes_transferred,
     std::uint32_t ts_A) {
   if (ecode) {
-    LOG(error)
+    LOG(warning)
       << "NTCPSession:" << GetFormattedSessionInfo()
-      << "!!! Phase4 read error '" << ecode.message() << "',  check your clock";  // TODO(anonimal): error message
+      << "!!! " << __func__ << ": '" << ecode.message() << "'";
     if (ecode != boost::asio::error::operation_aborted) {
-      LOG(error)
-        << "NTCPSession:" << GetFormattedSessionInfo()
-        << "!!! Phase4, remote router does not like us";
       kovri::core::netdb.SetUnreachable(GetRemoteIdentity().GetIdentHash(), true);
       Terminate();
     }
@@ -441,7 +435,7 @@ void NTCPSession::HandlePhase4Received(
   s.Insert(ts_A);  // Timestamp Alice
   s.Insert(m_Establisher->phase2.encrypted.timestamp);  // Timestamp Bob
   if (!s.Verify(m_RemoteIdentity, m_ReceiveBuffer)) {
-    LOG(error)
+    LOG(warning)
       << "NTCPSession:" << GetFormattedSessionInfo()
       << "!!! Phase4 signature verification failed";
     Terminate();
@@ -469,7 +463,7 @@ void NTCPSession::HandlePhase4Received(
 void NTCPSession::ServerLogin() {
   const auto& ecode = SetRemoteEndpoint();
   if (ecode) {
-    LOG(error)
+    LOG(warning)
       << "NTCPSession:" << GetFormattedSessionInfo()
       << "!!! " << __func__ << ": '" << ecode.message() << "'";
     LOG(trace)
@@ -497,9 +491,9 @@ void NTCPSession::HandlePhase1Received(
     const boost::system::error_code& ecode,
     std::size_t /*bytes_transferred*/) {
   if (ecode) {
-    LOG(error)
+    LOG(warning)
       << "NTCPSession:" << GetFormattedSessionInfo()
-      << "!!! Phase1 receive error '" << ecode.message() << "'";
+      << "!!! " << __func__ << ": '" << ecode.message() << "'";
     if (ecode != boost::asio::error::operation_aborted) {
       LOG(trace)
         << "NTCPSession:" << GetFormattedSessionInfo()
@@ -653,9 +647,9 @@ void NTCPSession::HandlePhase3Received(
     std::size_t bytes_transferred,
     std::uint32_t ts_B) {
   if (ecode) {
-    LOG(error)
+    LOG(warning)
       << "NTCPSession:" << GetFormattedSessionInfo()
-      << "!!! Phase3 read error '" << ecode.message() << "'";
+      << "!!! " << __func__ << ": '" << ecode.message() << "'";
     if (ecode != boost::asio::error::operation_aborted)
       Terminate();
     return;
@@ -675,7 +669,7 @@ void NTCPSession::HandlePhase3Received(
   std::uint16_t const size = core::InputByteStream::Read<std::uint16_t>(buf);
   m_RemoteIdentity.FromBuffer(buf + NTCPSize::Phase3AliceRI, size);
   if (m_Server.FindNTCPSession(m_RemoteIdentity.GetIdentHash())) {
-    LOG(error)
+    LOG(warning)
       << "NTCPSession:" << GetFormattedSessionInfo()
       << "!!! Phase3, session already exists";
     Terminate();
@@ -717,9 +711,9 @@ void NTCPSession::HandlePhase3ExtraReceived(
     std::uint32_t ts_B,
     std::size_t padding_len) {
   if (ecode) {
-    LOG(error)
+    LOG(warning)
       << "NTCPSession:" << GetFormattedSessionInfo()
-      << "!!! Phase3 << extra read error '" << ecode.message() << "'";
+      << "!!! " << __func__ << ": '" << ecode.message() << "'";
     if (ecode != boost::asio::error::operation_aborted)
       Terminate();
     return;
@@ -756,7 +750,7 @@ void NTCPSession::HandlePhase3(
   s.Insert(ts_A);
   s.Insert(ts_B);
   if (!s.Verify(m_RemoteIdentity, buf)) {
-    LOG(error)
+    LOG(warning)
       << "NTCPSession:" << GetFormattedSessionInfo()
       << "!!! Phase3, signature verification failed";
     Terminate();
@@ -895,7 +889,7 @@ void NTCPSession::HandleSentPayload(
   m_NumSentBytes += bytes_transferred;
   LOG(debug)
     << "NTCPSession:" << GetFormattedSessionInfo()
-    << "<-- " << bytes_transferred << " bytes transferred << "
+    << "<-- " << bytes_transferred << " bytes transferred, "
     << GetNumSentBytes() << " total bytes sent";
   kovri::core::transports.UpdateSentBytes(bytes_transferred);
   if (!m_SendQueue.empty()) {
@@ -936,7 +930,7 @@ boost::asio::const_buffers_1 NTCPSession::CreateMsgBuffer(
     if (msg) {
       // Regular I2NP
       if (msg->offset < NTCPSize::Phase3AliceRI) {
-        LOG(error)
+        LOG(warning)
           << "NTCPSession:" << GetFormattedSessionInfo()
           << "!!! malformed I2NP message";  // TODO(unassigned): Error handling
       }
@@ -1002,7 +996,7 @@ void NTCPSession::HandleReceivedPayload(
   }
   // EOF errors are expected for short messages, so ignoring them here is fine
   if (ecode && (ecode != boost::asio::error::eof)) {
-    LOG(error)
+    LOG(warning)
       << "NTCPSession:" << GetFormattedSessionInfo()
       << "!!! " << __func__ << ": '" << ecode.message() << "'";
     if (!m_NumReceivedBytes) {
@@ -1062,7 +1056,7 @@ bool NTCPSession::DecryptNextBlock(
       if (data_size) {
         // New message
         if (data_size > NTCPSize::MaxMessage) {
-          LOG(error)
+          LOG(warning)
             << "NTCPSession:" << GetFormattedSessionInfo()
             << "!!! data block size '" << data_size << "' exceeds max size";
           return false;
@@ -1159,10 +1153,10 @@ void NTCPSession::HandleTerminationTimer(
     << "NTCPSession:" << GetFormattedSessionInfo()
     << "*** handling termination timer";
   if (ecode != boost::asio::error::operation_aborted) {
-    LOG(error)
+    LOG(warning)
       << "NTCPSession:" << GetFormattedSessionInfo()
-      << "!!! no activity for '"
-      << GetType(NTCPTimeoutLength::Termination) << "' seconds";
+      << "!!! no activity for "
+      << GetType(NTCPTimeoutLength::Termination) << " seconds";
     // Terminate();
     m_Socket.close();  // invoke Terminate() from HandleReceive
   }

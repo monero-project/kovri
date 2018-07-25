@@ -134,9 +134,13 @@ void I2PTunnelConnection::HandleReceived(
     const boost::system::error_code& ecode,
     std::size_t bytes_transferred) {
   if (ecode) {
-    LOG(error) << "I2PTunnelConnection: read error: " << ecode.message();
     if (ecode != boost::asio::error::operation_aborted)
-      Terminate();
+      {
+        if (ecode != boost::asio::error::eof)
+          LOG(error) << "I2PTunnelConnection: " << __func__ << ": '"
+                     << ecode.message() << "'";
+        Terminate();
+      }
   } else {
     if (m_Stream) {
       auto s = shared_from_this();
@@ -182,9 +186,12 @@ void I2PTunnelConnection::HandleStreamReceive(
     const boost::system::error_code& ecode,
     std::size_t bytes_transferred) {
   if (ecode) {
-    LOG(error) << "I2PTunnelConnection: stream read error: " << ecode.message();
     if (ecode != boost::asio::error::operation_aborted)
-      Terminate();
+      {
+        LOG(error) << "I2PTunnelConnection: " << __func__ << ": '"
+                   << ecode.message() << "'";
+        Terminate();
+      }
   } else {
     Write(m_StreamBuffer, bytes_transferred);
   }
@@ -341,7 +348,7 @@ void I2PClientTunnelHandler::HandleStreamRequestComplete(
     connection->I2PConnect();
     Done(shared_from_this());
   } else {
-    LOG(error)
+    LOG(warning)
       << "I2PClientTunnelHandler: stream not available "
       << "(router may need more time to integrate into the network)";
     Terminate();

@@ -323,7 +323,7 @@ void SSUData::ProcessFragments(
           m_ReceivedMessages.insert(msg_id);
           m_Handler.PutNextMessage(msg);
         } else {
-          LOG(error)
+          LOG(warning)
             << "SSUData:" << m_Session.GetFormattedSessionInfo()
             << "SSU unexpected message "
             << static_cast<int>(msg->GetTypeID());
@@ -543,7 +543,7 @@ void SSUData::HandleResendTimer(
              += it->second->num_resends * SSUDuration::ResendInterval;
           it++;
         } else {
-          LOG(error)
+          LOG(warning)
             << "SSUData:" << m_Session.GetFormattedSessionInfo()
             << "SSU message has not been ACKed after "
             << static_cast<std::size_t>(SSUDuration::MaxResends) << " attempts. Deleted";
@@ -605,10 +605,10 @@ void SSUData::HandleIncompleteMessagesCleanupTimer(
     std::uint8_t const timeout = SSUDuration::IncompleteMessagesCleanupTimeout;
     for (auto it = m_IncompleteMessages.begin(); it != m_IncompleteMessages.end();) {
       if (ts > it->second->last_fragment_insert_time + timeout) {
-        LOG(error)
+        LOG(warning)
           << "SSUData:" << m_Session.GetFormattedSessionInfo()
           << "SSU message " << it->first << " was not completed in "
-          << timeout << " seconds. Deleted";
+          << static_cast<std::uint16_t>(timeout) << " seconds. Deleted";
         it = m_IncompleteMessages.erase(it);
       } else {
         it++;

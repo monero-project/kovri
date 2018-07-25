@@ -399,8 +399,8 @@ void ClientDestination::HandleDatabaseSearchReplyMessage(
         }
       }
       if (!found)
-        LOG(error)
-          << "ClientDestination: suggested floodfills are not presented in NetDb";
+        LOG(warning)
+          << "ClientDestination: suggested floodfills are not found in NetDb";
     } else {
       LOG(debug)
         << "ClientDestination: " << key.ToBase64() << " was not found on "
@@ -449,8 +449,10 @@ void ClientDestination::Publish() {
   }
   auto outbound = m_Pool->GetNextOutboundTunnel();
   if (!outbound) {
-    LOG(error) << "ClientDestination: can't publish LeaseSet, no outbound tunnels";
-    return;
+      LOG(error)
+          << "ClientDestination: can't publish LeaseSet, no outbound tunnels "
+             "(router may need more time to integrate into the network)";
+      return;
   }
   std::set<kovri::core::IdentHash> excluded;
   auto floodfill =

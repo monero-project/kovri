@@ -249,7 +249,9 @@ void SSUServer::HandleReceivedFrom(
     }
   else
     {
-      LOG(error) << "SSUServer: receive error: " << ecode.message();
+      if (ecode != boost::asio::error::operation_aborted)
+        LOG(error) << "SSUServer: " << __func__ << ": '" << ecode.message()
+                   << "'";
 #if (BOOST_VERSION < 106600)
       delete packet;  // free packet, now
 #endif
@@ -313,7 +315,9 @@ void SSUServer::HandleReceivedFromV6(
     }
   else
     {
-      LOG(error) << "SSUServer: V6 receive error: " << ecode.message();
+      if (ecode != boost::asio::error::operation_aborted)
+        LOG(error) << "SSUServer: " << __func__ << ": '" << ecode.message()
+                   << "'";
 #if (BOOST_VERSION < 106600)
       delete packet;  // free packet, now
 #endif
@@ -495,7 +499,7 @@ std::shared_ptr<SSUSession> SSUServer::GetSession(
           } else {
             LOG(warning)
               << "SSUServer: can't connect to unreachable router."
-              << "No introducers presented";
+              << "No introducers available";
             std::unique_lock<std::mutex> l(m_SessionsMutex);
             m_Sessions.erase(remote_endpoint);
             session.reset();

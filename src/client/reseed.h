@@ -123,15 +123,16 @@ class Reseed {
     "https://download.xxlspeed.com/",  // Requires SNI
     "https://i2p.mooo.com/netDb/",
     "https://i2pseed.creativecowpat.net:8443/",
-    "https://netdb.i2p2.no/",  // Requires SNI
     "https://reseed.i2p-projekt.de/",
     "https://reseed.onion.im/",
     // Note: for "Let's Encrypt" certs,
     // we currently require DST Root CA X3 (not ISRG Root X1)
-    "https://i2p-0.manas.ca:8443/",
-    "https://i2p.manas.ca:8443/",
+    // TODO(unassigned): Temporarily(?) offline
+    //"https://i2p-0.manas.ca:8443/",
+    //"https://i2p.manas.ca:8443/",
     "https://i2p.novg.net/",
-    "https://reseed.atomike.ninja/",  // Requires SNI
+    // TODO(unassigned): Currently expired certificate
+    //"https://reseed.atomike.ninja/",  // Requires SNI
     "https://reseed.memcpy.io/",  // Requires SNI
   };
 };

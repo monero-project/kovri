@@ -80,7 +80,6 @@ if (NOT WITH_PYTHON AND NOT WITH_SHARED_DEPS)
 endif()
 
 # Default build is Debug
-# TODO(anonimal): currently, there are no other release-specific flags (fix this when we release)
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug)
 endif()

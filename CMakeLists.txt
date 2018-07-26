@@ -127,6 +127,14 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
   set(CLANG TRUE)
 endif()
 
+# TODO(unassigned): an absolute hack to work around a clang (CMake?) bug that does not like our Release build type.
+#   Strangely, we don't do anything out of the ordinary with our Release build type, nor do our deps.
+#   The issue is not reproducible with Debug build type. See #993.
+#   Absolutely resolve this hack when are out of out Alpha, or no later than Beta.
+if (CLANG)
+  set(CMAKE_BUILD_TYPE Debug)
+endif()
+
 # Require C++14 support (minimum version compilers guarantee this)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

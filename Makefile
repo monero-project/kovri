@@ -225,7 +225,7 @@ fuzz-tests: deps
 
 # Produce Doxygen documentation
 doxygen:
-	$(eval cmake-kovri += $(cmake-doxygen))
+	$(eval cmake-kovri += $(cmake) $(cmake-doxygen))
 	$(call CMAKE,$(build),$(cmake-kovri)) && $(MAKE) -C $(build) doc
 
 # Produce available CMake build options

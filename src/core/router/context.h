@@ -147,7 +147,7 @@ class RouterContext : public RouterInfoTraits, public GarlicDestination {
   // @return true if we are a floodfill router otherwise false
   bool IsFloodfill() const
   {
-    return m_Opts["floodfill"].as<bool>();
+    return m_Opts["enable-floodfill"].as<bool>();
   }
 
   // @return true if we are going to accept tunnels right now.

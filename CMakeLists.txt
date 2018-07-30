@@ -132,7 +132,8 @@ endif()
 #   The issue is not reproducible with Debug build type. See #993.
 #   Absolutely resolve this hack when are out of out Alpha, or no later than Beta.
 if (CLANG)
-  set(CMAKE_BUILD_TYPE Debug)
+  # Remove aggressive optimizations from release builds. Referencing #993
+  string(REPLACE "-O3" "-O1" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
 endif()
 
 # Require C++14 support (minimum version compilers guarantee this)

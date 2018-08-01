@@ -1655,7 +1655,7 @@ const std::uint8_t* SSUSession::GetIntroKey() const
     {
       LOG(debug) << "SSUSession: " << __func__ << ": using remote's key";
       auto* const address =
-          m_RemoteRouter->GetAddress(m_RemoteRouter->HasV6(), Transport::SSU);
+          m_RemoteRouter->GetAnyAddress(m_RemoteRouter->HasV6(), Transport::SSU);
       assert(address);  // TODO(anonimal): SSU should be guaranteed
       return address->key;
     }

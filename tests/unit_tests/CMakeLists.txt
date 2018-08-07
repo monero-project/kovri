@@ -24,6 +24,7 @@ add_executable(kovri-tests
   core/router/info.cc
   core/router/net_db/impl.cc
   core/router/transports/ssu/packet.cc
+  core/router/tunnel/config.cc
   core/util/buffer.cc
   core/util/byte_stream.cc
   core/util/config.cc

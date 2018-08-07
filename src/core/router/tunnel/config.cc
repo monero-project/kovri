@@ -62,8 +62,8 @@ TunnelHopConfig::TunnelHopConfig(
       m_NextTunnelID(0),
       m_PreviousHop(nullptr),
       m_NextHop(nullptr),
-      m_IsGateway(true),
-      m_IsEndpoint(true),
+      m_IsGateway(false),
+      m_IsEndpoint(false),
       m_RecordIndex(0),
       m_Exception(__func__) {
         if (!router)
@@ -108,15 +108,6 @@ TunnelHopConfig* TunnelHopConfig::GetNextHop() const noexcept {
   return m_NextHop;
 }
 
-void TunnelHopConfig::SetPreviousHop(TunnelHopConfig* hop) noexcept {
-  m_PreviousHop = hop;
-  if (m_PreviousHop) {
-    m_PreviousHop->m_NextHop = this;
-    m_PreviousHop->m_IsEndpoint = false;
-    m_IsGateway = false;
-  }
-}
-
 TunnelHopConfig* TunnelHopConfig::GetPreviousHop() const noexcept {
   return m_PreviousHop;
 }
@@ -134,6 +125,8 @@ const TunnelAESRecordAttributes& TunnelHopConfig::GetAESAttributes() const {
 }
 
 void TunnelHopConfig::SetIsGateway(bool value) noexcept {
+  if (value)
+    m_IsEndpoint = !value;
   m_IsGateway = value;
 }
 
@@ -142,6 +135,8 @@ bool TunnelHopConfig::IsGateway() const noexcept {
 }
 
 void TunnelHopConfig::SetIsEndpoint(bool value) noexcept {
+  if (value)
+    m_IsGateway = !value;
   m_IsEndpoint = value;
 }
 
@@ -164,13 +159,17 @@ int TunnelHopConfig::GetRecordIndex() const noexcept {
 }
 
 void TunnelHopConfig::CreateBuildRequestRecord(
-    std::uint8_t* record,
-    std::uint32_t reply_msg_ID) {
+    ClearBuildRequestRecord& clear_record,
+    const std::uint32_t reply_msg_ID)
+{
+  if (!reply_msg_ID)
+    throw std::invalid_argument(__func__ + std::string(": null reply ID"));
+
   LOG(debug) << "TunnelHopConfig: creating build request record";
 
   // Create clear text record
-  std::array<std::uint8_t, BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE> clear_text {{}};
-  auto stream = std::make_unique<OutputByteStream>(clear_text.data(), clear_text.size());
+  auto stream = std::make_unique<kovri::core::OutputByteStream>(
+      clear_record.data(), clear_record.size());
 
   // Tunnel ID to receive messages as
   stream->Write<std::uint32_t>(GetTunnelID());
@@ -197,7 +196,7 @@ void TunnelHopConfig::CreateBuildRequestRecord(
   std::uint8_t flag = 0;
   if (IsGateway())
     flag |= 0x80;
-  if (IsEndpoint())
+  else if (IsEndpoint())
     flag |= 0x40;
   stream->Write<std::uint8_t>(flag);
 
@@ -211,27 +210,24 @@ void TunnelHopConfig::CreateBuildRequestRecord(
   std::array<std::uint8_t, BUILD_REQUEST_RECORD_RAND_PAD_SIZE> padding;
   RandBytes(padding.data(), padding.size());
   stream->WriteData(padding.data(), padding.size());
+}
 
-  // TODO(anonimal): this try block should be larger or handled entirely by caller
-  try {
-    // ElGamal encrypt with the hop's public encryption key
-    GetCurrentRouter()->GetElGamalEncryption()->Encrypt(
-        stream->data(),
-        stream->size(),
-        // TODO(unassigned): Passing pointer argument interferes with more needed refactor work.
-        // Pointing to record argument appears to only lead to more spaghetti code
-        record + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET);
-  } catch (...) {
-    m_Exception.Dispatch(__func__);
-    // TODO(anonimal): review if we need to safely break control, ensure exception handling by callers
-    throw;
-  }
+void TunnelHopConfig::EncryptRecord(
+    const ClearBuildRequestRecord& clear_record,
+    EncryptedBuildRequestRecord& encrypted_record)
+{
+  // Copy local identity to beginning of the encrypted record
+  const auto& local_ident = GetCurrentRouter()->GetIdentHash();
+  std::copy(
+      local_ident(),
+      local_ident() + local_ident.size(),
+      encrypted_record.begin());
 
-  // First half of the SHA-256 of the current hop's router identity
-  std::memcpy(
-      record + BUILD_REQUEST_RECORD_TO_PEER_OFFSET,
-      local_ident,
-      BUILD_REQUEST_RECORD_CURRENT_HOP_IDENT_HASH_SIZE);
+  // ElGamal encrypt with the hop's public encryption key
+  GetCurrentRouter()->GetElGamalEncryption()->Encrypt(
+      clear_record.data(),
+      clear_record.size(),
+      encrypted_record.data() + BUILD_REQUEST_RECORD_ENCRYPTED_OFFSET);
 }
 
 // TODO(unassigned): smart pointers, please
@@ -254,6 +250,7 @@ TunnelConfig::TunnelConfig(
       m_FirstHop->SetIsGateway(false);
       m_LastHop->SetReplyHop(reply_tunnel_config->GetFirstHop());
     } else {  // inbound
+      m_FirstHop->SetIsGateway(true);
       m_LastHop->SetNextRouter(context.GetSharedRouterInfo());
     }
   }
@@ -287,7 +284,8 @@ int TunnelConfig::GetNumHops() const {
 }
 
 bool TunnelConfig::IsInbound() const {
-  return m_FirstHop->IsGateway();
+  // Last hop in inbound tunnel is a participant
+  return !m_LastHop->IsEndpoint();
 }
 
 std::vector<std::shared_ptr<const kovri::core::RouterInfo> > TunnelConfig::GetPeers() const {

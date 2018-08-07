@@ -48,6 +48,18 @@
 namespace kovri {
 namespace core {
 
+/// @alias EncryptedBuildRequestRecord
+/// @brief Alias to a encrypted build request record buffer
+/// @details Intended to make use and refactoring easier
+using EncryptedBuildRequestRecord =
+    std::array<std::uint8_t, TUNNEL_BUILD_RECORD_SIZE>;
+
+/// @alias ClearBuildRequestRecord
+/// @brief Alias to a cleartext build request record buffer
+/// @details Intended to make use and refactoring easier
+using ClearBuildRequestRecord =
+    std::array<std::uint8_t, BUILD_REQUEST_RECORD_CLEAR_TEXT_SIZE>;
+
 /// @class TunnelAESRecordAttributes
 /// @brief AES-related attributes for build request record
 /// @warning *Must* be initialized with random data
@@ -64,9 +76,18 @@ class TunnelHopConfig {
       std::shared_ptr<const RouterInfo> router);
 
   /// @brief Creates a build request record for tunnel build message
+  /// @param clear_record Output buffer for the cleartext build request record
+  /// @param reply_msg_ID Message ID for the build response record
   void CreateBuildRequestRecord(
-      std::uint8_t* record,
-      std::uint32_t reply_msg_ID);
+      ClearBuildRequestRecord& clear_record,
+      const std::uint32_t reply_msg_ID);
+
+  /// @brief Encrypts a build request record
+  /// @param clear_record Input buffer containing the cleartext build request record
+  /// @param encrypted_record Output buffer for the encrypted build request record
+  void EncryptRecord(
+      const ClearBuildRequestRecord& clear_record,
+      EncryptedBuildRequestRecord& encrypted_record);
 
   const std::shared_ptr<const RouterInfo>& GetCurrentRouter() const noexcept;
 
@@ -80,7 +101,6 @@ class TunnelHopConfig {
   void SetNextHop(TunnelHopConfig* hop);
   TunnelHopConfig* GetNextHop() const noexcept;
 
-  void SetPreviousHop(TunnelHopConfig* hop) noexcept;  // TODO(unassigned): see comment in #510
   TunnelHopConfig* GetPreviousHop() const noexcept;
 
   void SetReplyHop(const TunnelHopConfig* hop);

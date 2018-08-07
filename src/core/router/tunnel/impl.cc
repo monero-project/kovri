@@ -81,10 +81,19 @@ void Tunnel::Build(
     int i = 0;
     while (hop) {
       int idx = record_indicies[i];
+      ClearBuildRequestRecord clear_record{{}};
       hop->CreateBuildRequestRecord(
-          records + idx * TUNNEL_BUILD_RECORD_SIZE,
+          clear_record,
           // we set reply_msg_ID for last hop only
           hop->GetNextHop() ? Rand<std::uint32_t>() : reply_msg_ID);
+      EncryptedBuildRequestRecord encrypted_record;
+      // Encrypt cleartext build request record
+      hop->EncryptRecord(clear_record, encrypted_record);
+      // Copy encrypted record back into the payload
+      std::copy(
+          encrypted_record.begin(),
+          encrypted_record.end(),
+          &records[idx * TUNNEL_BUILD_RECORD_SIZE]);
       hop->SetRecordIndex(idx);
       i++;
       hop = hop->GetNextHop();

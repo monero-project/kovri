@@ -52,18 +52,18 @@ This page is also available in the following languages
 
 ### Dependencies and environment
 
-| Dependency          | Minimum version              | Optional | Arch Linux  | Ubuntu/Debian    | macOS (Homebrew) | FreeBSD       | OpenBSD     |
-| ------------------- | ---------------------------- |:--------:| ----------- | ---------------- | ---------------- | ------------- | ----------- |
-| git                 | 1.9.1                        |          | git         | git              | git              | git           | git         |
-| gcc                 | 4.9.2                        |          | gcc         | gcc              |                  |               |             |
-| clang               | 3.5 (3.6 on FreeBSD)         |          | clang       | clang            | clang (Apple)    | clang36       | llvm        |
-| CMake               | 3.5.1                        |          | cmake       | cmake            | cmake            | cmake         | cmake       |
-| gmake (BSD)         | 4.2.1                        |          |             |                  |                  | gmake         | gmake       |
-| Boost               | 1.58                         |          | boost       | libboost-all-dev | boost            | boost-libs    | boost       |
-| OpenSSL             | Always latest stable version |          | openssl     | libssl-dev       | openssl          | openssl       | openssl     |
-| Doxygen             | 1.8.6                        |    X     | doxygen     | doxygen          | doxygen          | doxygen       | doxygen     |
-| Graphviz            | 2.36                         |    X     | graphviz    | graphviz         | graphviz         | graphviz      | graphviz    |
-| Docker              | Always latest stable version |    X     | See website | See website      | See website      | See website   | See website |
+| Dependency          | Minimum version              | Optional | Arch Linux  | Ubuntu/Debian    | macOS (Homebrew) | FreeBSD       | OpenBSD     | Fedora	  |
+| ------------------- | ---------------------------- |:--------:| ----------- | ---------------- | ---------------- | ------------- | ----------- | -----------   |
+| git                 | 1.9.1                        |          | git         | git              | git              | git           | git         | git		  |
+| gcc                 | 4.9.2                        |          | gcc         | gcc              |                  |               |             | gcc		  |
+| clang               | 3.5 (3.6 on FreeBSD)         |          | clang       | clang            | clang (Apple)    | clang36       | llvm        | clang	  |
+| CMake               | 3.5.1                        |          | cmake       | cmake            | cmake            | cmake         | cmake       | cmake	  |
+| gmake (BSD)         | 4.2.1                        |          |             |                  |                  | gmake         | gmake       | 		  |
+| Boost               | 1.58                         |          | boost       | libboost-all-dev | boost            | boost-libs    | boost       | boost-devel   |
+| OpenSSL             | Always latest stable version |          | openssl     | libssl-dev       | openssl          | openssl       | openssl     | openssl-devel |
+| Doxygen             | 1.8.6                        |    X     | doxygen     | doxygen          | doxygen          | doxygen       | doxygen     | doxygem	  |
+| Graphviz            | 2.36                         |    X     | graphviz    | graphviz         | graphviz         | graphviz      | graphviz    | graphviz	  |
+| Docker              | Always latest stable version |    X     | See website | See website      | See website      | See website   | See website | See website	  |
 
 #### Windows (MSYS2/MinGW-64)
 * Download the [MSYS2 installer](http://msys2.github.io/), 64-bit or 32-bit as needed

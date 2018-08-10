@@ -61,7 +61,7 @@ This page is also available in the following languages
 | gmake (BSD)         | 4.2.1                        |          |             |                  |                  | gmake         | gmake       | 		  |
 | Boost               | 1.58                         |          | boost       | libboost-all-dev | boost            | boost-libs    | boost       | boost-devel   |
 | OpenSSL             | Always latest stable version |          | openssl     | libssl-dev       | openssl          | openssl       | openssl     | openssl-devel |
-| Doxygen             | 1.8.6                        |    X     | doxygen     | doxygen          | doxygen          | doxygen       | doxygen     | doxygem	  |
+| Doxygen             | 1.8.6                        |    X     | doxygen     | doxygen          | doxygen          | doxygen       | doxygen     | doxygen	  |
 | Graphviz            | 2.36                         |    X     | graphviz    | graphviz         | graphviz         | graphviz      | graphviz    | graphviz	  |
 | Docker              | Always latest stable version |    X     | See website | See website      | See website      | See website   | See website | See website	  |
 

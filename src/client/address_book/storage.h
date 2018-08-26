@@ -115,6 +115,21 @@ struct AddressBookDefaults {
     return "hosts.txt";
   }
 
+  std::string GetSubscriptionFilename(const SubscriptionType sub) const {
+    switch(sub)
+    {
+      case SubscriptionType::Default:
+        return "hosts.txt";
+      case SubscriptionType::User:
+        return "user_hosts.txt";
+      case SubscriptionType::Private:
+        return "private_hosts.txt";
+      default:
+        LOG(error) << __func__ << ": unknown subscription type";
+        return "";
+    }
+  }
+
   /// @brief Gets addresses file (file list of saved addresses)
   /// @return Default addresses filename
   /// @notes Currently only used to verify that addresses have indeed been saved
@@ -161,6 +176,13 @@ class AddressBookStorage : public AddressBookDefaults {
   /// @return Number of addresses saved
   /// @param addresses Const reference to map of human-readable address to b32 hashes of address
   std::size_t Save(const AddressMap& addresses);
+
+  /// @brief Saves subscriptions to file in hosts.txt format
+  /// @return Number of addresses saved
+  /// @param addresses Const reference to map of human-readable address to full router identity
+  std::size_t SaveSubscription(
+      const std::map<std::string, kovri::core::IdentityEx>& addresses,
+      SubscriptionType sub);
 
  private:
   /// @return Address book path with appended addresses location

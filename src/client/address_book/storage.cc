@@ -146,5 +146,31 @@ std::size_t AddressBookStorage::Save(const AddressMap& addresses)
   return num;
 }
 
+std::size_t AddressBookStorage::SaveSubscription(
+    const std::map<std::string, kovri::core::IdentityEx>& addresses,
+    SubscriptionType sub)
+{
+  std::size_t num = 0;
+  auto filename = core::GetPath(core::Path::AddressBook)/ GetSubscriptionFilename(sub);
+  LOG(debug) << "AddressBookStorage: opening subscription file " << filename;
+  std::ofstream file(filename.string(), std::ofstream::out);
+  if (!file)
+    {
+      LOG(error) << "AddressBookStorage: can't open subscription " << filename;
+    }
+  else
+    {
+      for (auto const& it : addresses)
+        {
+          file << it.first << "=" << it.second.ToBase64() << std::endl;
+          num++;
+        }
+      LOG(info) << "AddressBookStorage: " << num << " addresses saved";
+    }
+  // Flush subscription file
+  file << std::flush;
+  return num;
+}
+
 }  // namespace client
 }  // namespace kovri

@@ -113,7 +113,7 @@ class GarlicRoutingSession
   GarlicRoutingSession(
       GarlicDestination* owner,
       std::shared_ptr<const kovri::core::RoutingDestination> destination,
-      int num_tags,
+      std::size_t num_tags,
       bool attach_lease_set);
 
   GarlicRoutingSession(
@@ -144,13 +144,13 @@ class GarlicRoutingSession
   };
 
   struct UnconfirmedTags {
-    explicit UnconfirmedTags(int n)
+    explicit UnconfirmedTags(std::size_t n)
         : num_tags(n),
           tags_creation_time(0) {
             session_tags = std::make_unique<SessionTag[]>(num_tags);
           }
     ~UnconfirmedTags() {}
-    int num_tags;
+    std::size_t num_tags;
     std::unique_ptr<SessionTag[]> session_tags;
     std::uint32_t tags_creation_time;
   };
@@ -184,7 +184,7 @@ class GarlicRoutingSession
   std::shared_ptr<const kovri::core::RoutingDestination> m_Destination;
   kovri::core::AESKey m_SessionKey;
   std::list<SessionTag> m_SessionTags;
-  int m_NumTags;
+  std::size_t m_NumTags;
   std::map<std::uint32_t, UnconfirmedTags *> m_UnconfirmedTagsMsgs;
 
   LeaseSetUpdateStatus m_LeaseSetUpdateStatus;

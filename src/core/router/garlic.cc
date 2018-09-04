@@ -52,7 +52,7 @@ namespace core {
 GarlicRoutingSession::GarlicRoutingSession(
     GarlicDestination* owner,
     std::shared_ptr<const kovri::core::RoutingDestination> destination,
-    int num_tags,
+    std::size_t num_tags,
     bool attach_leaseset)
     : m_Owner(owner),
       m_Destination(destination),
@@ -106,8 +106,7 @@ GarlicRoutingSession::UnconfirmedTags*
 GarlicRoutingSession::GenerateSessionTags() {
   auto tags = new UnconfirmedTags(m_NumTags);
   tags->tags_creation_time = kovri::core::GetSecondsSinceEpoch();
-  // TODO(unassigned): change int to std::size_t, adjust related code
-  for (int i = 0; i < m_NumTags; i++) {
+  for (std::size_t i = 0; i < m_NumTags; i++) {
     kovri::core::RandBytes(tags->session_tags[i], 32);
     tags->session_tags[i].creation_time = tags->tags_creation_time;
   }
@@ -131,8 +130,7 @@ void GarlicRoutingSession::TagsConfirmed(std::uint32_t msg_ID) {
     std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
     UnconfirmedTags* tags = it->second;
     if (ts < tags->tags_creation_time + OUTGOING_TAGS_EXPIRATION_TIMEOUT) {
-      // TODO(unassigned): change int to std::size_t, adjust related code
-      for (int i = 0; i < tags->num_tags; i++)
+      for (std::size_t i = 0; i < tags->num_tags; i++)
         m_SessionTags.push_back(tags->session_tags[i]);
     }
     m_UnconfirmedTagsMsgs.erase(it);
@@ -245,13 +243,13 @@ std::size_t GarlicRoutingSession::CreateAESBlock(
   bool create_new_tags =
     m_Owner &&
     m_NumTags &&
-    (static_cast<int>(m_SessionTags.size()) <= m_NumTags * 2 / 3);
+    (m_SessionTags.size() <= m_NumTags * 2 / 3);
   UnconfirmedTags* new_tags = create_new_tags ? GenerateSessionTags() : nullptr;
   core::OutputByteStream::Write<std::uint16_t>(
       buf, new_tags ? new_tags->num_tags : 0);  // tag count
   block_size += 2;
   if (new_tags) {  // session tags recreated
-    for (int i = 0; i < new_tags->num_tags; i++) {
+    for (std::size_t i = 0; i < new_tags->num_tags; i++) {
       memcpy(buf + block_size, new_tags->session_tags[i], 32);  // tags
       block_size += 32;
     }
@@ -509,7 +507,7 @@ void GarlicDestination::HandleGarlicMessage(
     std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
     if (ts > m_LastTagsCleanupTime + INCOMING_TAGS_EXPIRATION_TIMEOUT) {
       if (m_LastTagsCleanupTime) {
-        int num_expired_tags = 0;
+        std::size_t num_expired_tags = 0;
         for (auto it = m_Tags.begin(); it != m_Tags.end();) {
           if (ts > it->first.creation_time + INCOMING_TAGS_EXPIRATION_TIMEOUT) {
             num_expired_tags++;
@@ -550,7 +548,7 @@ void GarlicDestination::HandleAESBlock(
         return;
       }
       std::uint32_t ts = kovri::core::GetSecondsSinceEpoch();
-      for (int i = 0; i < tag_count; i++)
+      for (std::uint16_t i = 0; i < tag_count; i++)
         m_Tags[SessionTag(buf + i * 32, ts)] = decryption;
     }
     buf += tag_count * 32;

@@ -103,6 +103,22 @@ class RouterContext : public RouterInfoTraits, public GarlicDestination {
     return m_State;
   }
 
+  /// @return Router state
+  std::string GetState(RouterState state) const noexcept
+  {
+    switch (state)
+      {
+        case RouterState::OK:
+          return "OK";
+        case RouterState::Testing:
+          return "Testing";
+        case RouterState::Firewalled:
+          return "Firewalled";
+        default:
+          return "Unknown";
+      }
+  }
+
   /// @brief Set context state
   // @param status the new state this context will have
   void SetState(RouterState state) noexcept

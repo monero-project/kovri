@@ -241,8 +241,9 @@ void I2PControlSession::HandleRouterInfo(
     {
       switch (pair.first)
         {
-          case RouterInfo::Status:  // TODO(unassigned): implement
-            response->SetParam(pair.first, std::string("???"));
+          case RouterInfo::Status:
+            response->SetParam(
+                pair.first, core::context.GetState(core::context.GetState()));
             break;
 
           case RouterInfo::Uptime:

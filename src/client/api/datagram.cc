@@ -107,6 +107,8 @@ void DatagramDestination::SendDatagramTo(
     std::uint16_t to_port) {
   // TODO(anonimal): this try block should be larger or handled entirely by caller
   try {
+    if (!payload)
+      throw std::invalid_argument(std::string(__func__) + ": null payload");
     std::uint8_t buf[MAX_DATAGRAM_SIZE];
     auto identity_len = m_Owner.GetIdentity().ToBuffer(buf, MAX_DATAGRAM_SIZE);
     std::uint8_t* signature = buf + identity_len;

@@ -62,6 +62,12 @@ SOCKSHandler::SOCKSHandler(
         m_AddressType(IPv4),
         m_SOCKSVersion(SOCKS5),
         m_Command(Connect) {
+          if (!parent)
+            throw std::invalid_argument(
+                __func__ + std::string(": null server"));
+          if (!socket)
+            throw std::invalid_argument(
+                __func__ + std::string(": null socket"));
           m_Address.ip = 0;
           EnterState(GetSOCKSVersion);
         }
@@ -602,16 +608,6 @@ void SOCKSDNSAddress::FromString(std::string str)
   if (str.length() > MAX_SOCKS_HOSTNAME_SIZE)
     size = MAX_SOCKS_HOSTNAME_SIZE;
   memcpy(value, str.c_str(), size);
-}
-
-std::string SOCKSDNSAddress::ToString()
-{
-  return std::string(value, size);
-}
-
-void SOCKSDNSAddress::PushBack(char c)
-{
-  value[size++] = c;
 }
 
 }  // namespace client

@@ -4,6 +4,7 @@ project(kovri-tests CXX)
 add_executable(kovri-tests 
   client/address_book/impl.cc
   client/address_book/storage.cc
+  client/api/datagram.cc
   client/api/i2p_control/data.cc
   client/api/i2p_control/parser.cc
   client/api/streaming.cc
